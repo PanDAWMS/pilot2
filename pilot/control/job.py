@@ -117,7 +117,9 @@ def retrieve(queues, graceful_stop, traces, args):
 
         logger.debug('trying to fetch job')
 
-        cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/getJob?node={0}&siteName={1}&computingElement={2}&prodSourceLabel=mtest"'.format(socket.getfqdn(), args.resource, args.queue)
+        cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert' \
+              ' $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/getJob?node=' \
+              '{0}&siteName={1}&computingElement={2}&prodSourceLabel=mtest"'.format(socket.getfqdn(), args.resource, args.queue)
         logger.debug('executing: {0}'.format(cmd))
         s, o = commands.getstatusoutput(cmd)
 

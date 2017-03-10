@@ -110,7 +110,9 @@ def copytool_in(queues, graceful_stop, traces, args):
             logger.info('{0}: dataset={1} rse={2}'.format(job['PandaID'], job['realDatasetsIn'], job['ddmEndPointIn']))
 
             logger.debug('{0}: set job state=transferring'.format(job['PandaID']))
-            cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId={0}&state=transferring"'.format(job['PandaID'])
+            cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert ' \
+                  '$X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?' \
+                  'jobId={0}&state=transferring"'.format(job['PandaID'])
             logger.debug('executing: {0}'.format(cmd))
             s, o = commands.getstatusoutput(cmd)
             if s != 0:
@@ -135,7 +137,9 @@ def copytool_out(queues, graceful_stop, traces, args):
             logger.info('{0}: dataset={1} rse={2}'.format(job['PandaID'], job['destinationDblock'], job['ddmEndPointOut']))
 
             logger.debug('{0}: set job state=transferring'.format(job['PandaID']))
-            cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId={0}&state=transferring"'.format(job['PandaID'])
+            cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert' \
+                  ' $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId={0}' \
+                  '&state=transferring"'.format(job['PandaID'])
             logger.debug('executing: {0}'.format(cmd))
             s, o = commands.getstatusoutput(cmd)
             if s != 0:
@@ -158,7 +162,7 @@ def __stage_out(job, args, graceful_stop):
 
     infiles = job['inFiles'].split(',')
     outfiles = job['outFiles'].split(',')
-    ddmEndPointOut = job['ddmEndPointOut'].split(',')
+    ddm_end_point_out = job['ddmEndPointOut'].split(',')
 
     for i in xrange(len(outfiles)):
         if outfiles[i] == job['logFile']:
@@ -176,14 +180,14 @@ def __stage_out(job, args, graceful_stop):
             __files.append({'scope': job['scopeLog'],
                             'name': outfiles[i],
                             'guid': job['logGUID'],
-                            'ddm': ddmEndPointOut[i],
+                            'ddm': ddm_end_point_out[i],
                             'bytes': os.stat('job-{0}/{1}'.format(job['PandaID'], outfiles[i])).st_size,
                             'adler32': None})
         else:
             __files.append({'scope': job['scopeOut'],
                             'name': outfiles[i],
                             'guid': None,
-                            'ddm': ddmEndPointOut[i],
+                            'ddm': ddm_end_point_out[i],
                             'bytes': None,
                             'adler32': None})
 
@@ -273,8 +277,12 @@ def __stage_out(job, args, graceful_stop):
     if exit_code == 0:
 
         logger.debug('{0}: set job state=finished'.format(job['PandaID']))
-        print 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId={0}&state=finished&xml={1}"'.format(job['PandaID'], urllib.quote_plus(pfc))
-        cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId={0}&state=finished&xml={1}"'.format(job['PandaID'], urllib.quote_plus(pfc))
+        print 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert' \
+              ' $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId=' \
+              '{0}&state=finished&xml={1}"'.format(job['PandaID'], urllib.quote_plus(pfc))
+        cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert' \
+              ' $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId=' \
+              '{0}&state=finished&xml={1}"'.format(job['PandaID'], urllib.quote_plus(pfc))
         logger.debug('executing: {0}'.format(cmd))
         s, o = commands.getstatusoutput(cmd)
         if s != 0:
@@ -286,8 +294,12 @@ def __stage_out(job, args, graceful_stop):
     else:
 
         logger.debug('{0}: set job state=failed'.format(job['PandaID']))
-        print 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId={0}&state=failed"'.format(job['PandaID'])
-        cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId={0}&state=failed"'.format(job['PandaID'])
+        print 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert' \
+              ' $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId=' \
+              '{0}&state=failed"'.format(job['PandaID'])
+        cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert' \
+              ' $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId=' \
+              '{0}&state=failed"'.format(job['PandaID'])
         logger.debug('executing: {0}'.format(cmd))
         s, o = commands.getstatusoutput(cmd)
         if s != 0:

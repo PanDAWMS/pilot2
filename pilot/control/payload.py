@@ -97,7 +97,9 @@ def execute(queues, graceful_stop, traces, args):
                 continue
 
             logger.debug('{0}: set job state=starting'.format(job['PandaID']))
-            cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId={0}&state=starting"'.format(job['PandaID'])
+            cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert' \
+                  ' $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId=' \
+                  '{0}&state=starting"'.format(job['PandaID'])
             logger.debug('executing: {0}'.format(cmd))
             s, o = commands.getstatusoutput(cmd)
             if s != 0:
@@ -146,7 +148,9 @@ def execute(queues, graceful_stop, traces, args):
                     break
                 else:
                     logger.debug('{0}: set job state=running'.format(job['PandaID']))
-                    cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId={0}&state=running"'.format(job['PandaID'])
+                    cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates' \
+                          ' --cert $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY' \
+                          ' "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId={0}&state=running"'.format(job['PandaID'])
                     logger.debug('executing: {0}'.format(cmd))
                     s, o = commands.getstatusoutput(cmd)
                     if s != 0:
