@@ -1,8 +1,14 @@
 import logging
 import os
+import sys
+import platform
+import urllib2
+import urllib
+import json
 
 logger = logging.getLogger(__name__)
 ssl_context = None
+user_agent = None
 
 
 def capath(args=None):
@@ -37,8 +43,10 @@ def cacert(args=None):
     return None
 
 
-def setup(args):
+def setup(args, name='pilot'):
     global ssl_context
+
+    build_user_agent(name)
 
     try:
         import ssl
@@ -49,3 +57,30 @@ def setup(args):
         logger.warn('SSL communication is impossible due to SSL error:')
         logger.warn(e.message)
         pass
+
+
+def build_user_agent(name='pilot'):
+    global user_agent
+
+    user_agent = "%s (Python %s; %s %s; rv:alpha)" % (name, sys.version.split(" ")[0], platform.system(), platform.machine())
+
+
+def request(url, data=None, plain=False):
+    request = urllib2.Request(url, urllib.urlencode(data))
+    request.add_header('Accept',
+                       'application/json;q=0.9,text/html,application/xhtml+xml,application/xml;q=0.7,*/*;q=0.5')
+    request.add_header('User-Agent', user_agent)
+    try:
+        result = urllib2.urlopen(request, context=ssl_context)
+
+        if plain:
+            return result
+
+        return json.loads(result)
+    except urllib2.HTTPError as e:
+        logger.warn("Server returned error %d:" % e.code)
+        logger.warn(e.read())
+    except urllib2.URLError as e:
+        logger.warn("Could not reach the server %s:" % e.reason)
+
+    return None

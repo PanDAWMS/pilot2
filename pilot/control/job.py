@@ -46,7 +46,7 @@ def control(queues, graceful_stop, traces, args):
         graceful_stop.set()
         return
 
-    if [site for site in sites if site['name'] == args.site and site['state'] == 'ACTIVE'] == []:
+    if not [site for site in sites if site['name'] == args.site and site['state'] == 'ACTIVE']:
         logger.critical('configured site is NOT ACTIVE: {0} -- aborting'.format(args.site))
         graceful_stop.set()
         return

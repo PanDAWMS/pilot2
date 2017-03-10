@@ -93,7 +93,7 @@ if __name__ == '__main__':
         console.setFormatter(logging.Formatter('%(asctime)s | %(levelname)-8s | %(message)s'))
     logging.getLogger('').addHandler(console)
 
-    pilot.util.https.setup(args)
+    pilot.util.https.setup(args, name='pilot2/' + VERSION)
 
     trace = main()
     logging.shutdown()
