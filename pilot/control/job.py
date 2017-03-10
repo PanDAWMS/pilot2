@@ -56,7 +56,7 @@ def control(queues, graceful_stop, traces, args):
     [t.start() for t in threads]
 
 
-def __validate_job(job):
+def _validate_job(job):
     # valid = random.uniform(0, 100)
     # if valid > 99:
     #     logger.warning('{0}: job did not validate correctly -- skipping'.format(job['PandaID']))
@@ -76,7 +76,7 @@ def validate(queues, graceful_stop, traces, args):
 
         traces.pilot['nr_jobs'] += 1
 
-        if __validate_job(job):
+        if _validate_job(job):
 
             logger.debug('{0}: creating job working directory'.format(job['PandaID']))
             try:

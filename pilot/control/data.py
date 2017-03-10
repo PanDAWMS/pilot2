@@ -50,7 +50,7 @@ def control(queues, graceful_stop, traces, args):
     [t.start() for t in threads]
 
 
-def __stage_in(job, graceful_stop):
+def _stage_in(job, graceful_stop):
 
     executable = ['rucio', '-v', 'download',
                   '--no-subdir',
@@ -120,7 +120,7 @@ def copytool_in(queues, graceful_stop, traces, args):
             else:
                 logger.info('{0}: confirmed job state=transferring'.format(job['PandaID']))
 
-            if __stage_in(job, graceful_stop):
+            if _stage_in(job, graceful_stop):
                 queues.finished_data_in.put(job)
             else:
                 queues.failed_data_in.put(job)
@@ -147,7 +147,7 @@ def copytool_out(queues, graceful_stop, traces, args):
             else:
                 logger.info('{0}: confirmed job state=transferring'.format(job['PandaID']))
 
-            if __stage_out(job, args, graceful_stop):
+            if _stage_out(job, args, graceful_stop):
                 queues.finished_data_out.put(job)
             else:
                 queues.failed_data_out.put(job)
@@ -156,7 +156,7 @@ def copytool_out(queues, graceful_stop, traces, args):
             continue
 
 
-def __stage_out(job, args, graceful_stop):
+def _stage_out(job, args, graceful_stop):
 
     __files = []
 

@@ -63,13 +63,13 @@ def validate_pre(queues, graceful_stop, traces, args):
         except Queue.Empty:
             continue
 
-        if __validate_payload(job):
+        if _validate_payload(job):
             queues.validated_payloads.put(job)
         else:
             queues.failed_payloads.put(job)
 
 
-def __validate_payload(job):
+def _validate_payload(job):
     # valid = random.uniform(0, 100)
     # if valid > 99:
     #     logger.warning('payload did not validate correctly -- skipping')
