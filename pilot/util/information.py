@@ -39,17 +39,17 @@ def get_queues():
 
 def retrieve_json(url):
     logger.debug('retrieving: {0}'.format(url))
-    j = __read_cache(url)
+    j = _read_cache(url)
     if j is not None:
         logger.debug('cached version found: {0}'.format(url))
         return j
     j = json.loads(urllib2.urlopen(url).read())
     logger.debug('caching: {0}'.format(url))
-    __write_cache(url, j)
+    _write_cache(url, j)
     return j
 
 
-def __read_cache(url):
+def _read_cache(url):
     m = hashlib.md5()
     m.update(url)
     if os.path.exists('.cache.{0}'.format(m.hexdigest())):
@@ -57,7 +57,7 @@ def __read_cache(url):
             return json.load(infile)
 
 
-def __write_cache(url, j):
+def _write_cache(url, j):
     m = hashlib.md5()
     m.update(url)
     with open('.cache.{0}'.format(m.hexdigest()), 'wb') as outfile:
