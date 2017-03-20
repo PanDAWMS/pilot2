@@ -66,12 +66,14 @@ def build_user_agent(name='pilot'):
 
 
 def request(url, data=None, plain=False):
-    request = urllib2.Request(url, urllib.urlencode(data))
-    request.add_header('Accept',
-                       'application/json;q=0.9,text/html,application/xhtml+xml,application/xml;q=0.7,*/*;q=0.5')
-    request.add_header('User-Agent', user_agent)
+    req = urllib2.Request(url, urllib.urlencode(data))
+    req.add_header('Accept', 'application/json;'
+                             'q=0.9,text/html,application/xhtml+xml,application/xml;'
+                             'q=0.7,*/*;'
+                             'q=0.5')
+    req.add_header('User-Agent', user_agent)
     try:
-        result = urllib2.urlopen(request, context=ssl_context)
+        result = urllib2.urlopen(req, context=ssl_context)
 
         if plain:
             return result
