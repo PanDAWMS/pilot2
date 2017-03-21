@@ -18,26 +18,25 @@ import os
 
 from pilot.util import information
 from pilot.control.job import send_state
+from pilot.util import signalling
 
 import logging
 logger = logging.getLogger(__name__)
+graceful_stop = signalling.GracefulStop()
 
 
-def control(queues, graceful_stop, traces, args):
+def control(queues, traces, args):
 
     threads = [threading.Thread(target=validate_pre,
                                 kwargs={'queues': queues,
-                                        'graceful_stop': graceful_stop,
                                         'traces': traces,
                                         'args': args}),
                threading.Thread(target=execute,
                                 kwargs={'queues': queues,
-                                        'graceful_stop': graceful_stop,
                                         'traces': traces,
                                         'args': args}),
                threading.Thread(target=validate_post,
                                 kwargs={'queues': queues,
-                                        'graceful_stop': graceful_stop,
                                         'traces': traces,
                                         'args': args})]
 
@@ -45,12 +44,12 @@ def control(queues, graceful_stop, traces, args):
 
     if args.queue not in [queue['name'] for queue in batchqueues]:
         logger.critical('configured queue not found: {0} -- aborting'.format(args.queue))
-        graceful_stop.set()
+        signalling.simulate_signal()
         return
 
     if not [queue for queue in batchqueues if queue['name'] == args.queue and queue['state'] == 'ACTIVE']:
         logger.critical('configured queue is NOT ACTIVE: {0} -- aborting'.format(args.queue))
-        graceful_stop.set()
+        signalling.simulate_signal()
         return
 
     logger.info('configured queue: {0}'.format(args.queue))
@@ -58,7 +57,7 @@ def control(queues, graceful_stop, traces, args):
     [t.start() for t in threads]
 
 
-def validate_pre(queues, graceful_stop, traces, args):
+def validate_pre(queues, traces, args):
 
     while not graceful_stop.is_set():
         try:
@@ -103,7 +102,7 @@ def start_payload(job, out, err):
     return proc
 
 
-def wait_graceful(proc, graceful_stop, job):
+def wait_graceful(proc, job):
     log = logger.getChild(job['job_id'])
 
     breaker = False
@@ -133,7 +132,7 @@ def wait_graceful(proc, graceful_stop, job):
     return exit_code
 
 
-def execute(queues, graceful_stop, traces, args):
+def execute(queues, traces, args):
 
     while not graceful_stop.is_set():
         try:
@@ -160,7 +159,7 @@ def execute(queues, graceful_stop, traces, args):
             proc = start_payload(job, out, err)
             exit_code = None
             if proc is not None:
-                exit_code = wait_graceful(proc, graceful_stop, job)
+                exit_code = wait_graceful(proc, job)
                 log.info('finished pid={0} exit_code={1}'.format(proc.pid, exit_code))
 
             log.debug('closing payload stdout/err logs')
@@ -176,7 +175,7 @@ def execute(queues, graceful_stop, traces, args):
             continue
 
 
-def validate_post(queues, graceful_stop, traces, args):
+def validate_post(queues, traces, args):
 
     while not graceful_stop.is_set():
         try:

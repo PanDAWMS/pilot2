@@ -82,12 +82,21 @@ if os.name == "nt":
         :param (int) sig: caught signal.
         :return:
         """
-        frame = inspect.currentframe()
-        try:
-            _receiver(sig, frame)
-        finally:
-            del frame
+        simulate_signal(sig)
         return 1
+
+
+def simulate_signal(sig=graceful_terminator):
+    """
+    This function simulates signal calling.
+    It creates an inspection frame and passes it to receivers.
+    :param (int) sig: caught signal, default is `graceful_terminator`
+    """
+    frame = inspect.currentframe()
+    try:
+        _receiver(sig, frame)
+    finally:
+        del frame
 
 
 class GracefulStop(threading.Event):

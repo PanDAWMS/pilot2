@@ -18,21 +18,22 @@ import time
 
 from pilot.util import information
 from pilot.control.job import send_state
+from pilot.util import signalling
 
 import logging
 logger = logging.getLogger(__name__)
 
+graceful_stop = signalling.GracefulStop()
 
-def control(queues, graceful_stop, traces, args):
+
+def control(queues, traces, args):
 
     threads = [threading.Thread(target=copytool_in,
                                 kwargs={'queues': queues,
-                                        'graceful_stop': graceful_stop,
                                         'traces': traces,
                                         'args': args}),
                threading.Thread(target=copytool_out,
                                 kwargs={'queues': queues,
-                                        'graceful_stop': graceful_stop,
                                         'traces': traces,
                                         'args': args})]
 
@@ -97,7 +98,7 @@ def _call(executable, cwd=os.getcwd(), logger=logger, graceful_stop=None):
         return False
 
 
-def _stage_in(job, graceful_stop):
+def _stage_in(job):
     log = logger.getChild(job['job_id'])
 
     for f in job['input_files']:
@@ -106,13 +107,12 @@ def _stage_in(job, graceful_stop):
                       '--rse', job['input_files'][f]['ddm_endpoint'],
                       job['input_files'][f]['scope'] + ":" + f],
                      cwd=job['working_dir'],
-                     logger=log,
-                     graceful_stop=graceful_stop):
+                     logger=log):
             return False
     return True
 
 
-def copytool_in(queues, graceful_stop, traces, args):
+def copytool_in(queues, traces, args):
 
     while not graceful_stop.is_set():
         try:
@@ -120,7 +120,7 @@ def copytool_in(queues, graceful_stop, traces, args):
 
             send_state(job, 'transferring')
 
-            if _stage_in(job, graceful_stop):
+            if _stage_in(job):
                 queues.finished_data_in.put(job)
             else:
                 queues.failed_data_in.put(job)
@@ -129,7 +129,7 @@ def copytool_in(queues, graceful_stop, traces, args):
             continue
 
 
-def copytool_out(queues, graceful_stop, traces, args):
+def copytool_out(queues, traces, args):
 
     while not graceful_stop.is_set():
         try:
@@ -139,7 +139,7 @@ def copytool_out(queues, graceful_stop, traces, args):
 
             send_state(job, 'transferring')
 
-            if _stage_out(job, args, graceful_stop):
+            if _stage_out(job, args):
                 queues.finished_data_out.put(job)
             else:
                 queues.failed_data_out.put(job)
@@ -166,7 +166,7 @@ def prepare_log(job, tarball_name):
     job['output_files'][job['log_file']]['bytes'] = os.stat(os.path.join(job['working_dir'], job['log_file'])).st_size
 
 
-def save_file(filename, _file, job, graceful_stop):
+def save_file(filename, _file, job):
     log = logger.getChild(job['job_id'])
 
     executable = ['rucio', '-v', 'upload',
@@ -226,7 +226,7 @@ def save_file(filename, _file, job, graceful_stop):
     return summary
 
 
-def _stage_out(job, args, graceful_stop):
+def _stage_out(job, args):
     for f in job['job_report']['files']['output']:
         fn = f['subFiles'][0]['name']
         job['output_files'][fn]['guid'] = f['subFiles'][0]['file_guid']
@@ -251,7 +251,7 @@ def _stage_out(job, args, graceful_stop):
     failed = False
 
     for fn, f in job['output_files']:
-        summary = save_file(fn, f, job, graceful_stop)
+        summary = save_file(fn, f, job)
 
         if summary is not None:
             f['pfn'] = summary['{0}:{1}'.format(f['scope'], fn)]['pfn']

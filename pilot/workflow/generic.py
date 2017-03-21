@@ -6,29 +6,27 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016
+# - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
 import Queue
-import signal
 import threading
 
 from collections import namedtuple
 
 from pilot.control import job, payload, data, lifetime
 from pilot.util.constants import SUCCESS
+from pilot.util import signalling
 
 import logging
 logger = logging.getLogger(__name__)
 
-graceful_stop = threading.Event()
-
 
 def interrupt(signum, frame):
-    logger.info('caught SIGINT')
-    graceful_stop.set()
+    logger.info('caught ' + signalling.signals_reverse[signum])
 
 
 def run(args):
-    signal.signal(signal.SIGINT, interrupt)
+    signalling.signal_all_setup(interrupt)
 
     logger.info('setting up queues')
 
@@ -65,27 +63,22 @@ def run(args):
 
     logger.info('starting threads')
 
-    threads = [threading.Thread(target=lifetime.control,
-                                kwargs={'graceful_stop': graceful_stop,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=job.control,
+    threads = [threading.Thread(target=job.control,
                                 kwargs={'queues': queues,
-                                        'graceful_stop': graceful_stop,
                                         'traces': traces,
                                         'args': args}),
                threading.Thread(target=payload.control,
                                 kwargs={'queues': queues,
-                                        'graceful_stop': graceful_stop,
                                         'traces': traces,
                                         'args': args}),
                threading.Thread(target=data.control,
                                 kwargs={'queues': queues,
-                                        'graceful_stop': graceful_stop,
                                         'traces': traces,
                                         'args': args})]
 
     [t.start() for t in threads]
+
+    lifetime.control(traces, args)
 
     logger.info('waiting for interrupts')
 
