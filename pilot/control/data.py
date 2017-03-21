@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
+# - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
 import Queue
 import json
