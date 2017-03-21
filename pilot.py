@@ -6,12 +6,14 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
+# - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
 import argparse
 import logging
 import sys
 
 from pilot.util.constants import SUCCESS, ERRNO_NOJOBS
+import pilot.util.https
 
 VERSION = '2017-03-06.001'
 
@@ -65,6 +67,18 @@ if __name__ == '__main__':
                             required=True,
                             help='MANDATORY: queue name (e.g., AGLT2_TEST-condor')
 
+    # SSL certificates
+    arg_parser.add_argument('--cacert',
+                            dest='cacert',
+                            default=None,
+                            help='CA certificate to use with HTTPS calls to server, commonly X509 proxy',
+                            metavar="path/to/your/certificate")
+    arg_parser.add_argument('--capath',
+                            dest='capath',
+                            default=None,
+                            help='CA certificates path',
+                            metavar="path/to/certificates/")
+
     args = arg_parser.parse_args()
 
     console = logging.StreamHandler(sys.stdout)
@@ -79,6 +93,8 @@ if __name__ == '__main__':
         console.setLevel(logging.INFO)
         console.setFormatter(logging.Formatter('%(asctime)s | %(levelname)-8s | %(message)s'))
     logging.getLogger('').addHandler(console)
+
+    pilot.util.https.setup(args, name='pilot2/' + VERSION)
 
     trace = main()
     logging.shutdown()
