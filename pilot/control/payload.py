@@ -48,7 +48,7 @@ def control(queues, graceful_stop, traces, args):
         graceful_stop.set()
         return
 
-    if [queue for queue in batchqueues if queue['name'] == args.queue and queue['state'] == 'ACTIVE'] == []:
+    if not [queue for queue in batchqueues if queue['name'] == args.queue and queue['state'] == 'ACTIVE']:
         logger.critical('configured queue is NOT ACTIVE: {0} -- aborting'.format(args.queue))
         graceful_stop.set()
         return

@@ -72,6 +72,7 @@ def build_user_agent(name='pilot'):
     global user_agent
 
     user_agent = "%s (Python %s; %s %s; rv:alpha)" % (name, sys.version.split(" ")[0], platform.system(), platform.machine())
+    logger.debug("User-Agent: " + user_agent)
 
 
 def request(url, data=None, plain=False):
