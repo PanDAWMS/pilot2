@@ -19,7 +19,7 @@ _max = None
 
 
 def log_lifetime(sig, frame):
-    logger.info('lifetime: {0}s used, {1}s maximum'.format(int(time.time()-_start), _max))
+    logger.info('lifetime: {0}s used, {1}s maximum'.format(int(time.time() - _start), _max))
 
 
 @async(daemon=True)
