@@ -16,7 +16,6 @@ import threading
 from weakref import WeakSet, WeakKeyDictionary
 import logging
 from exception_formatter import caught
-from functools import wraps
 import sys
 
 DEBUG = True
