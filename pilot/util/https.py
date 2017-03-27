@@ -66,7 +66,7 @@ def setup(args, name='pilot'):
             cafile=cacert(args))
     except Exception as e:
         logger.warn('SSL communication is impossible due to SSL error:')
-        caught(e, level=logging.WARNING)
+        caught(e, sys.exc_info(), level=logging.WARNING)
         pass
 
 

@@ -17,6 +17,7 @@ from weakref import WeakSet, WeakKeyDictionary
 import logging
 from exception_formatter import caught
 from functools import wraps
+import sys
 
 DEBUG = True
 
@@ -55,7 +56,7 @@ class SignalDispatcher(threading.Thread):
         try:
             self.dispatch_async_signal._just_call(*self.args, **self.kwargs)
         except Exception as e:
-            caught(e)
+            caught(e, sys.exc_info())
 
 
 def slot_fix(method):
