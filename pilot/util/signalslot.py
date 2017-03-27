@@ -58,6 +58,16 @@ class SignalDispatcher(threading.Thread):
             caught(e)
 
 
+def slot_fix(method):
+    @wraps(method)
+    def wrapper(self, slot):
+        if isinstance(slot, threading.Event):
+            slot = slot.set
+        return method(self, slot)
+
+    return wrapper
+
+
 class Signal(object):
     """
     This class provides Signal-Slot pattern from Qt to python.
@@ -89,15 +99,6 @@ class Signal(object):
         self.emitter = emitter  # TODO: Make this weakref
         if isinstance(docstring, basestring):
             self.__doc__ = docstring
-
-    @staticmethod
-    def slot_fix(method):
-        @wraps(method)
-        def wrapper(self, slot):
-            if isinstance(slot, threading.Event):
-                slot = slot.set
-            return method(self, slot)
-        return wrapper
 
     @slot_fix
     def connect(self, slot):

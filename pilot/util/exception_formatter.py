@@ -13,7 +13,7 @@ import traceback
 import threading
 
 
-def caught(exception, exc_info=sys.exc_info()):
+def caught(exception, exc_info=sys.exc_info(), level=logging.ERROR):
     """
     Exception formatter and logger.
 
@@ -23,6 +23,7 @@ def caught(exception, exc_info=sys.exc_info()):
 
     :param (Exception) exception:
     :param exc_info: Optional, the output of the `sys.exc_info()`, if it was caught earlier.
+    :param level: Logging level, default is Error
     """
 
     tb = list(reversed(traceback.extract_tb(exc_info[2])))
@@ -39,4 +40,4 @@ def caught(exception, exc_info=sys.exc_info()):
     msg += "\nTraceback: (latest call first)" + tb_str + "Thread: %s(%d)" % (thread.getName(), thread.ident)
 
     logger = logging.getLogger('Exception')
-    logger.handle(logger.makeRecord(logger.name, logging.ERROR, tb[0][0], tb[0][1], msg, (), None, tb[0][2]))
+    logger.handle(logger.makeRecord(logger.name, level, tb[0][0], tb[0][1], msg, (), None, tb[0][2]))
