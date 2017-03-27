@@ -8,20 +8,29 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
 
 import time
+from pilot.util import signalling
+from pilot.util.async_decorator import async
 
 import logging
 logger = logging.getLogger(__name__)
 
+_start = None
+_max = None
 
-def control(graceful_stop, traces, args):
 
-    runtime = 0
-    while not graceful_stop.is_set():
-        if runtime < args.lifetime:
-            time.sleep(1)
-            runtime += 1
-        else:
-            logger.debug('maximum lifetime reached: {0}s'.format(args.lifetime))
-            graceful_stop.set()
+def log_lifetime(sig, frame):
+    logger.info('lifetime: {0}s used, {1}s maximum'.format(int(time.time() - _start), _max))
 
-    logger.info('lifetime: {0}s used, {1}s maximum'.format(runtime, args.lifetime))
+
+@async(daemon=True)
+def control(traces, args):
+    global _max, _start
+    _max = args.lifetime
+    _start = time.time()
+    signalling.signal_all_setup(log_lifetime)
+
+    if _max is not None and _max > 0:
+        time.sleep(_max)
+
+        logger.debug('maximum lifetime reached: {0}s'.format(_max))
+        signalling.simulate_signal()
