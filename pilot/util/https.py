@@ -21,6 +21,11 @@ logger = logging.getLogger(__name__)
 ssl_context = None
 user_agent = None
 
+if sys.version_info < (2, 7, 9):
+    logger.error('Python version is very low, it lacks SSL contexts')
+    logger.error('Someone may adapt the next code to enable it, see URL:'
+                 'http://nullege.com/codes/show/src%40s%40d%40sdetools-HEAD%40sdetools%40extlib%40http_req.py/194/urllib2.HTTPSHandler/python')
+
 
 def capath(args=None):
     if args is not None and args['capath'] is not None and os.path.isdir(args['capath']):
