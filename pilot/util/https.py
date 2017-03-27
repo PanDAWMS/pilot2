@@ -15,6 +15,8 @@ import urllib2
 import urllib
 import json
 
+from exception_formatter import caught
+
 logger = logging.getLogger(__name__)
 ssl_context = None
 user_agent = None
@@ -64,7 +66,7 @@ def setup(args, name='pilot'):
             cafile=cacert(args))
     except Exception as e:
         logger.warn('SSL communication is impossible due to SSL error:')
-        logger.warn(e.message)
+        caught(e, level=logging.WARNING)
         pass
 
 
