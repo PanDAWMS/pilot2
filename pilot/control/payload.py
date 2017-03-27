@@ -22,7 +22,7 @@ from pilot.util import signalling
 
 import logging
 logger = logging.getLogger(__name__)
-graceful_stop = signalling.GracefulStop()
+graceful_stop = signalling.graceful_stop_event()
 
 
 def control(queues, traces, args):

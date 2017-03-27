@@ -59,10 +59,20 @@ class SignalDispatcher(threading.Thread):
             caught(e, sys.exc_info())
 
 
+def is_event_instance(obj):
+    """
+    Ducktype-tester for Event type.
+    Returns True if object has callable set and is_set
+    :param obj:
+    :return: boolean
+    """
+    return hasattr(obj, 'set') and hasattr(obj, 'is_set') and callable(obj.set) and callable(obj.is_set)
+
+
 def slot_fix(method):
     @wraps(method)
     def wrapper(self, slot):
-        if isinstance(slot, threading.Event):
+        if is_event_instance(slot):
             slot = slot.set
         return method(self, slot)
 
