@@ -16,7 +16,7 @@ import threading
 from weakref import WeakSet, WeakKeyDictionary
 import logging
 from exception_formatter import caught
-from functools import wraps
+import sys
 
 DEBUG = True
 
@@ -55,17 +55,17 @@ class SignalDispatcher(threading.Thread):
         try:
             self.dispatch_async_signal._just_call(*self.args, **self.kwargs)
         except Exception as e:
-            caught(e)
+            caught(e, sys.exc_info())
 
 
-def slot_fix(method):
-    @wraps(method)
-    def wrapper(self, slot):
-        if isinstance(slot, threading.Event):
-            slot = slot.set
-        return method(self, slot)
-
-    return wrapper
+def is_event_instance(obj):
+    """
+    Ducktype-tester for Event type.
+    Returns True if object has callable set and is_set
+    :param obj:
+    :return: boolean
+    """
+    return hasattr(obj, 'set') and hasattr(obj, 'is_set') and callable(obj.set) and callable(obj.is_set)
 
 
 class Signal(object):
@@ -95,12 +95,12 @@ class Signal(object):
         """
         self._functions = WeakSet()
         self._methods = WeakKeyDictionary()
+        self._events = WeakSet()
         self._slots_lk = threading.RLock()
         self.emitter = emitter  # TODO: Make this weakref
         if isinstance(docstring, basestring):
             self.__doc__ = docstring
 
-    @slot_fix
     def connect(self, slot):
         """
         Connect a callback ``slot`` to this signal if it is not connected already.
@@ -112,11 +112,11 @@ class Signal(object):
                         self._methods[slot.im_self] = set()
 
                     self._methods[slot.im_self].add(slot.im_func)
-
+                elif is_event_instance(slot):
+                    self._events.add(slot)
                 else:
                     self._functions.add(slot)
 
-    @slot_fix
     def is_connected(self, slot):
         """
         Check if a callback ``slot`` is connected to this signal.
@@ -126,9 +126,10 @@ class Signal(object):
                 if slot.im_self in self._methods and slot.im_func in self._methods[slot.im_self]:
                     return True
                 return False
+            elif is_event_instance(slot):
+                return slot in self._events
             return slot in self._functions
 
-    @slot_fix
     def disconnect(self, slot):
         """
         Disconnect a ``slot`` from a signal if it is connected else do nothing.
@@ -137,6 +138,8 @@ class Signal(object):
             if self.is_connected(slot):
                 if inspect.ismethod(slot):
                     self._methods[slot.im_self].remove(slot.im_func)
+                elif is_event_instance(slot):
+                    self._events.remove(slot)
                 else:
                     self._functions.remove(slot)
 
@@ -203,6 +206,10 @@ class Signal(object):
 
     def _just_call(self, *args, **kwargs):
         with self._slots_lk:
+            # Call handler for events
+            for ev in self._events:
+                ev.set()
+
             # Call handler functions
             for func in self._functions:
                 func(*args, **kwargs)

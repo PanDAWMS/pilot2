@@ -99,13 +99,13 @@ def simulate_signal(sig=graceful_terminator):
         del frame
 
 
-class GracefulStop(threading.Event):
+def graceful_stop_event():
     """
-    This event sets automatically on graceful stop.
+    As threading.Event, this is just a factory.
     """
-    def __init__(self):
-        super(GracefulStop, self).__init__()
-        signal_all_setup(self)
+    ret = threading.Event()
+    signal_all_setup(ret)
+    return ret
 
 
 def signal_all_setup(func=None):

@@ -11,6 +11,7 @@ import threading
 from exception_formatter import caught
 from functools import wraps
 import logging
+import sys
 
 
 class TimeoutError(RuntimeError):
@@ -97,7 +98,7 @@ class AsyncCall(threading.Thread):
             if self.Callback:
                 self.Callback(self.Result)
         except Exception as e:
-            caught(e)
+            caught(e, sys.exc_info())
 
 
 def async(function=None, callback=None, daemon=False):
