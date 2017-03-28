@@ -376,7 +376,6 @@ if __name__ == '__main__':
         print "failed: %s" % str(exc)
         return "err"
 
-
     # print "test"
     # promise = Promise(test)()
     # promise.then(res, err)
