@@ -6,52 +6,34 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
+# - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
 import Queue
-import commands
-import json
 import os
-import socket
 import threading
 import time
+import urllib
 
-from pilot.util import information
+from pilot.util import https
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-def control(queues, graceful_stop, traces, args):
+def control(queues, traces, args):
 
     threads = [threading.Thread(target=validate,
                                 kwargs={'queues': queues,
-                                        'graceful_stop': graceful_stop,
                                         'traces': traces,
                                         'args': args}),
                threading.Thread(target=retrieve,
                                 kwargs={'queues': queues,
-                                        'graceful_stop': graceful_stop,
                                         'traces': traces,
                                         'args': args}),
                threading.Thread(target=create_data_payload,
                                 kwargs={'queues': queues,
-                                        'graceful_stop': graceful_stop,
                                         'traces': traces,
                                         'args': args})]
-
-    sites = information.get_sites()
-
-    if args.site not in [s['name'] for s in sites]:
-        logger.critical('configured site not found: {0} -- aborting'.format(args.site))
-        graceful_stop.set()
-        return
-
-    if [site for site in sites if site['name'] == args.site and site['state'] == 'ACTIVE'] == []:
-        logger.critical('configured site is NOT ACTIVE: {0} -- aborting'.format(args.site))
-        graceful_stop.set()
-        return
-
-    logger.info('configured site: {0}'.format(args.site))
 
     [t.start() for t in threads]
 
@@ -59,38 +41,63 @@ def control(queues, graceful_stop, traces, args):
 def _validate_job(job):
     # valid = random.uniform(0, 100)
     # if valid > 99:
-    #     logger.warning('{0}: job did not validate correctly -- skipping'.format(job['PandaID']))
+    #     logger.warning('%s: job did not validate correctly -- skipping' % job['PandaID'])
     #     job['errno'] = random.randint(0, 100)
     #     job['errmsg'] = 'job failed random validation'
     #     return False
     return True
 
 
-def validate(queues, graceful_stop, traces, args):
+def send_state(job, state, xml=None):
+    log = logger.getChild(str(job['PandaID']))
+    log.debug('set job state=%s' % state)
 
-    while not graceful_stop.is_set():
+    data = {'jobId': job['PandaID'],
+            'state': state}
+
+    if xml is not None:
+        data['xml'] = urllib.quote_plus(xml)
+
+    try:
+        if https.request('https://pandaserver.cern.ch:25443/server/panda/updateJob', data=data) is not None:
+            log.info('confirmed job state=%s' % state)
+            return True
+    except Exception as e:
+        log.warning('while setting job state, Exception caught: %s' % str(e.message))
+        pass
+
+    log.warning('set job state=%s failed' % state)
+    return False
+
+
+def validate(queues, traces, args):
+
+    while not args.graceful_stop.is_set():
         try:
             job = queues.jobs.get(block=True, timeout=1)
         except Queue.Empty:
             continue
+        log = logger.getChild(str(job['PandaID']))
 
         traces.pilot['nr_jobs'] += 1
 
         if _validate_job(job):
 
-            logger.debug('{0}: creating job working directory'.format(job['PandaID']))
+            log.debug('creating job working directory')
+            job_dir = 'job-%s' % job['PandaID']
             try:
-                os.mkdir('job-{0}'.format(job['PandaID']))
+                os.mkdir(job_dir)
+                job['working_dir'] = job_dir
             except Exception as e:
-                logger.debug('{0}: cannot create job working directory: {1}'.format(job['PandaID'], str(e)))
+                log.debug('cannot create job working directory: %s' % str(e))
                 queues.failed_jobs.put(job)
                 break
 
-            logger.debug('{0}: symlinking pilot log'.format(job['PandaID']))
+            log.debug('symlinking pilot log')
             try:
-                os.symlink('../pilotlog.txt', 'job-{0}/pilotlog.txt'.format(job['PandaID']))
+                os.symlink('../pilotlog.txt', os.path.join(job_dir, 'pilotlog.txt'))
             except Exception as e:
-                logger.debug('{0}: cannot symlink pilot log: {1}'.format(job['PandaID'], str(e)))
+                log.debug('cannot symlink pilot log: %s' % str(e))
                 queues.failed_jobs.put(job)
                 break
 
@@ -99,9 +106,9 @@ def validate(queues, graceful_stop, traces, args):
             queues.failed_jobs.put(job)
 
 
-def create_data_payload(queues, graceful_stop, traces, args):
+def create_data_payload(queues, traces, args):
 
-    while not graceful_stop.is_set():
+    while not args.graceful_stop.is_set():
         try:
             job = queues.validated_jobs.get(block=True, timeout=1)
         except Queue.Empty:
@@ -111,32 +118,34 @@ def create_data_payload(queues, graceful_stop, traces, args):
         queues.payloads.put(job)
 
 
-def retrieve(queues, graceful_stop, traces, args):
+def retrieve(queues, traces, args):
 
-    while not graceful_stop.is_set():
+    while not args.graceful_stop.is_set():
 
         logger.debug('trying to fetch job')
 
-        cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert' \
-              ' $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/getJob?node=' \
-              '{0}&siteName={1}&computingElement={2}&prodSourceLabel=mtest"'.format(socket.getfqdn(), args.resource, args.queue)
-        logger.debug('executing: {0}'.format(cmd))
-        s, o = commands.getstatusoutput(cmd)
+        data = {'siteName': args.location.queue,
+                'prodSourceLabel': args.job_label}
 
-        if s != 0:
-            logger.warning('could not establish connection to get a job -- sleep 1s and repeat -- (exit: {0}): {1}'.format(s, o))
-            for i in xrange(10):
-                if graceful_stop.is_set():
+        res = https.request('https://pandaserver.cern.ch:25443/server/panda/getJob', data=data)
+
+        if res is None:
+            logger.warning('did not get a job -- sleep 1000s and repeat')
+            for i in xrange(10000):
+                if args.graceful_stop.is_set():
                     break
                 time.sleep(0.1)
         else:
-            res = json.loads(o)
             if res['StatusCode'] != 0:
-                logger.warning('did not get a job -- sleep 1000s and repeat -- status: {0}'.format(res['StatusCode']))
+                logger.warning('did not get a job -- sleep 1000s and repeat -- status: %s' % res['StatusCode'])
                 for i in xrange(10000):
-                    if graceful_stop.is_set():
+                    if args.graceful_stop.is_set():
                         break
                     time.sleep(0.1)
             else:
-                logger.info('got job: {0}'.format(res['PandaID']))
+                logger.info('got job: %s -- sleep 1000s before trying to get another job' % res['PandaID'])
                 queues.jobs.put(res)
+                for i in xrange(10000):
+                    if args.graceful_stop.is_set():
+                        break
+                    time.sleep(0.1)

@@ -12,6 +12,7 @@
 # sites, storages, and queues from AGIS and tries to locally cache them.
 # No cache update is involved, just remove the .cache files.
 
+import collections
 import hashlib
 import json
 import os
@@ -20,31 +21,82 @@ import urllib2
 import logging
 logger = logging.getLogger(__name__)
 
-url_sites = 'http://atlas-agis-api.cern.ch/request/site/query/list/?json'
-url_storages = 'http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json'
-url_queues = 'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json'
 
+def set_location(args, site=None):
+    '''
+    Set up all necessary site information.
+    Resolve everything from the specified queue name, and fill extra lookup structure.
 
-def get_sites():
-    return retrieve_json(url_sites)
+    If site is specified, return the site and storage information only.
+    '''
 
+    args.location = collections.namedtuple('location', ['queue', 'site', 'storages',
+                                                        'queue_info', 'site_info', 'storages_info'])
 
-def get_storages():
-    return retrieve_json(url_storages)
+    if site is None:
+        # verify that the queue is active
+        all_queues = retrieve_json('http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json')
+        if args.queue not in [queue['name'] for queue in all_queues]:
+            logger.critical('specified queue NOT FOUND: %s -- aborting' % args.queue)
+            return False
+        if not [queue for queue in all_queues if queue['name'] == args.queue and queue['state'] == 'ACTIVE']:
+            logger.critical('specified queue is NOT ACTIVE: %s -- aborting' % args.queue)
+            return False
+        args.location.queue = str(args.queue)
+        args.location.queue_info = [queue for queue in all_queues if queue['name'] == args.queue][0]
 
+        # find the associated site
+        all_sites = retrieve_json('http://atlas-agis-api.cern.ch/request/site/query/list/?json')
+        matching_sites = [queue for queue in all_queues if queue['name'] == args.queue]
+        if len(matching_sites) != 1:
+            logger.critical('queue is not explicitly mapped to a single site, found: %s' % [tmp_site['name'] for tmp_site in matching_sites])
+            return False
+        else:
+            args.location.site = str(matching_sites[0]['site'])
+            args.location.site_info = [tmp_site for tmp_site in all_sites if site['name'] == args.location.site][0]
 
-def get_queues():
-    return retrieve_json(url_queues)
+        # find all enabled storages at site
+        all_storages = retrieve_json('http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json')
+        args.location.storages = [str(storage['name']) for storage in all_storages
+                                  if storage['site'] == args.location.site and storage['state'] == 'ACTIVE']
+        args.location.storages_info = {}
+        for tmp_storage in args.location.storages:
+            args.location.storages_info[tmp_storage] = [storage for storage in all_storages
+                                                        if storage['name'] == tmp_storage and storage['state'] == 'ACTIVE'][0]
+
+        logger.info('queue: %s' % args.location.queue)
+        logger.info('site: %s' % args.location.site)
+        logger.info('storages: %s' % args.location.storages)
+
+        return True
+
+    else:
+        # find the associated site
+        all_sites = retrieve_json('http://atlas-agis-api.cern.ch/request/site/query/list/?json')
+        result = [tmp_site for tmp_site in all_sites if tmp_site['name'] == site]
+        if len(result) == 0:
+            raise Exception('Specified site not found: %s' % site)
+        args.location.site = site
+        args.location.site_info = result[0]
+
+        # find all enabled storages at site
+        all_storages = retrieve_json('http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json')
+        args.location.storages = [str(storage['name']) for storage in all_storages
+                                  if storage['site'] == args.location.site and storage['state'] == 'ACTIVE']
+        args.location.storages_info = {}
+        for tmp_storage in args.location.storages:
+            args.location.storages_info[tmp_storage] = [storage for storage in all_storages
+                                                        if storage['name'] == tmp_storage and storage['state'] == 'ACTIVE'][0]
 
 
 def retrieve_json(url):
-    logger.debug('retrieving: {0}'.format(url))
+    logger.debug('retrieving: %s' % url)
     j = _read_cache(url)
     if j is not None:
-        logger.debug('cached version found: {0}'.format(url))
+        logger.debug('cached version found: %s' % url)
         return j
     j = json.loads(urllib2.urlopen(url).read())
-    logger.debug('caching: {0}'.format(url))
+    logger.debug('caching: %s' % url)
     _write_cache(url, j)
     return j
 
@@ -52,13 +104,13 @@ def retrieve_json(url):
 def _read_cache(url):
     m = hashlib.md5()
     m.update(url)
-    if os.path.exists('.cache.{0}'.format(m.hexdigest())):
-        with open('.cache.{0}'.format(m.hexdigest()), 'rb') as infile:
+    if os.path.exists('.cache.%s' % m.hexdigest()):
+        with open('.cache.%s' % m.hexdigest(), 'rb') as infile:
             return json.load(infile)
 
 
 def _write_cache(url, j):
     m = hashlib.md5()
     m.update(url)
-    with open('.cache.{0}'.format(m.hexdigest()), 'wb') as outfile:
+    with open('.cache.%s' % m.hexdigest(), 'wb') as outfile:
         json.dump(j, outfile)

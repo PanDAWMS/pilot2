@@ -2,7 +2,7 @@
 
 ## Contributions
 
-1. Check the ``TODO.md`` file.
+1. Check the ``TODO.md`` and ``STYLEGUIDE.md`` files.
 
 2. Fork the ``PanDAWMS/pilot2`` repository into your private account as ``origin``. Clone it and set the ``PanDAWMS/pilot2`` repository as ``upstream``.
 
@@ -14,24 +14,20 @@ Do not submit code that does not conform to the project standards. We use PEP8 a
 
     flake8 pilot.py pilot/
 
-For Python 2.6 you need to install ``flake8<3.0.0``.
+For Python 2.6 you need to install ``flake8<3.0.0``, which can miss a few things. Check the output of TravisCI to verify if you have to use this old version.
 
 ## Running the pilot
 
 The pilot is a dependency-less Python application and relies on ``/usr/bin/env python``. The minimum pilot can be called like:
 
-    ./pilot.py -s <SITE_NAME> -r <RESOURCE_NAME> -q <QUEUE_NAME> -l 60
+    ./pilot.py -d -q <QUEUE_NAME>
 
-where ``SITE_NAME``, ``RESOURCE_NAME`` ``QUEUE_NAME`` correspond to the ATLAS SiteName, PanDA Resource, PandaQueue. This will launch the default ``generic`` workflow with lifetime 60 seconds.
+where ``QUEUE_NAME`` correspond to the ATLAS PandaQueue as defined in AGIS. This will launch the default ``generic`` workflow with lifetime default lifetime of 10 seconds (i.e., too short to do anything).
 
-The ``-d`` argument will change the logger to more verbose output.
+The ``-d`` argument changes the logger to produce debug output.
 
 ## Running the testcases
 
 The test cases are implemented as standard Python unittests under directory ``pilot/test/``. They can be discovered and executed automatically:
 
-    python -m unittest discover -v
-
-For Python 2.6 you need to install the ``unittest2``, and call appropriately:
-
-    python -m unittest2 discover -v
+    unit2 -v

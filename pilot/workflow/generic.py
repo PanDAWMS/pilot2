@@ -5,8 +5,10 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Mario Lassnig, mario.lassnig@cern.ch, 2016
+# - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
+# - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
+import functools
 import Queue
 import signal
 import threading
@@ -16,19 +18,19 @@ from collections import namedtuple
 from pilot.control import job, payload, data, lifetime
 from pilot.util.constants import SUCCESS
 
+
 import logging
 logger = logging.getLogger(__name__)
 
-graceful_stop = threading.Event()
 
-
-def interrupt(signum, frame):
-    logger.info('caught SIGINT')
-    graceful_stop.set()
+def interrupt(args, signum, frame):
+    logger.info('caught signal: %s' % [v for v, k in signal.__dict__.iteritems() if k == signum][0])
+    args.graceful_stop.set()
 
 
 def run(args):
-    signal.signal(signal.SIGINT, interrupt)
+    logger.info('setting up signal')
+    signal.signal(signal.SIGINT, functools.partial(interrupt, args))
 
     logger.info('setting up queues')
 
@@ -65,23 +67,20 @@ def run(args):
 
     logger.info('starting threads')
 
-    threads = [threading.Thread(target=lifetime.control,
-                                kwargs={'graceful_stop': graceful_stop,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=job.control,
+    threads = [threading.Thread(target=job.control,
                                 kwargs={'queues': queues,
-                                        'graceful_stop': graceful_stop,
                                         'traces': traces,
                                         'args': args}),
                threading.Thread(target=payload.control,
                                 kwargs={'queues': queues,
-                                        'graceful_stop': graceful_stop,
                                         'traces': traces,
                                         'args': args}),
                threading.Thread(target=data.control,
                                 kwargs={'queues': queues,
-                                        'graceful_stop': graceful_stop,
+                                        'traces': traces,
+                                        'args': args}),
+               threading.Thread(target=lifetime.control,
+                                kwargs={'queues': queues,
                                         'traces': traces,
                                         'args': args})]
 

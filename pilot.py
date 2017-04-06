@@ -6,22 +6,33 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
+# - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
 import argparse
 import logging
 import sys
+import threading
 
-from pilot.util.constants import SUCCESS, ERRNO_NOJOBS
+from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
+from pilot.util.https import https_setup
+from pilot.util.information import set_location
 
-VERSION = '2017-03-06.001'
+VERSION = '2017-04-04.001'
 
 
 def main():
     logger = logging.getLogger(__name__)
-    logger.info('pilot startup - version {0} '.format(VERSION))
+    logger.info('pilot startup - version %s' % VERSION)
 
-    logger.info('workflow: {0}'.format(args.workflow))
-    workflow = __import__('pilot.workflow.{0}'.format(args.workflow), globals(), locals(), [args.workflow], -1)
+    args.graceful_stop = threading.Event()
+
+    if not https_setup(args, VERSION):
+        return False
+    if not set_location(args):
+        return False
+
+    logger.info('workflow: %s' % args.workflow)
+    workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
     return workflow.run(args)
 
 
@@ -52,18 +63,28 @@ if __name__ == '__main__':
                             help='pilot lifetime seconds (default: 10)')
 
     # set the appropriate site and queue
-    arg_parser.add_argument('-s',
-                            dest='site',
-                            required=True,
-                            help='MANDATORY: site name (e.g., AGLT2)')
-    arg_parser.add_argument('-r',
-                            dest='resource',
-                            required=True,
-                            help='MANDATORY: resource name (e.g., AGLT2_TEST)')
     arg_parser.add_argument('-q',
                             dest='queue',
                             required=True,
                             help='MANDATORY: queue name (e.g., AGLT2_TEST-condor')
+
+    # graciously stop pilot process after hard limit
+    arg_parser.add_argument('-j',
+                            dest='job_label',
+                            default='mtest',
+                            help='job prod/source label (default: mtest)')
+
+    # SSL certificates
+    arg_parser.add_argument('--cacert',
+                            dest='cacert',
+                            default=None,
+                            help='CA certificate to use with HTTPS calls to server, commonly X509 proxy',
+                            metavar='path/to/your/certificate')
+    arg_parser.add_argument('--capath',
+                            dest='capath',
+                            default=None,
+                            help='CA certificates path',
+                            metavar='path/to/certificates/')
 
     args = arg_parser.parse_args()
 
@@ -83,7 +104,10 @@ if __name__ == '__main__':
     trace = main()
     logging.shutdown()
 
-    if trace.pilot['nr_jobs'] > 0:
+    if not trace:
+        logging.getLogger(__name__).critical('pilot startup did not succeed -- aborting')
+        sys.exit(FAILURE)
+    elif trace.pilot['nr_jobs'] > 0:
         sys.exit(SUCCESS)
     else:
         sys.exit(ERRNO_NOJOBS)

@@ -6,95 +6,76 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
+# - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
+import copy
 import Queue
-import commands
 import json
 import os
 import subprocess
 import tarfile
 import threading
 import time
-import urllib
 
-from pilot.util import information
+from pilot.control.job import send_state
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-def control(queues, graceful_stop, traces, args):
+def control(queues, traces, args):
 
     threads = [threading.Thread(target=copytool_in,
                                 kwargs={'queues': queues,
-                                        'graceful_stop': graceful_stop,
                                         'traces': traces,
                                         'args': args}),
                threading.Thread(target=copytool_out,
                                 kwargs={'queues': queues,
-                                        'graceful_stop': graceful_stop,
                                         'traces': traces,
                                         'args': args})]
-
-    storages = information.get_storages()
-
-    if args.site not in [s['site'] for s in storages]:
-        logger.warning('no configured storage found for site {0}'.format(args.site))
-
-    storage = []
-    for s in storages:
-        if args.site == s['site']:
-            storage.append(s)
-            break
 
     [t.start() for t in threads]
 
 
-def _stage_in(job, graceful_stop):
-
-    executable = ['rucio', '-v', 'download',
-                  '--no-subdir',
-                  '--rse', job['ddmEndPointIn'],
-                  job['realDatasetsIn']]
-
+def _call(args, executable, cwd=os.getcwd(), logger=logger):
     try:
         process = subprocess.Popen(executable,
                                    bufsize=-1,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
-                                   cwd='job-{0}'.format(job['PandaID']))
+                                   cwd=cwd)
     except Exception as e:
-        logger.error('could not execute: {0}'.format(e))
+        logger.error('could not execute: %s' % str(e))
         return False
 
-    logger.info('{0}: started -- pid={1} executable={2}'.format(job['PandaID'], process.pid, executable))
+    logger.info('started -- pid=%s executable=%s' % (process.pid, executable))
 
     breaker = False
+    exit_code = None
     while True:
         for i in xrange(10):
-            if graceful_stop.is_set():
+            if args.graceful_stop.is_set():
                 breaker = True
-                logger.debug('{0}: breaking: sending SIGTERM pid={1}'.format(job['PandaID'], process.pid))
+                logger.debug('breaking: sending SIGTERM pid=%s' % process.pid)
                 process.terminate()
                 break
             time.sleep(0.1)
         if breaker:
-            logger.debug('{0}: breaking: sleep 3s before sending SIGKILL pid={1}'.format(job['PandaID'], process.pid))
+            logger.debug('breaking: sleep 3s before sending SIGKILL pid=%s' % process.pid)
             time.sleep(3)
             process.kill()
             break
 
         exit_code = process.poll()
-        logger.info('{0}: running -- pid={1} exit_code={2}'.format(job['PandaID'], process.pid, exit_code))
         if exit_code is not None:
             break
         else:
             continue
 
-    logger.info('{0}: finished -- pid={0} exit_code={1}'.format(job['PandaID'], process.pid, exit_code))
+    logger.info('finished -- pid=%s exit_code=%s' % (process.pid, exit_code))
     stdout, stderr = process.communicate()
-    logger.debug('{0}: stdout:\n{1}'.format(job['PandaID'], stdout))
-    logger.debug('{0}: stderr:\n{1}'.format(job['PandaID'], stderr))
+    logger.debug('stdout:\n%s' % stdout)
+    logger.debug('stderr:\n%s' % stderr)
 
     if exit_code == 0:
         return True
@@ -102,25 +83,105 @@ def _stage_in(job, graceful_stop):
         return False
 
 
-def copytool_in(queues, graceful_stop, traces, args):
+def _stage_in(args, job):
+    log = logger.getChild(str(job['PandaID']))
 
-    while not graceful_stop.is_set():
+    os.environ['RUCIO_LOGGING_FORMAT'] = '{0}%(asctime)s %(levelname)s [%(message)s]'
+    if not _call(args,
+                 ['/usr/bin/env',
+                  'rucio', '-v', 'download',
+                  '--no-subdir',
+                  '--rse', job['ddmEndPointIn'],
+                  '%s:%s' % (job['scopeIn'], job['inFiles'])],
+                 cwd=job['working_dir'],
+                 logger=log):
+        return False
+    return True
+
+
+def stage_in_auto(site, files):
+    """
+    Separate dummy implementation for automatic stage-in outside of pilot workflows.
+    Should be merged with regular stage-in functionality later, but we need to have
+    some operational experience with it first.
+    Many things to improve:
+     - separate file error handling in the merged case
+     - auto-merging of files with same destination into single copytool call
+    """
+
+    destination = set([file['destination'] for file in files])
+
+    executable = ['/usr/bin/env',
+                  'rucio', '-v', 'download',
+                  '--no-subdir']
+
+    if len(destination) == 1:
+        executable += ['--dir', destination.pop()]
+        for file in files:
+            file['status'] = 'transferring'
+            file['errno'] = -1
+            executable.append('%s:%s' % (file['scope'],
+                                         file['name']))
+
+        process = subprocess.Popen(executable,
+                                   bufsize=-1,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+
+        while True:
+            time.sleep(0.1)
+            exit_code = process.poll()
+            if exit_code is not None:
+                if exit_code == 0:
+                    for file in files:
+                        file['status'] = 'done'
+                        file['errno'] = 0
+                else:
+                    for file in files:
+                        file['status'] = 'failed'
+                break
+            else:
+                continue
+        process.communicate()
+
+    else:
+        for file in files:
+            file['status'] = 'transferring'
+            tmp_executable = copy.deepcopy(executable)
+            tmp_executable += ['--dir', file['destination']]
+            tmp_executable.append('%s:%s' % (file['scope'],
+                                             file['name']))
+            process = subprocess.Popen(tmp_executable,
+                                       bufsize=-1,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+            file['errno'] = -1
+            while True:
+                time.sleep(0.1)
+                exit_code = process.poll()
+                if exit_code is not None:
+                    if exit_code == 0:
+                        file['status'] = 'done'
+                        file['errno'] = 0
+                    else:
+                        file['status'] = 'failed'
+                    break
+                else:
+                    continue
+            process.communicate()
+
+    return files
+
+
+def copytool_in(queues, traces, args):
+
+    while not args.graceful_stop.is_set():
         try:
             job = queues.data_in.get(block=True, timeout=1)
-            logger.info('{0}: dataset={1} rse={2}'.format(job['PandaID'], job['realDatasetsIn'], job['ddmEndPointIn']))
 
-            logger.debug('{0}: set job state=transferring'.format(job['PandaID']))
-            cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert ' \
-                  '$X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?' \
-                  'jobId={0}&state=transferring"'.format(job['PandaID'])
-            logger.debug('executing: {0}'.format(cmd))
-            s, o = commands.getstatusoutput(cmd)
-            if s != 0:
-                logger.warning('{0}: set job state=transferring failed: {1}'.format(job['PandaID'], o))
-            else:
-                logger.info('{0}: confirmed job state=transferring'.format(job['PandaID']))
+            send_state(job, 'transferring')
 
-            if _stage_in(job, graceful_stop):
+            if _stage_in(args, job):
                 queues.finished_data_in.put(job)
             else:
                 queues.failed_data_in.put(job)
@@ -129,25 +190,17 @@ def copytool_in(queues, graceful_stop, traces, args):
             continue
 
 
-def copytool_out(queues, graceful_stop, traces, args):
+def copytool_out(queues, traces, args):
 
-    while not graceful_stop.is_set():
+    while not args.graceful_stop.is_set():
         try:
             job = queues.data_out.get(block=True, timeout=1)
-            logger.info('{0}: dataset={1} rse={2}'.format(job['PandaID'], job['destinationDblock'], job['ddmEndPointOut']))
 
-            logger.debug('{0}: set job state=transferring'.format(job['PandaID']))
-            cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert' \
-                  ' $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId={0}' \
-                  '&state=transferring"'.format(job['PandaID'])
-            logger.debug('executing: {0}'.format(cmd))
-            s, o = commands.getstatusoutput(cmd)
-            if s != 0:
-                logger.warning('{0}: set job state=transferring failed: {1}'.format(job['PandaID'], o))
-            else:
-                logger.info('{0}: confirmed job state=transferring'.format(job['PandaID']))
+            logger.info('dataset=%s rse=%s' % (job['destinationDblock'], job['ddmEndPointOut'].split(',')[0]))
 
-            if _stage_out(job, args, graceful_stop):
+            send_state(job, 'transferring')
+
+            if _stage_out_all(job, args):
                 queues.finished_data_out.put(job)
             else:
                 queues.failed_data_out.put(job)
@@ -156,155 +209,136 @@ def copytool_out(queues, graceful_stop, traces, args):
             continue
 
 
-def _stage_out(job, args, graceful_stop):
+def prepare_log(job, tarball_name):
+    log = logger.getChild(str(job['PandaID']))
+    log.info('preparing log file')
 
-    __files = []
+    input_files = job['inFiles'].split(',')
+    output_files = job['outFiles'].split(',')
+    force_exclude = ['geomDB', 'sqlite200']
 
-    infiles = job['inFiles'].split(',')
-    outfiles = job['outFiles'].split(',')
-    ddm_end_point_out = job['ddmEndPointOut'].split(',')
+    with tarfile.open(name=os.path.join(job['working_dir'], job['logFile']),
+                      mode='w:gz',
+                      dereference=True) as log_tar:
+        for _file in list(set(os.listdir(job['working_dir'])) - set(input_files) - set(output_files) - set(force_exclude)):
+            logging.debug('adding to log: %s' % _file)
+            log_tar.add(os.path.join(job['working_dir'], _file),
+                        arcname=os.path.join(tarball_name, _file))
 
-    for i in xrange(len(outfiles)):
-        if outfiles[i] == job['logFile']:
+    return {'scope': job['scopeLog'],
+            'name': job['logFile'],
+            'guid': job['logGUID'],
+            'bytes': os.stat(os.path.join(job['working_dir'], job['logFile'])).st_size}
 
-            with tarfile.open(name='job-{0}/{1}'.format(job['PandaID'], outfiles[i]),
-                              mode='w:gz',
-                              dereference=True) as log_tar:
-                for log_file in list(set(os.listdir('job-{0}'.format(job['PandaID']))) - set(infiles) - set(outfiles)):
-                    os.system('/usr/bin/sync')
-                    log_tar.add('job-{0}/{1}'.format(job['PandaID'], log_file),
-                                arcname='tarball_PandaJob_{0}_{1}/{2}'.format(job['PandaID'],
-                                                                              args.queue,
-                                                                              log_file))
 
-            __files.append({'scope': job['scopeLog'],
-                            'name': outfiles[i],
-                            'guid': job['logGUID'],
-                            'ddm': ddm_end_point_out[i],
-                            'bytes': os.stat('job-{0}/{1}'.format(job['PandaID'], outfiles[i])).st_size,
-                            'adler32': None})
+def _stage_out(args, outfile, job):
+    log = logger.getChild(str(job['PandaID']))
+
+    os.environ['RUCIO_LOGGING_FORMAT'] = '{0}%(asctime)s %(levelname)s [%(message)s]'
+    executable = ['/usr/bin/env',
+                  'rucio', '-v', 'upload',
+                  '--summary', '--no-register',
+                  '--guid', outfile['guid'],
+                  '--rse', job['ddmEndPointOut'].split(',')[0],
+                  '--scope', outfile['scope'],
+                  outfile['name']]
+
+    try:
+        process = subprocess.Popen(executable,
+                                   bufsize=-1,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE,
+                                   cwd=job['working_dir'])
+    except Exception as e:
+        log.error('could not execute: %s' % str(e))
+        return None
+
+    log.info('started -- pid=%s executable=%s' % (process.pid, executable))
+
+    breaker = False
+    exit_code = None
+    while True:
+        for i in xrange(10):
+            if args.graceful_stop.is_set():
+                breaker = True
+                log.debug('breaking -- sending SIGTERM pid=%s' % process.pid)
+                process.terminate()
+                break
+            time.sleep(0.1)
+        if breaker:
+            log.debug('breaking -- sleep 3s before sending SIGKILL pid=%s' % process.pid)
+            time.sleep(3)
+            process.kill()
+            break
+
+        exit_code = process.poll()
+        log.info('running -- pid=%s exit_code=%s' % (process.pid, exit_code))
+        if exit_code is not None:
+            break
         else:
-            __files.append({'scope': job['scopeOut'],
-                            'name': outfiles[i],
-                            'guid': None,
-                            'ddm': ddm_end_point_out[i],
-                            'bytes': None,
-                            'adler32': None})
+            continue
 
-            for f in job['jobReport']['files']['output']:
-                if f['subFiles'][0]['name'] == outfiles[i]:
-                    __files[-1]['guid'] = f['subFiles'][0]['file_guid']
-                    __files[-1]['bytes'] = f['subFiles'][0]['file_size']
+    log.info('finished -- pid=%s exit_code=%s' % (process.pid, exit_code))
+    out, err = process.communicate()
+    log.debug('stdout:\n%s' % out)
+    log.debug('stderr:\n%s' % err)
 
-    for file in __files:
+    if exit_code is None:
+        return None
 
-        executable = ['rucio', '-v', 'upload',
-                      '--summary', '--no-register',
-                      '--guid', file['guid'],
-                      '--rse', file['ddm'],
-                      '--scope', file['scope'],
-                      file['name']]
+    summary = None
+    with open(os.path.join(job['working_dir'], 'rucio_upload.json'), 'rb') as summary_file:
+        summary = json.load(summary_file)
 
-        try:
-            process = subprocess.Popen(executable,
-                                       bufsize=-1,
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE,
-                                       cwd='job-{0}'.format(job['PandaID']))
-        except Exception as e:
-            logger.error('could not execute: {0}'.format(e))
-            return False
+    return summary
 
-        logger.info('{0}: started -- pid={1} executable={2}'.format(job['PandaID'], process.pid, executable))
 
-        breaker = False
-        while True:
-            for i in xrange(10):
-                if graceful_stop.is_set():
-                    breaker = True
-                    logger.debug('{0}: breaking -- sending SIGTERM pid={1}'.format(job['PandaID'], process.pid))
-                    process.terminate()
-                    break
-                time.sleep(0.1)
-            if breaker:
-                logger.debug('{0}: breaking -- sleep 3s before sending SIGKILL pid={1}'.format(job['PandaID'], process.pid))
-                time.sleep(3)
-                process.kill()
-                break
+def _stage_out_all(job, args):
 
-            exit_code = process.poll()
-            logger.info('{0}: running -- pid={1} exit_code={2}'.format(job['PandaID'], process.pid, exit_code))
-            if exit_code is not None:
-                break
-            else:
-                continue
+    outputs = {}
 
-        logger.info('{0}: finished -- pid={1} exit_code={2}'.format(job['PandaID'], process.pid, exit_code))
-        stdout, stderr = process.communicate()
-        logger.debug('{0}: stdout:\n{1}'.format(job['PandaID'], stdout))
-        logger.debug('{0}: stderr:\n{1}'.format(job['PandaID'], stderr))
+    for f in job['job_report']['files']['output']:
+        outputs[f['subFiles'][0]['name']] = {'scope': job['scopeOut'],
+                                             'name': f['subFiles'][0]['name'],
+                                             'guid': f['subFiles'][0]['file_guid'],
+                                             'bytes': f['subFiles'][0]['file_size']}
 
-        summary = None
-        with open('job-{0}/{1}'.format(job['PandaID'], 'rucio_upload.json'), 'rb') as summary_file:
-            summary = json.load(summary_file)
-
-        file['pfn'] = summary['{0}:{1}'.format(file['scope'], file['name'])]['pfn']
-        file['adler32'] = summary['{0}:{1}'.format(file['scope'], file['name'])]['adler32']
+    outputs['%s:%s' % (job['scopeLog'], job['logFile'])] = prepare_log(job, 'tarball_PandaJob_%s_%s' % (job['PandaID'], args.queue))
 
     pfc = '''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <!DOCTYPE POOLFILECATALOG SYSTEM "InMemory">
 <POOLFILECATALOG>'''
 
     pfc_file = '''
- <File ID="{0}">
+ <File ID="{guid}">
   <logical>
-   <lfn name="{1}"/>
+   <lfn name="{name}"/>
   </logical>
-  <metadata att_name="surl" att_value="{2}"/>
-  <metadata att_name="fsize" att_value="{3}"/>
-  <metadata att_name="adler32" att_value="{4}"/>
- </File>'''
+  <metadata att_name="surl" att_value="{pfn}"/>
+  <metadata att_name="fsize" att_value="{bytes}"/>
+  <metadata att_name="adler32" att_value="{adler32}"/>
+ </File>
+'''
 
-    for file in __files:
-        pfc += pfc_file.format(file['guid'],
-                               file['name'],
-                               file['pfn'],
-                               file['bytes'],
-                               file['adler32'])
+    failed = False
+
+    for outfile in outputs:
+        summary = _stage_out(args, outputs[outfile], job)
+
+        if summary is not None:
+            outputs[outfile]['pfn'] = summary['%s:%s' % (outputs[outfile]['scope'], outputs[outfile]['name'])]['pfn']
+            outputs[outfile]['adler32'] = summary['%s:%s' % (outputs[outfile]['scope'], outputs[outfile]['name'])]['adler32']
+
+            pfc += pfc_file.format(**outputs[outfile])
+
+        else:
+            failed = True
 
     pfc += '</POOLFILECATALOG>'
 
-    if exit_code == 0:
-
-        logger.debug('{0}: set job state=finished'.format(job['PandaID']))
-        print 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert' \
-              ' $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId=' \
-              '{0}&state=finished&xml={1}"'.format(job['PandaID'], urllib.quote_plus(pfc))
-        cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert' \
-              ' $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId=' \
-              '{0}&state=finished&xml={1}"'.format(job['PandaID'], urllib.quote_plus(pfc))
-        logger.debug('executing: {0}'.format(cmd))
-        s, o = commands.getstatusoutput(cmd)
-        if s != 0:
-            logger.warning('{0}: set job state=finished failed: {1}'.format(job['PandaID'], o))
-        else:
-            logger.info('{0}: confirmed job state=finished'.format(job['PandaID']))
-
-        return True
-    else:
-
-        logger.debug('{0}: set job state=failed'.format(job['PandaID']))
-        print 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert' \
-              ' $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId=' \
-              '{0}&state=failed"'.format(job['PandaID'])
-        cmd = 'curl -sS -H "Accept: application/json" --connect-timeout 1 --max-time 3 --compressed --capath /etc/grid-security/certificates --cert' \
-              ' $X509_USER_PROXY --cacert $X509_USER_PROXY --key $X509_USER_PROXY "https://pandaserver.cern.ch:25443/server/panda/updateJob?jobId=' \
-              '{0}&state=failed"'.format(job['PandaID'])
-        logger.debug('executing: {0}'.format(cmd))
-        s, o = commands.getstatusoutput(cmd)
-        if s != 0:
-            logger.warning('{0}: set job state=failed failed: {1}'.format(job['PandaID'], o))
-        else:
-            logger.info('{0}: confirmed job state=failed'.format(job['PandaID']))
-
+    if failed:
+        send_state(job, 'failed')
         return False
+    else:
+        send_state(job, 'finished', xml=pfc)
+        return True

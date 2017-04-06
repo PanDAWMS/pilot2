@@ -13,15 +13,23 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def control(graceful_stop, traces, args):
+def log_lifetime(sig, frame, traces):
+    logger.info('lifetime: %i used, %i maximum' % (int(time.time() - traces.pilot['lifetime_start']),
+                                                   traces.pilot['lifetime_max']))
+
+
+def control(queues, traces, args):
+
+    traces.pilot['lifetime_start'] = time.time()
+    traces.pilot['lifetime_max'] = time.time()
 
     runtime = 0
-    while not graceful_stop.is_set():
+    while not args.graceful_stop.is_set():
         if runtime < args.lifetime:
             time.sleep(1)
             runtime += 1
         else:
-            logger.debug('maximum lifetime reached: {0}s'.format(args.lifetime))
-            graceful_stop.set()
+            logger.debug('maximum lifetime reached: %s' % args.lifetime)
+            args.graceful_stop.set()
 
-    logger.info('lifetime: {0}s used, {1}s maximum'.format(runtime, args.lifetime))
+    logger.info('lifetime: %s used, %s maximum' % (runtime, args.lifetime))

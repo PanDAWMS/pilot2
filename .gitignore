@@ -9,4 +9,4 @@
 pilotlog.txt
 job-*
 build
-.idea/*
+.idea*
