@@ -7,44 +7,55 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
 
+import os
+
+from pilot.control import data
+
 
 class StageInClient(object):
 
-    def __init__(self, local_site=None):
+    def __init__(self, site=None):
         super(StageInClient, self).__init__()
-        if local_site is None:
-            raise Exception('Must set local site.')
-        self.local_site = local_site
 
-    def transfer(self, files=None):
-        client = StageInClientAsync(local_site=self.local_site)
-        client.queue(files)
-        client.start()
-        while client.is_transferring():
-            break
-        client.finish()
+        # Check validity of specified site
+        self.site = os.environ.get('VO_ATLAS_AGIS_SITE', site)
+        if self.site is None:
+            raise Exception('VO_ATLAS_AGIS_SITE not available, must set StageInClient(site=...) parameter')
 
-        return {'errno': 0,
-                'status': None}
+        # Retrieve location information
+        # will need this later -- don't spam AGIS for now
+        # from pilot.util import information
+        # self.args = collections.namedtuple('args', ['location'])
+        # information.set_location(self.args, site=self.site)
+
+    def transfer(self, files):
+        all_files_ok = False
+        for file in files:
+            if all(key in file for key in ('scope', 'name', 'destination')):
+                all_files_ok = True
+
+        if all_files_ok:
+            return data.stage_in_auto(self.site, files)
+        else:
+            raise Exception('Files dictionary does not conform: scope, name, destination')
 
 
 class StageInClientAsync(object):
 
-    def __init__(self, local_site):
-        super(StageInClientAsync, self).__init__()
-        if local_site is None:
-            raise Exception('Must set local site.')
-        self.local_site = local_site
+    def __init__(self, site):
+        raise NotImplementedError
 
     def queue(self, files):
-        pass
+        raise NotImplementedError
 
     def is_transferring(self):
-        finished_files = None
-        return finished_files
+        raise NotImplementedError
 
     def start(self):
-        pass
+        raise NotImplementedError
 
     def finish(self):
-        pass
+        raise NotImplementedError
+
+    def status(self):
+        raise NotImplementedError

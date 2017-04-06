@@ -6,48 +6,103 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 
+import os
+import shutil
+import tempfile
 import unittest
 
-from pilot.api.data import StageInClient, StageInClientAsync
+from pilot.api import data
 
 
 class TestHarvester(unittest.TestCase):
+    '''
+    Automatic stage-in tests for Harvester.
 
-    def test_stagein(self):
-        client = StageInClient(local_site='CERN-PROD')
-        status = client.transfer(files=[{'scope': 'my_scope',
-                                         'name': 'my_file1',
-                                         'dest_dir': 'this/goes/here'},
-                                        {'scope': 'my_scope',
-                                         'name': 'my_file2',
-                                         'dest_dir': 'and/this/goes/here'}])
-        assert status
+        from pilot.api import data
+        data_client = data.StageInClient(site)
+        result = data_client.transfer(files=[{scope, name, destination}, ...])
 
-    def test_stagein_async(self):
+    Notabene:
+      The following datasets with their constituent files are replicated
+      on every DATADISK and should thus be generally available:
 
-        files1 = [{'scope': 'my_scope',
-                   'name': 'my_file1',
-                   'dest_dir': 'this/goes/here'},
-                  {'scope': 'my_scope',
-                   'name': 'my_file2',
-                   'dest_dir': 'and/this/goes/here'}]
+        user.mlassnig:user.mlassnig.pilot.test.single.hits
+          mc15_13TeV:HITS.06828093._000096.pool.root.1
 
-        files2 = [{'scope': 'my_scope',
-                   'name': 'my_file3',
-                   'dest_dir': 'this/goes/here'},
-                  {'scope': 'my_scope',
-                   'name': 'my_file4',
-                   'dest_dir': 'and/this/goes/here'}]
+        user.mlassnig:user.mlassnig.pilot.test.multi.hits
+          mc15_14TeV:HITS.10075481._000432.pool.root.1
+          mc15_14TeV:HITS.10075481._000433.pool.root.1
+          mc15_14TeV:HITS.10075481._000434.pool.root.1
+          mc15_14TeV:HITS.10075481._000435.pool.root.1
+          mc15_14TeV:HITS.10075481._000444.pool.root.1
+          mc15_14TeV:HITS.10075481._000445.pool.root.1
+          mc15_14TeV:HITS.10075481._000451.pool.root.1
+          mc15_14TeV:HITS.10075481._000454.pool.root.1
+          mc15_14TeV:HITS.10075481._000455.pool.root.1
+    '''
 
-        client = StageInClientAsync(local_site='CERN-PROD')
-        client.start()
+    def setUp(self):
+        # skip tests if running through Travis -- github does not have working rucio
+        self.travis = False
+        if os.environ.get('TRAVIS') == 'true':
+            self.travis = True
 
-        client.queue(files1)
-        while client.is_transferring():
-            break
+        # setup pilot data client
+        self.data_client = data.StageInClient(site='CERN-PROD')
 
-        client.queue(files2)
-        while client.is_transferring():
-            break
+    def test_stagein_sync_simple(self):
+        '''
+        Single file going to a destination directory.
+        '''
+        if self.travis:
+            return True
 
-        client.finish()
+        result = self.data_client.transfer(files=[{'scope': 'mc15_13TeV',
+                                                   'name': 'HITS.06828093._000096.pool.root.1',
+                                                   'destination': '/tmp'}])
+
+        os.remove('/tmp/HITS.06828093._000096.pool.root.1')
+
+        for file in result:
+            self.assertEqual(file['errno'], 0)
+
+    def test_stagein_sync_merged_same(self):
+        '''
+        Multiple files going to the same destination directory.
+        '''
+        if self.travis:
+            return True
+
+        result = self.data_client.transfer(files=[{'scope': 'mc15_14TeV',
+                                                   'name': 'HITS.10075481._000432.pool.root.1',
+                                                   'destination': '/tmp'},
+                                                  {'scope': 'mc15_14TeV',
+                                                   'name': 'HITS.10075481._000433.pool.root.1',
+                                                   'destination': '/tmp'}])
+
+        os.remove('/tmp/HITS.10075481._000432.pool.root.1')
+        os.remove('/tmp/HITS.10075481._000433.pool.root.1')
+
+        for file in result:
+            self.assertEqual(file['errno'], 0)
+
+    def test_stagein_sync_merged_diff(self):
+        '''
+        Multiple files going to different destination directories.
+        '''
+        if self.travis:
+            return True
+
+        tmp_dir1, tmp_dir2 = tempfile.mkdtemp(), tempfile.mkdtemp()
+        result = self.data_client.transfer(files=[{'scope': 'mc15_14TeV',
+                                                   'name': 'HITS.10075481._000432.pool.root.1',
+                                                   'destination': tmp_dir1},
+                                                  {'scope': 'mc15_14TeV',
+                                                   'name': 'HITS.10075481._000433.pool.root.1',
+                                                   'destination': tmp_dir2}])
+
+        shutil.rmtree(tmp_dir1)
+        shutil.rmtree(tmp_dir2)
+
+        for file in result:
+            self.assertEqual(file['errno'], 0)

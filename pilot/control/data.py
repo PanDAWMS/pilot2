@@ -8,6 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
+import copy
 import Queue
 import json
 import os
@@ -96,6 +97,80 @@ def _stage_in(args, job):
                  logger=log):
         return False
     return True
+
+
+def stage_in_auto(site, files):
+    """
+    Separate dummy implementation for automatic stage-in outside of pilot workflows.
+    Should be merged with regular stage-in functionality later, but we need to have
+    some operational experience with it first.
+    Many things to improve:
+     - separate file error handling in the merged case
+     - auto-merging of files with same destination into single copytool call
+    """
+
+    destination = set([file['destination'] for file in files])
+
+    executable = ['/usr/bin/env',
+                  'rucio', '-v', 'download',
+                  '--no-subdir']
+
+    if len(destination) == 1:
+        executable += ['--dir', destination.pop()]
+        for file in files:
+            file['status'] = 'transferring'
+            file['errno'] = -1
+            executable.append('%s:%s' % (file['scope'],
+                                         file['name']))
+
+        process = subprocess.Popen(executable,
+                                   bufsize=-1,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+
+        while True:
+            time.sleep(0.1)
+            exit_code = process.poll()
+            if exit_code is not None:
+                if exit_code == 0:
+                    for file in files:
+                        file['status'] = 'done'
+                        file['errno'] = 0
+                else:
+                    for file in files:
+                        file['status'] = 'failed'
+                break
+            else:
+                continue
+        process.communicate()
+
+    else:
+        for file in files:
+            file['status'] = 'transferring'
+            tmp_executable = copy.deepcopy(executable)
+            tmp_executable += ['--dir', file['destination']]
+            tmp_executable.append('%s:%s' % (file['scope'],
+                                             file['name']))
+            process = subprocess.Popen(tmp_executable,
+                                       bufsize=-1,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+            file['errno'] = -1
+            while True:
+                time.sleep(0.1)
+                exit_code = process.poll()
+                if exit_code is not None:
+                    if exit_code == 0:
+                        file['status'] = 'done'
+                        file['errno'] = 0
+                    else:
+                        file['status'] = 'failed'
+                    break
+                else:
+                    continue
+            process.communicate()
+
+    return files
 
 
 def copytool_in(queues, traces, args):

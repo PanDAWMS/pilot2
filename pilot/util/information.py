@@ -22,50 +22,71 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def set_location(args):
+def set_location(args, site=None):
     '''
     Set up all necessary site information.
     Resolve everything from the specified queue name, and fill extra lookup structure.
+
+    If site is specified, return the site and storage information only.
     '''
 
     args.location = collections.namedtuple('location', ['queue', 'site', 'storages',
                                                         'queue_info', 'site_info', 'storages_info'])
 
-    # verify that the queue is active
-    all_queues = retrieve_json('http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json')
-    if args.queue not in [queue['name'] for queue in all_queues]:
-        logger.critical('specified queue NOT FOUND: %s -- aborting' % args.queue)
-        return False
-    if not [queue for queue in all_queues if queue['name'] == args.queue and queue['state'] == 'ACTIVE']:
-        logger.critical('specified queue is NOT ACTIVE: %s -- aborting' % args.queue)
-        return False
-    args.location.queue = str(args.queue)
-    args.location.queue_info = [queue for queue in all_queues if queue['name'] == args.queue][0]
+    if site is None:
+        # verify that the queue is active
+        all_queues = retrieve_json('http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json')
+        if args.queue not in [queue['name'] for queue in all_queues]:
+            logger.critical('specified queue NOT FOUND: %s -- aborting' % args.queue)
+            return False
+        if not [queue for queue in all_queues if queue['name'] == args.queue and queue['state'] == 'ACTIVE']:
+            logger.critical('specified queue is NOT ACTIVE: %s -- aborting' % args.queue)
+            return False
+        args.location.queue = str(args.queue)
+        args.location.queue_info = [queue for queue in all_queues if queue['name'] == args.queue][0]
 
-    # find the associated site
-    all_sites = retrieve_json('http://atlas-agis-api.cern.ch/request/site/query/list/?json')
-    matching_sites = [queue for queue in all_queues if queue['name'] == args.queue]
-    if len(matching_sites) != 1:
-        logger.critical('queue is not explicitly mapped to a single site, found: %s' % [site['name'] for site in matching_sites])
-        return False
+        # find the associated site
+        all_sites = retrieve_json('http://atlas-agis-api.cern.ch/request/site/query/list/?json')
+        matching_sites = [queue for queue in all_queues if queue['name'] == args.queue]
+        if len(matching_sites) != 1:
+            logger.critical('queue is not explicitly mapped to a single site, found: %s' % [tmp_site['name'] for tmp_site in matching_sites])
+            return False
+        else:
+            args.location.site = str(matching_sites[0]['site'])
+            args.location.site_info = [tmp_site for tmp_site in all_sites if site['name'] == args.location.site][0]
+
+        # find all enabled storages at site
+        all_storages = retrieve_json('http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json')
+        args.location.storages = [str(storage['name']) for storage in all_storages
+                                  if storage['site'] == args.location.site and storage['state'] == 'ACTIVE']
+        args.location.storages_info = {}
+        for tmp_storage in args.location.storages:
+            args.location.storages_info[tmp_storage] = [storage for storage in all_storages
+                                                        if storage['name'] == tmp_storage and storage['state'] == 'ACTIVE'][0]
+
+        logger.info('queue: %s' % args.location.queue)
+        logger.info('site: %s' % args.location.site)
+        logger.info('storages: %s' % args.location.storages)
+
+        return True
+
     else:
-        args.location.site = str(matching_sites[0]['site'])
-        args.location.site_info = [site for site in all_sites if site['name'] == args.location.site][0]
+        # find the associated site
+        all_sites = retrieve_json('http://atlas-agis-api.cern.ch/request/site/query/list/?json')
+        result = [tmp_site for tmp_site in all_sites if tmp_site['name'] == site]
+        if len(result) == 0:
+            raise Exception('Specified site not found: %s' % site)
+        args.location.site = site
+        args.location.site_info = result[0]
 
-    # find all enabled storages at site
-    all_storages = retrieve_json('http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json')
-    args.location.storages = [str(storage['name']) for storage in all_storages
-                              if storage['site'] == args.location.site and storage['state'] == 'ACTIVE']
-    args.location.storages_info = {}
-    for tmp_storage in args.location.storages:
-        args.location.storages_info[tmp_storage] = [storage for storage in all_storages
-                                                    if storage['name'] == tmp_storage and storage['state'] == 'ACTIVE'][0]
-
-    logger.info('queue: %s' % args.location.queue)
-    logger.info('site: %s' % args.location.site)
-    logger.info('storages: %s' % args.location.storages)
-
-    return True
+        # find all enabled storages at site
+        all_storages = retrieve_json('http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json')
+        args.location.storages = [str(storage['name']) for storage in all_storages
+                                  if storage['site'] == args.location.site and storage['state'] == 'ACTIVE']
+        args.location.storages_info = {}
+        for tmp_storage in args.location.storages:
+            args.location.storages_info[tmp_storage] = [storage for storage in all_storages
+                                                        if storage['name'] == tmp_storage and storage['state'] == 'ACTIVE'][0]
 
 
 def retrieve_json(url):

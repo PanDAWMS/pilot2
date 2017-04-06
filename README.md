@@ -14,7 +14,7 @@ Do not submit code that does not conform to the project standards. We use PEP8 a
 
     flake8 pilot.py pilot/
 
-For Python 2.6 you need to install ``flake8<3.0.0``.
+For Python 2.6 you need to install ``flake8<3.0.0``, which can miss a few things. Check the output of TravisCI to verify if you have to use this old version.
 
 ## Running the pilot
 
