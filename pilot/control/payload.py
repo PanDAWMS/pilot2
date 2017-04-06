@@ -9,20 +9,18 @@
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
 import Queue
+import commands
 import json
+import os
+import shlex
 import subprocess
 import threading
 import time
-import shlex
-import os
 
-from pilot.util import information
 from pilot.control.job import send_state
-from pilot.util import signalling
 
 import logging
 logger = logging.getLogger(__name__)
-graceful_stop = signalling.graceful_stop_event()
 
 
 def control(queues, traces, args):
@@ -40,26 +38,12 @@ def control(queues, traces, args):
                                         'traces': traces,
                                         'args': args})]
 
-    batchqueues = information.get_queues()
-
-    if args.queue not in [queue['name'] for queue in batchqueues]:
-        logger.critical('configured queue not found: {0} -- aborting'.format(args.queue))
-        signalling.simulate_signal()
-        return
-
-    if not [queue for queue in batchqueues if queue['name'] == args.queue and queue['state'] == 'ACTIVE']:
-        logger.critical('configured queue is NOT ACTIVE: {0} -- aborting'.format(args.queue))
-        signalling.simulate_signal()
-        return
-
-    logger.info('configured queue: {0}'.format(args.queue))
-
     [t.start() for t in threads]
 
 
 def validate_pre(queues, traces, args):
 
-    while not graceful_stop.is_set():
+    while not args.graceful_stop.is_set():
         try:
             job = queues.payloads.get(block=True, timeout=1)
         except Queue.Empty:
@@ -81,11 +65,36 @@ def _validate_payload(job):
     return True
 
 
-def start_payload(job, out, err):
-    log = logger.getChild(job['job_id'])
+def setup_payload(job, out, err):
+    log = logger.getChild(str(job['PandaID']))
 
-    executable = ['/usr/bin/env', job['command']] + shlex.split(job['command_parameters'])
-    log.debug('executable={0}'.format(executable))
+    executable = 'cd job-%s; '\
+                 'ln -sf /cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/sqlite200 sqlite200; '\
+                 'ln -sf /cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/geomDB geomDB; '\
+                 'source $ATLAS_LOCAL_ROOT_BASE/user/atlasLocalSetup.sh --quiet; '\
+                 'source $AtlasSetup/scripts/asetup.sh %s,here; cd ..' % (job['PandaID'],
+                                                                          job['homepackage'].split('/')[1])
+
+    log.debug('executable=%s' % executable)
+
+    try:
+        s, o = commands.getstatusoutput(executable)
+    except Exception as e:
+        log.error('could not setup environment: %s' % e)
+        return False
+
+    if s != 0:
+        log.error('could not setup environment: %s' % o)
+        return False
+
+    return True
+
+
+def run_payload(job, out, err):
+    log = logger.getChild(str(job['PandaID']))
+
+    executable = ['/usr/bin/env', job['transformation']] + shlex.split(job['jobPars'])
+    log.debug('executable=%s' % executable)
 
     try:
         proc = subprocess.Popen(executable,
@@ -94,35 +103,35 @@ def start_payload(job, out, err):
                                 stderr=err,
                                 cwd=job['working_dir'])
     except Exception as e:
-        log.error('could not execute: {0}'.format(e))
+        log.error('could not execute: %s' % str(e))
         return None
 
-    log.info('started -- pid={0} executable={1}'.format(proc.pid, executable))
+    log.info('started -- pid=%s executable=%s' % (proc.pid, executable))
 
     return proc
 
 
-def wait_graceful(proc, job):
-    log = logger.getChild(job['job_id'])
+def wait_graceful(args, proc, job):
+    log = logger.getChild(str(job['PandaID']))
 
     breaker = False
     exit_code = None
     while True:
         for i in xrange(100):
-            if graceful_stop.is_set():
+            if args.graceful_stop.is_set():
                 breaker = True
-                log.debug('breaking -- sending SIGTERM pid={0}'.format(proc.pid))
+                log.debug('breaking -- sending SIGTERM pid=%s' % proc.pid)
                 proc.terminate()
                 break
             time.sleep(0.1)
         if breaker:
-            log.debug('breaking -- sleep 3s before sending SIGKILL pid={0}'.format(proc.pid))
+            log.debug('breaking -- sleep 3s before sending SIGKILL pid=%s' % proc.pid)
             time.sleep(3)
             proc.kill()
             break
 
         exit_code = proc.poll()
-        log.info('running: pid={0} exit_code={1}'.format(proc.pid, exit_code))
+        log.info('running: pid=%s exit_code=%s' % (proc.pid, exit_code))
         if exit_code is not None:
             break
         else:
@@ -134,33 +143,36 @@ def wait_graceful(proc, job):
 
 def execute(queues, traces, args):
 
-    while not graceful_stop.is_set():
+    while not args.graceful_stop.is_set():
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
-            log = logger.getChild(job['job_id'])
+            log = logger.getChild(str(job['PandaID']))
 
-            q_snapshot = list(queues.finished_data_in.queue)  # is this for future parallel file transfer?
-            peek = [s_job for s_job in q_snapshot if job['job_id'] == s_job['job_id']]
+            q_snapshot = list(queues.finished_data_in.queue)
+            peek = [s_job for s_job in q_snapshot if job['PandaID'] == s_job['PandaID']]
             if len(peek) == 0:
-                log.debug('Not yet files received')
                 queues.validated_payloads.put(job)
                 for i in xrange(10):
-                    if graceful_stop.is_set():
+                    if args.graceful_stop.is_set():
                             break
                     time.sleep(0.1)
                 continue
-
-            send_state(job, 'starting')
 
             log.debug('opening payload stdout/err logs')
             out = open(os.path.join(job['working_dir'], 'payload.stdout'), 'wb')
             err = open(os.path.join(job['working_dir'], 'payload.stderr'), 'wb')
 
-            proc = start_payload(job, out, err)
-            exit_code = None
-            if proc is not None:
-                exit_code = wait_graceful(proc, job)
-                log.info('finished pid={0} exit_code={1}'.format(proc.pid, exit_code))
+            log.debug('setting up payload environment')
+            send_state(job, 'starting')
+
+            exit_code = 1
+            if setup_payload(job, out, err):
+                log.debug('running payload')
+                send_state(job, 'running')
+                proc = run_payload(job, out, err)
+                if proc is not None:
+                    exit_code = wait_graceful(args, proc, job)
+                    log.info('finished pid=%s exit_code=%s' % (proc.pid, exit_code))
 
             log.debug('closing payload stdout/err logs')
             out.close()
@@ -177,12 +189,12 @@ def execute(queues, traces, args):
 
 def validate_post(queues, traces, args):
 
-    while not graceful_stop.is_set():
+    while not args.graceful_stop.is_set():
         try:
             job = queues.finished_payloads.get(block=True, timeout=1)
         except Queue.Empty:
             continue
-        log = logger.getChild(job['job_id'])
+        log = logger.getChild(str(job['PandaID']))
 
         log.debug('adding job report for stageout')
         with open(os.path.join(job['working_dir'], 'jobReport.json')) as data_file:

@@ -6,30 +6,28 @@
 #
 # Authors:
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
+# - Mario Lassnig, mario.lassnig@cern.ch, 2017
+
+import collections
+import commands
+import json
+import os
+import platform
+import ssl
+import sys
+import urllib
+import urllib2
 
 import logging
-import os
-import sys
-import platform
-import urllib2
-import urllib
-import json
-
-from exception_formatter import caught
-
 logger = logging.getLogger(__name__)
-ssl_context = None
-user_agent = None
 
-if sys.version_info < (2, 7, 9):
-    logger.error('Python version is very low, it lacks SSL contexts')
-    logger.error('Someone may adapt the next code to enable it, see URL:'
-                 'http://nullege.com/codes/show/src%40s%40d%40sdetools-HEAD%40sdetools%40extlib%40http_req.py/194/urllib2.HTTPSHandler/python')
+global _ctx
+_ctx = collections.namedtuple('_ctx', 'ssl_context user_agent')
 
 
 def capath(args=None):
-    if args is not None and args['capath'] is not None and os.path.isdir(args['capath']):
-        return args['capath']
+    if args is not None and args.capath is not None and os.path.isdir(args.capath):
+        return args.capath
 
     path = os.environ.get('X509_CERT_DIR', '/etc/grid-security/certificates')
     if os.path.isdir(path):
@@ -42,15 +40,15 @@ def cacert_default_location():
     try:
         return '/tmp/x509up_u%s' % str(os.getuid())
     except AttributeError:
-        # Wow, not UNIX? Nevermind, skip.
+        logger.warn('No UID available? System not POSIX-compatible... trying to continue')
         pass
 
     return None
 
 
 def cacert(args=None):
-    if args is not None and args['cacert'] is not None and os.path.isfile(args['cacert']):
-        return args['cacert']
+    if args is not None and args.cacert is not None and os.path.isfile(args.cacert):
+        return args.cacert
 
     path = os.environ.get('X509_USER_PROXY', cacert_default_location())
     if os.path.isfile(path):
@@ -59,47 +57,57 @@ def cacert(args=None):
     return None
 
 
-def setup(args, name='pilot'):
-    global ssl_context
+def https_setup(args, version):
+    _ctx.user_agent = 'pilot/%s (Python %s; %s %s)' % (version,
+                                                       sys.version.split()[0],
+                                                       platform.system(),
+                                                       platform.machine())
+    logger.debug('User-Agent: %s' % _ctx.user_agent)
 
-    build_user_agent(name)
+    if sys.version_info < (2, 7, 9):
+        logger.warn('Python version <2.7.9 lacks SSL contexts -- falling back to curl')
+        _ctx.ssl_context = None
+    else:
+        try:
+            _ctx.ssl_context = ssl.create_default_context(capath=capath(args),
+                                                          cafile=cacert(args))
+        except Exception as e:
+            logger.warn('SSL communication is impossible due to SSL error: %s' % str(e))
+            return False
 
-    try:
-        import ssl
-        ssl_context = ssl.create_default_context(
-            capath=capath(args),
-            cafile=cacert(args))
-    except Exception as e:
-        logger.warn('SSL communication is impossible due to SSL error:')
-        caught(e, sys.exc_info(), level=logging.WARNING)
-        pass
-
-
-def build_user_agent(name='pilot'):
-    global user_agent
-
-    user_agent = "%s (Python %s; %s %s; rv:alpha)" % (name, sys.version.split(" ")[0], platform.system(), platform.machine())
-    logger.debug("User-Agent: " + user_agent)
+    return True
 
 
 def request(url, data=None, plain=False):
-    req = urllib2.Request(url, urllib.urlencode(data))
-    req.add_header('Accept', 'application/json;'
-                             'q=0.9,text/html,application/xhtml+xml,application/xml;'
-                             'q=0.7,*/*;'
-                             'q=0.5')
-    req.add_header('User-Agent', user_agent)
-    try:
-        result = urllib2.urlopen(req, context=ssl_context)
 
-        if plain:
-            return result
+    _ctx.ssl_context = None  # no time to deal with this now
 
-        return json.loads(result)
-    except urllib2.HTTPError as e:
-        logger.warn("Server returned error %d:" % e.code)
-        logger.warn(e.read())
-    except urllib2.URLError as e:
-        logger.warn("Could not reach the server %s:" % e.reason)
+    if _ctx.ssl_context is None:
+        req = 'curl -sS --compressed --connect-timeout %s --max-time %s '\
+              '--capath %s --cert %s --cacert %s --key %s '\
+              '%s %s "%s%s"' % (1, 3,
+                                capath(), cacert(), cacert(), cacert(),
+                                '-H "User-Agent: %s"' % _ctx.user_agent,
+                                '-H "Accept: application/json"' if not plain else '',
+                                url,
+                                '?' + '&'.join(['%s=%s' % (x, data[x]) for x in data] if data else ''))
+        logger.debug('request: %s' % req)
+        status, output = commands.getstatusoutput(req)
+        if status != 0:
+            logger.warn('request failed (%s): %s' % (status, output))
+            return None
+    else:
+        req = urllib2.Request(url, urllib.urlencode(data))
+        if not plain:
+            req.add_header('Accept', 'application/json')
+        req.add_header('User-Agent', _ctx.user_agent)
+        try:
+            output = urllib2.urlopen(req, context=_ctx.ssl_context)
+        except urllib2.HTTPError as e:
+            logger.warn('server error (%s): %s' % (e.code, e.read()))
+            return None
+        except urllib2.URLError as e:
+            logger.warn('connection error: %s' % e.reason)
+            return None
 
-    return None
+    return output if plain else json.loads(output)

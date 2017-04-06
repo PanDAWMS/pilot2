@@ -5,28 +5,32 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Mario Lassnig, mario.lassnig@cern.ch, 2016
+# - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
+import functools
 import Queue
+import signal
 import threading
 
 from collections import namedtuple
 
 from pilot.control import job, payload, data, lifetime
 from pilot.util.constants import SUCCESS
-from pilot.util import signalling
+
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-def interrupt(signum, frame):
-    logger.info('caught ' + signalling.signals_reverse[signum])
+def interrupt(args, signum, frame):
+    logger.info('caught signal: %s' % [v for v, k in signal.__dict__.iteritems() if k == signum][0])
+    args.graceful_stop.set()
 
 
 def run(args):
-    signalling.signal_all_setup(interrupt)
+    logger.info('setting up signal')
+    signal.signal(signal.SIGINT, functools.partial(interrupt, args))
 
     logger.info('setting up queues')
 
@@ -74,11 +78,13 @@ def run(args):
                threading.Thread(target=data.control,
                                 kwargs={'queues': queues,
                                         'traces': traces,
+                                        'args': args}),
+               threading.Thread(target=lifetime.control,
+                                kwargs={'queues': queues,
+                                        'traces': traces,
                                         'args': args})]
 
     [t.start() for t in threads]
-
-    lifetime.control(traces, args)
 
     logger.info('waiting for interrupts')
 

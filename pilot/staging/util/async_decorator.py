@@ -6,23 +6,27 @@
 #
 # Authors:
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
+# - Mario Lassnig, mario.lassnig@cern.ch, 2017
 
-import threading
-from exception_formatter import caught
-from functools import wraps
-import logging
+import functools
 import sys
+import threading
+
+from pilot.util.exception_formatter import log_exception
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class TimeoutError(RuntimeError):
-    """
+    '''
     Raised during wait, if timeout reached.
-    """
+    '''
     pass
 
 
 class Promise(threading.Thread):
-    """
+    '''
     This is a threading wrapper that performs asynchronous call of the provided function.
 
     Basic usage:
@@ -45,7 +49,7 @@ class Promise(threading.Thread):
     For advanced usage, see https://developer.mozilla.org/ru/docs/Web/JavaScript/Reference/Global_Objects/Promise
     It is close to that document, though functions in Promises can use any arguments and should be started manually.
     Rejections thus are based on exceptions and resolutions are simply function results.
-    """
+    '''
     Callable = None
     Result = None
     args = None
@@ -55,15 +59,15 @@ class Promise(threading.Thread):
     started = None
     print_exception = None
 
-    def __init__(self, function=None, daemon=False, print_exception=logging.ERROR):
-        """
+    def __init__(self, function=None, daemon=True, print_exception=logging.ERROR):
+        '''
         Saves function, it's callback and daemon state.
 
         :param (Callable) function: The function to call.
-        :param (Boolean) daemon: Whether the thread is a daemon. Daemon threads die automatically when no other threads
-                                 left.
+        :param (Boolean) daemon: Whether the thread is a daemon.
+                                 Daemon threads die automatically when no other threads are left.
         :param print_exception: Log level to output the exception, or None to mute it.
-        """
+        '''
         super(Promise, self).__init__()
         self.print_exception = print_exception
         self.Callable = function
@@ -75,20 +79,20 @@ class Promise(threading.Thread):
         self.__check_callable()
 
     def __check_callable(self):
-        """
+        '''
         Checks what to do with Callable:
          1) if it is not callable, treat it as a result.
          2) if it's Promise, depend on it.
         Else, pass on, wait for start.
-        """
+        '''
         if isinstance(self.Callable, Promise):
             pr = self.Callable
 
             def wait_and_resolve():
-                """
+                '''
                 Waits for passed in Promise and resolves in the same way.
                 :return:
-                """
+                '''
                 pr.wait()
                 if pr.resolved is True:
                     return pr.Result
@@ -106,22 +110,22 @@ class Promise(threading.Thread):
 
     @staticmethod
     def resolve(thing):
-        """
+        '''
         Creates a Promise resolved to `thing`.
         :param thing:
         :return: Promise
-        """
+        '''
         p = Promise()
         p.Result = thing
         return p
 
     @staticmethod
     def reject(thing):
-        """
+        '''
         Creates a Promise rejected to `thing`.
         :param thing:
         :return: Promise
-        """
+        '''
         p = Promise()
         p.exception = thing
         p.resolved = False
@@ -129,16 +133,16 @@ class Promise(threading.Thread):
 
     @staticmethod
     def all(things):
-        """
+        '''
         Creates a Promise that waits to each one of `things`, or rejects with the first one of them.
         :param (Array) things:
         :return: Promise
-        """
+        '''
         def all_resolver():
-            """
+            '''
             Internal, resolver for the new Promise.
             :return: results array
-            """
+            '''
             stop = threading.Event()
             stop.rejected = None
             stop.count = 0
@@ -147,12 +151,12 @@ class Promise(threading.Thread):
                     stop.count += 1
 
                     def closure(i, thing):
-                        """
+                        '''
                         Closure to save indexes.
                         :param i: index
                         :param thing: current Promise
                         :return:
-                        """
+                        '''
                         def resolver(result):
                             things[i] = result
                             stop.set()
@@ -179,16 +183,16 @@ class Promise(threading.Thread):
 
     @staticmethod
     def race(things):
-        """
+        '''
         Creates a Promise that waits to any of `things` and returns it's result.
         :param (Array) things:
         :return: Promise
-        """
+        '''
         def all_resolver():
-            """
+            '''
             Internal, resolver for the new Promise.
             :return: result
-            """
+            '''
             stop = threading.Event()
             stop.finished = None
             for thing in things:
@@ -214,23 +218,19 @@ class Promise(threading.Thread):
         return p()
 
     def __resolve_name(self):
-        """
+        '''
         Resolves the name of the Promise.
-        """
-        func = self.Callable
-        if hasattr(func, 'func_globals') and hasattr(func, 'func_code'):
-            self.name = "%s:%d:%s" % (func.func_globals["__name__"], func.func_code.co_firstlineno, func.__name__)
-        else:
-            self.name = 'Promise(%s)' % str(func)
+        '''
+        self.name = 'Notify'
 
     def __call__(self, *args, **kwargs):
-        """
+        '''
         Thread starter.
 
         Saves the state, the function arguments, the thread name and starts the thread.
 
         Variadic, reentrant.
-        """
+        '''
         if not self.started.is_set():
             self.started.set()
             current = threading.currentThread()
@@ -242,14 +242,14 @@ class Promise(threading.Thread):
         return self
 
     def wait(self, timeout=None):
-        """
+        '''
         Waits for the function to complete.
 
         :raises TimeoutError: when timeout reached.
 
         :param timeout: seconds, optional.
         :return:
-        """
+        '''
         if not self.finished.is_set():
             self.finished.wait(timeout)
         if not self.finished.is_set():
@@ -258,19 +258,19 @@ class Promise(threading.Thread):
             return self.Result
 
     def then(self, resolved=None, failed=None, print_exception=None):
-        """
+        '''
         The promise result. This function creates a new Promise which waits for current one, and calls corresponding function:
         :param resolved: Is called when function ended up conveniently. Receives result as a parameter.
         :param failed: Is called if function raises an exception, receives the exception.
         :param print_exception: Log level to output the exception, or None to mute it.
         :return: new Promise
-        """
+        '''
         self.print_exception = print_exception
 
         def wait_and_resolve():
-            """
+            '''
             Waits for current promise and resolves it.
-            """
+            '''
             self.wait()
             if self.resolved is True and callable(resolved):
                 return resolved(self.Result)
@@ -281,29 +281,27 @@ class Promise(threading.Thread):
         return p()
 
     def catch(self, callback=None, print_exception=None):
-        """
+        '''
         Same as Promise::then(None, callback)
         :param callback: Is called if function raises an exception, receives the exception.
         :param print_exception: Log level to output the exception, or None to mute it.
         :return: new Promise
-        """
+        '''
         return self.then(failed=callback, print_exception=print_exception)
 
     def run(self):
-        """
+        '''
         Thread entrance point.
 
         Runs the function and then the callback.
-        """
-        logging.debug("Thread: %s(%d), called from: %s(%d)" % (self.getName(), self.ident,
-                                                               self.parent[0], self.parent[1]))
+        '''
         try:
             self.Result = self.Callable(*self.args, **self.kwargs)
             self.resolved = True
         except Exception as e:
             info = sys.exc_info()
             if self.print_exception is not None:
-                caught(e, info, level=self.print_exception)
+                log_exception(e, info)
             self.exception = e
             self.resolved = False
         finally:
@@ -311,7 +309,7 @@ class Promise(threading.Thread):
 
 
 def async(function=None, daemon=False, print_exception=logging.ERROR):
-    """
+    '''
     Decorator around the functions for them to be asynchronous.
 
     Used as a plain decorator or along with named arguments.
@@ -331,109 +329,26 @@ def async(function=None, daemon=False, print_exception=logging.ERROR):
     :param (Boolean) daemon: Optional. Create the daemon thread, that will die when no other threads left.
     :param print_exception: Log level to log the exception, if any, or None to mute it.
     :return Callable: Wrapped function.
-    """
+    '''
     if function is None:
         def add_async_callback(func):
-            """
+            '''
             A second stage of a wrapper that is used if a wrapper is called with arguments.
 
             :param (Callable) func: The function to be decorated.
             :return Callable: Wrapped function.
-            """
+            '''
             return async(func, daemon, print_exception)
         return add_async_callback
     else:
-        @wraps(function)
+        @functools.wraps(function)
         def async_caller(*args, **kwargs):
-            """
+            '''
             An actual wrapper, that creates a thread.
 
             :return Promise: Thread of the function.
-            """
+            '''
             return Promise(function,
                            daemon=daemon,
                            print_exception=print_exception)(*args, **kwargs)
         return async_caller
-
-if __name__ == '__main__':
-    import time
-
-    def test():
-        print "waiting"
-        time.sleep(5)
-        print "end"
-        return 5
-
-    def test_fail():
-        time.sleep(1)
-        raise Exception("fail")
-
-    def res(result):
-        print "result = %s" % str(result)
-        return "res"
-
-    def err(exc):
-        print "failed: %s" % str(exc)
-        return "err"
-
-    # print "test"
-    # promise = Promise(test)()
-    # promise.then(res, err)
-    # promise.wait()
-    #
-    # time.sleep(1)
-    # print "test_fail"
-    # promise = Promise(test_fail)()
-    # promise.then(res, err).then(res, err)
-    # promise.wait()
-    #
-    # time.sleep(1)
-    # print "resolve"
-    # promise = Promise.resolve(1)
-    # promise.then(res, err)
-    #
-    # time.sleep(1)
-    # print "1"
-    # promise = Promise(1)
-    # promise.then(res, err)
-    #
-    # time.sleep(1)
-    # print "reject"
-    # promise = Promise.reject(1)
-    # promise.then(res, err)
-    #
-    # time.sleep(1)
-    # print "Promise test"
-    # promise = Promise(Promise(test)())
-    # promise.then(res, err)
-    # promise.wait()
-    #
-    # time.sleep(1)
-    # print "Promise test_fail"
-    # promise = Promise(Promise(test_fail)())
-    # promise.then(res, err).then(res, err)
-    # promise.wait()
-    #
-    # time.sleep(1)
-    # print "Promise all no reject"
-    # promise = Promise.all([Promise(test)(), Promise(1)(), 2])
-    # promise.then(res, err)
-    # promise.wait()
-    #
-    # time.sleep(1)
-    # print "Promise all reject"
-    # promise = Promise.all([Promise(test)(), Promise(test_fail)(), Promise(1)(), 2])
-    # promise.then(res, err)
-    # promise.wait()
-    #
-    # time.sleep(1)
-    # print "Promise race reject"
-    # promise = Promise.race([Promise(test)(), Promise(test_fail)()])
-    # promise.then(res, err)
-    # promise.wait()
-    #
-    # time.sleep(1)
-    # print "Promise race 1"
-    # promise = Promise.race([Promise(test)(), Promise(test_fail)(), Promise(1)()])
-    # promise.then(res, err)
-    # promise.wait()

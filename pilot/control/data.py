@@ -16,14 +16,10 @@ import tarfile
 import threading
 import time
 
-from pilot.util import information
 from pilot.control.job import send_state
-from pilot.util import signalling
 
 import logging
 logger = logging.getLogger(__name__)
-
-graceful_stop = signalling.graceful_stop_event()
 
 
 def control(queues, traces, args):
@@ -37,21 +33,10 @@ def control(queues, traces, args):
                                         'traces': traces,
                                         'args': args})]
 
-    storages = information.get_storages()
-
-    if args.site not in [s['site'] for s in storages]:
-        logger.warning('no configured storage found for site {0}'.format(args.site))
-
-    storage = []
-    for s in storages:
-        if args.site == s['site']:
-            storage.append(s)
-            break
-
     [t.start() for t in threads]
 
 
-def _call(executable, cwd=os.getcwd(), logger=logger, graceful_stop=None):
+def _call(args, executable, cwd=os.getcwd(), logger=logger):
     try:
         process = subprocess.Popen(executable,
                                    bufsize=-1,
@@ -59,38 +44,37 @@ def _call(executable, cwd=os.getcwd(), logger=logger, graceful_stop=None):
                                    stderr=subprocess.PIPE,
                                    cwd=cwd)
     except Exception as e:
-        logger.error('could not execute: {0}'.format(e))
+        logger.error('could not execute: %s' % str(e))
         return False
 
-    logger.info('started -- pid={0} executable={1}'.format(process.pid, executable))
+    logger.info('started -- pid=%s executable=%s' % (process.pid, executable))
 
     breaker = False
     exit_code = None
     while True:
         for i in xrange(10):
-            if graceful_stop.is_set():
+            if args.graceful_stop.is_set():
                 breaker = True
-                logger.debug('breaking: sending SIGTERM pid={0}'.format(process.pid))
+                logger.debug('breaking: sending SIGTERM pid=%s' % process.pid)
                 process.terminate()
                 break
             time.sleep(0.1)
         if breaker:
-            logger.debug('breaking: sleep 3s before sending SIGKILL pid={0}'.format(process.pid))
+            logger.debug('breaking: sleep 3s before sending SIGKILL pid=%s' % process.pid)
             time.sleep(3)
             process.kill()
             break
 
         exit_code = process.poll()
-        logger.info('running -- pid={0} exit_code={1}'.format(process.pid, exit_code))
         if exit_code is not None:
             break
         else:
             continue
 
-    logger.info('finished -- pid={0} exit_code={1}'.format(process.pid, exit_code))
+    logger.info('finished -- pid=%s exit_code=%s' % (process.pid, exit_code))
     stdout, stderr = process.communicate()
-    logger.debug('stdout:\n{0}'.format(stdout))
-    logger.debug('stderr:\n{0}'.format(stderr))
+    logger.debug('stdout:\n%s' % stdout)
+    logger.debug('stderr:\n%s' % stderr)
 
     if exit_code == 0:
         return True
@@ -98,29 +82,31 @@ def _call(executable, cwd=os.getcwd(), logger=logger, graceful_stop=None):
         return False
 
 
-def _stage_in(job):
-    log = logger.getChild(job['job_id'])
+def _stage_in(args, job):
+    log = logger.getChild(str(job['PandaID']))
 
-    for f in job['input_files']:
-        if not _call(['rucio', '-v', 'download',
-                      '--no-subdir',
-                      '--rse', job['input_files'][f]['ddm_endpoint'],
-                      job['input_files'][f]['scope'] + ":" + f],
-                     cwd=job['working_dir'],
-                     logger=log):
-            return False
+    os.environ['RUCIO_LOGGING_FORMAT'] = '{0}%(asctime)s %(levelname)s [%(message)s]'
+    if not _call(args,
+                 ['/usr/bin/env',
+                  'rucio', '-v', 'download',
+                  '--no-subdir',
+                  '--rse', job['ddmEndPointIn'],
+                  '%s:%s' % (job['scopeIn'], job['inFiles'])],
+                 cwd=job['working_dir'],
+                 logger=log):
+        return False
     return True
 
 
 def copytool_in(queues, traces, args):
 
-    while not graceful_stop.is_set():
+    while not args.graceful_stop.is_set():
         try:
             job = queues.data_in.get(block=True, timeout=1)
 
             send_state(job, 'transferring')
 
-            if _stage_in(job):
+            if _stage_in(args, job):
                 queues.finished_data_in.put(job)
             else:
                 queues.failed_data_in.put(job)
@@ -131,15 +117,15 @@ def copytool_in(queues, traces, args):
 
 def copytool_out(queues, traces, args):
 
-    while not graceful_stop.is_set():
+    while not args.graceful_stop.is_set():
         try:
             job = queues.data_out.get(block=True, timeout=1)
 
-            # logger.info('dataset={0} rse={1}'.format(job['destinationDblock'], job['ddmEndPointOut']))
+            logger.info('dataset=%s rse=%s' % (job['destinationDblock'], job['ddmEndPointOut'].split(',')[0]))
 
             send_state(job, 'transferring')
 
-            if _stage_out(job, args):
+            if _stage_out_all(job, args):
                 queues.finished_data_out.put(job)
             else:
                 queues.failed_data_out.put(job)
@@ -149,32 +135,38 @@ def copytool_out(queues, traces, args):
 
 
 def prepare_log(job, tarball_name):
-    log = logger.getChild(job['job_id'])
-    log.info('Saving log file')
+    log = logger.getChild(str(job['PandaID']))
+    log.info('preparing log file')
 
-    input_files = job['input_files'].keys()
-    output_files = job['output_files'].keys()
+    input_files = job['inFiles'].split(',')
+    output_files = job['outFiles'].split(',')
+    force_exclude = ['geomDB', 'sqlite200']
 
-    with tarfile.open(name=os.path.join(job['working_dir'], job['log_file']),
+    with tarfile.open(name=os.path.join(job['working_dir'], job['logFile']),
                       mode='w:gz',
                       dereference=True) as log_tar:
-        for _file in list(set(os.listdir(job['working_dir'])) - set(input_files) - set(output_files)):
-            os.system('/usr/bin/sync')
+        for _file in list(set(os.listdir(job['working_dir'])) - set(input_files) - set(output_files) - set(force_exclude)):
+            logging.debug('adding to log: %s' % _file)
             log_tar.add(os.path.join(job['working_dir'], _file),
                         arcname=os.path.join(tarball_name, _file))
 
-    job['output_files'][job['log_file']]['bytes'] = os.stat(os.path.join(job['working_dir'], job['log_file'])).st_size
+    return {'scope': job['scopeLog'],
+            'name': job['logFile'],
+            'guid': job['logGUID'],
+            'bytes': os.stat(os.path.join(job['working_dir'], job['logFile'])).st_size}
 
 
-def save_file(filename, _file, job):
-    log = logger.getChild(job['job_id'])
+def _stage_out(args, outfile, job):
+    log = logger.getChild(str(job['PandaID']))
 
-    executable = ['rucio', '-v', 'upload',
+    os.environ['RUCIO_LOGGING_FORMAT'] = '{0}%(asctime)s %(levelname)s [%(message)s]'
+    executable = ['/usr/bin/env',
+                  'rucio', '-v', 'upload',
                   '--summary', '--no-register',
-                  '--guid', _file['guid'],
-                  '--rse', _file['ddm_endpoint'],
-                  '--scope', _file['scope'],
-                  filename]
+                  '--guid', outfile['guid'],
+                  '--rse', job['ddmEndPointOut'].split(',')[0],
+                  '--scope', outfile['scope'],
+                  outfile['name']]
 
     try:
         process = subprocess.Popen(executable,
@@ -183,38 +175,38 @@ def save_file(filename, _file, job):
                                    stderr=subprocess.PIPE,
                                    cwd=job['working_dir'])
     except Exception as e:
-        log.error('could not execute: {0}'.format(e))
+        log.error('could not execute: %s' % str(e))
         return None
 
-    log.info('started -- pid={0} executable={1}'.format(process.pid, executable))
+    log.info('started -- pid=%s executable=%s' % (process.pid, executable))
 
     breaker = False
     exit_code = None
     while True:
         for i in xrange(10):
-            if graceful_stop.is_set():
+            if args.graceful_stop.is_set():
                 breaker = True
-                log.debug('breaking -- sending SIGTERM pid={0}'.format(process.pid))
+                log.debug('breaking -- sending SIGTERM pid=%s' % process.pid)
                 process.terminate()
                 break
             time.sleep(0.1)
         if breaker:
-            log.debug('breaking -- sleep 3s before sending SIGKILL pid={0}'.format(process.pid))
+            log.debug('breaking -- sleep 3s before sending SIGKILL pid=%s' % process.pid)
             time.sleep(3)
             process.kill()
             break
 
         exit_code = process.poll()
-        log.info('running -- pid={0} exit_code={1}'.format(process.pid, exit_code))
+        log.info('running -- pid=%s exit_code=%s' % (process.pid, exit_code))
         if exit_code is not None:
             break
         else:
             continue
 
-    log.info('finished -- pid={0} exit_code={1}'.format(process.pid, exit_code))
+    log.info('finished -- pid=%s exit_code=%s' % (process.pid, exit_code))
     out, err = process.communicate()
-    log.debug('stdout:\n{0}'.format(out))
-    log.debug('stderr:\n{0}'.format(err))
+    log.debug('stdout:\n%s' % out)
+    log.debug('stderr:\n%s' % err)
 
     if exit_code is None:
         return None
@@ -226,13 +218,17 @@ def save_file(filename, _file, job):
     return summary
 
 
-def _stage_out(job, args):
-    for f in job['job_report']['files']['output']:
-        fn = f['subFiles'][0]['name']
-        job['output_files'][fn]['guid'] = f['subFiles'][0]['file_guid']
-        job['output_files'][fn]['bytes'] = f['subFiles'][0]['file_size']
+def _stage_out_all(job, args):
 
-    prepare_log(job, 'tarball_PandaJob_{0}_{1}'.format(job['job_id'], args.queue))
+    outputs = {}
+
+    for f in job['job_report']['files']['output']:
+        outputs[f['subFiles'][0]['name']] = {'scope': job['scopeOut'],
+                                             'name': f['subFiles'][0]['name'],
+                                             'guid': f['subFiles'][0]['file_guid'],
+                                             'bytes': f['subFiles'][0]['file_size']}
+
+    outputs['%s:%s' % (job['scopeLog'], job['logFile'])] = prepare_log(job, 'tarball_PandaJob_%s_%s' % (job['PandaID'], args.queue))
 
     pfc = '''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <!DOCTYPE POOLFILECATALOG SYSTEM "InMemory">
@@ -246,31 +242,28 @@ def _stage_out(job, args):
   <metadata att_name="surl" att_value="{pfn}"/>
   <metadata att_name="fsize" att_value="{bytes}"/>
   <metadata att_name="adler32" att_value="{adler32}"/>
- </File>'''
+ </File>
+'''
 
     failed = False
 
-    for fn, f in job['output_files']:
-        summary = save_file(fn, f, job)
+    for outfile in outputs:
+        summary = _stage_out(args, outputs[outfile], job)
 
         if summary is not None:
-            f['pfn'] = summary['{0}:{1}'.format(f['scope'], fn)]['pfn']
-            f['adler32'] = summary['{0}:{1}'.format(f['scope'], fn)]['adler32']
+            outputs[outfile]['pfn'] = summary['%s:%s' % (outputs[outfile]['scope'], outputs[outfile]['name'])]['pfn']
+            outputs[outfile]['adler32'] = summary['%s:%s' % (outputs[outfile]['scope'], outputs[outfile]['name'])]['adler32']
 
-            pfc += pfc_file.format(**f)
+            pfc += pfc_file.format(**outputs[outfile])
 
         else:
             failed = True
 
     pfc += '</POOLFILECATALOG>'
 
-    if not failed:
-
-        send_state(job, 'finished', xml=pfc)
-
-        return True
-    else:
-
+    if failed:
         send_state(job, 'failed')
-
         return False
+    else:
+        send_state(job, 'finished', xml=pfc)
+        return True

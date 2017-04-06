@@ -12,15 +12,12 @@ import Queue
 import os
 import threading
 import time
+import urllib
 
-from pilot.util import information
 from pilot.util import https
-from pilot.util.job_description_fixer import description_fixer
-from pilot.util import signalling
 
 import logging
 logger = logging.getLogger(__name__)
-graceful_stop = signalling.graceful_stop_event()
 
 
 def control(queues, traces, args):
@@ -38,27 +35,13 @@ def control(queues, traces, args):
                                         'traces': traces,
                                         'args': args})]
 
-    sites = information.get_sites()
-
-    if args.site not in [s['name'] for s in sites]:
-        logger.critical('configured site not found: {0} -- aborting'.format(args.site))
-        signalling.simulate_signal()
-        return
-
-    if not [site for site in sites if site['name'] == args.site and site['state'] == 'ACTIVE']:
-        logger.critical('configured site is NOT ACTIVE: {0} -- aborting'.format(args.site))
-        signalling.simulate_signal()
-        return
-
-    logger.info('configured site: {0}'.format(args.site))
-
     [t.start() for t in threads]
 
 
 def _validate_job(job):
     # valid = random.uniform(0, 100)
     # if valid > 99:
-    #     logger.warning('{0}: job did not validate correctly -- skipping'.format(job['job_id']))
+    #     logger.warning('%s: job did not validate correctly -- skipping' % job['PandaID'])
     #     job['errno'] = random.randint(0, 100)
     #     job['errmsg'] = 'job failed random validation'
     #     return False
@@ -66,49 +49,47 @@ def _validate_job(job):
 
 
 def send_state(job, state, xml=None):
-    log = logger.getChild(job['job_id'])
-    log.debug('set job state={0}'.format(state))
+    log = logger.getChild(str(job['PandaID']))
+    log.debug('set job state=%s' % state)
 
-    data = {
-        'jobId': job['job_id'],
-        'state': state
-    }
+    data = {'jobId': job['PandaID'],
+            'state': state}
 
     if xml is not None:
-        data['xml'] = xml
+        data['xml'] = urllib.quote_plus(xml)
 
     try:
         if https.request('https://pandaserver.cern.ch:25443/server/panda/updateJob', data=data) is not None:
-            log.info('confirmed job state={0}'.format(state))
+            log.info('confirmed job state=%s' % state)
             return True
     except Exception as e:
-        log.warning('while setting job state, Exception caught: ' + str(e.message))
+        log.warning('while setting job state, Exception caught: %s' % str(e.message))
         pass
 
-    log.warning('set job state={0} failed'.format(state))
+    log.warning('set job state=%s failed' % state)
     return False
 
 
 def validate(queues, traces, args):
 
-    while not graceful_stop.is_set():
+    while not args.graceful_stop.is_set():
         try:
             job = queues.jobs.get(block=True, timeout=1)
         except Queue.Empty:
             continue
-        log = logger.getChild(job['job_id'])
+        log = logger.getChild(str(job['PandaID']))
 
         traces.pilot['nr_jobs'] += 1
 
         if _validate_job(job):
 
             log.debug('creating job working directory')
-            job_dir = 'job-{0}'.format(job['job_id'])
+            job_dir = 'job-%s' % job['PandaID']
             try:
                 os.mkdir(job_dir)
                 job['working_dir'] = job_dir
             except Exception as e:
-                log.debug('cannot create job working directory: {0}'.format(str(e)))
+                log.debug('cannot create job working directory: %s' % str(e))
                 queues.failed_jobs.put(job)
                 break
 
@@ -116,7 +97,7 @@ def validate(queues, traces, args):
             try:
                 os.symlink('../pilotlog.txt', os.path.join(job_dir, 'pilotlog.txt'))
             except Exception as e:
-                log.debug('cannot symlink pilot log: {0}'.format(str(e)))
+                log.debug('cannot symlink pilot log: %s' % str(e))
                 queues.failed_jobs.put(job)
                 break
 
@@ -127,7 +108,7 @@ def validate(queues, traces, args):
 
 def create_data_payload(queues, traces, args):
 
-    while not graceful_stop.is_set():
+    while not args.graceful_stop.is_set():
         try:
             job = queues.validated_jobs.get(block=True, timeout=1)
         except Queue.Empty:
@@ -139,26 +120,32 @@ def create_data_payload(queues, traces, args):
 
 def retrieve(queues, traces, args):
 
-    while not graceful_stop.is_set():
+    while not args.graceful_stop.is_set():
 
         logger.debug('trying to fetch job')
 
-        data = {
-            'getProxyKey': False,  # do we need it?
-            'computingElement': args.queue,
-            'siteName': args.resource,
-            'workingGroup': '',  # do we need it?
-            'prodSourceLabel': 'mtest'
-        }
+        data = {'siteName': args.location.queue,
+                'prodSourceLabel': args.job_label}
 
-        res = description_fixer(https.request('https://pandaserver.cern.ch:25443/server/panda/getJob', data=data))
+        res = https.request('https://pandaserver.cern.ch:25443/server/panda/getJob', data=data)
 
-        if res['status_code'] != 0:
-            logger.warning('did not get a job -- sleep 1000s and repeat -- status: {0}'.format(res['status_code']))
+        if res is None:
+            logger.warning('did not get a job -- sleep 1000s and repeat')
             for i in xrange(10000):
-                if graceful_stop.is_set():
+                if args.graceful_stop.is_set():
                     break
                 time.sleep(0.1)
         else:
-            logger.info('got job: {0}'.format(res['job_id']))
-            queues.jobs.put(res)
+            if res['StatusCode'] != 0:
+                logger.warning('did not get a job -- sleep 1000s and repeat -- status: %s' % res['StatusCode'])
+                for i in xrange(10000):
+                    if args.graceful_stop.is_set():
+                        break
+                    time.sleep(0.1)
+            else:
+                logger.info('got job: %s -- sleep 1000s before trying to get another job' % res['PandaID'])
+                queues.jobs.put(res)
+                for i in xrange(10000):
+                    if args.graceful_stop.is_set():
+                        break
+                    time.sleep(0.1)
