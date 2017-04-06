@@ -17,12 +17,12 @@ import ssl
 import sys
 import urllib
 import urllib2
+import pipes
 
 import logging
 logger = logging.getLogger(__name__)
 
-global _ctx
-_ctx = collections.namedtuple('_ctx', 'ssl_context user_agent')
+_ctx = collections.namedtuple('_ctx', 'ssl_context user_agent capath cacert')
 
 
 def capath(args=None):
@@ -64,33 +64,35 @@ def https_setup(args, version):
                                                        platform.machine())
     logger.debug('User-Agent: %s' % _ctx.user_agent)
 
+    _ctx.capath = capath(args)
+    _ctx.cacert = capath(args)
+
     if sys.version_info < (2, 7, 9):
         logger.warn('Python version <2.7.9 lacks SSL contexts -- falling back to curl')
         _ctx.ssl_context = None
     else:
         try:
-            _ctx.ssl_context = ssl.create_default_context(capath=capath(args),
-                                                          cafile=cacert(args))
+            _ctx.ssl_context = ssl.create_default_context(capath=_ctx.capath,
+                                                          cafile=_ctx.cacert)
         except Exception as e:
-            logger.warn('SSL communication is impossible due to SSL error: %s' % str(e))
-            return False
+            logger.warn('SSL communication is impossible due to SSL error: %s -- falling back to curl' % str(e))
+            _ctx.ssl_context = None
 
     return True
 
 
 def request(url, data=None, plain=False):
 
-    _ctx.ssl_context = None  # no time to deal with this now
+    # _ctx.ssl_context = None  # no time to deal with this now
 
     if _ctx.ssl_context is None:
         req = 'curl -sS --compressed --connect-timeout %s --max-time %s '\
               '--capath %s --cert %s --cacert %s --key %s '\
-              '%s %s "%s%s"' % (1, 3,
-                                capath(), cacert(), cacert(), cacert(),
-                                '-H "User-Agent: %s"' % _ctx.user_agent,
-                                '-H "Accept: application/json"' if not plain else '',
-                                url,
-                                '?' + '&'.join(['%s=%s' % (x, data[x]) for x in data] if data else ''))
+              '-H %s %s %s' % (1, 3,
+                               pipes.quote(_ctx.capath), pipes.quote(_ctx.cacert), pipes.quote(_ctx.cacert), pipes.quote(_ctx.cacert),
+                               pipes.quote('User-Agent: %s' % _ctx.user_agent),
+                               "-H " + pipes.quote('Accept: application/json') if not plain else '',
+                               pipes.quote(url + '?' + urllib.urlencode(data) if data else ''))
         logger.debug('request: %s' % req)
         status, output = commands.getstatusoutput(req)
         if status != 0:
