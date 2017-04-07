@@ -67,16 +67,12 @@ def _validate_payload(job):
 def setup_payload(job, out, err):
     log = logger.getChild(str(job['PandaID']))
 
-    jobdir = 'job-%s/' % job['PandaID']
-    dbdir = '/cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/'
-
-    # create symbolic link for sqlite200 and geomDB in job dir
-    executable = ['ln', '-sf', dbdir + 'sqlite200', dbdir + 'geomDB', jobdir]
-
-    log.debug('executable=%s' % executable)
-
     try:
-        subprocess.check_call(executable)
+        # create symbolic link for sqlite200 and geomDB in job dir
+        for db_name in ['sqlite200', 'geomDB']:
+            src = '/cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/%s' % db_name
+            link_name = 'job-%s/%s' % (job['PandaID'], db_name)
+            os.symlink(src, link_name)
     except Exception as e:
         log.error('could not create symbolic links to database files: %s' % e)
         return False
@@ -87,8 +83,10 @@ def setup_payload(job, out, err):
 def run_payload(job, out, err):
     log = logger.getChild(str(job['PandaID']))
 
+    athena_version = job['homepackage'].split('/')[1]
+
     asetup = 'source $ATLAS_LOCAL_ROOT_BASE/user/atlasLocalSetup.sh --quiet; '\
-             'source $AtlasSetup/scripts/asetup.sh %s,here; ' % job['homepackage'].split('/')[1]
+             'source $AtlasSetup/scripts/asetup.sh %s,here; ' % athena_version
 
     cmd = job['transformation'] + ' ' + job['jobPars']
 
