@@ -67,11 +67,11 @@ def _validate_payload(job):
 def setup_payload(job, out, err):
     log = logger.getChild(str(job['PandaID']))
 
-    jobDir = 'job-%s/' % job['PandaID']
-    dbDir = '/cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/'
+    jobdir = 'job-%s/' % job['PandaID']
+    dbdir = '/cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/'
 
     # create symbolic link for sqlite200 and geomDB in job dir
-    executable = ['ln', '-sf', dbDir + 'sqlite200', dbDir + 'geomDB', jobDir]
+    executable = ['ln', '-sf', dbdir + 'sqlite200', dbdir + 'geomDB', jobdir]
 
     log.debug('executable=%s' % executable)
 
@@ -87,15 +87,15 @@ def setup_payload(job, out, err):
 def run_payload(job, out, err):
     log = logger.getChild(str(job['PandaID']))
 
-    setupExecStr = 'source $ATLAS_LOCAL_ROOT_BASE/user/atlasLocalSetup.sh --quiet; '\
-                   'source $AtlasSetup/scripts/asetup.sh %s,here; ' % job['homepackage'].split('/')[1]
+    asetup = 'source $ATLAS_LOCAL_ROOT_BASE/user/atlasLocalSetup.sh --quiet; '\
+             'source $AtlasSetup/scripts/asetup.sh %s,here; ' % job['homepackage'].split('/')[1]
 
-    runExecStr = job['transformation'] + ' ' + job['jobPars']
+    cmd = job['transformation'] + ' ' + job['jobPars']
 
-    log.debug('executable=%s' % setupExecStr + runExecStr)
+    log.debug('executable=%s' % asetup + cmd)
 
     try:
-        proc = subprocess.Popen(setupExecStr + runExecStr,
+        proc = subprocess.Popen(asetup + cmd,
                                 bufsize=-1,
                                 stdout=out,
                                 stderr=err,
@@ -105,7 +105,7 @@ def run_payload(job, out, err):
         log.error('could not execute: %s' % str(e))
         return None
 
-    log.info('started -- pid=%s executable=%s' % (proc.pid, setupExecStr + runExecStr))
+    log.info('started -- pid=%s executable=%s' % (proc.pid, asetup + cmd))
 
     return proc
 
