@@ -53,7 +53,7 @@ def set_location(args, site=None):
             return False
         else:
             args.location.site = str(matching_sites[0]['site'])
-            args.location.site_info = [tmp_site for tmp_site in all_sites if site['name'] == args.location.site][0]
+            args.location.site_info = [tmp_site for tmp_site in all_sites if tmp_site['name'] == args.location.site][0]
 
         # find all enabled storages at site
         all_storages = retrieve_json('http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json')
