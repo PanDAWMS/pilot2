@@ -55,21 +55,6 @@ def set_location(args, site=None):
             args.location.site = str(matching_sites[0]['site'])
             args.location.site_info = [tmp_site for tmp_site in all_sites if tmp_site['name'] == args.location.site][0]
 
-        # find all enabled storages at site
-        all_storages = retrieve_json('http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json')
-        args.location.storages = [str(storage['name']) for storage in all_storages
-                                  if storage['site'] == args.location.site and storage['state'] == 'ACTIVE']
-        args.location.storages_info = {}
-        for tmp_storage in args.location.storages:
-            args.location.storages_info[tmp_storage] = [storage for storage in all_storages
-                                                        if storage['name'] == tmp_storage and storage['state'] == 'ACTIVE'][0]
-
-        logger.info('queue: %s' % args.location.queue)
-        logger.info('site: %s' % args.location.site)
-        logger.info('storages: %s' % args.location.storages)
-
-        return True
-
     else:
         # find the associated site
         all_sites = retrieve_json('http://atlas-agis-api.cern.ch/request/site/query/list/?json')
@@ -79,14 +64,20 @@ def set_location(args, site=None):
         args.location.site = site
         args.location.site_info = result[0]
 
-        # find all enabled storages at site
-        all_storages = retrieve_json('http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json')
-        args.location.storages = [str(storage['name']) for storage in all_storages
-                                  if storage['site'] == args.location.site and storage['state'] == 'ACTIVE']
-        args.location.storages_info = {}
-        for tmp_storage in args.location.storages:
-            args.location.storages_info[tmp_storage] = [storage for storage in all_storages
-                                                        if storage['name'] == tmp_storage and storage['state'] == 'ACTIVE'][0]
+    # find all enabled storages at site
+    all_storages = retrieve_json('http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json')
+    args.location.storages = [str(storage['name']) for storage in all_storages
+                              if storage['site'] == args.location.site and storage['state'] == 'ACTIVE']
+    args.location.storages_info = {}
+    for tmp_storage in args.location.storages:
+        args.location.storages_info[tmp_storage] = [storage for storage in all_storages
+                                                    if storage['name'] == tmp_storage and storage['state'] == 'ACTIVE'][0]
+
+    logger.info('queue: %s' % args.location.queue)
+    logger.info('site: %s' % args.location.site)
+    logger.info('storages: %s' % args.location.storages)
+
+    return True
 
 
 def retrieve_json(url):
