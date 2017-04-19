@@ -39,6 +39,7 @@ def _tester(func, *args):
 
     return None
 
+
 def capath(args=None):
     """
     Tries to get :abbr:`CA (Certification Authority)` path with certificates.
