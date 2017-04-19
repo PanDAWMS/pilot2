@@ -47,7 +47,7 @@ def set_location(args, site=None):
 
         # find the associated site
         all_sites = retrieve_json('http://atlas-agis-api.cern.ch/request/site/query/list/?json')
-        matching_sites = [site for site in all_sites if site['name'] == args.queue]
+        matching_sites = [queue for queue in all_queues if queue['name'] == args.queue]
         if len(matching_sites) != 1:
             logger.critical('queue is not explicitly mapped to a single site, found: %s' % [tmp_site['name'] for tmp_site in matching_sites])
             return False
