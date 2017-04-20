@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
+# - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
 
 # This is a stub implementation of the information component. It retrieves
