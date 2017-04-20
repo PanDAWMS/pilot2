@@ -26,8 +26,8 @@ def main():
 
     args.graceful_stop = threading.Event()
 
-    if not https_setup(args, VERSION):
-        return False
+    https_setup(args, VERSION)
+
     if not set_location(args):
         return False
 
