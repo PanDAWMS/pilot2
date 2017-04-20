@@ -34,7 +34,7 @@ The test cases are implemented as standard Python unittests under directory ``pi
 
 ## Building and viewing docs
 
-1. Install ``sphinx-build`` into your environment by ``pip`` or other means with all the necessary requirements.
+1. Install ``sphinx`` into your environment by ``pip`` or other means with all the necessary requirements.
 
 2. Navigate into ``./doc`` in your fork and run ``make html``.
 
