@@ -34,7 +34,7 @@ def _tester(func, *args):
     :return: something or none
     """
     for arg in args:
-        if func(arg):
+        if arg is not None and func(arg):
             return arg
 
     return None
