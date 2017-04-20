@@ -39,3 +39,12 @@ The test cases are implemented as standard Python unittests under directory ``pi
 2. Navigate into ``./doc`` in your fork and run ``make html``.
 
 3. Open ``_build/html/index.html`` with your browser.
+
+### Automate documentation to your module
+
+Add the following lines somewhere in the documentation:
+
+    .. automodule:: your.module
+        :members:
+
+For more info, visit http://sphinx-doc.org
