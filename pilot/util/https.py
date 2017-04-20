@@ -125,6 +125,8 @@ def https_setup(args, version):
             logger.warn('SSL communication is impossible due to SSL error: %s -- falling back to curl' % str(e))
             _ctx.ssl_context = None
 
+    return True
+
 
 def request(url, data=None, plain=False):
     """
