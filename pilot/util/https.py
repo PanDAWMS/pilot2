@@ -112,7 +112,7 @@ def https_setup(args, version):
     logger.debug('User-Agent: %s' % _ctx.user_agent)
 
     _ctx.capath = capath(args)
-    _ctx.cacert = capath(args)
+    _ctx.cacert = cacert(args)
 
     if sys.version_info < (2, 7, 9):
         logger.warn('Python version <2.7.9 lacks SSL contexts -- falling back to curl')
