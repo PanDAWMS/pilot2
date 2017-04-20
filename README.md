@@ -31,3 +31,11 @@ The ``-d`` argument changes the logger to produce debug output.
 The test cases are implemented as standard Python unittests under directory ``pilot/test/``. They can be discovered and executed automatically:
 
     unit2 -v
+
+## Building and viewing docs
+
+1. Install ``sphinx-build`` into your environment by ``pip`` or other means with all the necessary requirements.
+
+2. Navigate into ``./doc`` in your fork and run ``make html``.
+
+3. Open ``_build/html/index.html`` with your browser.
