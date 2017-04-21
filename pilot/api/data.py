@@ -29,6 +29,13 @@ class StageInClient(object):
         # information.set_location(self.args, site=self.site)
 
     def transfer(self, files):
+        """
+        Automatically stage in files using rucio.
+
+        :param files: List of dictionaries containing the DID and destination directory [{scope, name, destination
+        :return: Annotated files -- List of dictionaries with additional variables [{..., errno, errmsg, status
+        """
+
         all_files_ok = False
         for file in files:
             if all(key in file for key in ('scope', 'name', 'destination')):

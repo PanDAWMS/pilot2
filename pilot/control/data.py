@@ -109,66 +109,58 @@ def stage_in_auto(site, files):
      - auto-merging of files with same destination into single copytool call
     """
 
-    destination = set([file['destination'] for file in files])
+    # don't spoil the output, we depend on stderr parsing
+    os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
     executable = ['/usr/bin/env',
                   'rucio', '-v', 'download',
                   '--no-subdir']
 
-    if len(destination) == 1:
-        executable += ['--dir', destination.pop()]
-        for file in files:
+    # quickly remove non-existing destinations
+    for file in files:
+        if not os.path.exists(file['destination']):
+            file['status'] = 'failed'
+            file['errmsg'] = 'Destination directory does not exist: %s' % file['destination']
+            file['errno'] = 1
+        else:
             file['status'] = 'transferring'
-            file['errno'] = -1
-            executable.append('%s:%s' % (file['scope'],
-                                         file['name']))
+            file['errmsg'] = 'File not yet successfully downloaded.'
+            file['errno'] = 2
 
-        process = subprocess.Popen(executable,
+    for file in files:
+        if file['errno'] == 1:
+            continue
+
+        tmp_executable = copy.deepcopy(executable)
+
+        tmp_executable += ['--dir', file['destination']]
+        tmp_executable.append('%s:%s' % (file['scope'],
+                                         file['name']))
+        process = subprocess.Popen(tmp_executable,
                                    bufsize=-1,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
-
+        file['errno'] = 2
         while True:
             time.sleep(0.1)
             exit_code = process.poll()
             if exit_code is not None:
+                stdout, stderr = process.communicate()
                 if exit_code == 0:
-                    for file in files:
-                        file['status'] = 'done'
-                        file['errno'] = 0
+                    file['status'] = 'done'
+                    file['errno'] = 0
+                    file['errmsg'] = 'File successfully downloaded.'
                 else:
-                    for file in files:
-                        file['status'] = 'failed'
+                    file['status'] = 'failed'
+                    file['errno'] = 3
+                    try:
+                        # the Details: string is set in rucio: lib/rucio/common/exception.py in __str__()
+                        file['errmsg'] = [detail for detail in stderr.split('\n') if detail.startswith('Details:')][0][9:-1]
+                    except Exception as e:
+                        file['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % str(e)
                 break
             else:
                 continue
-        process.communicate()
-
-    else:
-        for file in files:
-            file['status'] = 'transferring'
-            tmp_executable = copy.deepcopy(executable)
-            tmp_executable += ['--dir', file['destination']]
-            tmp_executable.append('%s:%s' % (file['scope'],
-                                             file['name']))
-            process = subprocess.Popen(tmp_executable,
-                                       bufsize=-1,
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE)
-            file['errno'] = -1
-            while True:
-                time.sleep(0.1)
-                exit_code = process.poll()
-                if exit_code is not None:
-                    if exit_code == 0:
-                        file['status'] = 'done'
-                        file['errno'] = 0
-                    else:
-                        file['status'] = 'failed'
-                    break
-                else:
-                    continue
-            process.communicate()
 
     return files
 
@@ -234,7 +226,7 @@ def prepare_log(job, tarball_name):
 def _stage_out(args, outfile, job):
     log = logger.getChild(str(job['PandaID']))
 
-    os.environ['RUCIO_LOGGING_FORMAT'] = '{0}%(asctime)s %(levelname)s [%(message)s]'
+    os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
     executable = ['/usr/bin/env',
                   'rucio', '-v', 'upload',
                   '--summary', '--no-register',
