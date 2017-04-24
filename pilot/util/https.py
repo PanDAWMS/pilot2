@@ -17,26 +17,54 @@ import ssl
 import sys
 import urllib
 import urllib2
+import pipes
 
 import logging
 logger = logging.getLogger(__name__)
 
-global _ctx
-_ctx = collections.namedtuple('_ctx', 'ssl_context user_agent')
+_ctx = collections.namedtuple('_ctx', 'ssl_context user_agent capath cacert')
 
 
-def capath(args=None):
-    if args is not None and args.capath is not None and os.path.isdir(args.capath):
-        return args.capath
+def _tester(func, *args):
+    """
+    Tests function on arguments and returns first positive.
 
-    path = os.environ.get('X509_CERT_DIR', '/etc/grid-security/certificates')
-    if os.path.isdir(path):
-        return path
+    :param func: function(arg)->boolean
+    :param args: other arguments
+    :return: something or none
+    """
+    for arg in args:
+        if arg is not None and func(arg):
+            return arg
 
     return None
 
 
+def capath(args=None):
+    """
+    Tries to get :abbr:`CA (Certification Authority)` path with certificates.
+    Testifies it to be a directory.
+    Tries next locations:
+
+    1. :option:`--capath` from arguments
+    2. :envvar:`X509_CERT_DIR` from env
+    3. Path ``/etc/grid-security/certificates``
+
+    :param args: arguments, parsed by `argparse`
+    :returns: `str` -- directory path, or `None`
+    """
+
+    return _tester(os.path.isdir,
+                   None if args is None or args.capath is None else args.capath,
+                   os.environ.get('X509_CERT_DIR'),
+                   '/etc/grid-security/certificates')
+
+
 def cacert_default_location():
+    """
+    Tries to get current user ID through `os.getuid`, and get the posix path for x509 certificate.
+    :returns: `str` -- posix default x509 path, or `None`
+    """
     try:
         return '/tmp/x509up_u%s' % str(os.getuid())
     except AttributeError:
@@ -47,50 +75,88 @@ def cacert_default_location():
 
 
 def cacert(args=None):
-    if args is not None and args.cacert is not None and os.path.isfile(args.cacert):
-        return args.cacert
+    """
+    Tries to get :abbr:`CA (Certification Authority)` certificate or X509 one.
+    Testifies it to be a regular file.
+    Tries next locations:
 
-    path = os.environ.get('X509_USER_PROXY', cacert_default_location())
-    if os.path.isfile(path):
-        return path
+    1. :option:`--cacert` from arguments
+    2. :envvar:`X509_USER_PROXY` from env
+    3. Path ``/tmp/x509up_uXXX``, where ``XXX`` refers to ``UID``
 
-    return None
+    :param args: arguments, parsed by `argparse`
+    :returns: `str` -- certificate file path, or `None`
+    """
+
+    return _tester(os.path.isfile,
+                   None if args is None or args.cacert is None else args.capath,
+                   os.environ.get('X509_USER_PROXY'),
+                   cacert_default_location())
 
 
 def https_setup(args, version):
+    """
+    Sets up the context for future HTTPS requests:
+
+    1. Selects the certificate paths
+    2. Sets up :mailheader:`User-Agent`
+    3. Tries to create `ssl.SSLContext` for future use (falls back to :command:`curl` if fails)
+
+    :param args: arguments, parsed by `argparse`
+    :param str version: pilot version string (for :mailheader:`User-Agent`)
+    """
     _ctx.user_agent = 'pilot/%s (Python %s; %s %s)' % (version,
                                                        sys.version.split()[0],
                                                        platform.system(),
                                                        platform.machine())
     logger.debug('User-Agent: %s' % _ctx.user_agent)
 
+    _ctx.capath = capath(args)
+    _ctx.cacert = cacert(args)
+
     if sys.version_info < (2, 7, 9):
         logger.warn('Python version <2.7.9 lacks SSL contexts -- falling back to curl')
         _ctx.ssl_context = None
     else:
         try:
-            _ctx.ssl_context = ssl.create_default_context(capath=capath(args),
-                                                          cafile=cacert(args))
+            _ctx.ssl_context = ssl.create_default_context(capath=_ctx.capath,
+                                                          cafile=_ctx.cacert)
         except Exception as e:
-            logger.warn('SSL communication is impossible due to SSL error: %s' % str(e))
-            return False
-
-    return True
+            logger.warn('SSL communication is impossible due to SSL error: %s -- falling back to curl' % str(e))
+            _ctx.ssl_context = None
 
 
 def request(url, data=None, plain=False):
+    """
+    This function sends a request using HTTPS.
+    Sends :mailheader:`User-Agent` and certificates previously being set up by `https_setup`.
+    If `ssl.SSLContext` is available, uses `urllib2` as a request processor. Otherwise uses :command:`curl`.
 
-    _ctx.ssl_context = None  # no time to deal with this now
+    If ``data`` is provided, encodes it as a URL form data and sends it to the server.
+
+    Treats the request as JSON unless a parameter ``plain`` is `True`.
+    If JSON is expected, sends ``Accept: application/json`` header.
+
+    :param string url: the URL of the resource
+    :param dict data: data to send
+    :param boolean plain: if true, treats the response as a plain text.
+
+    Returns:
+        - :keyword:`dict` -- if everything went OK
+        - `str` -- if ``plain`` parameter is `True`
+        - `None` -- if something went wrong
+    """
+
+    # _ctx.ssl_context = None  # no time to deal with this now
 
     if _ctx.ssl_context is None:
         req = 'curl -sS --compressed --connect-timeout %s --max-time %s '\
               '--capath %s --cert %s --cacert %s --key %s '\
-              '%s %s "%s%s"' % (1, 3,
-                                capath(), cacert(), cacert(), cacert(),
-                                '-H "User-Agent: %s"' % _ctx.user_agent,
-                                '-H "Accept: application/json"' if not plain else '',
-                                url,
-                                '?' + '&'.join(['%s=%s' % (x, data[x]) for x in data] if data else ''))
+              '-H %s %s %s' % (1, 3,
+                               pipes.quote(_ctx.capath), pipes.quote(_ctx.cacert), pipes.quote(_ctx.cacert), pipes.quote(_ctx.cacert),
+                               pipes.quote('User-Agent: %s' % _ctx.user_agent),
+                               "-H " + pipes.quote('Accept: application/json') if not plain else '',
+                               pipes.quote(url + '?' + urllib.urlencode(data) if data else ''))
         logger.debug('request: %s' % req)
         status, output = commands.getstatusoutput(req)
         if status != 0:

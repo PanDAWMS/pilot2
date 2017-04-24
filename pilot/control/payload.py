@@ -7,12 +7,11 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
+# - Tobias Wegner, tobias.wegner@cern.ch, 2017
 
 import Queue
-import commands
 import json
 import os
-import shlex
 import subprocess
 import threading
 import time
@@ -68,23 +67,14 @@ def _validate_payload(job):
 def setup_payload(job, out, err):
     log = logger.getChild(str(job['PandaID']))
 
-    executable = 'cd job-%s; '\
-                 'ln -sf /cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/sqlite200 sqlite200; '\
-                 'ln -sf /cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/geomDB geomDB; '\
-                 'source $ATLAS_LOCAL_ROOT_BASE/user/atlasLocalSetup.sh --quiet; '\
-                 'source $AtlasSetup/scripts/asetup.sh %s,here; cd ..' % (job['PandaID'],
-                                                                          job['homepackage'].split('/')[1])
-
-    log.debug('executable=%s' % executable)
-
     try:
-        s, o = commands.getstatusoutput(executable)
+        # create symbolic link for sqlite200 and geomDB in job dir
+        for db_name in ['sqlite200', 'geomDB']:
+            src = '/cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/%s' % db_name
+            link_name = 'job-%s/%s' % (job['PandaID'], db_name)
+            os.symlink(src, link_name)
     except Exception as e:
-        log.error('could not setup environment: %s' % e)
-        return False
-
-    if s != 0:
-        log.error('could not setup environment: %s' % o)
+        log.error('could not create symbolic links to database files: %s' % e)
         return False
 
     return True
@@ -93,20 +83,27 @@ def setup_payload(job, out, err):
 def run_payload(job, out, err):
     log = logger.getChild(str(job['PandaID']))
 
-    executable = ['/usr/bin/env', job['transformation']] + shlex.split(job['jobPars'])
-    log.debug('executable=%s' % executable)
+    athena_version = job['homepackage'].split('/')[1]
+
+    asetup = 'source $ATLAS_LOCAL_ROOT_BASE/user/atlasLocalSetup.sh --quiet; '\
+             'source $AtlasSetup/scripts/asetup.sh %s,here; ' % athena_version
+
+    cmd = job['transformation'] + ' ' + job['jobPars']
+
+    log.debug('executable=%s' % asetup + cmd)
 
     try:
-        proc = subprocess.Popen(executable,
+        proc = subprocess.Popen(asetup + cmd,
                                 bufsize=-1,
                                 stdout=out,
                                 stderr=err,
-                                cwd=job['working_dir'])
+                                cwd=job['working_dir'],
+                                shell=True)
     except Exception as e:
         log.error('could not execute: %s' % str(e))
         return None
 
-    log.info('started -- pid=%s executable=%s' % (proc.pid, executable))
+    log.info('started -- pid=%s executable=%s' % (proc.pid, asetup + cmd))
 
     return proc
 

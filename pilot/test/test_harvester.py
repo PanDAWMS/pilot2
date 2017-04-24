@@ -50,6 +50,83 @@ class TestHarvester(unittest.TestCase):
         # setup pilot data client
         self.data_client = data.StageInClient(site='CERN-PROD')
 
+    def test_stagein_sync_fail_nodirectory(self):
+        '''
+        Test error message propagation
+        '''
+        if self.travis:
+            return True
+
+        result = self.data_client.transfer(files=[{'scope': 'does_not_matter',
+                                                   'name': 'does_not_matter',
+                                                   'destination': '/i_do_not_exist'},
+                                                  {'scope': 'does_not_matter_too',
+                                                   'name': 'does_not_matter_too',
+                                                   'destination': '/neither_do_i'}])
+
+        for file in result:
+            self.assertEqual(file['errno'], 1)
+            self.assertEqual(file['status'], 'failed')
+            self.assertIn(file['errmsg'], ['Destination directory does not exist: /i_do_not_exist',
+                                           'Destination directory does not exist: /neither_do_i'])
+
+    def test_stagein_sync_fail_noexist(self):
+        '''
+        Test error message propagation
+        '''
+        if self.travis:
+            return True
+
+        result = self.data_client.transfer(files=[{'scope': 'no_scope1',
+                                                   'name': 'no_name1',
+                                                   'destination': '/tmp'},
+                                                  {'scope': 'no_scope2',
+                                                   'name': 'no_name2',
+                                                   'destination': '/tmp'}])
+
+        for file in result:
+            self.assertEqual(file['errno'], 3)
+            self.assertEqual(file['status'], 'failed')
+            self.assertIn(file['errmsg'], ['Data identifier \'no_scope1:no_name1\' not found',
+                                           'Data identifier \'no_scope2:no_name2\' not found'])
+
+    def test_stagein_sync_fail_mix(self):
+        '''
+        Test error message propagation
+        '''
+        if self.travis:
+            return True
+
+        tmp_dir1, tmp_dir2 = tempfile.mkdtemp(), tempfile.mkdtemp()
+        result = self.data_client.transfer(files=[{'scope': 'no_scope1',
+                                                   'name': 'no_name1',
+                                                   'destination': '/tmp'},
+                                                  {'scope': 'mc15_13TeV',
+                                                   'name': 'HITS.06828093._000096.pool.root.1',
+                                                   'destination': tmp_dir1},
+                                                  {'scope': 'mc15_13TeV',
+                                                   'name': 'HITS.06828093._000096.pool.root.1',
+                                                   'destination': tmp_dir2},
+                                                  {'scope': 'no_scope2',
+                                                   'name': 'no_name2',
+                                                   'destination': '/tmp'}])
+        ls_tmp_dir1 = os.listdir(tmp_dir1)
+        ls_tmp_dir2 = os.listdir(tmp_dir2)
+        shutil.rmtree(tmp_dir1)
+        shutil.rmtree(tmp_dir2)
+        self.assertIn('HITS.06828093._000096.pool.root.1', ls_tmp_dir1)
+        self.assertIn('HITS.06828093._000096.pool.root.1', ls_tmp_dir2)
+
+        for file in result:
+            if file['name'] in ['no_name1', 'no_name2']:
+                self.assertEqual(file['errno'], 3)
+                self.assertEqual(file['status'], 'failed')
+                self.assertIn(file['errmsg'], ['Data identifier \'no_scope1:no_name1\' not found',
+                                               'Data identifier \'no_scope2:no_name2\' not found'])
+            else:
+                self.assertEqual(file['errno'], 0)
+                self.assertEqual(file['status'], 'done')
+
     def test_stagein_sync_simple(self):
         '''
         Single file going to a destination directory.
@@ -101,8 +178,12 @@ class TestHarvester(unittest.TestCase):
                                                    'name': 'HITS.10075481._000433.pool.root.1',
                                                    'destination': tmp_dir2}])
 
+        ls_tmp_dir1 = os.listdir(tmp_dir1)
+        ls_tmp_dir2 = os.listdir(tmp_dir2)
         shutil.rmtree(tmp_dir1)
         shutil.rmtree(tmp_dir2)
 
         for file in result:
             self.assertEqual(file['errno'], 0)
+            self.assertIn('HITS.10075481._000432.pool.root.1', ls_tmp_dir1)
+            self.assertIn('HITS.10075481._000433.pool.root.1', ls_tmp_dir2)
