@@ -1,0 +1,12 @@
+*.pyc
+#*
+.#*
+*~
+*.swo
+*.swp
+.cache.*
+.asetup.save
+pilotlog.txt
+job-*
+build
+.idea*
