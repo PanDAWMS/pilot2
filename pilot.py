@@ -7,6 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch
 
 import argparse
 import logging
@@ -71,8 +72,8 @@ if __name__ == '__main__':
     # graciously stop pilot process after hard limit
     arg_parser.add_argument('-j',
                             dest='job_label',
-                            default='mtest',
-                            help='job prod/source label (default: mtest)')
+                            default='ptest',
+                            help='job prod/source label (default: ptest)')
 
     # SSL certificates
     arg_parser.add_argument('--cacert',
