@@ -127,7 +127,9 @@ def retrieve(queues, traces, args):
         data = {'siteName': args.location.queue,
                 'prodSourceLabel': args.job_label}
 
-        res = https.request(args.url + ':' + args.port + '/server/panda/getJob', data=data)
+        cmd = args.url + ':' + args.port + '/server/panda/getJob'
+        logger.debug('executing command: %s' % cmd)
+        res = https.request(cmd, data=data)
         #res = https.request('https://pandaserver.cern.ch:25443/server/panda/getJob', data=data)
 
         if res is None:
