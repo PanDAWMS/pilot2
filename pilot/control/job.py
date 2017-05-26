@@ -122,7 +122,7 @@ def retrieve(queues, traces, args):
 
     while not args.graceful_stop.is_set():
 
-        logger.debug('trying to fetch job')
+        logger.debug('trying to fetch job from %s' % args.url)
 
         data = {'siteName': args.location.queue,
                 'prodSourceLabel': args.job_label}
