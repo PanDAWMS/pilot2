@@ -44,7 +44,7 @@ if __name__ == '__main__':
                             dest='debug',
                             action='store_true',
                             default=False,
-                            help='enable debug logging messages')
+                            help='Enable debug logging messages')
 
     # the choices must match in name the python module in pilot/workflow/
     arg_parser.add_argument('-w',
@@ -54,14 +54,14 @@ if __name__ == '__main__':
                                      'production', 'production_hpc',
                                      'analysis', 'analysis_hpc',
                                      'eventservice', 'eventservice_hpc'],
-                            help='pilot workflow (default: generic)')
+                            help='Pilot workflow (default: generic)')
 
     # graciously stop pilot process after hard limit
     arg_parser.add_argument('-l',
                             dest='lifetime',
                             default=10,
                             type=int,
-                            help='pilot lifetime seconds (default: 10)')
+                            help='Pilot lifetime seconds (default: 10)')
 
     # set the appropriate site and queue
     arg_parser.add_argument('-q',
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('-j',
                             dest='job_label',
                             default='ptest',
-                            help='job prod/source label (default: ptest)')
+                            help='Job prod/source label (default: ptest)')
 
     # SSL certificates
     arg_parser.add_argument('--cacert',
@@ -86,6 +86,16 @@ if __name__ == '__main__':
                             default=None,
                             help='CA certificates path',
                             metavar='path/to/certificates/')
+
+    # PanDA server URL and port
+    arg_parser.add_argument('--url',
+                            dest='url',
+                            default='https://pandaserver.cern.ch',
+                            help='PanDA server URL')
+    arg_parser.add_argument('-p',
+                            dest='port',
+                            default=25443,
+                            help='PanDA server port')
 
     args = arg_parser.parse_args()
 
