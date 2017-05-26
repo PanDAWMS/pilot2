@@ -7,6 +7,7 @@
 # Authors:
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch
 
 import collections
 import commands
@@ -152,7 +153,7 @@ def request(url, data=None, plain=False):
     if _ctx.ssl_context is None:
         req = 'curl -sS --compressed --connect-timeout %s --max-time %s '\
               '--capath %s --cert %s --cacert %s --key %s '\
-              '-H %s %s %s' % (1, 3,
+              '-H %s %s %s' % (100, 120,
                                pipes.quote(_ctx.capath), pipes.quote(_ctx.cacert), pipes.quote(_ctx.cacert), pipes.quote(_ctx.cacert),
                                pipes.quote('User-Agent: %s' % _ctx.user_agent),
                                "-H " + pipes.quote('Accept: application/json') if not plain else '',
