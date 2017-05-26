@@ -18,12 +18,14 @@ from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
 from pilot.util.https import https_setup
 from pilot.util.information import set_location
 
-VERSION = '2017-04-04.001'
+VERSION = '2017-05-26.001'
 
 
 def main():
+    """ Main function of the PanDA Pilot 2 """
+
     logger = logging.getLogger(__name__)
-    logger.info('pilot startup - version %s' % VERSION)
+    logger.info('PanDA Pilot 2 - version %s' % VERSION)
 
     args.graceful_stop = threading.Event()
 
@@ -32,8 +34,10 @@ def main():
     if not set_location(args):
         return False
 
+    logger.info('arguments: %s' % str(args))
     logger.info('workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
+
     return workflow.run(args)
 
 
