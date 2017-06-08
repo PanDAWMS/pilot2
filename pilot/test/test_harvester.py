@@ -361,6 +361,9 @@ class TestHarvesterStageOut(unittest.TestCase):
         '''
         Single file upload and attach to dataset.
         '''
+        if self.travis:
+            return True
+
         tmp_dir = tempfile.mkdtemp()
         tmp_fd, tmp_file1 = tempfile.mkstemp(dir=tmp_dir)
         tmp_fdo = os.fdopen(tmp_fd, 'wb')
