@@ -7,14 +7,16 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 
 import os
+import random
 import shutil
 import tempfile
 import unittest
+import uuid
 
 from pilot.api import data
 
 
-class TestHarvester(unittest.TestCase):
+class TestHarvesterStageIn(unittest.TestCase):
     '''
     Automatic stage-in tests for Harvester.
 
@@ -52,7 +54,7 @@ class TestHarvester(unittest.TestCase):
 
     def test_stagein_sync_fail_nodirectory(self):
         '''
-        Test error message propagation
+        Test error message propagation.
         '''
         if self.travis:
             return True
@@ -72,7 +74,7 @@ class TestHarvester(unittest.TestCase):
 
     def test_stagein_sync_fail_noexist(self):
         '''
-        Test error message propagation
+        Test error message propagation.
         '''
         if self.travis:
             return True
@@ -187,3 +189,227 @@ class TestHarvester(unittest.TestCase):
             self.assertEqual(file['errno'], 0)
             self.assertIn('HITS.10075481._000432.pool.root.1', ls_tmp_dir1)
             self.assertIn('HITS.10075481._000433.pool.root.1', ls_tmp_dir2)
+
+
+class TestHarvesterStageOut(unittest.TestCase):
+    '''
+    Automatic stage-out tests for Harvester.
+
+        from pilot.api import data
+        data_client = data.StageOutClient(site)
+        result = data_client.transfer(files=[{scope, name, ...}, ...])
+    '''
+
+    def setUp(self):
+        # skip tests if running through Travis -- github does not have working rucio
+        self.travis = False
+        if os.environ.get('TRAVIS') == 'true':
+            self.travis = True
+
+        # setup pilot data client
+        self.data_client = data.StageOutClient(site='CERN-PROD')
+
+    def test_stageout_fail_notfound(self):
+        '''
+        Test error message propagation.
+        '''
+        if self.travis:
+            return True
+
+        result = self.data_client.transfer(files=[{'scope': 'tests',
+                                                   'file': 'i_do_not_exist',
+                                                   'rse': 'CERN-PROD_SCRATCHDISK'},
+                                                  {'scope': 'tests',
+                                                   'file': 'neither_do_i',
+                                                   'rse': 'CERN-PROD_SCRATCHDISK'}])
+
+        for file in result:
+            self.assertEqual(file['errno'], 1)
+
+    def test_stageout_file(self):
+        '''
+        Single file upload with various combinations of parameters.
+        '''
+        if self.travis:
+            return True
+
+        tmp_fd, tmp_file1 = tempfile.mkstemp()
+        tmp_fdo = os.fdopen(tmp_fd, 'wb')
+        tmp_fdo.write(str(random.randint(1, 2**2048)))
+        tmp_fdo.close()
+        tmp_fd, tmp_file2 = tempfile.mkstemp()
+        tmp_fdo = os.fdopen(tmp_fd, 'wb')
+        tmp_fdo.write(str(random.randint(1, 2**2048)))
+        tmp_fdo.close()
+        tmp_fd, tmp_file3 = tempfile.mkstemp()
+        tmp_fdo = os.fdopen(tmp_fd, 'wb')
+        tmp_fdo.write(str(random.randint(1, 2**2048)))
+        tmp_fdo.close()
+        tmp_fd, tmp_file4 = tempfile.mkstemp()
+        tmp_fdo = os.fdopen(tmp_fd, 'wb')
+        tmp_fdo.write(str(random.randint(1, 2**2048)))
+        tmp_fdo.close()
+
+        result = self.data_client.transfer(files=[{'scope': 'tests',
+                                                   'file': tmp_file1,
+                                                   'rse': 'CERN-PROD_SCRATCHDISK'},
+                                                  {'scope': 'tests',
+                                                   'file': tmp_file2,
+                                                   'lifetime': 600,
+                                                   'rse': 'CERN-PROD_SCRATCHDISK'},
+                                                  {'scope': 'tests',
+                                                   'file': tmp_file3,
+                                                   'lifetime': 600,
+                                                   'summary': True,
+                                                   'rse': 'CERN-PROD_SCRATCHDISK'},
+                                                  {'scope': 'tests',
+                                                   'file': tmp_file4,
+                                                   'guid': str(uuid.uuid4()),
+                                                   'rse': 'CERN-PROD_SCRATCHDISK'}])
+
+        for file in result:
+            self.assertEqual(file['errno'], 0)
+
+    def test_stageout_file_and_attach(self):
+        '''
+        Single file upload and attach to dataset.
+        '''
+        if self.travis:
+            return True
+
+        tmp_fd, tmp_file1 = tempfile.mkstemp()
+        tmp_fdo = os.fdopen(tmp_fd, 'wb')
+        tmp_fdo.write(str(random.randint(1, 2**2048)))
+        tmp_fdo.close()
+        tmp_fd, tmp_file2 = tempfile.mkstemp()
+        tmp_fdo = os.fdopen(tmp_fd, 'wb')
+        tmp_fdo.write(str(random.randint(1, 2**2048)))
+        tmp_fdo.close()
+
+        result = self.data_client.transfer(files=[{'scope': 'tests',
+                                                   'file': tmp_file1,
+                                                   'lifetime': 600,
+                                                   'rse': 'CERN-PROD_SCRATCHDISK',
+                                                   'attach': {'scope': 'tests',
+                                                              'name': 'pilot2.tests.test_harvester'}},
+                                                  {'scope': 'tests',
+                                                   'file': tmp_file2,
+                                                   'rse': 'CERN-PROD_SCRATCHDISK',
+                                                   'attach': {'scope': 'tests',
+                                                              'name': 'pilot2.tests.test_harvester'}}])
+
+        for file in result:
+            self.assertEqual(file['errno'], 0)
+
+    def test_stageout_file_noregister(self):
+        '''
+        Single file upload without registering.
+        '''
+        if self.travis:
+            return True
+
+        tmp_fd, tmp_file1 = tempfile.mkstemp()
+        tmp_fdo = os.fdopen(tmp_fd, 'wb')
+        tmp_fdo.write(str(random.randint(1, 2**2048)))
+        tmp_fdo.close()
+        tmp_fd, tmp_file2 = tempfile.mkstemp()
+        tmp_fdo = os.fdopen(tmp_fd, 'wb')
+        tmp_fdo.write(str(random.randint(1, 2**2048)))
+        tmp_fdo.close()
+
+        result = self.data_client.transfer(files=[{'scope': 'tests',
+                                                   'file': tmp_file1,
+                                                   'rse': 'CERN-PROD_SCRATCHDISK',
+                                                   'no_register': True},
+                                                  {'scope': 'tests',
+                                                   'file': tmp_file2,
+                                                   'rse': 'CERN-PROD_SCRATCHDISK',
+                                                   'no_register': True}])
+
+        for file in result:
+            self.assertEqual(file['errno'], 0)
+
+    def test_stageout_dir(self):
+        '''
+        Single file upload.
+        '''
+        if self.travis:
+            return True
+
+        tmp_dir = tempfile.mkdtemp()
+        tmp_fd, tmp_file1 = tempfile.mkstemp(dir=tmp_dir)
+        tmp_fdo = os.fdopen(tmp_fd, 'wb')
+        tmp_fdo.write(str(random.randint(1, 2**2048)))
+        tmp_fdo.close()
+        tmp_fd, tmp_file2 = tempfile.mkstemp(dir=tmp_dir)
+        tmp_fdo = os.fdopen(tmp_fd, 'wb')
+        tmp_fdo.write(str(random.randint(1, 2**2048)))
+        tmp_fdo.close()
+        tmp_fd, tmp_file3 = tempfile.mkstemp(dir=tmp_dir)
+        tmp_fdo = os.fdopen(tmp_fd, 'wb')
+        tmp_fdo.write(str(random.randint(1, 2**2048)))
+        tmp_fdo.close()
+
+        result = self.data_client.transfer(files=[{'scope': 'tests',
+                                                   'file': tmp_dir,
+                                                   'rse': 'CERN-PROD_SCRATCHDISK'}])
+
+        for file in result:
+            self.assertEqual(file['errno'], 0)
+
+    def test_stageout_dir_and_attach(self):
+        '''
+        Single file upload and attach to dataset.
+        '''
+        tmp_dir = tempfile.mkdtemp()
+        tmp_fd, tmp_file1 = tempfile.mkstemp(dir=tmp_dir)
+        tmp_fdo = os.fdopen(tmp_fd, 'wb')
+        tmp_fdo.write(str(random.randint(1, 2**2048)))
+        tmp_fdo.close()
+        tmp_fd, tmp_file2 = tempfile.mkstemp(dir=tmp_dir)
+        tmp_fdo = os.fdopen(tmp_fd, 'wb')
+        tmp_fdo.write(str(random.randint(1, 2**2048)))
+        tmp_fdo.close()
+        tmp_fd, tmp_file3 = tempfile.mkstemp(dir=tmp_dir)
+        tmp_fdo = os.fdopen(tmp_fd, 'wb')
+        tmp_fdo.write(str(random.randint(1, 2**2048)))
+        tmp_fdo.close()
+
+        result = self.data_client.transfer(files=[{'scope': 'tests',
+                                                   'file': tmp_dir,
+                                                   'lifetime': 600,
+                                                   'rse': 'CERN-PROD_SCRATCHDISK',
+                                                   'attach': {'scope': 'tests',
+                                                              'name': 'pilot2.tests.test_harvester'}}])
+
+        for file in result:
+            self.assertEqual(file['errno'], 0)
+
+    def test_stageout_dir_noregister(self):
+        '''
+        Single file upload without registering.
+        '''
+        if self.travis:
+            return True
+
+        tmp_dir = tempfile.mkdtemp()
+        tmp_fd, tmp_file1 = tempfile.mkstemp(dir=tmp_dir)
+        tmp_fdo = os.fdopen(tmp_fd, 'wb')
+        tmp_fdo.write(str(random.randint(1, 2**2048)))
+        tmp_fdo.close()
+        tmp_fd, tmp_file2 = tempfile.mkstemp(dir=tmp_dir)
+        tmp_fdo = os.fdopen(tmp_fd, 'wb')
+        tmp_fdo.write(str(random.randint(1, 2**2048)))
+        tmp_fdo.close()
+        tmp_fd, tmp_file3 = tempfile.mkstemp(dir=tmp_dir)
+        tmp_fdo = os.fdopen(tmp_fd, 'wb')
+        tmp_fdo.write(str(random.randint(1, 2**2048)))
+        tmp_fdo.close()
+
+        result = self.data_client.transfer(files=[{'scope': 'tests',
+                                                   'file': tmp_dir,
+                                                   'no_register': True,
+                                                   'rse': 'CERN-PROD_SCRATCHDISK'}])
+
+        for file in result:
+            self.assertEqual(file['errno'], 0)
