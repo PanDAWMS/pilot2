@@ -17,7 +17,7 @@ class StageInClient(object):
     def __init__(self, site=None):
         super(StageInClient, self).__init__()
 
-        # Check validity of specified site
+        # Check validity of specified site - should be refactored into VO-agnostic setup
         self.site = os.environ.get('VO_ATLAS_AGIS_SITE', site)
         if self.site is None:
             raise Exception('VO_ATLAS_AGIS_SITE not available, must set StageInClient(site=...) parameter')
@@ -39,8 +39,8 @@ class StageInClient(object):
         """
 
         all_files_ok = False
-        for file in files:
-            if all(key in file for key in ('scope', 'name', 'destination')):
+        for f in files:
+            if all(key in f for key in ('scope', 'name', 'destination')):
                 all_files_ok = True
 
         if all_files_ok:
@@ -54,7 +54,7 @@ class StageOutClient(object):
     def __init__(self, site=None):
         super(StageOutClient, self).__init__()
 
-        # Check validity of specified site
+        # Check validity of specified site - should be refactored into VO-agnostic setup
         self.site = os.environ.get('VO_ATLAS_AGIS_SITE', site)
         if self.site is None:
             raise Exception('VO_ATLAS_AGIS_SITE not available, must set StageOutClient(site=...) parameter')
@@ -76,7 +76,7 @@ class StageOutClient(object):
                         no_register                     setting this to True will not register the file to Rucio (CAREFUL!)
                         guid                            manually set guid of file in either string format
                                                          XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX or
-                                                         XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+                                                         XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
                         attach: {scope, name            automatically attach this file to the given dataset
                         summary                         setting this to True will write a rucio_upload.json with used PFNs
         :return: Annotated files -- List of dictionaries with additional variables.
@@ -84,8 +84,8 @@ class StageOutClient(object):
         """
 
         all_files_ok = False
-        for file in files:
-            if all(key in file for key in ('scope', 'file', 'rse')):
+        for f in files:
+            if all(key in f for key in ('scope', 'file', 'rse')):
                 all_files_ok = True
 
         if all_files_ok:

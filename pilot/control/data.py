@@ -117,47 +117,47 @@ def stage_in_auto(site, files):
                   '--no-subdir']
 
     # quickly remove non-existing destinations
-    for file in files:
-        if not os.path.exists(file['destination']):
-            file['status'] = 'failed'
-            file['errmsg'] = 'Destination directory does not exist: %s' % file['destination']
-            file['errno'] = 1
+    for f in files:
+        if not os.path.exists(f['destination']):
+            f['status'] = 'failed'
+            f['errmsg'] = 'Destination directory does not exist: %s' % f['destination']
+            f['errno'] = 1
         else:
-            file['status'] = 'transferring'
-            file['errmsg'] = 'File not yet successfully downloaded.'
-            file['errno'] = 2
+            f['status'] = 'transferring'
+            f['errmsg'] = 'File not yet successfully downloaded.'
+            f['errno'] = 2
 
-    for file in files:
-        if file['errno'] == 1:
+    for f in files:
+        if f['errno'] == 1:
             continue
 
         tmp_executable = copy.deepcopy(executable)
 
-        tmp_executable += ['--dir', file['destination']]
-        tmp_executable.append('%s:%s' % (file['scope'],
-                                         file['name']))
+        tmp_executable += ['--dir', f['destination']]
+        tmp_executable.append('%s:%s' % (f['scope'],
+                                         f['name']))
         process = subprocess.Popen(tmp_executable,
                                    bufsize=-1,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
-        file['errno'] = 2
+        f['errno'] = 2
         while True:
             time.sleep(0.1)
             exit_code = process.poll()
             if exit_code is not None:
                 stdout, stderr = process.communicate()
                 if exit_code == 0:
-                    file['status'] = 'done'
-                    file['errno'] = 0
-                    file['errmsg'] = 'File successfully downloaded.'
+                    f['status'] = 'done'
+                    f['errno'] = 0
+                    f['errmsg'] = 'File successfully downloaded.'
                 else:
-                    file['status'] = 'failed'
-                    file['errno'] = 3
+                    f['status'] = 'failed'
+                    f['errno'] = 3
                     try:
                         # the Details: string is set in rucio: lib/rucio/common/exception.py in __str__()
-                        file['errmsg'] = [detail for detail in stderr.split('\n') if detail.startswith('Details:')][0][9:-1]
+                        f['errmsg'] = [detail for detail in stderr.split('\n') if detail.startswith('Details:')][0][9:-1]
                     except Exception as e:
-                        file['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % str(e)
+                        f['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % str(e)
                 break
             else:
                 continue
@@ -179,63 +179,63 @@ def stage_out_auto(site, files):
                   'rucio', '-v', 'upload']
 
     # quickly remove non-existing destinations
-    for file in files:
-        if not os.path.exists(file['file']):
-            file['status'] = 'failed'
-            file['errmsg'] = 'Source file does not exist: %s' % file['file']
-            file['errno'] = 1
+    for f in files:
+        if not os.path.exists(f['file']):
+            f['status'] = 'failed'
+            f['errmsg'] = 'Source file does not exist: %s' % f['file']
+            f['errno'] = 1
         else:
-            file['status'] = 'transferring'
-            file['errmsg'] = 'File not yet successfully uploaded.'
-            file['errno'] = 2
+            f['status'] = 'transferring'
+            f['errmsg'] = 'File not yet successfully uploaded.'
+            f['errno'] = 2
 
-    for file in files:
-        if file['errno'] == 1:
+    for f in files:
+        if f['errno'] == 1:
             continue
 
         tmp_executable = copy.deepcopy(executable)
 
-        tmp_executable += ['--rse', file['rse']]
+        tmp_executable += ['--rse', f['rse']]
 
-        if 'no_register' in file.keys() and file['no_register']:
+        if 'no_register' in f.keys() and f['no_register']:
             tmp_executable += ['--no-register']
 
-        if 'summary' in file.keys() and file['summary']:
+        if 'summary' in f.keys() and f['summary']:
             tmp_executable += ['--summary']
 
-        if 'lifetime' in file.keys():
-            tmp_executable += ['--lifetime', str(file['lifetime'])]
+        if 'lifetime' in f.keys():
+            tmp_executable += ['--lifetime', str(f['lifetime'])]
 
-        if 'guid' in file.keys():
-            tmp_executable += ['--guid', file['guid']]
+        if 'guid' in f.keys():
+            tmp_executable += ['--guid', f['guid']]
 
-        if 'attach' in file.keys():
-            tmp_executable += ['--scope', file['scope'], '%s:%s' % (file['attach']['scope'], file['attach']['name']), file['file']]
+        if 'attach' in f.keys():
+            tmp_executable += ['--scope', f['scope'], '%s:%s' % (f['attach']['scope'], f['attach']['name']), f['file']]
         else:
-            tmp_executable += ['--scope', file['scope'], file['file']]
+            tmp_executable += ['--scope', f['scope'], f['file']]
 
         process = subprocess.Popen(tmp_executable,
                                    bufsize=-1,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
-        file['errno'] = 2
+        f['errno'] = 2
         while True:
             time.sleep(0.1)
             exit_code = process.poll()
             if exit_code is not None:
                 stdout, stderr = process.communicate()
                 if exit_code == 0:
-                    file['status'] = 'done'
-                    file['errno'] = 0
-                    file['errmsg'] = 'File successfully uploaded.'
+                    f['status'] = 'done'
+                    f['errno'] = 0
+                    f['errmsg'] = 'File successfully uploaded.'
                 else:
-                    file['status'] = 'failed'
-                    file['errno'] = 3
+                    f['status'] = 'failed'
+                    f['errno'] = 3
                     try:
                         # the Details: string is set in rucio: lib/rucio/common/exception.py in __str__()
-                        file['errmsg'] = [detail for detail in stderr.split('\n') if detail.startswith('Details:')][0][9:-1]
+                        f['errmsg'] = [detail for detail in stderr.split('\n') if detail.startswith('Details:')][0][9:-1]
                     except Exception as e:
-                        file['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % str(e)
+                        f['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % str(e)
                 break
             else:
                 continue
