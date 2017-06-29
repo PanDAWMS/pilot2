@@ -123,18 +123,25 @@ def retrieve(queues, traces, args):
 
     while not args.graceful_stop.is_set():
 
-        logger.debug('trying to fetch job from %s' % args.url)
+        #getjobmaxtime = 60*5 # to be read from configuration file
+        #logger.debug('pilot will attempt job downloads for a maximum of %d seconds' % getjobmaxtime)
 
         data = {'siteName': args.location.queue,
                 'prodSourceLabel': args.job_label}
 
+        # first check if a job definition exists locally
+        # ..
+
+        logger.debug('trying to fetch job from %s' % args.url)
+
+        # no local job definition, download from server
         cmd = args.url + ':' + str(args.port) + '/server/panda/getJob'
         logger.debug('executing command: %s' % cmd)
         res = https.request(cmd, data=data)
 
         if res is None:
-            logger.warning('did not get a job -- sleep 1000s and repeat')
-            for i in xrange(10000):
+            logger.warning('did not get a job -- sleep 60s and repeat')
+            for i in xrange(600):
                 if args.graceful_stop.is_set():
                     break
                 time.sleep(0.1)
