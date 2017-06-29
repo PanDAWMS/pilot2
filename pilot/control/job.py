@@ -119,7 +119,29 @@ def create_data_payload(queues, traces, args):
         queues.payloads.put(job)
 
 
+def dispatcher_dictionary():
+    """
+    Return a dictionary with required fields for the dispatcher getJob operation.
+
+    The dictionary should contain the following fields:
+
+    :returns: dictionary prepared for the dispatcher getJob operation.
+    """
+
 def retrieve(queues, traces, args):
+    """ 
+    Retrieve a job definition from a source.
+
+    The job definition is a json dictionary that is either present in the launch
+    directory (preplaced) or downloaded from a server specified by `args.url`.
+
+    The function retrieves the job definition from the proper source and places
+    it in the `queues.jobs` queue.
+
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot and rucio states.
+    :param args: arguments.
+    """
 
     while not args.graceful_stop.is_set():
 
