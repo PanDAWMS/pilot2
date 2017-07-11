@@ -18,7 +18,7 @@ from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
 from pilot.util.https import https_setup
 from pilot.util.information import set_location
 
-VERSION = '2017-05-26.002'
+VERSION = '2017-07-11.001'
 
 
 def main():

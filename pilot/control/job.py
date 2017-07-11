@@ -128,6 +128,10 @@ def dispatcher_dictionary():
     :returns: dictionary prepared for the dispatcher getJob operation.
     """
 
+    dictionary = {}
+
+    return dictionary
+
 def retrieve(queues, traces, args):
     """ 
     Retrieve a job definition from a source.
