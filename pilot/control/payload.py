@@ -132,7 +132,7 @@ def wait_graceful(args, proc, job):
         if exit_code is not None:
             break
         else:
-            send_state(job, 'running')
+            send_state(job, args, 'running')
             continue
 
     return exit_code
@@ -160,12 +160,12 @@ def execute(queues, traces, args):
             err = open(os.path.join(job['working_dir'], 'payload.stderr'), 'wb')
 
             log.debug('setting up payload environment')
-            send_state(job, 'starting')
+            send_state(job, args, 'starting')
 
             exit_code = 1
             if setup_payload(job, out, err):
                 log.debug('running payload')
-                send_state(job, 'running')
+                send_state(job, args, 'running')
                 proc = run_payload(job, out, err)
                 if proc is not None:
                     exit_code = wait_graceful(args, proc, job)

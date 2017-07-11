@@ -49,7 +49,7 @@ def _validate_job(job):
     return True
 
 
-def send_state(job, state, xml=None):
+def send_state(job, args, state, xml=None):
     log = logger.getChild(str(job['PandaID']))
     log.debug('set job state=%s' % state)
 
@@ -60,7 +60,8 @@ def send_state(job, state, xml=None):
         data['xml'] = urllib.quote_plus(xml)
 
     try:
-        if https.request('https://pandaserver.cern.ch:25443/server/panda/updateJob', data=data) is not None:
+        cmd = args.url + ':' + str(args.port) + 'server/panda/updateJob'
+        if https.request(cmd, data=data) is not None:
             log.info('confirmed job state=%s' % state)
             return True
     except Exception as e:
