@@ -16,18 +16,10 @@ Welcome to Pilot 2's documentation!
 ===================================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+    :maxdepth: 2
 
-
-Test documentation
-==================
-
-.. automodule:: pilot.util.https
-    :members:
-    :private-members:
-    :special-members:
-    :undoc-members:
+    getting_started/index
+    components/index
 
 
 Indices and tables
