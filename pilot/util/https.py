@@ -27,7 +27,12 @@ _ctx = collections.namedtuple('_ctx', 'ssl_context user_agent capath cacert')
 
 def _tester(func, *args):
     """
-    Tests function on arguments and returns first positive.
+    Tests function ``func`` on arguments and returns first positive.
+
+    >>> _tester(lambda x: x%3 == 0, 1, 2, 3, 4, 5, 6)
+    3
+    >>> _tester(lambda x: x%3 == 0, 1, 2)
+    None
 
     :param func: function(arg)->boolean
     :param args: other arguments
@@ -140,6 +145,14 @@ def request(url, data=None, plain=False):
     :param string url: the URL of the resource
     :param dict data: data to send
     :param boolean plain: if true, treats the response as a plain text.
+
+    Usage:
+
+    .. code-block:: python
+        :emphasize-lines: 2
+
+        https_setup(args, PILOT_VERSION)  # sets up ssl and other stuff
+        response = request('https://some.url', {'some':'data'})
 
     Returns:
         - :keyword:`dict` -- if everything went OK
