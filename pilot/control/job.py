@@ -85,7 +85,7 @@ def validate(queues, traces, args):
         if _validate_job(job):
 
             log.debug('creating job working directory')
-            job_dir = 'job-%s' % job['PandaID']
+            job_dir = 'PanDA_Pilot-%s' % job['PandaID']
             try:
                 os.mkdir(job_dir)
                 job['working_dir'] = job_dir
@@ -140,8 +140,8 @@ def retrieve(queues, traces, args):
                 time.sleep(0.1)
         else:
             if res['StatusCode'] != 0:
-                logger.warning('did not get a job -- sleep 1000s and repeat -- status: %s' % res['StatusCode'])
-                for i in xrange(10000):
+                logger.warning('did not get a job -- sleep 60s and repeat -- status: %s' % res['StatusCode'])
+                for i in xrange(600):
                     if args.graceful_stop.is_set():
                         break
                     time.sleep(0.1)
