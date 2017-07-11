@@ -119,22 +119,51 @@ def create_data_payload(queues, traces, args):
         queues.payloads.put(job)
 
 
+def dispatcher_dictionary():
+    """
+    Return a dictionary with required fields for the dispatcher getJob operation.
+
+    The dictionary should contain the following fields:
+
+    :returns: dictionary prepared for the dispatcher getJob operation.
+    """
+
 def retrieve(queues, traces, args):
+    """ 
+    Retrieve a job definition from a source.
+
+    The job definition is a json dictionary that is either present in the launch
+    directory (preplaced) or downloaded from a server specified by `args.url`.
+
+    The function retrieves the job definition from the proper source and places
+    it in the `queues.jobs` queue.
+
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot and rucio states.
+    :param args: arguments.
+    """
 
     while not args.graceful_stop.is_set():
 
-        logger.debug('trying to fetch job from %s' % args.url)
+        #getjobmaxtime = 60*5 # to be read from configuration file
+        #logger.debug('pilot will attempt job downloads for a maximum of %d seconds' % getjobmaxtime)
 
         data = {'siteName': args.location.queue,
                 'prodSourceLabel': args.job_label}
 
+        # first check if a job definition exists locally
+        # ..
+
+        logger.debug('trying to fetch job from %s' % args.url)
+
+        # no local job definition, download from server
         cmd = args.url + ':' + str(args.port) + '/server/panda/getJob'
         logger.debug('executing command: %s' % cmd)
         res = https.request(cmd, data=data)
 
         if res is None:
-            logger.warning('did not get a job -- sleep 1000s and repeat')
-            for i in xrange(10000):
+            logger.warning('did not get a job -- sleep 60s and repeat')
+            for i in xrange(600):
                 if args.graceful_stop.is_set():
                     break
                 time.sleep(0.1)
