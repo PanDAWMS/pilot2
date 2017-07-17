@@ -249,7 +249,7 @@ def copytool_in(queues, traces, args):
         try:
             job = queues.data_in.get(block=True, timeout=1)
 
-            send_state(job, 'transferring')
+            send_state(job, args, 'transferring')
 
             if _stage_in(args, job):
                 queues.finished_data_in.put(job)
@@ -268,7 +268,7 @@ def copytool_out(queues, traces, args):
 
             logger.info('dataset=%s rse=%s' % (job['destinationDblock'], job['ddmEndPointOut'].split(',')[0]))
 
-            send_state(job, 'transferring')
+            send_state(job, args, 'transferring')
 
             if _stage_out_all(job, args):
                 queues.finished_data_out.put(job)
@@ -407,8 +407,8 @@ def _stage_out_all(job, args):
     pfc += '</POOLFILECATALOG>'
 
     if failed:
-        send_state(job, 'failed')
+        send_state(job, args, 'failed')
         return False
     else:
-        send_state(job, 'finished', xml=pfc)
+        send_state(job, args, 'finished', xml=pfc)
         return True
