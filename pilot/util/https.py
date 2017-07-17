@@ -175,6 +175,8 @@ def request(url, data=None, plain=False):
         if status != 0:
             logger.warn('request failed (%s): %s' % (status, output))
             return None
+
+        return output if plain else json.loads(output)
     else:
         req = urllib2.Request(url, urllib.urlencode(data))
         if not plain:
@@ -189,4 +191,4 @@ def request(url, data=None, plain=False):
             logger.warn('connection error: %s' % e.reason)
             return None
 
-    return output if plain else json.loads(output)
+        return output.read() if plain else json.load(output)
