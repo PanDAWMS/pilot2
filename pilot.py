@@ -13,6 +13,7 @@ import argparse
 import logging
 import sys
 import threading
+from os import getcwd
 
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
 from pilot.util.https import https_setup
@@ -47,7 +48,7 @@ if __name__ == '__main__':
     # pilot work directory
     arg_parser.add_argument('-a',
                             dest='workdir',
-                            default=os.getcwd(),
+                            default=getcwd(),
                             help='Pilot work directory')
 
     # debug option to enable more log messages
