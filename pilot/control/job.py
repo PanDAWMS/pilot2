@@ -50,6 +50,7 @@ def _validate_job(job):
 
 
 def send_state(job, args, state, xml=None):
+
     log = logger.getChild(str(job['PandaID']))
     log.debug('set job state=%s' % state)
 
@@ -164,6 +165,7 @@ def retrieve(queues, traces, args):
         # no local job definition, download from server
         cmd = args.url + ':' + str(args.port) + '/server/panda/getJob'
         logger.debug('executing command: %s' % cmd)
+        logger.debug('data=%s'%str(data))
         res = https.request(cmd, data=data)
 
         if res is None:
