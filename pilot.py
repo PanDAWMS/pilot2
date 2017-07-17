@@ -63,9 +63,9 @@ if __name__ == '__main__':
     # graciously stop pilot process after hard limit
     arg_parser.add_argument('-l',
                             dest='lifetime',
-                            default=10,
+                            default=3600,
                             type=int,
-                            help='Pilot lifetime seconds (default: 10)')
+                            help='Pilot lifetime seconds (default: 3600 s)')
 
     # set the appropriate site and queue
     arg_parser.add_argument('-q',
