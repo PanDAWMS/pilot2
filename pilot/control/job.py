@@ -165,6 +165,7 @@ def retrieve(queues, traces, args):
         # no local job definition, download from server
         cmd = args.url + ':' + str(args.port) + '/server/panda/getJob'
         logger.debug('executing command: %s' % cmd)
+        logger.debug('is basestring: %s' % str(isinstance(cmd, basestring)))
         logger.debug('data=%s'%str(data))
         res = https.request(cmd, data=data)
 
