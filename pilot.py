@@ -44,6 +44,13 @@ def main():
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()
 
+    # pilot work directory
+    arg_parser.add_argument('-a',
+                            dest='workdir',
+                            default=os.getcwd(),
+                            help='Pilot work directory')
+
+    # debug option to enable more log messages
     arg_parser.add_argument('-d',
                             dest='debug',
                             action='store_true',
