@@ -23,7 +23,7 @@ def get_pilot_work_dir(workdir):
     """
 
     jobworkdir = "PanDA_Pilot2_%d_%s" % (os.getpid(), str(int(time.time())))
-    return os.path.join(wntmpdir, jobworkdir)
+    return os.path.join(workdir, jobworkdir)
 
 
 def create_pilot_work_dir(workdir):
