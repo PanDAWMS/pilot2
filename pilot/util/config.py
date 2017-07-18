@@ -17,6 +17,48 @@ _locations = [
     './pilot.cfg'
 ]
 
-config = ConfigParser.ConfigParser()
+
+class Section(object):
+    config = None
+    name = None
+
+    def __init__(self, _config, name):
+        object.__setattr__(self, 'config', _config)
+        object.__setattr__(self, 'name', name)
+
+    def __getitem__(self, item):
+        return object.__getattribute__(self, 'config').get(object.__getattribute__(self, 'name'), item, None)
+
+    def __getattr__(self, item):
+        return object.__getattribute__(self, 'config').get(object.__getattribute__(self, 'name'), item, None)
+
+    def __setitem__(self, key, value):
+        object.__getattribute__(self, 'config').set(object.__getattribute__(self, 'name'), key, value)
+
+    def __setattr__(self, key, value):
+        object.__getattribute__(self, 'config').set(object.__getattribute__(self, 'name'), key, value)
+
+    def get(self, *arg):
+        return object.__getattribute__(self, 'config').get(object.__getattribute__(self, 'name'), *arg)
+
+
+class ExtendedConfig(ConfigParser.ConfigParser):
+    def __init__(self):
+        ConfigParser.ConfigParser.__init__(self)
+
+    def __getitem__(self, item):
+        if self.has_section(item):
+            return Section(self, item)
+        return None
+
+    def __getattr__(self, item):
+        try:
+            return object.__getattribute__(self, item)
+        except AttributeError:
+            if self.has_section(item):
+                return Section(self, item)
+            raise
+
+config = ExtendedConfig()
 config.readfp(open(_default_cfg))
 config.read(_locations)
