@@ -17,6 +17,7 @@ import urllib
 
 from pilot.util import https
 
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -87,12 +88,12 @@ def validate(queues, traces, args):
         if _validate_job(job):
 
             log.debug('creating job working directory')
-            job_dir = 'PanDA_Pilot-%s' % job['PandaID']
+            job_dir = os.path.join(args.mainworkdir, 'PanDA_Pilot-%s' % job['PandaID'])
             try:
                 os.mkdir(job_dir)
                 job['working_dir'] = job_dir
             except Exception as e:
-                log.debug('cannot create job working directory: %s' % str(e))
+                log.debug('cannot create working directory: %s' % str(e))
                 queues.failed_jobs.put(job)
                 break
 
@@ -165,7 +166,6 @@ def retrieve(queues, traces, args):
         # no local job definition, download from server
         cmd = args.url + ':' + str(args.port) + '/server/panda/getJob'
         logger.debug('executing command: %s' % cmd)
-        logger.debug('is basestring: %s' % str(isinstance(cmd, basestring)))
         logger.debug('data=%s'%str(data))
         res = https.request(cmd, data=data)
 
