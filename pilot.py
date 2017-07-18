@@ -18,12 +18,13 @@ from os import getcwd
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
 from pilot.util.https import https_setup
 from pilot.util.information import set_location
+from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 
-VERSION = '2017-07-17.001'
+VERSION = '2017-07-18.001'
 
 
 def main():
-    """ Main function of the PanDA Pilot 2 """
+    """ Main function of PanDA Pilot 2 """
 
     logger = logging.getLogger(__name__)
     logger.info('PanDA Pilot 2 - version %s' % VERSION)
@@ -37,6 +38,17 @@ def main():
 
     logger.info('arguments: %s' % str(args))
     logger.info('workflow: %s' % args.workflow)
+
+    mainworkdir = get_pilot_work_dir(args.workdir)
+    logger.info('main work directory will be created at: %s' % mainworkdir)
+    try:
+        create_pilot_work_dir(mainworkdir)
+    except Exception as e:
+        logger.error('failed to create main workdir: %s' % e)
+        sys.exit(FAILURE)
+    else:
+        args.mainworkdir = mainworkdir
+
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
 
     return workflow.run(args)
