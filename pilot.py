@@ -15,7 +15,6 @@ import threading
 
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
 from pilot.util.https import https_setup
-from pilot.util.config import config
 from pilot.util.information import set_location
 from pilot.util.config import config
 

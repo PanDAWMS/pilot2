@@ -62,12 +62,11 @@ class ExtendedConfig(ConfigParser.ConfigParser):
             raise
 
 SYMBOLS = {
-    'customary':        ('B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'),
-    'customary_ext':    ('byte', 'kilo', 'mega', 'giga', 'tera', 'peta', 'exa',
-                         'zetta', 'iotta'),
-    'iec':              ('Bi', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi', 'Yi'),
-    'iec_ext':          ('byte', 'kibi', 'mebi', 'gibi', 'tebi', 'pebi', 'exbi',
-                         'zebi', 'yobi'),
+    'customary': ('B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'),
+    'customary_ext': ('byte', 'kilo', 'mega', 'giga', 'tera', 'peta', 'exa', 'zetta', 'iotta'),
+
+    'iec': ('Bi', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi', 'Yi'),
+    'iec_ext': ('byte', 'kibi', 'mebi', 'gibi', 'tebi', 'pebi', 'exbi', 'zebi', 'yobi'),
 }
 
 

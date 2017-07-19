@@ -10,10 +10,10 @@
 import time
 import logging
 import os
-logger = logging.getLogger(__name__)
-
 from pilot.util.disk import disk_usage
 from pilot.util.config import config, human2bytes
+
+logger = logging.getLogger(__name__)
 
 
 def control(queues, traces, args):
