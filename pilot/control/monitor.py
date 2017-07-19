@@ -19,7 +19,7 @@ from pilot.util.config import config, human2bytes
 def control(queues, traces, args):
 
     while not args.graceful_stop.is_set():
-        time.sleep(30*60)
+        time.sleep(30 * 60)
         run_checks(args)
         send_heartbeat()
 
