@@ -9,19 +9,29 @@
 
 import time
 import logging
+import os
 logger = logging.getLogger(__name__)
+
+from pilot.util.disk import disk_usage
+from pilot.util.config import config, human2bytes
 
 
 def control(queues, traces, args):
 
     while not args.graceful_stop.is_set():
         time.sleep(30*60)
-        run_checks()
+        run_checks(args)
         send_heartbeat()
 
 
-def run_checks():
-    pass
+def check_local_space_limit():
+    du = disk_usage(os.path.abspath("."))
+    return du[2] < human2bytes(config.Python.localspace_limit)
+
+
+def run_checks(args):
+    if not check_local_space_limit():
+        return args.graceful_stop.set()
 
 
 def send_heartbeat():
