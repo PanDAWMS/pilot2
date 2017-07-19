@@ -15,6 +15,7 @@ import time
 import urllib
 
 from pilot.util import https
+from pilot.util.config import config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -59,7 +60,8 @@ def send_state(job, state, xml=None):
         data['xml'] = urllib.quote_plus(xml)
 
     try:
-        if https.request('https://pandaserver.cern.ch:25443/server/panda/updateJob', data=data) is not None:
+        if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=config.Pilot.pandaserver),
+                         data=data) is not None:
             log.info('confirmed job state=%s' % state)
             return True
     except Exception as e:
@@ -127,7 +129,7 @@ def retrieve(queues, traces, args):
         data = {'siteName': args.location.queue,
                 'prodSourceLabel': args.job_label}
 
-        res = https.request('https://pandaserver.cern.ch:25443/server/panda/getJob', data=data)
+        res = https.request('{pandaserver}/server/panda/getJob'.format(pandaserver=config.Pilot.pandaserver), data=data)
 
         if res is None:
             logger.warning('did not get a job -- sleep 1000s and repeat')

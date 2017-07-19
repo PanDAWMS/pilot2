@@ -8,30 +8,58 @@
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
 
-import json
+import ConfigParser
 import os
 
-config = None
+_default_cfg = os.path.join(os.path.dirname(__file__), 'default.cfg')
+_locations = [
+    os.path.expanduser('~/.panda/pilot.cfg'),
+    '/etc/panda/pilot.cfg',
+    './pilot.cfg'
+]
 
 
-class Config(object):
-    def __init__(self):
-        self.items = []
+class Section(object):
+    config = None
+    name = None
+
+    def __init__(self, _config, name):
+        object.__setattr__(self, 'config', _config)
+        object.__setattr__(self, 'name', name)
 
     def __getitem__(self, item):
-        return self.items[item]
+        return object.__getattribute__(self, 'config').get(object.__getattribute__(self, 'name'), item, None)
 
-    def load(self, filename):
-        if not os.path.isfile(filename):
-            filename = 'pilot_conf.json'
+    def __getattr__(self, item):
+        return object.__getattribute__(self, 'config').get(object.__getattribute__(self, 'name'), item, None)
 
-        if not os.path.isfile(filename):
-            filename = '/etc/pilot/conf.json'
+    def __setitem__(self, key, value):
+        object.__getattribute__(self, 'config').set(object.__getattribute__(self, 'name'), key, value)
 
-        if os.path.isfile(filename):
-            with open(filename) as f:
-                self.items = json.load(f)
+    def __setattr__(self, key, value):
+        object.__getattribute__(self, 'config').set(object.__getattribute__(self, 'name'), key, value)
+
+    def get(self, *arg):
+        return object.__getattribute__(self, 'config').get(object.__getattribute__(self, 'name'), *arg)
 
 
-if config is None:
-    config = Config()
+class ExtendedConfig(ConfigParser.ConfigParser):
+    def __init__(self):
+        ConfigParser.ConfigParser.__init__(self)
+
+    def __getitem__(self, item):
+        if self.has_section(item):
+            return Section(self, item)
+        return None
+
+    def __getattr__(self, item):
+        try:
+            return object.__getattribute__(self, item)
+        except AttributeError:
+            if self.has_section(item):
+                return Section(self, item)
+            raise
+
+config = ExtendedConfig()
+config.readfp(open(_default_cfg))
+config.read(_locations)

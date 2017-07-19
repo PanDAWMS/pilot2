@@ -17,6 +17,7 @@ from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
 from pilot.util.https import https_setup
 from pilot.util.config import config
 from pilot.util.information import set_location
+from pilot.util.config import config
 
 VERSION = '2017-04-04.001'
 
@@ -26,6 +27,7 @@ def main():
     logger.info('pilot startup - version %s' % VERSION)
 
     args.graceful_stop = threading.Event()
+    config.read(args.config)
 
     https_setup(args, VERSION)
     config.load(args.config)
@@ -92,6 +94,12 @@ if __name__ == '__main__':
                             default=None,
                             help='CA certificates path',
                             metavar='path/to/certificates/')
+
+    arg_parser.add_argument('--config',
+                            dest='config',
+                            default='',
+                            help='Config file path',
+                            metavar='path/to/pilot.cfg')
 
     args = arg_parser.parse_args()
 
