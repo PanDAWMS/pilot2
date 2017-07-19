@@ -26,11 +26,18 @@ def control(queues, traces, args):
 
 def check_local_space_limit():
     du = disk_usage(os.path.abspath("."))
-    return du[2] < human2bytes(config.Python.localspace_limit)
+    return du[2] < human2bytes(config.Python.free_space_limit)
+
+
+def check_output_file_sizes():
+    return True  # Needs to get somehow job parameters.
 
 
 def run_checks(args):
     if not check_local_space_limit():
+        return args.graceful_stop.set()
+
+    if not check_output_file_sizes():
         return args.graceful_stop.set()
 
 
