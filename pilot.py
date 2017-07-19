@@ -29,6 +29,7 @@ def main():
     config.read(args.config)
 
     https_setup(args, VERSION)
+    config.load(args.config)
 
     if not set_location(args):
         return False
@@ -75,6 +76,11 @@ if __name__ == '__main__':
                             dest='job_label',
                             default='mtest',
                             help='job prod/source label (default: mtest)')
+
+    arg_parser.add_argument('--config',
+                            dest='config',
+                            default=None,
+                            help='path/to/pilot_conf.json')
 
     # SSL certificates
     arg_parser.add_argument('--cacert',
