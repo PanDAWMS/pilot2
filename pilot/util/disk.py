@@ -20,21 +20,6 @@ if hasattr(os, 'statvfs'):  # POSIX
         used = (st.f_blocks - st.f_bfree) * st.f_frsize
         return _ntuple_diskusage(total, used, free)
 
-elif os.name == 'nt':       # Windows
-    import ctypes
-    import sys
-
-    def disk_usage(path):
-        _, total, free = ctypes.c_ulonglong(), ctypes.c_ulonglong(), ctypes.c_ulonglong()
-        if sys.version_info >= (3,) or isinstance(path, unicode):
-            fun = ctypes.windll.kernel32.GetDiskFreeSpaceExW
-        else:
-            fun = ctypes.windll.kernel32.GetDiskFreeSpaceExA
-        ret = fun(path, ctypes.byref(_), ctypes.byref(total), ctypes.byref(free))
-        if ret == 0:
-            raise ctypes.WinError()
-        used = total.value - free.value
-        return _ntuple_diskusage(total.value, used, free.value)
 else:
     raise NotImplementedError("platform not supported")
 
