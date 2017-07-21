@@ -16,7 +16,7 @@ import threading
 
 from collections import namedtuple
 
-from pilot.control import job, payload, data, lifetime
+from pilot.control import job, payload, data, lifetime, monitor
 from pilot.util.constants import SUCCESS
 
 
@@ -90,6 +90,10 @@ def run(args):
                                         'traces': traces,
                                         'args': args}),
                threading.Thread(target=lifetime.control,
+                                kwargs={'queues': queues,
+                                        'traces': traces,
+                                        'args': args}),
+               threading.Thread(target=monitor.control,
                                 kwargs={'queues': queues,
                                         'traces': traces,
                                         'args': args})]

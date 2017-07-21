@@ -19,6 +19,7 @@ from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
 from pilot.util.https import https_setup
 from pilot.util.information import set_location
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
+from pilot.util.config import config
 
 VERSION = '2017-07-18.001'
 
@@ -30,8 +31,10 @@ def main():
     logger.info('PanDA Pilot 2 - version %s' % VERSION)
 
     args.graceful_stop = threading.Event()
+    config.read(args.config)
 
     https_setup(args, VERSION)
+    config.load(args.config)
 
     if not set_location(args):
         return False
@@ -99,6 +102,11 @@ if __name__ == '__main__':
                             default='ptest',
                             help='Job prod/source label (default: ptest)')
 
+    arg_parser.add_argument('--config',
+                            dest='config',
+                            default=None,
+                            help='path/to/pilot_conf.json')
+
     # SSL certificates
     arg_parser.add_argument('--cacert',
                             dest='cacert',
@@ -120,6 +128,13 @@ if __name__ == '__main__':
                             dest='port',
                             default=25443,
                             help='PanDA server port')
+
+    # Configuration option
+    arg_parser.add_argument('--config',
+                            dest='config',
+                            default='',
+                            help='Config file path',
+                            metavar='path/to/pilot.cfg')
 
     args = arg_parser.parse_args()
 

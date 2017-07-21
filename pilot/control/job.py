@@ -16,6 +16,7 @@ import time
 import urllib
 
 from pilot.util import https
+from pilot.util.config import config
 
 
 import logging
@@ -62,8 +63,12 @@ def send_state(job, args, state, xml=None):
         data['xml'] = urllib.quote_plus(xml)
 
     try:
-        cmd = args.url + ':' + str(args.port) + 'server/panda/updateJob'
-        if https.request(cmd, data=data) is not None:
+        # cmd = args.url + ':' + str(args.port) + 'server/panda/updateJob'
+        # if https.request(cmd, data=data) is not None:
+
+        if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=config.Pilot.pandaserver),
+                         data=data) is not None:
+
             log.info('confirmed job state=%s' % state)
             return True
     except Exception as e:
@@ -161,13 +166,15 @@ def retrieve(queues, traces, args):
         # first check if a job definition exists locally
         # ..
 
-        logger.debug('trying to fetch job from %s' % args.url)
+        # logger.debug('trying to fetch job from %s' % args.url)
 
         # no local job definition, download from server
-        cmd = args.url + ':' + str(args.port) + '/server/panda/getJob'
-        logger.debug('executing command: %s' % cmd)
-        logger.debug('data=%s'%str(data))
-        res = https.request(cmd, data=data)
+        # cmd = args.url + ':' + str(args.port) + '/server/panda/getJob'
+        # logger.debug('executing command: %s' % cmd)
+        # logger.debug('data=%s'%str(data))
+        # res = https.request(cmd, data=data)
+
+        res = https.request('{pandaserver}/server/panda/getJob'.format(pandaserver=config.Pilot.pandaserver), data=data)
 
         if res is None:
             logger.warning('did not get a job -- sleep 60s and repeat')
