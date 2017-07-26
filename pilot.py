@@ -51,6 +51,8 @@ def main():
         sys.exit(FAILURE)
     else:
         args.mainworkdir = mainworkdir
+        logger.info("entering workdir")
+        os.chdir(mainworkdir)
 
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
 
