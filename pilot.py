@@ -104,11 +104,6 @@ if __name__ == '__main__':
                             default='ptest',
                             help='Job prod/source label (default: ptest)')
 
-    arg_parser.add_argument('--config',
-                            dest='config',
-                            default=None,
-                            help='path/to/pilot_conf.json')
-
     # SSL certificates
     arg_parser.add_argument('--cacert',
                             dest='cacert',
