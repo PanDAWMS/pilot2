@@ -7,7 +7,6 @@
 # Authors:
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
-import time
 import logging
 import os
 from pilot.util.disk import disk_usage
@@ -34,8 +33,8 @@ def check_output_file_sizes():
 
 
 def run_checks(args):
-    #if not check_local_space_limit():
-        #return args.graceful_stop.set()
+    # if not check_local_space_limit():
+        # return args.graceful_stop.set()
 
     if not check_output_file_sizes():
         return args.graceful_stop.set()
