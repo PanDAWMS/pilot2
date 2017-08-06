@@ -80,7 +80,7 @@ class ExtendedConfig(ConfigParser.ConfigParser):
     def __getitem__(self, item):
         if self.has_section(item):
             return Section(self, item)
-        return ConfigParser.NoSectionError(item)
+        raise ConfigParser.NoSectionError(item)
 
     def __getattr__(self, item):
         try:
