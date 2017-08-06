@@ -283,3 +283,6 @@ def human2bytes(s, divider=None):
 config = ExtendedConfig()
 config.readfp(open(_default_cfg))
 config.read(_locations)
+
+if __name__ == "__main__":
+    print config.Python
