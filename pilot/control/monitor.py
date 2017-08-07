@@ -7,7 +7,6 @@
 # Authors:
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
-import time
 import logging
 import os
 from pilot.util.disk import disk_usage
@@ -17,16 +16,16 @@ logger = logging.getLogger(__name__)
 
 
 def control(queues, traces, args):
-
     while not args.graceful_stop.is_set():
-        time.sleep(30 * 60)
+        if args.graceful_stop.wait(30 * 60) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
+            break
         run_checks(args)
         send_heartbeat()
 
 
 def check_local_space_limit():
     du = disk_usage(os.path.abspath("."))
-    return du[2] < human2bytes(config.Python.free_space_limit)
+    return du[2] < human2bytes(config.Pilot.free_space_limit)
 
 
 def check_output_file_sizes():
