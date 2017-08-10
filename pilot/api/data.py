@@ -12,6 +12,7 @@ import os
 from pilot.control import data
 from pilot.utils import copytools
 
+
 class StageInClient(object):
 
     def __init__(self, site=None):
