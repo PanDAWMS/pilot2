@@ -10,7 +10,7 @@
 import os
 
 from pilot.control import data
-
+from pilot.utils import copytools
 
 class StageInClient(object):
 
@@ -44,7 +44,11 @@ class StageInClient(object):
                 all_files_ok = True
 
         if all_files_ok:
-            return data.stage_in_auto(self.site, files)
+            use_rucio = True
+            if use_rucio:
+                return copytools.copy_rucio(self.site, files)
+            else:
+                return copytools.copy_xrdcp(self.site, files)
         else:
             raise Exception('Files dictionary does not conform: scope, name, destination')
 
