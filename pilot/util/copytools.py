@@ -15,7 +15,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def _merge_destinations(files, executable=None):
+def _merge_destinations(files):
     destinations = {}
     for f in files:
         if not os.path.exists(f['destination']):
@@ -30,24 +30,26 @@ def _merge_destinations(files, executable=None):
             dst = destinations.setdefault(f['destination'], {'lfns': set(), 'files': list()})
             dst['lfns'].add(lfn)
             dst['files'].append(f)
-            if executable:
-                executable.append(lfn)
     return destinations
 
 
 def copy_rucio(site, files):
     """
-    Separate dummy implementation for automatic stage-in outside of pilot workflows.
-    Should be merged with regular stage-in functionality later, but we need to have
-    some operational experience with it first.
-    Many things to improve:
-     - separate file error handling in the merged case
+    Tries to download the given files using rucio.
+
+    :param site ??
+    :param files Files to download
+
+    :raises Exception
     """
 
     # don't spoil the output, we depend on stderr parsing
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
     destinations = _merge_destinations(files)
+
+    if len(destinations) == 0:
+        raise Exception('No lfn with existing destination path given!')
 
     for dst in destinations:
         executable = ['/usr/bin/env',
@@ -80,20 +82,27 @@ def copy_rucio(site, files):
 
 
 def copy_xrdcp(site, files):
-    """ Provides access to files stored inside connected the RSE.
-
-        :param pfn Physical file name of requested file
-        :param dest Name and path of the files when stored at the client
-
-        :raises DestinationNotAccessible, ServiceUnavailable, SourceNotFound
     """
-    executable = ['/usr/bin/env',
-                  'rucio', '-R', 'list-file-replicas',
-                  '--protocols', 'root']
-    destinations = _merge_destinations(files, executable)
+    Tries to download the given files using xrdcp directly.
+
+    :param site ??
+    :param files Files to download
+
+    :raises Exception
+    """
+    destinations = _merge_destinations(files)
 
     if len(destinations) == 0:
         raise Exception('No lfn with existing destination path given!')
+
+    lfns = set()
+    for dst in destinations:
+        lfns.update(destinations[dst]['lfns'])
+
+    executable = ['/usr/bin/env',
+                  'rucio', '-R', 'list-file-replicas',
+                  '--protocols', 'root']
+    executable.extend(lfns)
 
     logger.info('Querying file replicas from rucio...')
     process = subprocess.Popen(executable,
