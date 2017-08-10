@@ -10,7 +10,7 @@
 import os
 
 from pilot.control import data
-from pilot.utils import copytools
+from pilot.util import copytools
 
 
 class StageInClient(object):
