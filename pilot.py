@@ -13,7 +13,7 @@ import argparse
 import logging
 import sys
 import threading
-from os import getcwd
+from os import getcwd, chdir
 
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
 from pilot.util.https import https_setup
@@ -144,7 +144,7 @@ if __name__ == '__main__':
     else:
         args.mainworkdir = mainworkdir
  #       logger.info("entering workdir")
-        os.chdir(mainworkdir)
+        chdir(mainworkdir)
 
     console = logging.StreamHandler(sys.stdout)
     if args.debug:
