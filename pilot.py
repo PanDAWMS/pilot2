@@ -34,7 +34,6 @@ def main():
     config.read(args.config)
 
     https_setup(args, VERSION)
-    config.load(args.config)
 
     if not set_location(args):
         return False
