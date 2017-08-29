@@ -41,17 +41,17 @@ def main():
     logger.info('arguments: %s' % str(args))
     logger.info('workflow: %s' % args.workflow)
 
-    mainworkdir = get_pilot_work_dir(args.workdir)
-    logger.info('main work directory will be created at: %s' % mainworkdir)
-    try:
-        create_pilot_work_dir(mainworkdir)
-    except Exception as e:
-        logger.error('failed to create main workdir: %s' % e)
-        sys.exit(FAILURE)
-    else:
-        args.mainworkdir = mainworkdir
-        logger.info("entering workdir")
-        os.chdir(mainworkdir)
+#    mainworkdir = get_pilot_work_dir(args.workdir)
+#    logger.info('main work directory will be created at: %s' % mainworkdir)
+#    try:
+#        create_pilot_work_dir(mainworkdir)
+#    except Exception as e:
+#        logger.error('failed to create main workdir: %s' % e)
+#        sys.exit(FAILURE)
+#    else:
+#        args.mainworkdir = mainworkdir
+#        logger.info("entering workdir")
+#        os.chdir(mainworkdir)
 
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
 
@@ -133,6 +133,18 @@ if __name__ == '__main__':
                             metavar='path/to/pilot.cfg')
 
     args = arg_parser.parse_args()
+
+    mainworkdir = get_pilot_work_dir(args.workdir)
+#    logger.info('main work directory will be created at: %s' % mainworkdir)
+    try:
+        create_pilot_work_dir(mainworkdir)
+    except Exception as e:
+#        logger.error('failed to create main workdir: %s' % e)
+        sys.exit(FAILURE)
+    else:
+        args.mainworkdir = mainworkdir
+ #       logger.info("entering workdir")
+        os.chdir(mainworkdir)
 
     console = logging.StreamHandler(sys.stdout)
     if args.debug:

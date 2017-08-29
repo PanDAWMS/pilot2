@@ -10,8 +10,8 @@
 import os
 import time
 
-import logging
-logger = logging.getLogger(__name__)
+#import logging
+#logger = logging.getLogger(__name__)
 
 
 def get_pilot_work_dir(workdir):
@@ -37,5 +37,5 @@ def create_pilot_work_dir(workdir):
         os.makedirs(workdir)
         os.chmod(workdir, 0770)
     except Exception, e:
-        logger.error('could not create main work directory: %s' % e)
+ #       logger.error('could not create main work directory: %s' % e)
         # throw PilotException here
