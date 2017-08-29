@@ -177,24 +177,24 @@ def retrieve(queues, traces, args):
         cmd = '{pandaserver}/server/panda/getJob'.format(pandaserver=config.Pilot.pandaserver)
         logger.info('executing server command: %s' % cmd)
         res = https.request(cmd, data=data)
-        logger.info('ec=%s' % res['StatusCode'])
-#        if res is None:
-#            logger.warning('did not get a job -- sleep 60s and repeat')
-#            for i in xrange(600):
-#                if args.graceful_stop.is_set():
-#                    break
-#                time.sleep(0.1)
-#        else:
-#            if res['StatusCode'] != 0:
-#                logger.warning('did not get a job -- sleep 60s and repeat -- status: %s' % res['StatusCode'])
-#                for i in xrange(600):
-#                    if args.graceful_stop.is_set():
-#                        break
-#                    time.sleep(0.1)
-#            else:
-#                logger.info('got job: %s -- sleep 1000s before trying to get another job' % res['PandaID'])
-#                queues.jobs.put(res)
-#                for i in xrange(10000):
-#                    if args.graceful_stop.is_set():
-#                        break
-#                    time.sleep(0.1)
+
+        if res is None:
+            logger.warning('did not get a job -- sleep 60s and repeat')
+            for i in xrange(600):
+                if args.graceful_stop.is_set():
+                    break
+                time.sleep(0.1)
+        else:
+            if res['StatusCode'] != 0:
+                logger.warning('did not get a job -- sleep 60s and repeat -- status: %s' % res['StatusCode'])
+                for i in xrange(600):
+                    if args.graceful_stop.is_set():
+                        break
+                    time.sleep(0.1)
+            else:
+                logger.info('got job: %s -- sleep 1000s before trying to get another job' % res['PandaID'])
+                queues.jobs.put(res)
+                for i in xrange(10000):
+                    if args.graceful_stop.is_set():
+                        break
+                    time.sleep(0.1)
