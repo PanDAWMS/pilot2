@@ -161,7 +161,6 @@ if __name__ == '__main__':
         console.setFormatter(logging.Formatter('%(asctime)s | %(levelname)-8s | %(message)s'))
     logging.getLogger('').addHandler(console)
 
-    logger.info('main pilot work directory was created at: %s' % mainworkdir)
     trace = main()
     logging.shutdown()
 
