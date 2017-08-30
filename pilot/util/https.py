@@ -161,7 +161,7 @@ def request(url, data=None, plain=False):
         - `None` -- if something went wrong
     """
 
-    # _ctx.ssl_context = None  # no time to deal with this now
+    _ctx.ssl_context = None  # no time to deal with this now
 
     if _ctx.ssl_context is None:
         req = 'curl -sS --compressed --connect-timeout %s --max-time %s '\
