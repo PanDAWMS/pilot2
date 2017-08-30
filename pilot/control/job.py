@@ -174,7 +174,18 @@ def retrieve(queues, traces, args):
         # logger.debug('data=%s'%str(data))
         # res = https.request(cmd, data=data)
 
-        cmd = '{pandaserver}/server/panda/getJob'.format(pandaserver=config.Pilot.pandaserver)
+        if args.url != "":
+            url = args.url + ':' + str(args.port) # args.port is always set
+        else:
+            url = config.Pilot.pandaserver
+            if url == "":
+                logger.warning('PanDA server url not set (either as pilot option or in config file), using default')
+                url = 'https://pandaserver.cern.ch:25443'
+        if not url.startswith("https://"):
+            url = 'https://' + url
+            logger.warning('detected missing protocol in server url (added)')
+
+        cmd = '{pandaserver}/server/panda/getJob'.format(pandaserver=url)
         logger.info('executing server command: %s' % cmd)
         res = https.request(cmd, data=data)
 

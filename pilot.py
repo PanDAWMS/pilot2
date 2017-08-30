@@ -118,7 +118,7 @@ if __name__ == '__main__':
     # PanDA server URL and port
     arg_parser.add_argument('--url',
                             dest='url',
-                            default='https://pandaserver.cern.ch',
+                            default='', # the proper default is stored in config.cfg
                             help='PanDA server URL')
     arg_parser.add_argument('-p',
                             dest='port',
