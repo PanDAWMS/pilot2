@@ -21,14 +21,14 @@ from pilot.util.information import set_location
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 
-VERSION = '2017-08-29.001'
+VERSION = '2017-08-30.001'
 
 
 def main():
     """ Main function of PanDA Pilot 2 """
 
     logger = logging.getLogger(__name__)
-    logger.info('PanDA Pilot 2 - version %s' % VERSION)
+    logger.info('PanDA Pilot 2 version %s' % VERSION)
 
     args.graceful_stop = threading.Event()
     config.read(args.config)
@@ -134,18 +134,20 @@ if __name__ == '__main__':
 
     args = arg_parser.parse_args()
 
+    # Create the main pilot workdir and cd into it
     mainworkdir = get_pilot_work_dir(args.workdir)
-#    logger.info('main work directory will be created at: %s' % mainworkdir)
     try:
         create_pilot_work_dir(mainworkdir)
     except Exception as e:
-#        logger.error('failed to create main workdir: %s' % e)
+        # print to stderr since logging has not been established yet
+        from sys import stderr
+        print >> stderr, 'failed to create main workdir: %s' % e
         sys.exit(FAILURE)
     else:
         args.mainworkdir = mainworkdir
- #       logger.info("entering workdir")
         chdir(mainworkdir)
 
+    # Establish logging
     console = logging.StreamHandler(sys.stdout)
     if args.debug:
         logging.basicConfig(filename='pilotlog.txt', level=logging.DEBUG,
@@ -159,6 +161,7 @@ if __name__ == '__main__':
         console.setFormatter(logging.Formatter('%(asctime)s | %(levelname)-8s | %(message)s'))
     logging.getLogger('').addHandler(console)
 
+    logger.info('main pilot work directory was created at: %s' % mainworkdir)
     trace = main()
     logging.shutdown()
 
