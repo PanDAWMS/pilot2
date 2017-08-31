@@ -123,7 +123,7 @@ def stage_in_auto(site, files):
             f['errmsg'] = 'Destination directory does not exist: %s' % f['destination']
             f['errno'] = 1
         else:
-            f['status'] = 'transferring'
+            f['status'] = 'running'
             f['errmsg'] = 'File not yet successfully downloaded.'
             f['errno'] = 2
 
@@ -185,7 +185,7 @@ def stage_out_auto(site, files):
             f['errmsg'] = 'Source file does not exist: %s' % f['file']
             f['errno'] = 1
         else:
-            f['status'] = 'transferring'
+            f['status'] = 'running'
             f['errmsg'] = 'File not yet successfully uploaded.'
             f['errno'] = 2
 
@@ -249,7 +249,7 @@ def copytool_in(queues, traces, args):
         try:
             job = queues.data_in.get(block=True, timeout=1)
 
-            send_state(job, args, 'transferring')
+            send_state(job, args, 'running')
 
             if _stage_in(args, job):
                 queues.finished_data_in.put(job)
@@ -268,7 +268,7 @@ def copytool_out(queues, traces, args):
 
             logger.info('dataset=%s rse=%s' % (job['destinationDblock'], job['ddmEndPointOut'].split(',')[0]))
 
-            send_state(job, args, 'transferring')
+            send_state(job, args, 'running')
 
             if _stage_out_all(job, args):
                 queues.finished_data_out.put(job)

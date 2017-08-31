@@ -21,7 +21,7 @@ from pilot.util.information import set_location
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 
-VERSION = '2017-08-30.001'
+VERSION = '2017-08-31.001'
 
 
 def main():
@@ -38,21 +38,8 @@ def main():
     if not set_location(args):
         return False
 
-    logger.info('arguments: %s' % str(args))
-    logger.info('workflow: %s' % args.workflow)
-
-#    mainworkdir = get_pilot_work_dir(args.workdir)
-#    logger.info('main work directory will be created at: %s' % mainworkdir)
-#    try:
-#        create_pilot_work_dir(mainworkdir)
-#    except Exception as e:
-#        logger.error('failed to create main workdir: %s' % e)
-#        sys.exit(FAILURE)
-#    else:
-#        args.mainworkdir = mainworkdir
-#        logger.info("entering workdir")
-#        os.chdir(mainworkdir)
-
+    logger.info('pilot arguments: %s' % str(args))
+    logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
 
     return workflow.run(args)
@@ -141,7 +128,7 @@ if __name__ == '__main__':
     except Exception as e:
         # print to stderr since logging has not been established yet
         from sys import stderr
-        print >> stderr, 'failed to create main workdir: %s' % e
+        print >> stderr, 'failed to create workdir at %s -- aborting: %s' % (mainworkdir, e)
         sys.exit(FAILURE)
     else:
         args.mainworkdir = mainworkdir

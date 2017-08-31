@@ -23,7 +23,7 @@ def _merge_destinations(files):
             f['errmsg'] = 'Destination directory does not exist: %s' % f['destination']
             f['errno'] = 1
         else:
-            f['status'] = 'transferring'
+            f['status'] = 'running'
             f['errmsg'] = 'File not yet successfully downloaded.'
             f['errno'] = 2
             lfn = '%s:%s' % (f['scope'], f['name'])
