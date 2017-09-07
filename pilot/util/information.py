@@ -101,6 +101,8 @@ def set_location(args, site=None):
         return False
     else:
         # add the queuename to the URL
+        if not url.endswith('/'):
+            url += '/'
         url += args.location.queue + '.all.json'
     queuedata = retrieve_json(url)
 
