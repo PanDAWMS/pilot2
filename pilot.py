@@ -20,6 +20,7 @@ from pilot.util.https import https_setup
 from pilot.util.information import set_location, get_parameter
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
+from pilot.util.parameters import get_maximum_input_sizes
 
 VERSION = '2017-09-07.001'
 
@@ -42,8 +43,8 @@ def main():
     logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
 
-    logger.info('maxinputsize: %s' % get_parameter(args.location.queuedata, 'maxinputsize'))
-
+    maxinputsize = get_maximum_input_sizes(args.location.queuedata)
+    logger.info('schedconfig maxinputsize: %s' % maxinputsize)
     return workflow.run(args)
 
 

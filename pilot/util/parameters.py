@@ -17,15 +17,22 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_maximum_input_size():
+def get_maximum_input_sizes(queuedata):
     """
     This function returns the maximum allowed size for all input files. The sum of all input file sizes should not
     exceed this value.
 
-    :return:
+    :param queuedata: the queuedata dictionary from schedconfig.
+    :return: maxinputsizes (integer value in GB).
     """
 
-    _maxinputsize = get_parameter('maxwdir')  # normally 14336+2000 MB
+    try:
+        _maxinputsizes = int(get_parameter(queuedata, 'maxwdir'))  # normally 14336+2000 MB
+    except TypeError, e:
+        from pilot.util.config import config
+        _maxinputsizes = config.Pilot.maximum_input_file_sizes
+        logger.warning('could not convert schedconfig value for maxwdir: %s (will use default value instead - %d GB)' %\
+                       (e, _maxinputsizes))
 
-    return 0
+    return _maxinputsizes
 
