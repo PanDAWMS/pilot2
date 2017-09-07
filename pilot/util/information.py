@@ -41,7 +41,7 @@ def set_location(args, site=None):
     if site is None:
         # verify that the queue is active
         url = config.Information.queues
-        if url = "":
+        if url == "":
             logger.fatal('AGIS URL for queues not set')
             return False
         all_queues = retrieve_json(url)
@@ -56,7 +56,7 @@ def set_location(args, site=None):
 
         # find the associated site
         url = config.Information.sites
-        if url = "":
+        if url == "":
             logger.fatal('AGIS URL for sites not set')
             return False
         all_sites = retrieve_json(url)
@@ -71,7 +71,7 @@ def set_location(args, site=None):
     else:
         # find the associated site
         url = config.Information.sites
-        if url = "":
+        if url == "":
             logger.fatal('AGIS URL for sites not set')
             return False
         all_sites = retrieve_json(url)
@@ -83,7 +83,7 @@ def set_location(args, site=None):
 
     # find all enabled storages at site
     url = config.Information.storages
-    if url = "":
+    if url == "":
         logger.fatal('AGIS URL for storages not set')
         return False
     all_storages = retrieve_json(url)
