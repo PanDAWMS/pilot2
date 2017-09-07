@@ -17,7 +17,7 @@ from os import getcwd, chdir
 
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
 from pilot.util.https import https_setup
-from pilot.util.information import set_location
+from pilot.util.information import set_location, get_parameter
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 
@@ -41,6 +41,8 @@ def main():
     logger.info('pilot arguments: %s' % str(args))
     logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
+
+    logger.info('maxinputsize: %s' % get_parameter(args.location.queuedata, 'maxinputsize'))
 
     return workflow.run(args)
 

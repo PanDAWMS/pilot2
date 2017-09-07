@@ -107,7 +107,7 @@ def set_location(args, site=None):
     logger.info('queue: %s' % args.location.queue)
     logger.info('site: %s' % args.location.site)
     logger.info('storages: %s' % args.location.storages)
-    logger.info('queuedata: %s' % args.location.queuedata)
+    # logger.info('queuedata: %s' % args.location.queuedata)
 
     return True
 
@@ -137,3 +137,9 @@ def _write_cache(url, j):
     m.update(url)
     with open('.cache.%s' % m.hexdigest(), 'wb') as outfile:
         json.dump(j, outfile)
+
+
+def get_parameter(queuedata, field):
+    return queuedata[field] if field in queuedata else None
+
+
