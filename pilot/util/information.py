@@ -96,7 +96,7 @@ def set_location(args, site=None):
 
     # find the schedconfig queue data
     url = config.Information.schedconfig
-    if url = "":
+    if url == "":
         logger.fatal('URL for schedconfig not set')
         return False
     else:
