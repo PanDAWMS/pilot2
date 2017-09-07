@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch
 
 import os
 import re
