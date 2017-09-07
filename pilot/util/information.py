@@ -33,10 +33,8 @@ def set_location(args, site=None):
     If site is specified, return the site and storage information only.
     '''
 
-    args.location = collections.namedtuple('location', ['queue', 'site', 'storages',
+    args.location = collections.namedtuple('location', ['queue', 'site', 'storages', 'queuedata',
                                                         'queue_info', 'site_info', 'storages_info'])
-
-#        if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=config.Pilot.pandaserver),
 
     if site is None:
         # verify that the queue is active
@@ -104,12 +102,12 @@ def set_location(args, site=None):
         if not url.endswith('/'):
             url += '/'
         url += args.location.queue + '.all.json'
-    queuedata = retrieve_json(url)
+    args.location.queuedata = retrieve_json(url)
 
     logger.info('queue: %s' % args.location.queue)
     logger.info('site: %s' % args.location.site)
     logger.info('storages: %s' % args.location.storages)
-    logger.info('queuedata: %s' % queuedata)
+    logger.info('queuedata: %s' % args.location.queuedata)
 
     return True
 
