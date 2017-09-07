@@ -7,6 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch
 
 
 # This is a stub implementation of the information component. It retrieves
@@ -19,6 +20,7 @@ import json
 import os
 import urllib2
 
+from pilot.util.config import config
 import logging
 logger = logging.getLogger(__name__)
 
@@ -34,9 +36,15 @@ def set_location(args, site=None):
     args.location = collections.namedtuple('location', ['queue', 'site', 'storages',
                                                         'queue_info', 'site_info', 'storages_info'])
 
+#        if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=config.Pilot.pandaserver),
+
     if site is None:
         # verify that the queue is active
-        all_queues = retrieve_json('http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json')
+        url = config.Information.queues
+        if url = "":
+            logger.fatal('AGIS URL for queues not set')
+            return False
+        all_queues = retrieve_json(url)
         if args.queue not in [queue['name'] for queue in all_queues]:
             logger.critical('specified queue NOT FOUND: %s -- aborting' % args.queue)
             return False
@@ -47,7 +55,11 @@ def set_location(args, site=None):
         args.location.queue_info = [queue for queue in all_queues if queue['name'] == args.queue][0]
 
         # find the associated site
-        all_sites = retrieve_json('http://atlas-agis-api.cern.ch/request/site/query/list/?json')
+        url = config.Information.sites
+        if url = "":
+            logger.fatal('AGIS URL for sites not set')
+            return False
+        all_sites = retrieve_json(url)
         matching_sites = [queue for queue in all_queues if queue['name'] == args.queue]
         if len(matching_sites) != 1:
             logger.critical('queue is not explicitly mapped to a single site, found: %s' % [tmp_site['name'] for tmp_site in matching_sites])
@@ -58,7 +70,11 @@ def set_location(args, site=None):
 
     else:
         # find the associated site
-        all_sites = retrieve_json('http://atlas-agis-api.cern.ch/request/site/query/list/?json')
+        url = config.Information.sites
+        if url = "":
+            logger.fatal('AGIS URL for sites not set')
+            return False
+        all_sites = retrieve_json(url)
         result = [tmp_site for tmp_site in all_sites if tmp_site['name'] == site]
         if len(result) == 0:
             raise Exception('Specified site not found: %s' % site)
@@ -66,7 +82,11 @@ def set_location(args, site=None):
         args.location.site_info = result[0]
 
     # find all enabled storages at site
-    all_storages = retrieve_json('http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json')
+    url = config.Information.storages
+    if url = "":
+        logger.fatal('AGIS URL for storages not set')
+        return False
+    all_storages = retrieve_json(url)
     args.location.storages = [str(storage['name']) for storage in all_storages
                               if storage['site'] == args.location.site and storage['state'] == 'ACTIVE']
     args.location.storages_info = {}
@@ -74,9 +94,20 @@ def set_location(args, site=None):
         args.location.storages_info[tmp_storage] = [storage for storage in all_storages
                                                     if storage['name'] == tmp_storage and storage['state'] == 'ACTIVE'][0]
 
+    # find the schedconfig queue data
+    url = config.Information.schedconfig
+    if url = "":
+        logger.fatal('URL for schedconfig not set')
+        return False
+    else:
+        # add the queuename to the URL
+        url += args.location.queue + '.all.json'
+    queuedata = retrieve_json(url)
+
     logger.info('queue: %s' % args.location.queue)
     logger.info('site: %s' % args.location.site)
     logger.info('storages: %s' % args.location.storages)
+    logger.info('queuedata: %s' % queuedata)
 
     return True
 
