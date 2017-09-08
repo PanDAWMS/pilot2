@@ -31,7 +31,7 @@ def get_maximum_input_sizes(queuedata):
     except TypeError, e:
         from pilot.util.config import config
         _maxinputsizes = config.Pilot.maximum_input_file_sizes
-        logger.warning('could not convert schedconfig value for maxwdir: %s (will use default value instead - %d GB)' %\
+        logger.warning('could not convert schedconfig value for maxwdir: %s (will use default value instead - %d GB)' %
                        (e, _maxinputsizes))
 
     return _maxinputsizes

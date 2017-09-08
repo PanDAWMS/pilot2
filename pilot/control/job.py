@@ -127,7 +127,7 @@ def create_data_payload(queues, traces, args):
         queues.payloads.put(job)
 
 
-def dispatcher_dictionary():
+def get_dispatcher_dictionary(args):
     """
     Return a dictionary with required fields for the dispatcher getJob operation.
 
@@ -136,13 +136,28 @@ def dispatcher_dictionary():
     :returns: dictionary prepared for the dispatcher getJob operation.
     """
 
-    dictionary = {}
+    _diskspace = None
+    data = {
+        'siteName': args.location.queue,
+        'prodSourceLabel': args.job_label,
+        'diskSpace': _diskspace
+    }
 
-    return dictionary
+#    jNode = {'siteName': env['thisSite'].sitename,
+#             'cpu': env['workerNode'].cpu,
+#            'mem': env['workerNode'].mem,
+#             'diskSpace': _diskSpace,
+#             'node': nodename,
+#             'computingElement': env['thisSite'].computingElement,
+#             'getProxyKey': _getProxyKey,
+#             'workingGroup': env['workingGroup']}
+
+    return data
+
 
 def retrieve(queues, traces, args):
     """ 
-    Retrieve a job definition from a source.
+    Retrieve a job definition from a source (server or pre-placed local file [not yet implemented]).
 
     The job definition is a json dictionary that is either present in the launch
     directory (preplaced) or downloaded from a server specified by `args.url`.
@@ -152,16 +167,16 @@ def retrieve(queues, traces, args):
 
     :param queues: internal queues for job handling.
     :param traces: tuple containing internal pilot and rucio states.
-    :param args: arguments.
+    :param args: arguments (e.g. containing queue name, queuedata dictionary, etc).
     """
+
+    # get the job dispatcher dictionary
+    data = get_dispatcher_dictionary(args)
 
     while not args.graceful_stop.is_set():
 
-        #getjobmaxtime = 60*5 # to be read from configuration file
-        #logger.debug('pilot will attempt job downloads for a maximum of %d seconds' % getjobmaxtime)
-
-        data = {'siteName': args.location.queue,
-                'prodSourceLabel': args.job_label}
+        # getjobmaxtime = 60*5 # to be read from configuration file
+        # logger.debug('pilot will attempt job downloads for a maximum of %d seconds' % getjobmaxtime)
 
         # first check if a job definition exists locally
         # ..
@@ -179,8 +194,9 @@ def retrieve(queues, traces, args):
         else:
             url = config.Pilot.pandaserver
             if url == "":
-                logger.warning('PanDA server url not set (either as pilot option or in config file), using default')
-                url = 'https://pandaserver.cern.ch:25443'
+                logger.fatal('PanDA server url not set (either as pilot option or in config file)')
+                break
+
         if not url.startswith("https://"):
             url = 'https://' + url
             logger.warning('detected missing protocol in server url (added)')
