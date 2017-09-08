@@ -17,7 +17,7 @@ import urllib
 
 from pilot.util import https
 from pilot.util.config import config
-
+from pilot.util.disk import disk_usage
 
 import logging
 logger = logging.getLogger(__name__)
@@ -136,7 +136,12 @@ def get_dispatcher_dictionary(args):
     :returns: dictionary prepared for the dispatcher getJob operation.
     """
 
-    _diskspace = None
+    du = disk_usage(os.path.abspath("."))
+    logger.info('du[0]=%s'%du[0])
+    logger.info('du[1]=%s'%du[1])
+    logger.info('du[2]=%s'%du[2])
+    _diskspace = du[2]
+
     data = {
         'siteName': args.location.queue,
         'prodSourceLabel': args.job_label,
