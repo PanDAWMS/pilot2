@@ -17,12 +17,12 @@ from os import getcwd, chdir
 
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
 from pilot.util.https import https_setup
-from pilot.util.information import set_location, get_parameter
+from pilot.util.information import set_location
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
-from pilot.util.parameters import get_maximum_input_sizes
+# from pilot.util.parameters import get_maximum_input_sizes
 
-VERSION = '2017-09-07.002da'
+VERSION = '2017-09-08.001'
 
 
 def main():
@@ -43,8 +43,8 @@ def main():
     logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
 
-    maxinputsize = get_maximum_input_sizes(args.location.queuedata)
-    logger.info('schedconfig maxinputsize: %s' % maxinputsize)
+    # maxinputsize = get_maximum_input_sizes(args.location.queuedata)
+
     return workflow.run(args)
 
 
@@ -108,7 +108,7 @@ if __name__ == '__main__':
     # PanDA server URL and port
     arg_parser.add_argument('--url',
                             dest='url',
-                            default='', # the proper default is stored in config.cfg
+                            default='',  # the proper default is stored in config.cfg
                             help='PanDA server URL')
     arg_parser.add_argument('-p',
                             dest='port',

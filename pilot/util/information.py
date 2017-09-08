@@ -26,12 +26,12 @@ logger = logging.getLogger(__name__)
 
 
 def set_location(args, site=None):
-    '''
+    """
     Set up all necessary site information.
     Resolve everything from the specified queue name, and fill extra lookup structure.
 
     If site is specified, return the site and storage information only.
-    '''
+    """
 
     args.location = collections.namedtuple('location', ['queue', 'site', 'storages', 'queuedata',
                                                         'queue_info', 'site_info', 'storages_info'])
@@ -60,7 +60,8 @@ def set_location(args, site=None):
         all_sites = retrieve_json(url)
         matching_sites = [queue for queue in all_queues if queue['name'] == args.queue]
         if len(matching_sites) != 1:
-            logger.critical('queue is not explicitly mapped to a single site, found: %s' % [tmp_site['name'] for tmp_site in matching_sites])
+            logger.critical('queue is not explicitly mapped to a single site, found: %s' %
+                            [tmp_site['name'] for tmp_site in matching_sites])
             return False
         else:
             args.location.site = str(matching_sites[0]['site'])
@@ -90,7 +91,8 @@ def set_location(args, site=None):
     args.location.storages_info = {}
     for tmp_storage in args.location.storages:
         args.location.storages_info[tmp_storage] = [storage for storage in all_storages
-                                                    if storage['name'] == tmp_storage and storage['state'] == 'ACTIVE'][0]
+                                                    if storage['name'] == tmp_storage and
+                                                    storage['state'] == 'ACTIVE'][0]
 
     # find the schedconfig queue data
     url = config.Information.schedconfig
@@ -141,5 +143,3 @@ def _write_cache(url, j):
 
 def get_parameter(queuedata, field):
     return queuedata[field] if field in queuedata else None
-
-
