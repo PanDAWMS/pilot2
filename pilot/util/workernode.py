@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 # UNIT TEST MISSING (should return non-zero float, float)
-def collect_WN_info():
+def collect_workernode_info():
     """
     Collect node information (cpu and memory).
 
