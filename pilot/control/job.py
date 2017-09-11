@@ -17,7 +17,7 @@ import urllib
 
 from pilot.util import https
 from pilot.util.config import config
-from pilot.util.workernode import get_disk_space_for_dispatcher
+from pilot.util.workernode import get_disk_space_for_dispatcher, collect_workernode_info
 
 import logging
 logger = logging.getLogger(__name__)
@@ -137,13 +137,16 @@ def get_dispatcher_dictionary(args):
     """
 
     _diskspace = get_disk_space_for_dispatcher(args.location.queuedata)
+    _mem, _cpu = collect_workernode_info()
 
     data = {
         'siteName': args.location.queue,
         'prodSourceLabel': args.job_label,
         'diskSpace': _diskspace,
         'workingGroup': args.workinggroup,
-        'countryGroup': args.countrygroup
+        'countryGroup': args.countrygroup,
+        'cpu': _cpu,
+        'mem': _mem
     }
 
 #    jNode = {'siteName': env['thisSite'].sitename,
