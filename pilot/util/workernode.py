@@ -7,6 +7,8 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch
 
+import os
+
 from pilot.util.disk import disk_usage
 from pilot.util.parameters import get_maximum_input_sizes
 
@@ -75,3 +77,28 @@ def get_disk_space_for_dispatcher(queuedata):
     logger.info("Sending disk space %d MB to dispatcher" % (_diskspace))
 
     return _diskspace
+
+
+def get_node_name():
+    """
+    Return the local node name.
+
+    :return: node name (string)
+    """
+
+    return get_condor_node_name(os.uname()[1])
+
+
+def get_condor_node_name(nodename):
+    """
+    On a condor system, add the SlotID to the nodename
+
+    :param nodename:
+    :return:
+    """
+
+    if os.environ.has_key("_CONDOR_SLOT"):
+        nodename = "%s@%s" % (os.environ["_CONDOR_SLOT"], nodename)
+
+    return nodename
+
