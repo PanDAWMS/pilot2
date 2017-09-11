@@ -128,10 +128,16 @@ def create_data_payload(queues, traces, args):
         queues.payloads.put(job)
 
 
+# UNIT TEST MISSING
 def get_disk_space_for_dispatcher(queuedata):
     """
-    ..
-    :return: amount of disk space
+
+    Return the amound of disk space that should be available for running the job, either what is actually locally
+    available or the allowed size determined by the site (value from queuedata). This value is only to be used
+    internally by the job dispatcher.
+
+    :param queuedata: (better to have a file based queuedata a la pilot 1 or some singleton memory resident object?)
+    :return: disk space that should be available for running the job
     """
 
     _maxinputsize = get_maximum_input_sizes(queuedata)
@@ -140,13 +146,17 @@ def get_disk_space_for_dispatcher(queuedata):
         _diskspace = int(du[2]/(1024*1024))  # need to convert from B to MB
     except ValueError, e:
         logger.warning("Failed to extract disk space: %s (will use schedconfig default)" % e)
-        _diskspace = 0
+        _diskspace = _maxinputsize
+    else:
+        logger.info("Available WN disk space: %d MB" % (_diskspace))
 
-    logger.info("Available WN disk space: %d MB" % (_diskspace))
+    _diskspace = min(_diskspace, _maxinputsize)
+    logger.info("Sending disk space %d MB to dispatcher" % (_diskspace))
 
     return _diskspace
 
 
+# UNIT TEST MISSING
 def get_dispatcher_dictionary(args):
     """
     Return a dictionary with required fields for the dispatcher getJob operation.
