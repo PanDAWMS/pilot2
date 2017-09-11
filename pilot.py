@@ -22,7 +22,7 @@ from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 # from pilot.util.parameters import get_maximum_input_sizes
 
-VERSION = '2017-09-08.001'
+VERSION = '2017-09-11.001'
 
 
 def main():
@@ -121,6 +121,18 @@ if __name__ == '__main__':
                             default='',
                             help='Config file path',
                             metavar='path/to/pilot.cfg')
+
+    # Country group
+    arg_parser.add_argument('--countrygroup',
+                            dest='countrygroup',
+                            default='',
+                            help='Country group option for getjob request')
+
+    # Working group
+    arg_parser.add_argument('--workinggroup',
+                            dest='workinggroup',
+                            default='',
+                            help='Working group option for getjob request')
 
     args = arg_parser.parse_args()
 
