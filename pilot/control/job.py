@@ -171,7 +171,9 @@ def get_dispatcher_dictionary(args):
     data = {
         'siteName': args.location.queue,
         'prodSourceLabel': args.job_label,
-        'diskSpace': _diskspace
+        'diskSpace': _diskspace,
+        'workingGroup': args.workinggroup,
+        'countryGroup': args.countrygroup
     }
 
 #    jNode = {'siteName': env['thisSite'].sitename,
