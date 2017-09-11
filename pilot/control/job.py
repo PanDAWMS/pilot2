@@ -128,7 +128,42 @@ def create_data_payload(queues, traces, args):
         queues.payloads.put(job)
 
 
-# UNIT TEST MISSING
+# UNIT TEST MISSING (should return non-zero float, float)
+def collect_WN_info():
+    """
+    Collect node information (cpu and memory).
+
+    :return: mem (float), cpu (float)
+    """
+
+    mem = 0.
+    cpu = 0.
+
+    try:
+        with open("/proc/meminfo", "r") as fd:
+            mems = fd.readline()
+            while mems:
+                if mems.upper().find("MEMTOTAL") != -1:
+                    mem = float(mems.split()[1]) / 1024
+                    break
+                mems = fd.readline()
+    except IOError as e:
+        logger.warning("failed to read /proc/meminfo: %s" % e)
+
+    try:
+        with open("/proc/cpuinfo", "r") as fd:
+            lines = fd.readlines()
+            for line in lines:
+                if not string.find(line, "cpu MHz"):
+                    cpu = float(line.split(":")[1])
+                    break
+    except IOError as e:
+        logger.warning("failed to read /proc/cpuinfo: %s" % e)
+
+    return mem, cpu
+
+
+# UNIT TEST MISSING (should return non-zero int)
 def get_disk_space_for_dispatcher(queuedata):
     """
 
