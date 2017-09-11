@@ -18,6 +18,7 @@ import urllib
 from pilot.util import https
 from pilot.util.config import config
 from pilot.util.disk import disk_usage
+from pilot.util.parameters import get_maximum_input_sizes
 
 import logging
 logger = logging.getLogger(__name__)
@@ -127,6 +128,25 @@ def create_data_payload(queues, traces, args):
         queues.payloads.put(job)
 
 
+def get_disk_space_for_dispatcher(queuedata):
+    """
+    ..
+    :return: amount of disk space
+    """
+
+    _maxinputsize = get_maximum_input_sizes(queuedata)
+    try:
+        du = disk_usage(os.path.abspath("."))
+        _diskspace = int(du[2]/(1024*1024))  # need to convert from B to MB
+    except ValueError, e:
+        logger.warning("Failed to extract disk space: %s (will use schedconfig default)" % e)
+        _diskspace = 0
+
+    logger.info("Available WN disk space: %d MB" % (_diskspace))
+
+    return _diskspace
+
+
 def get_dispatcher_dictionary(args):
     """
     Return a dictionary with required fields for the dispatcher getJob operation.
@@ -136,11 +156,7 @@ def get_dispatcher_dictionary(args):
     :returns: dictionary prepared for the dispatcher getJob operation.
     """
 
-    du = disk_usage(os.path.abspath("."))
-    logger.info('du[0]=%s'%du[0])
-    logger.info('du[1]=%s'%du[1])
-    logger.info('du[2]=%s'%du[2])
-    _diskspace = du[2]
+    _diskspace = get_disk_space_for_dispatcher(args.location.queuedata)
 
     data = {
         'siteName': args.location.queue,
