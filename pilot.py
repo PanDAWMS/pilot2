@@ -138,6 +138,13 @@ if __name__ == '__main__':
                             default='',
                             help='Working group option for getjob request')
 
+    # Allow other country
+    arg_parser.add_argument('--allowothercountry',
+                            dest='allowothercountry',
+                            type=bool,
+                            default=False,
+                            help='Is the resource allowed to be used outside the privileged group?')
+
     args = arg_parser.parse_args()
 
     # Create the main pilot workdir and cd into it
