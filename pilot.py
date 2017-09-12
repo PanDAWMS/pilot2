@@ -86,6 +86,10 @@ if __name__ == '__main__':
                             dest='queue',
                             required=True,
                             help='MANDATORY: queue name (e.g., AGLT2_TEST-condor')
+    arg_parser.add_argument('-r',
+                            dest='site',
+                            required=True,  # it is needed by the dispatcher (only)
+                            help='MANDATORY: site name (e.g., AGLT2_TEST')
 
     # graciously stop pilot process after hard limit
     arg_parser.add_argument('-j',
