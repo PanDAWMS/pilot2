@@ -7,14 +7,43 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch
 
+from container import execute
+
 import logging
 logger = logging.getLogger(__name__)
 
-def getDN():
+def get_DN():
     """
     Get the user DN.
 
-    :return:
+    :return: User DN.
     """
 
-    pass
+    dn = ""
+    executable = ['arcproxy', '-i', 'subject']
+
+    exit_code, stdout, stderr = execute(executable)
+    if exit_code != 0:
+        logger.warning("arcproxy failed: ec=%d, stdout=%s, stderr=%s" % (exit_code, stdout, stderr))
+
+        if "command not found" in stdout:
+            logger.warning("arcproxy is not available (will use voms-proxy-info instead)")
+
+            # Default to voms-proxy-info
+            executable = ['voms-proxy-info', '-subject']
+            exit_code, stdout, stderr = execute(executable)
+
+    if exit_code == 0:
+        dn = stdout
+        logger.info('DN = %s' % dn)
+        cn = "/CN=proxy"
+        if not dn.endswith(cn):
+            logger.info("DN does not end with %s (will be added)" % (cn))
+            dn += cn
+
+    else:
+        logger.warning("user=self set but cannot get proxy: %d, %s" % (exit_code, stdout)
+
+    return dn
+
+
