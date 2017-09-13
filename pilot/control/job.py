@@ -17,7 +17,8 @@ import urllib
 
 from pilot.util import https
 from pilot.util.config import config
-from pilot.util.workernode import get_disk_space_for_dispatcher, collect_workernode_info
+from pilot.util.workernode import get_disk_space_for_dispatcher, collect_workernode_info, get_node_name
+from pilot.util.proxy import get_distinguished_name
 
 import logging
 logger = logging.getLogger(__name__)
@@ -131,32 +132,43 @@ def get_dispatcher_dictionary(args):
     """
     Return a dictionary with required fields for the dispatcher getJob operation.
 
-    The dictionary should contain the following fields:
+    The dictionary should contain the following fields: siteName, computingElement (queue name),
+    prodSourceLabel (e.g. user, test, ptest), diskSpace (available disk space for a job in MB),
+    workingGroup, countryGroup, cpu (float), mem (float) and node (worker node name).
 
+    workingGroup, countryGroup and allowOtherCountry
+    we add a new pilot setting allowOtherCountry=True to be used in conjunction with countryGroup=us for
+    US pilots. With these settings, the Panda server will produce the desired behaviour of dedicated X% of
+    the resource exclusively (so long as jobs are available) to countryGroup=us jobs. When allowOtherCountry=false
+    this maintains the behavior relied on by current users of the countryGroup mechanism -- to NOT allow
+    the resource to be used outside the privileged group under any circumstances.
+
+    :param args: arguments (e.g. containing queue name, queuedata dictionary, etc).
     :returns: dictionary prepared for the dispatcher getJob operation.
     """
 
     _diskspace = get_disk_space_for_dispatcher(args.location.queuedata)
     _mem, _cpu = collect_workernode_info()
+    _nodename = get_node_name()
 
     data = {
-        'siteName': args.location.queue,
+        'siteName': args.location.site,
+        'computingElement': arg.location.queue,
         'prodSourceLabel': args.job_label,
         'diskSpace': _diskspace,
         'workingGroup': args.workinggroup,
         'countryGroup': args.countrygroup,
+        'allowOtherCountry': args.allowothercoountry,
         'cpu': _cpu,
-        'mem': _mem
+        'mem': _mem,
+        'node': _nodename
     }
 
-#    jNode = {'siteName': env['thisSite'].sitename,
-#             'cpu': env['workerNode'].cpu,
-#            'mem': env['workerNode'].mem,
-#             'diskSpace': _diskSpace,
-#             'node': nodename,
-#             'computingElement': env['thisSite'].computingElement,
-#             'getProxyKey': _getProxyKey,
-#             'workingGroup': env['workingGroup']}
+    if args.job_label == 'self':
+        dn = get_distinguished_name()
+        data['prodUserID'] = dn
+    dn = get_distinguished_name()
+    logger.info('DN = %s' % dn)
 
     return data
 
