@@ -14,11 +14,13 @@ logger = logging.getLogger(__name__)
 
 def execute(executable):
     """
+    Execute the command and its options in the provided executable list.
 
     :param executable: Command list to be executed.
     :return: exit code, stdout and stderr
     """
 
+    logger.info('executing command: %s' % ' '.join(executable))
     process = subprocess.Popen(executable,
                                bufsize=-1,
                                stdout=subprocess.PIPE,
@@ -27,3 +29,14 @@ def execute(executable):
     exit_code = process.poll()
 
     return exit_code, stdout, stderr
+
+def execute_string(executable_string):
+    """
+    Execute the provided command.
+
+    :param executable_string: Command to be executed.
+    :return: exit code, stdout and stderr
+    """
+
+    return execute(executable_string.split(' '))
+
