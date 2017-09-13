@@ -12,7 +12,7 @@ from container import execute
 import logging
 logger = logging.getLogger(__name__)
 
-def get_DN():
+def get_distinguished_name():
     """
     Get the user DN.
 
