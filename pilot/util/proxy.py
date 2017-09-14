@@ -24,7 +24,7 @@ def get_distinguished_name():
     executable = ['arcproxy', '-i', 'subject']
 
     exit_code, stdout, stderr = execute(executable)
-    if exit_code != 0:
+    if exit_code != 0 or "ERROR:" in stderr:
         logger.warning("arcproxy failed: ec=%d, stdout=%s, stderr=%s" % (exit_code, stdout, stderr))
 
         if "command not found" in stdout:
