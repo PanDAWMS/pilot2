@@ -20,7 +20,7 @@ def execute(executable):
     :return: exit code, stdout and stderr
     """
 
-    logger.info('executing command: %s' % ' '.join(executable))
+    logger.info('executing command: %s' % executable)
     process = subprocess.Popen(executable,
                                bufsize=-1,
                                stdout=subprocess.PIPE,
@@ -30,14 +30,3 @@ def execute(executable):
     exit_code = process.poll()
 
     return exit_code, stdout, stderr
-
-def execute_string(executable_string):
-    """
-    Execute the provided command.
-
-    :param executable_string: Command to be executed.
-    :return: exit code, stdout and stderr tuple from execute() function
-    """
-
-    return execute(executable_string.split(' '))
-
