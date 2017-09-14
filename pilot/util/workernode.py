@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 def collect_workernode_info():
     """
-    Collect node information (cpu and memory).
+    Collect worker node information (cpu and memory).
 
     :return: mem (float), cpu (float)
     """
@@ -50,7 +50,6 @@ def collect_workernode_info():
     return mem, cpu
 
 
-# UNIT TEST MISSING (should return non-zero int)
 def get_disk_space_for_dispatcher(queuedata):
     """
 
