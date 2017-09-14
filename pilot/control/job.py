@@ -153,7 +153,7 @@ def get_dispatcher_dictionary(args):
 
     data = {
         'siteName': args.location.site,
-        'computingElement': arg.location.queue,
+        'computingElement': args.location.queue,
         'prodSourceLabel': args.job_label,
         'diskSpace': _diskspace,
         'workingGroup': args.workinggroup,
