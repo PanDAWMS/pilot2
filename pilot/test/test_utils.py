@@ -28,3 +28,5 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(type(mem), float)
         self.assertEqual(type(cpu), float)
 
+        self.assertNotEqual(mem, 0.0)
+        self.assertNotEqual(cpu, 0.0)
