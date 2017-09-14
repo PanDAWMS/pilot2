@@ -256,7 +256,6 @@ def retrieve(queues, traces, args):
                 if args.graceful_stop.is_set():
                     break
                 time.sleep(1)
-            getjob_requests += 1
         else:
             if res['StatusCode'] != 0:
                 logger.warning('did not get a job -- sleep 60s and repeat -- status: %s' % res['StatusCode'])
@@ -264,7 +263,6 @@ def retrieve(queues, traces, args):
                     if args.graceful_stop.is_set():
                         break
                     time.sleep(1)
-                getjob_requests += 1
             else:
                 logger.info('got job: %s -- sleep 1000s before trying to get another job' % res['PandaID'])
                 queues.jobs.put(res)
@@ -272,8 +270,8 @@ def retrieve(queues, traces, args):
                     if args.graceful_stop.is_set():
                         break
                     time.sleep(1)
-                getjob_requests += 1
 
+        getjob_requests += 1
         if getjob_requests == config.Pilot.maximum_getjob_requests:
             logger.warning('reached maximum number of getjob requests (%d) -- will abort pilot' % getjob_requests)
             args.graceful_stop.set()
