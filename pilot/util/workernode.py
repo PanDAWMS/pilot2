@@ -16,7 +16,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-# UNIT TEST MISSING (should return non-zero float, float)
 def collect_workernode_info():
     """
     Collect node information (cpu and memory).
@@ -31,7 +30,7 @@ def collect_workernode_info():
         with open("/proc/meminfo", "r") as fd:
             mems = fd.readline()
             while mems:
-                if mems.upper().find("MEMTOTAL") != -1:
+                if "MEMTOTAL" in mems.upper():
                     mem = float(mems.split()[1]) / 1024
                     break
                 mems = fd.readline()
@@ -42,7 +41,7 @@ def collect_workernode_info():
         with open("/proc/cpuinfo", "r") as fd:
             lines = fd.readlines()
             for line in lines:
-                if not string.find(line, "cpu MHz"):
+                if "cpu MHz" in line:
                     cpu = float(line.split(":")[1])
                     break
     except IOError as e:
