@@ -12,6 +12,7 @@ from container import execute
 import logging
 logger = logging.getLogger(__name__)
 
+
 def get_distinguished_name():
     """
     Get the user DN.
@@ -38,11 +39,11 @@ def get_distinguished_name():
         logger.info('DN = %s' % dn)
         cn = "/CN=proxy"
         if not dn.endswith(cn):
-            logger.info("DN does not end with %s (will be added)" % (cn))
+            logger.info("DN does not end with %s (will be added)" % cn)
             dn += cn
 
     else:
-        logger.warning("user=self set but cannot get proxy: %d, %s" % (exit_code, stdout)
+        logger.warning("user=self set but cannot get proxy: %d, %s" % (exit_code, stdout))
 
     return dn
 
