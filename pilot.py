@@ -145,6 +145,13 @@ if __name__ == '__main__':
                             default=False,
                             help='Is the resource allowed to be used outside the privileged group?')
 
+    # Allow same user
+    arg_parser.add_argument('--allowsameuser',
+                            dest='allowsameuser',
+                            type=bool,
+                            default=True,
+                            help='Multi-jobs will only come from same taskID (and thus same user)')
+
     args = arg_parser.parse_args()
 
     # Create the main pilot workdir and cd into it
