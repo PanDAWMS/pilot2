@@ -24,7 +24,8 @@ def execute(executable):
     process = subprocess.Popen(executable,
                                bufsize=-1,
                                stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
+                               stderr=subprocess.PIPE,
+                               shell=True)
     stdout, stderr = process.communicate()
     exit_code = process.poll()
 
@@ -35,7 +36,7 @@ def execute_string(executable_string):
     Execute the provided command.
 
     :param executable_string: Command to be executed.
-    :return: exit code, stdout and stderr
+    :return: exit code, stdout and stderr tuple from execute() function
     """
 
     return execute(executable_string.split(' '))
