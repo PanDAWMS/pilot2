@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 def control(queues, traces, args):
     """
     (add description)
-    
+
     :param queues:
     :param traces:
     :param args:
@@ -231,8 +231,6 @@ def get_dispatcher_dictionary(args):
     taskID = get_task_id()
     if taskID != "" and args.allowsameuser:
         data['taskID'] = taskID
-
-    if data['taskID'] != "":
         logger.info("will download a new job belonging to task id: %s" % (data['taskID']))
 
     return data
