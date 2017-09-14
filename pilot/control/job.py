@@ -91,6 +91,10 @@ def validate(queues, traces, args):
 
         traces.pilot['nr_jobs'] += 1
 
+        # set the environmental variable for the task id
+        os.environ['PanDA_TaskID'] = job['taskID']
+        logger.info('processing PanDA job %s from task %s' % (job['PandaID'], job['taskID']))
+
         if _validate_job(job):
 
             log.debug('creating job working directory')
@@ -126,6 +130,23 @@ def create_data_payload(queues, traces, args):
 
         queues.data_in.put(job)
         queues.payloads.put(job)
+
+
+def get_task_id():
+    """
+    Return the task id for the current job.
+    Note: currently the implementation uses an environmental variable to store this number (PanDA_TaskID).
+
+    :return: task id (string). Returns empty string in case of error.
+    """
+
+    if "PanDA_TaskID" in os.environ:
+        taskID = os.environ["PanDA_TaskID"]
+    else:
+        logger.warning('PanDA_TaskID not set in environment')
+        taskID = ""
+
+    return taskID
 
 
 def get_dispatcher_dictionary(args):
@@ -167,8 +188,10 @@ def get_dispatcher_dictionary(args):
     if args.job_label == 'self':
         dn = get_distinguished_name()
         data['prodUserID'] = dn
-    dn = get_distinguished_name()
-    logger.info('DN = %s' % dn)
+
+    taskID = get_task_id()
+    if taskID != "" and args.allowsameuser:
+        data['taskID'] = taskID
 
     return data
 
@@ -248,6 +271,6 @@ def retrieve(queues, traces, args):
                     time.sleep(1)
                 getjob_requests += 1
 
-    if getjob_requests == config.Pilot.maximum_getjob_requests:
-        logger.warning('reached maximum number of getjob requests -- will abort pilot')
-        args.graceful_stop.set()
+        if getjob_requests == config.Pilot.maximum_getjob_requests:
+            logger.warning('reached maximum number of getjob requests (%d) -- will abort pilot' % getjob_requests)
+            args.graceful_stop.set()
