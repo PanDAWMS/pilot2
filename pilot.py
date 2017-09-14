@@ -20,7 +20,7 @@ from pilot.util.https import https_setup
 from pilot.util.information import set_location
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
-# from pilot.util.parameters import get_maximum_input_sizes
+# from pilot.util.parameters imporget_maximum_input_sizes
 
 VERSION = '2017-09-11.001'
 
@@ -86,7 +86,7 @@ if __name__ == '__main__':
                             dest='queue',
                             required=True,
                             help='MANDATORY: queue name (e.g., AGLT2_TEST-condor')
-    arg_parser.add_argument('-r',
+    arg_parser.add_argument('-s',
                             dest='site',
                             required=True,  # it is needed by the dispatcher (only)
                             help='MANDATORY: site name (e.g., AGLT2_TEST')
