@@ -25,6 +25,14 @@ logger = logging.getLogger(__name__)
 
 
 def control(queues, traces, args):
+    """
+    (add description)
+    
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
 
     threads = [threading.Thread(target=validate,
                                 kwargs={'queues': queues,
@@ -43,6 +51,12 @@ def control(queues, traces, args):
 
 
 def _validate_job(job):
+    """
+    (add description)
+
+    :param job:
+    :return:
+    """
     # valid = random.uniform(0, 100)
     # if valid > 99:
     #     logger.warning('%s: job did not validate correctly -- skipping' % job['PandaID'])
@@ -53,6 +67,15 @@ def _validate_job(job):
 
 
 def send_state(job, args, state, xml=None):
+    """
+    Update the server (heartbeat message).
+
+    :param job:
+    :param args:
+    :param state:
+    :param xml:
+    :return:
+    """
 
     log = logger.getChild(str(job['PandaID']))
     log.debug('set job state=%s' % state)
@@ -81,6 +104,14 @@ def send_state(job, args, state, xml=None):
 
 
 def validate(queues, traces, args):
+    """
+    (add description)
+
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
 
     while not args.graceful_stop.is_set():
         try:
@@ -121,6 +152,14 @@ def validate(queues, traces, args):
 
 
 def create_data_payload(queues, traces, args):
+    """
+    (add description)
+
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
 
     while not args.graceful_stop.is_set():
         try:
