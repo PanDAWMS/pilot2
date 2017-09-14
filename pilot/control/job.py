@@ -158,7 +158,7 @@ def get_dispatcher_dictionary(args):
         'diskSpace': _diskspace,
         'workingGroup': args.workinggroup,
         'countryGroup': args.countrygroup,
-        'allowOtherCountry': args.allowothercoountry,
+        'allowOtherCountry': args.allowothercountry,
         'cpu': _cpu,
         'mem': _mem,
         'node': _nodename
