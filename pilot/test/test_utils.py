@@ -30,3 +30,15 @@ class TestUtils(unittest.TestCase):
 
         self.assertNotEqual(mem, 0.0)
         self.assertNotEqual(cpu, 0.0)
+
+    def test_get_disk_space_for_dispatcher(self):
+        """
+        Verify that get_disk_space_for_dispatcher() returns the proper type (int).
+
+        :return: (assertion)
+        """
+
+        queuedata = {'maxwdir': 123456789}
+        diskspace = get_disk_space_for_dispatcher(queuedata)
+
+        self.assertEqual(type(diskspace), int)
