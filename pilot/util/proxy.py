@@ -27,8 +27,8 @@ def get_distinguished_name():
     if exit_code != 0 or "ERROR:" in stderr:
         logger.warning("arcproxy failed: ec=%d, stdout=%s, stderr=%s" % (exit_code, stdout, stderr))
 
-        if "command not found" in stdout:
-            logger.warning("arcproxy is not available (will use voms-proxy-info instead)")
+        if "command not found" in stderr or "Can not find certificate file" in stderr:
+            logger.warning("arcproxy experienced a problem (will try voms-proxy-info instead)")
 
             # Default to voms-proxy-info
             executable = ['voms-proxy-info', '-subject']
