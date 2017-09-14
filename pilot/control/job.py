@@ -193,6 +193,9 @@ def get_dispatcher_dictionary(args):
     if taskID != "" and args.allowsameuser:
         data['taskID'] = taskID
 
+    if data['taskID'] != "":
+        logger.info("will download a new job belonging to task id: %s" % (data['taskID']))
+
     return data
 
 
