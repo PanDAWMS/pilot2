@@ -191,6 +191,7 @@ def retrieve(queues, traces, args):
     # get the job dispatcher dictionary
     data = get_dispatcher_dictionary(args)
 
+    getjob_requests = 0
     while not args.graceful_stop.is_set():
 
         # getjobmaxtime = 60*5 # to be read from configuration file
@@ -243,3 +244,8 @@ def retrieve(queues, traces, args):
                     if args.graceful_stop.is_set():
                         break
                     time.sleep(0.1)
+
+    getjob_requests += 1
+    if getjob_requests == config.Pilot.maximum_getjob_requests:
+        logger.warning('reached maximum number of getjob requests -- will abort pilot')
+        args.graceful_stop.set()
