@@ -21,8 +21,7 @@ def get_distinguished_name():
     """
 
     dn = ""
-    executable = ['arcproxy', '-i', 'subject']
-
+    executable = 'arcproxy -i subject'
     exit_code, stdout, stderr = execute(executable)
     if exit_code != 0 or "ERROR:" in stderr:
         logger.warning("arcproxy failed: ec=%d, stdout=%s, stderr=%s" % (exit_code, stdout, stderr))
@@ -31,7 +30,7 @@ def get_distinguished_name():
             logger.warning("arcproxy experienced a problem (will try voms-proxy-info instead)")
 
             # Default to voms-proxy-info
-            executable = ['voms-proxy-info', '-subject']
+            executable = 'voms-proxy-info -subject'
             exit_code, stdout, stderr = execute(executable)
 
     if exit_code == 0:
