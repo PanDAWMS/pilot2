@@ -152,6 +152,13 @@ if __name__ == '__main__':
                             default=True,
                             help='Multi-jobs will only come from same taskID (and thus same user)')
 
+    # Experiment
+    arg_parser.add_argument('--pilotuser',
+                            dest='pilotuser',
+                            default='',
+                            required=True,
+                            help='Pilot user, e.g. name of experiment')
+
     args = arg_parser.parse_args()
 
     # Create the main pilot workdir and cd into it
