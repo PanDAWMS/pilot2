@@ -95,8 +95,7 @@ def get_condor_node_name(nodename):
     :return:
     """
 
-    if os.environ.has_key("_CONDOR_SLOT"):
+    if "_CONDOR_SLOT" in os.environ:
         nodename = "%s@%s" % (os.environ["_CONDOR_SLOT"], nodename)
 
     return nodename
-

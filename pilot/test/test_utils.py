@@ -11,6 +11,7 @@ import unittest
 
 import pilot.util
 
+
 class TestUtils(unittest.TestCase):
     """
     Unit tests for utils functions.

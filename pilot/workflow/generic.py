@@ -70,10 +70,10 @@ def run(args):
     logger.info('setting up tracing')
 
     traces = namedtuple('traces', ['pilot',
-                                   'rucio']) # maybe not call this rucio? not all pilot2 users will use rucio (PN)
+                                   'rucio'])  # don't call this rucio? not all pilot2 users will use rucio (PN)
     traces.pilot = {'state': SUCCESS,
                     'nr_jobs': 0}
-    traces.rucio = {} # maybe not call this rucio? not all pilot2 users will use rucio (PN)
+    traces.rucio = {}  # don't call this rucio? not all pilot2 users will use rucio (PN)
 
     logger.info('starting threads')
 
