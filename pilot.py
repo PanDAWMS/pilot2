@@ -7,23 +7,29 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch
 
 import argparse
 import logging
 import sys
 import threading
+from os import getcwd, chdir
 
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
 from pilot.util.https import https_setup
 from pilot.util.information import set_location
+from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
+# from pilot.util.parameters imporget_maximum_input_sizes
 
-VERSION = '2017-04-04.001'
+VERSION = '2017-09-19.001'
 
 
 def main():
+    """ Main function of PanDA Pilot 2 """
+
     logger = logging.getLogger(__name__)
-    logger.info('pilot startup - version %s' % VERSION)
+    logger.info('PanDA Pilot 2 version %s' % VERSION)
 
     args.graceful_stop = threading.Event()
     config.read(args.config)
@@ -33,19 +39,30 @@ def main():
     if not set_location(args):
         return False
 
-    logger.info('workflow: %s' % args.workflow)
+    logger.info('pilot arguments: %s' % str(args))
+    logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
+
+    # maxinputsize = get_maximum_input_sizes(args.location.queuedata)
+
     return workflow.run(args)
 
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()
 
+    # pilot work directory
+    arg_parser.add_argument('-a',
+                            dest='workdir',
+                            default=getcwd(),
+                            help='Pilot work directory')
+
+    # debug option to enable more log messages
     arg_parser.add_argument('-d',
                             dest='debug',
                             action='store_true',
                             default=False,
-                            help='enable debug logging messages')
+                            help='Enable debug logging messages')
 
     # the choices must match in name the python module in pilot/workflow/
     arg_parser.add_argument('-w',
@@ -55,26 +72,30 @@ if __name__ == '__main__':
                                      'production', 'production_hpc',
                                      'analysis', 'analysis_hpc',
                                      'eventservice', 'eventservice_hpc'],
-                            help='pilot workflow (default: generic)')
+                            help='Pilot workflow (default: generic)')
 
     # graciously stop pilot process after hard limit
     arg_parser.add_argument('-l',
                             dest='lifetime',
-                            default=10,
+                            default=3600,
                             type=int,
-                            help='pilot lifetime seconds (default: 10)')
+                            help='Pilot lifetime seconds (default: 3600 s)')
 
     # set the appropriate site and queue
     arg_parser.add_argument('-q',
                             dest='queue',
                             required=True,
                             help='MANDATORY: queue name (e.g., AGLT2_TEST-condor')
+    arg_parser.add_argument('-s',
+                            dest='site',
+                            required=True,  # it is needed by the dispatcher (only)
+                            help='MANDATORY: site name (e.g., AGLT2_TEST')
 
     # graciously stop pilot process after hard limit
     arg_parser.add_argument('-j',
                             dest='job_label',
-                            default='mtest',
-                            help='job prod/source label (default: mtest)')
+                            default='ptest',
+                            help='Job prod/source label (default: ptest)')
 
     # SSL certificates
     arg_parser.add_argument('--cacert',
@@ -88,14 +109,72 @@ if __name__ == '__main__':
                             help='CA certificates path',
                             metavar='path/to/certificates/')
 
+    # PanDA server URL and port
+    arg_parser.add_argument('--url',
+                            dest='url',
+                            default='',  # the proper default is stored in config.cfg
+                            help='PanDA server URL')
+    arg_parser.add_argument('-p',
+                            dest='port',
+                            default=25443,
+                            help='PanDA server port')
+
+    # Configuration option
     arg_parser.add_argument('--config',
                             dest='config',
                             default='',
                             help='Config file path',
                             metavar='path/to/pilot.cfg')
 
+    # Country group
+    arg_parser.add_argument('--countrygroup',
+                            dest='countrygroup',
+                            default='',
+                            help='Country group option for getjob request')
+
+    # Working group
+    arg_parser.add_argument('--workinggroup',
+                            dest='workinggroup',
+                            default='',
+                            help='Working group option for getjob request')
+
+    # Allow other country
+    arg_parser.add_argument('--allowothercountry',
+                            dest='allowothercountry',
+                            type=bool,
+                            default=False,
+                            help='Is the resource allowed to be used outside the privileged group?')
+
+    # Allow same user
+    arg_parser.add_argument('--allowsameuser',
+                            dest='allowsameuser',
+                            type=bool,
+                            default=True,
+                            help='Multi-jobs will only come from same taskID (and thus same user)')
+
+    # Experiment
+    arg_parser.add_argument('--pilotuser',
+                            dest='pilotuser',
+                            default='',
+                            required=True,
+                            help='Pilot user, e.g. name of experiment')
+
     args = arg_parser.parse_args()
 
+    # Create the main pilot workdir and cd into it
+    mainworkdir = get_pilot_work_dir(args.workdir)
+    try:
+        create_pilot_work_dir(mainworkdir)
+    except Exception as e:
+        # print to stderr since logging has not been established yet
+        from sys import stderr
+        print >> stderr, 'failed to create workdir at %s -- aborting: %s' % (mainworkdir, e)
+        sys.exit(FAILURE)
+    else:
+        args.mainworkdir = mainworkdir
+        chdir(mainworkdir)
+
+    # Establish logging
     console = logging.StreamHandler(sys.stdout)
     if args.debug:
         logging.basicConfig(filename='pilotlog.txt', level=logging.DEBUG,

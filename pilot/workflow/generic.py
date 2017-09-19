@@ -7,6 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch
 
 import functools
 import Queue
@@ -29,6 +30,15 @@ def interrupt(args, signum, frame):
 
 
 def run(args):
+    """
+    Main execution function for the generic workflow.
+
+    The function sets up the internal queues which handle the flow of jobs.
+
+    :param args: arguments.
+    :returns: traces.
+    """
+
     logger.info('setting up signal')
     signal.signal(signal.SIGINT, functools.partial(interrupt, args))
 
@@ -60,10 +70,10 @@ def run(args):
     logger.info('setting up tracing')
 
     traces = namedtuple('traces', ['pilot',
-                                   'rucio'])
+                                   'rucio'])  # don't call this rucio? not all pilot2 users will use rucio (PN)
     traces.pilot = {'state': SUCCESS,
                     'nr_jobs': 0}
-    traces.rucio = {}
+    traces.rucio = {}  # don't call this rucio? not all pilot2 users will use rucio (PN)
 
     logger.info('starting threads')
 
