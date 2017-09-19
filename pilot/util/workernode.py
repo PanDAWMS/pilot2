@@ -64,7 +64,7 @@ def get_disk_space_for_dispatcher(queuedata):
     _maxinputsize = get_maximum_input_sizes(queuedata)
     try:
         du = disk_usage(os.path.abspath("."))
-        _diskspace = int(du[2]/(1024*1024))  # need to convert from B to MB
+        _diskspace = int(du[2] / (1024 * 1024))  # need to convert from B to MB
     except ValueError, e:
         logger.warning("Failed to extract disk space: %s (will use schedconfig default)" % e)
         _diskspace = _maxinputsize
