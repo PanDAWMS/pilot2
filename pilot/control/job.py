@@ -180,12 +180,12 @@ def get_task_id():
     """
 
     if "PanDA_TaskID" in os.environ:
-        taskID = os.environ["PanDA_TaskID"]
+        taskid = os.environ["PanDA_TaskID"]
     else:
         logger.warning('PanDA_TaskID not set in environment')
-        taskID = ""
+        taskid = ""
 
-    return taskID
+    return taskid
 
 
 def get_dispatcher_dictionary(args):
@@ -228,16 +228,16 @@ def get_dispatcher_dictionary(args):
         dn = get_distinguished_name()
         data['prodUserID'] = dn
 
-    taskID = get_task_id()
-    if taskID != "" and args.allowsameuser:
-        data['taskID'] = taskID
+    taskid = get_task_id()
+    if taskid != "" and args.allowsameuser:
+        data['taskID'] = taskid
         logger.info("will download a new job belonging to task id: %s" % (data['taskID']))
 
     return data
 
 
 def retrieve(queues, traces, args):
-    """ 
+    """
     Retrieve a job definition from a source (server or pre-placed local file [not yet implemented]).
 
     The job definition is a json dictionary that is either present in the launch
@@ -272,7 +272,7 @@ def retrieve(queues, traces, args):
         # res = https.request(cmd, data=data)
 
         if args.url != "":
-            url = args.url + ':' + str(args.port) # args.port is always set
+            url = args.url + ':' + str(args.port)  # args.port is always set
         else:
             url = config.Pilot.pandaserver
             if url == "":

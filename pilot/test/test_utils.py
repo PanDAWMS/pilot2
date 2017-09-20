@@ -9,7 +9,8 @@
 
 import unittest
 
-import pilot.util
+from pilot.util.workernode import collect_workernode_info, get_disk_space_for_dispatcher
+
 
 class TestUtils(unittest.TestCase):
     """
@@ -23,7 +24,7 @@ class TestUtils(unittest.TestCase):
         :return: (assertion)
         """
 
-        mem, cpu = pilot.util.collect_workernode_info()
+        mem, cpu = collect_workernode_info()
 
         self.assertEqual(type(mem), float)
         self.assertEqual(type(cpu), float)

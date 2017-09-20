@@ -35,4 +35,3 @@ def get_maximum_input_sizes(queuedata):
                        (e, _maxinputsizes))
 
     return _maxinputsizes
-

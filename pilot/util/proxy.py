@@ -45,5 +45,3 @@ def get_distinguished_name():
         logger.warning("user=self set but cannot get proxy: %d, %s" % (exit_code, stdout))
 
     return dn
-
-

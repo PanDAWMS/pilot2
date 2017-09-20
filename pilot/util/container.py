@@ -12,6 +12,7 @@ import subprocess
 import logging
 logger = logging.getLogger(__name__)
 
+
 def execute(executable):
     """
     Execute the command and its options in the provided executable list.
