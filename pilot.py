@@ -48,6 +48,10 @@ def main():
     return workflow.run(args)
 
 
+def import_module(workflow=None, user=None):
+    pass
+
+
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()
 
