@@ -12,6 +12,13 @@ import os
 
 
 def merge_destinations(files):
+    """
+    Converts the file-with-destination dict to a destination-with-files dict
+
+    :param files Files to merge
+
+    :returns destination-with-files dictionary 
+    """
     destinations = {}
     # ensure type(files) == list
     for f in files:
