@@ -70,7 +70,7 @@ def copy_in(files):
         executable = ['/usr/bin/env',
                       'xrdcp', '-f']
         for lfn in destinations[dst]['lfns']:
-            if not lfn in lfns_with_pfns:
+            if lfn not in lfns_with_pfns:
                 raise Exception('The given LFNs %s wasnt returned by Rucio!' % lfn)
             executable.append(lfns_with_pfns[lfn][0])
 
