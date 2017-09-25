@@ -6,93 +6,25 @@
 #
 # Authors:
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch
 
-import os
 import re
 import subprocess
+
+from pilot.copytool.common import merge_destinations
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-def _merge_destinations(files):
-    destinations = {}
-    for f in files:
-        if not os.path.exists(f['destination']):
-            f['status'] = 'failed'
-            f['errmsg'] = 'Destination directory does not exist: %s' % f['destination']
-            f['errno'] = 1
-        else:
-            f['status'] = 'running'
-            f['errmsg'] = 'File not yet successfully downloaded.'
-            f['errno'] = 2
-            lfn = '%s:%s' % (f['scope'], f['name'])
-            dst = destinations.setdefault(f['destination'], {'lfns': set(), 'files': list()})
-            dst['lfns'].add(lfn)
-            dst['files'].append(f)
-    return destinations
-
-
-def copy_rucio(site, files):
-    """
-    Tries to download the given files using rucio.
-
-    :param site ??
-    :param files Files to download
-
-    :raises Exception
-    """
-
-    # don't spoil the output, we depend on stderr parsing
-    os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
-
-    destinations = _merge_destinations(files)
-
-    if len(destinations) == 0:
-        raise Exception('No lfn with existing destination path given!')
-
-    for dst in destinations:
-        executable = ['/usr/bin/env',
-                      'rucio', 'download',
-                      '--no-subdir',
-                      '--dir', dst]
-        executable.extend(destinations[dst]['lfns'])
-        process = subprocess.Popen(executable,
-                                   bufsize=-1,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate()
-        exit_code = process.poll()
-        stats = {}
-        if exit_code == 0:
-            stats['status'] = 'done'
-            stats['errno'] = 0
-            stats['errmsg'] = 'File successfully downloaded.'
-        else:
-            stats['status'] = 'failed'
-            stats['errno'] = 3
-            try:
-                # the Details: string is set in rucio: lib/rucio/common/exception.py in __str__()
-                stats['errmsg'] = [detail for detail in stderr.split('\n') if detail.startswith('Details:')][0][9:-1]
-            except Exception as e:
-                stats['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % str(e)
-        for f in destinations[dst]['files']:
-            f.update(stats)
-    return files
-
-
-def copy_xrdcp(site, files):
+def copy_in(files):
     """
     Tries to download the given files using xrdcp directly.
 
-    :param site ??
     :param files Files to download
 
     :raises Exception
     """
-    destinations = _merge_destinations(files)
-
+    destinations = merge_destinations(files)
     if len(destinations) == 0:
         raise Exception('No lfn with existing destination path given!')
 
@@ -138,6 +70,8 @@ def copy_xrdcp(site, files):
         executable = ['/usr/bin/env',
                       'xrdcp', '-f']
         for lfn in destinations[dst]['lfns']:
+            if not lfn in lfns_with_pfns:
+                raise Exception('The given LFNs %s wasnt returned by Rucio!' % lfn)
             executable.append(lfns_with_pfns[lfn][0])
 
         executable.append(dst)
@@ -160,3 +94,14 @@ def copy_xrdcp(site, files):
         for f in destinations[dst]['files']:
             f.update(stats)
     return files
+
+
+def copy_out(files):
+    """
+    Tries to upload the given files using xrdcp directly.
+
+    :param files Files to download
+
+    :raises Exception
+    """
+    raise NotImplementedError()
