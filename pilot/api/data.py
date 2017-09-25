@@ -11,6 +11,7 @@ import os
 
 from pilot.control import data
 
+
 class StageInClient(object):
 
     def __init__(self, site=None):
