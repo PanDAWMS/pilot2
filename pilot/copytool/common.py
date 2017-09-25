@@ -17,7 +17,7 @@ def merge_destinations(files):
 
     :param files Files to merge
 
-    :returns destination-with-files dictionary 
+    :returns destination-with-files dictionary
     """
     destinations = {}
     # ensure type(files) == list
