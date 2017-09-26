@@ -247,7 +247,7 @@ def retrieve(queues, traces, args):
     it in the `queues.jobs` queue.
 
     :param queues: internal queues for job handling.
-    :param traces: tuple containing internal pilot and rucio states.
+    :param traces: tuple containing internal pilot states.
     :param args: arguments (e.g. containing queue name, queuedata dictionary, etc).
     """
 
