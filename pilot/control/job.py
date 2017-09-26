@@ -286,7 +286,7 @@ def retrieve(queues, traces, args):
         cmd = '{pandaserver}/server/panda/getJob'.format(pandaserver=url)
         logger.info('executing server command: %s' % cmd)
         res = https.request(cmd, data=data)
-
+        logger.info("job = %s" % str(res))
         if res is None:
             logger.warning('did not get a job -- sleep 60s and repeat')
             for i in xrange(60):
