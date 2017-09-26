@@ -216,9 +216,9 @@ def get_dispatcher_dictionary(args):
         'computingElement': args.location.queue,
         'prodSourceLabel': args.job_label,
         'diskSpace': _diskspace,
-        'workingGroup': args.workinggroup,
-        'countryGroup': args.countrygroup,
-        'allowOtherCountry': args.allowothercountry,
+        'workingGroup': args.working_group,
+        'countryGroup': args.country_group,
+        'allowOtherCountry': args.allow_other_country,
         'cpu': _cpu,
         'mem': _mem,
         'node': _nodename
@@ -229,7 +229,7 @@ def get_dispatcher_dictionary(args):
         data['prodUserID'] = dn
 
     taskid = get_task_id()
-    if taskid != "" and args.allowsameuser:
+    if taskid != "" and args.allow_same_user:
         data['taskID'] = taskid
         logger.info("will download a new job belonging to task id: %s" % (data['taskID']))
 
