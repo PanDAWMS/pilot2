@@ -66,7 +66,7 @@ if __name__ == '__main__':
                             dest='debug',
                             action='store_true',
                             default=False,
-                            help='Enable debug logging messages')
+                            help='Enable debug mode for logging messages')
 
     # the choices must match in name the python module in pilot/workflow/
     arg_parser.add_argument('-w',

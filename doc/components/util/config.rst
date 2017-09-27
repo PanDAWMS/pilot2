@@ -9,8 +9,8 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-HTTPS Documentation
-===================
+Config Documentation
+====================
 
 .. automodule:: pilot.util.config
     :members:
