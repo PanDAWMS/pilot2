@@ -9,11 +9,11 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-Constants Documentation
+constants Documentation
 =======================
 
 .. automodule:: pilot.util.constants
     :members:
     :private-members:
     :special-members:
-    :undoc-members:
+    :undoc-members: SUCCESS,FAILURE,ERRNO_NOJOBS
