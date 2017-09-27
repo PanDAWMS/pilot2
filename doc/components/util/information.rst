@@ -9,7 +9,7 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-Information Documentation
+information Documentation
 =========================
 
 .. automodule:: pilot.util.information

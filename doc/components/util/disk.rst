@@ -9,7 +9,7 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-Disk Documentation
+disk Documentation
 ==================
 
 .. automodule:: pilot.util.disk

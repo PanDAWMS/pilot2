@@ -9,7 +9,7 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-Proxy Documentation
+proxy Documentation
 ===================
 
 .. automodule:: pilot.util.proxy

@@ -9,7 +9,7 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-Parameters Documentation
+parameters Documentation
 ========================
 
 .. automodule:: pilot.util.parameters

@@ -9,7 +9,7 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-Container Documentation
+container Documentation
 =======================
 
 .. automodule:: pilot.util.container
