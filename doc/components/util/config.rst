@@ -9,7 +9,7 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-Config Documentation
+config Documentation
 ====================
 
 .. automodule:: pilot.util.config

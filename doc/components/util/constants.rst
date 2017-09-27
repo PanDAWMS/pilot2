@@ -13,7 +13,7 @@ constants Documentation
 =======================
 
 .. automodule:: pilot.util.constants
-    :members:
+    :members: SUCCESS,FAILURE,ERRNO_NOJOBS
     :private-members:
     :special-members:
-    :undoc-members: SUCCESS,FAILURE,ERRNO_NOJOBS
+    :undoc-members:

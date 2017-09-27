@@ -9,7 +9,7 @@
     Authors:
      - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
-HTTPS Documentation
+https Documentation
 ===================
 
 .. automodule:: pilot.util.https
