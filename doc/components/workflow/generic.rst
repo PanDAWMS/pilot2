@@ -1,5 +1,5 @@
 ..
-    Pilot 2 documentation pilot.util index
+    Pilot 2 pilot.workflow.generic doc file
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -9,10 +9,11 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-api components
-==============
+generic
+=======
 
-.. toctree::
-    :maxdepth: 2
-
-    data
+.. automodule:: pilot.workflow.generic
+    :members:
+    :private-members:
+    :special-members:
+    :undoc-members:

@@ -16,5 +16,11 @@ Components
 .. toctree::
     :maxdepth: 2
 
-    util/index
     api/index
+    control/index
+    copytool/index
+    util/index
+    workflow/index
+
+
+

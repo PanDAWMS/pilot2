@@ -1,5 +1,5 @@
 ..
-    Pilot 2 documentation pilot.util index
+    Pilot 2 documentation pilot.control index
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -9,10 +9,15 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-api components
-==============
+control components
+==================
 
 .. toctree::
     :maxdepth: 2
 
     data
+    job
+    lifetime
+    monitor
+    payload
+
