@@ -8,6 +8,7 @@
 
     Authors:
      - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
+     - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 Util components
 ===============
