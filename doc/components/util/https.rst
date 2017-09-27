@@ -9,8 +9,8 @@
     Authors:
      - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
-HTTPS Documentation
-===================
+Config Documentation
+====================
 
 .. automodule:: pilot.util.https
     :members:
