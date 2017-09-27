@@ -39,7 +39,7 @@ class TestESHook(ESHook):
         process = subprocess.Popen('pilot/test/resource/download_test_es_evgen.sh', shell=True, stdout=subprocess.PIPE)
         process.wait()
         if process.returncode != 0:
-            raise Exception('failed to download input files for es test.')
+            raise Exception('failed to download input files for es test: %s %s' % (process.communicate()))
 
         self.__injected_event_ranges = []
         self.__outputs = []
