@@ -12,7 +12,7 @@
 data
 ====
 
-.. automodule:: pilot.util.data
+.. automodule:: pilot.api.data
     :members:
     :private-members:
     :special-members:
