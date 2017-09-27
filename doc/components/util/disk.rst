@@ -9,8 +9,8 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-disk Documentation
-==================
+disk
+====
 
 .. automodule:: pilot.util.disk
     :members:

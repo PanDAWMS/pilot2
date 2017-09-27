@@ -9,8 +9,8 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-constants Documentation
-=======================
+constants
+=========
 
 .. automodule:: pilot.util.constants
     :members: SUCCESS,FAILURE,ERRNO_NOJOBS

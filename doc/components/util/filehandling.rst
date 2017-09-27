@@ -9,8 +9,8 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-filehandling Documentation
-==========================
+filehandling
+============
 
 .. automodule:: pilot.util.filehandling
     :members:

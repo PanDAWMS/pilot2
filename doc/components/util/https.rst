@@ -9,8 +9,8 @@
     Authors:
      - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
-https Documentation
-===================
+https
+=====
 
 .. automodule:: pilot.util.https
     :members:

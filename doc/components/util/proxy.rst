@@ -9,8 +9,8 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-proxy Documentation
-===================
+proxy
+=====
 
 .. automodule:: pilot.util.proxy
     :members:

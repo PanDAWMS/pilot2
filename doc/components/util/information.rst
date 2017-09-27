@@ -9,8 +9,8 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-information Documentation
-=========================
+information
+===========
 
 .. automodule:: pilot.util.information
     :members:
