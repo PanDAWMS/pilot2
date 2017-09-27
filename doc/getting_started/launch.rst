@@ -27,7 +27,51 @@ The ``-d`` argument changes the logger to produce debug output.
 
 The current range of implemented pilot options is:
 
-``-a``: Pilot work directory. This is the main work directory for the pilot. In this directory, the work directory
-of the payload will be created (``./PanDA_Pilot2_%d_%s" % (`os.getpid()`, str(int(time.time())))``).
+``-a``: Pilot work directory (string; full path). This is the main work directory for the pilot. In this directory, the
+work directory of the payload will be created (``./PanDA_Pilot2_%d_%s" % (os.getpid(), str(int(time.time())))``).
 
-.. os.getpid(): https://docs.python.org/2/library/os.html#os.getpid
+``-d``: Enable debug mode for logging messages. No value should be specified.
+
+``-w``: Desired workflow (string). Default is ``generic``, which currently means stage-in, payload execution and
+stage-out will be performed. Other workflows to be defined. The workflow name should match an existing module in the
+``workflow`` Pilot 2 directory.
+
+``-l``: Lifetime in seconds (integer). Default during Pilot 2 testing and implementation stage is currently 3600 s. It
+will be increased at a later time.
+
+``-q``: PanDA queue name (string). E.g. AGLT2_TEST-condor.
+
+``-s``: PanDA site name (string). E.g. AGLT2_TEST. Note: the site name is only necessary for the dispatcher. The pilot
+will send it to the dispatcher with the getJob command.
+
+``-j``: Job label (string). A prod/source label which currently has default value `ptest`. For production jobs, set
+this to `managed` while `user` is the value for user jobs. Setting it to `test` will result in a test job.
+
+``--cacert``: CA certificate to use with HTTPS calls to server, commonly X509 proxy (string). Not needed on the grid.
+
+``--capath``: CA certificates path (string). Not needed on the grid.
+
+``--url``: PanDA server URL (string). Default is `https://pandaserver.cern.ch`.
+
+``-p``: PanDA server port (integer). Default is `25443`.
+
+``--config``: Config file path (string). Path to `pilot_config.cfg` file.
+
+``--country_group``: Country group option for getjob request (string).
+
+``--working_group``: Working group option for getjob request (string).
+
+``--allow_other_country``: Is the resource allowed to be used outside the privileged group (boolean)?
+
+``--allow_same_user``: Multi-jobs will only come from same taskID and thus same user (boolean).
+
+``--pilot_user``: Pilot user (string). E.g. name of experiment.
+
+
+
+
+
+
+
+
+
