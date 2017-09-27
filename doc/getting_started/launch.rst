@@ -6,6 +6,7 @@
 
     Authors:
      - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
+     - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 Launch pilot 2
 ==============
@@ -18,8 +19,15 @@ called like:
     ./pilot.py -d -q <QUEUE_NAME>
 
 The ``QUEUE_NAME`` correspond to the ATLAS PandaQueue as defined in `AGIS`_. This will launch the default ``generic``
-workflow with lifetime default lifetime of 10 seconds (i.e., too short to do anything).
+workflow with lifetime default lifetime of 10 seconds.
 
 .. _AGIS: http://atlas-agis.cern.ch/agis/
 
 The ``-d`` argument changes the logger to produce debug output.
+
+The current range of implemented pilot options is:
+
+``-a``: Pilot work directory. This is the main work directory for the pilot. In this directory, the work directory
+of the payload will be created (``./PanDA_Pilot2_%d_%s" % (`os.getpid()`, str(int(time.time())))``).
+
+.. os.getpid(): https://docs.python.org/2/library/os.html#os.getpid
