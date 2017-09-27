@@ -9,8 +9,7 @@ if [ -f $FILE ]; then
 else
     export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase
     source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
-    source ${ATLAS_LOCAL_ROOT_BASE}/utilities/oldAliasSetup.sh rucio
-    export RUCIO_ACCOUNT=wguan
+    source ${ATLAS_LOCAL_ROOT_BASE}/utilities/oldAliasSetup.sh rucio --skipConfirm --quiet
 
     rucio download --dir $ABSOLUTE_DIR --no-subdir mc15_13TeV:EVNT.08716373._000060.pool.root.1
 fi
