@@ -1,7 +1,8 @@
 #!/bin/bash
 
-ABSOLUTE_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
-ABSOLUTE_DIR="$(dirname "$ABSOLUTE_PATH")"
+#ABSOLUTE_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+#ABSOLUTE_DIR="$(dirname "$ABSOLUTE_PATH")"
+ABSOLUTE_DIR=/tmp/test_pilot2
 FILE=${ABSOLUTE_DIR}/EVNT.08716373._000060.pool.root.1
 
 if [ -f $FILE ]; then

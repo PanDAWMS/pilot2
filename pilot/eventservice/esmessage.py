@@ -72,6 +72,11 @@ class MessageThread(threading.Thread):
         """
         return self._stop.isSet()
 
+    def terminate(self):
+        logger.info('terminate message thread')
+        del self.__message_server
+        self.__message_server = None
+
     def run(self):
         """
         Main thread loop to receive messages from payload.
@@ -80,12 +85,14 @@ class MessageThread(threading.Thread):
         try:
             while True:
                 if self.stopped():
+                    self.terminate()
                     break
                 size, buf = self.__message_server.try_recv_raw()
                 if size == -1:
                     time.sleep(0.00001)
                 else:
-                    self.__message_out_queue.put(buf)
+                    self.__message_queue.put(buf)
         except Exception as e:
+            self.terminate()
             raise e
         logger.info('Message thread finished.')

@@ -33,7 +33,7 @@ class TestESHook(ESHook):
     def __init__(self):
         with open('pilot/test/resource/eventservice_job.txt') as job_file:
             job = json.load(job_file)
-            self.__cmd = job['cmd']
+            self.__payload = job['payload']
             self.__event_ranges = job['event_ranges']
 
         process = subprocess.Popen('pilot/test/resource/download_test_es_evgen.sh', shell=True, stdout=subprocess.PIPE)
@@ -49,7 +49,7 @@ class TestESHook(ESHook):
         returns: dict {'payload': <cmd string>, 'output_file': <filename or without it>, 'error_file': <filename or without it>}
         """
 
-        return {'payload': self.__cmd}
+        return self.__payload
 
     def get_event_ranges(self, num_ranges=1):
         """
@@ -75,13 +75,13 @@ class TestESHook(ESHook):
         """
 
         print(message)
-        self.outputs.append(message)
+        self.__outputs.append(message)
 
     def get_injected_event_ranges(self):
         return self.__injected_event_ranges
 
     def get_outputs(self):
-        return self.outputs
+        return self.__outputs
 
 
 class TestESMessageThread(unittest.TestCase):

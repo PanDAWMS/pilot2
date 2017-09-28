@@ -8,8 +8,10 @@
 
 import json
 import logging
+import os
 import Queue
 import re
+import signal
 import subprocess
 import time
 
@@ -34,6 +36,8 @@ class ESProcess():
         self.handle_out_message_hook = None
 
         self.__monitor_log_time = None
+        self.__no_more_event_time = None
+        self.__waiting_time = 30 * 60
 
     def init_message_thread(self, socketname='EventService_EventRanges', context='local'):
         """
@@ -57,9 +61,17 @@ class ESProcess():
 
         logger.info("start to init payload process")
         try:
-            executable = self.__payload['payload']
-            output_file = self.__payload['output_file'] if 'output_file' in self.__payload else "ES_payload_output.txt"
-            error_file = self.__payload['error_file'] if 'error_file' in self.__payload else "ES_payload_error.txt"
+            executable = self.__payload['executable']
+            workdir = ''
+            if 'workdir' in self.__payload:
+                workdir = self.__payload['workdir']
+                if not os.path.exists(workdir):
+                    os.makedirs(workdir)
+                elif not os.path.isdir(workdir):
+                    raise Exception('Workdir exists but it is not a directory.')
+                executable = 'cd %s; %s' % (workdir, executable)
+            output_file = self.__payload['output_file'] if 'output_file' in self.__payload else os.path.join(workdir, "ES_payload_output.txt")
+            error_file = self.__payload['error_file'] if 'error_file' in self.__payload else os.path.join(workdir, "ES_payload_error.txt")
             output_file_fd = open(output_file, 'w')
             error_file_fd = open(error_file, 'w')
             self.__process = subprocess.Popen(executable, stdout=output_file_fd, stderr=error_file_fd, shell=True)
@@ -116,8 +128,13 @@ class ESProcess():
         raises: # TODO define different exceptions.
         """
 
-        if self.__monitor_log_time is None or self.__monitor_log_time < time.time() - 1 * 60:
-            logging.info('monitor is checking dead process.')
+        if self.__no_more_event_time and time.time() - self.__no_more_event_time > self.__waiting_time:
+            raise Exception('Too long time(%s seconds) since "No more events" is injected' %
+                            (time.time() - self.__no_more_event_time))
+
+        if self.__monitor_log_time is None or self.__monitor_log_time < time.time() - 10 * 60:
+            self.__monitor_log_time = time.time()
+            logger.info('monitor is checking dead process.')
 
         if self.__message_thread is None:
             raise Exception("Message thread has not start.")
@@ -134,14 +151,14 @@ class ESProcess():
         Get event ranges: get_event_ranges hook is called.
         """
 
-        logging.debug('getting event ranges(num_ranges=%s)' % num_ranges)
+        logger.debug('getting event ranges(num_ranges=%s)' % num_ranges)
         if not self.get_event_ranges_hook:
             raise Exception("get_event_ranges_hook is not set")
 
         try:
             logger.debug('calling get_event_ranges hook(%s) to get event ranges.' % self.get_event_ranges_hook)
             event_ranges = self.get_event_ranges_hook(num_ranges)
-            logging.debug('got event ranges: %s' % event_ranges)
+            logger.debug('got event ranges: %s' % event_ranges)
             return event_ranges
         except:
             raise Exception("Failed to get event ranges.")
@@ -154,11 +171,12 @@ class ESProcess():
         msg = None
         if "No more events" in event_ranges:
             msg = event_ranges
+            self.__no_more_event_time = time.time()
         else:
             if type(event_ranges) is not list:
                 event_ranges = [event_ranges]
             msg = json.dumps(event_ranges)
-        logging.debug('send event ranges to payload: %s' % msg)
+        logger.debug('send event ranges to payload: %s' % msg)
         self.__message_thread.send(msg)
 
     def parse_out_message(self, message):
@@ -220,8 +238,8 @@ class ESProcess():
             logger.debug('parsed out message: %s' % message_status)
             logger.debug('calling handle_out_message hook(%s) to handle parsed message.' % self.handle_out_message_hook)
             self.handle_out_message_hook(message_status)
-        except:
-            raise Exception("Failed to get event ranges.")
+        except Exception as e:
+            raise Exception("Failed to handle out message: %s" % e)
 
     def handle_messages(self):
         """
@@ -242,6 +260,38 @@ class ESProcess():
             else:
                 self.handle_out_message(message)
 
+    def terminate(self, time_to_wait=30):
+        """
+        Terminate running threads and processes.
+        """
+        logger.info('terminate running threads and processes.')
+        try:
+            if self.__message_thread:
+                self.__message_thread.stop()
+                time.sleep(2)
+            if self.__process:
+                if not self.__process.poll() is None:
+                    if self.__process.poll() == 0:
+                        logger.info("payload finished successfully.")
+                    else:
+                        logger.error("payload finished with error code: %s" % self.__process.poll())
+                else:
+                    logger.info('killing payload process.')
+                    pgid = os.getpgid(self.__process.pid)
+                    logger.info('got process group id for pid %s: %s' % (self.__process.pid, pgid))
+                    logger.info('send SIGTERM to process group: %s' % pgid)
+                    os.killpg(pgid, signal.SIGTERM)
+                    waiting_start = time.time()
+                    while waiting_start > time.time() - time_to_wait:
+                        if not self.__process.poll() is None:
+                            break
+                    if self.__process.poll() is None:
+                        logger.info('process is still running. send SIGKILL to process group: %s' % pgid)
+                        os.killpg(pgid, signal.SIGKILL)
+        except Exception as e:
+            logger.error('Exception caught when terminating ESProcess: %s' % e)
+            raise e
+
     def run(self):
         """
         Main run loops.
@@ -258,6 +308,8 @@ class ESProcess():
                 self.handle_messages()
                 time.sleep(1)
             except Exception as e:
+                logger.error('Exception caught in the main loop: %s' % e)
                 # TODO: catch and raise exceptions
                 # if catching dead process exception, terminate.
-                raise e
+                self.terminate()
+                break
