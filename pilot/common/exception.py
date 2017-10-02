@@ -47,7 +47,7 @@ class PilotException(Exception):
         self._error_string = self._error_string + "\nStacktrace: %s" % self._stack_trace
         return self._error_string.strip()
 
-    def getErrorCode(self):
+    def get_error_code(self):
         return self._errorCode
 
 
