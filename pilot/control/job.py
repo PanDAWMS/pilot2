@@ -271,6 +271,12 @@ def retrieve(queues, traces, args):
         # logger.debug('data=%s'%str(data))
         # res = https.request(cmd, data=data)
 
+
+        getjob_requests += 1
+        if getjob_requests == config.Pilot.maximum_getjob_requests:
+            logger.warning('reached maximum number of getjob requests (%d) -- will abort pilot' % getjob_requests)
+            args.graceful_stop.set()
+
         if args.url != "":
             url = args.url + ':' + str(args.port)  # args.port is always set
         else:
@@ -307,8 +313,3 @@ def retrieve(queues, traces, args):
                     if args.graceful_stop.is_set():
                         break
                     time.sleep(1)
-
-        getjob_requests += 1
-        if getjob_requests == config.Pilot.maximum_getjob_requests:
-            logger.warning('reached maximum number of getjob requests (%d) -- will abort pilot' % getjob_requests)
-            args.graceful_stop.set()
