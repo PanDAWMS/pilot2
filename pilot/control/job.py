@@ -217,12 +217,16 @@ def get_dispatcher_dictionary(args):
         'prodSourceLabel': args.job_label,
         'diskSpace': _diskspace,
         'workingGroup': args.working_group,
-        'countryGroup': args.country_group,
-        'allowOtherCountry': args.allow_other_country,
         'cpu': _cpu,
         'mem': _mem,
         'node': _nodename
     }
+
+    if args.allow_other_country != "":
+        data['allowOtherCountry'] = args.allow_other_country
+
+    if args.country_group != "":
+        data['countryGroup'] = args.country_group
 
     if args.job_label == 'self':
         dn = get_distinguished_name()
