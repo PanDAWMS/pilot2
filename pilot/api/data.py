@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import os
 
@@ -14,12 +15,16 @@ from pilot.control import data
 
 class StageInClient(object):
 
-    def __init__(self, site=None):
+    def __init__(self, site=None, copytool=None):
         super(StageInClient, self).__init__()
+
+        self.copytool_name = copytool
+        if self.copytool_name is None:
+            self.copytool_name = 'rucio'
 
         # Check validity of specified site - should be refactored into VO-agnostic setup
         self.site = os.environ.get('VO_ATLAS_AGIS_SITE', site)
-        if self.site is None:
+        if self.site is None and self.copytool_name == 'rucio':
             raise Exception('VO_ATLAS_AGIS_SITE not available, must set StageInClient(site=...) parameter')
 
         # Retrieve location information
@@ -32,23 +37,33 @@ class StageInClient(object):
         """
         Automatically stage in files using rucio.
 
-        :param files: List of dictionaries containing the DID and destination directory.
+        :param files: List of dictionaries containing the file information
+                      for the rucio copytool, this must contain DID and destination directory.
                       [{scope, name, destination
+                      for other copytools, the dictionary must contain
+                      [{name, source, destination
         :return: Annotated files -- List of dictionaries with additional variables.
                  [{..., errno, errmsg, status
         """
 
         all_files_ok = False
         for f in files:
-            if all(key in f for key in ('scope', 'name', 'destination')):
-                all_files_ok = True
+            if self.copytool_name == 'rucio':
+                if all(key in f for key in ('scope', 'name', 'destination')):
+                    all_files_ok = True
+            else:
+                if all(key in f for key in ('name', 'source', 'destination')):
+                    all_files_ok = True
 
         if all_files_ok:
-            copytool_name = 'rucio'
-            copytool = __import__('pilot.copytool.%s' % copytool_name, globals(), locals(), [copytool_name], -1)
+            copytool = __import__('pilot.copytool.%s' % self.copytool_name, globals(), locals(), \
+                                  [self.copytool_name], -1)
             copytool.copy_in(files)
         else:
-            raise Exception('Files dictionary does not conform: scope, name, destination')
+            if self.copytool_name == 'rucio':
+                raise Exception('Files dictionary does not conform to: scope, name, destination')
+            else:
+                raise Exception('Files dictionary does not conform to: name, source, destination')
 
 
 class StageOutClient(object):
