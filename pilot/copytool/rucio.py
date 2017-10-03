@@ -17,7 +17,7 @@ def copy_in(files):
     """
     Tries to download the given files using rucio.
 
-    :param files Files to download
+    :param files: Files to download
 
     :raises Exception
     """
