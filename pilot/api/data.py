@@ -56,7 +56,7 @@ class StageInClient(object):
                     all_files_ok = True
 
         if all_files_ok:
-            copytool = __import__('pilot.copytool.%s' % self.copytool_name, globals(), locals(), \
+            copytool = __import__('pilot.copytool.%s' % self.copytool_name, globals(), locals(),
                                   [self.copytool_name], -1)
             copytool.copy_in(files)
         else:
