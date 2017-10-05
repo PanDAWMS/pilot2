@@ -56,7 +56,8 @@ def copy_in(files):
                 # the Details: string is set in rucio: lib/rucio/common/exception.py in __str__()
                 stats['errmsg'] = [detail for detail in stderr.split('\n') if detail.startswith('Details:')][0][9:-1]
             except Exception as e:
-                stats['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % str(e)
+                stats['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % \
+                                  str(e)
         for f in destinations[dst]['files']:
             f.update(stats)
     return files
