@@ -116,6 +116,21 @@ class Pilot:
                                     help="Disable job server updates")
         self.argParser.add_argument("--simulate_rucio", action='store_true',
                                     help="Disable rucio, just simulate")
+        self.argParser.add_argument("--harvester", action='store_true', default=False,
+                                    help="Use Pilot with Harvester, disable rucio,job_update") 
+        self.argParser.add_argument("--harvester_datadir", default=None,
+                                    type=lambda x: x if os.path.exists(x) else None,
+                                    help="Base directory from Harvester to store files",
+                                    metavar="dir")
+        self.argParser.add_argument("--harvester_workdir", default=None,
+                                    type=lambda x: x if os.path.exists(x) else None,
+                                    help="Harvester working directory",
+                                    metavar="dir")
+        self.argParser.add_argument("--harvester_eventStatusDumpJsonFile", default=None,
+                                    help="Json file for harvester containing status of the processing")
+        self.argParser.add_argument("--harvester_workerAttributesFile",default=None,
+                                    help="Json file for harvester containing status of the panda job")
+
 
         self.logger = logging.getLogger("pilot")
         self.user_agent += " (Python %s; %s %s; rv:alpha) minipilot/daniel" % \
@@ -128,6 +143,7 @@ class Pilot:
 
         self.pilot_id = self.node_name + (":%d" % os.getpid())
 
+                
     def init_after_arguments(self):
         """
         Second step of initialization. After arguments received, pilot needs to set up some other variables.
@@ -145,6 +161,11 @@ class Pilot:
         self.logger = logging.getLogger("pilot")
         log = self.logger
 
+        if self.args.harvester is True :
+            self.args.simulate_rucio = True
+            self.args.no_job_updates = True  # should decide how to do it with harvester files
+            
+        
     def print_initial_information(self):
         """
         Pilot is initialized somehow, this initialization needs to be print out for information.
@@ -160,17 +181,44 @@ class Pilot:
         log.info("Pilot is started from %s" % self.dir)
         log.info("Current working directory is %s" % os.getcwd())
 
-        log.info("Printing requirements versions...")
-        try:
-            requirements = pip.req.parse_requirements(os.path.join(self.dir,
-                                                                   "requirements.txt"),
-                                                      session=False)
-            for req in requirements:
-                log.info("%s (%s)" % (req.name, req.installed_version))
-        except TypeError:
-            log.warn("Outdated version of PIP? Have you set up your environment properly? Skipping module info test...")
-            log.warn("Pilot may crash at any time, be aware. And I can't provide you with module information, probably"
+        if self.args.harvester is True :
+            log.info("Pilot is running in Harvester mode")
+            if self.args.harvester_datadir is None : 
+                # log it and throw error
+                log.error("Harvester datadir (--harvester_datadir) not defined")
+                raise NameError("Harvester datadir (--harvester_datadir) not defined")
+            else:
+                log.info("Harvester datadir: %s" % self.args.harvester_datadir)
+            if self.args.harvester_workdir is None : 
+                # log it and throw error
+                log.error("Harvester workdir (--harvester_workdir) not defined")
+                raise NameError("Harvester workdir (--harvester_workdir) not defined")
+            else:
+                log.info("Harvester workdir: %s" % self.args.harvester_workdir)
+            if self.args.harvester_eventStatusDumpJsonFile is None :
+               # log it and throw error
+                log.error("Harvester eventStatusDumpJsonFile (--harvester_eventStatusDumpJsonFile) not defined")
+                raise NameError("Harvester eventStatusDumpJsonFile (--harvester_eventStatusDumpJsonFile) not defined")
+            else:
+                log.info("Harvester eventStatusDumpJsonFile : %s" % self.args.harvester_eventStatusDumpJsonFile)
+            if self.args.harvester_workerAttributesFile is None :
+               # log it and throw error
+                log.error("Harvester workerAttributesFile (--harvester_workerAttributesFile) not defined")
+                raise NameError("Harvester workerAttributesFile (--harvester_workerAttributesFile) not defined")
+            else:
+                log.info("Harvester workerAttributesFile : %s" % self.args.harvester_workerAttributesFile)
+        else:
+            log.info("Printing requirements versions...")
+        
+            try:
+                requirements = pip.req.parse_requirements(os.path.join(self.dir,"requirements.txt"),session=False)
+                for req in requirements:
+                    log.info("%s (%s)" % (req.name, req.installed_version))
+            except TypeError:
+                log.warn("Outdated version of PIP? Have you set up your environment properly? Skipping module info test...")
+                log.warn("Pilot may crash at any time, be aware. And I can't provide you with module information, probably"
                      " the crash is caused by some outdated module.")
+       
 
     def run(self, argv):
         """
@@ -181,6 +229,8 @@ class Pilot:
         self.executable = argv[0]
         self.argv = argv
         self.args = self.argParser.parse_args(argv[1:])
+        print self.args
+        print type(self.args)
         self.init_after_arguments()
 
         log.info("This pilot version is developed only for testing purposes, do not use it in production."
@@ -192,11 +242,13 @@ class Pilot:
         try:
             self.get_queuedata()
             job = self.get_job()
+            #log.info('job environment: %s' % str(os.environ))
             job.run()
         except Exception:
             log.error("During the run encountered uncaught exception.")
             log.error(traceback.format_exc())
-            pass
+            #dpbpass
+            raise
 
     @staticmethod
     def time_iso8601(t=time.localtime(), timezone=time.timezone):
@@ -290,7 +342,7 @@ class Pilot:
         self.queuedata = self.try_get_json_file(self.args.queuedata)
         # if self.queuedata is None:
         #     self.queuedata = self.try_get_json_file("/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_ddmendpoints.json")
-        if self.queuedata is None:
+        if self.queuedata is None and self.args.harvester is not True :
             log.info("Queuedata is not saved locally. Asking server.")
 
             # _str = self.curl_query("http://%s:%d/cache/schedconfig/%s.all.json" % (self.args.pandaserver,
@@ -303,10 +355,13 @@ class Pilot:
             confs = json.loads(_str)
             if self.args.queue in confs:
                 self.queuedata = confs[self.args.queue]
-
-        log.info("Queuedata obtained.")
-        log.debug("queuedata: " + json.dumps(self.queuedata, indent=4, sort_keys=True))
-
+        if self.queuedata is not None :
+            log.info("Queuedata obtained.")
+            log.debug("queuedata: " + json.dumps(self.queuedata, indent=4, sort_keys=True))
+        else :
+            log.error("Queuedata not found.")
+            raise
+        
     def get_job(self):
         """
         Gets job description from a file or from server.
@@ -316,34 +371,38 @@ class Pilot:
         log.info("Trying to get job description.")
         job_desc = self.try_get_json_file(self.args.job_description)
         if job_desc is None:
-            log.info("Job description is not saved locally. Asking server.")
-            cpu_info = cpuinfo.get_cpu_info()
-            mem_info = psutil.virtual_memory()
-            disk_space = float(psutil.disk_usage(".").total) / 1024. / 1024.
-            # diskSpace = min(diskSpace, 14336)  # I doubt this is necessary, so RM
+            if self.args.harvester is True :
+                log.error(" pilot in Harvester mode - job json file not found ")
+                raise NameError(" pilot in Harvester mode - job json file not found ")
+            else:
+                log.info("Job description is not saved locally. Asking server.")
+                cpu_info = cpuinfo.get_cpu_info()
+                mem_info = psutil.virtual_memory()
+                disk_space = float(psutil.disk_usage(".").total) / 1024. / 1024.
+                # diskSpace = min(diskSpace, 14336)  # I doubt this is necessary, so RM
 
-            data = {
-                'cpu': float(cpu_info['hz_actual_raw'][0]) / 1000000.,
-                'mem': float(mem_info.total) / 1024. / 1024.,
-                'node': self.node_name,
-                'diskSpace': disk_space,
-                'getProxyKey': False,  # do we need it?
-                'computingElement': self.args.queue,
-                'siteName': self.args.queue,
-                'workingGroup': '',  # do we need it?
-                'prodSourceLabel': self.args.job_tag
-            }
+                data = {
+                    'cpu': float(cpu_info['hz_actual_raw'][0]) / 1000000.,
+                    'mem': float(mem_info.total) / 1024. / 1024.,
+                    'node': self.node_name,
+                    'diskSpace': disk_space,
+                    'getProxyKey': False,  # do we need it?
+                    'computingElement': self.args.queue,
+                    'siteName': self.args.queue,
+                    'workingGroup': '',  # do we need it?
+                    'prodSourceLabel': self.args.job_tag
+                }
 
-            _str = self.curl_query("https://%s:%d/server/panda/updateJob" % (self.args.jobserver,
+                _str = self.curl_query("https://%s:%d/server/panda/updateJob" % (self.args.jobserver,
                                                                              self.args.jobserver_port),
                                    ssl=True, body=urllib.urlencode(data))
-            # log.debug("Got from server: "+_str)
-            try:
-                job_desc = json.loads(_str)
-            except ValueError:
-                log.error("JSON parser failed.")
-                log.error("Got from server: " + _str)
-                raise
+                log.debug("Got from server: "+_str)
+                try:
+                    job_desc = json.loads(_str)
+                except ValueError:
+                    log.error("JSON parser failed.")
+                    log.error("Got from server: " + _str)
+                    raise
 
         log.info("Got job description.")
         from job import Job
@@ -357,4 +416,8 @@ if __name__ == "__main__":
     Main workflow is to create Pilot instance and run it with the command arguments.
     """
     pilot = Pilot()
-    pilot.run(sys.argv)
+    try:
+        pilot.run(sys.argv)
+    except:
+        log.error("pilot returned error")
+        raise
