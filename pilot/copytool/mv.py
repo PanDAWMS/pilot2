@@ -28,7 +28,18 @@ def copy_out(files):
     """
     Tries to upload the given files using xrdcp directly.
 
-    :param files Files to download
+    :param files: Files to upload
+
+    :raises Exception
+    """
+    raise NotImplementedError()
+
+
+def move(files):
+    """
+    Tries to upload the given files using xrdcp directly.
+
+    :param files: Files to move
 
     :raises Exception
     """
