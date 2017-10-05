@@ -1,87 +1,37 @@
-MiniPilot
-=========
+# PanDA Pilot - minipilot for Harvester ManyToOne operations
 
-Basics
-------
+## Contributions
 
-You should know the next basic things:
+1. Check the ``TODO.md`` and ``STYLEGUIDE.md`` files.
 
-1. MiniPilot does not test ENV
-2. MiniPilot does not test anything
-3. MiniPilot does not setup ENV
-4. MiniPilot is not going to setup any ENV for the job
-5. Do it yourself, MiniPilot is meant only for testing
-6. MiniPilot is not prepared to run on Py 2.6, which is part of `setupATLAS; lsetup rucio`
-7. Though MiniPilot is experiment agnostic, it uses AGIS and Rucio, which are not
-8. Provided Windows support in Rucio (or whatever-you-use-OS), MiniPilot will run on your machine as well
-9. Same if you implement another mover
-10. To much libs? I don't bother
+2. Fork the ``PanDAWMS/pilot2`` repository into your private account as ``origin``. Clone it and set the ``PanDAWMS/pilot2`` repository as ``upstream``.
 
+3. Make new code contributions only to a new branch in your repository, push to ``origin`` and make a pull request into ``upstream``. Depending on the type of contribution this should go against either ``upstream/master``, ``upstream/main-dev`` or ``upstream/hotfix``.
 
-Installation
-------------
+## Verifying code correctness
 
-Get git, get python 2.7 working, install the requirements from _requirements.txt_. Better to setup your ENV according to
-the next section before installing them. Remember to use the proper version of PIP, by default it is outdated.
+Do not submit code that does not conform to the project standards. We use PEP8 and Flake verification, with everything enabled at a maximum line length of 160 characters and McCabe complexity 12:
 
+    flake8 pilot.py pilot/
 
-Starting
---------
+For Python 2.6 you need to install ``flake8<3.0.0``, which can miss a few things. Check the output of TravisCI to verify if you have to use this old version.
 
-1. Ensure your proxy certificate
+## Running the pilot
 
-2. Change the next script for your environment and `source` it:
-
-    ```bash
-    #!/bin/bash
-    # This script is OK for lxplus
+The pilot is a dependency-less Python application and relies on ``/usr/bin/env python``. The minimum pilot can be called like:
     
-    export PYTHONUSERBASE=~/path/to/python/modules/you/installed
-    export VO_ATLAS_SW_DIR=/afs/cern.ch/atlas/
-    
-    export MYPITHONDIR=/afs/cern.ch/sw/lcg/external/Python/2.7.3/x86_64-slc6-gcc48-opt
-    
-    export PYTHONDIR=$MYPITHONDIR
-    export LD_LIBRARY_PATH=/lib:/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/x86_64/emi/3.17.1-1_v2.sl6/lib64:/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/x86_64/emi/3.17.1-1_v2.sl6/lib:/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/x86_64/emi/3.17.1-1_v2.sl6/alrbUsr/lib64:/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/x86_64/emi/3.17.1-1_v2.sl6/alrbUsr/lib:/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/x86_64/emi/3.17.1-1_v2.sl6/alrbUsr/lib64/dcap:/lib::/opt/rh/python27/root/usr/lib64:/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/x86_64/emi/3.17.1-1_v2.sl6/usr/lib64:/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase/x86_64/emi/3.17.1-1_v2.sl6/usr/lib:/opt/rh/python27/root/usr/lib64
-    
-    setupATLAS
-    lsetup rucio
-    
-    export PYTHONPATH=$PYTHONUSERBASE/lib/python2.7/site-packages:/lib:${PYTHONPATH//$PYTHONUSERBASE"/lib/python2.7/site-packages:/lib:"/}
-    export PATH=$HOME/bin:$MYPITHONDIR/bin:${PATH//$HOME"/bin:"$MYPITHONDIR"/bin:"/}
-    export LD_LIBRARY_PATH=$PYTHONUSERBASE/lib:$MYPITHONDIR/lib:${LD_LIBRARY_PATH//$PYTHONUSERBASE"/lib:"$MYPITHONDIR"/lib:"/}
-    ```
+    python ./pilot.py --queue <QUEUE_NAME> --queuedata <QUEUE_JSON_FILE> --job_tag prod --job_description <JOB_SPEC_JSON> --simulate_rucio --no_job_update --harvester --harvester_workdir <JOB_WORKING_DIR> --harvester_datadir <LOCAL_RUCIO_DIR> --harvester_eventStatusDumpJsonFile <EVNT_STAT_JSON> --harvester_workerAttributesFile <WORK_ATTR_JSON>
+   
 
-3. Run the MiniPilot
-    ```bash
-    $ pilot.py --queue <QUEUE_NAME> --job_tag <prod_or_any_other>
-    ```
+where 
+
+   ``QUEUE_NAME`` - the ATLAS PandaQueue as defined in AGIS
+   ``QUEUE_JSON_FILE`` - the AGIS response for this queue, created by Harvester
+   ``JOB_SPEC_JSON`` - a file containing the PanDA job description in json format, created by Harvester
+   ``JOB_WORKING_DIR`` - the directory where this pilot should run, nominal location of input and output files
+   ``LOCAL_RUCIO_DIR`` - local directory which follows the rucio DATADISK structure where input and output files will be stored
+   ``EVNT_STAT_JSON`` - this is the file used to communicate event status to Harvester, file defined in harvester config ``payload_interaction.eventStatusDumpJsonFile``
+   ``WORK_ATTR_JSON`` - this is the file used to communicate the job status to Harvester, file defined in harvester config ``payload_interaction.workerAttributesFile``
 
 
-Usage
------
 
-To get the parameter list with the explanations, use:
-```bash
-$ pilot.py --help
-```
-
-With that you can:
-
-1. Skip server updates
-2. Simulate Rucio
-3. Setup other paths for certs or else
-4. Use another servers & ports
-5. Use preloaded descriptions and configs
-
-
-More usage
-----------
-
-See into the depths of the code, there are also some docs.
-
-
-Even moar usage
----------------
-
-Ask me.

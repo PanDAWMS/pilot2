@@ -1,11 +1,15 @@
 import urllib
 import os
+import os.path
 import json
 import shlex
 import pipes
 import logging
 import copy
-from utility import Utility, touch
+import shutil
+import glob
+import time
+from utility import Utility, touch, construct_file_path, calc_adler32,timeStamp
 
 # TODO: Switch from external Rucio calls to internal ones. (Should consult with Mario)
 # Before: fix platform dependencies in Rucio
@@ -55,6 +59,7 @@ class Job(Utility):
         pilot                   Link to Pilot class instance
         description             Job description
         error_code              Job payload exit code
+        error_msg               Job payload error message
         no_update               Flag, specifying whether we will update server
         log_file                Job dedicated log file, into which the logs _are_ written. Shadowing log_file from
                                 description, because that file is not a log file, but an archive containing it.
@@ -73,6 +78,7 @@ class Job(Utility):
     pilot = None
     description = None
     error_code = None
+    error_msg = None
     no_update = False
     log_file = 'stub.job.log'
     log_archive = '.tgz'
@@ -102,6 +108,8 @@ class Job(Utility):
         self.description = _desc
         _pilot.logger.debug(json.dumps(self.description, indent=4, sort_keys=True))
         self.parse_description()
+
+        
 
     def __getattr__(self, item):
         """
@@ -271,6 +279,7 @@ class Job(Utility):
         """
         Sends job state to the dedicated panda server.
         """
+        self.log.info('in send_state')
         if not self.no_update:
             self.log.info("Updating server job status...")
             data = {
@@ -291,6 +300,11 @@ class Job(Utility):
             self.log.debug("Got from server: " + _str)
             # jobDesc = json.loads(_str)
             # self.logger.info("Got from server: " % json.dumps(jobDesc, indent=4))
+        
+        if self.pilot.args.harvester is True:
+            self.log.debug('dumping worker attributes')
+            self.dump_worker_attributes()
+            self.log.debug('done dumping worker attributes')
 
     @state.setter
     def state(self, value):
@@ -318,8 +332,12 @@ class Job(Utility):
             full_log_name = self.log_file + self.log_archive
 
             self.log.info("Preparing log file to send.")
+            self.log.info("log_file - %s" %(self.log_file))
+            self.log.info("log_archive - %s" %(self.log_archive))
+            self.log.info("full_log_name - %s" %(full_log_name))
 
             if os.path.isfile(full_log_name) and self.log_file != full_log_name:
+                self.log.info("delete full_log_name - %s" %(full_log_name))
                 os.remove(full_log_name)
 
             mode = "w"
@@ -361,6 +379,9 @@ class Job(Utility):
 
         self.log.info("Log file prepared for stageout.")
 
+    def is_log_file(self,filename):
+        return '.log.' in filename
+
     def rucio_info(self):
         """
         Logs basic Rucio information (basically whoami response)
@@ -373,46 +394,228 @@ class Job(Utility):
         if e != '':
             self.log.warn("Rucio returned error(s): \n" + e)
 
+    def check_input_file(self,source_file,filename):
+        # in a loop with a variable sleep statement look for input file and stat it
+        found_file = False
+        have_symlink = False
+        continue_loop = True
+        # sleep step ( sleep time is iloop*sleep_step)
+        sleep_step = 10 
+        iloop = 1
+        while continue_loop :
+            try:
+                if (os.path.isfile(source_file)) :
+                    try:
+                        statinfo = os.stat(source_file)                         
+                        found_file = True
+                        #self.log.info('found file: %s' % str(source_file))
+                    except:
+                        self.log.error("can not stat file : %s " %str(source_file))
+                        pass
+                else:
+                    self.log.error("Can not find input file : %s " %str(source_file))
+                # now test for sym link
+                if found_file :
+                    try:
+                        if (os.path.islink(filename)) :
+                            have_symlink = True
+                            #self.log.info('have simlink')
+                        else :
+                            os.symlink(source_file,filename)
+                            self.log.info("Created sym link between %s and link - %s" %(source_file,filename))
+                            have_symlink = True
+                    except :
+                        self.log.error("Can not created sym link between %s and link - %s" %(source_file,filename))
+                        pass
+            except:
+                self.log.error("os.path.isfile exception for file : %s " %str(source_file))
+                pass
+            if found_file and have_symlink :
+                continue_loop = False
+            else:
+                iloop+=1
+                if iloop > 3:
+                    continue_loop = False
+                else :
+                    # sleep 
+                    time.sleep(iloop*sleep_step)
+        # exit function
+        return (found_file and have_symlink)
+
+
     def stage_in(self):
         """
         Stages in files using Rucio.
         """
         self.state = 'stagein'
-        self.rucio_info()
-        for f in self.input_files:
-            if self.pilot.args.simulate_rucio:
-                touch(f)
-                self.log.info("Simulated downloading " + f + " from " + self.input_files[f]['scope'])
-            else:
-                c, o, e = self.call(['rucio', 'download', '--no-subdir', self.input_files[f]['scope'] + ":" + f])
 
+        self.log.debug("input_files = %s" % str(self.input_files))
+        
+        if self.pilot.args.harvester is not True:
+            self.rucio_info()
+
+        have_symlink = False
+        
+        for f in self.input_files:
+            self.log.debug('f = %s'%str(f))
+            if self.pilot.args.harvester :
+                # create a sym link between input files in harvester_datadir and lfn in pilot work area file. 
+                try:
+                    source_file = construct_file_path(self.pilot.args.harvester_datadir, self.input_files[f]['scope'], f)
+                    new_pars = []
+                    for x in self.command_parameters:
+                        if f in x:
+                           new_pars.append(x.replace(f,source_file))
+                        else:
+                           new_pars.append(x)
+                    self.command_parameters = new_pars
+                    self.log.debug('command_parameters = %s'%str(self.command_parameters))
+                    # test if file exists
+                    if (self.check_input_file(source_file,f)) :
+                        #self.log.error("Can not find input file : %s " %str(source_file))
+                        have_symlink = True
+                        # replace input file in job?
+                    else:
+                        self.log.error('Cannot find input file: %s %s' % (str(source_file),f))
+                except Exception,e:
+                    self.log.warn("Warning could NOT created sym link between %s and link - %s: exception: %s" %(source_file,f,e))
+                    
+                    pass    
+            else:
+                if self.pilot.args.simulate_rucio:
+                    touch(f)
+                    self.log.info("Simulated downloading " + f + " from " + self.input_files[f]['scope'])
+                else:
+                    c, o, e = self.call(['rucio', 'download', '--no-subdir', self.input_files[f]['scope'] + ":" + f])
+        if ( not have_symlink) :
+            self.log.error("No symlink(s) exists between working directory and real input file(s)")
+            raise ValueError('No symlink(s) exists between working directory and real input file(s)')
+    
     def stage_out(self):
         """
-        Stages out files using Rucio.
+        Stages out files using Rucio.  or with the harvester moves files to the harvester_datadir
         """
         self.state = 'stageout'
-        self.rucio_info()
+        
+        filesDict = dict()
+        outfileDict = dict()
+        outFiles = []
+
+
+        if self.pilot.args.harvester is False:            
+            self.rucio_info()
+        else:
+            # check if job report json file exists
+            readJsonPath=os.path.join(os.getcwd(),"jobReport.json")
+            self.log.info('parsing %s' % readJsonPath)
+            if os.path.exists(readJsonPath):
+                # load json                                                                                                                                       
+                try:
+                    with open(readJsonPath) as jsonFile:
+                        loadDict = json.load(jsonFile)
+
+                    filesDict = loadDict['files']
+                    outFiles = filesDict['output']
+                    for outFile in outFiles:
+                        for subFile in outFile['subFiles']:
+                            outfileDict[subFile['name']] = subFile['file_guid']
+                    # remove long athena log messages from jobReport
+                    for e in loadDict['executor']:
+                        e['logfileReport'] = {}
+                    json.dump(loadDict,open(readJsonPath,'w'))
+                except:
+                    pass
+            else:
+                self.log.error('%s does not exist' % readJsonPath)
+
+
+            
+        #self.log.info("type self.output files %s" %(type(self.output_files)))
+        self.log.info("%s",self.output_files)
+
+        data = {}
+        data_values=[]
         for f in self.output_files:
-            if os.path.isfile(f) and self.description['log_file'] != f:
-                if self.pilot.args.simulate_rucio:
-                    self.log.info("Simulated uploading " + f + " to scope " + self.output_files[f]['scope'] +
-                                  " and SE " + self.output_files[f]['storage_element'])
-                else:
-                    c, o, e = self.call(['rucio', 'upload', '--rse', self.output_files[f]['storage_element'], '--scope',
-                                         self.output_files[f]['scope'], f])
-            else:
-                self.log.warn("Can not upload " + f + ", file does not exist.")
-        self.prepare_log()
-        with self.description['log_file'] as f:
+            self.log.info("processing file - %s" % f)
+            # process log files
+            if self.is_log_file(f):
+                athena_logs=['transform.stdout','transform.stderr','%s.log' % self.id]
+                athenamp_worker_logs = glob.glob('athenaMP-workers-*/*/AthenaMP.log')
+                if len(athenamp_worker_logs) > 0:
+                    athena_logs+= athenamp_worker_logs
+                self.prepare_log(athena_logs)
+
             if os.path.isfile(f):
-                if self.pilot.args.simulate_rucio:
-                    self.log.info("Simulated uploading " + f + " to scope " + self.output_files[f]['scope'] +
-                                  " and SE " + self.output_files[f]['storage_element'])
+                if self.is_log_file(f):
+                    file_type = 'log'
                 else:
-                    c, o, e = self.call(['rucio', 'upload', '--rse', self.output_files[f]['storage_element'], '--scope',
-                                         self.output_files[f]['scope'], f])
+                    file_type = 'output'
+                if self.pilot.args.harvester is True:
+                    # move files to harvester data area
+                    dest_file = construct_file_path(self.pilot.args.harvester_datadir, self.output_files[f]['scope'], f)
+                    try:
+                        if not os.path.exists(os.path.dirname(dest_file)):
+                            os.makedirs(os.path.dirname(dest_file))
+                        
+                        self.log.info("move file from: %s to: %s" %(f,dest_file))
+                        shutil.move(f,dest_file)
+                        # need to calculate adler32 check sum of file
+                        checksum =  calc_adler32(dest_file)
+                        if f in outfileDict :
+                            file_guid = outfileDict[f]
+                            data_values.append({'eventStatus' : self.error_code,
+                                                'path'        : dest_file,
+                                                'type'        : file_type,
+                                                'chksum'      : checksum,
+                                                'guid'        : file_guid
+                                            })
+                        else:
+                            data_values.append({'eventStatus' : self.error_code,
+                                                'path'        : dest_file,
+                                                'type'        : file_type,
+                                                'chksum'      : checksum
+                                            })
+                    except:
+                        self.log.error("Could not move %s to %s" %(f,dest_file))
+                        raise
+                else:
+                    if self.pilot.args.simulate_rucio:
+                        self.log.info("Simulated uploading " + f + " to scope " + self.output_files[f]['scope'] +
+                                      " and SE " + self.output_files[f]['storage_element'])
+                    else:
+                        c, o, e = self.call(['rucio', 'upload', '--rse', self.output_files[f]['storage_element'], '--scope',
+                                             self.output_files[f]['scope'], f])
             else:
                 self.log.warn("Can not upload " + f + ", file does not exist.")
+        self.log.debug('data_values: %s' % data_values)        
+        with open(self.pilot.args.harvester_eventStatusDumpJsonFile,'w') as outfile:
+            data[self.id]=data_values
+            json.dump(data,outfile)
+            self.log.info("write Event status to in json format to file %s" % self.pilot.args.harvester_eventStatusDumpJsonFile)
+            self.log.info("save event status in json format to file %s:  %s" % (self.pilot.args.harvester_eventStatusDumpJsonFile,data[self.id]))
+
+        '''
+        # ignore this section of code
+        # create a sym link between file jobReport.json and one level up
+        if self.pilot.args.harvester :
+            try:
+                
+                source_file = os.path.join(os.getcwd(),"jobReport.json")
+                symlink = os.path.join(self.pilot.args.harvester_workdir,"jobReport.json")
+                # test if file exists
+                if (not os.path.isfile(source_file)) :
+                    self.log.warn("Can not file input file : %s \n" %str(f))
+                else :
+                    # check if sym link exists if so remove it
+                    if (os.path.exists(symlink)) :
+                        os.unlink(symlink)
+                    os.symlink(source_file,symlink)
+                    self.log.info("Created sym link between %s and link - %s" %(source_file,symlink))
+                    have_symlink = True
+            except:
+                self.log.warn("Warning could NOT created sym link between %s and link - %s" %(source_file,symlink))
+                pass    
+        '''
 
     def payload_run(self):
         """
@@ -424,14 +627,110 @@ class Job(Utility):
 
         self.log.info("Starting job cmd: %s" % " ".join(pipes.quote(x) for x in args))
 
-        c, o, e = self.call(args)
+        c,o,e = self.call(args,stdout_file='transform.stdout',stderr_file='transform.stderr')
 
         self.log.info("Job ended with status: %s" % c)
-        self.log.info("Job stdout:\n%s" % o)
-        self.log.info("Job stderr:\n%s" % e)
+        self.log.info(o)
+        self.log.info(e)
+        #self.log.info("Job stdout:\n%s" % o)
+        #self.log.info("Job stderr:\n%s" % e)
         self.error_code = c
+        if self.error_code != 0:
+            # extract error message
+            c,o,e = self.call('tail -n 7 transform.stdout | grep CRITICAL',shell=True)
+
+            self.error_msg = o 
+
 
         self.state = "holding"
+
+    def dump_worker_attributes(self):
+        self.log.debug('in dump_worker_attributes')
+        # Harvester only expects the attributes files for certain states.
+        if self.__state in ['finished','failed','running']:
+            with open(self.pilot.args.harvester_workerAttributesFile,'w') as outputfile:
+                workAttributes = {'jobStatus':self.state}
+                workAttributes['workdir'] = os.getcwd()
+                workAttributes['messageLevel'] = logging.getLevelName(self.log.getEffectiveLevel())
+                workAttributes['timestamp'] = timeStamp()
+                workAttributes['cpuConversionFactor'] = 1.0
+                
+                coreCount = None
+                nEvents = None
+                dbTime = None
+                dbData = None
+                workDirSize = None
+
+                if 'ATHENA_PROC_NUMBER' in os.environ:
+                     workAttributes['coreCount'] = os.environ['ATHENA_PROC_NUMBER']
+                     coreCount = os.environ['ATHENA_PROC_NUMBER']
+
+                # check if job report json file exists
+                jobReport = None
+                readJsonPath=os.path.join(os.getcwd(),"jobReport.json")
+                self.log.debug('parsing %s' % readJsonPath)
+                if os.path.exists(readJsonPath):
+                    # load json                                                                                                                                       
+                    with open(readJsonPath) as jsonFile:
+                        jobReport = json.load(jsonFile)
+                if jobReport is not None:
+                    if 'resource' in jobReport:
+                        if 'transform' in jobReport['resource']:
+                            if 'processedEvents' in jobReport['resource']['transform']:
+                                workAttributes['nEvents'] = jobReport['resource']['transform']['processedEvents']
+                                nEvents = jobReport['resource']['transform']['processedEvents']
+                            if 'cpuTimeTotal' in jobReport['resource']['transform']:
+                                workAttributes['cpuConsumptionTime'] = jobReport['resource']['transform']['cpuTimeTotal']
+                            
+                        if 'machine' in jobReport['resource']:
+                            if 'node' in jobReport['resource']['machine']:
+                                workAttributes['node'] = jobReport['resource']['machine']['node']
+                            if 'model_name' in jobReport['resource']['machine']:
+                                workAttributes['cpuConsumptionUnit'] = jobReport['resource']['machine']['model_name']
+                        
+                        if 'dbTimeTotal' in jobReport['resource']:
+                            dbTime = jobReport['resource']['dbTimeTotal']
+                        if 'dbDataTotal' in jobReport['resource']:
+                            dbData = jobReport['resource']['dbDataTotal']
+
+                        if 'executor' in jobReport['resource']:
+                            if 'memory' in jobReport['resource']['executor']:
+                                for transform_name,attributes in jobReport['resource']['executor'].iteritems():
+                                    if 'Avg' in attributes['memory']:
+                                        for name,value in attributes['memory']['Avg'].iteritems():
+                                            try:
+                                                workAttributes[name] += value
+                                            except:
+                                                workAttributes[name] = value
+                                    if 'Max' in attributes['memory']:
+                                        for name,value in attributes['memory']['Max'].iteritems():
+                                            try:
+                                                workAttributes[name] += value
+                                            except:
+                                                workAttributes[name] = value
+                            
+                    if 'exitCode' in jobReport: 
+                        workAttributes['transExitCode'] = jobReport['exitCode']
+                        workAttributes['exeErrorCode'] = jobReport['exitCode']
+                    if 'exitMsg'  in jobReport: 
+                        workAttributes['exeErrorDiag'] = jobReport['exitMsg']
+                    if 'files' in jobReport:
+                        if 'input' in jobReport['files']:
+                            if 'subfiles' in jobReport['files']['input']:
+                                workAttributes['nInputFiles'] = len(jobReport['files']['input']['subfiles'])
+
+                    if coreCount and nEvents and dbTime and dbData:
+                        c,o,e = self.call('du -s',shell=True)
+                        workAttributes['jobMetrics'] = 'coreCount=%s nEvents=%s dbTime=%s dbData=%s workDirSize=%s' % (
+                              coreCount,nEvents,dbTime,dbData,o.split()[0] )
+
+                else:
+                    self.log.debug('no jobReport object')
+                self.log.info('output worker attributes for Harvester: %s' % workAttributes)
+                json.dump(workAttributes,outputfile)
+        else:
+            self.log.debug(' %s is not a good state' % self.state)
+        self.log.debug('exit dump worker attributes')
 
     def run(self):
         """
@@ -440,9 +739,21 @@ class Job(Utility):
         Stages in, executes and stages out the job.
         """
         self.state = 'starting'
+         
+        try:
+            self.stage_in()
+            self.payload_run()
+            self.stage_out()
+        except:
+            self.state = 'failed'
+            
+            raise
+        
+        if self.error_code != 0:
+            self.state = 'failed'
+            self.log.error('failing job')
+        else:
+            self.state = 'finished'
+            self.log.info('job finished')
+        
 
-        self.stage_in()
-        self.payload_run()
-        self.stage_out()
-
-        self.state = 'finished'
