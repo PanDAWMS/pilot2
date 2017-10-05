@@ -9,8 +9,33 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import os
+import logging
+import sys
 
 from pilot.control import data
+
+
+def setup_logging():
+    """
+
+    :return:
+    """
+
+    # Establish logging
+    console = logging.StreamHandler(sys.stdout)
+    logging.basicConfig(filename='transfer.txt', level=logging.INFO,
+                        format='%(asctime)s | %(levelname)-8s | %(message)s')
+    console.setLevel(logging.INFO)
+    console.setFormatter(logging.Formatter('%(asctime)s | %(levelname)-8s | %(message)s'))
+    logging.getLogger('').addHandler(console)
+
+
+def shutdown_logging():
+    """
+
+    :return:
+    """
+    logging.shutdown()
 
 
 class StageInClient(object):
@@ -46,6 +71,9 @@ class StageInClient(object):
                  [{..., errno, errmsg, status
         """
 
+        # setup logging
+        setup_logging()
+
         all_files_ok = False
         for f in files:
             if self.copytool_name == 'rucio':
@@ -65,15 +93,22 @@ class StageInClient(object):
             else:
                 raise Exception('Files dictionary does not conform to: name, source, destination')
 
+        # shutdown logging
+        shutdown_logging()
+
 
 class StageOutClient(object):
 
-    def __init__(self, site=None):
+    def __init__(self, site=None, copytool=None):
         super(StageOutClient, self).__init__()
+
+        self.copytool_name = copytool
+        if self.copytool_name is None:
+            self.copytool_name = 'rucio'
 
         # Check validity of specified site - should be refactored into VO-agnostic setup
         self.site = os.environ.get('VO_ATLAS_AGIS_SITE', site)
-        if self.site is None:
+        if self.site is None and self.copytool_name == 'rucio':
             raise Exception('VO_ATLAS_AGIS_SITE not available, must set StageOutClient(site=...) parameter')
 
         # Retrieve location information
@@ -100,15 +135,34 @@ class StageOutClient(object):
                  [{..., errno, errmsg, status
         """
 
+        # setup logging
+        setup_logging()
+
         all_files_ok = False
         for f in files:
-            if all(key in f for key in ('scope', 'file', 'rse')):
-                all_files_ok = True
+            if self.copytool_name == 'rucio':
+                if all(key in f for key in ('scope', 'file', 'rse')):
+                    all_files_ok = True
+            else:
+                if all(key in f for key in ('name', 'source', 'destination')):
+                    all_files_ok = True
 
         if all_files_ok:
-            return data.stage_out_auto(self.site, files)
+            if self.copytool_name == 'rucio':
+                return data.stage_out_auto(self.site, files)
+            else:
+                copytool = __import__('pilot.copytool.%s' % self.copytool_name, globals(), locals(),
+                      [self.copytool_name], -1)
+                copytool.copy_out(files)
+
         else:
-            raise Exception('Files dictionary does not conform: scope, file, rse')
+            if self.copytool_name == 'rucio':
+                raise Exception('Files dictionary does not conform to: scope, file, rse')
+            else:
+                raise Exception('Files dictionary does not conform to: name, source, destination')
+
+        # shutdown logging
+        shutdown_logging()
 
 
 class StageInClientAsync(object):
