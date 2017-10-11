@@ -131,33 +131,33 @@ if __name__ == '__main__':
                             metavar='path/to/pilot.cfg')
 
     # Country group
-    arg_parser.add_argument('--country_group',
+    arg_parser.add_argument('--country-group',
                             dest='country_group',
                             default='',
                             help='Country group option for getjob request')
 
     # Working group
-    arg_parser.add_argument('--working_group',
+    arg_parser.add_argument('--working-group',
                             dest='working_group',
                             default='',
                             help='Working group option for getjob request')
 
     # Allow other country
-    arg_parser.add_argument('--allow_other_country',
+    arg_parser.add_argument('--allow-other-country',
                             dest='allow_other_country',
                             type=bool,
                             default=False,
                             help='Is the resource allowed to be used outside the privileged group?')
 
     # Allow same user
-    arg_parser.add_argument('--allow_same_user',
+    arg_parser.add_argument('--allow-same-user',
                             dest='allow_same_user',
                             type=bool,
                             default=True,
                             help='Multi-jobs will only come from same taskID (and thus same user)')
 
     # Experiment
-    arg_parser.add_argument('--pilot_user',
+    arg_parser.add_argument('--pilot-user',
                             dest='pilot_user',
                             default='',
                             required=True,
