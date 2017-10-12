@@ -277,7 +277,7 @@ def retrieve(queues, traces, args):
 
         getjob_requests += 1
         if getjob_requests > int(config.Pilot.maximum_getjob_requests):
-            logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' % \
+            logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' %
                            config.Pilot.maximum_getjob_requests)
             args.graceful_stop.set()
             break

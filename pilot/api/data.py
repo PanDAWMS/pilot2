@@ -39,7 +39,6 @@ def shutdown_logging():
 
 
 class StageInClient(object):
-
     def __init__(self, site=None, copytool=None):
         super(StageInClient, self).__init__()
 
@@ -52,11 +51,11 @@ class StageInClient(object):
         if self.site is None and self.copytool_name == 'rucio':
             raise Exception('VO_ATLAS_AGIS_SITE not available, must set StageInClient(site=...) parameter')
 
-        # Retrieve location information
-        # will need this later -- don't spam AGIS for now
-        # from pilot.util import information
-        # self.args = collections.namedtuple('args', ['location'])
-        # information.set_location(self.args, site=self.site)
+            # Retrieve location information
+            # will need this later -- don't spam AGIS for now
+            # from pilot.util import information
+            # self.args = collections.namedtuple('args', ['location'])
+            # information.set_location(self.args, site=self.site)
 
     def transfer(self, files):
         """
@@ -98,7 +97,6 @@ class StageInClient(object):
 
 
 class StageOutClient(object):
-
     def __init__(self, site=None, copytool=None):
         super(StageOutClient, self).__init__()
 
@@ -111,11 +109,11 @@ class StageOutClient(object):
         if self.site is None and self.copytool_name == 'rucio':
             raise Exception('VO_ATLAS_AGIS_SITE not available, must set StageOutClient(site=...) parameter')
 
-        # Retrieve location information
-        # will need this later -- don't spam AGIS for now
-        # from pilot.util import information
-        # self.args = collections.namedtuple('args', ['location'])
-        # information.set_location(self.args, site=self.site)
+            # Retrieve location information
+            # will need this later -- don't spam AGIS for now
+            # from pilot.util import information
+            # self.args = collections.namedtuple('args', ['location'])
+            # information.set_location(self.args, site=self.site)
 
     def transfer(self, files):
         """
@@ -152,7 +150,7 @@ class StageOutClient(object):
                 return data.stage_out_auto(self.site, files)
             else:
                 copytool = __import__('pilot.copytool.%s' % self.copytool_name, globals(), locals(),
-                      [self.copytool_name], -1)
+                                      [self.copytool_name], -1)
                 copytool.copy_out(files)
 
         else:
@@ -166,7 +164,6 @@ class StageOutClient(object):
 
 
 class StageInClientAsync(object):
-
     def __init__(self, site):
         raise NotImplementedError
 
@@ -187,7 +184,6 @@ class StageInClientAsync(object):
 
 
 class StageOutClientAsync(object):
-
     def __init__(self, site):
         raise NotImplementedError
 

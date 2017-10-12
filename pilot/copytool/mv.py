@@ -13,6 +13,7 @@ import os
 from pilot.common.exception import PilotException
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,7 +35,7 @@ def copy_in(files):
         if exit_code != 0:
             logger.warning("Transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stdout))
             # raise failure
-            #raise PilotException
+            # raise PilotException
 
 
 def copy_out(files):
@@ -66,9 +67,9 @@ def move(source, destination):
 
     executable = ['/usr/bin/env', 'mv', source, destination]
     process = subprocess.Popen(executable,
-                           bufsize=-1,
-                           stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE)
+                               bufsize=-1,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
     exit_code = process.poll()
 
