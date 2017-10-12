@@ -37,7 +37,7 @@ def main():
 
     https_setup(args, VERSION)
 
-    if not set_location(args):
+    if not set_location(args, site=args.site):
         return False
 
     logger.info('pilot arguments: %s' % str(args))
