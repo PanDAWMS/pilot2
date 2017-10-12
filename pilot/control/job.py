@@ -212,7 +212,7 @@ def get_dispatcher_dictionary(args):
     _nodename = get_node_name()
 
     data = {
-        'siteName': args.location.resource,
+        'siteName': args.resource,
         'computingElement': args.location.queue,
         'prodSourceLabel': args.job_label,
         'diskSpace': _diskspace,
