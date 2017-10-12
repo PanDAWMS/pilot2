@@ -173,6 +173,8 @@ def request(url, data=None, plain=False):
                                pipes.quote(url + '?' + urllib.urlencode(data) if data else ''))
         logger.debug('request: %s' % req)
         status, output = commands.getstatusoutput(req)
+        logger.debug('status: %d' % status)
+        logger.debug('output: %s' % output)
         if status != 0:
             logger.warn('request failed (%s): %s' % (status, output))
             return None
