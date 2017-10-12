@@ -13,6 +13,7 @@ import argparse
 import logging
 import sys
 import threading
+import time
 from os import getcwd, chdir
 
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
@@ -183,6 +184,7 @@ if __name__ == '__main__':
     if args.debug:
         logging.basicConfig(filename='pilotlog.txt', level=logging.DEBUG,
                             format='%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-32s | %(message)s')
+        logging.Formatter.converter = time.gmtime
         console.setLevel(logging.DEBUG)
         console.setFormatter(logging.Formatter('%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-32s | %(message)s'))
     else:
