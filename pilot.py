@@ -37,7 +37,7 @@ def main():
 
     https_setup(args, VERSION)
 
-    if not set_location(args, site=args.site):
+    if not set_location(args):
         return False
 
     logger.info('pilot arguments: %s' % str(args))
@@ -86,11 +86,15 @@ if __name__ == '__main__':
                             type=int,
                             help='Pilot lifetime seconds (default: 3600 s)')
 
-    # set the appropriate site and queue
+    # set the appropriate site, resource and queue
     arg_parser.add_argument('-q',
                             dest='queue',
                             required=True,
                             help='MANDATORY: queue name (e.g., AGLT2_TEST-condor')
+    arg_parser.add_argument('-r',
+                            dest='resource',
+                            required=True,  # it is needed by the dispatcher (only)
+                            help='MANDATORY: resource name (e.g., AGLT2_TEST')
     arg_parser.add_argument('-s',
                             dest='site',
                             required=True,  # it is needed by the dispatcher (only)
