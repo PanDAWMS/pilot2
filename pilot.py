@@ -23,7 +23,7 @@ from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 # from pilot.util.parameters imporget_maximum_input_sizes
 
-VERSION = '2017-10-03.001'
+VERSION = '2017-10-12.001'
 
 
 def main():
