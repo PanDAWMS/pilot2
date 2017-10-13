@@ -17,6 +17,7 @@ Components
     :maxdepth: 2
 
     api/index
+    common/index
     control/index
     copytool/index
     util/index
