@@ -10,6 +10,7 @@
 
 import json
 import logging
+import os
 import Queue
 import subprocess
 import sys
@@ -25,6 +26,10 @@ from pilot.eventservice.esprocess import ESProcess
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
 
+def check_env():
+    return os.path.exists('/cvmfs/atlas.cern.ch/repo/')
+
+
 class TestESHook(ESHook):
     """
     A class implemented ESHook, to be used to test eventservice.
@@ -36,10 +41,13 @@ class TestESHook(ESHook):
             self.__payload = job['payload']
             self.__event_ranges = job['event_ranges']
 
-        process = subprocess.Popen('pilot/test/resource/download_test_es_evgen.sh', shell=True, stdout=subprocess.PIPE)
-        process.wait()
-        if process.returncode != 0:
-            raise Exception('failed to download input files for es test: %s %s' % (process.communicate()))
+        if check_env():
+            process = subprocess.Popen('pilot/test/resource/download_test_es_evgen.sh', shell=True, stdout=subprocess.PIPE)
+            process.wait()
+            if process.returncode != 0:
+                raise Exception('failed to download input files for es test: %s %s' % (process.communicate()))
+        else:
+            logging.info("No CVMFS. skip downloading files.")
 
         self.__injected_event_ranges = []
         self.__outputs = []
@@ -89,6 +97,7 @@ class TestESMessageThread(unittest.TestCase):
     Unit tests for event service message thread.
     """
 
+    @unittest.skipIf(not check_env(), "No CVMFS")
     def test_msg_thread(self):
         """
         Make sure that es message thread works as expected.
@@ -160,6 +169,7 @@ class TestEventService(unittest.TestCase):
     Unit tests for event service functions.
     """
 
+    @unittest.skipIf(not check_env(), "No CVMFS")
     def test_init_esmanager(self):
         """
         Make sure that no exceptions to init ESManager
@@ -168,6 +178,7 @@ class TestEventService(unittest.TestCase):
         esManager = ESManager(testHook)
         self.assertIsInstance(esManager, ESManager)
 
+    @unittest.skipIf(not check_env(), "No CVMFS")
     def test_run_es(self):
         """
         Make sure that ES produced all events that injected.
