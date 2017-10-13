@@ -10,10 +10,9 @@
 import subprocess
 import os
 
-from pilot.common.exception import PilotException
+from pilot.common.exception import PilotException, StageInFailure
 
 import logging
-
 logger = logging.getLogger(__name__)
 
 
@@ -35,7 +34,7 @@ def copy_in(files):
         if exit_code != 0:
             logger.warning("Transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stdout))
             # raise failure
-            # raise PilotException
+            raise StageInFailure()
 
 
 def copy_out(files):
