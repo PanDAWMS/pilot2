@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 
 # This is a stub implementation of the information component. It retrieves
@@ -109,7 +109,7 @@ def set_location(args, site=None):
     logger.info('queue: %s' % args.location.queue)
     logger.info('site: %s' % args.location.site)
     logger.info('storages: %s' % args.location.storages)
-    # logger.info('queuedata: %s' % args.location.queuedata)
+    logger.info('queuedata: %s' % args.location.queuedata)
 
     return True
 

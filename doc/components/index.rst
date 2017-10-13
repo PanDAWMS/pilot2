@@ -8,6 +8,7 @@
 
     Authors:
      - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
+     - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 Components
 ==========
@@ -15,4 +16,12 @@ Components
 .. toctree::
     :maxdepth: 2
 
+    api/index
+    common/index
+    control/index
+    copytool/index
     util/index
+    workflow/index
+
+
+

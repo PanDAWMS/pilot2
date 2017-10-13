@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import functools
 import Queue
@@ -68,12 +68,9 @@ def run(args):
     queues.failed_data_out = Queue.Queue()
 
     logger.info('setting up tracing')
-
-    traces = namedtuple('traces', ['pilot',
-                                   'rucio'])  # don't call this rucio? not all pilot2 users will use rucio (PN)
+    traces = namedtuple('traces', ['pilot'])
     traces.pilot = {'state': SUCCESS,
                     'nr_jobs': 0}
-    traces.rucio = {}  # don't call this rucio? not all pilot2 users will use rucio (PN)
 
     logger.info('starting threads')
 

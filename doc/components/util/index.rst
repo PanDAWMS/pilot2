@@ -8,12 +8,24 @@
 
     Authors:
      - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
+     - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-Util components
+util components
 ===============
 
 .. toctree::
     :maxdepth: 2
 
+    config
+    constants
+    container
+    disk
+    filehandling
     https
+    information
+    parameters
+    proxy
+    workernode
+
+
 

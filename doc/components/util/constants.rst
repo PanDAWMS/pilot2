@@ -1,5 +1,5 @@
 ..
-    Pilot 2 pilot.util.https doc file
+    Pilot 2 pilot.util.constants doc file
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -7,13 +7,13 @@
     http://www.apache.org/licenses/LICENSE-2.0
 
     Authors:
-     - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
+     - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-https
-=====
+constants
+=========
 
-.. automodule:: pilot.util.https
-    :members:
+.. automodule:: pilot.util.constants
+    :members: SUCCESS,FAILURE,ERRNO_NOJOBS
     :private-members:
     :special-members:
     :undoc-members:

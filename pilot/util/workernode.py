@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import os
 
@@ -23,8 +23,8 @@ def collect_workernode_info():
     :return: mem (float), cpu (float)
     """
 
-    mem = 0.
-    cpu = 0.
+    mem = 0.0
+    cpu = 0.0
 
     try:
         with open("/proc/meminfo", "r") as fd:

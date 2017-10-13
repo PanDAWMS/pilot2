@@ -13,6 +13,7 @@ import argparse
 import logging
 import sys
 import threading
+import time
 from os import getcwd, chdir
 
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
@@ -22,7 +23,7 @@ from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 # from pilot.util.parameters imporget_maximum_input_sizes
 
-VERSION = '2017-09-19.001'
+VERSION = '2017-10-12.001'
 
 
 def main():
@@ -48,6 +49,10 @@ def main():
     return workflow.run(args)
 
 
+def import_module(workflow=None, user=None):
+    pass
+
+
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()
 
@@ -62,7 +67,7 @@ if __name__ == '__main__':
                             dest='debug',
                             action='store_true',
                             default=False,
-                            help='Enable debug logging messages')
+                            help='Enable debug mode for logging messages')
 
     # the choices must match in name the python module in pilot/workflow/
     arg_parser.add_argument('-w',
@@ -81,11 +86,15 @@ if __name__ == '__main__':
                             type=int,
                             help='Pilot lifetime seconds (default: 3600 s)')
 
-    # set the appropriate site and queue
+    # set the appropriate site, resource and queue
     arg_parser.add_argument('-q',
                             dest='queue',
                             required=True,
                             help='MANDATORY: queue name (e.g., AGLT2_TEST-condor')
+    arg_parser.add_argument('-r',
+                            dest='resource',
+                            required=True,  # it is needed by the dispatcher (only)
+                            help='MANDATORY: resource name (e.g., AGLT2_TEST')
     arg_parser.add_argument('-s',
                             dest='site',
                             required=True,  # it is needed by the dispatcher (only)
@@ -127,34 +136,34 @@ if __name__ == '__main__':
                             metavar='path/to/pilot.cfg')
 
     # Country group
-    arg_parser.add_argument('--countrygroup',
-                            dest='countrygroup',
+    arg_parser.add_argument('--country-group',
+                            dest='country_group',
                             default='',
                             help='Country group option for getjob request')
 
     # Working group
-    arg_parser.add_argument('--workinggroup',
-                            dest='workinggroup',
+    arg_parser.add_argument('--working-group',
+                            dest='working_group',
                             default='',
                             help='Working group option for getjob request')
 
     # Allow other country
-    arg_parser.add_argument('--allowothercountry',
-                            dest='allowothercountry',
+    arg_parser.add_argument('--allow-other-country',
+                            dest='allow_other_country',
                             type=bool,
                             default=False,
                             help='Is the resource allowed to be used outside the privileged group?')
 
     # Allow same user
-    arg_parser.add_argument('--allowsameuser',
-                            dest='allowsameuser',
+    arg_parser.add_argument('--allow-same-user',
+                            dest='allow_same_user',
                             type=bool,
                             default=True,
                             help='Multi-jobs will only come from same taskID (and thus same user)')
 
     # Experiment
-    arg_parser.add_argument('--pilotuser',
-                            dest='pilotuser',
+    arg_parser.add_argument('--pilot-user',
+                            dest='pilot_user',
                             default='',
                             required=True,
                             help='Pilot user, e.g. name of experiment')
@@ -179,6 +188,7 @@ if __name__ == '__main__':
     if args.debug:
         logging.basicConfig(filename='pilotlog.txt', level=logging.DEBUG,
                             format='%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-32s | %(message)s')
+        logging.Formatter.converter = time.gmtime
         console.setLevel(logging.DEBUG)
         console.setFormatter(logging.Formatter('%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-32s | %(message)s'))
     else:

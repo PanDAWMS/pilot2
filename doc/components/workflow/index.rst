@@ -1,5 +1,5 @@
 ..
-    Pilot 2 pilot.util.https doc file
+    Pilot 2 documentation pilot.workflow index
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -8,12 +8,12 @@
 
     Authors:
      - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
+     - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-https
-=====
+workflow components
+===================
 
-.. automodule:: pilot.util.https
-    :members:
-    :private-members:
-    :special-members:
-    :undoc-members:
+.. toctree::
+    :maxdepth: 2
+
+    generic

@@ -4,7 +4,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Giampaolo Rodola, g.rodola@gmail.com
+# - Giampaolo Rodola, g.rodola@gmail.com, 2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 
 import os

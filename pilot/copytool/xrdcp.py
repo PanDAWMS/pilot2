@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import re
 import subprocess
@@ -20,7 +21,7 @@ def copy_in(files):
     """
     Tries to download the given files using xrdcp directly.
 
-    :param files Files to download
+    :param files: Files to download
 
     :raises Exception
     """
@@ -71,7 +72,7 @@ def copy_in(files):
                       'xrdcp', '-f']
         for lfn in destinations[dst]['lfns']:
             if lfn not in lfns_with_pfns:
-                raise Exception('The given LFNs %s wasnt returned by Rucio!' % lfn)
+                raise Exception('The given LFNs %s were not returned by Rucio!' % lfn)
             executable.append(lfns_with_pfns[lfn][0])
 
         executable.append(dst)

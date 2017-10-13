@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import Queue
 import os
@@ -212,24 +212,28 @@ def get_dispatcher_dictionary(args):
     _nodename = get_node_name()
 
     data = {
-        'siteName': args.location.site,
+        'siteName': args.resource,
         'computingElement': args.location.queue,
         'prodSourceLabel': args.job_label,
         'diskSpace': _diskspace,
-        'workingGroup': args.workinggroup,
-        'countryGroup': args.countrygroup,
-        'allowOtherCountry': args.allowothercountry,
+        'workingGroup': args.working_group,
         'cpu': _cpu,
         'mem': _mem,
         'node': _nodename
     }
+
+    if args.allow_other_country != "":
+        data['allowOtherCountry'] = args.allow_other_country
+
+    if args.country_group != "":
+        data['countryGroup'] = args.country_group
 
     if args.job_label == 'self':
         dn = get_distinguished_name()
         data['prodUserID'] = dn
 
     taskid = get_task_id()
-    if taskid != "" and args.allowsameuser:
+    if taskid != "" and args.allow_same_user:
         data['taskID'] = taskid
         logger.info("will download a new job belonging to task id: %s" % (data['taskID']))
 
@@ -247,7 +251,7 @@ def retrieve(queues, traces, args):
     it in the `queues.jobs` queue.
 
     :param queues: internal queues for job handling.
-    :param traces: tuple containing internal pilot and rucio states.
+    :param traces: tuple containing internal pilot states.
     :param args: arguments (e.g. containing queue name, queuedata dictionary, etc).
     """
 
@@ -271,6 +275,13 @@ def retrieve(queues, traces, args):
         # logger.debug('data=%s'%str(data))
         # res = https.request(cmd, data=data)
 
+        getjob_requests += 1
+        if getjob_requests > int(config.Pilot.maximum_getjob_requests):
+            logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' %
+                           config.Pilot.maximum_getjob_requests)
+            args.graceful_stop.set()
+            break
+
         if args.url != "":
             url = args.url + ':' + str(args.port)  # args.port is always set
         else:
@@ -286,7 +297,7 @@ def retrieve(queues, traces, args):
         cmd = '{pandaserver}/server/panda/getJob'.format(pandaserver=url)
         logger.info('executing server command: %s' % cmd)
         res = https.request(cmd, data=data)
-
+        logger.info("job = %s" % str(res))
         if res is None:
             logger.warning('did not get a job -- sleep 60s and repeat')
             for i in xrange(60):
@@ -307,8 +318,3 @@ def retrieve(queues, traces, args):
                     if args.graceful_stop.is_set():
                         break
                     time.sleep(1)
-
-        getjob_requests += 1
-        if getjob_requests == config.Pilot.maximum_getjob_requests:
-            logger.warning('reached maximum number of getjob requests (%d) -- will abort pilot' % getjob_requests)
-            args.graceful_stop.set()
