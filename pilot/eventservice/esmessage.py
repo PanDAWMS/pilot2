@@ -11,6 +11,9 @@ import threading
 import time
 import traceback
 
+from pilot.common.exception import PilotException, MessageFailure
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -32,16 +35,14 @@ class MessageThread(threading.Thread):
         try:
             import yampl
         except:
-            # TODO: raise SetupException("Failed to import yampl.")
-            raise Exception("Failed to import yampl.")
+            raise MessageFailure("Failed to import yampl.")
         logger.info('finished to import yampl')
 
         logger.info('start to setup yampl server socket.')
         try:
             self.__message_server = yampl.ServerSocket(socket_name, context)
         except Exception as e:
-            # TODO: raise SetupException("Failed to setup yampl server socket.")
-            raise Exception("Failed to setup yampl server socket: %s %s" % (e, traceback.print_exc()))
+            raise MessageFailure("Failed to setup yampl server socket: %s %s" % (e, traceback.print_exc()))
         logger.info('finished to setup yampl server socket.')
 
     def send(self, message):
@@ -55,7 +56,7 @@ class MessageThread(threading.Thread):
         try:
             self.__message_server.send_raw(message)
         except Exception as e:
-            raise e
+            raise MessageFailure(e)
 
     def stop(self):
         """
@@ -92,7 +93,9 @@ class MessageThread(threading.Thread):
                     time.sleep(0.00001)
                 else:
                     self.__message_queue.put(buf)
+        except PilotException as e:
+            raise e
         except Exception as e:
             self.terminate()
-            raise e
+            raise MessageFailure(e)
         logger.info('Message thread finished.')

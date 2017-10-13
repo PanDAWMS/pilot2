@@ -15,6 +15,7 @@ import signal
 import subprocess
 import time
 
+from pilot.common.exception import PilotException, MessageFailure, SetupFailure, RunPayloadFailure, UnKnownException
 from pilot.eventservice.esmessage import MessageThread
 
 
@@ -48,10 +49,11 @@ class ESProcess():
         try:
             self.__message_thread = MessageThread(self.__message_queue, socketname, context)
             self.__message_thread.start()
+        except PilotException as e:
+            logger.error("Failed to start message thread: %s" % e.get_detail())
         except Exception as e:
             logger.error("Failed to start message thread: %s" % str(e))
-            # TODO: raise exceptions
-            raise e
+            raise MessageFailure(e)
         logger.info("finished to init message thread")
 
     def init_payload_process(self):
@@ -68,7 +70,7 @@ class ESProcess():
                 if not os.path.exists(workdir):
                     os.makedirs(workdir)
                 elif not os.path.isdir(workdir):
-                    raise Exception('Workdir exists but it is not a directory.')
+                    raise SetupFailure('Workdir exists but it is not a directory.')
                 executable = 'cd %s; %s' % (workdir, executable)
             output_file = self.__payload['output_file'] if 'output_file' in self.__payload else os.path.join(workdir, "ES_payload_output.txt")
             error_file = self.__payload['error_file'] if 'error_file' in self.__payload else os.path.join(workdir, "ES_payload_error.txt")
@@ -76,9 +78,11 @@ class ESProcess():
             error_file_fd = open(error_file, 'w')
             self.__process = subprocess.Popen(executable, stdout=output_file_fd, stderr=error_file_fd, shell=True)
             logger.debug("Started new processs(executable: %s, stdout: %s, stderr: %s, pid: %s)" % (executable, output_file, error_file, self.__process.pid))
+        except PilotException as e:
+            logger.error("Failed to start payload process: %s" % e.get_detail())
         except Exception as e:
             logger.error("Failed to start payload process: %s" % str(e))
-            raise e
+            raise SetupFailure(e)
         logger.info("finished to init payload process")
 
     def set_get_event_ranges_hook(self, hook):
@@ -137,14 +141,14 @@ class ESProcess():
             logger.info('monitor is checking dead process.')
 
         if self.__message_thread is None:
-            raise Exception("Message thread has not start.")
+            raise MessageFailure("Message thread has not start.")
         if not self.__message_thread.is_alive():
-            raise Exception("Message thread is not alive.")
+            raise MessageFailure("Message thread is not alive.")
 
         if self.__process is None:
-            raise Exception("Payload Process has not start.")
+            raise RunPayloadFailure("Payload Process has not start.")
         if self.__process.poll() is not None:
-            raise Exception("Payload process is not alive: %s" % self.__process.poll())
+            raise RunPayloadFailure("Payload process is not alive: %s" % self.__process.poll())
 
     def get_event_ranges(self, num_ranges=1):
         """
@@ -153,7 +157,7 @@ class ESProcess():
 
         logger.debug('getting event ranges(num_ranges=%s)' % num_ranges)
         if not self.get_event_ranges_hook:
-            raise Exception("get_event_ranges_hook is not set")
+            raise SetupFailure("get_event_ranges_hook is not set")
 
         try:
             logger.debug('calling get_event_ranges hook(%s) to get event ranges.' % self.get_event_ranges_hook)
@@ -161,7 +165,7 @@ class ESProcess():
             logger.debug('got event ranges: %s' % event_ranges)
             return event_ranges
         except:
-            raise Exception("Failed to get event ranges.")
+            raise MessageFailure("Failed to get event ranges.")
 
     def send_event_ranges_to_payload(self, event_ranges):
         """
@@ -218,10 +222,11 @@ class ESProcess():
                     ret = {'id': event_range_id, 'status': 'failed', 'message': message}
                     return ret
             else:
-                # TODO: log unknow messages.
-                raise Exception("Unknown message %s" % message)
-        except Exception as e:
+                raise UnKnownException("Unknown message %s" % message)
+        except PilotException as e:
             raise e
+        except Exception as e:
+            raise UnKnownException(e)
 
     def handle_out_message(self, message):
         """
@@ -231,7 +236,7 @@ class ESProcess():
 
         logger.debug('handling out message: %s' % message)
         if not self.handle_out_message_hook:
-            raise Exception("handle_out_message_hook is not set")
+            raise SetupFailure("handle_out_message_hook is not set")
 
         try:
             message_status = self.parse_out_message(message)
@@ -239,7 +244,7 @@ class ESProcess():
             logger.debug('calling handle_out_message hook(%s) to handle parsed message.' % self.handle_out_message_hook)
             self.handle_out_message_hook(message_status)
         except Exception as e:
-            raise Exception("Failed to handle out message: %s" % e)
+            raise RunPayloadFailure("Failed to handle out message: %s" % e)
 
     def handle_messages(self):
         """
@@ -290,7 +295,7 @@ class ESProcess():
                         os.killpg(pgid, signal.SIGKILL)
         except Exception as e:
             logger.error('Exception caught when terminating ESProcess: %s' % e)
-            raise e
+            raise UnKnownException(e)
 
     def run(self):
         """
@@ -307,6 +312,9 @@ class ESProcess():
                 self.monitor()
                 self.handle_messages()
                 time.sleep(1)
+            except PilotException as e:
+                logger.error('Exception caught in the main loop: %s' % e.get_detail())
+                # TODO: define output message exception. If caught 3 output message exception, terminate
             except Exception as e:
                 logger.error('Exception caught in the main loop: %s' % e)
                 # TODO: catch and raise exceptions
