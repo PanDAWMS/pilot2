@@ -66,54 +66,54 @@ class UnKnownException(PilotException):
     """
     def __init__(self, *args, **kwargs):
         super(UnKnownException, self).__init__(args, kwargs)
-        self._message = "An unknown pilot exception occurred."
+        self._message = "An unknown pilot exception has occurred."
 
 
 class NoLocalSpace(PilotException):
     """
-    Local space is not enough
+    Not enough local space
     """
     def __init__(self, *args, **kwargs):
         super(NoLocalSpace, self).__init__(args, kwargs)
         self._errorCode = 1098
-        self._message = "Local space is not enough."
+        self._message = "Not enough local space."
 
 
 class StageInFailure(PilotException):
     """
-    Fail to stagein inputs
+    Failed to stage-in input files
     """
     def __init__(self, *args, **kwargs):
         super(StageInFailure, self).__init__(args, kwargs)
         self._errorCode = 1099
-        self._message = "Fail to stagein inputs."
+        self._message = "Failed to stage-in input files."
 
 
 class StageOutFailure(PilotException):
     """
-    Fail to stageout outputs
+    Failed to stage-out output files
     """
     def __init__(self, *args, **kwargs):
         super(StageOutFailure, self).__init__(args, kwargs)
         self._errorCode = 1137
-        self._message = "Fail to stageout outputs."
+        self._message = "Failed to stage-out output files."
 
 
 class SetupFailure(PilotException):
     """
-    Fail to setup environment
+    Failed to setup environment
     """
     def __init__(self, *args, **kwargs):
         super(SetupFailure, self).__init__(args, kwargs)
         self._errorCode = 1110
-        self._message = "Fail to setup environment."
+        self._message = "Failed to setup environment."
 
 
 class RunPayloadFailure(PilotException):
     """
-    Fail to run payload.
+    Failed to execute payload.
     """
     def __init__(self, *args, **kwargs):
         super(RunPayloadFailure, self).__init__(args, kwargs)
         self._errorCode = 1111
-        self._message = "Fail to run payload."
+        self._message = "Failed to execute payload."
