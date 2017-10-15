@@ -10,9 +10,13 @@
 
 import logging
 import sys
-import unittest
 
 from pilot.common.exception import RunPayloadFailure, PilotException
+
+if sys.version_info < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
