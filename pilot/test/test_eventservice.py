@@ -16,12 +16,16 @@ import subprocess
 import sys
 import threading
 import time
-import unittest
 
 from pilot.eventservice.eshook import ESHook
 from pilot.eventservice.esmanager import ESManager
 from pilot.eventservice.esmessage import MessageThread
 from pilot.eventservice.esprocess import ESProcess
+
+if sys.version_info < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
