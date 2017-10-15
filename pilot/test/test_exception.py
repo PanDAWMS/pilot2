@@ -22,7 +22,7 @@ class TestException(unittest.TestCase):
     Unit tests for exceptions.
     """
 
-    def test_RunPayloadFailure(self):
+    def test_run_payload_failure(self):
         """
         Make sure that es message thread works as expected.
         """

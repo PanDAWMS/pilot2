@@ -164,8 +164,8 @@ class ESProcess():
             event_ranges = self.get_event_ranges_hook(num_ranges)
             logger.debug('got event ranges: %s' % event_ranges)
             return event_ranges
-        except:
-            raise MessageFailure("Failed to get event ranges.")
+        except Exception as e:
+            raise MessageFailure("Failed to get event ranges: %s" % e)
 
     def send_event_ranges_to_payload(self, event_ranges):
         """

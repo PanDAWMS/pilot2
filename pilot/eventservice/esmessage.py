@@ -34,8 +34,8 @@ class MessageThread(threading.Thread):
         logger.info('try to import yampl')
         try:
             import yampl
-        except:
-            raise MessageFailure("Failed to import yampl.")
+        except Exception as e:
+            raise MessageFailure("Failed to import yampl: %s" % e)
         logger.info('finished to import yampl')
 
         logger.info('start to setup yampl server socket.')

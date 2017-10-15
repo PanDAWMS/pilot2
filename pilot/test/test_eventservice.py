@@ -103,18 +103,18 @@ class TestESMessageThread(unittest.TestCase):
         Make sure that es message thread works as expected.
         """
         queue = Queue.Queue()
-        msgThread = MessageThread(queue, socket_name='test', context='local')
-        self.assertIsInstance(msgThread, threading.Thread)
+        msg_thread = MessageThread(queue, socket_name='test', context='local')
+        self.assertIsInstance(msg_thread, threading.Thread)
 
-        msgThread.start()
+        msg_thread.start()
         time.sleep(1)
-        self.assertTrue(msgThread.is_alive())
+        self.assertTrue(msg_thread.is_alive())
 
-        msgThread.send('test')
-        msgThread.stop()
-        self.assertTrue(msgThread.stopped())
+        msg_thread.send('test')
+        msg_thread.stop()
+        self.assertTrue(msg_thread.stopped())
         time.sleep(1)
-        self.assertFalse(msgThread.is_alive())
+        self.assertFalse(msg_thread.is_alive())
 
 
 class TestESProcess(unittest.TestCase):
@@ -124,24 +124,24 @@ class TestESProcess(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls._testHook = TestESHook()
-        cls._esProcess = ESProcess(cls._testHook.get_payload())
+        cls._test_hook = TestESHook()
+        cls._esProcess = ESProcess(cls._test_hook.get_payload())
 
     def test_set_get_event_ranges_hook(self):
         """
         Make sure that no exceptions to set get_event_ranges hook.
         """
 
-        self._esProcess.set_get_event_ranges_hook(self._testHook.get_event_ranges)
-        self.assertEqual(self._testHook.get_event_ranges, self._esProcess.get_get_event_ranges_hook())
+        self._esProcess.set_get_event_ranges_hook(self._test_hook.get_event_ranges)
+        self.assertEqual(self._test_hook.get_event_ranges, self._esProcess.get_get_event_ranges_hook())
 
     def test_set_handle_out_message_hook(self):
         """
         Make sure that no exceptions to set handle_out_message hook.
         """
 
-        self._esProcess.set_handle_out_message_hook(self._testHook.handle_out_message)
-        self.assertEqual(self._testHook.handle_out_message, self._esProcess.get_handle_out_message_hook())
+        self._esProcess.set_handle_out_message_hook(self._test_hook.handle_out_message)
+        self.assertEqual(self._test_hook.handle_out_message, self._esProcess.get_handle_out_message_hook())
 
     def test_parse_out_message(self):
         """
@@ -174,20 +174,20 @@ class TestEventService(unittest.TestCase):
         """
         Make sure that no exceptions to init ESManager
         """
-        testHook = TestESHook()
-        esManager = ESManager(testHook)
-        self.assertIsInstance(esManager, ESManager)
+        test_hook = TestESHook()
+        es_manager = ESManager(test_hook)
+        self.assertIsInstance(es_manager, ESManager)
 
     @unittest.skipIf(not check_env(), "No CVMFS")
     def test_run_es(self):
         """
         Make sure that ES produced all events that injected.
         """
-        testHook = TestESHook()
-        esManager = ESManager(testHook)
-        esManager.run()
-        injected_event = testHook.get_injected_event_ranges()
-        outputs = testHook.get_outputs()
+        test_hook = TestESHook()
+        es_manager = ESManager(test_hook)
+        es_manager.run()
+        injected_event = test_hook.get_injected_event_ranges()
+        outputs = test_hook.get_outputs()
 
         self.assertEqual(len(injected_event), len(outputs))
         self.assertNotEqual(len(outputs), 0)
