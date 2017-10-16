@@ -163,7 +163,7 @@ if __name__ == '__main__':
     # Experiment
     arg_parser.add_argument('--pilot-user',
                             dest='pilot_user',
-                            default='',
+                            default='generic',
                             required=True,
                             help='Pilot user, e.g. name of experiment')
 
