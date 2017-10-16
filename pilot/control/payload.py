@@ -121,11 +121,11 @@ def run_payload(job, out, err):
     """
     log = logger.getChild(str(job['PandaID']))
 
+    # get the payload command from the user specific code
+    # cmd = get_payload_command(job)
     athena_version = job['homepackage'].split('/')[1]
-
     asetup = 'source $ATLAS_LOCAL_ROOT_BASE/user/atlasLocalSetup.sh --quiet; '\
              'source $AtlasSetup/scripts/asetup.sh %s,here; ' % athena_version
-
     cmd = job['transformation'] + ' ' + job['jobPars']
 
     log.debug('executable=%s' % asetup + cmd)
