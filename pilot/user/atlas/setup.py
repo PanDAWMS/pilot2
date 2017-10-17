@@ -9,6 +9,8 @@
 
 import os
 
+from pilot.util.information import get_parameter
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -67,4 +69,23 @@ def is_user_analysis_job(trf):
 
     return analysisjob
 
+
+def get_cmtconfig(jobcmtconfig, queuedata):
+    """
+    Get the cmtconfig from the job def or schedconfig
+
+    :param jobcmtconfig: platform information from the job definition (string).
+    :param queuedata: the queuedata dictionary from schedconfig.
+    :return: chosen platform (string).
+    """
+
+    # the job def should always contain the cmtconfig
+    if jobcmtconfig != "" and jobcmtconfig != "None" and jobcmtconfig != "NULL":
+        cmtconfig = jobcmtconfig
+        tolog("Will try to use cmtconfig: %s (from job definition)" % (cmtconfig))
+    else:
+        cmtconfig = get_parameter(queuedata, 'cmtconfig')
+        tolog("Will try to use cmtconfig: %s (from schedconfig DB)" % (cmtconfig))
+
+    return cmtconfig
 
