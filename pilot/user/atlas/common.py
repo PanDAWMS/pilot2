@@ -8,13 +8,13 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 from pilot.common.exception import PilotException
-from pilot.user.atlas.setup import should_pilot_prepare_asetup
+from pilot.user.atlas.setup import should_pilot_prepare_asetup, is_user_analysis_job, get_cmtconfig
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-def get_payload_command(job):
+def get_payload_command(job, queuedata):
     """
     Return the full command for execuring the payload, including the sourcing of all setup files and setting of
     environment variables.
@@ -27,6 +27,9 @@ def get_payload_command(job):
     prepareASetup = should_pilot_prepare_asetup(job.noExecStrCnv, job.jobPars)
 
     # Is it a user job or not?
-    analysisJob = isAnalysisJob(job.trf)
+    analysisJob = is_user_analysis_job(job.trf)
+
+    # Get the cmtconfig value
+    cmtconfig = get_cmtconfig(job.cmtconfig, queuedata)
 
     return ""
