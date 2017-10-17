@@ -25,6 +25,13 @@ class MessageThread(threading.Thread):
     def __init__(self, message_queue, socket_name='EventService_EventRanges', context='local', **kwds):
         """
         Initialize yampl server socket.
+
+        :param message_queue: a queue to transfer messages between current instance and ESProcess.
+        :param socket_name: name of the socket between current process and payload.
+        :param context: name of the context between current process and payload, default is 'local'.
+        :param **kwds: other parameters.
+
+        :raises MessageFailure: when failed to setup message socket.
         """
 
         threading.Thread.__init__(self, **kwds)
@@ -50,7 +57,8 @@ class MessageThread(threading.Thread):
         Send messages to payload through yampl server socket.
 
         :param message: String of the message.
-        :raises TODO:
+
+        :raises MessageFailure: When failed to send a message to the payload.
         """
         logger.debug('Send a message to yampl: %s' % message)
         try:
@@ -74,13 +82,17 @@ class MessageThread(threading.Thread):
         return self._stop.isSet()
 
     def terminate(self):
+        """
+        Terminate message server.
+        """
         logger.info('terminate message thread')
         del self.__message_server
         self.__message_server = None
 
     def run(self):
         """
-        Main thread loop to receive messages from payload.
+        Main thread loop to poll messages from payload and
+        put received into message queue for other processes to fetch.
         """
         logger.info('Message thread starts to run.')
         try:

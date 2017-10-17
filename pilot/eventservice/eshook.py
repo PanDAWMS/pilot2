@@ -15,20 +15,25 @@ Hooks for EventService.
 class ESHook:
     def get_payload(self):
         """
-        returns: dict {'payload': <cmd string>, 'output_file': <filename or without it>, 'error_file': <filename or without it>}
+        Get payload to execute.
+
+        :returns: dict {'payload': <cmd string>, 'output_file': <filename or without it>, 'error_file': <filename or without it>}
         """
         raise Exception("Not Implemented")
 
     def get_event_ranges(self, num_ranges=1):
         """
-        returns: dict of event ranges.
+        Get event ranges.
+
+        :param num_ranges: Number of event ranges to download, default is 1.
+        :returns: dict of event ranges.
                  None if no available events.
         """
         raise Exception("Not Implemented")
 
     def handle_out_message(self, message):
         """
-        Handle ES out message.
+        Handle ES output or error message.
 
         :param message: a dict of parsed message.
                         For 'finished' event ranges, it's {'id': <id>, 'status': 'finished', 'output': <output>, 'cpu': <cpu>,

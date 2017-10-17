@@ -21,12 +21,23 @@ from pilot.eventservice.esmessage import MessageThread
 
 logger = logging.getLogger(__name__)
 
+"""
+Main process to handle event service.
+It makes use of two hooks get_event_ranges_hook and handle_out_message_hook to communicate with other processes when
+it's running. The process will handle the logic of Event service independently.
+"""
+
 
 class ESProcess():
     """
     Main EventService Process.
     """
     def __init__(self, payload):
+        """
+        Init ESProcess.
+
+        :param payload: a dict of {'payload': <cmd string>, 'output_file': <filename or without it>, 'error_file': <filename or without it>}
+        """
         self.__message_queue = Queue.Queue()
         self.__payload = payload
 
@@ -43,6 +54,11 @@ class ESProcess():
     def init_message_thread(self, socketname='EventService_EventRanges', context='local'):
         """
         init message thread.
+
+        :param socket_name: name of the socket between current process and payload.
+        :param context: name of the context between current process and payload, default is 'local'.
+
+        :raises MessageFailure: when failed to init message thread.
         """
 
         logger.info("start to init message thread")
@@ -59,6 +75,8 @@ class ESProcess():
     def init_payload_process(self):
         """
         init payload process.
+
+        :raise SetupFailure: when failed to init payload process.
         """
 
         logger.info("start to init payload process")
@@ -88,6 +106,8 @@ class ESProcess():
     def set_get_event_ranges_hook(self, hook):
         """
         set get_event_ranges hook.
+
+        :param hook: a hook method to get event ranges.
         """
 
         self.get_event_ranges_hook = hook
@@ -95,6 +115,8 @@ class ESProcess():
     def get_get_event_ranges_hook(self):
         """
         get get_event_ranges hook.
+
+        :returns: The hook method to get event ranges.
         """
 
         return self.get_event_ranges_hook
@@ -102,6 +124,8 @@ class ESProcess():
     def set_handle_out_message_hook(self, hook):
         """
         set handle_out_message hook.
+
+        :param hook: a hook method to handle payload output and error messages.
         """
 
         self.handle_out_message_hook = hook
@@ -109,13 +133,15 @@ class ESProcess():
     def get_handle_out_message_hook(self):
         """
         get handle_out_message hook.
+
+        :returns: The hook method to handle payload output and error messages.
         """
 
         return self.handle_out_message_hook
 
     def init(self):
         """
-        initialization.
+        initialize message thread and payload process.
         """
 
         try:
@@ -129,7 +155,8 @@ class ESProcess():
         """
         Monitor whether a process is dead.
 
-        raises: # TODO define different exceptions.
+        raises: MessageFailure: when the message thread is dead or exited.
+                RunPayloadFailure: when the payload process is dead or exited.
         """
 
         if self.__no_more_event_time and time.time() - self.__no_more_event_time > self.__waiting_time:
@@ -152,7 +179,12 @@ class ESProcess():
 
     def get_event_ranges(self, num_ranges=1):
         """
-        Get event ranges: get_event_ranges hook is called.
+        Calling get_event_ranges hook to get event ranges.
+
+        :param num_ranges: number of event ranges to get.
+
+        :raises: SetupFailure: If get_event_ranges_hook is not set.
+                 MessageFailure: when failed to get event ranges.
         """
 
         logger.debug('getting event ranges(num_ranges=%s)' % num_ranges)
@@ -170,6 +202,8 @@ class ESProcess():
     def send_event_ranges_to_payload(self, event_ranges):
         """
         Send event ranges to payload through message thread.
+
+        :param event_ranges: list of event ranges.
         """
 
         msg = None
@@ -187,7 +221,11 @@ class ESProcess():
         """
         Parse output or error messages from payload.
 
+        :param message: The message string received from payload.
+
         :returns: a dict {'id': <id>, 'status': <status>, 'output': <output if produced>, 'cpu': <cpu>, 'wall': <wall>, 'message': <full message>}
+        :raises: PilotExecption: when a PilotException is caught.
+                 UnKnownException: when other unknown exception is caught.
         """
 
         logger.debug('parsing message: %s' % message)
@@ -232,6 +270,11 @@ class ESProcess():
         """
         Handle output or error messages from payload.
         Messages from payload will be parsed and the handle_out_message hook is called.
+
+        :param message: The message string received from payload.
+
+        :raises: SetupFailure: when handle_out_message_hook is not set.
+                 RunPayloadFailure: when failed to handle an output or error message.
         """
 
         logger.debug('handling out message: %s' % message)
@@ -268,6 +311,11 @@ class ESProcess():
     def terminate(self, time_to_wait=30):
         """
         Terminate running threads and processes.
+
+        :param time_to_wait: integer, seconds to wait to force kill the payload process.
+
+        :raises: PilotExecption: when a PilotException is caught.
+                 UnKnownException: when other unknown exception is caught.
         """
         logger.info('terminate running threads and processes.')
         try:
@@ -299,7 +347,11 @@ class ESProcess():
 
     def run(self):
         """
-        Main run loops.
+        Main run loops: monitor message thread and payload process.
+                        handle messages from payload and response messages with injecting new event ranges or process outputs.
+
+        :raises: PilotExecption: when a PilotException is caught.
+                 UnKnownException: when other unknown exception is caught.
         """
 
         logger.debug('initializing.')

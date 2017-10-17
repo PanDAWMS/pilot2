@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -6,7 +5,6 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2017
-
 
 import json
 import logging
@@ -31,6 +29,12 @@ logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
 
 def check_env():
+    """
+    Function to check whether cvmfs is available.
+    To be used to decide whether to skip some test functions.
+
+    :returns True: if cvmfs is available. Otherwise False.
+    """
     return os.path.exists('/cvmfs/atlas.cern.ch/repo/')
 
 
@@ -40,6 +44,10 @@ class TestESHook(ESHook):
     """
 
     def __init__(self):
+        """
+        Init the hook class for tests: Read payload and event ranges from a file.
+                                       Download evgen files which are needed to run payload.
+        """
         with open('pilot/test/resource/eventservice_job.txt') as job_file:
             job = json.load(job_file)
             self.__payload = job['payload']
@@ -58,15 +66,19 @@ class TestESHook(ESHook):
 
     def get_payload(self):
         """
-        returns: dict {'payload': <cmd string>, 'output_file': <filename or without it>, 'error_file': <filename or without it>}
+        Get payload hook function for tests.
+
+        :returns: dict {'payload': <cmd string>, 'output_file': <filename or without it>, 'error_file': <filename or without it>}
         """
 
         return self.__payload
 
     def get_event_ranges(self, num_ranges=1):
         """
-        returns: dict of event ranges.
-                 None if no available events.
+        Get event ranges hook function for tests.
+
+        :returns: dict of event ranges.
+                  None if no available events.
         """
         ret = []
         for _ in range(num_ranges):
@@ -78,7 +90,7 @@ class TestESHook(ESHook):
 
     def handle_out_message(self, message):
         """
-        Handle ES out message.
+        Handle ES output or error messages hook function for tests.
 
         :param message: a dict of parsed message.
                         For 'finished' event ranges, it's {'id': <id>, 'status': 'finished', 'output': <output>, 'cpu': <cpu>,
@@ -90,9 +102,19 @@ class TestESHook(ESHook):
         self.__outputs.append(message)
 
     def get_injected_event_ranges(self):
+        """
+        Get event ranges injected to payload for test assertion.
+
+        :returns: List of injected event ranges.
+        """
         return self.__injected_event_ranges
 
     def get_outputs(self):
+        """
+        Get outputs for test assertion.
+
+        :returns: List of outputs.
+        """
         return self.__outputs
 
 

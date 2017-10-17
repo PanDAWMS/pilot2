@@ -14,9 +14,18 @@ from pilot.eventservice.eshook import ESHook
 
 logger = logging.getLogger(__name__)
 
+"""
+ES manager to setup and run ESProcess.
+"""
+
 
 class ESManager:
     def __init__(self, hook):
+        """
+        Initialization: setup ES hooks.
+
+        :param hook: an instance of ESHook.
+        """
         logger.info('initializing hooks')
         if not isinstance(hook, ESHook):
             raise Exception("hook(%s) is not instance of %s" % (hook, ESHook))
@@ -25,6 +34,10 @@ class ESManager:
         logger.info('initialized hooks')
 
     def run(self):
+        """
+        Initialize and run ESProcess.
+        """
+
         logger.debug('gettting payload')
         payload = self.__hook.get_payload()
         logger.debug('got payload: %s' % payload)
