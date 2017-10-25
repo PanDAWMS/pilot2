@@ -19,6 +19,7 @@ import hashlib
 import json
 import os
 import urllib2
+from datetime import datetime, timedelta
 
 from pilot.util.config import config
 from pilot.util.filehandling import write_json
@@ -158,7 +159,39 @@ def get_parameter(queuedata, field):
     return queuedata[field] if field in queuedata else None
 
 
-def loadURLData(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
+def is_file_expired(fname, cache_time=0):
+    """
+    Check if file fname older then cache_time seconds from its last_update_time.
+
+    :param fname:
+    :param cache_time:
+    :return:
+    """
+
+    if cache_time:
+        lastupdate = get_file_last_update_time(fname)
+        return not (lastupdate and datetime.now() - lastupdate < timedelta(seconds=cache_time))
+
+    return True
+
+
+def get_file_last_update_time(fname):
+    """
+    Return the last update time of the given file.
+
+    :param fname:
+    :return:
+    """
+
+    try:
+        lastupdate = datetime.fromtimestamp(os.stat(fname).st_mtime)
+    except OSError, e:
+        lastupdate = None
+
+    return lastupdate
+
+
+def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
     """
     Download data from url/file resource and optionally save it into cachefile fname,
     The file will not be (re-)loaded again if cache age from last file modification does not exceed "cache_time"
@@ -173,7 +206,7 @@ def loadURLData(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
     """
 
     content = None
-    if url and isFileExpired(fname, cache_time):  # load data into temporary cache file
+    if url and is_file_expired(fname, cache_time):  # load data into temporary cache file
         for trial in range(nretry):
             if content:
                 break
