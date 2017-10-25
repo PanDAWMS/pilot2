@@ -158,6 +158,64 @@ def get_parameter(queuedata, field):
     return queuedata[field] if field in queuedata else None
 
 
+def loadURLData(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
+    """
+    Download data from url/file resource and optionally save it into cachefile fname,
+    The file will not be (re-)loaded again if cache age from last file modification does not exceed "cache_time"
+    seconds.
+
+    :param url:
+    :param fname:
+    :param cache_time:
+    :param nretry:
+    :param sleeptime:
+    :return: data loaded from the url or file content if url passed is a filename
+    """
+
+    content = None
+    if url and isFileExpired(fname, cache_time):  # load data into temporary cache file
+        for trial in range(nretry):
+            if content:
+                break
+            try:
+                if os.path.isfile(url):
+                    # tolog('[attempt=%s] Loading data from file=%s' % (trial, url))
+                    f = open(url, "r")  # python 2.5 .. replace by 'with' statement (min python2.6??)
+                    content = f.read()
+                    f.close()
+                else:
+                    # tolog('[attempt=%s] Loading data from url=%s' % (trial, url))
+                    content = urllib2.urlopen(url, timeout=20).read()  # python2.6
+
+                if fname:  # save to cache
+                    f = open(fname, "w+")
+                    f.write(content)
+                    f.close()
+                    # tolog('Saved data from "%s" resource into file=%s, length=%.1fKb' % (
+                    # url, fname, len(content) / 1024.))
+                return content
+            except Exception, e:  # ignore errors, try to use old cache if any
+                # tolog("Failed to load data from url=%s, error: %s .. trying to use data from cache=%s" % (
+                # url, e, fname))
+                # will try to use old cache below
+                if trial < nretry - 1:
+                    # tolog("Will try again after %ss.." % sleeptime)
+                    from time import sleep
+                    sleep(sleeptime)
+
+    if content is not None:  # just loaded
+        return content
+
+    try:
+        with open(fname, 'r') as f:
+            content = f.read()
+    except Exception, e:
+        # tolog("loadURLData: Caught exception: %s" % e)
+        return None
+
+    return content
+
+
 def load_schedconfig_data(args, pandaqueues=[], cache_time=60):
     """
     Download the queuedata from various sources (prioritized).
@@ -176,9 +234,11 @@ def load_schedconfig_data(args, pandaqueues=[], cache_time=60):
     schedcond_sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_schedconf.json',
                                  'nretry': 1,
                                  'fname': os.path.join(base_dir, 'agis_schedconf.cvmfs.json')},
-                        'AGIS':  {'url':'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
+                        'AGIS':  {'url':'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json'
+                                        '&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
                                  'nretry':3,
-                                 'fname': os.path.join(base_dir, 'agis_schedconf.agis.%s.json' % ('_'.join(sorted(pandaqueues)) or 'ALL'))},
+                                 'fname': os.path.join(base_dir, 'agis_schedconf.agis.%s.json' % \
+                                                       ('_'.join(sorted(pandaqueues)) or 'ALL'))},
                         'PANDA' : None
     }
 
