@@ -33,6 +33,10 @@ def set_location(args, site=None):
     Resolve everything from the specified queue name, and fill extra lookup structure.
 
     If site is specified, return the site and storage information only.
+
+    :param args:
+    :param site:
+    :return:
     """
 
     args.location = collections.namedtuple('location', ['queue', 'site', 'storages', 'queuedata',
@@ -152,3 +156,53 @@ def _write_cache(url, j):
 
 def get_parameter(queuedata, field):
     return queuedata[field] if field in queuedata else None
+
+
+def load_schedconfig_data(args, pandaqueues=[], cache_time=60):
+    """
+    Download the queuedata from various sources (prioritized).
+    Try to get data from CVMFS first, then AGIS or from Panda JSON sources (not implemented).
+
+    :param args:
+    :param pandaqueues:
+    :param cache_time:
+    :return:
+    """
+
+    # list of sources to fetch ddmconf data from
+    base_dir = args.mainworkdir
+    pandaqueues = set(pandaqueues)
+
+    schedcond_sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_schedconf.json',
+                                 'nretry': 1,
+                                 'fname': os.path.join(base_dir, 'agis_schedconf.cvmfs.json')},
+                        'AGIS':  {'url':'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
+                                 'nretry':3,
+                                 'fname': os.path.join(base_dir, 'agis_schedconf.agis.%s.json' % ('_'.join(sorted(pandaqueues)) or 'ALL'))},
+                        'PANDA' : None
+    }
+
+    schedcond_sources_order = ['CVMFS', 'AGIS'] # can be moved into the schedconfig in order to configure workflow in AGIS on fly: TODO
+
+    for key in schedcond_sources_order:
+        dat = schedcond_sources.get(key)
+        if not dat:
+            continue
+
+        content = load_url_data(cache_time=cache_time, **dat)
+        if not content:
+            continue
+        try:
+            data = json.loads(content)
+        except Exception, e:
+            #tolog("!!WARNING: loadSchedConfData(): Failed to parse JSON content from source=%s .. skipped, error=%s" % (dat.get('url'), e))
+            data = None
+
+        if data and isinstance(data, dict):
+            if 'error' in data:
+                pass
+                #tolog("!!WARNING: loadSchedConfData(): skipped source=%s since response contains error: data=%s" % (dat.get('url'), data))
+            else: # valid response
+                return data
+
+    return None
