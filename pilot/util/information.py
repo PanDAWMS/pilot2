@@ -125,8 +125,7 @@ def set_location(args, site=None):
     logger.info('storages: %s' % args.location.storages)
     logger.info('queuedata: %s' % args.location.queuedata)
 
-    return True
-
+    return True..
 
 def retrieve_json(url):
     logger.debug('retrieving: %s' % url)
