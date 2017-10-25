@@ -114,7 +114,7 @@ def set_location(args, site=None):
     args.location.queuedata = retrieve_json(url)
 
     # also write the queuedata to disk
-    filename = os.path.joint(args.mainworkdir, config.Information.queuedata)
+    filename = os.path.join(args.mainworkdir, config.Information.queuedata)
     if not write_json(filename, args.location.queuedata):
         logger.warning("failed to write queuedata json to file")
     else:
