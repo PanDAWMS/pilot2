@@ -21,6 +21,8 @@ import os
 import urllib2
 
 from pilot.util.config import config
+from pilot.util.filehandling import write_json
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -105,6 +107,13 @@ def set_location(args, site=None):
             url += '/'
         url += args.location.queue + '.all.json'
     args.location.queuedata = retrieve_json(url)
+
+    # also write the queuedata to disk
+    filename = os.path.joint(args.mainworkdir, config.Information.queuedata)
+    if not write_json(filename, args.location.queuedata):
+        logger.warning("failed to write queuedata json to file")
+    else:
+        logger.info("wrote queuedata to local file %s" % filename)
 
     logger.info('queue: %s' % args.location.queue)
     logger.info('site: %s' % args.location.site)
