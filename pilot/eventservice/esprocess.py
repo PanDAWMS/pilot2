@@ -168,12 +168,12 @@ class ESProcess():
             logger.info('monitor is checking dead process.')
 
         if self.__message_thread is None:
-            raise MessageFailure("Message thread has not start.")
+            raise MessageFailure("Message thread has not started.")
         if not self.__message_thread.is_alive():
             raise MessageFailure("Message thread is not alive.")
 
         if self.__process is None:
-            raise RunPayloadFailure("Payload Process has not start.")
+            raise RunPayloadFailure("Payload Process has not started.")
         if self.__process.poll() is not None:
             raise RunPayloadFailure("Payload process is not alive: %s" % self.__process.poll())
 
