@@ -137,7 +137,7 @@ class FileHandlingFailure(PilotException):
     Failed during file handling.
     """
     def __init__(self, *args, **kwargs):
-        super(MessageFailure, self).__init__(args, kwargs)
+        super(FileHandlingFailure, self).__init__(args, kwargs)
         self._errorCode = 1999
         self._message = "Failed during file handling."
 
@@ -147,7 +147,7 @@ class ConversionFailure(PilotException):
     Failed to convert object data.
     """
     def __init__(self, *args, **kwargs):
-        super(MessageFailure, self).__init__(args, kwargs)
+        super(ConversionFailure, self).__init__(args, kwargs)
         self._errorCode = 1998
         self._message = "Failed to convert object data."
 
@@ -157,6 +157,6 @@ class MKDirFailure(PilotException):
     Failed to create local directory.
     """
     def __init__(self, *args, **kwargs):
-        super(MessageFailure, self).__init__(args, kwargs)
+        super(MKDirFailure, self).__init__(args, kwargs)
         self._errorCode = 1997
         self._message = "Failed to create local directory."
