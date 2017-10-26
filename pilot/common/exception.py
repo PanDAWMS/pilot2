@@ -140,3 +140,13 @@ class FileHandingFailure(PilotException):
         super(MessageFailure, self).__init__(args, kwargs)
         self._errorCode = 1999
         self._message = "Failed during file handling."
+
+
+class ConversionFailure(PilotException):
+    """
+    Failed to convert object data.
+    """
+    def __init__(self, *args, **kwargs):
+        super(MessageFailure, self).__init__(args, kwargs)
+        self._errorCode = 1998
+        self._message = "Failed to convert object data."
