@@ -63,12 +63,12 @@ class NotImplemented(PilotException):
         self._message = "The class or function is not implemented."
 
 
-class UnKnownException(PilotException):
+class UnknownException(PilotException):
     """
     UnKnownException
     """
     def __init__(self, *args, **kwargs):
-        super(UnKnownException, self).__init__(args, kwargs)
+        super(UnknownException, self).__init__(args, kwargs)
         self._message = "An unknown pilot exception has occurred."
 
 
@@ -89,7 +89,7 @@ class StageInFailure(PilotException):
     def __init__(self, *args, **kwargs):
         super(StageInFailure, self).__init__(args, kwargs)
         self._errorCode = 1099
-        self._message = "Failed to stage-in input files."
+        self._message = "Failed to stage-in input file(s)."
 
 
 class StageOutFailure(PilotException):
@@ -99,7 +99,7 @@ class StageOutFailure(PilotException):
     def __init__(self, *args, **kwargs):
         super(StageOutFailure, self).__init__(args, kwargs)
         self._errorCode = 1137
-        self._message = "Failed to stage-out output files."
+        self._message = "Failed to stage-out output file(s)."
 
 
 class SetupFailure(PilotException):
