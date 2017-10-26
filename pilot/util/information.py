@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 
 from pilot.util.config import config
 from pilot.util.filehandling import write_json
-from pilot.common.exception import FileHandingFailure
+from pilot.common.exception import FileHandlingFailure
 
 import logging
 logger = logging.getLogger(__name__)
