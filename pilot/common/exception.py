@@ -65,7 +65,7 @@ class NotImplemented(PilotException):
 
 class UnknownException(PilotException):
     """
-    UnKnownException
+    Unknown exception.
     """
     def __init__(self, *args, **kwargs):
         super(UnknownException, self).__init__(args, kwargs)
@@ -74,7 +74,7 @@ class UnknownException(PilotException):
 
 class NoLocalSpace(PilotException):
     """
-    Not enough local space
+    Not enough local space.
     """
     def __init__(self, *args, **kwargs):
         super(NoLocalSpace, self).__init__(args, kwargs)
@@ -84,7 +84,7 @@ class NoLocalSpace(PilotException):
 
 class StageInFailure(PilotException):
     """
-    Failed to stage-in input files
+    Failed to stage-in input files.
     """
     def __init__(self, *args, **kwargs):
         super(StageInFailure, self).__init__(args, kwargs)
@@ -94,7 +94,7 @@ class StageInFailure(PilotException):
 
 class StageOutFailure(PilotException):
     """
-    Failed to stage-out output files
+    Failed to stage-out output files.
     """
     def __init__(self, *args, **kwargs):
         super(StageOutFailure, self).__init__(args, kwargs)
@@ -104,7 +104,7 @@ class StageOutFailure(PilotException):
 
 class SetupFailure(PilotException):
     """
-    Failed to setup environment
+    Failed to setup environment.
     """
     def __init__(self, *args, **kwargs):
         super(SetupFailure, self).__init__(args, kwargs)
@@ -124,7 +124,7 @@ class RunPayloadFailure(PilotException):
 
 class MessageFailure(PilotException):
     """
-    Failed to execute payload.
+    Failed to handle messages.
     """
     def __init__(self, *args, **kwargs):
         super(MessageFailure, self).__init__(args, kwargs)
