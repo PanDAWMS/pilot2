@@ -212,27 +212,27 @@ def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
                 break
             try:
                 if os.path.isfile(url):
-                    # tolog('[attempt=%s] Loading data from file=%s' % (trial, url))
+                    logger.info('[attempt=%s] Loading data from file=%s' % (trial, url))
                     f = open(url, "r")  # python 2.5 .. replace by 'with' statement (min python2.6??)
                     content = f.read()
                     f.close()
                 else:
-                    # tolog('[attempt=%s] Loading data from url=%s' % (trial, url))
+                    logger.info('[attempt=%s] Loading data from url=%s' % (trial, url))
                     content = urllib2.urlopen(url, timeout=20).read()  # python2.6
 
                 if fname:  # save to cache
                     f = open(fname, "w+")
                     f.write(content)
                     f.close()
-                    # tolog('Saved data from "%s" resource into file=%s, length=%.1fKb' % (
-                    # url, fname, len(content) / 1024.))
+                    logger.info('Saved data from "%s" resource into file=%s, length=%.1fKb' % \
+                                 (url, fname, len(content) / 1024.))
                 return content
             except Exception, e:  # ignore errors, try to use old cache if any
                 # tolog("Failed to load data from url=%s, error: %s .. trying to use data from cache=%s" % (
                 # url, e, fname))
                 # will try to use old cache below
                 if trial < nretry - 1:
-                    # tolog("Will try again after %ss.." % sleeptime)
+                    logger.info("Will try again after %ss.." % sleeptime)
                     from time import sleep
                     sleep(sleeptime)
 
@@ -253,6 +253,7 @@ def load_schedconfig_data(args, pandaqueues=[], cache_time=60):
     """
     Download the queuedata from various sources (prioritized).
     Try to get data from CVMFS first, then AGIS or from Panda JSON sources (not implemented).
+    Note: as of October 2016, agis_schedconfig.json is complete but contains info from all PQ (5 MB)
 
     :param args:
     :param pandaqueues:
@@ -288,13 +289,12 @@ def load_schedconfig_data(args, pandaqueues=[], cache_time=60):
         try:
             data = json.loads(content)
         except Exception, e:
-            #tolog("!!WARNING: loadSchedConfData(): Failed to parse JSON content from source=%s .. skipped, error=%s" % (dat.get('url'), e))
+            logger.info("!!WARNING: loadSchedConfData(): Failed to parse JSON content from source=%s .. skipped, error=%s" % (dat.get('url'), e))
             data = None
 
         if data and isinstance(data, dict):
             if 'error' in data:
-                pass
-                #tolog("!!WARNING: loadSchedConfData(): skipped source=%s since response contains error: data=%s" % (dat.get('url'), data))
+                logger.info("!!WARNING: loadSchedConfData(): skipped source=%s since response contains error: data=%s" % (dat.get('url'), data))
             else: # valid response
                 return data
 
