@@ -130,3 +130,13 @@ class MessageFailure(PilotException):
         super(MessageFailure, self).__init__(args, kwargs)
         self._errorCode = 1112
         self._message = "Failed to handle messages."
+
+
+class FileHandingFailure(PilotException):
+    """
+    Failed during file handling.
+    """
+    def __init__(self, *args, **kwargs):
+        super(MessageFailure, self).__init__(args, kwargs)
+        self._errorCode = 1999
+        self._message = "Failed during file handling."
