@@ -10,7 +10,7 @@
 import os
 import time
 
-from pilot.common.exception import PilotException, ConversionFailure, FileHandingFailure, MKDirFailure
+from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure
 
 # import logging
 # logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ def create_pilot_work_dir(workdir):
         os.makedirs(workdir)
         os.chmod(workdir, 0770)
     except Exception as e:
-        raise MKDirFailure(e.message)
+        raise MKDirFailure(e)
 
 
 def open_file(filename, mode):
@@ -59,9 +59,9 @@ def open_file(filename, mode):
         try:
             f = open(filename, mode)
         except IOError as e:
-            raise FileHandingFailure(e.message)
+            raise FileHandlingFailure(e)
     else:
-        raise FileHandingFailure("File does not exist: %s" % filename)
+        raise FileHandlingFailure("File does not exist: %s" % filename)
 
     return f
 
@@ -115,7 +115,7 @@ def get_json_dictionary(filename):
         try:
             dictionary = load(f)
         except PilotException as e:
-            raise FileHandingFailure(e.message)
+            raise FileHandlingFailure(e.get_detail())
         else:
             f.close()
 
@@ -145,13 +145,14 @@ def write_json(filename, dictionary):
     try:
         fp = open(filename, "w")
     except IOError as e:
-        raise FileHandingFailure(str(e))
+        print e
+        raise FileHandlingFailure(e)
     else:
         # Write the dictionary
         try:
             dump(dictionary, fp, sort_keys=True, indent=4, separators=(',', ': '))
         except PilotException as e:
-            raise FileHandingFailure(e.message)
+            raise FileHandlingFailure(e.get_detail())
         else:
             status = True
         fp.close()

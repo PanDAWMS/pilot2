@@ -132,7 +132,7 @@ class MessageFailure(PilotException):
         self._message = "Failed to handle messages."
 
 
-class FileHandingFailure(PilotException):
+class FileHandlingFailure(PilotException):
     """
     Failed during file handling.
     """
