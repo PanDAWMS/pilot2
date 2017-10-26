@@ -45,8 +45,10 @@ class PilotException(Exception):
             # Convert all arguments into their string representations...
             args = ["%s" % arg for arg in self.args if arg]
             self._error_string = (self._error_string + "\nDetails: %s" % '\n'.join(args))
-        self._error_string = self._error_string + "\nStacktrace: %s" % self._stack_trace
         return self._error_string.strip()
+
+    def get_detail(self):
+        return self._error_string + "\nStacktrace: %s" % self._stack_trace
 
     def get_error_code(self):
         return self._errorCode
@@ -118,3 +120,13 @@ class RunPayloadFailure(PilotException):
         super(RunPayloadFailure, self).__init__(args, kwargs)
         self._errorCode = 1111
         self._message = "Failed to execute payload."
+
+
+class MessageFailure(PilotException):
+    """
+    Failed to execute payload.
+    """
+    def __init__(self, *args, **kwargs):
+        super(MessageFailure, self).__init__(args, kwargs)
+        self._errorCode = 1112
+        self._message = "Failed to handle messages."
