@@ -10,6 +10,8 @@
 import os
 import time
 
+from pilot.common.exception import PilotException, ConversionFailure, FileHandingFailure, MKDirFailure
+
 # import logging
 # logger = logging.getLogger(__name__)
 
@@ -30,16 +32,15 @@ def create_pilot_work_dir(workdir):
     """
     Create the main PanDA Pilot work directory.
     :param workdir: Full path to the directory to be created
+    :raises PilotException: MKDirFailure
     :return:
     """
 
     try:
         os.makedirs(workdir)
         os.chmod(workdir, 0770)
-    except Exception:  # , e:
-        # logger.error('could not create main work directory: %s' % e)
-        # throw PilotException here
-        pass
+    except Exception as e:
+        raise MKDirFailure(e.message)
 
 
 def open_file(filename, mode):
@@ -49,6 +50,7 @@ def open_file(filename, mode):
 
     :param filename:
     :param mode: file mode
+    :raises PilotException: FileHandlingFailure
     :return: file pointer
     """
 
@@ -56,14 +58,45 @@ def open_file(filename, mode):
     if os.path.exists(filename):
         try:
             f = open(filename, mode)
-        except IOError, e:
-            pass
-            # raise exception   tolog("!!WARNING!!2997!! Caught exception: %s" % (e))
+        except IOError as e:
+            raise FileHandingFailure(e.message)
     else:
-        pass
-        # raise exception   tolog("!!WARNING!!2998!! File does not exist: %s" % (filename))
+        raise FileHandingFailure("File does not exist: %s" % filename)
 
     return f
+
+
+def convert(data):
+    """
+    Convert unicode data to utf-8.
+
+    Usage examples:
+    1. Dictionary:
+      data = {u'Max': {u'maxRSS': 3664, u'maxSwap': 0, u'maxVMEM': 142260, u'maxPSS': 1288}, u'Avg': {u'avgVMEM': 94840, u'avgPSS': 850, u'avgRSS': 2430, u'avgSwap': 0}}
+    convert(data)
+      {'Max': {'maxRSS': 3664, 'maxSwap': 0, 'maxVMEM': 142260, 'maxPSS': 1288}, 'Avg': {'avgVMEM': 94840, 'avgPSS': 850, 'avgRSS': 2430, 'avgSwap': 0}}
+    2. String:
+      data = u'hello'
+    convert(data)
+      'hello'
+    3. List:
+      data = [u'1',u'2','3']
+    convert(data)
+      ['1', '2', '3']
+
+    :param data: unicode object to be converted to utf-8
+    :return: converted data to utf-8
+    """
+
+    import collections
+    if isinstance(data, basestring):
+        return str(data)
+    elif isinstance(data, collections.Mapping):
+        return dict(map(convert, data.iteritems()))
+    elif isinstance(data, collections.Iterable):
+        return type(data)(map(convert, data))
+    else:
+        return data
 
 
 def get_json_dictionary(filename):
@@ -71,6 +104,7 @@ def get_json_dictionary(filename):
     Read a dictionary with unicode to utf-8 conversion
 
     :param filename:
+    :raises PilotException: FileHandlingFailure, ConversionFailure
     :return: json dictionary
     """
 
@@ -80,9 +114,8 @@ def get_json_dictionary(filename):
         from json import load
         try:
             dictionary = load(f)
-        except Exception, e:
-            pass
-            # raise exception   tolog("!!WARNING!!2222!! Failed to load json dictionary: %s" % (e))
+        except PilotException as e:
+            raise FileHandingFailure(e.message)
         else:
             f.close()
 
@@ -90,12 +123,8 @@ def get_json_dictionary(filename):
             if dictionary != {}:
                 try:
                     dictionary = convert(dictionary)
-                except Exception, e:
-                    pass
-                    # raise exception   tolog("!!WARNING!!2996!! Failed to convert dictionary from unicode to utf-8: %s, %s" % (dictionary, e))
-            else:
-                pass
-                # raise exception   tolog("!!WARNING!!2995!! Load function returned empty JSON dictionary: %s" % (filename))
+                except Exception as e:
+                    raise ConversionFailure(e.message)
 
     return dictionary
 
@@ -106,6 +135,7 @@ def write_json(filename, dictionary):
 
     :param filename:
     :param dictionary:
+    :raises PilotException: FileHandlingFailure
     :return: status (boolean)
     """
 
@@ -114,16 +144,14 @@ def write_json(filename, dictionary):
     from json import dump
     try:
         fp = open(filename, "w")
-    except Exception, e:
-        pass
-        # raise exception  tolog("!!WARNING!!2323!! Failed to open file %s: %s" % (filename, e))
+    except IOError as e:
+        raise FileHandingFailure(e.message)
     else:
         # Write the dictionary
         try:
             dump(dictionary, fp, sort_keys=True, indent=4, separators=(',', ': '))
-        except Exception, e:
-            pass
-            # raise exception   tolog("!!WARNING!!2324!! Failed to write dictionary to file %s: %s" % (filename, e))
+        except PilotException as e:
+            raise FileHandingFailure(e.message)
         else:
             status = True
         fp.close()

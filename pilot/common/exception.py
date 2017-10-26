@@ -150,3 +150,13 @@ class ConversionFailure(PilotException):
         super(MessageFailure, self).__init__(args, kwargs)
         self._errorCode = 1998
         self._message = "Failed to convert object data."
+
+
+class MKDirFailure(PilotException):
+    """
+    Failed to create local directory.
+    """
+    def __init__(self, *args, **kwargs):
+        super(MessageFailure, self).__init__(args, kwargs)
+        self._errorCode = 1997
+        self._message = "Failed to create local directory."

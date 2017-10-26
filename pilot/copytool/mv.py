@@ -22,7 +22,7 @@ def copy_in(files):
     Tries to download the given files using mv directly.
 
     :param files: Files to download
-    :raises Exception:
+    :raises PilotException: StageInFailure
     """
 
     exit_code, stdout, stderr = move_all_files(files)
@@ -36,7 +36,7 @@ def copy_out(files):
     Tries to upload the given files using mv directly.
 
     :param files: Files to upload
-    :raises Exception:
+    :raises PilotException: StageOutFailure
     """
 
     exit_code, stdout, stderr = move_all_files(files)
