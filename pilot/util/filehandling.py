@@ -145,7 +145,7 @@ def write_json(filename, dictionary):
     try:
         fp = open(filename, "w")
     except IOError as e:
-        raise FileHandingFailure(e)
+        raise FileHandingFailure(str(e))
     else:
         # Write the dictionary
         try:
