@@ -143,6 +143,7 @@ class ExtendedConfig(ConfigParser.ConfigParser):
         if self.has_section(item):
             self.remove_section(item)
 
+
 SYMBOLS = {
     'customary': ('B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'),
     'customary_ext': ('byte', 'kilo', 'mega', 'giga', 'tera', 'peta', 'exa', 'zetta', 'iotta'),

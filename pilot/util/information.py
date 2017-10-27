@@ -226,7 +226,7 @@ def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
                     f.write(content)
                     f.close()
                     logger.info('Saved data from "%s" resource into file=%s, length=%.1fKb' %
-                                 (url, fname, len(content) / 1024.))
+                                (url, fname, len(content) / 1024.))
                 return content
             except Exception, e:  # ignore errors, try to use old cache if any
                 # tolog("Failed to load data from url=%s, error: %s .. trying to use data from cache=%s" % (
@@ -267,16 +267,16 @@ def load_schedconfig_data(args, pandaqueues=[], cache_time=60):
     pandaqueues = set(pandaqueues)
 
     schedcond_sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_schedconf.json',
-                                 'nretry': 1,
-                                 'fname': os.path.join(base_dir, 'agis_schedconf.cvmfs.json')},
-                        'AGIS':  {'url': 'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json'
-                                        '&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
-                                    'nretry': 3,
-                                    'fname': os.path.join(base_dir, 'agis_schedconf.agis.%s.json' %
-                                                       ('_'.join(sorted(pandaqueues)) or 'ALL'))},
-                        'PANDA' : None}
+                                   'nretry': 1,
+                                   'fname': os.path.join(base_dir, 'agis_schedconf.cvmfs.json')},
+                         'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json'
+                                         '&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
+                                  'nretry': 3,
+                                  'fname': os.path.join(base_dir, 'agis_schedconf.agis.%s.json' %
+                                                        ('_'.join(sorted(pandaqueues)) or 'ALL'))},
+                         'PANDA': None}
 
-    schedcond_sources_order = ['CVMFS', 'AGIS'] # can be moved into the schedconfig in order to configure workflow in AGIS on fly: TODO
+    schedcond_sources_order = ['CVMFS', 'AGIS']  # can be moved into the schedconfig in order to configure workflow in AGIS on fly: TODO
 
     for key in schedcond_sources_order:
         dat = schedcond_sources.get(key)

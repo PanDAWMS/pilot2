@@ -312,7 +312,7 @@ def retrieve(queues, traces, args):
                         break
                     time.sleep(1)
             else:
-                graceful_stop.set()
+                args.graceful_stop.set()
                 break
                 # logger.info('got job: %s -- sleep 1000s before trying to get another job' % res['PandaID'])
                 # queues.jobs.put(res)
