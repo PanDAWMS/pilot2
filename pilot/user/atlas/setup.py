@@ -88,4 +88,3 @@ def get_cmtconfig(jobcmtconfig, queuedata):
         tolog("Will try to use cmtconfig: %s (from schedconfig DB)" % (cmtconfig))
 
     return cmtconfig
-

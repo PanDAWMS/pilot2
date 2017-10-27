@@ -7,7 +7,6 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-import subprocess
 import os
 
 from pilot.common.exception import StageInFailure, StageOutFailure

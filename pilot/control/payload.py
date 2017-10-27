@@ -98,7 +98,7 @@ def setup_payload(job, out, err):
     log = logger.getChild(str(job['PandaID']))
 
     # try:
-        # create symbolic link for sqlite200 and geomDB in job dir
+    # create symbolic link for sqlite200 and geomDB in job dir
     #    for db_name in ['sqlite200', 'geomDB']:
     #         src = '/cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/%s' % db_name
     #         link_name = 'job-%s/%s' % (job['PandaID'], db_name)

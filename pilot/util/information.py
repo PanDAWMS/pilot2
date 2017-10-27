@@ -128,6 +128,7 @@ def set_location(args, site=None):
 
     return True
 
+
 def retrieve_json(url):
     logger.debug('retrieving: %s' % url)
     j = _read_cache(url)
@@ -224,7 +225,7 @@ def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
                     f = open(fname, "w+")
                     f.write(content)
                     f.close()
-                    logger.info('Saved data from "%s" resource into file=%s, length=%.1fKb' % \
+                    logger.info('Saved data from "%s" resource into file=%s, length=%.1fKb' %
                                  (url, fname, len(content) / 1024.))
                 return content
             except Exception, e:  # ignore errors, try to use old cache if any
@@ -268,13 +269,12 @@ def load_schedconfig_data(args, pandaqueues=[], cache_time=60):
     schedcond_sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_schedconf.json',
                                  'nretry': 1,
                                  'fname': os.path.join(base_dir, 'agis_schedconf.cvmfs.json')},
-                        'AGIS':  {'url':'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json'
+                        'AGIS':  {'url': 'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json'
                                         '&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
-                                 'nretry':3,
-                                 'fname': os.path.join(base_dir, 'agis_schedconf.agis.%s.json' % \
+                                    'nretry': 3,
+                                    'fname': os.path.join(base_dir, 'agis_schedconf.agis.%s.json' %
                                                        ('_'.join(sorted(pandaqueues)) or 'ALL'))},
-                        'PANDA' : None
-    }
+                        'PANDA' : None}
 
     schedcond_sources_order = ['CVMFS', 'AGIS'] # can be moved into the schedconfig in order to configure workflow in AGIS on fly: TODO
 
@@ -295,7 +295,7 @@ def load_schedconfig_data(args, pandaqueues=[], cache_time=60):
         if data and isinstance(data, dict):
             if 'error' in data:
                 logger.info("!!WARNING: loadSchedConfData(): skipped source=%s since response contains error: data=%s" % (dat.get('url'), data))
-            else: # valid response
+            else:
                 return data
 
     return None
