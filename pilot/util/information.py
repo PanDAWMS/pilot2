@@ -303,6 +303,7 @@ def load_ddm_conf_data(pilotbasedir, ddmendpoints=[], cache_time=60):
                                        'nretry': 3,
                                        'fname': os.path.join(pilotbasedir, 'agis_ddmendpoints.agis.%s.json' %
                                                              ('_'.join(sorted(ddmendpoints)) or 'ALL'))},
+
                        'LOCAL': {'url': None,
                                  'nretry': 1,
                                  'fname': os.path.join(pilotbasedir, 'agis_ddmendpoints.json')},
@@ -366,16 +367,24 @@ def load_schedconfig_data(pilotbasedir, pandaqueues=[], cache_time=60):
                                   'nretry': 3,
                                   'fname': os.path.join(pilotbasedir, 'agis_schedconf.agis.%s.json' %
                                                         ('_'.join(sorted(pandaqueues)) or 'ALL'))},
+                         'LOCAL': {'url': None,
+                                   'nretry': 1,
+                                   'fname': os.path.join(pilotbasedir, 'agis_schedconf.json')},
                          'PANDA': None}
 
-    schedcond_sources_order = ['CVMFS', 'AGIS']  # can be moved into the schedconfig in order to configure workflow in AGIS on fly: TODO
+    schedcond_sources_order = ['LOCAL', 'CVMFS', 'AGIS']
 
     for key in schedcond_sources_order:
         dat = schedcond_sources.get(key)
         if not dat:
             continue
 
-        content = load_url_data(cache_time=cache_time, **dat)
+        content = None
+        if key == 'LOCAL':
+            with open(dat['fname']) as f:
+                content = f.read()
+        else:
+            content = load_url_data(cache_time=cache_time, **dat)
         if not content:
             continue
         try:
@@ -383,7 +392,6 @@ def load_schedconfig_data(pilotbasedir, pandaqueues=[], cache_time=60):
         except Exception, e:
             logger.fatal("failed to parse JSON content from source=%s .. skipped, error=%s" % (dat.get('url'), e))
             data = None
-
         if data:
             if 'error' in data:
                 logger.warning("skipped source=%s since response contains error: data=%s" % (dat.get('url'), data))
