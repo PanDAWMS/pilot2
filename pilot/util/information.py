@@ -22,7 +22,7 @@ import urllib2
 from datetime import datetime, timedelta
 
 from pilot.util.config import config
-from pilot.util.filehandling import write_json
+from pilot.util.filehandling import write_json, get_json_dictionary
 # from pilot.common.exception import FileHandlingFailure
 
 import logging
@@ -182,6 +182,31 @@ def _write_cache(url, j):
     with open('.cache.%s' % m.hexdigest(), 'wb') as outfile:
         json.dump(j, outfile)
 
+
+def get_catchall(pilotbasedir):
+    """
+    Return the catchall field from the schedconfig queuedata.
+
+    :param pilotbasedir: pilot base directory (string).
+    :return: catchall field (string).
+    """
+
+    catchall = ""
+    fname = os.path.join(pilotbasedir, config.Information.queuedata)
+    if os.path.exists(fname):
+        queuedata = get_json_dictionary()
+        catchall = get_parameter(queuedata, 'catchall')
+
+    return catchall
+
+def get_d(pilotbasedir):
+    """
+
+    :param pilotbasedir:
+    :return:
+    """
+
+    return ""
 
 def get_parameter(queuedata, field):
     """
@@ -403,14 +428,15 @@ def load_schedconfig_data(pilotbasedir, pandaqueues=[], cache_time=60):
 
 def resolve_panda_protocols(pilotbasedir, pandaqueues, activity):
     """
-    Resolve PanDA protocols.
+    Resolve PanDA protocols. WARNING: deprecated? aprotocols is always {} (in AGIS).
+
     Resolve (SE endpoint, path, copytool, copyprefix) protocol entry for requested ddmendpoint by given pilot activity
     ("pr" means pilot_read, "pw" for pilot_write).
     Return the list of possible protocols ordered by priority.
 
     :param pilotbasedir: pilot base directory.
-    :param pandaqueues:
-    :param activity:
+    :param pandaqueues: list of panda queues
+    :param activity: activity (string)
     :return: dict('ddmendpoint_name':[(SE_1, path2, copytool, copyprefix), ).
     """
 
@@ -490,12 +516,25 @@ def resolve_panda_os_ddms(pilotbasedir, pandaqueues):
     return ret
 
 
+def resolve_panda_associated_storages_for_activity(pilotbasedir, pandaqueue, activity):
+    """
+    Resolve DDM storages associated to requested pandaqueue for given activity
+
+    :param pilotbasedir: pilot base directory (string).
+    :param pandaqueue: panda queues (string).
+    :param activity: activity (string). E.g. 'pr'.
+    :return:
+    """
+
+    return resolve_panda_associated_storages(pilotbasedir, [pandaqueue]).get(pandaqueue, {})[activity]
+
+
 def resolve_panda_associated_storages(pilotbasedir, pandaqueues):
     """
     Resolve DDM storages associated to requested pandaqueues
 
-    :param pilotbasedir: pilot base directory.
-    :param pandaqueues:
+    :param pilotbasedir: pilot base directory (string).
+    :param pandaqueues: panda queues (list).
     :return: list of accepted ddmendpoints.
 
     :return:
