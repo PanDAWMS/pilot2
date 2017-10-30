@@ -247,25 +247,25 @@ def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
                 break
             try:
                 if os.path.isfile(url):
-                    logger.info('[attempt=%s] Loading data from file=%s' % (trial, url))
+                    logger.info('[attempt=%s] loading data from file=%s' % (trial, url))
                     with open(url, "r") as f:
                         content = f.read()
                 else:
-                    logger.info('[attempt=%s] Loading data from url=%s' % (trial, url))
-                    content = urllib2.urlopen(url, timeout=20).read()  # python2.6
+                    logger.info('[attempt=%s] loading data from url=%s' % (trial, url))
+                    content = urllib2.urlopen(url, timeout=20).read()
 
                 if fname:  # save to cache
                     with open(fname, "w+") as f:
                         f.write(content)
-                        logger.info('Saved data from "%s" resource into file=%s, length=%.1fKb' %
+                        logger.info('saved data from "%s" resource into file=%s, length=%.1fKb' %
                                 (url, fname, len(content) / 1024.))
                 return content
             except Exception, e:  # ignore errors, try to use old cache if any
-                logger.fatal("Failed to load data from url=%s, error: %s .. trying to use data from cache=%s" %
+                logger.warning("failed to load data from url=%s, error: %s .. trying to use data from cache=%s" %
                              (url, e, fname))
                 # will try to use old cache below
                 if trial < nretry - 1:
-                    logger.info("Will try again after %ss.." % sleeptime)
+                    logger.info("will try again after %ss.." % sleeptime)
                     from time import sleep
                     sleep(sleeptime)
 
@@ -276,7 +276,7 @@ def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
         with open(fname, 'r') as f:
             content = f.read()
     except Exception, e:
-        logger.fatal("loadURLData: Caught exception: %s" % e)
+        logger.fatal("Caught exception: %s" % e)
         return None
 
     return content
@@ -312,7 +312,7 @@ def load_ddm_conf_data(args, ddmendpoints=[], cache_time=60):
     ddmconf_sources_order = ['LOCAL', 'CVMFS', 'AGIS']
 
     for key in ddmconf_sources_order:
-        logger.info("Loading DDMConfData from source %s" % key)
+        logger.info("loading DDMConfData from source %s" % key)
         dat = ddmconf_sources.get(key)
         if not dat:
             continue
@@ -323,7 +323,7 @@ def load_ddm_conf_data(args, ddmendpoints=[], cache_time=60):
         try:
             data = json.loads(content)
         except Exception, e:
-            logger.fatal("Failed to parse JSON content from source=%s .. skipped, error=%s" % (dat.get('url'), e))
+            logger.fatal("failed to parse JSON content from source=%s .. skipped, error=%s" % (dat.get('url'), e))
             data = None
 
         if data and isinstance(data, dict):
@@ -360,8 +360,8 @@ def resolve_ddm_protocols(ddmendpoints, activity):
 
     ret = {}
     for ddm in set(ddmendpoints):
-        protocols = [dict(se=e[0], path=e[2]) for e in sorted(self.ddmconf.get(ddm, {}).get('aprotocols',
-                                                                                            {}).get(activity, []),
+        protocols = [dict(se=e[0], path=e[2]) for e in sorted(ddmconf.get(ddm, {}).get('aprotocols',
+                                                                                       {}).get(activity, []),
                                                               key=lambda x: x[1])]
         ret.setdefault(ddm, protocols)
 
@@ -406,12 +406,12 @@ def load_schedconfig_data(args, pandaqueues=[], cache_time=60):
         try:
             data = json.loads(content)
         except Exception, e:
-            logger.info("!!WARNING: loadSchedConfData(): Failed to parse JSON content from source=%s .. skipped, error=%s" % (dat.get('url'), e))
+            logger.fatal("failed to parse JSON content from source=%s .. skipped, error=%s" % (dat.get('url'), e))
             data = None
 
         if data and isinstance(data, dict):
             if 'error' in data:
-                logger.info("!!WARNING: loadSchedConfData(): skipped source=%s since response contains error: data=%s" % (dat.get('url'), data))
+                logger.warning("skipped source=%s since response contains error: data=%s" % (dat.get('url'), data))
             else:
                 return data
 
