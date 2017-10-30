@@ -289,7 +289,7 @@ def load_ddm_conf_data(args, ddmendpoints=[], cache_time=60):
 
     :param args: 
     :param ddmendpoints: 
-    :param cache_time: 
+    :param cache_time: Cache time in seconds.
     :return: 
     """""
 
@@ -326,70 +326,45 @@ def load_ddm_conf_data(args, ddmendpoints=[], cache_time=60):
             logger.fatal("failed to parse JSON content from source=%s .. skipped, error=%s" % (dat.get('url'), e))
             data = None
 
-        if data and isinstance(data, dict):
+        if data:
             return data
 
     return None
+
 
 def resolve_ddm_conf(ddmendpoints):
     """
     Resolve the DDM configuration.
 
     :param ddmendpoints: List of DDM endpoints.
-    :return: 
-    """"
+    :return: DDM configuration data from a source (JSON dictionary).
+    """
 
     return load_ddm_conf_data(ddmendpoints, cache_time=6000) or {}
 
-def resolve_ddm_protocols(ddmendpoints, activity):
-    """
-    Resolve the DDM protocols.
-    Resolve [SE endpoint, SE path] protocol entry for requested ddmendpoint by given pilot activity
-    ("pr" means pilot_read, "pw" for pilot_write).
-    Return the list of possible protocols ordered by priority.
 
-    :param ddmendpoints:
-    :param activity:
-    :return: dict('ddmendpoint_name':[(SE_1, path2), (SE_2, path2)])
-    """
-
-    if not ddmendpoints:
-        return {}
-
-    ddmconf = load_ddm_conf_data(ddmendpoints, cache_time=6000) or {}
-
-    ret = {}
-    for ddm in set(ddmendpoints):
-        protocols = [dict(se=e[0], path=e[2]) for e in sorted(ddmconf.get(ddm, {}).get('aprotocols',
-                                                                                       {}).get(activity, []),
-                                                              key=lambda x: x[1])]
-        ret.setdefault(ddm, protocols)
-
-    return ret
-
-def load_schedconfig_data(args, pandaqueues=[], cache_time=60):
+def load_schedconfig_data(pilotbasedir, pandaqueues=[], cache_time=60):
     """
     Download the queuedata from various sources (prioritized).
     Try to get data from CVMFS first, then AGIS or from Panda JSON sources (not implemented).
     Note: as of October 2016, agis_schedconfig.json is complete but contains info from all PQ (5 MB)
 
-    :param args:
+    :param pilotbasedir: Pilot base directory.
     :param pandaqueues:
-    :param cache_time:
+    :param cache_time: Cache time in seconds.
     :return:
     """
 
     # list of sources to fetch ddmconf data from
-    base_dir = args.mainworkdir
     pandaqueues = set(pandaqueues)
 
     schedcond_sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_schedconf.json',
                                    'nretry': 1,
-                                   'fname': os.path.join(base_dir, 'agis_schedconf.cvmfs.json')},
+                                   'fname': os.path.join(pilotbasedir, 'agis_schedconf.cvmfs.json')},
                          'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json'
                                          '&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
                                   'nretry': 3,
-                                  'fname': os.path.join(base_dir, 'agis_schedconf.agis.%s.json' %
+                                  'fname': os.path.join(pilotbasedir, 'agis_schedconf.agis.%s.json' %
                                                         ('_'.join(sorted(pandaqueues)) or 'ALL'))},
                          'PANDA': None}
 
@@ -409,10 +384,138 @@ def load_schedconfig_data(args, pandaqueues=[], cache_time=60):
             logger.fatal("failed to parse JSON content from source=%s .. skipped, error=%s" % (dat.get('url'), e))
             data = None
 
-        if data and isinstance(data, dict):
+        if data:
             if 'error' in data:
                 logger.warning("skipped source=%s since response contains error: data=%s" % (dat.get('url'), data))
             else:
                 return data
 
     return None
+
+
+def resolve_panda_protocols(pilotbasedir, pandaqueues, activity):
+    """
+    Resolve PanDA protocols.
+    Resolve (SE endpoint, path, copytool, copyprefix) protocol entry for requested ddmendpoint by given pilot activity
+    ("pr" means pilot_read, "pw" for pilot_write).
+    Return the list of possible protocols ordered by priority.
+
+    :param pilotbasedir: pilot base directory.
+    :param pandaqueues:
+    :param activity:
+    :return: dict('ddmendpoint_name':[(SE_1, path2, copytool, copyprefix), ).
+    """
+
+    if not pandaqueues:
+        return {}
+
+    schedconf = load_schedconfig_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
+
+    ret = {}
+    for pandaqueue in set(pandaqueues):
+        qdata = schedconf.get(pandaqueue, {})
+        protocols = qdata.get('aprotocols', {}).get(activity, [])
+        copytools = qdata.get('copytools', {})
+        for p in protocols:
+            p.setdefault('copysetup', copytools.get(p.get('copytool'), {}).get('setup'))
+        ret.setdefault(pandaqueue, protocols)
+
+    return ret
+
+
+def resolve_panda_copytools(pilotbasedir, pandaqueues, activity, defval=[]):
+    """
+    Resolve supported copytools by given pandaqueues
+    Check first settings for requested activity (pr, pw, pl, pls), then defval values,
+    if not set then return copytools explicitly defined for all activities (not restricted to specific activity).
+    Return ordered list of accepted copytools.
+
+    :param pilotbasedir: pilot base directory.
+    :param pandaqueues:
+    :param activity: activity of prioritized list of activities to resolve data.
+    :param defval: default copytools values which will be used if no copytools defined for requested activity.
+    :return: dict('pandaqueue':[(copytool, {settings}), ('copytool_name', {'setup':''}), ]).
+    """
+
+    r = load_schedconf_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
+
+    ret = {}
+    for pandaqueue in set(pandaqueues):
+        copytools = r.get(pandaqueue, {}).get('copytools', {})
+        cptools = []
+        acopytools = None
+        for a in activity:
+             acopytools = r.get(pandaqueue, {}).get('acopytools', {}).get(a, [])
+            if acopytools:
+                break
+        if acopytools:
+            cptools = [(cp, copytools[cp]) for cp in acopytools if cp in copytools]
+        elif defval:
+            cptools = defval[:]
+        else:
+            explicit_copytools = set()
+            for v in r.get(pandaqueue, {}).get('acopytools', {}).itervalues():
+                explicit_copytools.update(v or [])
+
+            cptools = [(cp,v) for cp,v in copytools.iteritems() if cp not in explicit_copytools]
+
+        ret.setdefault(pandaqueue, cptools)
+
+    return ret
+
+
+def resolve_panda_os_ddms(pilotbasedir, pandaqueues):
+    """
+    Resolve OS ddmendpoints associated with requested pandaqueues.
+
+    :param pilotbasedir: pilot base directory.
+    :param pandaqueues:
+    :return: list of accepted ddmendpoints.
+    """
+
+    r = load_schedconf_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
+
+    ret = {}
+    for pandaqueue in set(pandaqueues):
+        ret[pandaqueue] = r.get(pandaqueue, {}).get('ddmendpoints', [])
+
+    return ret
+
+
+def resolve_panda_associated_storages(pilotbasedir, pandaqueues):
+    """
+    Resolve DDM storages associated to requested pandaqueues
+
+    :param pilotbasedir: pilot base directory.
+    :param pandaqueues:
+    :return: list of accepted ddmendpoints.
+
+    :return:
+    """
+
+    r = load_schedconf_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
+
+    ret = {}
+    for pandaqueue in set(pandaqueues):
+        ret[pandaqueue] = r.get(pandaqueue, {}).get('astorages', {})
+
+    return ret
+
+
+def resolve_items(pilotbasedir, pandaqueues, itemname):
+    """
+    Resolve DDM storages associated with requested pandaqueues.
+
+    :param pilotbasedir: pilot base directory.
+    :param pandaqueues:
+    :param itemname:
+    :return: list of accepted ddmendpoints.
+    """
+
+    r = load_schedconf_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
+
+    ret = {}
+    for pandaqueue in set(pandaqueues):
+        ret[pandaqueue] = r.get(pandaqueue, {}).get(itemname, {})
+
+    return ret
