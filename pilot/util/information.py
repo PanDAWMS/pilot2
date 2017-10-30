@@ -214,18 +214,16 @@ def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
             try:
                 if os.path.isfile(url):
                     logger.info('[attempt=%s] Loading data from file=%s' % (trial, url))
-                    f = open(url, "r")  # python 2.5 .. replace by 'with' statement (min python2.6??)
-                    content = f.read()
-                    f.close()
+                    with open(url, "r") as f:
+                        content = f.read()
                 else:
                     logger.info('[attempt=%s] Loading data from url=%s' % (trial, url))
                     content = urllib2.urlopen(url, timeout=20).read()  # python2.6
 
                 if fname:  # save to cache
-                    f = open(fname, "w+")
-                    f.write(content)
-                    f.close()
-                    logger.info('Saved data from "%s" resource into file=%s, length=%.1fKb' %
+                    with open(fname, "w+") as f:
+                        f.write(content)
+                        logger.info('Saved data from "%s" resource into file=%s, length=%.1fKb' %
                                 (url, fname, len(content) / 1024.))
                 return content
             except Exception, e:  # ignore errors, try to use old cache if any
