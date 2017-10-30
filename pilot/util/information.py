@@ -333,7 +333,7 @@ def load_ddm_conf_data(pilotbasedir, ddmendpoints=[], cache_time=60):
     return None
 
 
-def resolve_ddm_conf(ddmendpoints):
+def resolve_ddm_conf(pilotbasedir, ddmendpoints):
     """
     Resolve the DDM configuration.
 
@@ -341,7 +341,7 @@ def resolve_ddm_conf(ddmendpoints):
     :return: DDM configuration data from a source (JSON dictionary).
     """
 
-    return load_ddm_conf_data(ddmendpoints, cache_time=6000) or {}
+    return load_ddm_conf_data(pilotbasedir, ddmendpoints, cache_time=6000) or {}
 
 
 def load_schedconfig_data(pilotbasedir, pandaqueues=[], cache_time=60):
