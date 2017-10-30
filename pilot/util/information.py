@@ -191,22 +191,24 @@ def get_catchall(pilotbasedir):
     :return: catchall field (string).
     """
 
-    catchall = ""
-    fname = os.path.join(pilotbasedir, config.Information.queuedata)
-    if os.path.exists(fname):
-        queuedata = get_json_dictionary()
-        catchall = get_parameter(queuedata, 'catchall')
+    return get_d(pilotbasedir, 'catchall')
 
-    return catchall
-
-def get_d(pilotbasedir):
+def get_d(pilotbasedir, field):
     """
-
+    (rename)
+    
     :param pilotbasedir:
+    :param field:
     :return:
     """
 
-    return ""
+    value = ""
+    fname = os.path.join(pilotbasedir, config.Information.queuedata)
+    if os.path.exists(fname):
+        queuedata = get_json_dictionary()
+        value = get_parameter(queuedata, field)
+
+    return value
 
 def get_parameter(queuedata, field):
     """
