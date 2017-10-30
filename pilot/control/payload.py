@@ -95,7 +95,7 @@ def setup_payload(job, out, err):
     :param err:
     :return:
     """
-    log = logger.getChild(str(job['PandaID']))
+    # log = logger.getChild(str(job['PandaID']))
 
     # try:
     # create symbolic link for sqlite200 and geomDB in job dir

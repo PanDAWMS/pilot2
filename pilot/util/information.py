@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 
 from pilot.util.config import config
 from pilot.util.filehandling import write_json
-from pilot.common.exception import FileHandlingFailure
+# from pilot.common.exception import FileHandlingFailure
 
 import logging
 logger = logging.getLogger(__name__)
@@ -167,6 +167,7 @@ def _read_cache(url):
 
     return j
 
+
 def _write_cache(url, j):
     """
     Write the JSON from URL into a local cache.
@@ -186,7 +187,7 @@ def get_parameter(queuedata, field):
     """
     Return value of queuedata field.
 
-    :param queuedata:
+    :param queuedata: queuedata json dictionary.
     :param field:
     :return: queuedata field value.
     """
@@ -220,7 +221,7 @@ def get_file_last_update_time(fname):
 
     try:
         lastupdate = datetime.fromtimestamp(os.stat(fname).st_mtime)
-    except:
+    except Exception:
         lastupdate = None
 
     return lastupdate
@@ -258,11 +259,11 @@ def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
                     with open(fname, "w+") as f:
                         f.write(content)
                         logger.info('saved data from "%s" resource into file=%s, length=%.1fKb' %
-                                (url, fname, len(content) / 1024.))
+                                    (url, fname, len(content) / 1024.))
                 return content
             except Exception, e:  # ignore errors, try to use old cache if any
-                logger.warning("failed to load data from url=%s, error: %s .. trying to use data from cache=%s" %
-                             (url, e, fname))
+                logger.warning('failed to load data from url=%s, error: %s .. trying to use data from cache=%s' %
+                               (url, e, fname))
                 # will try to use old cache below
                 if trial < nretry - 1:
                     logger.info("will try again after %ss.." % sleeptime)
@@ -282,32 +283,31 @@ def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
     return content
 
 
-def load_ddm_conf_data(args, ddmendpoints=[], cache_time=60):
+def load_ddm_conf_data(pilotbasedir, ddmendpoints=[], cache_time=60):
     """
     Load DDM configuration data from a source.
     Valid sources: CVMFS, AGIS, LOCAL.
 
-    :param args: 
-    :param ddmendpoints: 
+    :param pilotbasedir: pilot base directory.
+    :param ddmendpoints:
     :param cache_time: Cache time in seconds.
-    :return: 
-    """""
+    :return:
+    """
 
     # list of sources to fetch ddmconf data from
-    base_dir =  base_dir = args.mainworkdir
     ddmconf_sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_ddmendpoints.json',
                                  'nretry': 1,
-                                 'fname': os.path.join(base_dir, 'agis_ddmendpoints.cvmfs.json')},
-                       'AGIS':  {'url': 'http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json&'
-                                        'state=ACTIVE&preset=dict&ddmendpoint=%s' % ','.join(ddmendpoints),
-                                 'nretry':3,
-                                 'fname': os.path.join(base_dir, 'agis_ddmendpoints.agis.%s.json' %
-                                                       ('_'.join(sorted(ddmendpoints)) or 'ALL'))},
-                       'LOCAL': {'url':None,
+                                 'fname': os.path.join(pilotbasedir, 'agis_ddmendpoints.cvmfs.json')},
+                       'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json&'
+                                       'state=ACTIVE&preset=dict&ddmendpoint=%s' % ','.join(ddmendpoints),
+                                       'nretry': 3,
+                                       'fname': os.path.join(pilotbasedir, 'agis_ddmendpoints.agis.%s.json' %
+                                                             ('_'.join(sorted(ddmendpoints)) or 'ALL'))},
+                       'LOCAL': {'url': None,
                                  'nretry': 1,
-                                 'fname': os.path.join(base_dir, 'agis_ddmendpoints.json')},
-                       'PANDA' : None
-    }
+                                 'fname': os.path.join(pilotbasedir, 'agis_ddmendpoints.json')},
+                       'PANDA': None
+                       }
 
     ddmconf_sources_order = ['LOCAL', 'CVMFS', 'AGIS']
 
@@ -349,7 +349,7 @@ def load_schedconfig_data(pilotbasedir, pandaqueues=[], cache_time=60):
     Try to get data from CVMFS first, then AGIS or from Panda JSON sources (not implemented).
     Note: as of October 2016, agis_schedconfig.json is complete but contains info from all PQ (5 MB)
 
-    :param pilotbasedir: Pilot base directory.
+    :param pilotbasedir: pilot base directory.
     :param pandaqueues:
     :param cache_time: Cache time in seconds.
     :return:
@@ -437,7 +437,7 @@ def resolve_panda_copytools(pilotbasedir, pandaqueues, activity, defval=[]):
     :return: dict('pandaqueue':[(copytool, {settings}), ('copytool_name', {'setup':''}), ]).
     """
 
-    r = load_schedconf_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
+    r = load_schedconfig_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
 
     ret = {}
     for pandaqueue in set(pandaqueues):
@@ -445,7 +445,7 @@ def resolve_panda_copytools(pilotbasedir, pandaqueues, activity, defval=[]):
         cptools = []
         acopytools = None
         for a in activity:
-             acopytools = r.get(pandaqueue, {}).get('acopytools', {}).get(a, [])
+            acopytools = r.get(pandaqueue, {}).get('acopytools', {}).get(a, [])
             if acopytools:
                 break
         if acopytools:
@@ -457,7 +457,7 @@ def resolve_panda_copytools(pilotbasedir, pandaqueues, activity, defval=[]):
             for v in r.get(pandaqueue, {}).get('acopytools', {}).itervalues():
                 explicit_copytools.update(v or [])
 
-            cptools = [(cp,v) for cp,v in copytools.iteritems() if cp not in explicit_copytools]
+            cptools = [(cp, v) for cp, v in copytools.iteritems() if cp not in explicit_copytools]
 
         ret.setdefault(pandaqueue, cptools)
 
@@ -473,7 +473,7 @@ def resolve_panda_os_ddms(pilotbasedir, pandaqueues):
     :return: list of accepted ddmendpoints.
     """
 
-    r = load_schedconf_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
+    r = load_schedconfig_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
 
     ret = {}
     for pandaqueue in set(pandaqueues):
@@ -493,7 +493,7 @@ def resolve_panda_associated_storages(pilotbasedir, pandaqueues):
     :return:
     """
 
-    r = load_schedconf_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
+    r = load_schedconfig_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
 
     ret = {}
     for pandaqueue in set(pandaqueues):
@@ -512,7 +512,7 @@ def resolve_items(pilotbasedir, pandaqueues, itemname):
     :return: list of accepted ddmendpoints.
     """
 
-    r = load_schedconf_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
+    r = load_schedconfig_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
 
     ret = {}
     for pandaqueue in set(pandaqueues):

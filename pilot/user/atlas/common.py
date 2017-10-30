@@ -7,8 +7,8 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-from pilot.common.exception import PilotException
-from pilot.user.atlas.setup import should_pilot_prepare_asetup, is_user_analysis_job, get_cmtconfig
+# from pilot.common.exception import PilotException
+# from pilot.user.atlas.setup import should_pilot_prepare_asetup, is_user_analysis_job, get_cmtconfig
 
 import logging
 logger = logging.getLogger(__name__)
@@ -24,12 +24,12 @@ def get_payload_command(job, queuedata):
     """
 
     # Should the pilot do the asetup or do the jobPars already contain the information?
-    prepareASetup = should_pilot_prepare_asetup(job.noExecStrCnv, job.jobPars)
+    # prepareASetup = should_pilot_prepare_asetup(job.noExecStrCnv, job.jobPars)
 
     # Is it a user job or not?
-    analysisJob = is_user_analysis_job(job.trf)
+    # analysisJob = is_user_analysis_job(job.trf)
 
     # Get the cmtconfig value
-    cmtconfig = get_cmtconfig(job.cmtconfig, queuedata)
+    # cmtconfig = get_cmtconfig(job.cmtconfig, queuedata)
 
     return ""

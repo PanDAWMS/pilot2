@@ -27,20 +27,20 @@ def get_file_system_root_path():
     return os.environ.get('ATLAS_SW_BASE', '/cvmfs')
 
 
-def should_pilot_prepare_asetup(noExecStrCnv, jobPars):
+def should_pilot_prepare_asetup(noexecstrcnv, jobpars):
     """
     Determine whether the pilot should add the asetup to the payload command or not.
     The pilot will not add asetup if jobPars already contain the information (i.e. it was set by the payload creator).
     If noExecStrCnv is set, then jobPars is expected to contain asetup.sh + options
 
-    :param noExecStrCnv: boolean
-    :param jobPars: string
+    :param noexecstrcnv: boolean
+    :param jobpars: string
     :return: boolean
     """
 
     prepareasetup = True
-    if noExecStrCnv:
-        if "asetup.sh" in jobPars:
+    if noexecstrcnv:
+        if "asetup.sh" in jobpars:
             logger.info("asetup will be taken from jobPars")
             prepareasetup = False
         else:
