@@ -130,26 +130,52 @@ def set_location(args, site=None):
 
 
 def retrieve_json(url):
-    logger.debug('retrieving: %s' % url)
+    """
+    Retrieve JSON from an URL or from a local cache.
+    Store the JSON in a local cache if it doesn't exist already.
+
+    :param url:
+    :return: JSON dictionary.
+    """
+
+    logger.info('retrieving: %s' % url)
     j = _read_cache(url)
     if j is not None:
         logger.debug('cached version found: %s' % url)
         return j
     j = json.loads(urllib2.urlopen(url).read())
-    logger.debug('caching: %s' % url)
+    logger.info('caching: %s' % url)
     _write_cache(url, j)
+
     return j
 
 
 def _read_cache(url):
+    """
+    Read the local cache file that contains the previously downloaded JSON from URL.
+
+    :param url:
+    :return: JSON dictionary.
+    """
+
+    j = None
     m = hashlib.md5()
     m.update(url)
     if os.path.exists('.cache.%s' % m.hexdigest()):
         with open('.cache.%s' % m.hexdigest(), 'rb') as infile:
-            return json.load(infile)
+            j = json.load(infile)
 
+    return j
 
 def _write_cache(url, j):
+    """
+    Write the JSON from URL into a local cache.
+
+    :param url:
+    :param j: JSON dictionary.
+    :return:
+    """
+
     m = hashlib.md5()
     m.update(url)
     with open('.cache.%s' % m.hexdigest(), 'wb') as outfile:
@@ -157,16 +183,24 @@ def _write_cache(url, j):
 
 
 def get_parameter(queuedata, field):
+    """
+    Return value of queuedata field.
+
+    :param queuedata:
+    :param field:
+    :return: queuedata field value.
+    """
+
     return queuedata[field] if field in queuedata else None
 
 
 def is_file_expired(fname, cache_time=0):
     """
-    Check if file fname older then cache_time seconds from its last_update_time.
+    Check if file fname is older than cache_time seconds from its last_update_time.
 
-    :param fname:
-    :param cache_time:
-    :return:
+    :param fname: File name.
+    :param cache_time: Cache time in seconds.
+    :return: Boolean.
     """
 
     if cache_time:
@@ -180,13 +214,13 @@ def get_file_last_update_time(fname):
     """
     Return the last update time of the given file.
 
-    :param fname:
-    :return:
+    :param fname: File name.
+    :return: Last update time in seconds.
     """
 
     try:
         lastupdate = datetime.fromtimestamp(os.stat(fname).st_mtime)
-    except OSError, e:
+    except:
         lastupdate = None
 
     return lastupdate
@@ -194,16 +228,16 @@ def get_file_last_update_time(fname):
 
 def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
     """
-    Download data from url/file resource and optionally save it into cachefile fname,
-    The file will not be (re-)loaded again if cache age from last file modification does not exceed "cache_time"
+    Download data from url/file resource and optionally save it into cache file fname.
+    The file will not be (re-)loaded again if cache age from last file modification does not exceed cache_time
     seconds.
 
     :param url:
-    :param fname:
-    :param cache_time:
-    :param nretry:
-    :param sleeptime:
-    :return: data loaded from the url or file content if url passed is a filename
+    :param fname: File name.
+    :param cache_time: Cache time in seconds.
+    :param nretry: Number of retries (default is 3).
+    :param sleeptime: Sleep time (default is 60 s) between retry attempts.
+    :return: data loaded from the url or file content if url passed is a filename.
     """
 
     content = None
@@ -227,8 +261,8 @@ def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
                                 (url, fname, len(content) / 1024.))
                 return content
             except Exception, e:  # ignore errors, try to use old cache if any
-                # tolog("Failed to load data from url=%s, error: %s .. trying to use data from cache=%s" % (
-                # url, e, fname))
+                logger.fatal("Failed to load data from url=%s, error: %s .. trying to use data from cache=%s" %
+                             (url, e, fname))
                 # will try to use old cache below
                 if trial < nretry - 1:
                     logger.info("Will try again after %ss.." % sleeptime)
@@ -242,11 +276,96 @@ def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
         with open(fname, 'r') as f:
             content = f.read()
     except Exception, e:
-        # tolog("loadURLData: Caught exception: %s" % e)
+        logger.fatal("loadURLData: Caught exception: %s" % e)
         return None
 
     return content
 
+
+def load_ddm_conf_data(args, ddmendpoints=[], cache_time=60):
+    """
+    Load DDM configuration data from a source.
+    Valid sources: CVMFS, AGIS, LOCAL.
+
+    :param args: 
+    :param ddmendpoints: 
+    :param cache_time: 
+    :return: 
+    """""
+
+    # list of sources to fetch ddmconf data from
+    base_dir =  base_dir = args.mainworkdir
+    ddmconf_sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_ddmendpoints.json',
+                                 'nretry': 1,
+                                 'fname': os.path.join(base_dir, 'agis_ddmendpoints.cvmfs.json')},
+                       'AGIS':  {'url': 'http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json&'
+                                        'state=ACTIVE&preset=dict&ddmendpoint=%s' % ','.join(ddmendpoints),
+                                 'nretry':3,
+                                 'fname': os.path.join(base_dir, 'agis_ddmendpoints.agis.%s.json' %
+                                                       ('_'.join(sorted(ddmendpoints)) or 'ALL'))},
+                       'LOCAL': {'url':None,
+                                 'nretry': 1,
+                                 'fname': os.path.join(base_dir, 'agis_ddmendpoints.json')},
+                       'PANDA' : None
+    }
+
+    ddmconf_sources_order = ['LOCAL', 'CVMFS', 'AGIS']
+
+    for key in ddmconf_sources_order:
+        logger.info("Loading DDMConfData from source %s" % key)
+        dat = ddmconf_sources.get(key)
+        if not dat:
+            continue
+
+        content = load_url_data(cache_time=cache_time, **dat)
+        if not content:
+            continue
+        try:
+            data = json.loads(content)
+        except Exception, e:
+            logger.fatal("Failed to parse JSON content from source=%s .. skipped, error=%s" % (dat.get('url'), e))
+            data = None
+
+        if data and isinstance(data, dict):
+            return data
+
+    return None
+
+def resolve_ddm_conf(ddmendpoints):
+    """
+    Resolve the DDM configuration.
+
+    :param ddmendpoints: List of DDM endpoints.
+    :return: 
+    """"
+
+    return load_ddm_conf_data(ddmendpoints, cache_time=6000) or {}
+
+def resolve_ddm_protocols(ddmendpoints, activity):
+    """
+    Resolve the DDM protocols.
+    Resolve [SE endpoint, SE path] protocol entry for requested ddmendpoint by given pilot activity
+    ("pr" means pilot_read, "pw" for pilot_write).
+    Return the list of possible protocols ordered by priority.
+
+    :param ddmendpoints:
+    :param activity:
+    :return: dict('ddmendpoint_name':[(SE_1, path2), (SE_2, path2)])
+    """
+
+    if not ddmendpoints:
+        return {}
+
+    ddmconf = load_ddm_conf_data(ddmendpoints, cache_time=6000) or {}
+
+    ret = {}
+    for ddm in set(ddmendpoints):
+        protocols = [dict(se=e[0], path=e[2]) for e in sorted(self.ddmconf.get(ddm, {}).get('aprotocols',
+                                                                                            {}).get(activity, []),
+                                                              key=lambda x: x[1])]
+        ret.setdefault(ddm, protocols)
+
+    return ret
 
 def load_schedconfig_data(args, pandaqueues=[], cache_time=60):
     """
