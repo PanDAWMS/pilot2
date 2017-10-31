@@ -29,7 +29,8 @@ def wrapper(executable, **kwargs):
 
     platform = kwargs.get('platform', '')
     workdir = kwargs.get('workdir', '.')
-
+    logger.info('platform=%s'%platform)
+    logger.info('workdir=%s'%workdir)
     return singularity_wrapper(executable, platform, workdir)
 
 
