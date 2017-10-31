@@ -183,6 +183,16 @@ def _write_cache(url, j):
         json.dump(j, outfile)
 
 
+def get_container_options():
+    """
+    Return the container_options field from the schedconfig queuedata.
+
+    :return: container_options field (string).
+    """
+
+    return get_field_value('container_options')
+
+
 def get_catchall():
     """
     Return the catchall field from the schedconfig queuedata.
