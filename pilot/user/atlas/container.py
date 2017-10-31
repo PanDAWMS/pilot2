@@ -129,7 +129,7 @@ def get_container_name(user="pilot"):
         except Exception as e:
             logger.warning("failed to parse the container name: %s, %s" % (container_type, e))
     else:
-        logger.warning("Container type not specified in queuedata")
+        logger.warning("container type not specified in queuedata")
 
     return container_name
 
@@ -154,6 +154,7 @@ def singularity_wrapper(cmd, platform, workdir):
 
         # Get the singularity options
         singularity_options = extract_container_options()
+        logger.info("optinos=%s"%singularity_options)
         if singularity_options != "":
             # Get the image path
             image_path = get_grid_image_for_singularity(platform)
