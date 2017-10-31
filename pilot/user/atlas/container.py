@@ -153,7 +153,7 @@ def singularity_wrapper(cmd, platform, workdir):
         logger.info("singularity has been requested")
 
         # Get the singularity options
-        singularity_options = extract_singularity_options()
+        singularity_options = extract_container_options()
         if singularity_options != "":
             # Get the image path
             image_path = get_grid_image_for_singularity(platform)
