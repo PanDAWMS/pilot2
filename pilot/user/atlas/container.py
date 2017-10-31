@@ -155,7 +155,6 @@ def singularity_wrapper(cmd, platform, workdir):
 
         # Get the singularity options
         singularity_options = extract_container_options()
-        logger.info("optinos=%s"%singularity_options)
         if singularity_options != "":
             # Get the image path
             image_path = get_grid_image_for_singularity(platform)

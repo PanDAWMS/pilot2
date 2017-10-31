@@ -34,7 +34,7 @@ def execute(executable, **kwargs):
         user = environ.get('PILOT_USER', 'generic')  # TODO: replace with singleton
         container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], -1)
         if container:
-            executable = container.wrapper(executable, kwargs=kwargs)
+            executable = container.wrapper(executable, kwargs=**kwargs)
     else:
         logger.info("will not use container")
 
