@@ -43,8 +43,6 @@ def main():
     logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
 
-    # maxinputsize = get_maximum_input_sizes(args.location.queuedata)
-
     return workflow.run(args)
 
 
@@ -179,9 +177,12 @@ if __name__ == '__main__':
         print >> stderr, 'failed to create workdir at %s -- aborting: %s' % (mainworkdir, e)
         sys.exit(FAILURE)
     else:
-        environ['PILOT_WORKDIR'] = mainworkdir
+        environ['PILOT_WORKDIR'] = mainworkdir  # TODO: replace with singleton
         args.mainworkdir = mainworkdir
         chdir(mainworkdir)
+
+    # Set the pilot user
+    environ['PILOT_USER'] = args.pilot_user  # TODO: replace with singleton
 
     # Establish logging
     console = logging.StreamHandler(sys.stdout)
