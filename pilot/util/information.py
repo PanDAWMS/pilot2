@@ -183,27 +183,25 @@ def _write_cache(url, j):
         json.dump(j, outfile)
 
 
-def get_catchall(pilotbasedir):
+def get_catchall():
     """
     Return the catchall field from the schedconfig queuedata.
 
-    :param pilotbasedir: pilot base directory (string).
     :return: catchall field (string).
     """
 
-    return get_d(pilotbasedir, 'catchall')
+    return get_field_value('catchall')
 
-def get_d(pilotbasedir, field):
+def get_field_value(field):
     """
-    (rename)
+    Return the value from the given schedconfig field
     
-    :param pilotbasedir:
     :param field:
     :return:
     """
 
     value = ""
-    fname = os.path.join(pilotbasedir, config.Information.queuedata)
+    fname = os.path.join(environ['PILOT_WORKDIR'], config.Information.queuedata)
     if os.path.exists(fname):
         queuedata = get_json_dictionary()
         value = get_parameter(queuedata, field)
@@ -310,12 +308,11 @@ def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
     return content
 
 
-def load_ddm_conf_data(pilotbasedir, ddmendpoints=[], cache_time=60):
+def load_ddm_conf_data(ddmendpoints=[], cache_time=60):
     """
     Load DDM configuration data from a source.
     Valid sources: CVMFS, AGIS, LOCAL.
 
-    :param pilotbasedir: pilot base directory.
     :param ddmendpoints:
     :param cache_time: Cache time in seconds.
     :return:
@@ -324,16 +321,16 @@ def load_ddm_conf_data(pilotbasedir, ddmendpoints=[], cache_time=60):
     # list of sources to fetch ddmconf data from
     ddmconf_sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_ddmendpoints.json',
                                  'nretry': 1,
-                                 'fname': os.path.join(pilotbasedir, 'agis_ddmendpoints.cvmfs.json')},
+                                 'fname': os.path.join(environ['PILOT_WORKDIR'], 'agis_ddmendpoints.cvmfs.json')},
                        'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json&'
                                        'state=ACTIVE&preset=dict&ddmendpoint=%s' % ','.join(ddmendpoints),
                                        'nretry': 3,
-                                       'fname': os.path.join(pilotbasedir, 'agis_ddmendpoints.agis.%s.json' %
+                                       'fname': os.path.join(environ['PILOT_WORKDIR'], 'agis_ddmendpoints.agis.%s.json' %
                                                              ('_'.join(sorted(ddmendpoints)) or 'ALL'))},
 
                        'LOCAL': {'url': None,
                                  'nretry': 1,
-                                 'fname': os.path.join(pilotbasedir, 'agis_ddmendpoints.json')},
+                                 'fname': os.path.join(environ['PILOT_WORKDIR'], 'agis_ddmendpoints.json')},
                        'PANDA': None
                        }
 
@@ -360,24 +357,22 @@ def load_ddm_conf_data(pilotbasedir, ddmendpoints=[], cache_time=60):
     return None
 
 
-def resolve_ddm_conf(pilotbasedir, ddmendpoints):
+def resolve_ddm_conf(ddmendpoints):
     """
     Resolve the DDM configuration.
 
-    :param ddmendpoints: List of DDM endpoints.
     :return: DDM configuration data from a source (JSON dictionary).
     """
 
-    return load_ddm_conf_data(pilotbasedir, ddmendpoints, cache_time=6000) or {}
+    return load_ddm_conf_data(ddmendpoints, cache_time=6000) or {}
 
 
-def load_schedconfig_data(pilotbasedir, pandaqueues=[], cache_time=60):
+def load_schedconfig_data(pandaqueues=[], cache_time=60):
     """
     Download the queuedata from various sources (prioritized).
     Try to get data from CVMFS first, then AGIS or from Panda JSON sources (not implemented).
     Note: as of October 2016, agis_schedconfig.json is complete but contains info from all PQ (5 MB)
 
-    :param pilotbasedir: pilot base directory.
     :param pandaqueues:
     :param cache_time: Cache time in seconds.
     :return:
@@ -388,15 +383,15 @@ def load_schedconfig_data(pilotbasedir, pandaqueues=[], cache_time=60):
 
     schedcond_sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_schedconf.json',
                                    'nretry': 1,
-                                   'fname': os.path.join(pilotbasedir, 'agis_schedconf.cvmfs.json')},
+                                   'fname': os.path.join(environ['PILOT_WORKDIR'], 'agis_schedconf.cvmfs.json')},
                          'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json'
                                          '&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
                                   'nretry': 3,
-                                  'fname': os.path.join(pilotbasedir, 'agis_schedconf.agis.%s.json' %
+                                  'fname': os.path.join(environ['PILOT_WORKDIR'], 'agis_schedconf.agis.%s.json' %
                                                         ('_'.join(sorted(pandaqueues)) or 'ALL'))},
                          'LOCAL': {'url': None,
                                    'nretry': 1,
-                                   'fname': os.path.join(pilotbasedir, 'agis_schedconf.json')},
+                                   'fname': os.path.join(environ['PILOT_WORKDIR'], 'agis_schedconf.json')},
                          'PANDA': None}
 
     schedcond_sources_order = ['LOCAL', 'CVMFS', 'AGIS']
@@ -428,7 +423,7 @@ def load_schedconfig_data(pilotbasedir, pandaqueues=[], cache_time=60):
     return None
 
 
-def resolve_panda_protocols(pilotbasedir, pandaqueues, activity):
+def resolve_panda_protocols(pandaqueues, activity):
     """
     Resolve PanDA protocols. WARNING: deprecated? aprotocols is always {} (in AGIS).
 
@@ -436,7 +431,6 @@ def resolve_panda_protocols(pilotbasedir, pandaqueues, activity):
     ("pr" means pilot_read, "pw" for pilot_write).
     Return the list of possible protocols ordered by priority.
 
-    :param pilotbasedir: pilot base directory.
     :param pandaqueues: list of panda queues
     :param activity: activity (string)
     :return: dict('ddmendpoint_name':[(SE_1, path2, copytool, copyprefix), ).
@@ -445,7 +439,7 @@ def resolve_panda_protocols(pilotbasedir, pandaqueues, activity):
     if not pandaqueues:
         return {}
 
-    schedconf = load_schedconfig_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
+    schedconf = load_schedconfig_data(pandaqueues, cache_time=6000) or {}
 
     ret = {}
     for pandaqueue in set(pandaqueues):
@@ -459,21 +453,20 @@ def resolve_panda_protocols(pilotbasedir, pandaqueues, activity):
     return ret
 
 
-def resolve_panda_copytools(pilotbasedir, pandaqueues, activity, defval=[]):
+def resolve_panda_copytools(pandaqueues, activity, defval=[]):
     """
     Resolve supported copytools by given pandaqueues
     Check first settings for requested activity (pr, pw, pl, pls), then defval values,
     if not set then return copytools explicitly defined for all activities (not restricted to specific activity).
     Return ordered list of accepted copytools.
 
-    :param pilotbasedir: pilot base directory.
     :param pandaqueues:
     :param activity: activity of prioritized list of activities to resolve data.
     :param defval: default copytools values which will be used if no copytools defined for requested activity.
     :return: dict('pandaqueue':[(copytool, {settings}), ('copytool_name', {'setup':''}), ]).
     """
 
-    r = load_schedconfig_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
+    r = load_schedconfig_data(pandaqueues, cache_time=6000) or {}
 
     ret = {}
     for pandaqueue in set(pandaqueues):
@@ -500,16 +493,15 @@ def resolve_panda_copytools(pilotbasedir, pandaqueues, activity, defval=[]):
     return ret
 
 
-def resolve_panda_os_ddms(pilotbasedir, pandaqueues):
+def resolve_panda_os_ddms(pandaqueues):
     """
     Resolve OS ddmendpoints associated with requested pandaqueues.
 
-    :param pilotbasedir: pilot base directory.
     :param pandaqueues:
     :return: list of accepted ddmendpoints.
     """
 
-    r = load_schedconfig_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
+    r = load_schedconfig_data(pandaqueues, cache_time=6000) or {}
 
     ret = {}
     for pandaqueue in set(pandaqueues):
@@ -518,31 +510,29 @@ def resolve_panda_os_ddms(pilotbasedir, pandaqueues):
     return ret
 
 
-def resolve_panda_associated_storages_for_activity(pilotbasedir, pandaqueue, activity):
+def resolve_panda_associated_storages_for_activity(pandaqueue, activity):
     """
     Resolve DDM storages associated to requested pandaqueue for given activity
 
-    :param pilotbasedir: pilot base directory (string).
     :param pandaqueue: panda queues (string).
     :param activity: activity (string). E.g. 'pr'.
     :return:
     """
 
-    return resolve_panda_associated_storages(pilotbasedir, [pandaqueue]).get(pandaqueue, {})[activity]
+    return resolve_panda_associated_storages([pandaqueue]).get(pandaqueue, {})[activity]
 
 
-def resolve_panda_associated_storages(pilotbasedir, pandaqueues):
+def resolve_panda_associated_storages(pandaqueues):
     """
     Resolve DDM storages associated to requested pandaqueues
 
-    :param pilotbasedir: pilot base directory (string).
     :param pandaqueues: panda queues (list).
     :return: list of accepted ddmendpoints.
 
     :return:
     """
 
-    r = load_schedconfig_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
+    r = load_schedconfig_data(pandaqueues, cache_time=6000) or {}
 
     ret = {}
     for pandaqueue in set(pandaqueues):
@@ -551,17 +541,16 @@ def resolve_panda_associated_storages(pilotbasedir, pandaqueues):
     return ret
 
 
-def resolve_items(pilotbasedir, pandaqueues, itemname):
+def resolve_items(pandaqueues, itemname):
     """
     Resolve DDM storages associated with requested pandaqueues.
 
-    :param pilotbasedir: pilot base directory.
     :param pandaqueues:
     :param itemname:
     :return: list of accepted ddmendpoints.
     """
 
-    r = load_schedconfig_data(pilotbasedir, pandaqueues, cache_time=6000) or {}
+    r = load_schedconfig_data(pandaqueues, cache_time=6000) or {}
 
     ret = {}
     for pandaqueue in set(pandaqueues):
