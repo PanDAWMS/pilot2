@@ -177,7 +177,7 @@ if __name__ == '__main__':
         print >> stderr, 'failed to create workdir at %s -- aborting: %s' % (mainworkdir, e)
         sys.exit(FAILURE)
     else:
-        environ['PILOT_WORKDIR'] = mainworkdir  # TODO: replace with singleton
+        environ['PILOT_HOME'] = mainworkdir  # TODO: replace with singleton
         args.mainworkdir = mainworkdir
         chdir(mainworkdir)
 

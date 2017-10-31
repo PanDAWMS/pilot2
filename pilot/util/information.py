@@ -221,7 +221,7 @@ def get_field_value(field):
     """
 
     value = ""
-    fname = os.path.join(os.environ.get('PILOT_WORKDIR', '.'), config.Information.queuedata)
+    fname = os.path.join(os.environ.get('PILOT_HOME', '.'), config.Information.queuedata)
     if os.path.exists(fname):
         queuedata = get_json_dictionary()
         value = get_parameter(queuedata, field)
@@ -341,16 +341,16 @@ def load_ddm_conf_data(ddmendpoints=[], cache_time=60):
     # list of sources to fetch ddmconf data from
     ddmconf_sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_ddmendpoints.json',
                                  'nretry': 1,
-                                 'fname': os.path.join(os.environ.get('PILOT_WORKDIR', '.'), 'agis_ddmendpoints.cvmfs.json')},
+                                 'fname': os.path.join(os.environ.get('PILOT_HOME', '.'), 'agis_ddmendpoints.cvmfs.json')},
                        'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json&'
                                        'state=ACTIVE&preset=dict&ddmendpoint=%s' % ','.join(ddmendpoints),
                                        'nretry': 3,
-                                       'fname': os.path.join(os.environ.get('PILOT_WORKDIR', '.'), 'agis_ddmendpoints.agis.%s.json' %
+                                       'fname': os.path.join(os.environ.get('PILOT_HOME', '.'), 'agis_ddmendpoints.agis.%s.json' %
                                                              ('_'.join(sorted(ddmendpoints)) or 'ALL'))},
 
                        'LOCAL': {'url': None,
                                  'nretry': 1,
-                                 'fname': os.path.join(os.environ.get('PILOT_WORKDIR', '.'), 'agis_ddmendpoints.json')},
+                                 'fname': os.path.join(os.environ.get('PILOT_HOME', '.'), 'agis_ddmendpoints.json')},
                        'PANDA': None
                        }
 
@@ -403,15 +403,15 @@ def load_schedconfig_data(pandaqueues=[], cache_time=60):
 
     schedcond_sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_schedconf.json',
                                    'nretry': 1,
-                                   'fname': os.path.join(os.environ.get('PILOT_WORKDIR', '.'), 'agis_schedconf.cvmfs.json')},
+                                   'fname': os.path.join(os.environ.get('PILOT_HOME', '.'), 'agis_schedconf.cvmfs.json')},
                          'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json'
                                          '&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
                                   'nretry': 3,
-                                  'fname': os.path.join(os.environ.get('PILOT_WORKDIR', '.'), 'agis_schedconf.agis.%s.json' %
+                                  'fname': os.path.join(os.environ.get('PILOT_HOME', '.'), 'agis_schedconf.agis.%s.json' %
                                                         ('_'.join(sorted(pandaqueues)) or 'ALL'))},
                          'LOCAL': {'url': None,
                                    'nretry': 1,
-                                   'fname': os.path.join(os.environ.get('PILOT_WORKDIR', '.'), 'agis_schedconf.json')},
+                                   'fname': os.path.join(os.environ.get('PILOT_HOME', '.'), 'agis_schedconf.json')},
                          'PANDA': None}
 
     schedcond_sources_order = ['LOCAL', 'CVMFS', 'AGIS']
