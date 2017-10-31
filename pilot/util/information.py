@@ -236,7 +236,7 @@ def get_field_value(field):
     value = ""
     fname = os.path.join(os.environ.get('PILOT_HOME', '.'), config.Information.queuedata)
     if os.path.exists(fname):
-        queuedata = get_json_dictionary()
+        queuedata = get_json_dictionary(fname)
         value = get_parameter(queuedata, field)
 
     return value
