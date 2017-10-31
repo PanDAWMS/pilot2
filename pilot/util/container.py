@@ -28,13 +28,16 @@ def execute(executable, **kwargs):
     timeout = kwargs.get('timeout', 120)
     usecontainer = kwargs.get('usecontainer', False)
 
-    # Import user specific code in case
+    # Import user specific code if necessary (in case the command should be executed in a container)
+    # Note: the container.wrapper() function must at least be declared
     if usecontainer:
-        logger.info("will use container")
         user = environ.get('PILOT_USER', 'generic')  # TODO: replace with singleton
         container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], -1)
         if container:
-            executable = container.wrapper(executable, **kwargs)
+            try:
+                executable = container.wrapper(executable, **kwargs)
+            except Exception as e:
+                logger.fatal('failed to execute wrapper function: %s' % e)
     else:
         logger.info("will not use container")
 
