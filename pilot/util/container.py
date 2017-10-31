@@ -14,22 +14,29 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def execute(executable, timeout=120, **kwargs):
+def execute(executable, **kwargs):
     """
     Execute the command and its options in the provided executable list.
     The function also determines whether the command should be executed within a container.
     TODO: add time-out functionality.
 
     :param executable: Command list to be executed.
-    :param timeout: Time-out in seconds (default is 120 s). Currently not implemented.
+    :param kwargs:
     :return: exit code, stdout and stderr
     """
 
+    timeout = kwargs.get('timeout', 120)
+    usecontainer = kwargs.get('usecontainer', False)
+
     # Import user specific code in case
-    user = environ.get('PILOT_USER', 'generic')
-    container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], -1)
-    if container:
-        executable = container.wrapper(executable, kwargs=kwargs)
+    if usecontainer:
+        logger.info("will use container")
+        user = environ.get('PILOT_USER', 'generic')  # TODO: replace with singleton
+        container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], -1)
+        if container:
+            executable = container.wrapper(executable, kwargs=kwargs)
+    else:
+        logger.info("will not use container")
 
     logger.info('executing command: %s' % executable)
     process = subprocess.Popen(executable,
