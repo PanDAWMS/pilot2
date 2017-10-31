@@ -119,7 +119,7 @@ def get_container_name(user="pilot"):
     container_name = ""
     container_type = get_container_type()
 
-    if container_type != "" and user in container_type:
+    if container_type and container_type != "" and user in container_type:
         try:
             container_names = container_type.split(';')
             for name in container_names:
