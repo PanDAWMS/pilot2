@@ -8,18 +8,27 @@
 # - Paul Nilsson, paul.nilsson@cern.ch
 
 import subprocess
+from os import environ
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-def execute(executable):
+def execute(executable, timeout=120):
     """
     Execute the command and its options in the provided executable list.
+    The function also determines whether the command should be executed within a container.
+    TODO: add time-out functionality.
 
     :param executable: Command list to be executed.
+    :param timeout: Time-out in seconds (default is 120 s). Currently not implemented.
     :return: exit code, stdout and stderr
     """
+
+    user = environ.get('PILOT_USER', 'generic')
+    container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], -1)
+    if container:
+        logger.info("ok")
 
     logger.info('executing command: %s' % executable)
     process = subprocess.Popen(executable,
