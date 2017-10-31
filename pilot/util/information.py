@@ -103,6 +103,24 @@ def set_location(args, site=None):
                                                     storage['state'] == 'ACTIVE'][0]
 
     # find the schedconfig queue data
+    args.location.queuedata = get_schedconfig_queuedata(args.location.queue)
+
+    logger.info('queue: %s' % args.location.queue)
+    logger.info('site: %s' % args.location.site)
+    logger.info('storages: %s' % args.location.storages)
+    logger.info('queuedata: %s' % args.location.queuedata)
+
+    return True
+
+
+def get_schedconfig_queuedata(queue):
+    """
+    Return and store the schedconfig queuedata.
+
+    :param queue: PanDA queue name (e.g. BNL_PROD_MCORE)
+    :return: schedconfig queuedata json dictionary
+    """
+
     url = config.Information.schedconfig
     if url == "":
         logger.fatal('URL for schedconfig not set')
@@ -111,22 +129,17 @@ def set_location(args, site=None):
         # add the queuename to the URL
         if not url.endswith('/'):
             url += '/'
-        url += args.location.queue + '.all.json'
-    args.location.queuedata = retrieve_json(url)
+        url += queue + '.all.json'
+    queuedata = retrieve_json(url)
 
     # also write the queuedata to disk
-    filename = os.path.join(args.mainworkdir, config.Information.queuedata)
-    if not write_json(filename, args.location.queuedata):
+    filename = os.path.join(os.environ.get('PILOT_HOME'), config.Information.queuedata)
+    if not write_json(filename, queuedata):
         logger.warning("failed to write queuedata json to file")
     else:
         logger.info("wrote queuedata to local file %s" % filename)
 
-    logger.info('queue: %s' % args.location.queue)
-    logger.info('site: %s' % args.location.site)
-    logger.info('storages: %s' % args.location.storages)
-    logger.info('queuedata: %s' % args.location.queuedata)
-
-    return True
+    return queuedata
 
 
 def retrieve_json(url):
