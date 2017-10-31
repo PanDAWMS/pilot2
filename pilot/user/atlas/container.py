@@ -15,6 +15,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def wrapper(executable):
+    """
+    Wrapper function for any container specific usage.
+    This function will be called by pilot.util.container.execute() and prepends the executable with a container command.
+
+    :param executable: command to be executed (string).
+    :return: executable wrapped with container command (string).
+    """
+
+    return executable
+
 def extract_container_options():
     """ Extract any singularity options from catchall """
 

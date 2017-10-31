@@ -25,10 +25,11 @@ def execute(executable, timeout=120):
     :return: exit code, stdout and stderr
     """
 
+    # Import user specific code in case
     user = environ.get('PILOT_USER', 'generic')
     container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], -1)
     if container:
-        logger.info("ok")
+        executable = container.wrapper(executable)
 
     logger.info('executing command: %s' % executable)
     process = subprocess.Popen(executable,
