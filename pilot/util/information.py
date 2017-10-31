@@ -322,7 +322,7 @@ def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
         with open(fname, 'r') as f:
             content = f.read()
     except Exception, e:
-        logger.fatal("Caught exception: %s" % e)
+        logger.warning("%s (will try different source)" % e)
         return None
 
     return content
