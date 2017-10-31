@@ -423,8 +423,9 @@ def load_schedconfig_data(pandaqueues=[], cache_time=60):
 
         content = None
         if key == 'LOCAL':
-            with open(dat['fname']) as f:
-                content = f.read()
+            if os.path.exists(dat['fname']):
+                with open(dat['fname']) as f:
+                    content = f.read()
         else:
             content = load_url_data(cache_time=cache_time, **dat)
         if not content:
