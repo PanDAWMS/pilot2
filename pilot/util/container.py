@@ -14,7 +14,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def execute(executable, timeout=120):
+def execute(executable, timeout=120, **kwargs):
     """
     Execute the command and its options in the provided executable list.
     The function also determines whether the command should be executed within a container.
@@ -29,7 +29,7 @@ def execute(executable, timeout=120):
     user = environ.get('PILOT_USER', 'generic')
     container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], -1)
     if container:
-        executable = container.wrapper(executable)
+        executable = container.wrapper(executable, kwargs=kwargs)
 
     logger.info('executing command: %s' % executable)
     process = subprocess.Popen(executable,
