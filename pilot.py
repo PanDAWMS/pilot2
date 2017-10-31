@@ -14,7 +14,7 @@ import logging
 import sys
 import threading
 import time
-from os import getcwd, chdir
+from os import getcwd, chdir, environ
 
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
 from pilot.util.https import https_setup
@@ -179,6 +179,7 @@ if __name__ == '__main__':
         print >> stderr, 'failed to create workdir at %s -- aborting: %s' % (mainworkdir, e)
         sys.exit(FAILURE)
     else:
+        environ['PILOT_WORKDIR'] = mainworkdir
         args.mainworkdir = mainworkdir
         chdir(mainworkdir)
 
