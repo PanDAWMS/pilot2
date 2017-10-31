@@ -121,6 +121,12 @@ def get_schedconfig_queuedata(queue):
     :return: schedconfig queuedata json dictionary
     """
 
+    # read it locally if the queuedata file already exists
+    filename = os.path.join(os.environ.get('PILOT_HOME'), config.Information.queuedata)
+    if os.path.exists(filename):
+        queuedata = get_json_dictionary(filename)
+        return queuedata
+
     url = config.Information.schedconfig
     if url == "":
         logger.fatal('URL for schedconfig not set')
@@ -133,7 +139,6 @@ def get_schedconfig_queuedata(queue):
     queuedata = retrieve_json(url)
 
     # also write the queuedata to disk
-    filename = os.path.join(os.environ.get('PILOT_HOME'), config.Information.queuedata)
     if not write_json(filename, queuedata):
         logger.warning("failed to write queuedata json to file")
     else:
