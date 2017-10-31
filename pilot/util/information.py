@@ -218,7 +218,7 @@ def get_container_type():
     :return: container_type field (string).
     """
 
-    return get_field_value('container_options')
+    return get_field_value('container_type')
 
 
 def get_catchall():
