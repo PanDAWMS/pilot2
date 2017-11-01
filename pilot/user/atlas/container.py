@@ -29,6 +29,9 @@ def wrapper(executable, **kwargs):
 
     platform = kwargs.get('platform', '')
     workdir = kwargs.get('workdir', '.')
+    pilot_home = os.environ.get('PILOT_HOME', '')
+    if workdir == '.' and pilot_home != '':
+        workdir = pilot_home
 
     return singularity_wrapper(executable, platform, workdir)
 
