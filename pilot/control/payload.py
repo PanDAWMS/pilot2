@@ -24,6 +24,14 @@ logger = logging.getLogger(__name__)
 
 
 def control(queues, traces, args):
+    """
+    (add description)
+
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
 
     threads = [threading.Thread(target=validate_pre,
                                 kwargs={'queues': queues,
@@ -42,7 +50,14 @@ def control(queues, traces, args):
 
 
 def validate_pre(queues, traces, args):
+    """
+    (add description)
 
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
     while not args.graceful_stop.is_set():
         try:
             job = queues.payloads.get(block=True, timeout=1)
@@ -56,6 +71,12 @@ def validate_pre(queues, traces, args):
 
 
 def _validate_payload(job):
+    """
+    (add description)
+
+    :param job:
+    :return:
+    """
     # valid = random.uniform(0, 100)
     # if valid > 99:
     #     logger.warning('payload did not validate correctly -- skipping')
@@ -66,29 +87,45 @@ def _validate_payload(job):
 
 
 def setup_payload(job, out, err):
-    log = logger.getChild(str(job['PandaID']))
+    """
+    (add description)
 
-    try:
-        # create symbolic link for sqlite200 and geomDB in job dir
-        for db_name in ['sqlite200', 'geomDB']:
-            src = '/cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/%s' % db_name
-            link_name = 'job-%s/%s' % (job['PandaID'], db_name)
-            os.symlink(src, link_name)
-    except Exception as e:
-        log.error('could not create symbolic links to database files: %s' % e)
-        return False
+    :param job:
+    :param out:
+    :param err:
+    :return:
+    """
+    # log = logger.getChild(str(job['PandaID']))
+
+    # try:
+    # create symbolic link for sqlite200 and geomDB in job dir
+    #    for db_name in ['sqlite200', 'geomDB']:
+    #         src = '/cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/%s' % db_name
+    #         link_name = 'job-%s/%s' % (job['PandaID'], db_name)
+    #         os.symlink(src, link_name)
+    # except Exception as e:
+    #     log.error('could not create symbolic links to database files: %s' % e)
+    #     return False
 
     return True
 
 
 def run_payload(job, out, err):
+    """
+    (add description)
+
+    :param job:
+    :param out:
+    :param err:
+    :return:
+    """
     log = logger.getChild(str(job['PandaID']))
 
+    # get the payload command from the user specific code
+    # cmd = get_payload_command(job, queuedata)
     athena_version = job['homepackage'].split('/')[1]
-
     asetup = 'source $ATLAS_LOCAL_ROOT_BASE/user/atlasLocalSetup.sh --quiet; '\
              'source $AtlasSetup/scripts/asetup.sh %s,here; ' % athena_version
-
     cmd = job['transformation'] + ' ' + job['jobPars']
 
     log.debug('executable=%s' % asetup + cmd)
@@ -110,6 +147,14 @@ def run_payload(job, out, err):
 
 
 def wait_graceful(args, proc, job):
+    """
+    (add description)
+
+    :param args:
+    :param proc:
+    :param job:
+    :return:
+    """
     log = logger.getChild(str(job['PandaID']))
 
     breaker = False
@@ -140,7 +185,14 @@ def wait_graceful(args, proc, job):
 
 
 def execute(queues, traces, args):
+    """
+    (add description)
 
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
     while not args.graceful_stop.is_set():
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
@@ -186,6 +238,14 @@ def execute(queues, traces, args):
 
 
 def validate_post(queues, traces, args):
+    """
+    (add description)
+
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
 
     while not args.graceful_stop.is_set():
         try:

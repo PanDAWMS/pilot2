@@ -15,7 +15,7 @@ import signal
 import subprocess
 import time
 
-from pilot.common.exception import PilotException, MessageFailure, SetupFailure, RunPayloadFailure, UnKnownException
+from pilot.common.exception import PilotException, MessageFailure, SetupFailure, RunPayloadFailure, UnknownException
 from pilot.eventservice.esmessage import MessageThread
 
 
@@ -168,12 +168,12 @@ class ESProcess():
             logger.info('monitor is checking dead process.')
 
         if self.__message_thread is None:
-            raise MessageFailure("Message thread has not start.")
+            raise MessageFailure("Message thread has not started.")
         if not self.__message_thread.is_alive():
             raise MessageFailure("Message thread is not alive.")
 
         if self.__process is None:
-            raise RunPayloadFailure("Payload Process has not start.")
+            raise RunPayloadFailure("Payload Process has not started.")
         if self.__process.poll() is not None:
             raise RunPayloadFailure("Payload process is not alive: %s" % self.__process.poll())
 
@@ -225,7 +225,7 @@ class ESProcess():
 
         :returns: a dict {'id': <id>, 'status': <status>, 'output': <output if produced>, 'cpu': <cpu>, 'wall': <wall>, 'message': <full message>}
         :raises: PilotExecption: when a PilotException is caught.
-                 UnKnownException: when other unknown exception is caught.
+                 UnknownException: when other unknown exception is caught.
         """
 
         logger.debug('parsing message: %s' % message)
@@ -260,11 +260,11 @@ class ESProcess():
                     ret = {'id': event_range_id, 'status': 'failed', 'message': message}
                     return ret
             else:
-                raise UnKnownException("Unknown message %s" % message)
+                raise UnknownException("Unknown message %s" % message)
         except PilotException as e:
             raise e
         except Exception as e:
-            raise UnKnownException(e)
+            raise UnknownException(e)
 
     def handle_out_message(self, message):
         """
@@ -315,7 +315,7 @@ class ESProcess():
         :param time_to_wait: integer, seconds to wait to force kill the payload process.
 
         :raises: PilotExecption: when a PilotException is caught.
-                 UnKnownException: when other unknown exception is caught.
+                 UnknownException: when other unknown exception is caught.
         """
         logger.info('terminate running threads and processes.')
         try:
@@ -343,7 +343,7 @@ class ESProcess():
                         os.killpg(pgid, signal.SIGKILL)
         except Exception as e:
             logger.error('Exception caught when terminating ESProcess: %s' % e)
-            raise UnKnownException(e)
+            raise UnknownException(e)
 
     def run(self):
         """
@@ -351,7 +351,7 @@ class ESProcess():
                         handle messages from payload and response messages with injecting new event ranges or process outputs.
 
         :raises: PilotExecption: when a PilotException is caught.
-                 UnKnownException: when other unknown exception is caught.
+                 UnknownException: when other unknown exception is caught.
         """
 
         logger.debug('initializing.')

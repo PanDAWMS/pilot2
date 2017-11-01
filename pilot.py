@@ -14,16 +14,15 @@ import logging
 import sys
 import threading
 import time
-from os import getcwd, chdir
+from os import getcwd, chdir, environ
 
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
 from pilot.util.https import https_setup
 from pilot.util.information import set_location
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
-# from pilot.util.parameters imporget_maximum_input_sizes
 
-VERSION = '2017-10-12.001'
+VERSION = '2017-10-31.001'
 
 
 def main():
@@ -43,8 +42,6 @@ def main():
     logger.info('pilot arguments: %s' % str(args))
     logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
-
-    # maxinputsize = get_maximum_input_sizes(args.location.queuedata)
 
     return workflow.run(args)
 
@@ -164,7 +161,7 @@ if __name__ == '__main__':
     # Experiment
     arg_parser.add_argument('--pilot-user',
                             dest='pilot_user',
-                            default='',
+                            default='generic',
                             required=True,
                             help='Pilot user, e.g. name of experiment')
 
@@ -180,8 +177,12 @@ if __name__ == '__main__':
         print >> stderr, 'failed to create workdir at %s -- aborting: %s' % (mainworkdir, e)
         sys.exit(FAILURE)
     else:
+        environ['PILOT_HOME'] = mainworkdir  # TODO: replace with singleton
         args.mainworkdir = mainworkdir
         chdir(mainworkdir)
+
+    # Set the pilot user
+    environ['PILOT_USER'] = args.pilot_user  # TODO: replace with singleton
 
     # Establish logging
     console = logging.StreamHandler(sys.stdout)

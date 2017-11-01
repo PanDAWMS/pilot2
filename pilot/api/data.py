@@ -13,11 +13,12 @@ import logging
 import sys
 
 from pilot.control import data
+from pilot.common.exception import PilotException
 
 
 def setup_logging():
     """
-
+    Setup logging.
     :return:
     """
 
@@ -32,7 +33,7 @@ def setup_logging():
 
 def shutdown_logging():
     """
-
+    Shutdown logging.
     :return:
     """
     logging.shutdown()
@@ -59,7 +60,7 @@ class StageInClient(object):
 
     def transfer(self, files):
         """
-        Automatically stage in files using rucio.
+        Automatically stage in files using the selected copy tool.
 
         :param files: List of dictionaries containing the file information
                       for the rucio copytool, this must contain DID and destination directory.
@@ -85,7 +86,11 @@ class StageInClient(object):
         if all_files_ok:
             copytool = __import__('pilot.copytool.%s' % self.copytool_name, globals(), locals(),
                                   [self.copytool_name], -1)
-            copytool.copy_in(files)
+            try:
+                copytool.copy_in(files)
+            except PilotException as e:
+                logging.fatal(e.message)
+                raise Exception(e.message)
         else:
             if self.copytool_name == 'rucio':
                 raise Exception('Files dictionary does not conform to: scope, name, destination')
@@ -151,7 +156,11 @@ class StageOutClient(object):
             else:
                 copytool = __import__('pilot.copytool.%s' % self.copytool_name, globals(), locals(),
                                       [self.copytool_name], -1)
-                copytool.copy_out(files)
+                try:
+                    copytool.copy_out(files)
+                except PilotException as e:
+                    logging.fatal(e.message)
+                    raise Exception(e.message)
 
         else:
             if self.copytool_name == 'rucio':

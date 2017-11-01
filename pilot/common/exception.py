@@ -63,18 +63,18 @@ class NotImplemented(PilotException):
         self._message = "The class or function is not implemented."
 
 
-class UnKnownException(PilotException):
+class UnknownException(PilotException):
     """
-    UnKnownException
+    Unknown exception.
     """
     def __init__(self, *args, **kwargs):
-        super(UnKnownException, self).__init__(args, kwargs)
+        super(UnknownException, self).__init__(args, kwargs)
         self._message = "An unknown pilot exception has occurred."
 
 
 class NoLocalSpace(PilotException):
     """
-    Not enough local space
+    Not enough local space.
     """
     def __init__(self, *args, **kwargs):
         super(NoLocalSpace, self).__init__(args, kwargs)
@@ -84,27 +84,27 @@ class NoLocalSpace(PilotException):
 
 class StageInFailure(PilotException):
     """
-    Failed to stage-in input files
+    Failed to stage-in input files.
     """
     def __init__(self, *args, **kwargs):
         super(StageInFailure, self).__init__(args, kwargs)
         self._errorCode = 1099
-        self._message = "Failed to stage-in input files."
+        self._message = "Failed to stage-in input file(s)."
 
 
 class StageOutFailure(PilotException):
     """
-    Failed to stage-out output files
+    Failed to stage-out output files.
     """
     def __init__(self, *args, **kwargs):
         super(StageOutFailure, self).__init__(args, kwargs)
         self._errorCode = 1137
-        self._message = "Failed to stage-out output files."
+        self._message = "Failed to stage-out output file(s)."
 
 
 class SetupFailure(PilotException):
     """
-    Failed to setup environment
+    Failed to setup environment.
     """
     def __init__(self, *args, **kwargs):
         super(SetupFailure, self).__init__(args, kwargs)
@@ -124,9 +124,39 @@ class RunPayloadFailure(PilotException):
 
 class MessageFailure(PilotException):
     """
-    Failed to execute payload.
+    Failed to handle messages.
     """
     def __init__(self, *args, **kwargs):
         super(MessageFailure, self).__init__(args, kwargs)
         self._errorCode = 1112
         self._message = "Failed to handle messages."
+
+
+class FileHandlingFailure(PilotException):
+    """
+    Failed during file handling.
+    """
+    def __init__(self, *args, **kwargs):
+        super(FileHandlingFailure, self).__init__(args, kwargs)
+        self._errorCode = 1999
+        self._message = "Failed during file handling."
+
+
+class ConversionFailure(PilotException):
+    """
+    Failed to convert object data.
+    """
+    def __init__(self, *args, **kwargs):
+        super(ConversionFailure, self).__init__(args, kwargs)
+        self._errorCode = 1998
+        self._message = "Failed to convert object data."
+
+
+class MKDirFailure(PilotException):
+    """
+    Failed to create local directory.
+    """
+    def __init__(self, *args, **kwargs):
+        super(MKDirFailure, self).__init__(args, kwargs)
+        self._errorCode = 1997
+        self._message = "Failed to create local directory."
