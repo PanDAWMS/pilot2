@@ -201,9 +201,19 @@ def _write_cache(url, j):
         json.dump(j, outfile)
 
 
+def get_appdir():
+    """
+    Return the appdir field value from the schedconfig queuedata.
+
+    :return: appdir field (string).
+    """
+
+    return get_field_value('appdir')
+
+
 def get_container_options():
     """
-    Return the container_options field from the schedconfig queuedata.
+    Return the container_options field value from the schedconfig queuedata.
 
     :return: container_options field (string).
     """
@@ -213,7 +223,7 @@ def get_container_options():
 
 def get_container_type():
     """
-    Return the container_type field from the schedconfig queuedata.
+    Return the container_type field value from the schedconfig queuedata.
 
     :return: container_type field (string).
     """
@@ -223,7 +233,7 @@ def get_container_type():
 
 def get_catchall():
     """
-    Return the catchall field from the schedconfig queuedata.
+    Return the catchall field value from the schedconfig queuedata.
 
     :return: catchall field (string).
     """
