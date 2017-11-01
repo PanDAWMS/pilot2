@@ -10,7 +10,7 @@
 import os
 import re
 
-from pilot.util.information import get_container_options, get_container_type
+from pilot.util.information import get_container_options, get_container_type, get_catchall
 from pilot.user.atlas.setup import get_file_system_root_path
 
 import logging
@@ -37,7 +37,7 @@ def extract_container_options():
     """ Extract any singularity options from catchall """
 
     # e.g. catchall = "somestuff singularity_options=\'-B /etc/grid-security/certificates,/var/spool/slurmd,/cvmfs,/ceph/grid,/data0,/sys/fs/cgroup\'"
-    #catchall = "singularity_options=\'-B /etc/grid-security/certificates,/cvmfs,${workdir} --contain\'" #readpar("catchall")
+    # catchall = "singularity_options=\'-B /etc/grid-security/certificates,/cvmfs,${workdir} --contain\'" #readpar("catchall")
 
     # ${workdir} should be there, otherwise the pilot cannot add the current workdir
     # if not there, add it
@@ -58,7 +58,7 @@ def extract_container_options():
         if container_options.endswith("'") or container_options.endswith('"'):
             container_options = container_options[:-1]
         # add the workdir if missing
-        if not "${workdir}" in container_options and " --contain" in container_options:
+        if "${workdir}" not in container_options and " --contain" in container_options:
             container_options = container_options.replace(" --contain", ",${workdir} --contain")
             logger.info("Note: added missing ${workdir} to singularity_options")
 
@@ -162,7 +162,7 @@ def singularity_wrapper(cmd, platform, workdir):
             if os.path.exists(image_path):
                 # Prepend it to the given command
                 cmd = "export workdir=" + workdir + "; singularity exec " + singularity_options + " " + image_path + \
-                      " /bin/bash -c \'cd $workdir;pwd;" + cmd.replace("\'","\\'").replace('\"','\\"') + "\'"
+                      " /bin/bash -c \'cd $workdir;pwd;" + cmd.replace("\'", "\\'").replace('\"', '\\"') + "\'"
             else:
                 logger.warning("singularity options found but image does not exist: %s" % (image_path))
         else:

@@ -230,10 +230,11 @@ def get_catchall():
 
     return get_field_value('catchall')
 
+
 def get_field_value(field):
     """
     Return the value from the given schedconfig field
-    
+
     :param field: schedconfig field (string, e.g. catchall)
     :return: schedconfig field value (string)
     """
@@ -245,6 +246,7 @@ def get_field_value(field):
         value = get_parameter(queuedata, field)
 
     return value
+
 
 def get_parameter(queuedata, field):
     """
