@@ -204,7 +204,7 @@ def execute(queues, traces, args):
                 queues.validated_payloads.put(job)
                 for i in xrange(10):
                     if args.graceful_stop.is_set():
-                            break
+                        break
                     time.sleep(0.1)
                 continue
 
