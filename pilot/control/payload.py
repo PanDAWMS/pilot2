@@ -37,7 +37,7 @@ def control(queues, traces, args):
                                 kwargs={'queues': queues,
                                         'traces': traces,
                                         'args': args}),
-               threading.Thread(target=execute,
+               threading.Thread(target=execute_payloads,
                                 kwargs={'queues': queues,
                                         'traces': traces,
                                         'args': args}),
@@ -184,9 +184,9 @@ def wait_graceful(args, proc, job):
     return exit_code
 
 
-def execute(queues, traces, args):
+def execute_payloads(queues, traces, args):
     """
-    (add description)
+    Execute queued payloads.
 
     :param queues:
     :param traces:
