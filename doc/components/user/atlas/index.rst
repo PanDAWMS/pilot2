@@ -1,5 +1,5 @@
 ..
-    Pilot 2 documentation components index
+    Pilot 2 documentation pilot.user.atlas index
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -7,23 +7,14 @@
     http://www.apache.org/licenses/LICENSE-2.0
 
     Authors:
-     - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-Components
-==========
+atlas components
+================
 
 .. toctree::
     :maxdepth: 2
 
-    api/index
-    common/index
-    control/index
-    copytool/index
-    eventservice/index
-    user/index
-    util/index
-    workflow/index
-
-
-
+    common
+    container
+    setup
