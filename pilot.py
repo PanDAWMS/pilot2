@@ -56,7 +56,7 @@ if __name__ == '__main__':
     # pilot work directory
     arg_parser.add_argument('-a',
                             dest='workdir',
-                            default=getcwd(),
+                            default="",
                             help='Pilot work directory')
 
     # debug option to enable more log messages
@@ -167,19 +167,22 @@ if __name__ == '__main__':
 
     args = arg_parser.parse_args()
 
-    # Create the main pilot workdir and cd into it
-    mainworkdir = get_pilot_work_dir(args.workdir)
-    try:
-        create_pilot_work_dir(mainworkdir)
-    except Exception as e:
-        # print to stderr since logging has not been established yet
-        from sys import stderr
-        print >> stderr, 'failed to create workdir at %s -- aborting: %s' % (mainworkdir, e)
-        sys.exit(FAILURE)
+    # If requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
+    if args.workdir != "":
+        mainworkdir = get_pilot_work_dir(args.workdir)
+        try:
+            create_pilot_work_dir(mainworkdir)
+        except Exception as e:
+            # print to stderr since logging has not been established yet
+            from sys import stderr
+            print >> stderr, 'failed to create workdir at %s -- aborting: %s' % (mainworkdir, e)
+            sys.exit(FAILURE)
     else:
-        environ['PILOT_HOME'] = mainworkdir  # TODO: replace with singleton
-        args.mainworkdir = mainworkdir
-        chdir(mainworkdir)
+        mainworkdir = getcwd()
+
+    environ['PILOT_HOME'] = mainworkdir  # TODO: replace with singleton
+    args.mainworkdir = mainworkdir
+    chdir(mainworkdir)
 
     # Set the pilot user
     environ['PILOT_USER'] = args.pilot_user  # TODO: replace with singleton
