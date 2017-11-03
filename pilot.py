@@ -52,8 +52,8 @@ class Args:
     """
     pass
 
-
-def pilot(**kwargs):
+# rename module to pilot2 to avoid conflict in import with pilot directory
+def import_module(**kwargs):
     """
     This function allows for importing the pilot code.
 
@@ -64,7 +64,7 @@ def pilot(**kwargs):
     argument_dictionary = {'-a': kwargs.get('workdir', ''),
                            '-d': kwargs.get('debug', None),
                            '-w': kwargs.get('workflow', 'generic'),
-                           '-l': kwargs.get('lifetime', 3600),
+                           '-l': kwargs.get('lifetime', '3600'),
                            '-q': kwargs.get('queue'),  # required
                            '-r': kwargs.get('resource'),  # required
                            '-s': kwargs.get('site'),  # required
@@ -72,20 +72,21 @@ def pilot(**kwargs):
                            '--cacert': kwargs.get('cacert', None),
                            '--capath': kwargs.get('capath'),
                            '--url': kwargs.get('url', ''),
-                           '-p': kwargs.get('port', 25443),
+                           '-p': kwargs.get('port', '25443'),
                            '--config': kwargs.get('config', ''),
                            '--country-group': kwargs.get('country_group', ''),
                            '--working-group': kwargs.get('working_group', ''),
-                           '--allow-other-country': kwargs.get('allow_other_country', False),
-                           '--allow-same-user': kwargs.get('allow_same_user', True),
+                           '--allow-other-country': kwargs.get('allow_other_country', 'False'),
+                           '--allow-same-user': kwargs.get('allow_same_user', 'True'),
                            '--pilot-user': kwargs.get('pilot_user', 'generic')
                            }
 
     args = Args()
     parser = argparse.ArgumentParser()
     for key, value in argument_dictionary.iteritems():
+        print key, value
         parser.add_argument(key)
-        parser.parse_args(args=[key, value], namespace=args)
+        parser.parse_args(args=[key, value], namespace=args)  # convert back int and bool strings to int and bool??
 
     # call main pilot function
 
