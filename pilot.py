@@ -46,9 +46,62 @@ def main():
     return workflow.run(args)
 
 
-def import_module(workflow=None, user=None):
+# >>> class C:
+# ...     pass
+# >>> c = C()
+# >>> parser = argparse.ArgumentParser()
+# >>> parser.add_argument('--foo')
+# >>> parser.parse_args(args=['--foo', 'BAR'], namespace=c)
+# >>> c.foo
+# 'BAR'
+
+class Args:
     pass
 
+def import_module(**kwargs):
+    """
+    This function allows for importing the pilot code.
+
+    :param kwargs:
+    :return: pilot error code (integer).
+    """
+
+    argument_dictionary = {'-a': kwargs.get('workdir', ''),
+                           '-d': kwargs.get('debug', None),
+                           '-w': kwargs.get('workflow', 'generic'),
+                           '-l': kwargs.get('lifetime', 3600),
+                           '-q': kwargs.get('queue'),  # required
+                           '-r': kwargs.get('resource'),  # required
+                           '-s': kwargs.get('site'),  # required
+                           '-j': kwargs.get('job_label', 'ptest'),  # change default later to 'managed'
+                           '--cacert': kwargs.get('cacert', None),
+                           '--capath': kwargs.get('capath'),
+                           '--url': ''
+                           }
+
+    lifetime = kwargs.get('lifetime', 3600)
+    queue = kwargs.get('queue')  # required
+    resource = kwargs.get('resource')  # required
+    site = kwargs.get('site')  # required
+    job_label = kwargs.get('job_label', 'ptest')  # change default later to 'managed'
+    cacert = kwargs.get('cacert', None)
+    capath = kwargs.get('capath')
+    url = kwargs.get('url', '')
+    port = kwargs.get('port', 25443)
+    config = kwargs.get('config', '')
+    country_group = kwargs.get('country_group', '')
+    working_group = kwargs.get('working_group', '')
+    allow_other_country = kwargs.get('allow_other_country', False)
+    pilot_user = kwargs.get('pilot_user', 'generic')
+
+    args = Args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-a')
+    parser.parse_args(args=['-a', kwargs.get('workdir', '')])
+
+    # ..
+
+    return 0
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()
@@ -56,7 +109,7 @@ if __name__ == '__main__':
     # pilot work directory
     arg_parser.add_argument('-a',
                             dest='workdir',
-                            default=getcwd(),
+                            default="",
                             help='Pilot work directory')
 
     # debug option to enable more log messages
@@ -167,19 +220,22 @@ if __name__ == '__main__':
 
     args = arg_parser.parse_args()
 
-    # Create the main pilot workdir and cd into it
-    mainworkdir = get_pilot_work_dir(args.workdir)
-    try:
-        create_pilot_work_dir(mainworkdir)
-    except Exception as e:
-        # print to stderr since logging has not been established yet
-        from sys import stderr
-        print >> stderr, 'failed to create workdir at %s -- aborting: %s' % (mainworkdir, e)
-        sys.exit(FAILURE)
+    # If requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
+    if args.workdir != "":
+        mainworkdir = get_pilot_work_dir(args.workdir)
+        try:
+            create_pilot_work_dir(mainworkdir)
+        except Exception as e:
+            # print to stderr since logging has not been established yet
+            from sys import stderr
+            print >> stderr, 'failed to create workdir at %s -- aborting: %s' % (mainworkdir, e)
+            sys.exit(FAILURE)
     else:
-        environ['PILOT_HOME'] = mainworkdir  # TODO: replace with singleton
-        args.mainworkdir = mainworkdir
-        chdir(mainworkdir)
+        mainworkdir = getcwd()
+
+    environ['PILOT_HOME'] = mainworkdir  # TODO: replace with singleton
+    args.mainworkdir = mainworkdir
+    chdir(mainworkdir)
 
     # Set the pilot user
     environ['PILOT_USER'] = args.pilot_user  # TODO: replace with singleton
