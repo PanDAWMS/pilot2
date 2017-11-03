@@ -47,14 +47,17 @@ def main():
 
 
 class Args:
+    """
+    Dummy namespace class used to contain pilot arguments.
+    """
     pass
 
 
-def import_module(**kwargs):
+def pilot(**kwargs):
     """
     This function allows for importing the pilot code.
 
-    :param kwargs:
+    :param kwargs: pilot options (dictionary).
     :return: pilot error code (integer).
     """
 
@@ -87,6 +90,7 @@ def import_module(**kwargs):
     # call main pilot function
 
     return 0
+
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()
