@@ -46,17 +46,9 @@ def main():
     return workflow.run(args)
 
 
-# >>> class C:
-# ...     pass
-# >>> c = C()
-# >>> parser = argparse.ArgumentParser()
-# >>> parser.add_argument('--foo')
-# >>> parser.parse_args(args=['--foo', 'BAR'], namespace=c)
-# >>> c.foo
-# 'BAR'
-
 class Args:
     pass
+
 
 def import_module(**kwargs):
     """
@@ -76,30 +68,23 @@ def import_module(**kwargs):
                            '-j': kwargs.get('job_label', 'ptest'),  # change default later to 'managed'
                            '--cacert': kwargs.get('cacert', None),
                            '--capath': kwargs.get('capath'),
-                           '--url': ''
+                           '--url': kwargs.get('url', ''),
+                           '-p': kwargs.get('port', 25443),
+                           '--config': kwargs.get('config', ''),
+                           '--country-group': kwargs.get('country_group', ''),
+                           '--working-group': kwargs.get('working_group', ''),
+                           '--allow-other-country': kwargs.get('allow_other_country', False),
+                           '--allow-same-user': kwargs.get('allow_same_user', True),
+                           '--pilot-user': kwargs.get('pilot_user', 'generic')
                            }
-
-    lifetime = kwargs.get('lifetime', 3600)
-    queue = kwargs.get('queue')  # required
-    resource = kwargs.get('resource')  # required
-    site = kwargs.get('site')  # required
-    job_label = kwargs.get('job_label', 'ptest')  # change default later to 'managed'
-    cacert = kwargs.get('cacert', None)
-    capath = kwargs.get('capath')
-    url = kwargs.get('url', '')
-    port = kwargs.get('port', 25443)
-    config = kwargs.get('config', '')
-    country_group = kwargs.get('country_group', '')
-    working_group = kwargs.get('working_group', '')
-    allow_other_country = kwargs.get('allow_other_country', False)
-    pilot_user = kwargs.get('pilot_user', 'generic')
 
     args = Args()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-a')
-    parser.parse_args(args=['-a', kwargs.get('workdir', '')])
+    for key, value in argument_dictionary.iteritems():
+        parser.add_argument(key)
+        parser.parse_args(args=[key, value], namespace=args)
 
-    # ..
+    # call main pilot function
 
     return 0
 
