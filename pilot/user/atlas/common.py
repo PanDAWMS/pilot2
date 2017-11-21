@@ -7,6 +7,8 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
+import os
+
 # from pilot.common.exception import PilotException
 from pilot.user.atlas.setup import should_pilot_prepare_asetup, is_user_analysis_job, get_platform, get_asetup, \
     get_asetup_options, is_standard_atlas_job
@@ -47,8 +49,38 @@ def get_payload_command(job):
             options = get_asetup_options(job.release, job.homePackage)
             asetupoptions = " " + options + " --platform " + platform
 
+            # Always set the --makeflags option (to prevent asetup from overwriting it)
+            asetup_options += ' --makeflags=\"$MAKEFLAGS\"'
+
+            # Verify that the setup works
+            # exitcode, output = timedCommand(cmd, timeout=5 * 60)
+            # if exitcode != 0:
+            #     if "No release candidates found" in output:
+            #         pilotErrorDiag = "No release candidates found"
+            #         logger.warning(pilotErrorDiag)
+                      # return self.__error.ERR_NORELEASEFOUND, pilotErrorDiag, "", special_setup_cmd, JEM, cmtconfig
+            # else:
+            #     logger.info("verified setup command")
+
+            cmd += asetup_options
+
+            if userjob:
+                pass
+            else:
+                # Add Database commands if they are set by the local site
+                cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
+                # Add the transform and the job parameters (production jobs)
+                if prepareasetup:
+                    cmd += ";%s %s" % (job.trf, job.jobPars)
+                else:
+                    cmd += "; " + job.jobPars
+
+            cmd = cmd.replace(';;', ';')
+
     else:  # Generic, non-ATLAS specific jobs, or at least a job with undefined swRelease
 
         logger.info("generic job (non-ATLAS specific or with undefined swRelease)")
 
-    return ""
+        cmd = ""
+
+    return cmd
