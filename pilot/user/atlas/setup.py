@@ -8,6 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import os
+import re
 
 from pilot.util.information import get_cmtconfig, get_appdir
 
@@ -106,15 +107,53 @@ def get_asetup(asetup=True):
         cmd += "source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;"
         if asetup:
             cmd += "source $AtlasSetup/scripts/asetup.sh"
-        else:
-            appdir = get_appdir()
-            if appdir == "":
-                appdir = os.environ.get('VO_ATLAS_SW_DIR', '')
-            if appdir != "":
-                if asetup:
-                    cmd = "source %s/scripts/asetup.sh" % appdir
+    else:
+        appdir = get_appdir()
+        if appdir == "":
+            appdir = os.environ.get('VO_ATLAS_SW_DIR', '')
+        if appdir != "":
+            if asetup:
+                cmd = "source %s/scripts/asetup.sh" % appdir
 
     return cmd
+
+
+def get_asetup_options(release, homePackage):
+    """
+    Determine the proper asetup options.
+    :param release: ATLAS release string.
+    :param homePackage: ATLAS homePackage string.
+    :return: asetup options (string).
+    """
+
+    asetup_opt = []
+    release = re.sub('^Atlas-', '', atlasRelease)
+
+    # is it a user analysis homePackage?
+    if 'AnalysisTransforms' in homePackage:
+
+        _homepackage = re.sub('^AnalysisTransforms-*', '', homePackage)
+        if _homepackage == '' or re.search('^\d+\.\d+\.\d+$', release) is None:
+            if release != "":
+                asetup_opt.append(release)
+        if _homepackage != '':
+            asetup_opt += _homepackage.split('_')
+
+    else:
+
+        asetup_opt += homePackage.split('/')
+        if release not in homePackage:
+            asetup_opt.append(release)
+
+    # Add the notest,here for all setups (not necessary for late releases but harmless to add)
+    asetup_opt.append('notest')
+    # asetup_opt.append('here')
+
+    # Add the fast option if possible (for the moment, check for locally defined env variable)
+    if os.environ.has_key("ATLAS_FAST_ASETUP"):
+        asetup_opt.append('fast')
+
+    return ','.join(asetup_opt)
 
 
 def is_standard_atlas_job(release):

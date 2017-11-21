@@ -9,7 +9,7 @@
 
 # from pilot.common.exception import PilotException
 from pilot.user.atlas.setup import should_pilot_prepare_asetup, is_user_analysis_job, get_platform, get_asetup, \
-    is_standard_atlas_job
+    get_asetup_options, is_standard_atlas_job
 
 import logging
 logger = logging.getLogger(__name__)
@@ -41,6 +41,11 @@ def get_payload_command(job):
 
         # Normal setup (production and user jobs)
         logger.info("preparing normal production/analysis job setup command")
+
+        cmd = asetup_path
+        if prepareasetup:
+            options = get_asetup_options(job.release, job.homePackage)
+            asetupoptions = " " + options + " --platform " + platform
 
     else:  # Generic, non-ATLAS specific jobs, or at least a job with undefined swRelease
 
