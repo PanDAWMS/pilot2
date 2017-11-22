@@ -8,7 +8,7 @@
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-# NOTE: this component should be tied to the job, its thread should live and die with the job
+# NOTE: this component should be tied to the job, its thread should live and die with the job (rename to job monitor?)
 
 import logging
 import os
