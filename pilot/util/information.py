@@ -577,7 +577,7 @@ def resolve_panda_associated_storages(pandaqueues):
 
     ret = {}
     for pandaqueue in set(pandaqueues):
-        ret[pandaqueue] = r.get(pandaqueue, {}).get('astorages', {})
+        ret[pandaqueue] = r.get(pandaqueue, {}).get('astorages0', {})
 
     return ret
 

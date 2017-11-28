@@ -14,6 +14,7 @@ import sys
 
 from pilot.control import data
 from pilot.common.exception import PilotException
+from pilot.util.information import resolve_panda_copytools
 
 
 def setup_logging():
@@ -44,8 +45,12 @@ class StageInClient(object):
         super(StageInClient, self).__init__()
 
         self.copytool_name = copytool
-        if self.copytool_name is None:
-            self.copytool_name = 'rucio'
+        if not copytool:
+            try:
+                pq_cpy_tool = resolve_panda_copytools([args.queue], ['read_lan'], [('rucio', {'setup': ''})])
+                self.copytool_name = pq_cpy_tool[0][0]
+            except:
+                self.copytool_name = 'rucio'
 
         # Check validity of specified site - should be refactored into VO-agnostic setup
         self.site = os.environ.get('VO_ATLAS_AGIS_SITE', site)
@@ -57,6 +62,7 @@ class StageInClient(object):
             # from pilot.util import information
             # self.args = collections.namedtuple('args', ['location'])
             # information.set_location(self.args, site=self.site)
+
 
     def transfer(self, files):
         """
