@@ -71,7 +71,7 @@ def move_all_files(files):
 
 def move(source, destination):
     """
-    Tries to upload the given files using xrdcp directly.
+    Tries to upload the given files using mv directly.
 
     :param source:
     :param destination:
