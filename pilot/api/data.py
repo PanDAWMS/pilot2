@@ -7,6 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Tobias Wegner, tobias.wegner@cern.ch, 2017
 
 import os
 import logging
@@ -57,13 +58,6 @@ class StageInClient(object):
         if self.site is None and self.copytool_name == 'rucio':
             raise Exception('VO_ATLAS_AGIS_SITE not available, must set StageInClient(site=...) parameter')
 
-            # Retrieve location information
-            # will need this later -- don't spam AGIS for now
-            # from pilot.util import information
-            # self.args = collections.namedtuple('args', ['location'])
-            # information.set_location(self.args, site=self.site)
-
-
     def transfer(self, files):
         """
         Automatically stage in files using the selected copy tool.
@@ -76,8 +70,6 @@ class StageInClient(object):
         :return: Annotated files -- List of dictionaries with additional variables.
                  [{..., errno, errmsg, status
         """
-
-        # setup logging
         setup_logging()
 
         all_files_ok = False
@@ -93,7 +85,7 @@ class StageInClient(object):
             copytool = __import__('pilot.copytool.%s' % self.copytool_name, globals(), locals(),
                                   [self.copytool_name], -1)
             try:
-                copytool.copy_in(files)
+                return copytool.copy_in(files)
             except PilotException as e:
                 logging.fatal(e.message)
                 raise Exception(e.message)
@@ -103,7 +95,6 @@ class StageInClient(object):
             else:
                 raise Exception('Files dictionary does not conform to: name, source, destination')
 
-        # shutdown logging
         shutdown_logging()
 
 
@@ -119,12 +110,6 @@ class StageOutClient(object):
         self.site = os.environ.get('VO_ATLAS_AGIS_SITE', site)
         if self.site is None and self.copytool_name == 'rucio':
             raise Exception('VO_ATLAS_AGIS_SITE not available, must set StageOutClient(site=...) parameter')
-
-            # Retrieve location information
-            # will need this later -- don't spam AGIS for now
-            # from pilot.util import information
-            # self.args = collections.namedtuple('args', ['location'])
-            # information.set_location(self.args, site=self.site)
 
     def transfer(self, files):
         """
@@ -143,8 +128,6 @@ class StageOutClient(object):
         :return: Annotated files -- List of dictionaries with additional variables.
                  [{..., errno, errmsg, status
         """
-
-        # setup logging
         setup_logging()
 
         all_files_ok = False
@@ -163,7 +146,7 @@ class StageOutClient(object):
                 copytool = __import__('pilot.copytool.%s' % self.copytool_name, globals(), locals(),
                                       [self.copytool_name], -1)
                 try:
-                    copytool.copy_out(files)
+                    return copytool.copy_out(files)
                 except PilotException as e:
                     logging.fatal(e.message)
                     raise Exception(e.message)
@@ -174,7 +157,6 @@ class StageOutClient(object):
             else:
                 raise Exception('Files dictionary does not conform to: name, source, destination')
 
-        # shutdown logging
         shutdown_logging()
 
 

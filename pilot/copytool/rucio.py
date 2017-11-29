@@ -27,9 +27,6 @@ def copy_in(files):
 
     destinations = merge_destinations(files)
 
-    if len(destinations) == 0:
-        raise Exception('No lfn with existing destination path given!')
-
     for dst in destinations:
         executable = ['/usr/bin/env',
                       'rucio', 'download',
