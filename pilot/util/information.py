@@ -251,6 +251,20 @@ def get_container_type():
     return get_field_value('container_type')
 
 
+def get_timefloor():
+    """
+    Return the timefloor field value from the schedconfig queuedata.
+    The timefloor is the maximum time during which the pilot is allowed to start a new job. If timefloor is 60 (minutes)
+    and the first job runs for less than 60 minutes, the pilot is allowed to download and start another job. If the
+    first job runs for 60 minutes or more, the pilot is not allowed to start any more jobs. The mechanism exists to
+    speed up the launch time of short jobs. The pilot may run a number of jobs before the timefloor limit.
+
+    :return: timefloor field value (string).
+    """
+
+    return get_field_value('timefloor')
+
+
 def get_field_value(field):
     """
     Return the value from the given schedconfig field
