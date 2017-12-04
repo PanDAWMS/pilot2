@@ -281,20 +281,6 @@ def retrieve(queues, traces, args):
             logger.info('since timefloor=%d s and only %d s has passed since launch, pilot can run another job' %
                         (timefloor, currenttime - starttime))
 
-        # getjobmaxtime = 60*5 # to be read from configuration file
-        # logger.debug('pilot will attempt job downloads for a maximum of %d seconds' % getjobmaxtime)
-
-        # first check if a job definition exists locally
-        # ..
-
-        # logger.debug('trying to fetch job from %s' % args.url)
-
-        # no local job definition, download from server
-        # cmd = args.url + ':' + str(args.port) + '/server/panda/getJob'
-        # logger.debug('executing command: %s' % cmd)
-        # logger.debug('data=%s'%str(data))
-        # res = https.request(cmd, data=data)
-
         getjob_requests += 1
         if getjob_requests > int(config.Pilot.maximum_getjob_requests):
             logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' %
