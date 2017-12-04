@@ -58,7 +58,7 @@ def get_payload_command(job):
             #     if "No release candidates found" in output:
             #         pilotErrorDiag = "No release candidates found"
             #         logger.warning(pilotErrorDiag)
-                      # return self.__error.ERR_NORELEASEFOUND, pilotErrorDiag, "", special_setup_cmd, JEM, cmtconfig
+            #         return self.__error.ERR_NORELEASEFOUND, pilotErrorDiag, "", special_setup_cmd, JEM, cmtconfig
             # else:
             #     logger.info("verified setup command")
 

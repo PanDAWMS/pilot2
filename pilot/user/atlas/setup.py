@@ -150,7 +150,7 @@ def get_asetup_options(release, homePackage):
     # asetup_opt.append('here')
 
     # Add the fast option if possible (for the moment, check for locally defined env variable)
-    if os.environ.has_key("ATLAS_FAST_ASETUP"):
+    if "ATLAS_FAST_ASETUP" in os.environ:
         asetup_opt.append('fast')
 
     return ','.join(asetup_opt)
@@ -166,4 +166,3 @@ def is_standard_atlas_job(release):
     """
 
     return release.startswith('Atlas-')
-
