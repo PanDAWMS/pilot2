@@ -279,7 +279,7 @@ def retrieve(queues, traces, args):
 
         if jobnumber > 0:
             logger.info('since timefloor=%d s and only %d s has passed since launch, pilot can run another job' %
-                     (timefloor, currenttime - starttime))
+                        (timefloor, currenttime - starttime))
 
         # getjobmaxtime = 60*5 # to be read from configuration file
         # logger.debug('pilot will attempt job downloads for a maximum of %d seconds' % getjobmaxtime)
