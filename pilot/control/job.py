@@ -268,17 +268,17 @@ def retrieve(queues, traces, args):
 
         currenttime = time.time()
         if timefloor == 0 and jobnumber > 0:
-            log.warning("since timefloor is set to 0, pilot was only allowed to run one job")
+            logger.warning("since timefloor is set to 0, pilot was only allowed to run one job")
             args.graceful_stop.set()
             break
 
         if currenttime - starttime > timefloor:
-            log.warning("the pilot has run out of time (timefloor=%d has been passed)" % timefloor)
+            logger.warning("the pilot has run out of time (timefloor=%d has been passed)" % timefloor)
             args.graceful_stop.set()
             break
 
         if jobnumber > 0:
-            log.info('since timefloor=%d s and only %d s has passed since launch, pilot can run another job' %
+            logger.info('since timefloor=%d s and only %d s has passed since launch, pilot can run another job' %
                      (timefloor, currenttime - starttime))
 
         # getjobmaxtime = 60*5 # to be read from configuration file
