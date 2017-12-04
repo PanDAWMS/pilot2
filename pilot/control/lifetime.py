@@ -9,6 +9,7 @@
 
 import time
 
+from pilot.util.config import config
 import logging
 logger = logging.getLogger(__name__)
 
@@ -25,8 +26,17 @@ def control(queues, traces, args):
     traces.pilot['lifetime_start'] = time.time()
     traces.pilot['lifetime_max'] = time.time()
 
+    threadchecktime = config.Pilot.thread_check
     runtime = 0
     while not args.graceful_stop.is_set():
+
+        # thread monitoring
+        if (time.time() - traces.pilot['lifetime_start']) % threadchecktime == 0:
+            # get all threads
+            for thread in threading.enumerate():
+                logger.info('thread name: %s' % thread.name)
+
+        # have we run out of time?
         if runtime < args.lifetime:
             time.sleep(1)
             runtime += 1
