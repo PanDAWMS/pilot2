@@ -27,12 +27,12 @@ def control(queues, traces, args):
     traces.pilot['lifetime_start'] = time.time()
     traces.pilot['lifetime_max'] = time.time()
 
-    threadchecktime = config.Pilot.thread_check
+    threadchecktime = int(config.Pilot.thread_check)
     runtime = 0
     while not args.graceful_stop.is_set():
 
         # thread monitoring
-        if (time.time() - traces.pilot['lifetime_start']) % threadchecktime == 0:
+        if int(time.time() - traces.pilot['lifetime_start']) % threadchecktime == 0:
             # get all threads
             for thread in threading.enumerate():
                 logger.info('thread name: %s' % thread.name)
