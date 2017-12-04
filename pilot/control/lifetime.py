@@ -35,6 +35,9 @@ def control(queues, traces, args):
             # get all threads
             for thread in threading.enumerate():
                 logger.info('thread name: %s' % thread.name)
+                if not thread.is_alive():
+                    logger.fatal('thread \'%s\' is not alive' % thread.name)
+                    args.graceful_stop.set()
 
         # have we run out of time?
         if runtime < args.lifetime:
