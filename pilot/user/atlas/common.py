@@ -44,13 +44,13 @@ def get_payload_command(job):
         # Normal setup (production and user jobs)
         logger.info("preparing normal production/analysis job setup command")
 
-        cmd = asetup_path
+        cmd = asetuppath
         if prepareasetup:
             options = get_asetup_options(job.release, job.homePackage)
             asetupoptions = " " + options + " --platform " + platform
 
             # Always set the --makeflags option (to prevent asetup from overwriting it)
-            asetup_options += ' --makeflags=\"$MAKEFLAGS\"'
+            asetupoptions += ' --makeflags=\"$MAKEFLAGS\"'
 
             # Verify that the setup works
             # exitcode, output = timedCommand(cmd, timeout=5 * 60)
@@ -62,7 +62,7 @@ def get_payload_command(job):
             # else:
             #     logger.info("verified setup command")
 
-            cmd += asetup_options
+            cmd += asetupoptions
 
             if userjob:
                 pass

@@ -8,6 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
 
 import time
+import threading
 
 from pilot.util.config import config
 import logging

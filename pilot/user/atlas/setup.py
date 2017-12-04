@@ -118,42 +118,42 @@ def get_asetup(asetup=True):
     return cmd
 
 
-def get_asetup_options(release, homePackage):
+def get_asetup_options(release, homepackage):
     """
     Determine the proper asetup options.
     :param release: ATLAS release string.
-    :param homePackage: ATLAS homePackage string.
+    :param homepackage: ATLAS homePackage string.
     :return: asetup options (string).
     """
 
-    asetup_opt = []
-    release = re.sub('^Atlas-', '', atlasRelease)
+    asetupopt = []
+    release = re.sub('^Atlas-', '', release)
 
     # is it a user analysis homePackage?
-    if 'AnalysisTransforms' in homePackage:
+    if 'AnalysisTransforms' in homepackage:
 
-        _homepackage = re.sub('^AnalysisTransforms-*', '', homePackage)
+        _homepackage = re.sub('^AnalysisTransforms-*', '', homepackage)
         if _homepackage == '' or re.search('^\d+\.\d+\.\d+$', release) is None:
             if release != "":
-                asetup_opt.append(release)
+                asetupopt.append(release)
         if _homepackage != '':
-            asetup_opt += _homepackage.split('_')
+            asetupopt += _homepackage.split('_')
 
     else:
 
-        asetup_opt += homePackage.split('/')
-        if release not in homePackage:
-            asetup_opt.append(release)
+        asetupopt += homepackage.split('/')
+        if release not in homepackage:
+            asetupopt.append(release)
 
     # Add the notest,here for all setups (not necessary for late releases but harmless to add)
-    asetup_opt.append('notest')
-    # asetup_opt.append('here')
+    asetupopt.append('notest')
+    # asetupopt.append('here')
 
     # Add the fast option if possible (for the moment, check for locally defined env variable)
     if "ATLAS_FAST_ASETUP" in os.environ:
-        asetup_opt.append('fast')
+        asetupopt.append('fast')
 
-    return ','.join(asetup_opt)
+    return ','.join(asetupopt)
 
 
 def is_standard_atlas_job(release):
