@@ -314,21 +314,26 @@ def retrieve(queues, traces, args):
             else:
                 logger.info('received job: %s (sleep until the job has finished)' % res['PandaID'])
                 queues.jobs.put(res)
-                # args.graceful_stop.set()
-                # break
-                # logger.info('got job: %s -- sleep 1000s before trying to get another job' % res['PandaID'])
+                while not args.graceful_stop.is_set():
+                    if job_has_finished(queues) or args.graceful_stop.is_set():
+                        break
+                    time.sleep(1)
 
-        for i in xrange(1000):
-            try:
-                finishedjob = queues.finished_jobs.get(block=True, timeout=1)
-            except Queue.Empty:
-                logger.info("(job still running)")
-                time.sleep(10)
-                continue
-            else:
-                logger.info("job %d has finished" % finishedjob['PandaID'])
 
-            if args.graceful_stop.is_set():
-                logger.info("graceful stop is set")
-                break
-            time.sleep(1)
+def job_has_finished(queues):
+    """
+    Has the current payload finished?
+    :param queues:
+    :return: True is the payload has finished
+    """
+
+    status = False
+    try:
+        finishedjob = queues.finished_jobs.get(block=True, timeout=1)
+    except Queue.Empty:
+        logger.info("(job still running)")
+    else:
+        logger.info("job %d has finished" % finishedjob['PandaID'])
+        status = True
+
+    return status
