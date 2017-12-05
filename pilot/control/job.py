@@ -321,8 +321,13 @@ def retrieve(queues, traces, args):
                 logger.info('received job: %s (sleep until the job has finished)' % res['PandaID'])
                 queues.jobs.put(res)
                 jobnumber += 1
+                if args.graceful_stop.is_set():
+                    logger.info('graceful stop is currently set')
+                else:
+                    logger.info('graceful stop is currently not set')
                 while not args.graceful_stop.is_set():
-                    if job_has_finished(queues) or args.graceful_stop.is_set():
+                    if job_has_finished(queues):
+                        logger.info('graceful stop has been set')
                         break
                     time.sleep(0.5)
 
