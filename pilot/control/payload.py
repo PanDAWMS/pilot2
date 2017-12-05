@@ -122,7 +122,8 @@ def run_payload(job, out, err):
     log = logger.getChild(str(job['PandaID']))
 
     # get the payload command from the user specific code
-    user = __import__('pilot.user.%s' % args.pilot_user, globals(), locals(), [args.pilot_user], -1)
+    pilot_user = os.environ.get('PILOT_USER', 'generic')
+    user = __import__('pilot.user.%s' % pilot_user, globals(), locals(), [pilot_user], -1)
     cmd = user.get_payload_command(job)
     log.info("payload execution command: %s" % cmd)
 

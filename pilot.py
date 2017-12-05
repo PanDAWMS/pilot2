@@ -22,7 +22,7 @@ from pilot.util.information import set_location
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 
-VERSION = '2017-11-03.001'
+VERSION = '2017-12-04.001'
 
 
 def main():
@@ -51,6 +51,7 @@ class Args:
     Dummy namespace class used to contain pilot arguments.
     """
     pass
+
 
 # rename module to pilot2 to avoid conflict in import with pilot directory
 def import_module(**kwargs):
