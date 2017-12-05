@@ -31,7 +31,7 @@ def execute(executable, **kwargs):
     # Import user specific code if necessary (in case the command should be executed in a container)
     # Note: the container.wrapper() function must at least be declared
     if usecontainer:
-        user = environ.get('PILOT_USER', 'generic')  # TODO: replace with singleton
+        user = environ.get('PILOT_USER', 'generic').lower()  # TODO: replace with singleton
         container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], -1)
         if container:
             try:
