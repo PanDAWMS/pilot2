@@ -242,6 +242,39 @@ def get_dispatcher_dictionary(args):
 
 
 def retrieve(queues, traces, args):
+
+    while not args.graceful_stop.is_set():
+
+        logger.debug('trying to fetch job')
+
+        data = {'siteName': args.location.queue,
+                'prodSourceLabel': args.job_label}
+
+        res = https.request('https://pandaserver.cern.ch:25443/server/panda/getJob', data=data)
+
+        if res is None:
+            logger.warning('did not get a job -- sleep 1000s and repeat')
+            for i in xrange(10000):
+                if args.graceful_stop.is_set():
+                    break
+                time.sleep(0.1)
+        else:
+            if res['StatusCode'] != 0:
+                logger.warning('did not get a job -- sleep 1000s and repeat -- status: %s' % res['StatusCode'])
+                for i in xrange(10000):
+                    if args.graceful_stop.is_set():
+                        break
+                    time.sleep(0.1)
+            else:
+                logger.info('got job: %s -- sleep 1000s before trying to get another job' % res['PandaID'])
+                queues.jobs.put(res)
+                for i in xrange(10000):
+                    if args.graceful_stop.is_set():
+                        break
+                    time.sleep(0.1)
+
+
+def retrieve_new(queues, traces, args):
     """
     Retrieve a job definition from a source (server or pre-placed local file [not yet implemented]).
 
