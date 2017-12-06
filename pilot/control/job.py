@@ -241,7 +241,7 @@ def get_dispatcher_dictionary(args):
     return data
 
 
-def retrieve(queues, traces, args):
+def retrieve_old(queues, traces, args):
 
     while not args.graceful_stop.is_set():
 
@@ -274,7 +274,7 @@ def retrieve(queues, traces, args):
                     time.sleep(0.1)
 
 
-def retrieve_new(queues, traces, args):
+def retrieve(queues, traces, args):
     """
     Retrieve a job definition from a source (server or pre-placed local file [not yet implemented]).
 
