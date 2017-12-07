@@ -30,7 +30,7 @@ def get_payload_command(job):
     prepareasetup = should_pilot_prepare_asetup(job.get('noExecStrCnv', None), job['jobPars'])
 
     # Is it a user job or not?
-    userjob = is_user_analysis_job(job['trf'])
+    userjob = is_user_analysis_job(job.get('trf', ''))
 
     # Get the platform value
     platform = get_platform(job['cmtConfig'])
