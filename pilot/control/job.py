@@ -347,7 +347,7 @@ def retrieve(queues, traces, args):
             if res['StatusCode'] != 0:
                 logger.warning('did not get a job -- sleep 60s and repeat -- status: %s' % res['StatusCode'])
                 for i in xrange(60):
-                    if args.gw.is_set():
+                    if args.graceful_stop.is_set():
                         break
                     time.sleep(1)
             else:
