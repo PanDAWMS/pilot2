@@ -27,7 +27,7 @@ def get_payload_command(job):
     """
 
     # Should the pilot do the asetup or do the jobPars already contain the information?
-    prepareasetup = should_pilot_prepare_asetup(job['noExecStrCnv'], job['jobPars'])
+    prepareasetup = should_pilot_prepare_asetup(job.get('noExecStrCnv', None), job['jobPars'])
 
     # Is it a user job or not?
     userjob = is_user_analysis_job(job['trf'])
