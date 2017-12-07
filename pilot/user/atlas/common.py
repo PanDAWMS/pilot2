@@ -39,7 +39,7 @@ def get_payload_command(job):
     asetuppath = get_asetup(asetup=prepareasetup)
     asetupoptions = " "
 
-    if is_standard_atlas_job():
+    if is_standard_atlas_job(job['release']):
 
         # Normal setup (production and user jobs)
         logger.info("preparing normal production/analysis job setup command")
