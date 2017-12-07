@@ -39,14 +39,14 @@ def get_payload_command(job):
     asetuppath = get_asetup(asetup=prepareasetup)
     asetupoptions = " "
 
-    if is_standard_atlas_job(job['release']):
+    if is_standard_atlas_job(job['swRelease']):
 
         # Normal setup (production and user jobs)
         logger.info("preparing normal production/analysis job setup command")
 
         cmd = asetuppath
         if prepareasetup:
-            options = get_asetup_options(job['release'], job['homePackage'])
+            options = get_asetup_options(job['swRelease'], job['homePackage'])
             asetupoptions = " " + options + " --platform " + platform
 
             # Always set the --makeflags option (to prevent asetup from overwriting it)
