@@ -46,7 +46,7 @@ def get_payload_command(job):
 
         cmd = asetuppath
         if prepareasetup:
-            options = get_asetup_options(job['swRelease'], job['homePackage'])
+            options = get_asetup_options(job['swRelease'], job['homepackage'])
             asetupoptions = " " + options + " --platform " + platform
 
             # Always set the --makeflags option (to prevent asetup from overwriting it)
@@ -71,7 +71,7 @@ def get_payload_command(job):
                 cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
                 # Add the transform and the job parameters (production jobs)
                 if prepareasetup:
-                    cmd += ";%s %s" % (job['trf'], job['jobPars'])
+                    cmd += ";%s %s" % (job.get('trf', 'MISSING_TRF_FIELD'), job['jobPars'])  # throw exception if error
                 else:
                     cmd += "; " + job['jobPars']
 
