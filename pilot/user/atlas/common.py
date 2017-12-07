@@ -27,17 +27,13 @@ def get_payload_command(job):
     """
 
     # Should the pilot do the asetup or do the jobPars already contain the information?
-    try:
-        noExecStrCnv = job.noExecStrCnv
-    except Exception:
-        noExecStrCnv = None
-    prepareasetup = should_pilot_prepare_asetup(noExecStrCnv, job.jobPars)
+    prepareasetup = should_pilot_prepare_asetup(job['noExecStrCnv'], job['jobPars'])
 
     # Is it a user job or not?
-    userjob = is_user_analysis_job(job.trf)
+    userjob = is_user_analysis_job(job['trf'])
 
     # Get the platform value
-    platform = get_platform(job.cmtConfig)
+    platform = get_platform(job['cmtConfig'])
 
     # Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
     asetuppath = get_asetup(asetup=prepareasetup)
@@ -50,7 +46,7 @@ def get_payload_command(job):
 
         cmd = asetuppath
         if prepareasetup:
-            options = get_asetup_options(job.release, job.homePackage)
+            options = get_asetup_options(job['release'], job['homePackage'])
             asetupoptions = " " + options + " --platform " + platform
 
             # Always set the --makeflags option (to prevent asetup from overwriting it)
@@ -75,9 +71,9 @@ def get_payload_command(job):
                 cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
                 # Add the transform and the job parameters (production jobs)
                 if prepareasetup:
-                    cmd += ";%s %s" % (job.trf, job.jobPars)
+                    cmd += ";%s %s" % (job['trf'], job['jobPars'])
                 else:
-                    cmd += "; " + job.jobPars
+                    cmd += "; " + job['jobPars']
 
             cmd = cmd.replace(';;', ';')
 
