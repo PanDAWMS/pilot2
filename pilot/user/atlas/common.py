@@ -27,7 +27,7 @@ def get_payload_command(job):
     """
 
     # Should the pilot do the asetup or do the jobPars already contain the information?
-    prepareasetup = should_pilot_prepare_asetup(job['noExecStrCnv'], job['jobPars'])
+    prepareasetup = should_pilot_prepare_asetup(job.get('noExecStrCnv', None), job['jobPars'])
 
     # Is it a user job or not?
     userjob = is_user_analysis_job(job['transformation'])
@@ -39,14 +39,14 @@ def get_payload_command(job):
     asetuppath = get_asetup(asetup=prepareasetup)
     asetupoptions = " "
 
-    if is_standard_atlas_job():
+    if is_standard_atlas_job(job['swRelease']):
 
         # Normal setup (production and user jobs)
         logger.info("preparing normal production/analysis job setup command")
 
         cmd = asetuppath
         if prepareasetup:
-            options = get_asetup_options(job['release'], job['homePackage'])
+            options = get_asetup_options(job['swRelease'], job['homepackage'])
             asetupoptions = " " + options + " --platform " + platform
 
             # Always set the --makeflags option (to prevent asetup from overwriting it)

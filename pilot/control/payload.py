@@ -146,7 +146,7 @@ def run_payload(job, out, err):
         log.error('could not execute: %s' % str(e))
         return None
 
-    log.info('started -- pid=%s executable=%s' % (proc.pid, asetup + cmd))
+    log.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
 
     return proc
 
