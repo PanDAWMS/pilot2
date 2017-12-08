@@ -30,7 +30,7 @@ def get_payload_command(job):
     prepareasetup = should_pilot_prepare_asetup(job['noExecStrCnv'], job['jobPars'])
 
     # Is it a user job or not?
-    userjob = is_user_analysis_job(job['trf'])
+    userjob = is_user_analysis_job(job['transformation'])
 
     # Get the platform value
     platform = get_platform(job['cmtConfig'])
@@ -71,7 +71,7 @@ def get_payload_command(job):
                 cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
                 # Add the transform and the job parameters (production jobs)
                 if prepareasetup:
-                    cmd += ";%s %s" % (job['trf'], job['jobPars'])
+                    cmd += ";%s %s" % (job['transformation'], job['jobPars'])
                 else:
                     cmd += "; " + job['jobPars']
 
