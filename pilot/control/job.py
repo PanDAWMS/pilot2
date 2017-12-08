@@ -376,7 +376,8 @@ def job_has_finished(queues):
     try:
         finishedjob = queues.finished_jobs.get(block=True, timeout=1)
     except Queue.Empty:
-        logger.info("(job still running)")
+        # logger.info("(job still running)")
+        pass
     else:
         logger.info("job %d has finished" % finishedjob['PandaID'])
         status = True

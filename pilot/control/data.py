@@ -271,7 +271,8 @@ def copytool_out(queues, traces, args):
             send_state(job, args, 'running')
 
             if _stage_out_all(job, args):
-                queues.finished_data_out.put(job)
+                queues.finished_data_out.put(job)  # needed?
+                queues.finished_jobs.put(job)  # try this instead
             else:
                 queues.failed_data_out.put(job)
 

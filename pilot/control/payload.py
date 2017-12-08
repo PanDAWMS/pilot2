@@ -183,7 +183,7 @@ def wait_graceful(args, proc, job):
         if exit_code is not None:
             break
         else:
-            send_state(job, args, 'running')
+            # send_state(job, args, 'running')
             continue
 
     return exit_code
