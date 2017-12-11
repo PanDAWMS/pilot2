@@ -322,10 +322,11 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests):
     if (currenttime - starttime > timefloor) and jobnumber > 0:
         logger.warning("the pilot has run out of time (timefloor=%d has been passed)" % timefloor)
 
+    # timefloor not relevant for the first job
+    status = True
     if jobnumber > 0:
         logger.info('since timefloor=%d s and only %d s has passed since launch, pilot can run another job' %
                     (timefloor, currenttime - starttime))
-        status = True
 
     return status
 
@@ -348,7 +349,7 @@ def retrieve(queues, traces, args):
     # get the job dispatcher dictionary
     data = get_dispatcher_dictionary(args)
 
-    timefloor = 0  # get_timefloor()
+    timefloor = get_timefloor()
     starttime = time.time()
 
     jobnumber = 0  # number of downloaded jobs
