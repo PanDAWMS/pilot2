@@ -19,6 +19,7 @@ from pilot.util import https
 from pilot.util.config import config
 from pilot.util.workernode import get_disk_space_for_dispatcher, collect_workernode_info, get_node_name
 from pilot.util.proxy import get_distinguished_name
+from pilot.util.filehandling import time_stamp
 from pilot.util.information import get_timefloor
 
 import logging
@@ -82,7 +83,8 @@ def send_state(job, args, state, xml=None):
     log.debug('set job state=%s' % state)
 
     data = {'jobId': job['PandaID'],
-            'state': state}
+            'state': state,
+            'timestamp': time_stamp()}
 
     if xml is not None:
         data['xml'] = xml  # urllib.quote_plus(xml)
