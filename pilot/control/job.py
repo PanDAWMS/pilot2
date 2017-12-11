@@ -85,7 +85,7 @@ def send_state(job, args, state, xml=None):
             'state': state}
 
     if xml is not None:
-        data['xml'] = urllib.quote_plus(xml)
+        data['xml'] = xml  # urllib.quote_plus(xml)
 
     try:
         # cmd = args.url + ':' + str(args.port) + 'server/panda/updateJob'
