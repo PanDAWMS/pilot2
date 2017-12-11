@@ -19,7 +19,7 @@ from pilot.util import https
 from pilot.util.config import config
 from pilot.util.workernode import get_disk_space_for_dispatcher, collect_workernode_info, get_node_name
 from pilot.util.proxy import get_distinguished_name
-from pilot.util.filehandling import time_stamp
+from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id
 from pilot.util.information import get_timefloor
 
 import logging
@@ -82,9 +82,30 @@ def send_state(job, args, state, xml=None):
     log = logger.getChild(str(job['PandaID']))
     log.debug('set job state=%s' % state)
 
+    # report the batch system job id, if available
+    batchsystem_type, batchsystem_id = get_batchsystem_jobid()
+
     data = {'jobId': job['PandaID'],
             'state': state,
-            'timestamp': time_stamp()}
+            'timestamp': time_stamp(),
+            'siteName': args.site,
+            'node': get_node_name()}
+
+    schedulerid = get_scheduler_id()
+    if schedulerid:
+        data['schedulerID'] = schedulerid
+
+    pilotid = get_pilot_id()
+    if pilotid:
+        use_newmover_tag = 'DEPRECATED'
+        version_tag = args.version_tag
+        pilot_version = os.environ.get('PILOT_VERSION')
+
+        if batchsystem_type:
+            data['pilotID'] = "%s|%s|%s|%s|%s" % (pilotid, use_newmover_tag, batchsystem_type, version_tag, pilot_version)
+            data['batchID'] = batchsystem_id,
+        else:
+            data['pilotID'] = "%s|%s|%s|%s" % (pilotid, use_newmover_tag, version_tag, pilot_version)
 
     if xml is not None:
         data['xml'] = xml  # urllib.quote_plus(xml)
