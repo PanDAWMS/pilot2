@@ -159,3 +159,21 @@ def write_json(filename, dictionary):
         fp.close()
 
     return status
+
+
+def time_stamp():
+    """
+    Return ISO-8601 compliant date/time format
+
+    :return: time information
+    """
+
+    tmptz = time.timezone
+    if tmptz > 0:
+        signstr = '-'
+    else:
+        signstr = '+'
+    tmptz_hours = int(tmptz/3600)
+
+    return str("%s%s%02d%02d" % (time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime()), signstr, tmptz_hours,
+                                 int(tmptz/60-tmptz_hours*60)))
