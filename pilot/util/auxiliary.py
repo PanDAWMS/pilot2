@@ -39,11 +39,11 @@ def get_batchsystem_jobid():
     # BQS (e.g. LYON)
     batchsystem_dict = {'QSUB_REQNAME': 'BQS',
                         'BQSCLUSTER': 'BQS',  # BQS alternative
-                        'PBS_JOBID', 'Torque',
-                        'LSB_JOBID', 'LSF',
-                        'JOB_ID', 'Grid Engine',  # Sun's Grid Engine
-                        'clusterid', 'Condor',  # Condor (variable sent through job submit file)
-                        'SLURM_JOB_ID', 'SLURM'}
+                        'PBS_JOBID': 'Torque',
+                        'LSB_JOBID': 'LSF',
+                        'JOB_ID': 'Grid Engine',  # Sun's Grid Engine
+                        'clusterid': 'Condor',  # Condor (variable sent through job submit file)
+                        'SLURM_JOB_ID': 'SLURM'}
 
     for key, value in batchsystem_dict.iteritems():
         if key in os.environ:
