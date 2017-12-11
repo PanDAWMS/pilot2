@@ -367,6 +367,7 @@ def _stage_out(args, outfile, job):
 
 def _stage_out_all(job, args):
 
+    log = logger.getChild(str(job['PandaID']))
     outputs = {}
 
     for f in job['job_report']['files']['output']:
