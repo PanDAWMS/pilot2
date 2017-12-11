@@ -274,6 +274,39 @@ def retrieve_old(queues, traces, args):
                     time.sleep(0.1)
 
 
+def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests):
+    """
+    Can we proceed with getjob?
+    We may not proceed if we have run out of time (timefloor limit) or if we have already proceed enough jobs
+
+    :param timefloor: timefloor limit (s)
+    :param starttime: start time of retrieve() (s)
+    :param jobnumber: number of downloaded jobs
+    :param getjob_requests: number of getjob requests
+    :return: Boolean based on the input parameters
+    """
+
+    status = False
+    currenttime = time.time()
+
+    if getjob_requests > int(config.Pilot.maximum_getjob_requests):
+        logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' %
+                       config.Pilot.maximum_getjob_requests)
+
+    if timefloor == 0 and jobnumber > 0:
+        logger.warning("since timefloor is set to 0, pilot was only allowed to run one job")
+
+    if (currenttime - starttime > timefloor) and jobnumber > 0:
+        logger.warning("the pilot has run out of time (timefloor=%d has been passed)" % timefloor)
+
+    if jobnumber > 0:
+        logger.info('since timefloor=%d s and only %d s has passed since launch, pilot can run another job' %
+                    (timefloor, currenttime - starttime))
+        status = True
+
+    return status
+
+
 def retrieve(queues, traces, args):
     """
     Retrieve a job definition from a source (server or pre-placed local file [not yet implemented]).
@@ -295,29 +328,13 @@ def retrieve(queues, traces, args):
     timefloor = 0  # get_timefloor()
     starttime = time.time()
 
-    jobnumber = 0
-    getjob_requests = 0
+    jobnumber = 0  # number of downloaded jobs
+    getjob_requests = 0  # number of getjob requests
     while not args.graceful_stop.is_set():
 
-        currenttime = time.time()
-        if timefloor == 0 and jobnumber > 0:
-            logger.warning("since timefloor is set to 0, pilot was only allowed to run one job")
-            args.graceful_stop.set()
-            break
-
-        if currenttime - starttime > timefloor:
-            logger.warning("the pilot has run out of time (timefloor=%d has been passed)" % timefloor)
-            args.graceful_stop.set()
-            break
-
-        if jobnumber > 0:
-            logger.info('since timefloor=%d s and only %d s has passed since launch, pilot can run another job' %
-                        (timefloor, currenttime - starttime))
-
         getjob_requests += 1
-        if getjob_requests > int(config.Pilot.maximum_getjob_requests):
-            logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' %
-                           config.Pilot.maximum_getjob_requests)
+
+        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests):
             args.graceful_stop.set()
             break
 
