@@ -16,7 +16,8 @@ import os.path
 import sys
 
 #from pilot.util.workernode import collect_workernode_info, get_disk_space_for_dispatcher
-import pilot.copytool.mv
+from pilot.copytool.mv import *
+from pilot.common.exception import StageInFailure, StageOutFailure
 
 
 class TestCopytoolMv(unittest.TestCase):
@@ -28,7 +29,7 @@ class TestCopytoolMv(unittest.TestCase):
     numFiles = 10
     maxFileSize = 100*1024
 
-    def __init__(self):
+    def setUp(self):
         """ Create temp destination directory """
         self.tmp_dst_dir = tempfile.mkdtemp()
 
@@ -38,6 +39,7 @@ class TestCopytoolMv(unittest.TestCase):
         print("Temporary source directory: %s" % self.tmp_src_dir)
         print("Temporary destination directory: %s" % self.tmp_dst_dir)
 
+        self.filelist = []
         """ Create temp files in source dir """
         for i in range (0, self.numFiles):
                 # generate random name
@@ -46,18 +48,22 @@ class TestCopytoolMv(unittest.TestCase):
                 fsize = random.randint(1, self.maxFileSize)
                 data = [ random.randint(0, 255) for x in range(0,fsize) ]
                 newFile = open(os.path.join(self.tmp_src_dir, ''.join(random.choice(string.lowercase) for x in range(20))), "wb")
-                newFile.write(data)
+                newFile.write(str(data))
                 newFile.close()
                 # add to list
                 self.filelist.append({'name': fname, 'source': self.tmp_src_dir, 'destination': self.tmp_dst_dir})
-        sys.exit(0)
+        #print(self.filelist)
 
     def test_copy_in_mv(self):
         copy_in(self.filelist)
+        #self.assertEqual(exit_code, 0)
         # here check files copied
 
     def test_copy_in_cp(self):
+        print "Copy in:"
+        print(self.filelist)
         copy_in(self.filelist, copy_type='cp')
+        #self.assertEqual(exit_code, 0)
         # here check files copied
 
     def test_copy_in_symlink(self):
@@ -65,28 +71,34 @@ class TestCopytoolMv(unittest.TestCase):
         # here check files linked
 
     def test_copy_in_invalid(self):
-        copy_in(self.filelist, copy_type='')
-        copy_in(self.filelist, copy_type=None)
-        # here check files linked
+        self.assertRaises(StageInFailure,  copy_in, self.filelist, **{'copy_type' : ''})
+        self.assertRaises(StageInFailure,  copy_in, self.filelist, **{'copy_type' : None})
+        #self.assertRaises(StageInFailure, copy_in, self.filelist, copy_type=None)
 
+    @unittest.skip("demonstrating skipping")
     def test_copy_out_mv(self):
         pass
 
+    @unittest.skip("demonstrating skipping")
     def test_copy_out_cp(self):
         pass
 
+    @unittest.skip("demonstrating skipping")
     def test_copy_out_invalid(self):
-        copy_out(self.filelist, copy_type='symlink')
-        copy_out(self.filelist, copy_type=None)
+        self.assertRaises(StageOutFailure,  copy_in, self.filelist, **{'copy_type' : ''})
+        self.assertRaises(StageOutFailure,  copy_in, self.filelist, **{'copy_type' : 'symlink'})
+        self.assertRaises(StageOutFailure,  copy_in, self.filelist, **{'copy_type' : None})
+        #copy_out(self.filelist, copy_type='symlink')
+        #copy_out(self.filelist, copy_type=None)
         # here check files linked
         pass
 
     def tearDown(self):
         """ Drop temp directories """
         shutil.rmtree(self.tmp_dst_dir)
-        print("Dropping: " . self.tmp_dst_dir)
+        print("Dropping: " + self.tmp_dst_dir)
         shutil.rmtree(self.tmp_src_dir)
-        print("Dropping: " . self.tmp_src_dir)
+        print("Dropping: " + self.tmp_src_dir)
 
 if __name__ == '__main__':
     unittest.main()

@@ -26,11 +26,13 @@ def copy_in(files, copy_type="mv"):
     """
 
     if copy_type not in ["cp", "mv", "symlink"]:
-        pass
+        raise StageInFailure("Incorrect method for copy in")
     exit_code, stdout, stderr = move_all_files(files, copy_type)
+    print(exit_code)
     if exit_code != 0:
         # raise failure
         raise StageInFailure(stdout)
+    print("Copy in successful")
 
 
 def copy_out(files, copy_type="mv"):
@@ -42,8 +44,10 @@ def copy_out(files, copy_type="mv"):
     """
 
     if copy_type not in ["cp", "mv"]:
-        pass
+        raise StageOutFailure("Incorrect method for copy out")
+
     exit_code, stdout, stderr = move_all_files(files, copy_type)
+    print("Exit code: %d" % exit_code)
     if exit_code != 0:
         # raise failure
         raise StageOutFailure(stdout)
@@ -62,12 +66,13 @@ def move_all_files(files, copy_type):
     stderr = ""
     copy_method = None
 
+    print("Copy type: " + str(copy_type))
     if copy_type=="mv":
-        copy_method = self.move
-    if copy_type=="cp":
-        copy_method = self.copy
-    if copy_type=="symlink":
-        copy_method = self.symlink
+        copy_method = move
+    elif copy_type=="cp":
+        copy_method = copy
+    elif copy_type=="symlink":
+        copy_method = symlink
     else:
         return -1, "", "Incorrect copy method"
     
@@ -95,10 +100,7 @@ def move(source, destination):
     :return: exit_code, stdout, stderr
     """
 
-    if do_move:
-        executable = ['/usr/bin/env', 'mv', source, destination]
-    else:
-        executable = ['/usr/bin/env', 'cp', source, destination]
+    executable = ['/usr/bin/env', 'mv', source, destination]
     exit_code, stdout, stderr = execute(executable)
 
     return exit_code, stdout, stderr
@@ -128,6 +130,8 @@ def symlink(source, destination):
     :return: exit_code, stdout, stderr
     """
 
-    executable = ['/usr/bin/env', 'ln', source, destination]
+    executable = ['/usr/bin/env', 'ln', '-s', source, destination]
     exit_code, stdout, stderr = execute(executable)
+
+    return exit_code, stdout, stderr
 
