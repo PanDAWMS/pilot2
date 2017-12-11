@@ -242,6 +242,20 @@ if __name__ == '__main__':
     # Set the pilot version
     environ['PILOT_VERSION'] = VERSION
 
+    # Establish logging
+    console = logging.StreamHandler(sys.stdout)
+    if args.debug:
+        logging.basicConfig(filename='pilotlog.txt', level=logging.DEBUG,
+                            format='%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-32s | %(message)s')
+        logging.Formatter.converter = time.gmtime
+        console.setLevel(logging.DEBUG)
+        console.setFormatter(logging.Formatter(
+            '%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-32s | %(message)s'))
+    else:
+        logging.basicConfig(filename='pilotlog.txt', level=logging.INFO,
+                            format='%(asctime)s | %(levelname)-8s | %(message)s')
+        console.setLevel(logging.INFO)
+        console.setFormatter(logging.Formatter('%(asctime)s | %(levelname)-8s | %(message)s'))
     logging.getLogger('').addHandler(console)
 
     trace = main()
