@@ -16,6 +16,7 @@ import subprocess
 import tarfile
 import threading
 import time
+from json import dumps
 
 from pilot.control.job import send_state
 
@@ -365,6 +366,63 @@ def _stage_out(args, outfile, job):
 
 
 def _stage_out_all(job, args):
+
+    outputs = {}
+
+    for f in job['job_report']['files']['output']:
+        outputs[f['subFiles'][0]['name']] = {'scope': job['scopeOut'],
+                                             'name': f['subFiles'][0]['name'],
+                                             'guid': f['subFiles'][0]['file_guid'],
+                                             'bytes': f['subFiles'][0]['file_size']}
+
+    outputs['%s:%s' % (job['scopeLog'], job['logFile'])] = prepare_log(job, 'tarball_PandaJob_%s_%s' % (job['PandaID'], args.queue))
+
+    infodict = {}
+
+    fileDict[lfn] = {'guid': file.GUID,
+                     'fsize': 1234,
+                     'adler32': '...',
+                     'surl': "..")}
+    data['xml'] = json.dumps(fileDict)
+
+    pfc_file = '''
+ <File ID="{guid}">
+  <logical>
+   <lfn name="{name}"/>
+  </logical>
+  <metadata att_name="surl" att_value="{pfn}"/>
+  <metadata att_name="fsize" att_value="{bytes}"/>
+  <metadata att_name="adler32" att_value="{adler32}"/>
+ </File>
+'''
+
+    failed = False
+
+    for outfile in outputs:
+        summary = _stage_out(args, outputs[outfile], job)
+
+        if summary is not None:
+            outputs[outfile]['pfn'] = summary['%s:%s' % (outputs[outfile]['scope'], outputs[outfile]['name'])]['pfn']
+            outputs[outfile]['adler32'] = summary['%s:%s' % (outputs[outfile]['scope'], outputs[outfile]['name'])]['adler32']
+
+            filedict = {'guid': outputs[outfile]['guid'],
+                        'fsize': outputs[outfile]['bytes'],
+                        'adler32': outputs[outfile]['adler32'],
+                        'surl': outputs[outfile]['pfn']}
+            infodict[outputs[outfile]['name']] = filedict
+        else:
+            failed = True
+
+    log.info('infodict=%s'%str(infodict))
+    if failed:
+        send_state(job, args, 'failed')
+        return False
+    else:
+        send_state(job, args, 'finished', xml=dumps(infodict))
+        return True
+
+
+def _stage_out_all_old(job, args):
 
     outputs = {}
 
