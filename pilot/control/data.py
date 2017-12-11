@@ -378,24 +378,6 @@ def _stage_out_all(job, args):
     outputs['%s:%s' % (job['scopeLog'], job['logFile'])] = prepare_log(job, 'tarball_PandaJob_%s_%s' % (job['PandaID'], args.queue))
 
     infodict = {}
-
-    fileDict[lfn] = {'guid': file.GUID,
-                     'fsize': 1234,
-                     'adler32': '...',
-                     'surl': "..")}
-    data['xml'] = json.dumps(fileDict)
-
-    pfc_file = '''
- <File ID="{guid}">
-  <logical>
-   <lfn name="{name}"/>
-  </logical>
-  <metadata att_name="surl" att_value="{pfn}"/>
-  <metadata att_name="fsize" att_value="{bytes}"/>
-  <metadata att_name="adler32" att_value="{adler32}"/>
- </File>
-'''
-
     failed = False
 
     for outfile in outputs:
