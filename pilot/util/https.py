@@ -179,7 +179,8 @@ def request(url, data=None, plain=False):
 
         return output if plain else json.loads(output)
     else:
-        req = urllib2.Request(url, urllib.urlencode(data))
+        req = urllib2.Request(url, data)
+        # req = urllib2.Request(url, urllib.urlencode(data))
         if not plain:
             req.add_header('Accept', 'application/json')
         req.add_header('User-Agent', _ctx.user_agent)
