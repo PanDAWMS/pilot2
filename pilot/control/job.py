@@ -91,7 +91,7 @@ def send_state(job, args, state, xml=None):
             'siteName': args.site,
             'node': get_node_name()}
 
-    schedulerid = get_scheduler_id()
+    schedulerid = get_job_scheduler_id()
     if schedulerid:
         data['schedulerID'] = schedulerid
 
