@@ -7,6 +7,8 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
+import os
+
 import logging
 logger = logging.getLogger(__name__)
 
