@@ -8,6 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import os
+import time
 
 import logging
 logger = logging.getLogger(__name__)
