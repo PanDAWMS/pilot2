@@ -240,14 +240,14 @@ if __name__ == '__main__':
                             default='',
                             help='Harvester worker attributes json file')
 
+    args = arg_parser.parse_args()
+
     # Define and set the main harvester control boolean
     if (args.harvester_workdir != '' or args.harvester_datadir != '' or args.harvester_eventstatusdump != '' or
         args.harvester_workerattributes != '') and arg.update_server == False:
         args.harvester = True
     else:
         args.harvester = False
-
-    args = arg_parser.parse_args()
 
     # If requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
     initdir = getcwd()
