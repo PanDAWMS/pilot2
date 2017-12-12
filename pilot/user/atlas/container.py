@@ -103,8 +103,7 @@ def get_grid_image_for_singularity(platform):
 
     arch_and_os = extract_platform_and_os(platform)
     image = arch_and_os + ".img"
-    logger.info("constructed image name %s from %s" % (image, platform))
-    path = os.path.join(get_file_system_root_path(), "atlas.cern.ch/repo/images/singularity")
+    path = os.path.join(get_file_system_root_path(), "atlas.cern.ch/repo/containers/images/singularity")
 
     return os.path.join(path, image)
 
