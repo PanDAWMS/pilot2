@@ -326,8 +326,8 @@ def retrieve(queues, traces, args):
         getjob_requests += 1
 
         if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests):
-           args.graceful_stop.set()
-           break
+            args.graceful_stop.set()
+            break
 
         if args.url != "":
             url = args.url + ':' + str(args.port)  # args.port is always set
