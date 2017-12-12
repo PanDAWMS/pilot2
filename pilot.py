@@ -216,6 +216,12 @@ if __name__ == '__main__':
                             required=True,
                             help='Pilot user, e.g. name of experiment')
 
+    # Harvester specific options
+    arg_parser.add_argument('--harvester-workdir',
+                            dest='harvester_workdir',
+                            default='',
+                            help='Harvester work directory')
+
     args = arg_parser.parse_args()
 
     # If requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
