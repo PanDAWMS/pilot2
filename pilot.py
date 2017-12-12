@@ -154,6 +154,12 @@ if __name__ == '__main__':
                             default='PR',
                             help='Version tag (default: PR, optional: RC)')
 
+    arg_parser.add_argument('-z',
+                            dest='update_server',
+                            default=True,
+                            type=bool,
+                            help='Update server (default: True)')
+
     # SSL certificates
     arg_parser.add_argument('--cacert',
                             dest='cacert',
@@ -216,11 +222,30 @@ if __name__ == '__main__':
                             required=True,
                             help='Pilot user, e.g. name of experiment')
 
-    # Harvester specific options
+    # Harvester specific options (if any of the following options are used, args.harvester will be set to True)
     arg_parser.add_argument('--harvester-workdir',
                             dest='harvester_workdir',
                             default='',
                             help='Harvester work directory')
+    arg_parser.add_argument('--harvester-datadir',
+                            dest='harvester_datadir',
+                            default='',
+                            help='Harvester data directory')
+    arg_parser.add_argument('--harvester-eventstatusdump',
+                            dest='harvester_eventstatusdump',
+                            default='',
+                            help='Harvester event status dump json file')
+    arg_parser.add_argument('--harvester-workerattributes',
+                            dest='harvester_workerattributes',
+                            default='',
+                            help='Harvester worker attributes json file')
+
+    # Define and set the main harvester control boolean
+    if (args.harvester_workdir != '' or args.harvester_datadir != '' or args.harvester_eventstatusdump != '' or
+        args.harvester_workerattributes != '') and arg.update_server == False:
+        args.harvester = True
+    else:
+        args.harvester = False
 
     args = arg_parser.parse_args()
 
