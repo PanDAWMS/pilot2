@@ -28,11 +28,9 @@ def copy_in(files, copy_type="mv"):
     if copy_type not in ["cp", "mv", "symlink"]:
         raise StageInFailure("Incorrect method for copy in")
     exit_code, stdout, stderr = move_all_files(files, copy_type)
-    print(exit_code)
     if exit_code != 0:
         # raise failure
         raise StageInFailure(stdout)
-    print("Copy in successful")
 
 
 def copy_out(files, copy_type="mv"):
@@ -47,7 +45,6 @@ def copy_out(files, copy_type="mv"):
         raise StageOutFailure("Incorrect method for copy out")
 
     exit_code, stdout, stderr = move_all_files(files, copy_type)
-    print("Exit code: %d" % exit_code)
     if exit_code != 0:
         # raise failure
         raise StageOutFailure(stdout)
@@ -66,7 +63,6 @@ def move_all_files(files, copy_type):
     stderr = ""
     copy_method = None
 
-    print("Copy type: " + str(copy_type))
     if copy_type=="mv":
         copy_method = move
     elif copy_type=="cp":
@@ -81,7 +77,6 @@ def move_all_files(files, copy_type):
 
         source = os.path.join(entry['source'], entry['name'])
         destination = os.path.join(entry['destination'], entry['name'])
-        #exit_code, stdout, stderr = move(source, destination)
         exit_code, stdout, stderr = copy_method(source, destination)
         if exit_code != 0:
             logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
@@ -101,7 +96,8 @@ def move(source, destination):
     """
 
     executable = ['/usr/bin/env', 'mv', source, destination]
-    exit_code, stdout, stderr = execute(executable)
+    cmd = ' '.join(executable)
+    exit_code, stdout, stderr = execute(cmd)
 
     return exit_code, stdout, stderr
 
@@ -116,7 +112,8 @@ def copy(source, destination):
     """
 
     executable = ['/usr/bin/env', 'cp', source, destination]
-    exit_code, stdout, stderr = execute(executable)
+    cmd = ' '.join(executable)
+    exit_code, stdout, stderr = execute(cmd)
 
     return exit_code, stdout, stderr
 
@@ -131,7 +128,8 @@ def symlink(source, destination):
     """
 
     executable = ['/usr/bin/env', 'ln', '-s', source, destination]
-    exit_code, stdout, stderr = execute(executable)
+    cmd = ' '.join(executable)
+    exit_code, stdout, stderr = execute(cmd)
 
     return exit_code, stdout, stderr
 
