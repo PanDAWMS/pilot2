@@ -264,39 +264,6 @@ def get_dispatcher_dictionary(args):
     return data
 
 
-def retrieve_old(queues, traces, args):
-
-    while not args.graceful_stop.is_set():
-
-        logger.debug('trying to fetch job')
-
-        data = {'siteName': args.location.queue,
-                'prodSourceLabel': args.job_label}
-
-        res = https.request('https://pandaserver.cern.ch:25443/server/panda/getJob', data=data)
-
-        if res is None:
-            logger.warning('did not get a job -- sleep 1000s and repeat')
-            for i in xrange(10000):
-                if args.graceful_stop.is_set():
-                    break
-                time.sleep(0.1)
-        else:
-            if res['StatusCode'] != 0:
-                logger.warning('did not get a job -- sleep 1000s and repeat -- status: %s' % res['StatusCode'])
-                for i in xrange(10000):
-                    if args.graceful_stop.is_set():
-                        break
-                    time.sleep(0.1)
-            else:
-                logger.info('got job: %s -- sleep 1000s before trying to get another job' % res['PandaID'])
-                queues.jobs.put(res)
-                for i in xrange(10000):
-                    if args.graceful_stop.is_set():
-                        break
-                    time.sleep(0.1)
-
-
 def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests):
     """
     Can we proceed with getjob?
@@ -358,9 +325,9 @@ def retrieve(queues, traces, args):
 
         getjob_requests += 1
 
-        # if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests):
-        #    args.graceful_stop.set()
-        #    break
+        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests):
+           args.graceful_stop.set()
+           break
 
         if args.url != "":
             url = args.url + ':' + str(args.port)  # args.port is always set
