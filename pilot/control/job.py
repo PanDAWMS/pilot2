@@ -276,26 +276,27 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests):
     :return: Boolean based on the input parameters
     """
 
-    status = False
     currenttime = time.time()
 
     if getjob_requests > int(config.Pilot.maximum_getjob_requests):
         logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' %
                        config.Pilot.maximum_getjob_requests)
+        return False
 
     if timefloor == 0 and jobnumber > 0:
         logger.warning("since timefloor is set to 0, pilot was only allowed to run one job")
+        return False
 
     if (currenttime - starttime > timefloor) and jobnumber > 0:
         logger.warning("the pilot has run out of time (timefloor=%d has been passed)" % timefloor)
+        return False
 
     # timefloor not relevant for the first job
-    status = True
     if jobnumber > 0:
         logger.info('since timefloor=%d s and only %d s has passed since launch, pilot can run another job' %
                     (timefloor, currenttime - starttime))
 
-    return status
+    return True
 
 
 def retrieve(queues, traces, args):
