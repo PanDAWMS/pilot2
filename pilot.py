@@ -22,7 +22,7 @@ from pilot.util.information import set_location
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 
-VERSION = '2017-12-12.001'
+VERSION = '2017-12-14.001'
 
 
 def main():
@@ -243,8 +243,8 @@ if __name__ == '__main__':
     args = arg_parser.parse_args()
 
     # Define and set the main harvester control boolean
-    if (args.harvester_workdir != '' or args.harvester_datadir != '' or args.harvester_eventstatusdump != ''
-        or args.harvester_workerattributes != '') and not args.update_server:
+    if (args.harvester_workdir != '' or args.harvester_datadir != '' or args.harvester_eventstatusdump != '' or
+            args.harvester_workerattributes != '') and not args.update_server:
         args.harvester = True
     else:
         args.harvester = False
