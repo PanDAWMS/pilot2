@@ -8,7 +8,6 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import os
-import shutil
 
 from pilot.common.exception import StageInFailure, StageOutFailure
 from pilot.util.container import execute
@@ -63,15 +62,15 @@ def move_all_files(files, copy_type):
     stderr = ""
     copy_method = None
 
-    if copy_type=="mv":
+    if copy_type == "mv":
         copy_method = move
-    elif copy_type=="cp":
+    elif copy_type == "cp":
         copy_method = copy
-    elif copy_type=="symlink":
+    elif copy_type == "symlink":
         copy_method = symlink
     else:
         return -1, "", "Incorrect copy method"
-    
+
     for entry in files:  # entry = {'name':<filename>, 'source':<dir>, 'destination':<dir>}
         logger.info("transferring file %s from %s to %s" % (entry['name'], entry['source'], entry['destination']))
 
@@ -101,6 +100,7 @@ def move(source, destination):
 
     return exit_code, stdout, stderr
 
+
 def copy(source, destination):
     """
     Tries to upload the given files using xrdcp directly.
@@ -117,6 +117,7 @@ def copy(source, destination):
 
     return exit_code, stdout, stderr
 
+
 def symlink(source, destination):
     """
     Tries to ln the given files.
@@ -132,4 +133,3 @@ def symlink(source, destination):
     exit_code, stdout, stderr = execute(cmd)
 
     return exit_code, stdout, stderr
-
