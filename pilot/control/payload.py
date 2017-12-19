@@ -45,7 +45,7 @@ def control(queues, traces, args):
                threading.Thread(target=validate_post,
                                 kwargs={'queues': queues,
                                         'traces': traces,
-                                        'args': args})]
+                                        'args': args}),
                threading.Thread(target=failed_post,
                                 kwargs={'queues': queues,
                                         'traces': traces,
