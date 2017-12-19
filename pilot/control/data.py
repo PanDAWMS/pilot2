@@ -371,12 +371,14 @@ def _stage_out_all(job, args):
     log = logger.getChild(str(job['PandaID']))
     outputs = {}
 
-    for f in job['job_report']['files']['output']:
-        outputs[f['subFiles'][0]['name']] = {'scope': job['scopeOut'],
-                                             'name': f['subFiles'][0]['name'],
-                                             'guid': f['subFiles'][0]['file_guid'],
-                                             'bytes': f['subFiles'][0]['file_size']}
-
+    if 'job_report' in job:
+        for f in job['job_report']['files']['output']:
+            outputs[f['subFiles'][0]['name']] = {'scope': job['scopeOut'],
+                                                 'name': f['subFiles'][0]['name'],
+                                                 'guid': f['subFiles'][0]['file_guid'],
+                                                 'bytes': f['subFiles'][0]['file_size']}
+    else:
+        log.warning('Job object does not contain a job report (payload failed?)')
     outputs['%s:%s' % (job['scopeLog'], job['logFile'])] = prepare_log(job, 'tarball_PandaJob_%s_%s' % (job['PandaID'], args.queue))
 
     infodict = {}
