@@ -46,7 +46,10 @@ def control(queues, traces, args):
                                 kwargs={'queues': queues,
                                         'traces': traces,
                                         'args': args})]
-
+               threading.Thread(target=failed_post,
+                                kwargs={'queues': queues,
+                                        'traces': traces,
+                                        'args': args})]
     [t.start() for t in threads]
 
 
@@ -238,8 +241,10 @@ def execute_payloads(queues, traces, args):
             err.close()
 
             if exit_code == 0:
+                job['transExitCode'] = 0
                 queues.finished_payloads.put(job)
             else:
+                job['transExitCode'] = exit_code
                 queues.failed_payloads.put(job)
 
         except Queue.Empty:
@@ -257,6 +262,7 @@ def validate_post(queues, traces, args):
     """
 
     while not args.graceful_stop.is_set():
+        # finished payloads
         try:
             job = queues.finished_payloads.get(block=True, timeout=1)
         except Queue.Empty:
@@ -268,3 +274,27 @@ def validate_post(queues, traces, args):
             job['job_report'] = json.load(data_file)
 
         queues.data_out.put(job)
+
+
+def failed_post(queues, traces, args):
+    """
+    (add description)
+
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
+
+    while not args.graceful_stop.is_set():
+        # finished payloads
+        try:
+            failedjob = queues.failed_payloads.get(block=True, timeout=1)
+        except Queue.Empty:
+            continue
+        log = logger.getChild(str(job['PandaID']))
+
+        log.debug('adding jog for log stageout')
+
+        queues.data_out.put(job)
+# wrong queue??
