@@ -296,5 +296,5 @@ def failed_post(queues, traces, args):
 
         log.debug('adding jog for log stageout')
 
-        queues.data_out.put(job)
+        queues.data_out.put(failedjob)
 # wrong queue??
