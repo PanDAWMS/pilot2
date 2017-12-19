@@ -292,7 +292,7 @@ def failed_post(queues, traces, args):
             failedjob = queues.failed_payloads.get(block=True, timeout=1)
         except Queue.Empty:
             continue
-        log = logger.getChild(str(job['PandaID']))
+        log = logger.getChild(str(failedjob['PandaID']))
 
         log.debug('adding jog for log stageout')
 
