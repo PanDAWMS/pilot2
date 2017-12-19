@@ -43,9 +43,9 @@ class TestCopytoolMv(unittest.TestCase):
                 # generate random data and write
                 fsize = random.randint(1, self.maxFileSize)
                 data = [random.randint(0, 255) for x in range(0, fsize)]
-                newFile = open(os.path.join(self.tmp_src_dir, fname), "wb")
-                newFile.write(str(data))
-                newFile.close()
+                new_file = open(os.path.join(self.tmp_src_dir, fname), "wb")
+                new_file.write(str(data))
+                new_file.close()
                 # add to list
                 self.filelist.append({'name': fname, 'source': self.tmp_src_dir, 'destination': self.tmp_dst_dir})
 
