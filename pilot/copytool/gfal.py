@@ -26,9 +26,9 @@ def copy_in(files):
     :raises PilotException: StageInFailure
     """
 
-    if __check_for_gfal():
+    if not __check_for_gfal():
         raise StageInFailure("No GFAL2 tools found")
-    exit_code, stdout, stderr = move_all_files(files, copy_type)
+    exit_code, stdout, stderr = move_all_files(files)
     if exit_code != 0:
         # raise failure
         raise StageInFailure(stdout)
@@ -42,16 +42,16 @@ def copy_out(files):
     :raises PilotException: StageOutFailure
     """
 
-    if __check_for_gfal():
+    if not __check_for_gfal():
         raise StageOutFailure("No GFAL2 tools found")
 
-    exit_code, stdout, stderr = move_all_files(files, copy_type)
+    exit_code, stdout, stderr = move_all_files(files)
     if exit_code != 0:
         # raise failure
         raise StageOutFailure(stdout)
 
 
-def move_all_files(files, copy_type, nretries=1):
+def move_all_files(files, nretries=1):
     """
     Move all files.
 
@@ -66,12 +66,18 @@ def move_all_files(files, copy_type, nretries=1):
     for entry in files:  # entry = {'name':<filename>, 'source':<dir>, 'destination':<dir>}
         logger.info("transferring file %s from %s to %s" % (entry['name'], entry['source'], entry['destination']))
 
-        source = os.path.join(entry['source'], entry['name'])
+        source = entry['source'] + '/' + entry['name']
+        # why /*4 ? Because sometimes gfal-copy complains about file:// protocol (anyone knows why?)
+        # with four //// this does not seem to happen
         destination = 'file:///' + os.path.join(entry['destination'], entry['name'])
         retry = nretries
         while retry != 0:
             retry -= 1
-            exit_code, stdout, stderr = __move(source, destination)
+            if entry['recursive'] is None or not entry['recursive']:
+                exit_code, stdout, stderr = __move(source, destination)
+            else:
+                exit_code, stdout, stderr = __move(source, destination, True)
+
             if exit_code != 0:
                 if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or retry == 0:
                     logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
@@ -82,13 +88,18 @@ def move_all_files(files, copy_type, nretries=1):
     return exit_code, stdout, stderr
 
 
-def __move(source, destination):
-    cmd = "gfal-copy %s %s" % (source, destination)
+def __move(source, destination, recursive=False):
+    cmd = None
+    if recursive:
+        cmd = "gfal-copy -r %s %s" % (source, destination)
+    else:
+        cmd = "gfal-copy %s %s" % (source, destination)
+    print(cmd)
     exit_code, stdout, stderr = execute(cmd)
 
     return exit_code, stdout, stderr
 
 
 def __check_for_gfal():
-    gfal_path = shutil.which('gfal-copy')
-    return gfal_path is not None
+    exit_code, gfal_path, _ = execute('which gfal-copy')
+    return exit_code == 0
