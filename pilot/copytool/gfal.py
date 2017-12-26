@@ -28,7 +28,7 @@ def copy_in(files):
 
     if not __check_for_gfal():
         raise StageInFailure("No GFAL2 tools found")
-    exit_code, stdout, stderr = move_all_files(files)
+    exit_code, stdout, stderr = move_all_files_in(files)
     if exit_code != 0:
         # raise failure
         raise StageInFailure(stdout)
@@ -45,17 +45,18 @@ def copy_out(files):
     if not __check_for_gfal():
         raise StageOutFailure("No GFAL2 tools found")
 
-    exit_code, stdout, stderr = move_all_files(files)
+    exit_code, stdout, stderr = move_all_files_out(files)
     if exit_code != 0:
         # raise failure
         raise StageOutFailure(stdout)
 
 
-def move_all_files(files, nretries=1):
+def move_all_files_in(files, nretries=1):
     """
     Move all files.
 
     :param files:
+    :param nretries: number of retries; sometimes there can be a timeout copying, but the next attempt may succeed
     :return: exit_code, stdout, stderr
     """
 
@@ -77,6 +78,40 @@ def move_all_files(files, nretries=1):
                 exit_code, stdout, stderr = __move(source, destination)
             else:
                 exit_code, stdout, stderr = __move(source, destination, True)
+
+            if exit_code != 0:
+                if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or retry == 0:
+                    logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
+                    return exit_code, stdout, stderr
+            else: # all successful
+                break
+
+    return exit_code, stdout, stderr
+
+
+def move_all_files_out(files, nretries=1):
+    """
+    Move all files.
+
+    :param files:
+    :return: exit_code, stdout, stderr
+    """
+
+    exit_code = 0
+    stdout = ""
+    stderr = ""
+
+    for entry in files:  # entry = {'name':<filename>, 'source':<dir>, 'destination':<dir>}
+        logger.info("transferring file %s from %s to %s" % (entry['name'], entry['source'], entry['destination']))
+
+        destination = entry['destination'] + '/' + entry['name']
+        # why /*4 ? Because sometimes gfal-copy complains about file:// protocol (anyone knows why?)
+        # with four //// this does not seem to happen
+        source = 'file:///' + os.path.join(entry['source'], entry['name'])
+        retry = nretries
+        while retry != 0:
+            retry -= 1
+	    exit_code, stdout, stderr = __move(source, destination)
 
             if exit_code != 0:
                 if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or retry == 0:
