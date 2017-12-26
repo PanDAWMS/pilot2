@@ -67,7 +67,7 @@ def move_all_files(files, copy_type, nretries=1):
         logger.info("transferring file %s from %s to %s" % (entry['name'], entry['source'], entry['destination']))
 
         source = os.path.join(entry['source'], entry['name'])
-        destination = os.path.join(entry['destination'], entry['name'])
+        destination = 'file:///' + os.path.join(entry['destination'], entry['name'])
         retry = nretries
         while retry != 0:
             retry -= 1
