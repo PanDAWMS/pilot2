@@ -9,7 +9,6 @@
 
 import os
 import logging
-import shutil
 import errno
 
 from pilot.common.exception import StageInFailure, StageOutFailure
@@ -26,7 +25,7 @@ def copy_in(files):
     :raises PilotException: StageInFailure
     """
 
-    if not __check_for_gfal():
+    if not check_for_gfal():
         raise StageInFailure("No GFAL2 tools found")
     exit_code, stdout, stderr = move_all_files_in(files)
     if exit_code != 0:
@@ -42,7 +41,7 @@ def copy_out(files):
     :raises PilotException: StageOutFailure
     """
 
-    if not __check_for_gfal():
+    if not check_for_gfal():
         raise StageOutFailure("No GFAL2 tools found")
 
     exit_code, stdout, stderr = move_all_files_out(files)
@@ -75,15 +74,15 @@ def move_all_files_in(files, nretries=1):
         while retry != 0:
             retry -= 1
             if entry['recursive'] is None or not entry['recursive']:
-                exit_code, stdout, stderr = __move(source, destination)
+                exit_code, stdout, stderr = move(source, destination)
             else:
-                exit_code, stdout, stderr = __move(source, destination, True)
+                exit_code, stdout, stderr = move(source, destination, True)
 
             if exit_code != 0:
                 if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or retry == 0:
                     logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
                     return exit_code, stdout, stderr
-            else: # all successful
+            else:  # all successful
                 break
 
     return exit_code, stdout, stderr
@@ -111,19 +110,19 @@ def move_all_files_out(files, nretries=1):
         retry = nretries
         while retry != 0:
             retry -= 1
-	    exit_code, stdout, stderr = __move(source, destination)
+            exit_code, stdout, stderr = move(source, destination)
 
             if exit_code != 0:
                 if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or retry == 0:
                     logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
                     return exit_code, stdout, stderr
-            else: # all successful
+            else:  # all successful
                 break
 
     return exit_code, stdout, stderr
 
 
-def __move(source, destination, recursive=False):
+def move(source, destination, recursive=False):
     cmd = None
     if recursive:
         cmd = "gfal-copy -r %s %s" % (source, destination)
@@ -135,6 +134,6 @@ def __move(source, destination, recursive=False):
     return exit_code, stdout, stderr
 
 
-def __check_for_gfal():
+def check_for_gfal():
     exit_code, gfal_path, _ = execute('which gfal-copy')
     return exit_code == 0
