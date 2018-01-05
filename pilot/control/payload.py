@@ -118,10 +118,10 @@ def run_payload(job, out, err):
     """
     (add description)
 
-    :param job:
-    :param out:
-    :param err:
-    :return:
+    :param job: job object
+    :param out: (currently not used; deprecated)
+    :param err: (currently not used; deprecated)
+    :return: proc (subprocess returned by Popen())
     """
     log = logger.getChild(str(job['PandaID']))
 
@@ -131,24 +131,9 @@ def run_payload(job, out, err):
     cmd = user.get_payload_command(job)
     log.info("payload execution command: %s" % cmd)
 
-    # athena_version = job['homepackage'].split('/')[1]
-    # asetup = 'source $ATLAS_LOCAL_ROOT_BASE/user/atlasLocalSetup.sh --quiet; '\
-    #          'source $AtlasSetup/scripts/asetup.sh %s,here; ' % athena_version
-    # cmd = job['transformation'] + ' ' + job['jobPars']
-
-    # log.debug('executable=%s' % asetup + cmd)
-
     # replace platform and workdir with new function get_payload_options() or someting from experiment specific code
     try:
         proc = execute(cmd, platform=job['cmtConfig'], workdir=job['working_dir'], returnproc=True, usecontainer=True)
-
-    # try:
-    #     proc = subprocess.Popen(cmd,
-    #                             bufsize=-1,
-    #                             stdout=out,
-    #                             stderr=err,
-    #                             cwd=job['working_dir'],
-    #                             shell=True)
     except Exception as e:
         log.error('could not execute: %s' % str(e))
         return None
