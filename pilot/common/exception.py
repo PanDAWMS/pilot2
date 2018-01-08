@@ -13,6 +13,8 @@ Exceptions in pilot
 """
 
 import traceback
+from errorcodes import ErrorCodes
+errors = ErrorCodes()
 
 
 class PilotException(Exception):
@@ -24,7 +26,7 @@ class PilotException(Exception):
 
     def __init__(self, *args, **kwargs):
         super(PilotException, self).__init__(args, kwargs)
-        self._errorCode = 0
+        self._errorCode = errors.UNKNOWNEXCEPTION
         self._message = "An unknown pilot exception occurred."
         self.args = args
         self.kwargs = kwargs
@@ -60,6 +62,7 @@ class NotImplemented(PilotException):
     """
     def __init__(self, *args, **kwargs):
         super(NotImplemented, self).__init__(args, kwargs)
+        self._errorCode = errors.NOTIMPLEMENTED
         self._message = "The class or function is not implemented."
 
 
@@ -69,6 +72,7 @@ class UnknownException(PilotException):
     """
     def __init__(self, *args, **kwargs):
         super(UnknownException, self).__init__(args, kwargs)
+        self._errorCode = errors.UNKNOWNEXCEPTION
         self._message = "An unknown pilot exception has occurred."
 
 

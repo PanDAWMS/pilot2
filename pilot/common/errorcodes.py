@@ -32,7 +32,7 @@ class ErrorCodes:
     MESSAGEHANDLINGFAILURE = 1304
     PAYLOADEXECUTIONFAILURE = 1305
 
-    error_messages = {
+    _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
         NOTIMPLEMENTED: "The class or function is not implemented",
         UNKNOWNEXCEPTION: "An unknown pilot exception has occurred",
@@ -56,7 +56,7 @@ class ErrorCodes:
         :return: errormessage (string)
         """
 
-        if errorcode in self.error_messages:
-            return self.error_messages[errorcode]
+        if errorcode in self._error_messages:
+            return self._error_messages[errorcode]
         else:
             return "Unknown error code: %d" % errorcode
