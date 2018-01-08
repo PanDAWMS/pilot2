@@ -10,9 +10,10 @@
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 common components
-==================
+=================
 
 .. toctree::
     :maxdepth: 2
 
+    errorcodes
     exception
