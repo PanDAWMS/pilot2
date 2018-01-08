@@ -82,7 +82,7 @@ class NoLocalSpace(PilotException):
     """
     def __init__(self, *args, **kwargs):
         super(NoLocalSpace, self).__init__(args, kwargs)
-        self._errorCode = 1098
+        self._errorCode = errors.NOLOCALSPACE
         self._message = errors.get_error_message(self._errorCode)
 
 
@@ -92,7 +92,7 @@ class StageInFailure(PilotException):
     """
     def __init__(self, *args, **kwargs):
         super(StageInFailure, self).__init__(args, kwargs)
-        self._errorCode = 1099
+        self._errorCode = errors.STAGEINFAILED
         self._message = errors.get_error_message(self._errorCode)
 
 
@@ -102,7 +102,7 @@ class StageOutFailure(PilotException):
     """
     def __init__(self, *args, **kwargs):
         super(StageOutFailure, self).__init__(args, kwargs)
-        self._errorCode = 1137
+        self._errorCode = errors.STAGEOUTFAILED
         self._message = errors.get_error_message(self._errorCode)
 
 
@@ -112,7 +112,7 @@ class SetupFailure(PilotException):
     """
     def __init__(self, *args, **kwargs):
         super(SetupFailure, self).__init__(args, kwargs)
-        self._errorCode = 1110
+        self._errorCode = errors.SETUPFAILURE
         self._message = errors.get_error_message(self._errorCode)
 
 
@@ -122,7 +122,7 @@ class RunPayloadFailure(PilotException):
     """
     def __init__(self, *args, **kwargs):
         super(RunPayloadFailure, self).__init__(args, kwargs)
-        self._errorCode = 1111
+        self._errorCode = errors.PAYLOADEXECUTIONFAILURE
         self._message = errors.get_error_message(self._errorCode)
 
 
@@ -132,7 +132,7 @@ class MessageFailure(PilotException):
     """
     def __init__(self, *args, **kwargs):
         super(MessageFailure, self).__init__(args, kwargs)
-        self._errorCode = 1112
+        self._errorCode = errors.MESSAGEHANDLINGFAILURE
         self._message = errors.get_error_message(self._errorCode)
 
 
@@ -142,7 +142,7 @@ class FileHandlingFailure(PilotException):
     """
     def __init__(self, *args, **kwargs):
         super(FileHandlingFailure, self).__init__(args, kwargs)
-        self._errorCode = 1999
+        self._errorCode = errors.FILEHANDLINGFAILURE
         self._message = errors.get_error_message(self._errorCode)
 
 
@@ -152,7 +152,7 @@ class ConversionFailure(PilotException):
     """
     def __init__(self, *args, **kwargs):
         super(ConversionFailure, self).__init__(args, kwargs)
-        self._errorCode = 1998
+        self._errorCode = errors.CONVERSIONFAILURE
         self._message = errors.get_error_message(self._errorCode)
 
 
@@ -162,5 +162,5 @@ class MKDirFailure(PilotException):
     """
     def __init__(self, *args, **kwargs):
         super(MKDirFailure, self).__init__(args, kwargs)
-        self._errorCode = 1997
+        self._errorCode = errors.MKDIR
         self._message = errors.get_error_message(self._errorCode)
