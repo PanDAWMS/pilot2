@@ -84,22 +84,22 @@ class NoLocalSpace(PilotException):
 
 class StageInFailure(PilotException):
     """
-    Failed to stage-in input files.
+    Failed to stage-in file.
     """
     def __init__(self, *args, **kwargs):
         super(StageInFailure, self).__init__(args, kwargs)
         self._errorCode = 1099
-        self._message = "Failed to stage-in input file(s)."
+        self._message = "Failed to stage-in file."
 
 
 class StageOutFailure(PilotException):
     """
-    Failed to stage-out output files.
+    Failed to stage-out file.
     """
     def __init__(self, *args, **kwargs):
         super(StageOutFailure, self).__init__(args, kwargs)
         self._errorCode = 1137
-        self._message = "Failed to stage-out output file(s)."
+        self._message = "Failed to stage-out file."
 
 
 class SetupFailure(PilotException):
@@ -129,7 +129,7 @@ class MessageFailure(PilotException):
     def __init__(self, *args, **kwargs):
         super(MessageFailure, self).__init__(args, kwargs)
         self._errorCode = 1112
-        self._message = "Failed to handle messages."
+        self._message = "Failed to handle message from payload."
 
 
 class FileHandlingFailure(PilotException):
