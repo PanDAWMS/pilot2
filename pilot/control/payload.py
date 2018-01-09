@@ -45,8 +45,11 @@ def control(queues, traces, args):
                threading.Thread(target=validate_post,
                                 kwargs={'queues': queues,
                                         'traces': traces,
+                                        'args': args}),
+               threading.Thread(target=failed_post,
+                                kwargs={'queues': queues,
+                                        'traces': traces,
                                         'args': args})]
-
     [t.start() for t in threads]
 
 
@@ -135,13 +138,17 @@ def run_payload(job, out, err):
 
     # log.debug('executable=%s' % asetup + cmd)
 
+    # replace platform and workdir with new function get_payload_options() or someting from experiment specific code
     try:
-        proc = subprocess.Popen(cmd,
-                                bufsize=-1,
-                                stdout=out,
-                                stderr=err,
-                                cwd=job['working_dir'],
-                                shell=True)
+        proc = execute(cmd, platform=job['cmtConfig'], workdir=job['working_dir'], returnproc=True, usecontainer=True)
+
+    # try:
+    #     proc = subprocess.Popen(cmd,
+    #                             bufsize=-1,
+    #                             stdout=out,
+    #                             stderr=err,
+    #                             cwd=job['working_dir'],
+    #                             shell=True)
     except Exception as e:
         log.error('could not execute: %s' % str(e))
         return None
@@ -234,8 +241,10 @@ def execute_payloads(queues, traces, args):
             err.close()
 
             if exit_code == 0:
+                job['transExitCode'] = 0
                 queues.finished_payloads.put(job)
             else:
+                job['transExitCode'] = exit_code
                 queues.failed_payloads.put(job)
 
         except Queue.Empty:
@@ -253,6 +262,7 @@ def validate_post(queues, traces, args):
     """
 
     while not args.graceful_stop.is_set():
+        # finished payloads
         try:
             job = queues.finished_payloads.get(block=True, timeout=1)
         except Queue.Empty:
@@ -264,3 +274,27 @@ def validate_post(queues, traces, args):
             job['job_report'] = json.load(data_file)
 
         queues.data_out.put(job)
+
+
+def failed_post(queues, traces, args):
+    """
+    (add description)
+
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
+
+    while not args.graceful_stop.is_set():
+        # finished payloads
+        try:
+            failedjob = queues.failed_payloads.get(block=True, timeout=1)
+        except Queue.Empty:
+            continue
+        log = logger.getChild(str(failedjob['PandaID']))
+
+        log.debug('adding jog for log stageout')
+
+        queues.data_out.put(failedjob)
+# wrong queue??

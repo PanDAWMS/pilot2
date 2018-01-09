@@ -7,6 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import copy
 import Queue
@@ -269,11 +270,16 @@ def copytool_out(queues, traces, args):
 
             logger.info('dataset=%s rse=%s' % (job['destinationDblock'], job['ddmEndPointOut'].split(',')[0]))
 
-            send_state(job, args, 'running')
+            # send_state(job, args, 'running')  # not necessary to send job update at this point?
 
             if _stage_out_all(job, args):
                 queues.finished_data_out.put(job)  # needed?
-                queues.finished_jobs.put(job)  # try this instead
+                if job['transExitCode'] == 0:
+                    logger.info('Finished stage-out for finished payload')
+                    queues.finished_jobs.put(job)
+                else:
+                    logger.info('Finished stage-out for failed payload')
+                    queues.failed_jobs.put(job)
             else:
                 queues.failed_data_out.put(job)
 
@@ -370,12 +376,14 @@ def _stage_out_all(job, args):
     log = logger.getChild(str(job['PandaID']))
     outputs = {}
 
-    for f in job['job_report']['files']['output']:
-        outputs[f['subFiles'][0]['name']] = {'scope': job['scopeOut'],
-                                             'name': f['subFiles'][0]['name'],
-                                             'guid': f['subFiles'][0]['file_guid'],
-                                             'bytes': f['subFiles'][0]['file_size']}
-
+    if 'job_report' in job:
+        for f in job['job_report']['files']['output']:
+            outputs[f['subFiles'][0]['name']] = {'scope': job['scopeOut'],
+                                                 'name': f['subFiles'][0]['name'],
+                                                 'guid': f['subFiles'][0]['file_guid'],
+                                                 'bytes': f['subFiles'][0]['file_size']}
+    else:
+        log.warning('Job object does not contain a job report (payload failed?)')
     outputs['%s:%s' % (job['scopeLog'], job['logFile'])] = prepare_log(job, 'tarball_PandaJob_%s_%s' % (job['PandaID'], args.queue))
 
     infodict = {}

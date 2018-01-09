@@ -21,12 +21,13 @@ def execute(executable, **kwargs):
     TODO: add time-out functionality.
 
     :param executable: Command list to be executed.
-    :param kwargs:
-    :return: exit code, stdout and stderr
+    :param kwargs (timeout, usecontainer, returnproc):
+    :return: exit code, stdout and stderr (or process if requested via returnproc argument)
     """
 
     timeout = kwargs.get('timeout', 120)
     usecontainer = kwargs.get('usecontainer', False)
+    returnproc = kwargs.get('returnproc', False)
 
     # Import user specific code if necessary (in case the command should be executed in a container)
     # Note: the container.wrapper() function must at least be declared
@@ -47,7 +48,10 @@ def execute(executable, **kwargs):
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE,
                                shell=True)
-    stdout, stderr = process.communicate()
-    exit_code = process.poll()
+    if returnproc:
+        return process
+    else:
+        stdout, stderr = process.communicate()
+        exit_code = process.poll()
 
-    return exit_code, stdout, stderr
+        return exit_code, stdout, stderr
