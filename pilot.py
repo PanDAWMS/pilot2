@@ -22,7 +22,7 @@ from pilot.util.information import set_location
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 
-VERSION = '2018-01-09.001'
+VERSION = '2018-01-09.002'
 
 
 def main():
