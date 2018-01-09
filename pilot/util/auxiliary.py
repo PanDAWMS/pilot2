@@ -26,10 +26,10 @@ def time_stamp():
         signstr = '-'
     else:
         signstr = '+'
-    tmptz_hours = int(tmptz/3600)
+    tmptz_hours = int(tmptz / 3600)
 
     return str("%s%s%02d%02d" % (time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime()), signstr, tmptz_hours,
-                                 int(tmptz/60-tmptz_hours*60)))
+                                 int(tmptz / 60 - tmptz_hours * 60)))
 
 
 def get_batchsystem_jobid():

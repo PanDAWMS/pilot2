@@ -18,7 +18,7 @@ import threading
 import time
 
 from pilot.control.job import send_state
-from pilot.util.container import execute
+# from pilot.util.container import execute
 
 import logging
 logger = logging.getLogger(__name__)

@@ -13,7 +13,6 @@ import Queue
 import os
 import threading
 import time
-import urllib
 
 from pilot.util import https
 from pilot.util.config import config
@@ -108,7 +107,7 @@ def send_state(job, args, state, xml=None):
             data['pilotID'] = "%s|%s|%s|%s" % (pilotid, use_newmover_tag, version_tag, pilot_version)
 
     if xml is not None:
-        data['xml'] = xml  # urllib.quote_plus(xml)
+        data['xml'] = xml
 
     try:
         # cmd = args.url + ':' + str(args.port) + 'server/panda/updateJob'
