@@ -16,7 +16,8 @@ copytool components
     :maxdepth: 2
 
     common
+    gfal
+    mv
     rucio
     xrdcp
-    mv
 

@@ -265,7 +265,7 @@ def get_timefloor():
 
     try:
         timefloor = int(get_field_value('timefloor')) * 60
-    except ValueError:
+    except TypeError:
         timefloor = 0
 
     return timefloor

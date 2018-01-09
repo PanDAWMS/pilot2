@@ -35,7 +35,7 @@ def control(queues, traces, args):
         if int(time.time() - traces.pilot['lifetime_start']) % threadchecktime == 0:
             # get all threads
             for thread in threading.enumerate():
-                logger.info('thread name: %s' % thread.name)
+                # logger.info('thread name: %s' % thread.name)
                 if not thread.is_alive():
                     logger.fatal('thread \'%s\' is not alive' % thread.name)
                     # args.graceful_stop.set()
