@@ -125,6 +125,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('-l',
                             dest='lifetime',
                             default=3600,
+                            required=False,
                             type=int,
                             help='Pilot lifetime seconds (default: 3600 s)')
 
