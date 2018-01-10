@@ -133,14 +133,15 @@ def run_payload(job, out, err):
 
     # replace platform and workdir with new function get_payload_options() or someting from experiment specific code
     try:
-        proc = subprocess.Popen(cmd,
-                                bufsize=-1,
-                                stdout=out,
-                                stderr=err,
-                                cwd=job['working_dir'],
-                                shell=True)
+        # proc = subprocess.Popen(cmd,
+        #                         bufsize=-1,
+        #                         stdout=out,
+        #                         stderr=err,
+        #                         cwd=job['working_dir'],
+        #                         shell=True)
 
-        # proc = execute(cmd, platform=job['cmtConfig'], workdir=job['working_dir'], returnproc=True, usecontainer=True)
+        proc = execute(cmd, platform=job['cmtConfig'], workdir=job['working_dir'], returnproc=True,
+                       usecontainer=True, stdout=out, stderr=err, cwd=job['working_dir'])
     except Exception as e:
         log.error('could not execute: %s' % str(e))
         return None

@@ -8,7 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch
 
 import subprocess
-from os import environ
+from os import environ, getcwd
 
 import logging
 logger = logging.getLogger(__name__)
@@ -25,6 +25,9 @@ def execute(executable, **kwargs):
     :return: exit code, stdout and stderr (or process if requested via returnproc argument)
     """
 
+    cwd = kwargs.get('cwd', getcwd())
+    stdout = kwargs.get('stdout', subprocess.PIPE)
+    stderr = kwargs.get('stderr', subprocess.PIPE)
     timeout = kwargs.get('timeout', 120)
     usecontainer = kwargs.get('usecontainer', False)
     returnproc = kwargs.get('returnproc', False)
@@ -45,8 +48,9 @@ def execute(executable, **kwargs):
     logger.info('executing command: %s' % executable)
     process = subprocess.Popen(executable,
                                bufsize=-1,
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE,
+                               stdout=stdout,
+                               stderr=stderr,
+                               cwd=cwd,
                                shell=True)
     if returnproc:
         return process
