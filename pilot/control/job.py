@@ -79,7 +79,10 @@ def send_state(job, args, state, xml=None):
     """
 
     log = logger.getChild(str(job['PandaID']))
-    log.debug('set job state=%s' % state)
+    if state == 'finished':
+        log.info('job %d has finished - sending final server update' % job['PandaID'])
+    else:
+        log.debug('set job state=%s' % state)
 
     # report the batch system job id, if available
     batchsystem_type, batchsystem_id = get_batchsystem_jobid()
