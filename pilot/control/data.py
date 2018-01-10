@@ -256,6 +256,7 @@ def copytool_in(queues, traces, args):
             if _stage_in(args, job):
                 queues.finished_data_in.put(job)
             else:
+                logger.warning('stage-in failed, adding job object to failed_data_in queue')
                 queues.failed_data_in.put(job)
 
         except Queue.Empty:
