@@ -20,6 +20,8 @@ import time
 from json import dumps
 
 from pilot.control.job import send_state
+from pilot.common.errorcodes import ErrorCodes
+errors = ErrorCodes()
 
 import logging
 logger = logging.getLogger(__name__)
@@ -258,6 +260,9 @@ def copytool_in(queues, traces, args):
             else:
                 logger.warning('stage-in failed, adding job object to failed_data_in queue')
                 queues.failed_data_in.put(job)
+                job['pilotErrorCode'] = errors.STAGEINFAILED
+                job['pilotErrorDiag'] = errors.get_error_message(job['pilotErrorCode'])
+                send_state(job, args, 'failed')
 
         except Queue.Empty:
             continue
@@ -407,9 +412,13 @@ def _stage_out_all(job, args):
 
     log.info('infodict=%s' % str(infodict))
     if failed:
+        # set error code + message
+        job['pilotErrorCode'] = errors.STAGEOUTFAILED
+        job['pilotErrorDiag'] = errors.get_error_message(job['pilotErrorCode'])
         send_state(job, args, 'failed')
         return False
     else:
+        # send final server update since all transfers have finished correctly
         send_state(job, args, 'finished', xml=dumps(infodict))
         return True
 
