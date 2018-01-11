@@ -97,6 +97,16 @@ def send_state(job, args, state, xml=None):
             'siteName': args.site,
             'node': get_node_name()}
 
+    # error codes
+    data['pilotErrorCode'] = job['pilotErrorCode']
+    data['pilotErrorDiag'] = job['pilotErrorDiag']
+    if 'transExitCode' in job:
+        data['transExitCode'] = job['transExitCode']
+    if 'exeErrorCode' in job:
+        data['exeErrorCode'] = job['exeErrorCode']
+    if 'exeErrorDiag' in job:
+        data['exeErrorDiag'] = job['exeErrorDiag']
+
     schedulerid = get_job_scheduler_id()
     if schedulerid:
         data['schedulerID'] = schedulerid
@@ -419,18 +429,22 @@ def job_monitor(queues, traces, args):
 
         # check if the job has finished
         try:
-            finishedjob = queues.finished_jobs.get(block=True, timeout=1)
+            job = queues.finished_jobs.get(block=True, timeout=1)
         except Queue.Empty:
             # logger.info("(job still running)")
             pass
         else:
-            logger.info("job %d has finished" % finishedjob['PandaID'])
+            logger.info("job %d has finished" % job['PandaID'])
+
+            # send final server update
 
         # check if the job has failed
         try:
-            failedjob = queues.failed_jobs.get(block=True, timeout=1)
+            job = queues.failed_jobs.get(block=True, timeout=1)
         except Queue.Empty:
             # logger.info("(job still running)")
             pass
         else:
-            logger.info("job %d has failed" % failedjob['PandaID'])
+            logger.info("job %d has failed" % job['PandaID'])
+
+            # send final server update
