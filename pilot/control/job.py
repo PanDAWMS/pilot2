@@ -98,14 +98,11 @@ def send_state(job, args, state, xml=None):
             'node': get_node_name()}
 
     # error codes
-    data['pilotErrorCode'] = job['pilotErrorCode']
-    data['pilotErrorDiag'] = job['pilotErrorDiag']
-    if 'transExitCode' in job:
-        data['transExitCode'] = job['transExitCode']
-    if 'exeErrorCode' in job:
-        data['exeErrorCode'] = job['exeErrorCode']
-    if 'exeErrorDiag' in job:
-        data['exeErrorDiag'] = job['exeErrorDiag']
+    data['pilotErrorCode'] = job.get('pilotErrorCode', 0)
+    data['pilotErrorDiag'] = job.get('pilotErrorDiag', '')
+    data['transExitCode'] = job.get('transExitCode', 0)
+    data['exeErrorCode'] = job.get('exeErrorCode', 0)
+    data['exeErrorDiag'] = job.get('exeErrorDiag', '')
 
     schedulerid = get_job_scheduler_id()
     if schedulerid:
