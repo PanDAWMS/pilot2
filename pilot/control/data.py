@@ -493,11 +493,20 @@ def queue_monitoring(queues, traces, args):
         if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
             break
 
-        #
+        # monitor the failed_data_in queue
         try:
             job = queues.failed_data_in.get(block=True, timeout=1)
         except Queue.Empty:
             pass
         else:
             logger.info("job %d failed during stage-in, adding job object to failed_jobs queue" % job['PandaID'])
+            queues.failed_jobs.put(job)
+
+        # monitor the failed_data_out queue
+        try:
+            job = queues.failed_data_out.get(block=True, timeout=1)
+        except Queue.Empty:
+            pass
+        else:
+            logger.info("job %d failed during stage-out, adding job object to failed_jobs queue" % job['PandaID'])
             queues.failed_jobs.put(job)
