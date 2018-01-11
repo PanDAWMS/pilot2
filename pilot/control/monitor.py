@@ -60,7 +60,7 @@ def send_heartbeat(job):
     pass
 
 
-def check_local_space_limit():  # move to Job component
+def check_local_space_limit():  # move to Job component?
     du = disk_usage(os.path.abspath("."))
     return du[2] < human2bytes(config.Pilot.free_space_limit)
 
