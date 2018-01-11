@@ -498,4 +498,5 @@ def queue_monitoring(queues, traces, args):
     except Queue.Empty:
         pass
     else:
-        logger.info("job %d failed during stage-in" % job['PandaID'])
+        logger.info("job %d failed during stage-in, adding job object to failed_jobs queue" % job['PandaID'])
+        queues.failed_jobs.put(job)
