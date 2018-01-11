@@ -421,3 +421,19 @@ def job_monitor(queues, traces, args):
             break
 
         # check if the job has finished
+        try:
+            finishedjob = queues.finished_jobs.get(block=True, timeout=1)
+        except Queue.Empty:
+            # logger.info("(job still running)")
+            pass
+        else:
+            logger.info("job %d has finished" % finishedjob['PandaID'])
+
+        # check if the job has failed
+        try:
+            failedjob = queues.failed_jobs.get(block=True, timeout=1)
+        except Queue.Empty:
+            # logger.info("(job still running)")
+            pass
+        else:
+            logger.info("job %d has failed" % failedjob['PandaID'])
