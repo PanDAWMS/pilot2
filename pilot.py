@@ -32,7 +32,7 @@ def main():
     logger.info('PanDA Pilot 2 version %s' % VERSION)
 
     args.graceful_stop = threading.Event()
-    args.wait_for_next_job = False  # go ahead and download a new job
+    args.retrieve_next_job = True  # go ahead and download a new job
     config.read(args.config)
 
     https_setup(args, VERSION)
