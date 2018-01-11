@@ -12,6 +12,7 @@
 #       be the task of the job_monitor thread in the Job component. Job related functions should be moved to the
 #       Job component, with the exception of the heartbeat function.
 
+import Queue
 import logging
 import os
 from pilot.util.disk import disk_usage
