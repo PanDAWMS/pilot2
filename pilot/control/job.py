@@ -374,9 +374,6 @@ def retrieve(queues, traces, args):
                 else:
                     logger.info('graceful stop is currently not set')
                 while not args.graceful_stop.is_set():
-                    if args.retrieve_next_job:
-                        logger.info('will retrieve another job')
-                        break
                     if job_has_finished(queues):
                         logger.info('graceful stop has been set')
                         break
