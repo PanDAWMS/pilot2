@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import time
 import threading
@@ -15,7 +16,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # NOTE: rename this component (pilot monitor?) and add internal thread monitoring, keep global lifetime monitoring
-
+# merge with monitor component
 
 def log_lifetime(sig, frame, traces):
     logger.info('lifetime: %i used, %i maximum' % (int(time.time() - traces.pilot['lifetime_start']),
