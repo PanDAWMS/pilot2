@@ -36,6 +36,10 @@ def control(queues, traces, args):
                threading.Thread(target=copytool_out,
                                 kwargs={'queues': queues,
                                         'traces': traces,
+                                        'args': args}),
+               threading.Thread(target=queue_monitoring,
+                                kwargs={'queues': queues,
+                                        'traces': traces,
                                         'args': args})]
 
     [t.start() for t in threads]
@@ -279,8 +283,8 @@ def copytool_out(queues, traces, args):
             # send_state(job, args, 'running')  # not necessary to send job update at this point?
 
             if _stage_out_all(job, args):
-                queues.finished_data_out.put(job)  # needed?
-                if job['transExitCode'] == 0:
+                queues.finished_data_out.put(job)
+                if job['transExitCode'] == 0:  # move to queue_monitor()
                     logger.info('Finished stage-out for finished payload')
                     queues.finished_jobs.put(job)
                 else:
@@ -472,3 +476,26 @@ def _stage_out_all_old(job, args):
     else:
         send_state(job, args, 'finished', xml=pfc)
         return True
+
+
+def queue_monitoring(queues, traces, args):
+    """
+    Monitoring of Data queues.
+
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
+
+    # wait a second
+    if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
+        break
+
+    #
+    try:
+        job = queues.failed_data_in.get(block=True, timeout=1)
+    except Queue.Empty:
+        pass
+    else:
+        logger.info("job %d failed during stage-in" % job['PandaID'])
