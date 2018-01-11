@@ -390,7 +390,7 @@ def _stage_out_all(job, args):
         log.warning('Job object does not contain a job report (payload failed?)')
     outputs['%s:%s' % (job['scopeLog'], job['logFile'])] = prepare_log(job, 'tarball_PandaJob_%s_%s' % (job['PandaID'], args.queue))
 
-    infodict = {}
+    fileinfodict = {}
     failed = False
 
     for outfile in outputs:
@@ -404,11 +404,11 @@ def _stage_out_all(job, args):
                         'fsize': outputs[outfile]['bytes'],
                         'adler32': outputs[outfile]['adler32'],
                         'surl': outputs[outfile]['pfn']}
-            infodict[outputs[outfile]['name']] = filedict
+            fileinfodict[outputs[outfile]['name']] = filedict
         else:
             failed = True
 
-    log.info('infodict=%s' % str(infodict))
+    log.debug('file info dictionary=%s' % str(fileinfodict))
     if failed:
         # set error code + message
         job['pilotErrorCode'] = errors.STAGEOUTFAILED
@@ -416,8 +416,9 @@ def _stage_out_all(job, args):
         send_state(job, args, 'failed')
         return False
     else:
+        job['fileinfodict'] = fileinfodict
         # send final server update since all transfers have finished correctly
-        send_state(job, args, 'finished', xml=dumps(infodict))
+        send_state(job, args, 'finished', xml=dumps(fileinfodict))
         return True
 
 
