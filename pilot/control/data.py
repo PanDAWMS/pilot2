@@ -284,12 +284,6 @@ def copytool_out(queues, traces, args):
 
             if _stage_out_all(job, args):
                 queues.finished_data_out.put(job)
-                if job['transExitCode'] == 0:  # move to queue_monitor()
-                    logger.info('Finished stage-out for finished payload')
-                    queues.finished_jobs.put(job)
-                else:
-                    logger.info('Finished stage-out for failed payload')
-                    queues.failed_jobs.put(job)
             else:
                 queues.failed_data_out.put(job)
 
@@ -501,6 +495,20 @@ def queue_monitoring(queues, traces, args):
         else:
             logger.info("job %d failed during stage-in, adding job object to failed_jobs queue" % job['PandaID'])
             queues.failed_jobs.put(job)
+
+        # monitor the finished_data_out queue
+        try:
+            job = queues.finished_data_out.get(block=True, timeout=1)
+        except Queue.Empty:
+            pass
+        else:
+            if ('transExitCode' in job and job['transExitCode'] == 0) and\
+                    ('exeErrorCode' in job and job['exeErrorCode'] == 0):
+                logger.info('finished stage-out for finished payload')
+                queues.finished_jobs.put(job)
+            else:
+                logger.info('finished stage-out (of log) for failed payload')
+                queues.failed_jobs.put(job)
 
         # monitor the failed_data_out queue
         try:
