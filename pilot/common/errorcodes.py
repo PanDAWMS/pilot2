@@ -60,3 +60,47 @@ class ErrorCodes:
             return self._error_messages[errorcode]
         else:
             return "Unknown error code: %d" % errorcode
+
+
+    def add_error_code(self, errorcode, pilotErrorCodes=[], pilotErrorDiags=[]):
+        """
+        Add pilot error code to list of error codes.
+        This function adds the given error code to the list of all errors that have occurred. This is needed since
+        several errors can happen; e.g. a stage-in error can be followed by a stage-out error during the log transfer.
+        The full list of errors is dumped to the log, but only the first error is reported to the server.
+        The function also sets the corresponding error message.
+
+        :param errorcode: pilot error code (integer)
+        :param pilotErrorCodes: list of pilot error codes (list of integers)
+        :param pilotErrorDiags: list of pilot error diags (list of strings)
+        :return: pilotErrorCodes, pilotErrorDiags
+        """
+
+        # do nothing if the error code has already been added
+        if errorcode not in pilotErrorCodes:
+            pilotErrorCodes.append(errorcode)
+            pilotErrorDiags.append(self.get_error_message(errorcode))
+
+        return pilotErrorCodes, pilotErrorDiags
+
+
+    def report_errors(self, pilotErrorCodes, pilotErrorDiags):
+        """
+        Report all errors that occurred during running.
+        The function should be called towards the end of running a job.
+
+        :param pilotErrorCodes: list of pilot error codes (list of integers)
+        :param pilotErrorDiags: list of pilot error diags (list of strings)
+        :return: error_report (string)
+        """
+
+        i = 0
+        if pilotErrorCodes == []:
+            report = "no pilot errors were reported"
+        else:
+            report = "Nr.\tError code\tError diagnostics"
+            for errorcode in pilotErrorCodes:
+                i += 1
+                report += "\n%d.\t%d\t%s" % (i, errorcode, pilotErrorDiags[i-1])
+
+        return report
