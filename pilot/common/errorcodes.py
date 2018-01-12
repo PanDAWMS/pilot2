@@ -34,13 +34,13 @@ class ErrorCodes:
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
-        NOTIMPLEMENTED: "The class or function is not implemented",
-        UNKNOWNEXCEPTION: "An unknown pilot exception has occurred",
         NOLOCALSPACE: "Not enough local space",
         STAGEINFAILED: "Failed to stage-in file",
         SETUPFAILURE: "Failed during payload setup",
         MKDIR: "Failed to create local directory",
         STAGEOUTFAILED: "Failed to stage-out file",
+        NOTIMPLEMENTED: "The class or function is not implemented",
+        UNKNOWNEXCEPTION: "An unknown pilot exception has occurred",
         CONVERSIONFAILURE: "Failed to convert object data",
         FILEHANDLINGFAILURE: "Failed during file handling",
         MESSAGEHANDLINGFAILURE: "Failed to handle message from payload",
