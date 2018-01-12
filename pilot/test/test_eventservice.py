@@ -4,7 +4,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Wen Guan, wen.guan@cern.ch, 2017
+# - Wen Guan, wen.guan@cern.ch, 2017-2018
 
 import json
 import logging
@@ -68,7 +68,7 @@ class TestESHook(ESHook):
         """
         Get payload hook function for tests.
 
-        :returns: dict {'payload': <cmd string>, 'output_file': <filename or without it>, 'error_file': <filename or without it>}
+        :returns: dict {'executable': <cmd string>, 'output_file': <filename or without it>, 'error_file': <filename or without it>}
         """
 
         return self.__payload
@@ -95,7 +95,7 @@ class TestESHook(ESHook):
         :param message: a dict of parsed message.
                         For 'finished' event ranges, it's {'id': <id>, 'status': 'finished', 'output': <output>, 'cpu': <cpu>,
                                                            'wall': <wall>, 'message': <full message>}.
-                        Fro 'failed' event ranges, it's {'id': <id>, 'status': 'finished', 'message': <full message>}.
+                        Fro 'failed' event ranges, it's {'id': <id>, 'status': 'failed', 'message': <full message>}.
         """
 
         print(message)
