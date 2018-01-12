@@ -387,8 +387,9 @@ def _stage_out_all(job, args):
                                                  'guid': f['subFiles'][0]['file_guid'],
                                                  'bytes': f['subFiles'][0]['file_size']}
     else:
-        log.warning('Job object does not contain a job report (payload failed?)')
-    outputs['%s:%s' % (job['scopeLog'], job['logFile'])] = prepare_log(job, 'tarball_PandaJob_%s_%s' % (job['PandaID'], args.queue))
+        log.warning('Job object does not contain a job report (payload failed?) - will only stage-out log file')
+    outputs['%s:%s' % (job['scopeLog'], job['logFile'])] = prepare_log(job, 'tarball_PandaJob_%s_%s' % (job['PandaID'],
+                                                                                                        args.queue))
 
     fileinfodict = {}
     failed = False
@@ -398,7 +399,8 @@ def _stage_out_all(job, args):
 
         if summary is not None:
             outputs[outfile]['pfn'] = summary['%s:%s' % (outputs[outfile]['scope'], outputs[outfile]['name'])]['pfn']
-            outputs[outfile]['adler32'] = summary['%s:%s' % (outputs[outfile]['scope'], outputs[outfile]['name'])]['adler32']
+            outputs[outfile]['adler32'] = summary['%s:%s' % (outputs[outfile]['scope'],
+                                                             outputs[outfile]['name'])]['adler32']
 
             filedict = {'guid': outputs[outfile]['guid'],
                         'fsize': outputs[outfile]['bytes'],
