@@ -9,14 +9,15 @@
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Wen Guan, wen.guan@cern.ch, 2017-2018
 
 import Queue
 import json
 import os
-import subprocess
 import threading
 import time
 
+from pilot.control import payloads
 from pilot.control.job import send_state
 
 import logging
@@ -86,104 +87,6 @@ def _validate_payload(job):
     return True
 
 
-def setup_payload(job, out, err):
-    """
-    (add description)
-
-    :param job:
-    :param out:
-    :param err:
-    :return:
-    """
-    # log = logger.getChild(str(job['PandaID']))
-
-    # try:
-    # create symbolic link for sqlite200 and geomDB in job dir
-    #    for db_name in ['sqlite200', 'geomDB']:
-    #         src = '/cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/%s' % db_name
-    #         link_name = 'job-%s/%s' % (job['PandaID'], db_name)
-    #         os.symlink(src, link_name)
-    # except Exception as e:
-    #     log.error('could not create symbolic links to database files: %s' % e)
-    #     return False
-
-    return True
-
-
-def run_payload(job, out, err):
-    """
-    (add description)
-
-    :param job:
-    :param out:
-    :param err:
-    :return:
-    """
-    log = logger.getChild(str(job['PandaID']))
-
-    # get the payload command from the user specific code
-    # cmd = get_payload_command(job, queuedata)
-    athena_version = job['homepackage'].split('/')[1]
-    asetup = 'source $ATLAS_LOCAL_ROOT_BASE/user/atlasLocalSetup.sh --quiet; '\
-             'source $AtlasSetup/scripts/asetup.sh %s,here; ' % athena_version
-    cmd = job['transformation'] + ' ' + job['jobPars']
-
-    log.debug('executable=%s' % asetup + cmd)
-
-    try:
-        proc = subprocess.Popen(asetup + cmd,
-                                bufsize=-1,
-                                stdout=out,
-                                stderr=err,
-                                cwd=job['working_dir'],
-                                shell=True)
-    except Exception as e:
-        log.error('could not execute: %s' % str(e))
-        return None
-
-    log.info('started -- pid=%s executable=%s' % (proc.pid, asetup + cmd))
-
-    return proc
-
-
-def wait_graceful(args, proc, job):
-    """
-    (add description)
-
-    :param args:
-    :param proc:
-    :param job:
-    :return:
-    """
-    log = logger.getChild(str(job['PandaID']))
-
-    breaker = False
-    exit_code = None
-    while True:
-        for i in xrange(100):
-            if args.graceful_stop.is_set():
-                breaker = True
-                log.debug('breaking -- sending SIGTERM pid=%s' % proc.pid)
-                proc.terminate()
-                break
-            time.sleep(0.1)
-        if breaker:
-            log.debug('breaking -- sleep 3s before sending SIGKILL pid=%s' % proc.pid)
-            time.sleep(3)
-            proc.kill()
-            break
-
-        exit_code = proc.poll()
-        log.info('running: pid=%s exit_code=%s' % (proc.pid, exit_code))
-        if exit_code is not None:
-            break
-        else:
-            send_state(job, args, 'running')
-            continue
-
-    return exit_code
-
-
 def execute(queues, traces, args):
     """
     (add description)
@@ -215,14 +118,11 @@ def execute(queues, traces, args):
             log.debug('setting up payload environment')
             send_state(job, args, 'starting')
 
-            exit_code = 1
-            if setup_payload(job, out, err):
-                log.debug('running payload')
-                send_state(job, args, 'running')
-                proc = run_payload(job, out, err)
-                if proc is not None:
-                    exit_code = wait_graceful(args, proc, job)
-                    log.info('finished pid=%s exit_code=%s' % (proc.pid, exit_code))
+            if job.get('eventService', '').lower() == "true":
+                payload_executor = payloads.eventservice.Executor(args, job, out, err)
+            else:
+                payload_executor = payloads.generic.Executor(args, job, out, err)
+            exit_code = payload_executor.run()
 
             log.debug('closing payload stdout/err logs')
             out.close()
