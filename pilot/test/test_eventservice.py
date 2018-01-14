@@ -143,6 +143,7 @@ class TestESMessageThread(unittest.TestCase):
         self.assertFalse(msg_thread.is_alive())
 
 
+@unittest.skipIf(not check_env(), "No CVMFS")
 class TestESProcess(unittest.TestCase):
     """
     Unit tests for event service process functions
