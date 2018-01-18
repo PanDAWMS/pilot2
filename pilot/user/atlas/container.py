@@ -36,17 +36,17 @@ def wrapper(executable, **kwargs):
     return singularity_wrapper(executable, platform, workdir)
 
 
-def use_payload_container(jobPars):
+def use_payload_container(job):
     pass
 
-def extract_payload_container(jobPars):
-    pass
 
 def use_middleware_container():
     pass
 
+
 def get_middleware_container():
     pass
+
 
 def extract_container_options():
     """ Extract any singularity options from catchall """
