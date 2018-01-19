@@ -266,6 +266,7 @@ def validate_post(queues, traces, args):
         with open(os.path.join(job['working_dir'], 'jobReport.json')) as data_file:
             job['job_report'] = json.load(data_file)
 
+        job.stageout = "output"
         queues.data_out.put(job)
 
 
@@ -282,12 +283,13 @@ def failed_post(queues, traces, args):
     while not args.graceful_stop.is_set():
         # finished payloads
         try:
-            failedjob = queues.failed_payloads.get(block=True, timeout=1)
+            job = queues.failed_payloads.get(block=True, timeout=1)
         except Queue.Empty:
             continue
-        log = logger.getChild(str(failedjob['PandaID']))
+        log = logger.getChild(str(job['PandaID']))
 
         log.debug('adding jog for log stageout')
 
-        queues.data_out.put(failedjob)
+        job.stageout = "log"
+        queues.data_out.put(job)
 # wrong queue??
