@@ -376,20 +376,31 @@ def _stage_out(args, outfile, job):
 
 
 def _stage_out_all(job, args):
+    """
+    Order stage-out of all output files or only the log file.
+
+    :param job:
+    :param args:
+    :return:
+    """
 
     log = logger.getChild(str(job['PandaID']))
     outputs = {}
 
-    if 'job_report' in job:
-        for f in job['job_report']['files']['output']:
-            outputs[f['subFiles'][0]['name']] = {'scope': job['scopeOut'],
-                                                 'name': f['subFiles'][0]['name'],
-                                                 'guid': f['subFiles'][0]['file_guid'],
-                                                 'bytes': f['subFiles'][0]['file_size']}
+    if job.stageout == 'log':
+        log.info('will stage-out log file')
+        outputs['%s:%s' % (job['scopeLog'], job['logFile'])] = prepare_log(job, 'tarball_PandaJob_%s_%s' %
+                                                                           (job['PandaID'], args.queue))
     else:
-        log.warning('Job object does not contain a job report (payload failed?) - will only stage-out log file')
-    outputs['%s:%s' % (job['scopeLog'], job['logFile'])] = prepare_log(job, 'tarball_PandaJob_%s_%s' % (job['PandaID'],
-                                                                                                        args.queue))
+        log.info('will stage-out all output files')
+        if 'job_report' in job:
+            for f in job['job_report']['files']['output']:
+                outputs[f['subFiles'][0]['name']] = {'scope': job['scopeOut'],
+                                                     'name': f['subFiles'][0]['name'],
+                                                     'guid': f['subFiles'][0]['file_guid'],
+                                                     'bytes': f['subFiles'][0]['file_size']}
+        else:
+            log.warning('Job object does not contain a job report (payload failed?) - will only stage-out log file')
 
     fileinfodict = {}
     failed = False
@@ -410,7 +421,6 @@ def _stage_out_all(job, args):
         else:
             failed = True
 
-    log.debug('file info dictionary=%s' % str(fileinfodict))
     if failed:
         # set error code + message
         job['pilotErrorCode'] = errors.STAGEOUTFAILED
@@ -420,7 +430,8 @@ def _stage_out_all(job, args):
     else:
         job['fileinfodict'] = fileinfodict
         # send final server update since all transfers have finished correctly
-        send_state(job, args, 'finished', xml=dumps(fileinfodict))
+        if stageoutlog:  # remove after testing log stage-out - finished message should be sent elsewhere (payload ctrl)
+            send_state(job, args, 'finished', xml=dumps(fileinfodict))
         return True
 
 
