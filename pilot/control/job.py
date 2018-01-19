@@ -13,6 +13,7 @@ import Queue
 import os
 import threading
 import time
+from json import dumps
 
 from pilot.util import https
 from pilot.util.config import config
@@ -424,6 +425,8 @@ def job_monitor(queues, traces, args):
         if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
             break
 
+        job = None
+
         # check if the job has finished
         try:
             job = queues.finished_jobs.get(block=True, timeout=1)
@@ -432,8 +435,6 @@ def job_monitor(queues, traces, args):
             pass
         else:
             logger.info("job %d has finished" % job['PandaID'])
-
-            # send final server update
 
         # check if the job has failed
         try:
@@ -444,4 +445,8 @@ def job_monitor(queues, traces, args):
         else:
             logger.info("job %d has failed" % job['PandaID'])
 
-            # send final server update
+        # send final server update
+        if job['state'] == "finished":
+            send_state(job, args, 'finished', xml=dumps(job['fileinfodict']))
+        else:
+            send_state(job, args, 'failed')

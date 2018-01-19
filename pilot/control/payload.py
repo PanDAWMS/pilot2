@@ -266,7 +266,7 @@ def validate_post(queues, traces, args):
         with open(os.path.join(job['working_dir'], 'jobReport.json')) as data_file:
             job['job_report'] = json.load(data_file)
 
-        job.stageout = "output"
+        job['stageout'] = "all"  # output and log file
         queues.data_out.put(job)
 
 
@@ -288,8 +288,8 @@ def failed_post(queues, traces, args):
             continue
         log = logger.getChild(str(job['PandaID']))
 
-        log.debug('adding jog for log stageout')
+        log.debug('adding log for log stageout')
 
-        job.stageout = "log"
+        job['stageout'] = "log"  # only stage-out log file
         queues.data_out.put(job)
 # wrong queue??
