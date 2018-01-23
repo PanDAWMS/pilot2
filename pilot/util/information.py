@@ -22,7 +22,7 @@ import urllib2
 from datetime import datetime, timedelta
 
 from pilot.util.config import config
-from pilot.util.filehandling import write_json, get_json_dictionary
+from pilot.util.filehandling import write_json, get_json
 # from pilot.common.exception import FileHandlingFailure
 
 import logging
@@ -124,7 +124,7 @@ def get_schedconfig_queuedata(queue):
     # read it locally if the queuedata file already exists
     filename = os.path.join(os.environ.get('PILOT_HOME'), config.Information.queuedata)
     if os.path.exists(filename):
-        queuedata = get_json_dictionary(filename)
+        queuedata = get_json(filename)
         return queuedata
 
     url = config.Information.schedconfig
@@ -282,7 +282,7 @@ def get_field_value(field):
     value = ""
     fname = os.path.join(os.environ.get('PILOT_HOME', '.'), config.Information.queuedata)
     if os.path.exists(fname):
-        queuedata = get_json_dictionary(fname)
+        queuedata = get_json(fname)
         value = get_parameter(queuedata, field)
 
     return value
