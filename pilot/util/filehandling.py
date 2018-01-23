@@ -101,7 +101,7 @@ def convert(data):
         return data
 
 
-def get_json(filename):
+def read_json(filename):
     """
     Read a dictionary with unicode to utf-8 conversion
 
