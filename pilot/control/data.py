@@ -369,8 +369,13 @@ def _stage_out(args, outfile, job):
         return None
 
     summary = None
-    with open(os.path.join(job['working_dir'], 'rucio_upload.json'), 'rb') as summary_file:
-        summary = json.load(summary_file)
+    path = os.path.join(job['working_dir'], 'rucio_upload.json')
+    if not os.path.exists(path):
+        log.warning('nu such file: %s' % path)
+        return None
+    else:
+        with open(path, 'rb') as summary_file:
+            summary = json.load(summary_file)
 
     return summary
 
@@ -426,9 +431,11 @@ def _stage_out_all(job, args):
         job['pilotErrorCode'] = errors.STAGEOUTFAILED
         job['pilotErrorDiag'] = errors.get_error_message(job['pilotErrorCode'])
         job['state'] = "failed"
+        log.warning('stage-out failed with error: %d, %s (setting job state to failed)' % (job['pilotErrorCode', job['pilotErrorDiag']))
         # send_state(job, args, 'failed')
         return False
     else:
+        log.info('stage-out finished correctly (setting job state to finished)')
         job['fileinfodict'] = fileinfodict
         job['state'] = "finished"
 
