@@ -99,8 +99,22 @@ def send_state(job, args, state, xml=None):
             'node': get_node_name()}
 
     # error codes
-    data['pilotErrorCode'] = job.get('pilotErrorCode', 0)
-    data['pilotErrorDiag'] = job.get('pilotErrorDiag', '')
+    pilotErrorCode = job.get('pilotErrorCode', 0)
+    pilotErrorCodes = job.get('pilotErrorCodes', [])
+    if pilotErrorCodes != []:
+        log.warning('pilotErrorCodes = %s (will report primary/first error code)' % str(pilotErrorCodes))
+        data['pilotErrorCode'] = pilotErrorCodes[0]
+    else:
+        data['pilotErrorCode'] = pilotErrorCode
+
+    pilotErrorDiag = job.get('pilotErrorDiag', 0)
+    pilotErrorDiags = job.get('pilotErrorDiags', [])
+    if pilotErrorDiags != []:
+        log.warning('pilotErrorDiags = %s (will report primary/first error diag)' % str(pilotErrorDiags))
+        data['pilotErrorDiag'] = pilotErrorDiags[0]
+    else:
+        data['pilotErrorDiag'] = pilotErrorDiag
+
     data['transExitCode'] = job.get('transExitCode', 0)
     data['exeErrorCode'] = job.get('exeErrorCode', 0)
     data['exeErrorDiag'] = job.get('exeErrorDiag', '')
