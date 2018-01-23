@@ -429,8 +429,9 @@ def _stage_out_all(job, args):
         # set error code + message
         job['pilotErrorCodes'], job['pilotErrorDiags'] = errors.add_error_code(errors.STAGEOUTFAILED)
         job['state'] = "failed"
-        log.warning('stage-out failed with error: %d, %s (setting job state to failed)' %
-                    (job['pilotErrorCode'], job['pilotErrorDiag']))
+        log.warning('stage-out failed')  # with error: %d, %s (setting job state to failed)' %
+        # log.warning('stage-out failed with error: %d, %s (setting job state to failed)' %
+        #  (job['pilotErrorCode'], job['pilotErrorDiag']))
         # send_state(job, args, 'failed')
         return False
     else:
