@@ -263,9 +263,7 @@ def copytool_in(queues, traces, args):
             else:
                 logger.warning('stage-in failed, adding job object to failed_data_in queue')
                 queues.failed_data_in.put(job)
-                job['pilotErrorCodes'], job['pilotErrorDiags'] = errors.add_error_code(errors.STAGEINFAILED,
-                                                                                       job['pilotErrorCodes'],
-                                                                                       job['pilotErrorDiags'])
+                job['pilotErrorCodes'], job['pilotErrorDiags'] = errors.add_error_code(errors.STAGEINFAILED)
                 job['state'] = "failed"
                 # send_state(job, args, 'failed')
 
@@ -429,9 +427,7 @@ def _stage_out_all(job, args):
 
     if failed:
         # set error code + message
-        job['pilotErrorCodes'], job['pilotErrorDiags'] = errors.add_error_code(errors.STAGEOUTFAILED,
-                                                                               job['pilotErrorCodes'],
-                                                                               job['pilotErrorDiags'])
+        job['pilotErrorCodes'], job['pilotErrorDiags'] = errors.add_error_code(errors.STAGEOUTFAILED)
         job['state'] = "failed"
         log.warning('stage-out failed with error: %d, %s (setting job state to failed)' %
                     (job['pilotErrorCode'], job['pilotErrorDiag']))
