@@ -14,7 +14,8 @@ import logging
 import sys
 import threading
 import time
-from os import getcwd, chdir, environ, remove
+from os import getcwd, chdir, environ
+from shutil import rmtree
 
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
 from pilot.util.https import https_setup
@@ -22,7 +23,7 @@ from pilot.util.information import set_location
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 
-VERSION = '2018-01-11.001'
+VERSION = '2018-01-23.001'
 
 
 def main():
@@ -297,7 +298,7 @@ if __name__ == '__main__':
     if initdir != mainworkdir:
         chdir(initdir)
         try:
-            remove(mainworkdir)
+            rmtree(mainworkdir)
         except Exception as e:
             logging.warning("failed to remove %s: %s" % (mainworkdir, e))
         else:
