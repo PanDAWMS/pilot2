@@ -389,6 +389,10 @@ def retrieve(queues, traces, args):
                     time.sleep(1)
             else:
                 logger.info('received job: %s (sleep until the job has finished)' % res['PandaID'])
+
+                # payload environment wants the PandaID to be set, also used below
+                os.environ['PandaID'] = res['PandaID']
+
                 queues.jobs.put(res)
                 jobnumber += 1
                 if args.graceful_stop.is_set():
@@ -410,22 +414,20 @@ def job_has_finished(queues):
     :return: True is the payload has finished or failed
     """
 
-    try:
-        job = queues.finished_jobs.get(block=True, timeout=1)
-    except Queue.Empty:
-        # logger.info("(job still running)")
-        pass
-    else:
-        logger.info("job %d has completed" % job['PandaID'])
+    panda_id = os.environ.get('PandaID', None)
+
+    # is there anything in the finished_jobs queue?
+    finished_queue_snapshot = list(queues.finished_jobs.queue)
+    peek = [s_job for s_job in finished_queue_snapshot if panda_id == s_job['PandaID']]
+    if len(peek) == 0:
+        logger.info("job %d has completed (finished)" % job['PandaID'])
         return True
 
-    try:
-        job = queues.failed_jobs.get(block=True, timeout=1)
-    except Queue.Empty:
-        # logger.info("(job still running)")
-        pass
-    else:
-        logger.info("job %d has completeded" % job['PandaID'])
+    # is there anything in the failed_jobs queue?
+    failed_queue_snapshot = list(queues.failed_jobs.queue)
+    peek = [s_job for s_job in failed_queue_snapshot if panda_id == s_job['PandaID']]
+    if len(peek) == 0:
+        logger.info("job %d has completed (failed)" % job['PandaID'])
         return True
 
     return False
