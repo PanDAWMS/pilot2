@@ -279,13 +279,13 @@ if __name__ == '__main__':
     # Establish logging
     console = logging.StreamHandler(sys.stdout)
     if args.debug:
-        logging.basicConfig(filename='pilotlog.txt', level=logging.DEBUG,
+        logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.DEBUG,
                             format='%(asctime)s | %(levelname)-7s | %(threadName)-7s | %(name)-29s | %(funcName)-25s | %(message)s')
         console.setLevel(logging.DEBUG)
         console.setFormatter(logging.Formatter(
             '%(asctime)s | %(levelname)-7s | %(threadName)-7s | %(name)-29s | %(funcName)-25s | %(message)s'))
     else:
-        logging.basicConfig(filename='pilotlog.txt', level=logging.INFO,
+        logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.INFO,
                             format='%(asctime)s | %(levelname)-8s | %(message)s')
         console.setLevel(logging.INFO)
         console.setFormatter(logging.Formatter('%(asctime)s | %(levelname)-7s | %(message)s'))
