@@ -145,7 +145,7 @@ def send_state(job, args, state, xml=None):
         if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=config.Pilot.pandaserver),
                          data=data) is not None:
 
-            log.info('confirmed job state=%s' % state)
+            log.info('server updateJob request completed for job %s' % job['PandaID'])
             return True
     except Exception as e:
         log.warning('while setting job state, Exception caught: %s' % str(e.message))
