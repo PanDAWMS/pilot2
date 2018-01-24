@@ -422,14 +422,14 @@ def job_has_finished(queues):
     # is there anything in the finished_jobs queue?
     finished_queue_snapshot = list(queues.finished_jobs.queue)
     peek = [s_job for s_job in finished_queue_snapshot if panda_id == s_job['PandaID']]
-    if len(peek) == 0:
+    if len(peek) != 0:
         logger.info("job %d has completed (finished)" % panda_id)
         return True
 
     # is there anything in the failed_jobs queue?
     failed_queue_snapshot = list(queues.failed_jobs.queue)
     peek = [s_job for s_job in failed_queue_snapshot if panda_id == s_job['PandaID']]
-    if len(peek) == 0:
+    if len(peek) != 0:
         logger.info("job %d has completed (failed)" % panda_id)
         return True
 
