@@ -391,7 +391,7 @@ def retrieve(queues, traces, args):
                 logger.info('received job: %s (sleep until the job has finished)' % res['PandaID'])
 
                 # payload environment wants the PandaID to be set, also used below
-                os.environ['PandaID'] = res['PandaID']
+                os.environ['PandaID'] = str(res['PandaID'])
 
                 queues.jobs.put(res)
                 jobnumber += 1
@@ -414,7 +414,10 @@ def job_has_finished(queues):
     :return: True is the payload has finished or failed
     """
 
-    panda_id = os.environ.get('PandaID', None)
+    try:
+        panda_id = int(os.environ.get('PandaID', 0))
+    except TypeError:
+        panda_id = 0
 
     # is there anything in the finished_jobs queue?
     finished_queue_snapshot = list(queues.finished_jobs.queue)
