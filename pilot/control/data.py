@@ -481,6 +481,7 @@ def queue_monitoring(queues, traces, args):
         except Queue.Empty:
             pass
         else:
+            logger.info('job=%s' % str(job))
             if ('transExitCode' in job and job['transExitCode'] == 0) and\
                     ('exeErrorCode' in job and job['exeErrorCode'] == 0):
                 logger.info('finished stage-out for finished payload')
