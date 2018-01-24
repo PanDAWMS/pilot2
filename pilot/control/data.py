@@ -482,9 +482,10 @@ def queue_monitoring(queues, traces, args):
             pass
         else:
             logger.info('job=%s' % str(job))
-            if ('transExitCode' in job and job['transExitCode'] == 0) and\
-                    ('exeErrorCode' in job and job['exeErrorCode'] == 0):
-                logger.info('finished stage-out for finished payload')
+            if ('transExitCode' in job and job['transExitCode'] == 0):  # need to extract exeErrorCode from jobReport
+            # if ('transExitCode' in job and job['transExitCode'] == 0) and \
+            #         ('exeErrorCode' in job and job['exeErrorCode'] == 0):
+                    logger.info('finished stage-out for finished payload')
                 queues.finished_jobs.put(job)
             else:
                 logger.info('finished stage-out (of log) for failed payload')
