@@ -402,24 +402,33 @@ def retrieve(queues, traces, args):
                     time.sleep(0.5)
 
 
-def job_has_finished(queues):  # DEPRECATE
+def job_has_finished(queues):
     """
     Has the current payload finished?
+
     :param queues:
-    :return: True is the payload has finished
+    :return: True is the payload has finished or failed
     """
 
-    status = False
     try:
         job = queues.finished_jobs.get(block=True, timeout=1)
     except Queue.Empty:
         # logger.info("(job still running)")
         pass
     else:
-        logger.info("job %d has finished" % job['PandaID'])
-        status = True
+        logger.info("job %d has completed" % job['PandaID'])
+        return True
 
-    return status
+    try:
+        job = queues.failed_jobs.get(block=True, timeout=1)
+    except Queue.Empty:
+        # logger.info("(job still running)")
+        pass
+    else:
+        logger.info("job %d has completeded" % job['PandaID'])
+        return True
+
+    return False
 
 
 def job_monitor(queues, traces, args):
@@ -466,3 +475,5 @@ def job_monitor(queues, traces, args):
                 send_state(job, args, 'finished', xml=dumps(job['fileinfodict']))
             else:
                 send_state(job, args, 'failed')
+
+            # now ready for the next job (or quit)
