@@ -17,7 +17,7 @@ from json import dumps
 
 from pilot.util import https
 from pilot.util.config import config
-from pilot.util.workernode import get_disk_space_for_dispatcher, collect_workernode_info, get_node_name
+from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id
 from pilot.util.information import get_timefloor
@@ -259,7 +259,7 @@ def get_dispatcher_dictionary(args):
     :returns: dictionary prepared for the dispatcher getJob operation.
     """
 
-    _diskspace = get_disk_space_for_dispatcher(args.location.queuedata)
+    _diskspace = get_disk_space(args.location.queuedata)
     _mem, _cpu = collect_workernode_info()
     _nodename = get_node_name()
 

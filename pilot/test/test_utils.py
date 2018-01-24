@@ -9,7 +9,7 @@
 
 import unittest
 
-from pilot.util.workernode import collect_workernode_info, get_disk_space_for_dispatcher
+from pilot.util.workernode import collect_workernode_info, get_disk_space
 
 
 class TestUtils(unittest.TestCase):
@@ -32,14 +32,14 @@ class TestUtils(unittest.TestCase):
         self.assertNotEqual(mem, 0.0)
         self.assertNotEqual(cpu, 0.0)
 
-    def test_get_disk_space_for_dispatcher(self):
+    def test_get_disk_space(self):
         """
-        Verify that get_disk_space_for_dispatcher() returns the proper type (int).
+        Verify that get_disk_space() returns the proper type (int).
 
         :return: (assertion)
         """
 
         queuedata = {'maxwdir': 123456789}
-        diskspace = get_disk_space_for_dispatcher(queuedata)
+        diskspace = get_disk_space(queuedata)
 
         self.assertEqual(type(diskspace), int)
