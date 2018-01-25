@@ -370,7 +370,7 @@ def _stage_out(args, outfile, job):
     summary = None
     path = os.path.join(job['working_dir'], 'rucio_upload.json')
     if not os.path.exists(path):
-        log.warning('nu such file: %s' % path)
+        log.warning('no such file: %s' % path)
         return None
     else:
         with open(path, 'rb') as summary_file:
