@@ -352,9 +352,167 @@ def getjob_server_command(url, port):
     return cmd
 
 
+# MOVE TO EVENT SERVICE CODE AFTER MERGE
+def create_es_file_dictionary(writetofile):
+    """
+    Create the event range file dictionary from the writetofile info.
+
+    writetofile = 'fileNameForTrf_1:LFN_1,LFN_2^fileNameForTrf_2:LFN_3,LFN_4'
+    -> esfiledictionary = {'fileNameForTrf_1': 'LFN_1,LFN_2', 'fileNameForTrf_2': 'LFN_3,LFN_4'}
+    Also, keep track of the dictionary keys (e.g. 'fileNameForTrf_1') ordered since we have to use them to update the
+    jobParameters once we know the full path to them (i.e. '@fileNameForTrf_1:..' will be replaced by
+    '@/path/filename:..'), the dictionary is otherwise not ordered so we cannot simply use the dictionary keys later.
+    fileinfo = ['fileNameForTrf_1:LFN_1,LFN_2', 'fileNameForTrf_2:LFN_3,LFN_4']
+
+    :param writetofile: file info string
+    :return: esfiledictionary, orderedfnamelist
+    """
+
+    fileinfo = writetofile.split("^")
+    esfiledictionary = {}
+    orderedfnamelist = []
+    for i in range(len(fileinfo)):
+        # Extract the file name
+        if ":" in fileinfo[i]:
+            finfo = fileinfo[i].split(":")
+
+            # fix the issue that some athena 20 releases have _000 at the end of the filename
+            if finfo[0].endswith("_000"):
+                finfo[0] = finfo[0][:-4]
+            esfiledictionary[finfo[0]] = finfo[1]
+            orderedfnamelist.append(finfo[0])
+        else:
+            logger.warning("file info does not have the correct format, expected a separator \':\': %s" % (fileinfo[i]))
+            esfiledictionary = {}
+            break
+
+    return esfiledictionary, orderedfnamelist
+
+
+# MOVE TO EVENT SERVICE CODE AFTER MERGE
+def update_es_guids(guids):
+    """
+    Update the NULL valued ES guids.
+    This is necessary since guids are used as dictionary keys in some places.
+    Replace the NULL values with different values:
+    E.g. guids = 'NULL,NULL,NULL,sasdasdasdasdd'
+    -> 'DUMMYGUID0,DUMMYGUID1,DUMMYGUID2,sasdasdasdasdd'
+
+    :param guids:
+    :return: updated guids
+    """
+
+    for i in range(guids.count('NULL')):
+        guids = guids.replace('NULL', 'DUMMYGUID%d' % i, 1)
+
+    return guids
+
+
+# MOVE TO EVENT SERVICE CODE AFTER MERGE
+def update_es_dispatcher_data(data):
+    """
+    Update the dispatcher data for Event Service.
+    For Event Service merge jobs, the input file list will not arrive in the inFiles list as usual, but in the
+    writeToFile field, so the inFiles list need to be corrected.
+
+    :param data: dispatcher data dictionary
+    :return: data (updated dictionary)
+    """
+
+    if 'writeToFile' in data:
+        writetofile = data['writeToFile']
+        esfiledictionary, orderedfnamelist = create_es_file_dictionary(writetofile)
+        if esfiledictionary != {}:
+            # fix the issue that some athena 20 releases have _000 at the end of the filename
+            for name in orderedfnamelist:
+                name_000 = "@%s_000 " % (name)
+                new_name = "@%s " % (name)
+                if name_000 in data['jobPars']:
+                    data['jobPars'] = data['jobPars'].replace(name_000, new_name)
+
+            # Remove the autoconf
+            if "--autoConfiguration=everything " in data['jobPars']:
+                data['jobPars'] = data['jobPars'].replace("--autoConfiguration=everything ", " ")
+
+            # Replace the NULL valued guids for the ES files
+            data['GUID'] = update_es_guids(data['GUID'])
+        else:
+            logger.warning("empty event service file dictionary")
+
+    return data
+
+
+def get_job_definition_from_file(path):
+    """
+    Get a job definition from a pre-placed file.
+
+    :param path: path to job definition file.
+    :return: job definition dictionary.
+    """
+
+    res = {}
+    with open(path, 'r') as jobdatafile:
+        response = jobdatafile.read()
+        if len(response) == 0:
+            logger.fatal('encountered empty job definition file: %s' % path)
+            res = None  # this is a fatal error, no point in continuing as the file will not be replaced
+        else:
+            # parse response message
+            from urlparse import parse_qsl
+            datalist = parse_qsl(response, keep_blank_values=True)
+
+            # convert to dictionary
+            res = {}
+            for d in datalist:
+                res[d[0]] = d[1]
+
+    return res
+
+
+def get_job_definition_from_server(args):
+    """
+    Get a job definition from a server.
+
+    :param args:
+    :return: job definition dictionary.
+    """
+
+    res = {}
+
+    # get the job dispatcher dictionary
+    data = get_dispatcher_dictionary(args)
+
+    cmd = getjob_server_command(args.url, args.port)
+    if cmd != "":
+        logger.info('executing server command: %s' % cmd)
+        res = https.request(cmd, data=data)
+
+    return res
+
+
+def get_job_definition(args):
+    """
+    Get a job definition from a source (server or pre-placed local file).
+    :param args:
+    :return: job definition dictionary.
+    """
+
+    res = {}
+
+    path = os.path.join(environ['PILOT_HOME'], config.Pilot.pandajobdata)
+    if os.path.exists(path):
+        logger.info('will read job definition from file %s' % path)
+        res = get_job_definition_from_file()
+    else:
+        logger.info('will download job definition from server')
+        res = get_job_definition_from_server(args)
+
+    return res
+
+
 def retrieve(queues, traces, args):
     """
-    Retrieve a job definition from a source (server or pre-placed local file [not yet implemented]).
+    Retrieve all jobs from a source.
 
     The job definition is a json dictionary that is either present in the launch
     directory (preplaced) or downloaded from a server specified by `args.url`.
@@ -366,9 +524,6 @@ def retrieve(queues, traces, args):
     :param traces: tuple containing internal pilot states.
     :param args: arguments (e.g. containing queue name, queuedata dictionary, etc).
     """
-
-    # get the job dispatcher dictionary
-    data = get_dispatcher_dictionary(args)
 
     timefloor = get_timefloor()
     starttime = time.time()
@@ -383,19 +538,14 @@ def retrieve(queues, traces, args):
             args.graceful_stop.set()
             break
 
-        path = os.path.join(environ['PILOT_HOME'], config.Pilot.pandajobdata)
-        if os.path.exists(path):
-            logger.info('will read job definition from file %s' % path)
-        else:
-            logger.info('will download job definition from server')
-            cmd = getjob_server_command(args.url, args.port)
-            if cmd == "":
-                break
+        # get a job definition from a source (file or server)
+        res = get_job_definition(args)
 
-        logger.info('executing server command: %s' % cmd)
-        res = https.request(cmd, data=data)
-        logger.info("job = %s" % str(res))
         if res is None:
+            logger.fatal('fatal error in job download loop - cannot continue')
+            break
+
+        if res == {}:
             logger.warning('did not get a job -- sleep 60s and repeat')
             for i in xrange(60):
                 if args.graceful_stop.is_set():
@@ -414,6 +564,11 @@ def retrieve(queues, traces, args):
                 # payload environment wants the PandaID to be set, also used below
                 os.environ['PandaID'] = str(res['PandaID'])
 
+                # update dispatcher data for ES (if necessary)
+                res = update_es_dispatcher_data(res)
+
+                # add the job definition to the jobs queue and increase the job counter,
+                # and wait until the job has finished
                 queues.jobs.put(res)
                 jobnumber += 1
                 if args.graceful_stop.is_set():
