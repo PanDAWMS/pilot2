@@ -246,7 +246,9 @@ def execute_payloads(queues, traces, args):
 
 def validate_post(queues, traces, args):
     """
-    (add description)
+    Validate finished payloads.
+    If payload finished correctly, add the job to the data_out queue. If it failed, add it to the data_out queue as
+    well but only for log stage-out.
 
     :param queues:
     :param traces:
@@ -262,9 +264,13 @@ def validate_post(queues, traces, args):
             continue
         log = logger.getChild(str(job['PandaID']))
 
+        # note: all PanDA users should generate a job report json file (required by Harvester)
         log.debug('adding job report for stageout')
-        with open(os.path.join(job['working_dir'], 'jobReport.json')) as data_file:
+        with open(os.path.join(job['working_dir'], config.Payload.jobreport)) as data_file:
             job['job_report'] = json.load(data_file)
+
+            # extract info from job report
+            # === experiment specific ===
 
         job['stageout'] = "all"  # output and log file
         queues.data_out.put(job)
