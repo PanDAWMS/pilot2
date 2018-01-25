@@ -266,13 +266,25 @@ def validate_post(queues, traces, args):
 
         # note: all PanDA users should generate a job report json file (required by Harvester)
         log.debug('adding job report for stageout')
+        stageout = "all"
         with open(os.path.join(job['working_dir'], config.Payload.jobreport)) as data_file:
             job['job_report'] = json.load(data_file)
 
             # extract info from job report
             # === experiment specific ===
+            if 'exeErrorCode' in job['job_report']:
+                job['exeErrorCode'] = job['job_report']['exeErrorCode']
+                if job['exeErrorCode'] == 0:
+                    stageout = "all"
+                else:
+                    log.info('payload failed: exeErrorCode=%d' % job['exeErrorCode'])
+                    stageout = "log"
+            if 'exeErrorDiag' in job['job_report']:
+                job['exeErrorDiag'] = job['job_report']['exeErrorDiag']
+                if job['exeErrorDiag'] != "":
+                    log.warning('payload failed: exeErrorDiag=%s' % job['exeErrorDiag'])
 
-        job['stageout'] = "all"  # output and log file
+        job['stageout'] = stageout  # output and log file or only log file
         queues.data_out.put(job)
 
 
