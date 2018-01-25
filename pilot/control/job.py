@@ -342,7 +342,6 @@ def getjob_server_command(url, port):
     :return: full server command (URL string)
     """
 
-    cmd = ""
     if url != "":
         url = url + ':%s' % port  # port is always set
     else:
@@ -353,9 +352,7 @@ def getjob_server_command(url, port):
         url = 'https://' + url
         logger.warning('detected missing protocol in server url (added)')
 
-        cmd = '{pandaserver}/server/panda/getJob'.format(pandaserver=url)
-
-    return cmd
+    return '{pandaserver}/server/panda/getJob'.format(pandaserver=url)
 
 
 # MOVE TO EVENT SERVICE CODE AFTER MERGE
@@ -519,9 +516,9 @@ def get_job_definition(args):
     return res
 
 
-def get_job_retrieval_sleep(harvester):
+def get_job_retrieval_delay(harvester):
     """
-    Return the proper sleep time between job retrieval attempts
+    Return the proper delay between job retrieval attempts.
     In Harvester mode, the pilot will look once per second for a job definition file.
 
     :param harvester: True if Harvester is being used (determined from args.harvester), otherwise False
@@ -576,7 +573,7 @@ def retrieve(queues, traces, args):
             break
 
         if res == {}:
-            delay = get_job_retrieval_sleep(args.harvester)
+            delay = get_job_retrieval_delay(args.harvester)
             if not args.harvester:
                 logger.warning('did not get a job -- sleep %d s and repeat' % delay)
             for i in xrange(delay):
