@@ -499,7 +499,7 @@ def get_job_definition(args):
 
     res = {}
 
-    path = os.path.join(environ['PILOT_HOME'], config.Pilot.pandajobdata)
+    path = os.path.join(os.environ['PILOT_HOME'], config.Pilot.pandajobdata)
     if os.path.exists(path):
         logger.info('will read job definition from file %s' % path)
         res = get_job_definition_from_file()
