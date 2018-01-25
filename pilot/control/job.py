@@ -292,7 +292,7 @@ def get_dispatcher_dictionary(args):
     return data
 
 
-def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests):
+def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harvester):
     """
     Can we proceed with getjob?
     We may not proceed if we have run out of time (timefloor limit) or if we have already proceed enough jobs
@@ -301,12 +301,18 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests):
     :param starttime: start time of retrieve() (s)
     :param jobnumber: number of downloaded jobs
     :param getjob_requests: number of getjob requests
+    :param harvester: True if Harvester is used, False otherwise. Affects the max number of getjob reads (from file).
     :return: Boolean based on the input parameters
     """
 
     currenttime = time.time()
 
-    if getjob_requests > int(config.Pilot.maximum_getjob_requests):
+    if harvester:
+        maximum_getjob_requests = 60  # 1 s apart
+    else:
+        maximum_getjob_requests = config.Pilot.maximum_getjob_requests
+
+    if getjob_requests > int(maximum_getjob_requests):
         logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' %
                        config.Pilot.maximum_getjob_requests)
         return False
@@ -504,10 +510,30 @@ def get_job_definition(args):
         logger.info('will read job definition from file %s' % path)
         res = get_job_definition_from_file()
     else:
-        logger.info('will download job definition from server')
-        res = get_job_definition_from_server(args)
+        if args.harvester:
+            pass  # local job definition file not found (go to sleep)
+        else:
+            logger.info('will download job definition from server')
+            res = get_job_definition_from_server(args)
 
     return res
+
+
+def get_job_retrieval_sleep(harvester):
+    """
+    Return the proper sleep time between job retrieval attempts
+    In Harvester mode, the pilot will look once per second for a job definition file.
+
+    :param harvester: True if Harvester is being used (determined from args.harvester), otherwise False
+    :return: sleep (s)
+    """
+
+    if harvester:
+        delay = 1
+    else:
+        delay = 60
+
+    return delay
 
 
 def retrieve(queues, traces, args):
@@ -530,11 +556,15 @@ def retrieve(queues, traces, args):
 
     jobnumber = 0  # number of downloaded jobs
     getjob_requests = 0  # number of getjob requests
+
+    if args.harvester:
+        logger.info('harvester mode: pilot will look for local job definition file(s)')
+
     while not args.graceful_stop.is_set():
 
         getjob_requests += 1
 
-        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests):
+        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester):
             args.graceful_stop.set()
             break
 
@@ -546,8 +576,10 @@ def retrieve(queues, traces, args):
             break
 
         if res == {}:
-            logger.warning('did not get a job -- sleep 60s and repeat')
-            for i in xrange(60):
+            delay = get_job_retrieval_sleep(args.harvester)
+            if not args.harvester:
+                logger.warning('did not get a job -- sleep %d s and repeat' % delay)
+            for i in xrange(delay):
                 if args.graceful_stop.is_set():
                     break
                 time.sleep(1)
