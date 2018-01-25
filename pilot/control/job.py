@@ -327,6 +327,31 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests):
     return True
 
 
+def getjob_server_command(url, port):
+    """
+    Prepare the getJob server command.
+
+    :param url: PanDA server URL (string)
+    :param port: PanDA server port
+    :return: full server command (URL string)
+    """
+
+    cmd = ""
+    if url != "":
+        url = url + ':%s' % port  # port is always set
+    else:
+        url = config.Pilot.pandaserver
+    if url == "":
+        logger.fatal('PanDA server url not set (either as pilot option or in config file)')
+    elif not url.startswith("https://"):
+        url = 'https://' + url
+        logger.warning('detected missing protocol in server url (added)')
+
+        cmd = '{pandaserver}/server/panda/getJob'.format(pandaserver=url)
+
+    return cmd
+
+
 def retrieve(queues, traces, args):
     """
     Retrieve a job definition from a source (server or pre-placed local file [not yet implemented]).
@@ -358,19 +383,15 @@ def retrieve(queues, traces, args):
             args.graceful_stop.set()
             break
 
-        if args.url != "":
-            url = args.url + ':' + str(args.port)  # args.port is always set
+        path = os.path.join(environ['PILOT_HOME'], config.Pilot.pandajobdata)
+        if os.path.exists(path):
+            logger.info('will read job definition from file %s' % path)
         else:
-            url = config.Pilot.pandaserver
-            if url == "":
-                logger.fatal('PanDA server url not set (either as pilot option or in config file)')
+            logger.info('will download job definition from server')
+            cmd = getjob_server_command(args.url, args.port)
+            if cmd == "":
                 break
 
-        if not url.startswith("https://"):
-            url = 'https://' + url
-            logger.warning('detected missing protocol in server url (added)')
-
-        cmd = '{pandaserver}/server/panda/getJob'.format(pandaserver=url)
         logger.info('executing server command: %s' % cmd)
         res = https.request(cmd, data=data)
         logger.info("job = %s" % str(res))
