@@ -9,7 +9,6 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import re
-import subprocess
 
 from pilot.copytool.common import merge_destinations
 from pilot.util.container import execute
