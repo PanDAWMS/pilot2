@@ -7,6 +7,7 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
+
 class ErrorCodes:
     """
     Pilot error codes.
@@ -47,7 +48,6 @@ class ErrorCodes:
         PAYLOADEXECUTIONFAILURE: "Failed to execute payload",
     }
 
-
     def get_error_message(self, errorcode):
         """
         Return the error message corresponding to the given error code.
@@ -60,7 +60,6 @@ class ErrorCodes:
             return self._error_messages[errorcode]
         else:
             return "Unknown error code: %d" % errorcode
-
 
     def add_error_code(self, errorcode, pilotErrorCodes=[], pilotErrorDiags=[]):
         """
@@ -82,7 +81,6 @@ class ErrorCodes:
             pilotErrorDiags.append(self.get_error_message(errorcode))
 
         return pilotErrorCodes, pilotErrorDiags
-
 
     def report_errors(self, pilotErrorCodes, pilotErrorDiags):
         """
