@@ -58,7 +58,7 @@ def request_new_jobs(nJobs=1):
     """
 
     path = get_job_request_file_name()
-    dictionary = { 'nJobs': nJobs }
+    dictionary = {'nJobs': nJobs}
 
     # write it to file
     try:
