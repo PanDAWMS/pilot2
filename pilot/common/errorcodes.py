@@ -99,6 +99,6 @@ class ErrorCodes:
             report = "Nr.\tError code\tError diagnostics"
             for errorcode in pilotErrorCodes:
                 i += 1
-                report += "\n%d.\t%d\t%s" % (i, errorcode, pilotErrorDiags[i-1])
+                report += "\n%d.\t%d\t%s" % (i, errorcode, pilotErrorDiags[i - 1])
 
         return report
