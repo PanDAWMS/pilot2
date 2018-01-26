@@ -283,7 +283,7 @@ if __name__ == '__main__':
                             format='%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-25s | %(message)s')
         console.setLevel(logging.DEBUG)
         console.setFormatter(logging.Formatter(
-            '%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-29s | %(funcName)-32s | %(message)s'))
+            '%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-32s | %(message)s'))
     else:
         logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.INFO,
                             format='%(asctime)s | %(levelname)-8s | %(message)s')
