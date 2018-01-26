@@ -476,7 +476,6 @@ def get_job_definition_from_file(path):
             datalist = parse_qsl(response, keep_blank_values=True)
 
             # convert to dictionary
-            res = {}
             for d in datalist:
                 res[d[0]] = d[1]
 
