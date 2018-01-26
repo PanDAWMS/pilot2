@@ -39,7 +39,10 @@ def remove_job_request_file():
     try:
         remove(path)
     except IOError as e:
-        logger.warning('failed to remove %s: %s' % (path, e))
+        if exists(path):
+            logger.warning('failed to remove %s: %s' % (path, e))
+        else:
+            pass
     else:
         logger.info('removed %s' % path)
 

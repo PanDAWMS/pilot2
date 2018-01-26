@@ -21,6 +21,7 @@ from pilot.util.workernode import get_disk_space, collect_workernode_info, get_n
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id
 from pilot.util.information import get_timefloor
+from pilot.util.harvester import request_new_jobs, remove_job_request_file
 
 import logging
 logger = logging.getLogger(__name__)
@@ -330,6 +331,12 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
         logger.info('since timefloor=%d s and only %d s has passed since launch, pilot can run another job' %
                     (timefloor, currenttime - starttime))
 
+    if harvester and jobnumber > 0:
+        # unless it's the first job (which is preplaced in the init dir), instruct Harvester to place another job
+        # in the init dir
+        logger.info('asking Harvester for another job')
+        request_new_jobs()
+
     return True
 
 
@@ -448,10 +455,14 @@ def update_es_dispatcher_data(data):
 def get_job_definition_from_file(path):
     """
     Get a job definition from a pre-placed file.
+    In Harvester mode, also remove any existing job request files since it is no longer needed/wanted.
 
     :param path: path to job definition file.
     :return: job definition dictionary.
     """
+
+    # remove any existing Harvester job request files (silent in non-Harvester mode)
+    remove_job_request_file()
 
     res = {}
     with open(path, 'r') as jobdatafile:
@@ -505,7 +516,7 @@ def get_job_definition(args):
     path = os.path.join(os.environ['PILOT_HOME'], config.Pilot.pandajobdata)
     if os.path.exists(path):
         logger.info('will read job definition from file %s' % path)
-        res = get_job_definition_from_file()
+        res = get_job_definition_from_file(path)
     else:
         if args.harvester:
             pass  # local job definition file not found (go to sleep)
