@@ -68,4 +68,3 @@ def check_local_space_limit():  # move to Job component?
 
 def check_output_file_sizes():  # move to Job component
     return True
-
