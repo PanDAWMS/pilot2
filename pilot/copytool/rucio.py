@@ -8,7 +8,6 @@
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
 
 import os
-import subprocess
 
 from pilot.copytool.common import merge_destinations
 from pilot.util.container import execute
