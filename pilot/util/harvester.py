@@ -38,7 +38,7 @@ def remove_job_request_file():
     path = get_job_request_file_name()
     try:
         remove(path)
-    except IOError as e:
+    except OSError as e:
         if exists(path):
             logger.warning('failed to remove %s: %s' % (path, e))
         else:
