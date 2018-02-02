@@ -11,8 +11,8 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 # - Wen Guan, wen.guan@cern.ch, 2018
 
-import subprocess
 import time
+import os
 
 from pilot.control.job import send_state
 
