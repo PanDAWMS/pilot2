@@ -9,6 +9,7 @@
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Wen Guan, wen.guan@cern.ch, 2017-2018
 
 import Queue
 import json
@@ -16,6 +17,7 @@ import os
 import threading
 import time
 
+from pilot.control import payloads
 from pilot.control.job import send_state
 from pilot.util.container import execute
 from pilot.util.config import config
@@ -90,106 +92,7 @@ def _validate_payload(job):
     return True
 
 
-def setup_payload(job, out, err):
-    """
-    (add description)
-
-    :param job:
-    :param out:
-    :param err:
-    :return:
-    """
-    # log = logger.getChild(str(job['PandaID']))
-
-    # try:
-    # create symbolic link for sqlite200 and geomDB in job dir
-    #    for db_name in ['sqlite200', 'geomDB']:
-    #         src = '/cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/%s' % db_name
-    #         link_name = 'job-%s/%s' % (job['PandaID'], db_name)
-    #         os.symlink(src, link_name)
-    # except Exception as e:
-    #     log.error('could not create symbolic links to database files: %s' % e)
-    #     return False
-
-    return True
-
-
-def run_payload(job, out, err):
-    """
-    (add description)
-
-    :param job: job object
-    :param out: (currently not used; deprecated)
-    :param err: (currently not used; deprecated)
-    :return: proc (subprocess returned by Popen())
-    """
-    log = logger.getChild(str(job['PandaID']))
-
-    # get the payload command from the user specific code
-    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
-    cmd = user.get_payload_command(job)
-    log.info("payload execution command: %s" % cmd)
-
-    # replace platform and workdir with new function get_payload_options() or someting from experiment specific code
-    try:
-        # proc = subprocess.Popen(cmd,
-        #                         bufsize=-1,
-        #                         stdout=out,
-        #                         stderr=err,
-        #                         cwd=job['working_dir'],
-        #                         shell=True)
-
-        proc = execute(cmd, platform=job['cmtConfig'], workdir=job['working_dir'], returnproc=True,
-                       usecontainer=True, stdout=out, stderr=err, cwd=job['working_dir'])
-    except Exception as e:
-        log.error('could not execute: %s' % str(e))
-        return None
-
-    log.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
-
-    return proc
-
-
-def wait_graceful(args, proc, job):
-    """
-    (add description)
-
-    :param args:
-    :param proc:
-    :param job:
-    :return:
-    """
-    log = logger.getChild(str(job['PandaID']))
-
-    breaker = False
-    exit_code = None
-    while True:
-        for i in xrange(100):
-            if args.graceful_stop.is_set():
-                breaker = True
-                log.debug('breaking -- sending SIGTERM pid=%s' % proc.pid)
-                proc.terminate()
-                break
-            time.sleep(0.1)
-        if breaker:
-            log.debug('breaking -- sleep 3s before sending SIGKILL pid=%s' % proc.pid)
-            time.sleep(3)
-            proc.kill()
-            break
-
-        exit_code = proc.poll()
-        log.info('running: pid=%s exit_code=%s' % (proc.pid, exit_code))
-        if exit_code is not None:
-            break
-        else:
-            # send_state(job, args, 'running')
-            continue
-
-    return exit_code
-
-
-def execute_payloads(queues, traces, args):
+def execute(queues, traces, args):
     """
     Execute queued payloads.
 
@@ -198,6 +101,7 @@ def execute_payloads(queues, traces, args):
     :param args:
     :return:
     """
+
     while not args.graceful_stop.is_set():
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
@@ -220,14 +124,11 @@ def execute_payloads(queues, traces, args):
             log.debug('setting up payload environment')
             send_state(job, args, 'starting')
 
-            exit_code = 1
-            if setup_payload(job, out, err):
-                log.debug('running payload')
-                send_state(job, args, 'running')
-                proc = run_payload(job, out, err)
-                if proc is not None:
-                    exit_code = wait_graceful(args, proc, job)
-                    log.info('finished pid=%s exit_code=%s' % (proc.pid, exit_code))
+            if job.get('eventService', '').lower() == "true":
+                payload_executor = payloads.eventservice.Executor(args, job, out, err)
+            else:
+                payload_executor = payloads.generic.Executor(args, job, out, err)
+            exit_code = payload_executor.run()
 
             log.debug('closing payload stdout/err logs')
             out.close()
