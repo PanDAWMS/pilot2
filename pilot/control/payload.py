@@ -17,8 +17,7 @@ import os
 import threading
 import time
 
-import pilot.control.payloads.eventservice
-import pilot.control.payloads.generic
+from pilot.control import payloads
 from pilot.control.job import send_state
 from pilot.util.config import config
 
@@ -125,9 +124,9 @@ def execute(queues, traces, args):
             send_state(job, args, 'starting')
 
             if job.get('eventService', '').lower() == "true":
-                payload_executor = eventservice.Executor(args, job, out, err)
+                payload_executor = payloads.eventservice.Executor(args, job, out, err)
             else:
-                payload_executor = generic.Executor(args, job, out, err)
+                payload_executor = payloads.generic.Executor(args, job, out, err)
             exit_code = payload_executor.run()
 
             log.debug('closing payload stdout/err logs')
