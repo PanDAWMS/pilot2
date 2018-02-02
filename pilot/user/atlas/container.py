@@ -120,6 +120,37 @@ def get_grid_image_for_singularity(platform):
     return os.path.join(path, image)
 
 
+def get_middleware_type():
+    """
+    Return the middleware type from the container type.
+    E.g. container_type = 'singularity:pilot;docker:wrapper;middleware:container'
+    get_middleware_type() -> 'container', meaning that middleware should be taken from the container. The default
+    is otherwise 'workernode', i.e. middleware is assumed to be present on the worker node.
+
+    :return: middleware_type (string)
+    """
+
+    middleware_type = ""
+    container_type = get_container_type()
+
+    mw = 'middleware'
+    if container_type and container_type != "" and mw in container_type:
+        try:
+            container_names = container_type.split(';')
+            for name in container_names:
+                t = name.split(':')
+                if mw == t[0]:
+                    middleware_type = t[1]
+        except Exception as e:
+            logger.warning("failed to parse the container name: %s, %s" % (container_type, e))
+    else:
+        # logger.warning("container middleware type not specified in queuedata")
+        # no middleware type was specified, assume that middleware is present on worker node
+        middleware_type = "workernode"
+
+    return middleware_type
+
+
 def get_container_name(user="pilot"):
     """
     Return the container name
