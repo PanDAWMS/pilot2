@@ -91,7 +91,7 @@ def _validate_payload(job):
     return True
 
 
-def execute(queues, traces, args):
+def execute_payloads(queues, traces, args):
     """
     Execute queued payloads.
 
