@@ -15,6 +15,7 @@ import time
 import os
 
 from pilot.control.job import send_state
+from pilot.util.container import execute
 
 import logging
 logger = logging.getLogger(__name__)
