@@ -140,6 +140,6 @@ class Executor(object):
             send_state(self.__job, self.__args, 'running')
             proc = self.run_payload(self.__job, self.__out, self.__err)
             if proc is not None:
-                exit_code = self.wait_graceful(self.__args, self.__process, self.__job)
+                exit_code = self.wait_graceful(self.__args, proc, self.__job)
                 log.info('finished pid=%s exit_code=%s' % (proc.pid, exit_code))
         return exit_code
