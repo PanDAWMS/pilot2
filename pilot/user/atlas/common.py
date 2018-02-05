@@ -165,6 +165,7 @@ def get_number_of_events(jobreport_dictionary):
 def get_db_info(jobreport_dictionary):
     """
     Extract and add up the DB info from the job report.
+    This information is reported with the jobMetrics.
 
     :param jobreport_dictionary:
     :return: db_time_s, db_data_s [converted strings, from e.g. "dbData=105077960 dbTime=251.42"]
