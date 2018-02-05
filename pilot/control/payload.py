@@ -144,6 +144,40 @@ def execute_payloads(queues, traces, args):
             continue
 
 
+def process_job_report(job):
+    """
+    Process the required job report.
+    Payload error codes and diagnostics, as well as payload metadata (for output files) and stageout type will be
+    extracted. The stageout type is either "all" (i.e. stage-out both output and log files) or "log" (i.e. only log file
+    will be staged out).
+    Note: some fields might be experiment specific. A call to a user function is therefore also done.
+
+    :param job: job dictionary will be updated by the function and several fields set.
+    :return:
+    """
+
+    log.info('processing job report')
+    stageout = "all"
+    with open(os.path.join(job['working_dir'], config.Payload.jobreport)) as data_file:
+        job['metaData'] = json.load(data_file)
+
+        # extract info from job report
+        # === experiment specific ===
+        if 'exeErrorCode' in job['metaData']:
+            job['exeErrorCode'] = job['metaData']['exeErrorCode']
+            if job['exeErrorCode'] == 0:
+                stageout = "all"
+            else:
+                log.info('payload failed: exeErrorCode=%d' % job['exeErrorCode'])
+                stageout = "log"
+        if 'exeErrorDiag' in job['metaData']:
+            job['exeErrorDiag'] = job['metaData']['exeErrorDiag']
+            if job['exeErrorDiag'] != "":
+                log.warning('payload failed: exeErrorDiag=%s' % job['exeErrorDiag'])
+
+    job['stageout'] = stageout  # output and log file or only log file
+
+
 def validate_post(queues, traces, args):
     """
     Validate finished payloads.
@@ -165,27 +199,10 @@ def validate_post(queues, traces, args):
         log = logger.getChild(str(job['PandaID']))
 
         # note: all PanDA users should generate a job report json file (required by Harvester)
-        log.debug('extracting job report')
-        stageout = "all"
-        with open(os.path.join(job['working_dir'], config.Payload.jobreport)) as data_file:
-            job['metaData'] = json.load(data_file)
+        # process the job report and set multiple fields
+        process_job_report(job)
 
-            # extract info from job report
-            # === experiment specific ===
-            if 'exeErrorCode' in job['metaData']:
-                job['exeErrorCode'] = job['metaData']['exeErrorCode']
-                if job['exeErrorCode'] == 0:
-                    stageout = "all"
-                else:
-                    log.info('payload failed: exeErrorCode=%d' % job['exeErrorCode'])
-                    stageout = "log"
-            if 'exeErrorDiag' in job['metaData']:
-                job['exeErrorDiag'] = job['metaData']['exeErrorDiag']
-                if job['exeErrorDiag'] != "":
-                    log.warning('payload failed: exeErrorDiag=%s' % job['exeErrorDiag'])
-
-        job['stageout'] = stageout  # output and log file or only log file
-        log.debug('adding job to data_out queue (stageout=%s)' % stageout)
+        log.debug('adding job to data_out queue')
         queues.data_out.put(job)
 
 
