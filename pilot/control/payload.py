@@ -137,11 +137,9 @@ def execute_payloads(queues, traces, args):
                     time.sleep(0.1)
                 continue
 
-            log.debug('opening payload stdout/err logs')
             out = open(os.path.join(job['working_dir'], 'payload.stdout'), 'wb')
             err = open(os.path.join(job['working_dir'], 'payload.stderr'), 'wb')
 
-            log.debug('setting up payload environment')
             send_state(job, args, 'starting')
 
             if job.get('eventService', '').lower() == "true":
@@ -155,8 +153,8 @@ def execute_payloads(queues, traces, args):
             t1 = os.times()
             t = map(lambda x, y: x - y, t1, t0)
             job['cpuConsumptionUnit'], job['cpuConsumptionTime'], job['cpuConversionFactor'] = set_time_consumed(t)
+            log.info('CPU consumption time: %s' % job['cpuConsumptionTime'])
 
-            log.debug('closing payload stdout/err logs')
             out.close()
             err.close()
 
