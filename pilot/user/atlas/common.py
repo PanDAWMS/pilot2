@@ -104,12 +104,12 @@ def update_job_data(job):
         if job['exeErrorCode'] == 0:
             stageout = "all"
         else:
-            log.info('payload failed: exeErrorCode=%d' % job['exeErrorCode'])
+            logger.info('payload failed: exeErrorCode=%d' % job['exeErrorCode'])
             stageout = "log"
     if 'exeErrorDiag' in job['metaData']:
         job['exeErrorDiag'] = job['metaData']['exeErrorDiag']
         if job['exeErrorDiag'] != "":
-            log.warning('payload failed: exeErrorDiag=%s' % job['exeErrorDiag'])
+            logger.warning('payload failed: exeErrorDiag=%s' % job['exeErrorDiag'])
 
     # determine what should be staged out
     job['stageout'] = stageout  # output and log file or only log file
@@ -142,21 +142,21 @@ def get_number_of_events(jobreport_dictionary):
                         else:
                             nevents[format] = executor_dictionary[format]['nevents']
                     else:
-                        log.warning("format %s has no such key: nevents" % (format))
+                        logger.warning("format %s has no such key: nevents" % (format))
             else:
-                log.warning("no such key: executor")
+                logger.warning("no such key: executor")
         else:
-            log.warning("no such key: resource")
+            logger.warning("no such key: resource")
 
     # Now find the largest number of events among the different formats
     if nevents != {}:
         try:
             nmax = max(nevents.values())
         except Exception, e:
-            log.warning("exception caught: %s" % (e))
+            logger.warning("exception caught: %s" % (e))
             nmax = 0
     else:
-        log.warning("did not find the number of events in the job report")
+        logger.warning("did not find the number of events in the job report")
         nmax = 0
 
     return nmax
@@ -186,18 +186,18 @@ def get_db_info(jobreport_dictionary):
                         except:
                             pass
                     else:
-                        log.warning("format %s has no such key: dbData" % (format))
+                        logger.warning("format %s has no such key: dbData" % (format))
                     if executor_dictionary[format].has_key('dbTime'):
                         try:
                             db_time += executor_dictionary[format]['dbTime']
                         except:
                             pass
                     else:
-                        log.warning("format %s has no such key: dbTime" % (format))
+                        logger.warning("format %s has no such key: dbTime" % (format))
             else:
-                log.warning("no such key: executor")
+                logger.warning("no such key: executor")
         else:
-            log.warning("no such key: resource")
+            logger.warning("no such key: resource")
 
     if db_data != 0L:
         db_data_s = "%s" % (db_data)
@@ -234,11 +234,11 @@ def get_cpu_times(jobreport_dictionary):
                         except:
                             pass
                     else:
-                        log.warning("format %s has no such key: cpuTime" % (format))
+                        logger.warning("format %s has no such key: cpuTime" % (format))
             else:
-                log.warning("no such key: executor")
+                logger.warning("no such key: executor")
         else:
-            log.warning("no such key: resource")
+            logger.warning("no such key: resource")
 
     conversion_factor = 1.0
     cpu_conversion_unit = "s"
