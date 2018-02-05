@@ -159,9 +159,15 @@ def process_job_report(job):
     log.info('processing job report')
     stageout = "all"
     with open(os.path.join(job['working_dir'], config.Payload.jobreport)) as data_file:
+        # compulsory field; the payload must procude a job report (see config file for file name)
         job['metaData'] = json.load(data_file)
 
-        # extract info from job report
+        # extract user specific info from job report
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+        user.update_job_data(job)
+
+
         # === experiment specific ===
         if 'exeErrorCode' in job['metaData']:
             job['exeErrorCode'] = job['metaData']['exeErrorCode']
