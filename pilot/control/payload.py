@@ -168,19 +168,19 @@ def validate_post(queues, traces, args):
         log.debug('extracting job report')
         stageout = "all"
         with open(os.path.join(job['working_dir'], config.Payload.jobreport)) as data_file:
-            job['job_report'] = json.load(data_file)
+            job['metaData'] = json.load(data_file)
 
             # extract info from job report
             # === experiment specific ===
-            if 'exeErrorCode' in job['job_report']:
-                job['exeErrorCode'] = job['job_report']['exeErrorCode']
+            if 'exeErrorCode' in job['metaData']:
+                job['exeErrorCode'] = job['metaData']['exeErrorCode']
                 if job['exeErrorCode'] == 0:
                     stageout = "all"
                 else:
                     log.info('payload failed: exeErrorCode=%d' % job['exeErrorCode'])
                     stageout = "log"
-            if 'exeErrorDiag' in job['job_report']:
-                job['exeErrorDiag'] = job['job_report']['exeErrorDiag']
+            if 'exeErrorDiag' in job['metaData']:
+                job['exeErrorDiag'] = job['metaData']['exeErrorDiag']
                 if job['exeErrorDiag'] != "":
                     log.warning('payload failed: exeErrorDiag=%s' % job['exeErrorDiag'])
 

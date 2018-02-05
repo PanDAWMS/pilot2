@@ -396,8 +396,8 @@ def _stage_out_all(job, args):
         log.info('will stage-out log file')
     else:
         log.info('will stage-out all output files and log file')
-        if 'job_report' in job:
-            for f in job['job_report']['files']['output']:
+        if 'metaData' in job:
+            for f in job['metaData']['files']['output']:
                 outputs[f['subFiles'][0]['name']] = {'scope': job['scopeOut'],
                                                      'name': f['subFiles'][0]['name'],
                                                      'guid': f['subFiles'][0]['file_guid'],
