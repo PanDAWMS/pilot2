@@ -157,7 +157,6 @@ def process_job_report(job):
     """
 
     log.info('processing job report')
-    stageout = "all"
     with open(os.path.join(job['working_dir'], config.Payload.jobreport)) as data_file:
         # compulsory field; the payload must procude a job report (see config file for file name)
         job['metaData'] = json.load(data_file)
@@ -166,22 +165,6 @@ def process_job_report(job):
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
         user.update_job_data(job)
-
-
-        # === experiment specific ===
-        if 'exeErrorCode' in job['metaData']:
-            job['exeErrorCode'] = job['metaData']['exeErrorCode']
-            if job['exeErrorCode'] == 0:
-                stageout = "all"
-            else:
-                log.info('payload failed: exeErrorCode=%d' % job['exeErrorCode'])
-                stageout = "log"
-        if 'exeErrorDiag' in job['metaData']:
-            job['exeErrorDiag'] = job['metaData']['exeErrorDiag']
-            if job['exeErrorDiag'] != "":
-                log.warning('payload failed: exeErrorDiag=%s' % job['exeErrorDiag'])
-
-    job['stageout'] = stageout  # output and log file or only log file
 
 
 def validate_post(queues, traces, args):

@@ -96,4 +96,18 @@ def update_job_data(job):
     :return:
     """
 
-    pass
+    stageout = "all"
+
+    if 'exeErrorCode' in job['metaData']:
+        job['exeErrorCode'] = job['metaData']['exeErrorCode']
+        if job['exeErrorCode'] == 0:
+            stageout = "all"
+        else:
+            log.info('payload failed: exeErrorCode=%d' % job['exeErrorCode'])
+            stageout = "log"
+    if 'exeErrorDiag' in job['metaData']:
+        job['exeErrorDiag'] = job['metaData']['exeErrorDiag']
+        if job['exeErrorDiag'] != "":
+            log.warning('payload failed: exeErrorDiag=%s' % job['exeErrorDiag'])
+
+    job['stageout'] = stageout  # output and log file or only log file
