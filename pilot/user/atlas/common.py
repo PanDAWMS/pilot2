@@ -130,12 +130,12 @@ def get_number_of_events(jobreport_dictionary):
 
     if jobreport_dictionary != {}:
 
-        if jobreport_dictionary.has_key('resource'):
+        if 'resource' in jobreport_dictionary:
             resource_dictionary = jobreport_dictionary['resource']
-            if resource_dictionary.has_key('executor'):
+            if 'executor' in resource_dictionary:
                 executor_dictionary = resource_dictionary['executor']
                 for format in executor_dictionary.keys(): # "RAWtoESD", ..
-                    if executor_dictionary[format].has_key('nevents'):
+                    if 'nevents' in executor_dictionary[format]:
                         if nevents.has_key(format):
                             print executor_dictionary[format]['nevents']
                             nevents[format] += executor_dictionary[format]['nevents']
@@ -176,12 +176,12 @@ def get_db_info(jobreport_dictionary):
 
     if jobreport_dictionary != {}:
 
-        if jobreport_dictionary.has_key('resource'):
+        if 'resource' in jobreport_dictionary:
             resource_dictionary = jobreport_dictionary['resource']
-            if resource_dictionary.has_key('executor'):
+            if 'executor' in resource_dictionary:
                 executor_dictionary = resource_dictionary['executor']
                 for format in executor_dictionary.keys(): # "RAWtoESD", ..
-                    if executor_dictionary[format].has_key('dbData'):
+                    if 'dbData' in executor_dictionary[format]:
                         try:
                             db_data += executor_dictionary[format]['dbData']
                         except:
@@ -224,12 +224,12 @@ def get_cpu_times(jobreport_dictionary):
     total_cpu_time = 0L
 
     if jobreport_dictionary != {}:
-        if jobreport_dictionary.has_key('resource'):
+        if 'resource' in jobreport_dictionary:
             resource_dictionary = jobreport_dictionary['resource']
-            if resource_dictionary.has_key('executor'):
+            if 'executor' in resource_dictionary:
                 executor_dictionary = resource_dictionary['executor']
                 for format in executor_dictionary.keys(): # "RAWtoESD", ..
-                    if executor_dictionary[format].has_key('cpuTime'):
+                    if 'cpuTime' in executor_dictionary[format]:
                         try:
                             total_cpu_time += executor_dictionary[format]['cpuTime']
                         except:
