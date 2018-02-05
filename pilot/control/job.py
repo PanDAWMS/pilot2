@@ -120,6 +120,8 @@ def send_state(job, args, state, xml=None):
     data['exeErrorCode'] = job.get('exeErrorCode', 0)
     data['exeErrorDiag'] = job.get('exeErrorDiag', '')
 
+    data['attemptNr'] = job.get('attemptNr', 0)
+
     schedulerid = get_job_scheduler_id()
     if schedulerid:
         data['schedulerID'] = schedulerid
