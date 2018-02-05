@@ -181,7 +181,6 @@ def process_job_report(job):
     :return:
     """
 
-    log.info('processing job report')
     with open(os.path.join(job['working_dir'], config.Payload.jobreport)) as data_file:
         # compulsory field; the payload must procude a job report (see config file for file name)
         job['metaData'] = json.load(data_file)
