@@ -98,6 +98,7 @@ def update_job_data(job):
 
     stageout = "all"
 
+    # handle any error codes
     if 'exeErrorCode' in job['metaData']:
         job['exeErrorCode'] = job['metaData']['exeErrorCode']
         if job['exeErrorCode'] == 0:
@@ -110,4 +111,136 @@ def update_job_data(job):
         if job['exeErrorDiag'] != "":
             log.warning('payload failed: exeErrorDiag=%s' % job['exeErrorDiag'])
 
+    # determine what should be staged out
     job['stageout'] = stageout  # output and log file or only log file
+
+    # extract the number of events
+    job['nEvents'] = get_number_of_events(job['metaData'])
+
+
+def get_number_of_events(jobreport_dictionary):
+    """
+    Extract the number of events from the job report.
+
+    :param jobreport_dictionary:
+    :return:
+    """
+
+    nevents = {} # FORMAT: { format : total_events, .. }
+
+    if jobreport_dictionary != {}:
+
+        if jobreport_dictionary.has_key('resource'):
+            resource_dictionary = jobreport_dictionary['resource']
+            if resource_dictionary.has_key('executor'):
+                executor_dictionary = resource_dictionary['executor']
+                for format in executor_dictionary.keys(): # "RAWtoESD", ..
+                    if executor_dictionary[format].has_key('nevents'):
+                        if nevents.has_key(format):
+                            print executor_dictionary[format]['nevents']
+                            nevents[format] += executor_dictionary[format]['nevents']
+                        else:
+                            nevents[format] = executor_dictionary[format]['nevents']
+                    else:
+                        log.warning("format %s has no such key: nevents" % (format))
+            else:
+                log.warning("no such key: executor")
+        else:
+            log.warning("no such key: resource")
+
+    # Now find the largest number of events among the different formats
+    if nevents != {}:
+        try:
+            nmax = max(nevents.values())
+        except Exception, e:
+            log.warning("exception caught: %s" % (e))
+            nmax = 0
+    else:
+        log.warning("did not find the number of events in the job report")
+        nmax = 0
+
+    return nmax
+
+
+def get_db_info(jobreport_dictionary):
+    """
+    Extract and add up the DB info from the job report.
+
+    :param jobreport_dictionary:
+    :return: db_time_s, db_data_s [converted strings, from e.g. "dbData=105077960 dbTime=251.42"]
+    """
+
+    db_time = 0
+    db_data = 0L
+
+    if jobreport_dictionary != {}:
+
+        if jobreport_dictionary.has_key('resource'):
+            resource_dictionary = jobreport_dictionary['resource']
+            if resource_dictionary.has_key('executor'):
+                executor_dictionary = resource_dictionary['executor']
+                for format in executor_dictionary.keys(): # "RAWtoESD", ..
+                    if executor_dictionary[format].has_key('dbData'):
+                        try:
+                            db_data += executor_dictionary[format]['dbData']
+                        except:
+                            pass
+                    else:
+                        log.warning("format %s has no such key: dbData" % (format))
+                    if executor_dictionary[format].has_key('dbTime'):
+                        try:
+                            db_time += executor_dictionary[format]['dbTime']
+                        except:
+                            pass
+                    else:
+                        log.warning("format %s has no such key: dbTime" % (format))
+            else:
+                log.warning("no such key: executor")
+        else:
+            log.warning("no such key: resource")
+
+    if db_data != 0L:
+        db_data_s = "%s" % (db_data)
+    else:
+        db_data_s = ""
+    if db_time != 0:
+        db_time_s = "%.2f" % (db_time)
+    else:
+        db_time_s = ""
+
+    return db_time_s, db_data_s
+
+
+def get_cpu_times(jobreport_dictionary):
+    """
+    Extract and add up the total CPU times from the job report.
+    Note: this function is used with Event Service jobs
+
+    :param jobreport_dictionary:
+    :return: cpu_conversion_unit (unit), total_cpu_time, conversion_factor (output consistent with set_time_consumed())
+    """
+
+    total_cpu_time = 0L
+
+    if jobreport_dictionary != {}:
+        if jobreport_dictionary.has_key('resource'):
+            resource_dictionary = jobreport_dictionary['resource']
+            if resource_dictionary.has_key('executor'):
+                executor_dictionary = resource_dictionary['executor']
+                for format in executor_dictionary.keys(): # "RAWtoESD", ..
+                    if executor_dictionary[format].has_key('cpuTime'):
+                        try:
+                            total_cpu_time += executor_dictionary[format]['cpuTime']
+                        except:
+                            pass
+                    else:
+                        log.warning("format %s has no such key: cpuTime" % (format))
+            else:
+                log.warning("no such key: executor")
+        else:
+            log.warning("no such key: resource")
+
+    conversion_factor = 1.0
+    cpu_conversion_unit = "s"
+
+    return cpu_conversion_unit, total_cpu_time, conversion_factor
