@@ -1,5 +1,5 @@
 ..
-    Pilot 2 documentation pilot.common index
+    Pilot 2 pilot.user.generic.common doc file
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -9,11 +9,11 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-common components
-=================
+common
+======
 
-.. toctree::
-    :maxdepth: 2
-
-    errorcodes
-    exception
+.. automodule:: pilot.user.generic.common
+    :members:
+    :private-members:
+    :special-members:
+    :undoc-members:

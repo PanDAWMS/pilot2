@@ -50,7 +50,7 @@ def collect_workernode_info():
     return mem, cpu
 
 
-def get_disk_space_for_dispatcher(queuedata):
+def get_disk_space(queuedata):
     """
 
     Return the amound of disk space that should be available for running the job, either what is actually locally

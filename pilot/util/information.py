@@ -22,7 +22,7 @@ import urllib2
 from datetime import datetime, timedelta
 
 from pilot.util.config import config
-from pilot.util.filehandling import write_json, get_json_dictionary
+from pilot.util.filehandling import write_json, read_json
 # from pilot.common.exception import FileHandlingFailure
 
 import logging
@@ -124,7 +124,7 @@ def get_schedconfig_queuedata(queue):
     # read it locally if the queuedata file already exists
     filename = os.path.join(os.environ.get('PILOT_HOME'), config.Information.queuedata)
     if os.path.exists(filename):
-        queuedata = get_json_dictionary(filename)
+        queuedata = read_json(filename)
         return queuedata
 
     url = config.Information.schedconfig
@@ -201,11 +201,41 @@ def _write_cache(url, j):
         json.dump(j, outfile)
 
 
+def get_appdir():
+    """
+    Return the appdir field value from the schedconfig queuedata.
+
+    :return: appdir field (string).
+    """
+
+    return get_field_value('appdir')
+
+
+def get_catchall():
+    """
+    Return the catchall field value from the schedconfig queuedata.
+
+    :return: catchall field value (string).
+    """
+
+    return get_field_value('catchall')
+
+
+def get_cmtconfig():
+    """
+    Return the cmtconfig field value from the schedconfig queuedata.
+
+    :return: cmtconfig field value (string).
+    """
+
+    return get_field_value('cmtconfig')
+
+
 def get_container_options():
     """
-    Return the container_options field from the schedconfig queuedata.
+    Return the container_options field value from the schedconfig queuedata.
 
-    :return: container_options field (string).
+    :return: container_options field value (string).
     """
 
     return get_field_value('container_options')
@@ -213,22 +243,32 @@ def get_container_options():
 
 def get_container_type():
     """
-    Return the container_type field from the schedconfig queuedata.
+    Return the container_type field value from the schedconfig queuedata.
 
-    :return: container_type field (string).
+    :return: container_type field value (string).
     """
 
     return get_field_value('container_type')
 
 
-def get_catchall():
+def get_timefloor():
     """
-    Return the catchall field from the schedconfig queuedata.
+    Return the timefloor field value from the schedconfig queuedata.
+    The timefloor is the maximum time during which the pilot is allowed to start a new job. If timefloor is 60 (minutes)
+    and the first job runs for less than 60 minutes, the pilot is allowed to download and start another job. If the
+    first job runs for 60 minutes or more, the pilot is not allowed to start any more jobs. The mechanism exists to
+    speed up the launch time of short jobs. The pilot may run a number of jobs before the timefloor limit. A timefloor
+    0 means disabled multi-jobs.
 
-    :return: catchall field (string).
+    :return: timefloor field value (integer, seconds).
     """
 
-    return get_field_value('catchall')
+    try:
+        timefloor = int(get_field_value('timefloor')) * 60
+    except TypeError:
+        timefloor = 0
+
+    return timefloor
 
 
 def get_field_value(field):
@@ -242,7 +282,7 @@ def get_field_value(field):
     value = ""
     fname = os.path.join(os.environ.get('PILOT_HOME', '.'), config.Information.queuedata)
     if os.path.exists(fname):
-        queuedata = get_json_dictionary(fname)
+        queuedata = read_json(fname)
         value = get_parameter(queuedata, field)
 
     return value

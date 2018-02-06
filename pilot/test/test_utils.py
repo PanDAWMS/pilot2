@@ -8,8 +8,9 @@
 # - Paul Nilsson, paul.nilsson@cern.ch
 
 import unittest
+import os
 
-from pilot.util.workernode import collect_workernode_info, get_disk_space_for_dispatcher
+from pilot.util.workernode import collect_workernode_info, get_disk_space
 
 
 class TestUtils(unittest.TestCase):
@@ -17,12 +18,21 @@ class TestUtils(unittest.TestCase):
     Unit tests for utils functions.
     """
 
+    def setUp(self):
+        # skip tests if running on a Mac -- Macs don't have /proc
+        self.mac = False
+        if os.environ.get('MACOSX') == 'true':
+            self.mac = True
+
     def test_collect_workernode_info(self):
         """
         Make sure that collect_workernode_info() returns the proper types (float, float).
 
         :return: (assertion)
         """
+
+        if self.mac:
+            return True
 
         mem, cpu = collect_workernode_info()
 
@@ -32,14 +42,17 @@ class TestUtils(unittest.TestCase):
         self.assertNotEqual(mem, 0.0)
         self.assertNotEqual(cpu, 0.0)
 
-    def test_get_disk_space_for_dispatcher(self):
+    def test_get_disk_space(self):
         """
-        Verify that get_disk_space_for_dispatcher() returns the proper type (int).
+        Verify that get_disk_space() returns the proper type (int).
 
         :return: (assertion)
         """
 
+        if self.mac:
+            return True
+
         queuedata = {'maxwdir': 123456789}
-        diskspace = get_disk_space_for_dispatcher(queuedata)
+        diskspace = get_disk_space(queuedata)
 
         self.assertEqual(type(diskspace), int)

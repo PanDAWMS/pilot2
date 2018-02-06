@@ -11,10 +11,11 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 # - Wen Guan, wen.guan@cern.ch, 2018
 
-import subprocess
 import time
+import os
 
 from pilot.control.job import send_state
+from pilot.util.container import execute
 
 import logging
 logger = logging.getLogger(__name__)
@@ -54,34 +55,36 @@ class Executor(object):
         """
         (add description)
 
-        :param job:
-        :param out:
-        :param err:
-        :return:
+        :param job: job object
+        :param out: (currently not used; deprecated)
+        :param err: (currently not used; deprecated)
+        :return: proc (subprocess returned by Popen())
         """
+
         log = logger.getChild(str(job['PandaID']))
 
         # get the payload command from the user specific code
-        # cmd = get_payload_command(job, queuedata)
-        athena_version = job['homepackage'].split('/')[1]
-        asetup = 'source $ATLAS_LOCAL_ROOT_BASE/user/atlasLocalSetup.sh --quiet; '\
-                 'source $AtlasSetup/scripts/asetup.sh %s,here; ' % athena_version
-        cmd = job['transformation'] + ' ' + job['jobPars']
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+        cmd = user.get_payload_command(job)
+        log.info("payload execution command: %s" % cmd)
 
-        log.debug('executable=%s' % asetup + cmd)
-
+        # replace platform and workdir with new function get_payload_options() or someting from experiment specific code
         try:
-            proc = subprocess.Popen(asetup + cmd,
-                                    bufsize=-1,
-                                    stdout=out,
-                                    stderr=err,
-                                    cwd=job['working_dir'],
-                                    shell=True)
+            # proc = subprocess.Popen(cmd,
+            #                         bufsize=-1,
+            #                         stdout=out,
+            #                         stderr=err,
+            #                         cwd=job['working_dir'],
+            #                         shell=True)
+
+            proc = execute(cmd, platform=job['cmtConfig'], workdir=job['working_dir'], returnproc=True,
+                           usecontainer=True, stdout=out, stderr=err, cwd=job['working_dir'])
         except Exception as e:
             log.error('could not execute: %s' % str(e))
             return None
 
-        log.info('started -- pid=%s executable=%s' % (proc.pid, asetup + cmd))
+        log.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
 
         return proc
 
@@ -94,6 +97,7 @@ class Executor(object):
         :param job:
         :return:
         """
+
         log = logger.getChild(str(job['PandaID']))
 
         breaker = False
@@ -117,7 +121,7 @@ class Executor(object):
             if exit_code is not None:
                 break
             else:
-                send_state(job, args, 'running')
+                # send_state(job, args, 'running')
                 continue
 
         return exit_code
@@ -136,6 +140,7 @@ class Executor(object):
             send_state(self.__job, self.__args, 'running')
             proc = self.run_payload(self.__job, self.__out, self.__err)
             if proc is not None:
-                exit_code = self.wait_graceful(self.__args, self.__proc, self.__job)
+                log.info('will wait for graceful exit')
+                exit_code = self.wait_graceful(self.__args, proc, self.__job)
                 log.info('finished pid=%s exit_code=%s' % (proc.pid, exit_code))
         return exit_code

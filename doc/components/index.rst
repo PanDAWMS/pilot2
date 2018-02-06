@@ -21,6 +21,7 @@ Components
     control/index
     copytool/index
     eventservice/index
+    user/index
     util/index
     workflow/index
 

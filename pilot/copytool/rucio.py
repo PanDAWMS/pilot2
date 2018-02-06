@@ -8,9 +8,9 @@
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
 
 import os
-import subprocess
 
 from pilot.copytool.common import merge_destinations
+from pilot.util.container import execute
 
 
 def copy_in(files):
@@ -37,12 +37,14 @@ def copy_in(files):
                       '--dir', dst]
         executable.extend(destinations[dst]['lfns'])
 
-        process = subprocess.Popen(executable,
-                                   bufsize=-1,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate()
-        exit_code = process.poll()
+        # process = subprocess.Popen(executable,
+        #                            bufsize=-1,
+        #                            stdout=subprocess.PIPE,
+        #                            stderr=subprocess.PIPE)
+        # stdout, stderr = process.communicate()
+        # exit_code = process.poll()
+
+        exit_code, stdout, stderr = execute(executable)
 
         stats = {}
         if exit_code == 0:

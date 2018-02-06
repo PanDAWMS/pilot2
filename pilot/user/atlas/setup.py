@@ -8,8 +8,9 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import os
+import re
 
-from pilot.util.information import get_parameter
+from pilot.util.information import get_cmtconfig, get_appdir
 
 import logging
 logger = logging.getLogger(__name__)
@@ -70,12 +71,11 @@ def is_user_analysis_job(trf):
     return analysisjob
 
 
-def get_cmtconfig(jobcmtconfig, queuedata):
+def get_platform(jobcmtconfig):
     """
-    Get the cmtconfig from the job def or schedconfig
+    Get the platform (cmtconfig) from the job def or schedconfig
 
     :param jobcmtconfig: platform information from the job definition (string).
-    :param queuedata: the queuedata dictionary from schedconfig.
     :return: chosen platform (string).
     """
 
@@ -84,7 +84,85 @@ def get_cmtconfig(jobcmtconfig, queuedata):
         cmtconfig = jobcmtconfig
         logger.info("Will try to use cmtconfig: %s (from job definition)" % cmtconfig)
     else:
-        cmtconfig = get_parameter(queuedata, 'cmtconfig')
+        cmtconfig = get_cmtconfig()
         logger.info("Will try to use cmtconfig: %s (from schedconfig DB)" % cmtconfig)
 
     return cmtconfig
+
+
+def get_asetup(asetup=True):
+    """
+    Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
+    Only include the actual asetup script if asetup=True. This is not needed if the jobPars contain the payload command
+    but the pilot still needs to add the exports and the atlasLocalSetup.
+
+    :param asetup: Boolean. True value means that the pilot should include the asetup command.
+    :return: asetup (string).
+    """
+
+    cmd = ""
+    path = "%s/atlas.cern.ch/repo" % get_file_system_root_path()
+    if os.path.exists(path):
+        cmd = "export ATLAS_LOCAL_ROOT_BASE=%s/ATLASLocalRootBase;" % path
+        cmd += "source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;"
+        if asetup:
+            cmd += "source $AtlasSetup/scripts/asetup.sh"
+    else:
+        appdir = get_appdir()
+        if appdir == "":
+            appdir = os.environ.get('VO_ATLAS_SW_DIR', '')
+        if appdir != "":
+            if asetup:
+                cmd = "source %s/scripts/asetup.sh" % appdir
+
+    return cmd
+
+
+def get_asetup_options(release, homepackage):
+    """
+    Determine the proper asetup options.
+    :param release: ATLAS release string.
+    :param homepackage: ATLAS homePackage string.
+    :return: asetup options (string).
+    """
+
+    asetupopt = []
+    release = re.sub('^Atlas-', '', release)
+
+    # is it a user analysis homePackage?
+    if 'AnalysisTransforms' in homepackage:
+
+        _homepackage = re.sub('^AnalysisTransforms-*', '', homepackage)
+        if _homepackage == '' or re.search('^\d+\.\d+\.\d+$', release) is None:
+            if release != "":
+                asetupopt.append(release)
+        if _homepackage != '':
+            asetupopt += _homepackage.split('_')
+
+    else:
+
+        asetupopt += homepackage.split('/')
+        if release not in homepackage:
+            asetupopt.append(release)
+
+    # Add the notest,here for all setups (not necessary for late releases but harmless to add)
+    asetupopt.append('notest')
+    # asetupopt.append('here')
+
+    # Add the fast option if possible (for the moment, check for locally defined env variable)
+    if "ATLAS_FAST_ASETUP" in os.environ:
+        asetupopt.append('fast')
+
+    return ','.join(asetupopt)
+
+
+def is_standard_atlas_job(release):
+    """
+    Is it a standard ATLAS job?
+    A job is a standard ATLAS job if the release string begins with 'Atlas-'.
+
+    :param release: Release value (string).
+    :return: Boolean. Returns True if standard ATLAS job.
+    """
+
+    return release.startswith('Atlas-')

@@ -21,6 +21,7 @@ util components
     container
     disk
     filehandling
+    harvester
     https
     information
     parameters

@@ -7,6 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import copy
 import Queue
@@ -18,9 +19,12 @@ import threading
 import time
 
 from pilot.control.job import send_state
+from pilot.common.errorcodes import ErrorCodes
 
 import logging
+
 logger = logging.getLogger(__name__)
+errors = ErrorCodes()
 
 
 def control(queues, traces, args):
@@ -30,6 +34,10 @@ def control(queues, traces, args):
                                         'traces': traces,
                                         'args': args}),
                threading.Thread(target=copytool_out,
+                                kwargs={'queues': queues,
+                                        'traces': traces,
+                                        'args': args}),
+               threading.Thread(target=queue_monitoring,
                                 kwargs={'queues': queues,
                                         'traces': traces,
                                         'args': args})]
@@ -254,7 +262,11 @@ def copytool_in(queues, traces, args):
             if _stage_in(args, job):
                 queues.finished_data_in.put(job)
             else:
+                logger.warning('stage-in failed, adding job object to failed_data_in queue')
                 queues.failed_data_in.put(job)
+                job['pilotErrorCodes'], job['pilotErrorDiags'] = errors.add_error_code(errors.STAGEINFAILED)
+                job['state'] = "failed"
+                # send_state(job, args, 'failed')
 
         except Queue.Empty:
             continue
@@ -268,7 +280,7 @@ def copytool_out(queues, traces, args):
 
             logger.info('dataset=%s rse=%s' % (job['destinationDblock'], job['ddmEndPointOut'].split(',')[0]))
 
-            send_state(job, args, 'running')
+            # send_state(job, args, 'running')  # not necessary to send job update at this point?
 
             if _stage_out_all(job, args):
                 queues.finished_data_out.put(job)
@@ -357,39 +369,45 @@ def _stage_out(args, outfile, job):
         return None
 
     summary = None
-    with open(os.path.join(job['working_dir'], 'rucio_upload.json'), 'rb') as summary_file:
-        summary = json.load(summary_file)
+    path = os.path.join(job['working_dir'], 'rucio_upload.json')
+    if not os.path.exists(path):
+        log.warning('no such file: %s' % path)
+        return None
+    else:
+        with open(path, 'rb') as summary_file:
+            summary = json.load(summary_file)
 
     return summary
 
 
 def _stage_out_all(job, args):
+    """
+    Order stage-out of all output files and the log file, or only the log file.
 
+    :param job:
+    :param args:
+    :return:
+    """
+
+    log = logger.getChild(str(job['PandaID']))
     outputs = {}
 
-    for f in job['job_report']['files']['output']:
-        outputs[f['subFiles'][0]['name']] = {'scope': job['scopeOut'],
-                                             'name': f['subFiles'][0]['name'],
-                                             'guid': f['subFiles'][0]['file_guid'],
-                                             'bytes': f['subFiles'][0]['file_size']}
+    if job['stageout'] == 'log':
+        log.info('will stage-out log file')
+    else:
+        log.info('will stage-out all output files and log file')
+        if 'metaData' in job:
+            for f in job['metaData']['files']['output']:
+                outputs[f['subFiles'][0]['name']] = {'scope': job['scopeOut'],
+                                                     'name': f['subFiles'][0]['name'],
+                                                     'guid': f['subFiles'][0]['file_guid'],
+                                                     'bytes': f['subFiles'][0]['file_size']}
+        else:
+            log.warning('Job object does not contain a job report (payload failed?) - will only stage-out log file')
+    outputs['%s:%s' % (job['scopeLog'], job['logFile'])] = prepare_log(job, 'tarball_PandaJob_%s_%s' %
+                                                                       (job['PandaID'], args.queue))
 
-    outputs['%s:%s' % (job['scopeLog'], job['logFile'])] = prepare_log(job, 'tarball_PandaJob_%s_%s' % (job['PandaID'], args.queue))
-
-    pfc = '''<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
-<!DOCTYPE POOLFILECATALOG SYSTEM "InMemory">
-<POOLFILECATALOG>'''
-
-    pfc_file = '''
- <File ID="{guid}">
-  <logical>
-   <lfn name="{name}"/>
-  </logical>
-  <metadata att_name="surl" att_value="{pfn}"/>
-  <metadata att_name="fsize" att_value="{bytes}"/>
-  <metadata att_name="adler32" att_value="{adler32}"/>
- </File>
-'''
-
+    fileinfodict = {}
     failed = False
 
     for outfile in outputs:
@@ -397,18 +415,87 @@ def _stage_out_all(job, args):
 
         if summary is not None:
             outputs[outfile]['pfn'] = summary['%s:%s' % (outputs[outfile]['scope'], outputs[outfile]['name'])]['pfn']
-            outputs[outfile]['adler32'] = summary['%s:%s' % (outputs[outfile]['scope'], outputs[outfile]['name'])]['adler32']
+            outputs[outfile]['adler32'] = summary['%s:%s' % (outputs[outfile]['scope'],
+                                                             outputs[outfile]['name'])]['adler32']
 
-            pfc += pfc_file.format(**outputs[outfile])
-
+            filedict = {'guid': outputs[outfile]['guid'],
+                        'fsize': outputs[outfile]['bytes'],
+                        'adler32': outputs[outfile]['adler32'],
+                        'surl': outputs[outfile]['pfn']}
+            fileinfodict[outputs[outfile]['name']] = filedict
         else:
             failed = True
 
-    pfc += '</POOLFILECATALOG>'
-
     if failed:
-        send_state(job, args, 'failed')
+        # set error code + message
+        job['pilotErrorCodes'], job['pilotErrorDiags'] = errors.add_error_code(errors.STAGEOUTFAILED)
+        job['state'] = "failed"
+        log.warning('stage-out failed')  # with error: %d, %s (setting job state to failed)' %
+        # log.warning('stage-out failed with error: %d, %s (setting job state to failed)' %
+        #  (job['pilotErrorCode'], job['pilotErrorDiag']))
+        # send_state(job, args, 'failed')
         return False
     else:
-        send_state(job, args, 'finished', xml=pfc)
+        log.info('stage-out finished correctly (setting job state to finished)')
+        job['fileinfodict'] = fileinfodict
+        job['state'] = "finished"
+
+        # send final server update since all transfers have finished correctly
+        # send_state(job, args, 'finished', xml=dumps(fileinfodict))
         return True
+
+
+def queue_monitoring(queues, traces, args):
+    """
+    Monitoring of Data queues.
+
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
+
+    while not args.graceful_stop.is_set():
+        # wait a second
+        if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
+            break
+
+        # monitor the failed_data_in queue
+        try:
+            job = queues.failed_data_in.get(block=True, timeout=1)
+        except Queue.Empty:
+            pass
+        else:
+            # stage-out log file then add the job to the failed_jobs queue
+            job['stageout'] = "log"
+            if not _stage_out_all(job, args):
+                logger.info("job %d failed during stage-in and stage-out of log, adding job object to failed_data_outs "
+                            "queue" % job['PandaID'])
+                queues.failed_data_out.put(job)
+            else:
+                logger.info("job %d failed during stage-in, adding job object to failed_jobs queue" % job['PandaID'])
+                queues.failed_jobs.put(job)
+
+        # monitor the finished_data_out queue
+        try:
+            job = queues.finished_data_out.get(block=True, timeout=1)
+        except Queue.Empty:
+            pass
+        else:
+            # if ('transExitCode' in job and job['transExitCode'] == 0):  # need to extract exeErrorCode from jobReport
+            if ('transExitCode' in job and job['transExitCode'] == 0) and\
+                    ('exeErrorCode' in job and job['exeErrorCode'] == 0):
+                logger.info('finished stage-out for finished payload, adding job to finished_jobs queue')
+                queues.finished_jobs.put(job)
+            else:
+                logger.info('finished stage-out (of log) for failed payload')
+                queues.failed_jobs.put(job)
+
+        # monitor the failed_data_out queue
+        try:
+            job = queues.failed_data_out.get(block=True, timeout=1)
+        except Queue.Empty:
+            pass
+        else:
+            logger.info("job %d failed during stage-out, adding job object to failed_jobs queue" % job['PandaID'])
+            queues.failed_jobs.put(job)

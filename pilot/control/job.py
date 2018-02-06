@@ -13,12 +13,15 @@ import Queue
 import os
 import threading
 import time
-import urllib
+from json import dumps
 
 from pilot.util import https
 from pilot.util.config import config
-from pilot.util.workernode import get_disk_space_for_dispatcher, collect_workernode_info, get_node_name
+from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name
 from pilot.util.proxy import get_distinguished_name
+from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id
+from pilot.util.information import get_timefloor
+from pilot.util.harvester import request_new_jobs, remove_job_request_file
 
 import logging
 logger = logging.getLogger(__name__)
@@ -43,6 +46,10 @@ def control(queues, traces, args):
                                         'traces': traces,
                                         'args': args}),
                threading.Thread(target=create_data_payload,
+                                kwargs={'queues': queues,
+                                        'traces': traces,
+                                        'args': args}),
+               threading.Thread(target=job_monitor,
                                 kwargs={'queues': queues,
                                         'traces': traces,
                                         'args': args})]
@@ -78,13 +85,61 @@ def send_state(job, args, state, xml=None):
     """
 
     log = logger.getChild(str(job['PandaID']))
-    log.debug('set job state=%s' % state)
+    if state == 'finished':
+        log.info('job %d has finished - sending final server update' % job['PandaID'])
+    else:
+        log.debug('set job state=%s' % state)
+
+    # report the batch system job id, if available
+    batchsystem_type, batchsystem_id = get_batchsystem_jobid()
 
     data = {'jobId': job['PandaID'],
-            'state': state}
+            'state': state,
+            'timestamp': time_stamp(),
+            'siteName': args.site,
+            'node': get_node_name()}
+
+    # error codes
+    pilot_error_code = job.get('pilotErrorCode', 0)
+    pilot_error_codes = job.get('pilotErrorCodes', [])
+    if pilot_error_codes != []:
+        log.warning('pilotErrorCodes = %s (will report primary/first error code)' % str(pilot_error_codes))
+        data['pilotErrorCode'] = pilot_error_codes[0]
+    else:
+        data['pilotErrorCode'] = pilot_error_code
+
+    pilot_error_diag = job.get('pilotErrorDiag', 0)
+    pilot_error_diags = job.get('pilotErrorDiags', [])
+    if pilot_error_diags != []:
+        log.warning('pilotErrorDiags = %s (will report primary/first error diag)' % str(pilot_error_diags))
+        data['pilotErrorDiag'] = pilot_error_diags[0]
+    else:
+        data['pilotErrorDiag'] = pilot_error_diag
+
+    data['transExitCode'] = job.get('transExitCode', 0)
+    data['exeErrorCode'] = job.get('exeErrorCode', 0)
+    data['exeErrorDiag'] = job.get('exeErrorDiag', '')
+
+    data['attemptNr'] = job.get('attemptNr', 0)
+
+    schedulerid = get_job_scheduler_id()
+    if schedulerid:
+        data['schedulerID'] = schedulerid
+
+    pilotid = get_pilot_id()
+    if pilotid:
+        use_newmover_tag = 'DEPRECATED'
+        version_tag = args.version_tag
+        pilot_version = os.environ.get('PILOT_VERSION')
+
+        if batchsystem_type:
+            data['pilotID'] = "%s|%s|%s|%s|%s" % (pilotid, use_newmover_tag, batchsystem_type, version_tag, pilot_version)
+            data['batchID'] = batchsystem_id,
+        else:
+            data['pilotID'] = "%s|%s|%s|%s" % (pilotid, use_newmover_tag, version_tag, pilot_version)
 
     if xml is not None:
-        data['xml'] = urllib.quote_plus(xml)
+        data['xml'] = xml
 
     try:
         # cmd = args.url + ':' + str(args.port) + 'server/panda/updateJob'
@@ -93,7 +148,7 @@ def send_state(job, args, state, xml=None):
         if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=config.Pilot.pandaserver),
                          data=data) is not None:
 
-            log.info('confirmed job state=%s' % state)
+            log.info('server updateJob request completed for job %s' % job['PandaID'])
             return True
     except Exception as e:
         log.warning('while setting job state, Exception caught: %s' % str(e.message))
@@ -207,7 +262,7 @@ def get_dispatcher_dictionary(args):
     :returns: dictionary prepared for the dispatcher getJob operation.
     """
 
-    _diskspace = get_disk_space_for_dispatcher(args.location.queuedata)
+    _diskspace = get_disk_space(args.location.queuedata)
     _mem, _cpu = collect_workernode_info()
     _nodename = get_node_name()
 
@@ -240,9 +295,259 @@ def get_dispatcher_dictionary(args):
     return data
 
 
+def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harvester):
+    """
+    Can we proceed with getjob?
+    We may not proceed if we have run out of time (timefloor limit) or if we have already proceed enough jobs
+
+    :param timefloor: timefloor limit (s)
+    :param starttime: start time of retrieve() (s)
+    :param jobnumber: number of downloaded jobs
+    :param getjob_requests: number of getjob requests
+    :param harvester: True if Harvester is used, False otherwise. Affects the max number of getjob reads (from file).
+    :return: Boolean based on the input parameters
+    """
+
+    currenttime = time.time()
+
+    if harvester:
+        maximum_getjob_requests = 60  # 1 s apart
+    else:
+        maximum_getjob_requests = config.Pilot.maximum_getjob_requests
+
+    if getjob_requests > int(maximum_getjob_requests):
+        logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' %
+                       config.Pilot.maximum_getjob_requests)
+        return False
+
+    if timefloor == 0 and jobnumber > 0:
+        logger.warning("since timefloor is set to 0, pilot was only allowed to run one job")
+        return False
+
+    if (currenttime - starttime > timefloor) and jobnumber > 0:
+        logger.warning("the pilot has run out of time (timefloor=%d has been passed)" % timefloor)
+        return False
+
+    # timefloor not relevant for the first job
+    if jobnumber > 0:
+        logger.info('since timefloor=%d s and only %d s has passed since launch, pilot can run another job' %
+                    (timefloor, currenttime - starttime))
+
+    if harvester and jobnumber > 0:
+        # unless it's the first job (which is preplaced in the init dir), instruct Harvester to place another job
+        # in the init dir
+        logger.info('asking Harvester for another job')
+        request_new_jobs()
+
+    return True
+
+
+def getjob_server_command(url, port):
+    """
+    Prepare the getJob server command.
+
+    :param url: PanDA server URL (string)
+    :param port: PanDA server port
+    :return: full server command (URL string)
+    """
+
+    if url != "":
+        url = url + ':%s' % port  # port is always set
+    else:
+        url = config.Pilot.pandaserver
+    if url == "":
+        logger.fatal('PanDA server url not set (either as pilot option or in config file)')
+    elif not url.startswith("https://"):
+        url = 'https://' + url
+        logger.warning('detected missing protocol in server url (added)')
+
+    return '{pandaserver}/server/panda/getJob'.format(pandaserver=url)
+
+
+# MOVE TO EVENT SERVICE CODE AFTER MERGE
+def create_es_file_dictionary(writetofile):
+    """
+    Create the event range file dictionary from the writetofile info.
+
+    writetofile = 'fileNameForTrf_1:LFN_1,LFN_2^fileNameForTrf_2:LFN_3,LFN_4'
+    -> esfiledictionary = {'fileNameForTrf_1': 'LFN_1,LFN_2', 'fileNameForTrf_2': 'LFN_3,LFN_4'}
+    Also, keep track of the dictionary keys (e.g. 'fileNameForTrf_1') ordered since we have to use them to update the
+    jobParameters once we know the full path to them (i.e. '@fileNameForTrf_1:..' will be replaced by
+    '@/path/filename:..'), the dictionary is otherwise not ordered so we cannot simply use the dictionary keys later.
+    fileinfo = ['fileNameForTrf_1:LFN_1,LFN_2', 'fileNameForTrf_2:LFN_3,LFN_4']
+
+    :param writetofile: file info string
+    :return: esfiledictionary, orderedfnamelist
+    """
+
+    fileinfo = writetofile.split("^")
+    esfiledictionary = {}
+    orderedfnamelist = []
+    for i in range(len(fileinfo)):
+        # Extract the file name
+        if ":" in fileinfo[i]:
+            finfo = fileinfo[i].split(":")
+
+            # fix the issue that some athena 20 releases have _000 at the end of the filename
+            if finfo[0].endswith("_000"):
+                finfo[0] = finfo[0][:-4]
+            esfiledictionary[finfo[0]] = finfo[1]
+            orderedfnamelist.append(finfo[0])
+        else:
+            logger.warning("file info does not have the correct format, expected a separator \':\': %s" % (fileinfo[i]))
+            esfiledictionary = {}
+            break
+
+    return esfiledictionary, orderedfnamelist
+
+
+# MOVE TO EVENT SERVICE CODE AFTER MERGE
+def update_es_guids(guids):
+    """
+    Update the NULL valued ES guids.
+    This is necessary since guids are used as dictionary keys in some places.
+    Replace the NULL values with different values:
+    E.g. guids = 'NULL,NULL,NULL,sasdasdasdasdd'
+    -> 'DUMMYGUID0,DUMMYGUID1,DUMMYGUID2,sasdasdasdasdd'
+
+    :param guids:
+    :return: updated guids
+    """
+
+    for i in range(guids.count('NULL')):
+        guids = guids.replace('NULL', 'DUMMYGUID%d' % i, 1)
+
+    return guids
+
+
+# MOVE TO EVENT SERVICE CODE AFTER MERGE
+def update_es_dispatcher_data(data):
+    """
+    Update the dispatcher data for Event Service.
+    For Event Service merge jobs, the input file list will not arrive in the inFiles list as usual, but in the
+    writeToFile field, so the inFiles list need to be corrected.
+
+    :param data: dispatcher data dictionary
+    :return: data (updated dictionary)
+    """
+
+    if 'writeToFile' in data:
+        writetofile = data['writeToFile']
+        esfiledictionary, orderedfnamelist = create_es_file_dictionary(writetofile)
+        if esfiledictionary != {}:
+            # fix the issue that some athena 20 releases have _000 at the end of the filename
+            for name in orderedfnamelist:
+                name_000 = "@%s_000 " % (name)
+                new_name = "@%s " % (name)
+                if name_000 in data['jobPars']:
+                    data['jobPars'] = data['jobPars'].replace(name_000, new_name)
+
+            # Remove the autoconf
+            if "--autoConfiguration=everything " in data['jobPars']:
+                data['jobPars'] = data['jobPars'].replace("--autoConfiguration=everything ", " ")
+
+            # Replace the NULL valued guids for the ES files
+            data['GUID'] = update_es_guids(data['GUID'])
+        else:
+            logger.warning("empty event service file dictionary")
+
+    return data
+
+
+def get_job_definition_from_file(path):
+    """
+    Get a job definition from a pre-placed file.
+    In Harvester mode, also remove any existing job request files since it is no longer needed/wanted.
+
+    :param path: path to job definition file.
+    :return: job definition dictionary.
+    """
+
+    # remove any existing Harvester job request files (silent in non-Harvester mode)
+    remove_job_request_file()
+
+    res = {}
+    with open(path, 'r') as jobdatafile:
+        response = jobdatafile.read()
+        if len(response) == 0:
+            logger.fatal('encountered empty job definition file: %s' % path)
+            res = None  # this is a fatal error, no point in continuing as the file will not be replaced
+        else:
+            # parse response message
+            from urlparse import parse_qsl
+            datalist = parse_qsl(response, keep_blank_values=True)
+
+            # convert to dictionary
+            for d in datalist:
+                res[d[0]] = d[1]
+
+    return res
+
+
+def get_job_definition_from_server(args):
+    """
+    Get a job definition from a server.
+
+    :param args:
+    :return: job definition dictionary.
+    """
+
+    res = {}
+
+    # get the job dispatcher dictionary
+    data = get_dispatcher_dictionary(args)
+
+    cmd = getjob_server_command(args.url, args.port)
+    if cmd != "":
+        logger.info('executing server command: %s' % cmd)
+        res = https.request(cmd, data=data)
+
+    return res
+
+
+def get_job_definition(args):
+    """
+    Get a job definition from a source (server or pre-placed local file).
+    :param args:
+    :return: job definition dictionary.
+    """
+
+    res = {}
+
+    path = os.path.join(os.environ['PILOT_HOME'], config.Pilot.pandajobdata)
+    if os.path.exists(path):
+        logger.info('will read job definition from file %s' % path)
+        res = get_job_definition_from_file(path)
+    else:
+        if args.harvester:
+            pass  # local job definition file not found (go to sleep)
+        else:
+            logger.info('will download job definition from server')
+            res = get_job_definition_from_server(args)
+
+    return res
+
+
+def get_job_retrieval_delay(harvester):
+    """
+    Return the proper delay between job retrieval attempts.
+    In Harvester mode, the pilot will look once per second for a job definition file.
+
+    :param harvester: True if Harvester is being used (determined from args.harvester), otherwise False
+    :return: sleep (s)
+    """
+
+    if harvester:
+        delay = 1
+    else:
+        delay = 60
+
+    return delay
+
+
 def retrieve(queues, traces, args):
     """
-    Retrieve a job definition from a source (server or pre-placed local file [not yet implemented]).
+    Retrieve all jobs from a source.
 
     The job definition is a json dictionary that is either present in the launch
     directory (preplaced) or downloaded from a server specified by `args.url`.
@@ -255,52 +560,35 @@ def retrieve(queues, traces, args):
     :param args: arguments (e.g. containing queue name, queuedata dictionary, etc).
     """
 
-    # get the job dispatcher dictionary
-    data = get_dispatcher_dictionary(args)
+    timefloor = get_timefloor()
+    starttime = time.time()
 
-    getjob_requests = 0
+    jobnumber = 0  # number of downloaded jobs
+    getjob_requests = 0  # number of getjob requests
+
+    if args.harvester:
+        logger.info('harvester mode: pilot will look for local job definition file(s)')
+
     while not args.graceful_stop.is_set():
 
-        # getjobmaxtime = 60*5 # to be read from configuration file
-        # logger.debug('pilot will attempt job downloads for a maximum of %d seconds' % getjobmaxtime)
-
-        # first check if a job definition exists locally
-        # ..
-
-        # logger.debug('trying to fetch job from %s' % args.url)
-
-        # no local job definition, download from server
-        # cmd = args.url + ':' + str(args.port) + '/server/panda/getJob'
-        # logger.debug('executing command: %s' % cmd)
-        # logger.debug('data=%s'%str(data))
-        # res = https.request(cmd, data=data)
-
         getjob_requests += 1
-        if getjob_requests > int(config.Pilot.maximum_getjob_requests):
-            logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' %
-                           config.Pilot.maximum_getjob_requests)
+
+        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester):
             args.graceful_stop.set()
             break
 
-        if args.url != "":
-            url = args.url + ':' + str(args.port)  # args.port is always set
-        else:
-            url = config.Pilot.pandaserver
-            if url == "":
-                logger.fatal('PanDA server url not set (either as pilot option or in config file)')
-                break
+        # get a job definition from a source (file or server)
+        res = get_job_definition(args)
 
-        if not url.startswith("https://"):
-            url = 'https://' + url
-            logger.warning('detected missing protocol in server url (added)')
-
-        cmd = '{pandaserver}/server/panda/getJob'.format(pandaserver=url)
-        logger.info('executing server command: %s' % cmd)
-        res = https.request(cmd, data=data)
-        logger.info("job = %s" % str(res))
         if res is None:
-            logger.warning('did not get a job -- sleep 60s and repeat')
-            for i in xrange(60):
+            logger.fatal('fatal error in job download loop - cannot continue')
+            break
+
+        if res == {}:
+            delay = get_job_retrieval_delay(args.harvester)
+            if not args.harvester:
+                logger.warning('did not get a job -- sleep %d s and repeat' % delay)
+            for i in xrange(delay):
                 if args.graceful_stop.is_set():
                     break
                 time.sleep(1)
@@ -312,12 +600,102 @@ def retrieve(queues, traces, args):
                         break
                     time.sleep(1)
             else:
-                logger.info('received job: %s' % res['PandaID'])
+                logger.info('received job: %s (sleep until the job has finished)' % res['PandaID'])
+
+                # payload environment wants the PandaID to be set, also used below
+                os.environ['PandaID'] = str(res['PandaID'])
+
+                # update dispatcher data for ES (if necessary)
+                res = update_es_dispatcher_data(res)
+
+                # add the job definition to the jobs queue and increase the job counter,
+                # and wait until the job has finished
                 queues.jobs.put(res)
-                args.graceful_stop.set()
-                break
-                # logger.info('got job: %s -- sleep 1000s before trying to get another job' % res['PandaID'])
-                # for i in xrange(1000):
-                #     if args.graceful_stop.is_set():
-                #         break
-                #     time.sleep(1)
+                jobnumber += 1
+                if args.graceful_stop.is_set():
+                    logger.info('graceful stop is currently set')
+                else:
+                    logger.info('graceful stop is currently not set')
+                while not args.graceful_stop.is_set():
+                    if job_has_finished(queues):
+                        logger.info('graceful stop has been set')
+                        break
+                    time.sleep(0.5)
+
+
+def job_has_finished(queues):
+    """
+    Has the current payload finished?
+
+    :param queues:
+    :return: True is the payload has finished or failed
+    """
+
+    try:
+        panda_id = int(os.environ.get('PandaID', 0))
+    except TypeError:
+        panda_id = 0
+
+    # is there anything in the finished_jobs queue?
+    finished_queue_snapshot = list(queues.finished_jobs.queue)
+    peek = [s_job for s_job in finished_queue_snapshot if panda_id == s_job['PandaID']]
+    if len(peek) != 0:
+        logger.info("job %d has completed (finished)" % panda_id)
+        return True
+
+    # is there anything in the failed_jobs queue?
+    failed_queue_snapshot = list(queues.failed_jobs.queue)
+    peek = [s_job for s_job in failed_queue_snapshot if panda_id == s_job['PandaID']]
+    if len(peek) != 0:
+        logger.info("job %d has completed (failed)" % panda_id)
+        return True
+
+    return False
+
+
+def job_monitor(queues, traces, args):
+    """
+    Monitoring of job parameters.
+    This function monitors certain job parameters, such as job looping. It also monitors queue activity, specifically
+    if a job has finished or failed and then reports to the server.
+
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
+
+    while not args.graceful_stop.is_set():
+        # wait a second
+        if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
+            break
+
+        job = None
+
+        # check if the job has finished
+        try:
+            job = queues.finished_jobs.get(block=True, timeout=1)
+        except Queue.Empty:
+            # logger.info("(job still running)")
+            pass
+        else:
+            logger.info("job %d has finished" % job['PandaID'])
+
+        # check if the job has failed
+        try:
+            job = queues.failed_jobs.get(block=True, timeout=1)
+        except Queue.Empty:
+            # logger.info("(job still running)")
+            pass
+        else:
+            logger.info("job %d has failed" % job['PandaID'])
+
+        # job has not been defined if it's still running
+        if job:
+            # send final server update
+            if job['state'] == "finished":
+                send_state(job, args, 'finished', xml=dumps(job['fileinfodict']))
+            else:
+                send_state(job, args, 'failed')
+
+            # now ready for the next job (or quit)
