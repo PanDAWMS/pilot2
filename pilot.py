@@ -306,6 +306,11 @@ if __name__ == '__main__':
 
     logging.shutdown()
 
+    # in Harvester mode, create a kill_worker file that will instruct Harvester that the pilot has finished
+    if args.harvester:
+        from pilot.util.harvester import kill_worker
+        kill_worker()
+
     if not trace:
         logging.getLogger(__name__).critical('pilot startup did not succeed -- aborting')
         sys.exit(FAILURE)
