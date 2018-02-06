@@ -173,37 +173,41 @@ def validate(queues, traces, args):
             job = queues.jobs.get(block=True, timeout=1)
         except Queue.Empty:
             continue
-        log = logger.getChild(str(job['PandaID']))
 
-        traces.pilot['nr_jobs'] += 1
+        try:
+            log = logger.getChild(str(job['PandaID']))
 
-        # set the environmental variable for the task id
-        os.environ['PanDA_TaskID'] = job['taskID']
-        logger.info('processing PanDA job %s from task %s' % (job['PandaID'], job['taskID']))
+            traces.pilot['nr_jobs'] += 1
 
-        if _validate_job(job):
+            # set the environmental variable for the task id
+            os.environ['PanDA_TaskID'] = job['taskID']
+            logger.info('processing PanDA job %s from task %s' % (job['PandaID'], job['taskID']))
 
-            log.debug('creating job working directory')
-            job_dir = os.path.join(args.mainworkdir, 'PanDA_Pilot-%s' % job['PandaID'])
-            try:
-                os.mkdir(job_dir)
-                job['working_dir'] = job_dir
-            except Exception as e:
-                log.debug('cannot create working directory: %s' % str(e))
+            if _validate_job(job):
+
+                log.debug('creating job working directory')
+                job_dir = os.path.join(args.mainworkdir, 'PanDA_Pilot-%s' % job['PandaID'])
+                try:
+                    os.mkdir(job_dir)
+                    job['working_dir'] = job_dir
+                except Exception as e:
+                    log.debug('cannot create working directory: %s' % str(e))
+                    queues.failed_jobs.put(job)
+                    break
+
+                log.debug('symlinking pilot log')
+                try:
+                    os.symlink('../pilotlog.txt', os.path.join(job_dir, 'pilotlog.txt'))
+                except Exception as e:
+                    log.debug('cannot symlink pilot log: %s' % str(e))
+                    queues.failed_jobs.put(job)
+                    break
+
+                queues.validated_jobs.put(job)
+            else:
                 queues.failed_jobs.put(job)
-                break
-
-            log.debug('symlinking pilot log')
-            try:
-                os.symlink('../pilotlog.txt', os.path.join(job_dir, 'pilotlog.txt'))
-            except Exception as e:
-                log.debug('cannot symlink pilot log: %s' % str(e))
-                queues.failed_jobs.put(job)
-                break
-
-            queues.validated_jobs.put(job)
-        else:
-            queues.failed_jobs.put(job)
+        except Exception as e:
+            log.fatal('caught exception: %s' % e)
 
 
 def create_data_payload(queues, traces, args):
