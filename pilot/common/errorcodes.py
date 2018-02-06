@@ -61,7 +61,7 @@ class ErrorCodes:
         else:
             return "Unknown error code: %d" % errorcode
 
-    def add_error_code(self, errorcode, pilotErrorCodes=[], pilotErrorDiags=[]):
+    def add_error_code(self, errorcode, pilot_error_codes=[], pilot_error_diags=[]):
         """
         Add pilot error code to list of error codes.
         This function adds the given error code to the list of all errors that have occurred. This is needed since
@@ -70,35 +70,35 @@ class ErrorCodes:
         The function also sets the corresponding error message.
 
         :param errorcode: pilot error code (integer)
-        :param pilotErrorCodes: list of pilot error codes (list of integers)
-        :param pilotErrorDiags: list of pilot error diags (list of strings)
+        :param pilot_error_codes: list of pilot error codes (list of integers)
+        :param pilot_error_diags: list of pilot error diags (list of strings)
         :return: pilotErrorCodes, pilotErrorDiags
         """
 
         # do nothing if the error code has already been added
-        if errorcode not in pilotErrorCodes:
-            pilotErrorCodes.append(errorcode)
-            pilotErrorDiags.append(self.get_error_message(errorcode))
+        if errorcode not in pilot_error_codes:
+            pilot_error_codes.append(errorcode)
+            pilot_error_diags.append(self.get_error_message(errorcode))
 
-        return pilotErrorCodes, pilotErrorDiags
+        return pilot_error_codes, pilot_error_diags
 
-    def report_errors(self, pilotErrorCodes, pilotErrorDiags):
+    def report_errors(self, pilot_error_codes, pilot_error_diags):
         """
         Report all errors that occurred during running.
         The function should be called towards the end of running a job.
 
-        :param pilotErrorCodes: list of pilot error codes (list of integers)
-        :param pilotErrorDiags: list of pilot error diags (list of strings)
+        :param pilot_error_codes: list of pilot error codes (list of integers)
+        :param pilot_error_diags: list of pilot error diags (list of strings)
         :return: error_report (string)
         """
 
         i = 0
-        if pilotErrorCodes == []:
+        if pilot_error_codes == []:
             report = "no pilot errors were reported"
         else:
             report = "Nr.\tError code\tError diagnostics"
-            for errorcode in pilotErrorCodes:
+            for errorcode in pilot_error_codes:
                 i += 1
-                report += "\n%d.\t%d\t%s" % (i, errorcode, pilotErrorDiags[i - 1])
+                report += "\n%d.\t%d\t%s" % (i, errorcode, pilot_error_diags[i - 1])
 
         return report

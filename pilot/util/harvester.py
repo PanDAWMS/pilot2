@@ -47,18 +47,18 @@ def remove_job_request_file():
         logger.info('removed %s' % path)
 
 
-def request_new_jobs(nJobs=1):
+def request_new_jobs(njobs=1):
     """
     Inform Harvester that the pilot is ready to process new jobs by creating a job request file with the desired
     number of jobs.
 
-    :param nJobs: Number of jobs. Default is 1 since on grids and clouds the pilot does not know how many jobs it can
+    :param njobs: Number of jobs. Default is 1 since on grids and clouds the pilot does not know how many jobs it can
     process before it runs out of time.
     :return:
     """
 
     path = get_job_request_file_name()
-    dictionary = {'nJobs': nJobs}
+    dictionary = {'nJobs': njobs}
 
     # write it to file
     try:
