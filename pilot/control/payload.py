@@ -104,7 +104,7 @@ def set_time_consumed(t_tuple):
     :return: cpu_consumption_unit, cpu_consumption_time, cpu_conversion_factor
     """
 
-    t_tot = reduce(lambda x, y: x+y, t_tuple[2:3])
+    t_tot = reduce(lambda x, y: x + y, t_tuple[2:3])
     cpu_conversion_factor = 1.0
     cpu_consumption_unit = "s"  # used to be "kSI2kseconds"
     cpu_consumption_time = int(t_tot * cpu_conversion_factor)

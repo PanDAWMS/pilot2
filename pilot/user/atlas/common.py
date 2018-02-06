@@ -136,7 +136,7 @@ def get_number_of_events(jobreport_dictionary):
                 executor_dictionary = resource_dictionary['executor']
                 for format in executor_dictionary.keys():  # "RAWtoESD", ..
                     if 'nevents' in executor_dictionary[format]:
-                        if nevents.has_key(format):
+                        if format in nevents:
                             print executor_dictionary[format]['nevents']
                             nevents[format] += executor_dictionary[format]['nevents']
                         else:
@@ -184,14 +184,14 @@ def get_db_info(jobreport_dictionary):
                     if 'dbData' in executor_dictionary[format]:
                         try:
                             db_data += executor_dictionary[format]['dbData']
-                        except:
+                        except Exception:
                             pass
                     else:
                         logger.warning("format %s has no such key: dbData" % (format))
-                    if executor_dictionary[format].has_key('dbTime'):
+                    if 'dbTime' in executor_dictionary[format]:
                         try:
                             db_time += executor_dictionary[format]['dbTime']
-                        except:
+                        except Exception:
                             pass
                     else:
                         logger.warning("format %s has no such key: dbTime" % (format))
@@ -232,7 +232,7 @@ def get_cpu_times(jobreport_dictionary):
                     if 'cpuTime' in executor_dictionary[format]:
                         try:
                             total_cpu_time += executor_dictionary[format]['cpuTime']
-                        except:
+                        except Exception:
                             pass
                     else:
                         logger.warning("format %s has no such key: cpuTime" % (format))
