@@ -10,7 +10,7 @@
 from os import environ, remove
 from os.path import exists, join
 
-from pilot.util.filehandling import write_json
+from pilot.util.filehandling import write_json, touch
 from pilot.util.config import config
 from pilot.common.exception import FileHandlingFailure
 
@@ -65,3 +65,14 @@ def request_new_jobs(njobs=1):
         write_json(path, dictionary)
     except FileHandlingFailure:
         raise FileHandlingFailure
+
+
+def kill_worker():
+    """
+    Create (touch) a kill_worker file in the pilot launch directory.
+    This file will let Harverster know that the pilot has finished.
+
+    :return:
+    """
+
+    touch(join(environ['PILOT_HOME'], config.Harvester.kill_worker_file))
