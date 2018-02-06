@@ -126,7 +126,7 @@ def get_number_of_events(jobreport_dictionary):
     :return:
     """
 
-    nevents = {} # FORMAT: { format : total_events, .. }
+    nevents = {}  # FORMAT: { format : total_events, .. }
 
     if jobreport_dictionary != {}:
 
@@ -134,7 +134,7 @@ def get_number_of_events(jobreport_dictionary):
             resource_dictionary = jobreport_dictionary['resource']
             if 'executor' in resource_dictionary:
                 executor_dictionary = resource_dictionary['executor']
-                for format in executor_dictionary.keys(): # "RAWtoESD", ..
+                for format in executor_dictionary.keys():  # "RAWtoESD", ..
                     if 'nevents' in executor_dictionary[format]:
                         if nevents.has_key(format):
                             print executor_dictionary[format]['nevents']
@@ -180,7 +180,7 @@ def get_db_info(jobreport_dictionary):
             resource_dictionary = jobreport_dictionary['resource']
             if 'executor' in resource_dictionary:
                 executor_dictionary = resource_dictionary['executor']
-                for format in executor_dictionary.keys(): # "RAWtoESD", ..
+                for format in executor_dictionary.keys():  # "RAWtoESD", ..
                     if 'dbData' in executor_dictionary[format]:
                         try:
                             db_data += executor_dictionary[format]['dbData']
@@ -228,7 +228,7 @@ def get_cpu_times(jobreport_dictionary):
             resource_dictionary = jobreport_dictionary['resource']
             if 'executor' in resource_dictionary:
                 executor_dictionary = resource_dictionary['executor']
-                for format in executor_dictionary.keys(): # "RAWtoESD", ..
+                for format in executor_dictionary.keys():  # "RAWtoESD", ..
                     if 'cpuTime' in executor_dictionary[format]:
                         try:
                             total_cpu_time += executor_dictionary[format]['cpuTime']
