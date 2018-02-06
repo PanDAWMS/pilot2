@@ -38,7 +38,9 @@ class TestException(unittest.TestCase):
         except PilotException as ex:
             self.assertIsInstance(ex, PilotException)
             self.assertEqual(ex.get_error_code(), 1305)
-            logging.info("\nException: error code: %s\n\nMain message: %s\n\nFullStack: %s" % (ex.get_error_code(), str(ex), ex.get_detail()))
+            logging.info("\nException: error code: %s\n\nMain message: %s\n\nFullStack: %s" % (ex.get_error_code(),
+                                                                                               str(ex),
+                                                                                               ex.get_detail()))
 
         try:
             pass
@@ -46,4 +48,6 @@ class TestException(unittest.TestCase):
         except PilotException as ex:
             self.assertIsInstance(ex, PilotException)
             self.assertEqual(ex.get_error_code(), 1305)
-            logging.info("\nException: error code: %s\n\nMain message: %s\n\nFullStack: %s" % (ex.get_error_code(), str(ex), ex.get_detail()))
+            logging.info("\nException: error code: %s\n\nMain message: %s\n\nFullStack: %s" % (ex.get_error_code(),
+                                                                                               str(ex),
+                                                                                               ex.get_detail()))
