@@ -43,7 +43,8 @@ def execute(executable, **kwargs):
             except Exception as e:
                 logger.fatal('failed to execute wrapper function: %s' % e)
     else:
-        logger.info("will not use container")
+        # logger.info("will not use container")
+        pass
 
     logger.info('executing command: %s' % executable)
     process = subprocess.Popen(executable,
