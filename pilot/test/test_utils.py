@@ -8,6 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch
 
 import unittest
+import os
 
 from pilot.util.workernode import collect_workernode_info, get_disk_space
 
