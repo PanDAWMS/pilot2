@@ -41,7 +41,18 @@ def use_payload_container(job):
 
 
 def use_middleware_container():
-    pass
+    """
+    Should middleware from container be used?
+    In case middleware, i.e. the copy command for stage-in/out, should be taken from a container this function should
+    return True.
+
+    :return: True if middleware should be taken from container. False otherwise.
+    """
+
+    if get_middleware_type() == 'container':
+        return True
+    else:
+        return False
 
 
 def get_middleware_container():
