@@ -200,6 +200,18 @@ def get_db_info(jobreport_dictionary):
         else:
             logger.warning("no such key: resource")
 
+    return db_time, db_data
+
+
+def get_db_info_str(db_time, db_data):
+    """
+    Convert db_time, db_data to strings.
+
+    :param db_time: time stamp
+    :param db_data: long integer
+    :return: db_time_s, db_data_s (strings)
+    """
+
     if db_data != 0L:
         db_data_s = "%s" % (db_data)
     else:
