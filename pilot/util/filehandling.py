@@ -159,3 +159,15 @@ def write_json(filename, dictionary):
         fp.close()
 
     return status
+
+
+def touch(path):
+    """
+    Touch a file and update mtime in case the file exists.
+
+    :param path:
+    :return:
+    """
+
+    with open(path, 'a'):
+        os.utime(path, None)

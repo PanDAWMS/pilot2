@@ -8,6 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch
 
 import unittest
+import os
 
 from pilot.util.workernode import collect_workernode_info, get_disk_space
 
@@ -17,12 +18,21 @@ class TestUtils(unittest.TestCase):
     Unit tests for utils functions.
     """
 
+    def setUp(self):
+        # skip tests if running on a Mac -- Macs don't have /proc
+        self.mac = False
+        if os.environ.get('MACOSX') == 'true':
+            self.mac = True
+
     def test_collect_workernode_info(self):
         """
         Make sure that collect_workernode_info() returns the proper types (float, float).
 
         :return: (assertion)
         """
+
+        if self.mac:
+            return True
 
         mem, cpu = collect_workernode_info()
 
@@ -38,6 +48,9 @@ class TestUtils(unittest.TestCase):
 
         :return: (assertion)
         """
+
+        if self.mac:
+            return True
 
         queuedata = {'maxwdir': 123456789}
         diskspace = get_disk_space(queuedata)
