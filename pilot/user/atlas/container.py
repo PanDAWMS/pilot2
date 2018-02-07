@@ -126,9 +126,17 @@ def get_grid_image_for_singularity(platform):
 
     arch_and_os = extract_platform_and_os(platform)
     image = arch_and_os + ".img"
-    path = os.path.join(get_file_system_root_path(), "atlas.cern.ch/repo/containers/images/singularity")
+    _path = os.path.join(get_file_system_root_path(), "atlas.cern.ch/repo/containers/images/singularity")
+    path = os.path.join(_path, image)
+    if not os.path.exists(path):
+        image = 'x86_64-centos7.img'
+        logger.warning('path does not exist: %s (trying with image %s instead)' % (path, image))
+        path = os.path.join(_path, image)
+        if not os.path.exists(path):
+            logger.warning('path does not exist either: %s' % path)
+            path = ""
 
-    return os.path.join(path, image)
+    return path
 
 
 def get_middleware_type():
@@ -215,12 +223,12 @@ def singularity_wrapper(cmd, platform, workdir):
             image_path = get_grid_image_for_singularity(platform)
 
             # Does the image exist?
-            if os.path.exists(image_path):
+            if image_path != '':
                 # Prepend it to the given command
                 cmd = "export workdir=" + workdir + "; singularity exec " + singularity_options + " " + image_path + \
                       " /bin/bash -c \'cd $workdir;pwd;" + cmd.replace("\'", "\\'").replace('\"', '\\"') + "\'"
             else:
-                logger.warning("singularity options found but image does not exist: %s" % (image_path))
+                logger.warning("singularity options found but image does not exist")
         else:
             # Return the original command as it was
             logger.warning("no singularity options found in container_options or catchall fields")
