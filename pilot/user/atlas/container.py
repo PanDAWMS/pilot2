@@ -69,7 +69,7 @@ def extract_container_options():
         if len(found) > 0:
             container_options = found[0]
 
-    if container_options != "":
+    if container_options and container_options != "":
         if container_options.endswith("'") or container_options.endswith('"'):
             container_options = container_options[:-1]
         # add the workdir if missing
