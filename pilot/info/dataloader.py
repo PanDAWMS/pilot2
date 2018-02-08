@@ -95,8 +95,9 @@ class DataLoader(object):
                                    (url, e, fname))
                     # will try to use old cache below
                     if trial < nretry - 1:
-                        logger.info("will try again after %ss.." % sleep_time)
-                        time.sleep(sleep_time)
+                        xsleep_time = sleep_time() if callable(sleep_time) else sleep_time
+                        logger.info("will try again after %ss.." % xsleep_time)
+                        time.sleep(xsleep_time)
 
         if content is not None:  # just loaded data
             return content
@@ -140,8 +141,8 @@ class DataLoader(object):
             idat.setdefault('cache_time', cache_time)
 
             content = self.load_url_data(**idat)
-            #if not content:
-            #    continue
+            if not content:
+                continue
             if dat.get('parser'):
                 parser = dat.get('parser')
             if not parser:
