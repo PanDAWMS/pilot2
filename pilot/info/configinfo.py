@@ -37,3 +37,17 @@ class PilotConfigProvider(object):
         ##
 
         return None ## Not implemented yet
+
+
+    def resolve_queuedata(self, pandaqueue, **kwargs):
+        """
+            Resolve queue data details
+
+            :param pandaqueue: name of PandaQueue
+            :return: dict of settings for given PandaQueue as a key
+        """
+
+        data = {'maxwdir': config.Pilot.maximum_input_file_sizes,
+                }
+
+        return dict(pandaqueue=data)

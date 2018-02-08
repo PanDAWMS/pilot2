@@ -12,4 +12,66 @@ in a unified structured way to all Pilot modules by providing high-level API
 
 
 from .infoservice import InfoService
-from .queuedata import QueueData
+#from .queuedata import QueueData
+
+from pilot.common.exception import PilotException
+
+import collections
+
+import logging
+logger = logging.getLogger(__name__)
+
+
+def set_info(args):
+    """
+    Set up all necessary site information for given PandaQueue name.
+    Resolve everything from the specified queue name (passed via `args.queue`)
+    and fill extra lookup structure (Populate `args.info`).
+
+    raise PilotException in case of errors.
+
+    :param args: input (shared) agruments
+    :return: None
+    """
+
+    ## initialize info service to fetch data
+    infosys = InfoService(args.queue)
+    infosys.init()
+
+    args.info = collections.namedtuple('info', ['queue', 'infoservice',
+                                                        #queuedata
+                                                        'site', 'storages',
+                                                        'storages_info'
+                                                        #'site_info',
+                                                        ])
+    args.info.queue = args.queue
+    args.info.infoservice = infosys
+    # args.infoservice = infosys # ??
+
+    # check if queue is ACTIVE
+    if infosys.queuedata.state != 'ACTIVE':
+        logger.critical('specified queue is NOT ACTIVE: %s -- aborting' % infosys.queuedata.name)
+        raise PilotException("Panda Queue is NOT ACTIVE")
+
+    # do we need explicit varible declaration (queuedata)?
+    # same as args.location.infoservice.queuedata
+    #args.location.queuedata = infosys.queuedata
+
+    # do we need explicit varible declaration (Experiment site name)?
+    # same as args.location.infoservice.queuedata.site
+    #args.location.site = infosys.queuedata.site
+
+    # do we need explicit varible declaration (storages_info)?
+    # same as args.location.infoservice.storages_info
+    #args.location.storages_info = infosys.storages_info
+
+
+    # find all enabled storages at site
+    args.info.storages = [ddm for ddm,dat in infosys.storages_info.iteritems() if dat.site == infosys.queuedata.site]
+
+    #args.info.sites_info = infosys.sites_info
+
+    logger.info('queue: %s' % args.info.queue)
+    #logger.info('site: %s' % args.info.site)
+    logger.info('storages: %s' % args.info.storages)
+    logger.info('queuedata: %s' % args.info.infoservice.queuedata)

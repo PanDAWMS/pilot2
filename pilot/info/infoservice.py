@@ -21,6 +21,9 @@ from .jobinfo import JobInfoProvider
 
 from .dataloader import DataLoader, merge_dict_data
 from .queuedata import QueueData
+from .storagedata import StorageData
+
+from pilot.common.exception import PilotException
 
 import logging
 logger = logging.getLogger(__name__)
@@ -42,13 +45,20 @@ class InfoService(object):
         self.jobinfo = jobinfo # or JobInfoProvider()
 
         self.queuedata = None   ## cache instance of QueueData for PandaQueue settings
-        self.queuesconf = {}    ## cache for PandaQueue settings
-        self.storageconf = {}   ## cache for DDMConf settings
+
+        self.queues_info = {}    ## cache of QueueData objects for PandaQueue settings
+        self.storages_info = {}   ## cache of QueueData objects for DDMEndpoint settings
+        #self.sites_info = {}     ## cache for Site settings
 
 
     def init(self):
 
         self.queuedata = self.resolve_queuedata(self.pandaqueue)
+
+        if not self.queuedata:
+            raise PilotException("Failed to resolve queuedata for queue=%s, wrong PandaQueue name?" % self.pandaqueue)
+
+        self.resolve_storage_data()  ## prefetch details for all storages
 
 
     @classmethod
@@ -95,10 +105,10 @@ class InfoService(object):
             Resolve final full queue data details
 
             :param pandaqueue: name of PandaQueue
-            :return: `QueueData` object
+            :return: `QueueData` object or None if not exist
         """
 
-        cache = self.queuesconf
+        cache = self.queues_info
 
         if pandaqueue not in cache: # not found in cache: do load and initialize data
 
@@ -121,14 +131,19 @@ class InfoService(object):
         if isinstance(ddmendpoints, basestring):
             ddmendpoints = [ddmendpoints]
 
-        cache = self.storageconf
+        cache = self.storages_info
 
         miss_objs = set(ddmendpoints) - set(cache)
-        if miss_objs: # not found in cache: do load and initialize data
+        if not ddmendpoints or miss_objs: # not found in cache: do load and initialize data
             # the order of providers makes the priority
             r = self._resolve_data(self.whoami(), providers=(self.jobinfo, self.confinfo, self.extinfo),
-                                   args=[ddmendpoints], merge=True)
-            cache.update(r or {})
+                                   args=[miss_objs], merge=True)
+            if ddmendpoints:
+                not_resolved = set(ddmendpoints) - set(r)
+                if not resolved:
+                    raise PilotException("internal error: Failed to load storage details for ddms=%s" % sorted(not_resolved))
+            for ddm in r:
+                cache[ddm] = StorageData(r[ddm])
 
         return cache
 

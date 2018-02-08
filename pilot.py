@@ -20,6 +20,7 @@ from shutil import rmtree
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
 from pilot.util.https import https_setup
 from pilot.util.information import set_location
+from pilot.info import set_info
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 
@@ -38,8 +39,10 @@ def main():
 
     https_setup(args, VERSION)
 
-    if not set_location(args):
+    if not set_location(args):  ## DEPRECATE ME LATER
         return False
+
+    set_info(args)  # populate args.info structure
 
     logger.info('pilot arguments: %s' % str(args))
     logger.info('selected workflow: %s' % args.workflow)

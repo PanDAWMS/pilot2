@@ -52,7 +52,7 @@ class ExtInfoProvider(DataLoader):
                    'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json'
                                   '&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
                             'nretry': 3,
-                            'sleep_time': 15 + random.randint(0, 30), ## max sleep time 45 seconds between retries
+                            'sleep_time': lambda: 15 + random.randint(0, 30), ## max sleep time 45 seconds between retries
                             'cache_time': 3*60*60, #  3 hours
                             'fname': os.path.join(cache_dir, 'agis_schedconf.agis.%s.json' %
                                                  ('_'.join(sorted(pandaqueues)) or 'ALL'))},
@@ -100,7 +100,7 @@ class ExtInfoProvider(DataLoader):
                    'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json'
                                   '&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
                             'nretry': 3,
-                            'sleep_time': 15 + random.randint(0, 30), ## max sleep time 45 seconds between retries
+                            'sleep_time': lambda: 15 + random.randint(0, 30), ## max sleep time 45 seconds between retries
                             'cache_time': 3*60*60, #  3 hours
                             'fname': os.path.join(cache_dir, 'agis_schedconf.agis.%s.json' %
                                                  ('_'.join(sorted(pandaqueues)) or 'ALL'))},
@@ -144,7 +144,7 @@ class ExtInfoProvider(DataLoader):
                    'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json&'
                                            'state=ACTIVE&preset=dict&ddmendpoint=%s' % ','.join(ddmendpoints),
                             'nretry': 3,
-                            'sleep_time': 15 + random.randint(0, 30), ## max sleep time 45 seconds between retries
+                            'sleep_time': lambda: 15 + random.randint(0, 30), ## max sleep time 45 seconds between retries
                             'cache_time': 3*60*60, #  3 hours
                             'fname': os.path.join(cache_dir, 'agis_ddmendpoints.agis.%s.json' %
                                                  ('_'.join(sorted(ddmendpoints)) or 'ALL'))},
