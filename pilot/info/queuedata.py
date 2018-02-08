@@ -49,7 +49,7 @@ class QueueData(BaseData):
     direct_access_lan = False
     direct_access_lan = False
 
-    maxwdir = 0
+    maxwdir = 0   # in MB
 
     timefloor = 0 # The maximum time during which the pilot is allowed to start a new job, in seconds
 

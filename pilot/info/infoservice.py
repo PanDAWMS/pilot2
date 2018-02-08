@@ -36,14 +36,21 @@ class InfoService(object):
 
     cache_time = 60 # default cache time in seconds
 
-    def __init__(self, pandaqueue, confinfo=None, extinfo=None, jobinfo=None):
+    def require_init(func):
+        """
+            Method decorator to check if object is initialized
+        """
+        key = 'pandaqueue'
+        def inner(self, *args, **kwargs):
+            if getattr(self, key, None) is None:
+                raise PilotException("failed to call %s(): InfoService instance is not initialized. Call init() first!" % func.__name__)
+            return func(self, *args, **kwargs)
 
-        self.pandaqueue = pandaqueue
+        return inner
 
-        self.confinfo = confinfo or PilotConfigProvider()
-        self.extinfo = extinfo or ExtInfoProvider(cache_time=self.cache_time)
-        self.jobinfo = jobinfo # or JobInfoProvider()
+    def __init__(self):
 
+        self.pandaqueue = None
         self.queuedata = None   ## cache instance of QueueData for PandaQueue settings
 
         self.queues_info = {}    ## cache of QueueData objects for PandaQueue settings
@@ -51,7 +58,16 @@ class InfoService(object):
         #self.sites_info = {}     ## cache for Site settings
 
 
-    def init(self):
+    def init(self, pandaqueue, confinfo=None, extinfo=None, jobinfo=None):
+
+        self.confinfo = confinfo or PilotConfigProvider()
+        self.extinfo = extinfo or ExtInfoProvider(cache_time=self.cache_time)
+        self.jobinfo = jobinfo # or JobInfoProvider()
+
+        self.pandaqueue = pandaqueue
+
+        if not self.pandaqueue:
+            raise PilotException('Failed to initialize InfoService: panda queue name is not set')
 
         self.queuedata = self.resolve_queuedata(self.pandaqueue)
 
@@ -99,7 +115,7 @@ class InfoService(object):
 
         return ret
 
-
+    @require_init
     def resolve_queuedata(self, pandaqueue):  ## high level API
         """
             Resolve final full queue data details
@@ -122,7 +138,7 @@ class InfoService(object):
 
         return cache.get(pandaqueue)
 
-
+    @require_init
     def resolve_storage_data(self, ddmendpoints=[]):  ## high level API
         """
             :return: dict of DDMEndpoint settings by DDMEndpoint name as a key
@@ -147,7 +163,7 @@ class InfoService(object):
 
         return cache
 
-
+    @require_init
     def resolve_schedconf_sources(self):  ## high level API
         """
             Resolve prioritized list of source names for Schedconfig data load
@@ -161,7 +177,7 @@ class InfoService(object):
         # look up priority order: either from job, local config or hardcoded in the logic
         return self._resolve_data(self.whoami(), providers=(self.jobinfo, self.confinfo)) or defval
 
-
+    #@require_init
     #def resolve_field_value(self, name): ## high level API
     #
     #    """

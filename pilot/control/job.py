@@ -262,7 +262,8 @@ def get_dispatcher_dictionary(args):
     :returns: dictionary prepared for the dispatcher getJob operation.
     """
 
-    _diskspace = get_disk_space(args.location.queuedata)
+    #_diskspace = get_disk_space(args.location.queuedata)
+    _diskspace = get_disk_space(args.info.queuedata.maxwdir)
     _mem, _cpu = collect_workernode_info()
     _nodename = get_node_name()
 

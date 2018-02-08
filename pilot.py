@@ -42,7 +42,7 @@ def main():
     if not set_location(args):  ## DEPRECATE ME LATER
         return False
 
-    set_info(args)  # populate args.info structure
+    set_info(args)  # initialize InfoService and populate args.info structure
 
     logger.info('pilot arguments: %s' % str(args))
     logger.info('selected workflow: %s' % args.workflow)

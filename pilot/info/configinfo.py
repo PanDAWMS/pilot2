@@ -47,7 +47,8 @@ class PilotConfigProvider(object):
             :return: dict of settings for given PandaQueue as a key
         """
 
-        data = {'maxwdir': config.Pilot.maximum_input_file_sizes,
+        data = {'maxwdir': 10555, # in MB
+                'maxwdir_broken': config.Pilot.maximum_input_file_sizes, ## Config API is broken
                 }
 
         return dict(pandaqueue=data)

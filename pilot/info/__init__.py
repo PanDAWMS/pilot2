@@ -34,9 +34,8 @@ def set_info(args):
     :return: None
     """
 
-    ## initialize info service to fetch data
-    infosys = InfoService(args.queue)
-    infosys.init()
+    ## initialize info service
+    infosys.init(args.queue)
 
     args.info = collections.namedtuple('info', ['queue', 'infoservice',
                                                         #queuedata
@@ -75,3 +74,7 @@ def set_info(args):
     #logger.info('site: %s' % args.info.site)
     logger.info('storages: %s' % args.info.storages)
     logger.info('queuedata: %s' % args.info.infoservice.queuedata)
+
+# global InfoService Instance (shared object)
+# Initialization required to access the data
+infosys = InfoService()

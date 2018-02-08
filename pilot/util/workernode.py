@@ -61,7 +61,15 @@ def get_disk_space(queuedata):
     :return: disk space that should be available for running the job
     """
 
-    _maxinputsize = get_maximum_input_sizes(queuedata)
+    #_maxinputsize = get_maximum_input_sizes(queuedata)
+    #
+    from pilot.info import infosys
+    _maxinputsize = infosys.queuedata.maxwdir # --- non Job related queue data
+                                              # jobinfo provider is required to consider overwriteAGIS data coming from Job
+    logger.debug("resolved value from global infosys.queuedata instance: infosys.queuedata.maxwdir=%s" % _maxinputsize)
+    _maxinputsize = queuedata.maxwdir
+    logger.debug("resolved value: queuedata.maxwdir=%s" % _maxinputsize)
+
     try:
         du = disk_usage(os.path.abspath("."))
         _diskspace = int(du[2] / (1024 * 1024))  # need to convert from B to MB
