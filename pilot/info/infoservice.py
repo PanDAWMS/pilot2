@@ -107,7 +107,7 @@ class InfoService(object):
                     r = fcall(*(args or []), **(kwargs or {}))
                     if not merge:
                         return r
-                    ret = merge_dict_data(r or {}, ret or {})
+                    ret = merge_dict_data(ret or {}, r or {})
                 except Exception, e:
                     logger.warning("failed to resolve data (%s) from provider=%s .. skipped, error=%s" % (fcall.__name__, provider, e))
                     import sys, traceback
@@ -189,4 +189,3 @@ class InfoService(object):
     #
     #    # look up priority order: either from job, local config, extinfo provider
     #    return self._resolve_data(self.whoami(), providers=(self.jobinfo, self.confinfo, self.extinfo), args=[name])
-

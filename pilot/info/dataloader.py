@@ -166,6 +166,10 @@ class DataLoader(object):
 def merge_dict_data(d1, d2, keys=[], common=True, left=True, right=True, rec=False):
     """
         Recursively merge two dict objects
+        Merge content of d2 dict into copy of d1
+        :param common: if True then do merge keys exist in both dicts
+        :param left: if True then preseve keys exist only in d1
+        :param right: if True then preserve keys exist only in d2
     """
 
     ### TODO: verify and configure logic later

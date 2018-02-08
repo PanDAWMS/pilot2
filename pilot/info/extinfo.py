@@ -92,7 +92,7 @@ class ExtInfoProvider(DataLoader):
             dat = json.loads(c)
             if dat and isinstance(dat, dict) and 'error' in dat:
                 raise Exception('response contains error, data=%s' % dat)
-            return dict(pandaqueue=dat)
+            return {pandaqueue:dat}
 
         sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_schedconf.json',
                              'nretry': 1,
@@ -107,7 +107,9 @@ class ExtInfoProvider(DataLoader):
                    'LOCAL': {'url': None,
                              'nretry': 1,
                              'cache_time': 3*60*60, #  3 hours
-                             'fname': os.path.join(cache_dir, 'queuedata.json')},
+                             'fname': os.path.join(cache_dir, 'queuedata.json'),
+                             'parser':jsonparser_panda
+                             },
                     ### FIX ME LATER: move hardcoded urls to the Config?
                    'PANDA': {'url': 'http://pandaserver.cern.ch:25085/cache/schedconfig/%s.all.json' % pandaqueues[0],
                              'nretry': 3,

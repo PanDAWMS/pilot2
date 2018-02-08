@@ -54,7 +54,7 @@ class QueueData(BaseData):
     timefloor = 0 # The maximum time during which the pilot is allowed to start a new job, in seconds
 
     # specify the type of attributes for proper data validation and casting
-    _keys = {int: ['timefloor'],
+    _keys = {int: ['timefloor', 'maxwdir'],
              str: ['name', 'appdir', 'catchall', 'cmtconfig', 'container_options', 'container_type',
                    'state', 'site'],
              dict: ['copytools', 'acopytools', 'astorages', 'aprotocols'],

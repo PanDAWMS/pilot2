@@ -51,4 +51,6 @@ class PilotConfigProvider(object):
                 'maxwdir_broken': config.Pilot.maximum_input_file_sizes, ## Config API is broken
                 }
 
-        return dict(pandaqueue=data)
+        logger.info('queuedata: following keys will be overwritten with data extracted from config: %s' % data)
+
+        return {pandaqueue: data}
