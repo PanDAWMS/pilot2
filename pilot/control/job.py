@@ -178,7 +178,7 @@ def validate(queues, traces, args):
             log = logger.getChild(str(job['PandaID']))
 
             traces.pilot['nr_jobs'] += 1
-
+            log.info('job=%s'%str(job))
             # set the environmental variable for the task id
             os.environ['PanDA_TaskID'] = job['taskID']
             logger.info('processing PanDA job %s from task %s' % (job['PandaID'], job['taskID']))
