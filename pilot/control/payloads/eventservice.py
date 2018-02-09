@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class Executor(generic.Executor, ESHook):
     def __init__(self, args, job, out, err):
-        super(Executor, self).__init__()
+        super(Executor, self).__init__(args, job, out, err)
 
     def get_event_ranges(self, num_ranges=1):
         """
