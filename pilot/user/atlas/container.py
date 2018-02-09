@@ -72,18 +72,17 @@ def extract_container_options():
     container_options = get_container_options()
     if container_options == "":
         logger.warning("container_options either does not exist in queuedata or is empty, trying with catchall instead")
-        catchall = get_catchall()
-        logger.info('catchall=%s'%str(catchall))
         # E.g. catchall = "singularity_options=\'-B /etc/grid-security/certificates,/cvmfs,${workdir} --contain\'"
+        if catchall:
+            pattern = re.compile(r"singularity\_options\=\'?\"?(.+)\'?\"?")
+            found = re.findall(pattern, catchall)
+            logger.info('found=%s'%str(found))
+            if len(found) > 0:
+                container_options = found[0]
+                logger.info('extracted from catchall: %s' % str(container_options))
+        else:
+            logger.info('catchall not set')
 
-        pattern = re.compile(r"singularity\_options\=\'?\"?(.+)\'?\"?")
-        found = re.findall(pattern, catchall)
-        logger.info('found=%s'%str(found))
-        if len(found) > 0:
-            container_options = found[0]
-            logger.info('extracted from catchall: %s' % str(container_options))
-
-    logger.info('2 container_options=%s'%str(container_options))
     if container_options and container_options != "":
         if container_options.endswith("'") or container_options.endswith('"'):
             container_options = container_options[:-1]
@@ -92,7 +91,6 @@ def extract_container_options():
             container_options = container_options.replace(" --contain", ",${workdir} --contain")
             logger.info("Note: added missing ${workdir} to singularity_options")
 
-    logger.info('from catchall: %s' % str(container_options))
     return container_options
 
 
@@ -228,26 +226,19 @@ def singularity_wrapper(cmd, platform, workdir):
 
         # Get the singularity options
         singularity_options = extract_container_options()
-        if singularity_options != "" or True:
-            # Get the image path
-            image_path = get_grid_image_for_singularity(platform)
+        if singularity_options == "":
+            logger.warning('singularity options not set')
 
-            logger.info('image_path=%s'%str(image_path))
-            logger.info('workdir=%s'%str(workdir))
-            logger.info('singularity_options=%s'%str(singularity_options))
-            logger.info('image_path=%s'%str(image_path))
-            logger.info('cmd=%s'%str(cmd))
+        # Get the image path
+        image_path = get_grid_image_for_singularity(platform)
 
-            # Does the image exist?
-            if image_path != '':
-                # Prepend it to the given command
-                cmd = "export workdir=" + workdir + "; singularity exec " + singularity_options + " " + image_path + \
-                      " /bin/bash -c \'cd $workdir;pwd;" + cmd.replace("\'", "\\'").replace('\"', '\\"') + "\'"
-            else:
-                logger.warning("singularity options found but image does not exist")
+        # Does the image exist?
+        if image_path != '':
+            # Prepend it to the given command
+            cmd = "export workdir=" + workdir + "; singularity exec " + singularity_options + " " + image_path + \
+                  " /bin/bash -c \'cd $workdir;pwd;" + cmd.replace("\'", "\\'").replace('\"', '\\"') + "\'"
         else:
-            # Return the original command as it was
-            logger.warning("no singularity options found in container_options or catchall fields")
+            logger.warning("singularity options found but image does not exist")
 
     logger.info("Updated command: %s" % cmd)
 
