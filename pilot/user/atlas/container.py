@@ -73,14 +73,17 @@ def extract_container_options():
     if container_options == "":
         logger.warning("container_options either does not exist in queuedata or is empty, trying with catchall instead")
         catchall = get_catchall()
+        logger.info('catchall=%s'%str(catchall))
         # E.g. catchall = "singularity_options=\'-B /etc/grid-security/certificates,/cvmfs,${workdir} --contain\'"
 
         pattern = re.compile(r"singularity\_options\=\'?\"?(.+)\'?\"?")
         found = re.findall(pattern, catchall)
+        logger.info('found=%s'%str(found))
         if len(found) > 0:
             container_options = found[0]
             logger.info('extracted from catchall: %s' % str(container_options))
 
+    logger.info('2 container_options=%s'%str(container_options))
     if container_options and container_options != "":
         if container_options.endswith("'") or container_options.endswith('"'):
             container_options = container_options[:-1]
