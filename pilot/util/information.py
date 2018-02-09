@@ -241,7 +241,7 @@ def get_container_options():
     container_options = get_field_value('container_options')
     if not container_options:
         container_options = ""
-    return container_options)
+    return container_options
 
 
 def get_container_type():
