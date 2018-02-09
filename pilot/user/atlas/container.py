@@ -127,11 +127,16 @@ def get_grid_image_for_singularity(platform):
     arch_and_os = extract_platform_and_os(platform)
     image = arch_and_os + ".img"
     _path = os.path.join(get_file_system_root_path(), "atlas.cern.ch/repo/containers/images/singularity")
+    logger.info('_path=%s' % str(_path))
     path = os.path.join(_path, image)
+    logger.info('path=%s' % str(path))
     if not os.path.exists(path):
         image = 'x86_64-centos7.img'
         logger.warning('path does not exist: %s (trying with image %s instead)' % (path, image))
+        logger.info('_path=%s' % str(_path))
+        logger.info('image=%s' % str(image))
         path = os.path.join(_path, image)
+        logger.info('path=%s' % str(path))
         if not os.path.exists(path):
             logger.warning('path does not exist either: %s' % path)
             path = ""
@@ -221,6 +226,12 @@ def singularity_wrapper(cmd, platform, workdir):
         if singularity_options != "" or True:
             # Get the image path
             image_path = get_grid_image_for_singularity(platform)
+
+            logger.info('image_path=%s'%str(image_path))
+            logger.info('workdir=%s'%str(workdir))
+            logger.info('singularity_options=%s'%str(singularity_options))
+            logger.info('image_path=%s'%str(image_path))
+            logger.info('cmd=%s'%str(cmd))
 
             # Does the image exist?
             if image_path != '':

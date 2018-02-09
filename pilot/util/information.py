@@ -238,7 +238,11 @@ def get_container_options():
     :return: container_options field value (string).
     """
 
-    return get_field_value('container_options')
+    container_options = get_field_value('container_options')
+    logger.info('type(container_options)=%s'%str(type(container_options)))
+    if not container_options or container_options == "None":
+        container_options = ""
+    return container_options
 
 
 def get_container_type():
