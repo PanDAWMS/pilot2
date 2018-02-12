@@ -75,6 +75,7 @@ def set_info(args):
     logger.info('storages: %s' % args.info.storages)
     logger.info('queuedata: %s' % args.info.infoservice.queuedata)
 
-# global InfoService Instance (shared object)
+# global InfoService Instance without Job specific settings applied (singleton shared object)
+# normally we should create such instance for each job to properly consider overwrites coming from JonInfoProvider
 # Initialization required to access the data
 infosys = InfoService()

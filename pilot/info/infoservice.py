@@ -61,8 +61,8 @@ class InfoService(object):
     def init(self, pandaqueue, confinfo=None, extinfo=None, jobinfo=None):
 
         self.confinfo = confinfo or PilotConfigProvider()
-        self.extinfo = extinfo or ExtInfoProvider(cache_time=self.cache_time)
         self.jobinfo = jobinfo # or JobInfoProvider()
+        self.extinfo = extinfo or ExtInfoProvider(cache_time=self.cache_time)
 
         self.pandaqueue = pandaqueue
 
@@ -129,7 +129,7 @@ class InfoService(object):
         if pandaqueue not in cache: # not found in cache: do load and initialize data
 
             # the order of providers makes the priority
-            r = self._resolve_data(self.whoami(), providers=(self.jobinfo, self.confinfo, self.extinfo), args=[pandaqueue],
+            r = self._resolve_data(self.whoami(), providers=(self.confinfo, self.jobinfo, self.extinfo), args=[pandaqueue],
                                    kwargs={'schedconf_priority':self.resolve_schedconf_sources()},
                                    merge=True)
             queuedata = r.get(pandaqueue)
@@ -152,7 +152,7 @@ class InfoService(object):
         miss_objs = set(ddmendpoints) - set(cache)
         if not ddmendpoints or miss_objs: # not found in cache: do load and initialize data
             # the order of providers makes the priority
-            r = self._resolve_data(self.whoami(), providers=(self.jobinfo, self.confinfo, self.extinfo),
+            r = self._resolve_data(self.whoami(), providers=(self.confinfo, self.jobinfo, self.extinfo),
                                    args=[miss_objs], merge=True)
             if ddmendpoints:
                 not_resolved = set(ddmendpoints) - set(r)
@@ -167,15 +167,15 @@ class InfoService(object):
     def resolve_schedconf_sources(self):  ## high level API
         """
             Resolve prioritized list of source names for Schedconfig data load
-            Consider first Job specific settings (via `jobinfo` instance),
-            then config settings of pilot instance (``)
-            and failover to default config (LOCAL, CVMFS, AGIS, PANDA)
+            Consider first the config settings of pilot instance (via `confinfo`)
+            and then Job specific settings (via `jobinfo` instance),
+            and failover to default value (LOCAL, CVMFS, AGIS, PANDA)
         """
 
         defval = ['LOCAL', 'CVMFS', 'AGIS', 'PANDA']
 
         # look up priority order: either from job, local config or hardcoded in the logic
-        return self._resolve_data(self.whoami(), providers=(self.jobinfo, self.confinfo)) or defval
+        return self._resolve_data(self.whoami(), providers=(self.confinfo, self.jobinfo)) or defval
 
     #@require_init
     #def resolve_field_value(self, name): ## high level API
@@ -188,4 +188,4 @@ class InfoService(object):
     #    """
     #
     #    # look up priority order: either from job, local config, extinfo provider
-    #    return self._resolve_data(self.whoami(), providers=(self.jobinfo, self.confinfo, self.extinfo), args=[name])
+    #    return self._resolve_data(self.whoami(), providers=(self.confinfo, self.jobinfo, self.extinfo), args=[name])
