@@ -26,10 +26,9 @@ class QueueData(BaseData):
         High-level object to host all queuedata settings associated to given PandaQueue
     """
 
-    ## put explicit list of all the attributes with comments for better inline-documentation by sphinx
-    ## FIX ME LATER: use proper doc format
-
-    ## incomplete list of attributes .. to be extended once becomes used
+    # ## put explicit list of all the attributes with comments for better inline-documentation by sphinx
+    # ## FIX ME LATER: use proper doc format
+    # ## incomplete list of attributes .. to be extended once becomes used
 
     name = ""       # Name of Panda Queue
     appdir = ""     #
