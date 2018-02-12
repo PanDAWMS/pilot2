@@ -7,7 +7,9 @@ Base loader class to retrive data from Ext sources (file, url)
 """
 
 import os
-import time, json, urllib2
+import time
+import json
+import urllib2
 
 from datetime import datetime, timedelta
 
@@ -51,7 +53,6 @@ class DataLoader(object):
             lastupdate = None
 
         return lastupdate
-
 
     @classmethod
     def load_url_data(self, url, fname=None, cache_time=0, nretry=3, sleep_time=60):
@@ -128,7 +129,7 @@ class DataLoader(object):
         :return: Data loaded and processed by parser callback
         """
 
-        if not priority: # no priority set ## rundomly order if need (FIX ME LATER)
+        if not priority:  # no priority set ## rundomly order if need (FIX ME LATER)
             priority = sources.keys()
 
         for key in priority:
@@ -184,15 +185,15 @@ def merge_dict_data(d1, d2, keys=[], common=True, left=True, right=True, rec=Fal
             ret[k] = d2[k]
         return ret
 
-    if common: # common
+    if common:  # common
         for k in set(d1) & set(d2):
             ret[k] = merge_dict_data(d1[k], d2[k], keys, rec=True)
 
-    if not left: # left
+    if not left:  # left
         for k in set(d1) - set(d2):
             ret.pop(k)
 
-    if right: # right
+    if right:  # right
         for k in set(d2) - set(d1):
             ret[k] = d2[k]
 

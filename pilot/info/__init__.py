@@ -12,7 +12,7 @@ in a unified structured way to all Pilot modules by providing high-level API
 
 
 from .infoservice import InfoService
-from .jobinfo import JobInfoProvider
+from .jobinfo import JobInfoProvider  # noqa
 
 #from .queuedata import QueueData
 
@@ -36,18 +36,17 @@ def set_info(args):
     :return: None
     """
 
-    ## initialize info service
+    # ## initialize info service
     infosys.init(args.queue)
 
     args.info = collections.namedtuple('info', ['queue', 'infoservice',
-                                                        #queuedata
-                                                        'site', 'storages',
-                                                        'storages_info'
-                                                        #'site_info',
-                                                        ])
+                                                # queuedata,
+                                                'site', 'storages',
+                                                # 'site_info',
+                                                'storages_info'])
     args.info.queue = args.queue
-    args.info.infoservice = infosys  ## THIS is actually for tests and redundant - the pilot.info.infosys should be used 
-    # args.infoservice = infosys # ??
+    args.info.infoservice = infosys  # ## THIS is actually for tests and redundant - the pilot.info.infosys should be used
+    # args.infoservice = infosys  # ??
 
     # check if queue is ACTIVE
     if infosys.queuedata.state != 'ACTIVE':
@@ -66,9 +65,8 @@ def set_info(args):
     # same as args.location.infoservice.storages_info
     #args.location.storages_info = infosys.storages_info
 
-
     # find all enabled storages at site
-    args.info.storages = [ddm for ddm,dat in infosys.storages_info.iteritems() if dat.site == infosys.queuedata.site]
+    args.info.storages = [ddm for ddm, dat in infosys.storages_info.iteritems() if dat.site == infosys.queuedata.site]
 
     #args.info.sites_info = infosys.sites_info
 
@@ -76,6 +74,7 @@ def set_info(args):
     #logger.info('site: %s' % args.info.site)
     logger.info('storages: %s' % args.info.storages)
     logger.info('queuedata: %s' % args.info.infoservice.queuedata)
+
 
 # global InfoService Instance without Job specific settings applied (singleton shared object)
 # normally we should create such instance for each job to properly consider overwrites coming from JonInfoProvider

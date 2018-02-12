@@ -16,6 +16,7 @@ The main reasons for such incapsulation are to
 import logging
 logger = logging.getLogger(__name__)
 
+
 class BaseData(object):
     """
         High-level object to host structured data collected from external source
@@ -24,7 +25,6 @@ class BaseData(object):
     """
 
     _keys = {}
-
 
     def _load_data(self, data, kmap={}, validators=None):
         """
@@ -55,8 +55,8 @@ class BaseData(object):
                           bool: self.clean_boolean,
                           dict: self.clean_dictdata,
 
-                          None: self.clean_string, # default validator
-                        }
+                          None: self.clean_string,  # default validator
+                          }
 
         for ktype, knames in self._keys.iteritems():
 
@@ -100,7 +100,7 @@ class BaseData(object):
             raw = raw.strip()
         try:
             return ktype(raw)
-        except:
+        except Exception:
             logger.warning('failed to convert data for key=%s, raw=%s to type=%s' % (kname, raw, ktype))
             return defval
 
@@ -121,7 +121,7 @@ class BaseData(object):
             return defval
         try:
             return ktype(raw)
-        except:
+        except Exception:
             logger.warning('failed to convert data for key=%s, raw=%s to type=%s' % (kname, raw, ktype))
             return defval
 
@@ -145,7 +145,6 @@ class BaseData(object):
 
         return raw.lower() in ['1', 'true', 'yes']
 
-
     def clean_dictdata(self, raw, ktype, kname=None, defval=None):
         """
             Clean and convert input value to requested dict type
@@ -161,18 +160,16 @@ class BaseData(object):
             return defval
         try:
             return ktype(raw)
-        except:
+        except Exception:
             logger.warning('failed to convert data for key=%s, raw=%s to type=%s' % (kname, raw, ktype))
             return defval
 
-
     ## custom function pattern to apply extra validation to the give key values
-    ##def clean__keyname(self, raw, value):
-    ##  :param raw: raw value passed from ext source as input
-    ##  :param value: preliminary cleaned and casted to proper type value
-    ##
-    ##    return value
-
+    #def clean__keyname(self, raw, value):
+    #  :param raw: raw value passed from ext source as input
+    #  :param value: preliminary cleaned and casted to proper type value
+    #
+    #    return value
 
     def __repr__(self):
         """

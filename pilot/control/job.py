@@ -527,7 +527,7 @@ def get_job_definition(args):
             logger.info('will download job definition from server')
             res = get_job_definition_from_server(args)
 
-    if res: # initialize (job specific) InfoService instance
+    if res:  # initialize (job specific) InfoService instance
         from pilot.info import InfoService, JobInfoProvider, infosys
 
         jobinfosys = InfoService()

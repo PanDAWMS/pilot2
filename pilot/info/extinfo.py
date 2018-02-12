@@ -7,7 +7,9 @@ which is mainly used to retrive Queue, Site, etc data required for Information S
 :date: January 2018
 """
 
-import os, random, json
+import os
+import json
+import random
 
 from .dataloader import DataLoader, merge_dict_data
 
@@ -27,7 +29,6 @@ class ExtInfoProvider(DataLoader):
         """
 
         self.cache_time = cache_time
-
 
     @classmethod
     def load_schedconfig_data(self, pandaqueues=[], priority=[], cache_time=60):
@@ -50,23 +51,22 @@ class ExtInfoProvider(DataLoader):
                              'nretry': 1,
                              'fname': os.path.join(cache_dir, 'agis_schedconf.cvmfs.json')},
                    'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json'
-                                  '&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
+                                   '&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
                             'nretry': 3,
-                            'sleep_time': lambda: 15 + random.randint(0, 30), ## max sleep time 45 seconds between retries
-                            'cache_time': 3*60*60, #  3 hours
+                            'sleep_time': lambda: 15 + random.randint(0, 30),  ## max sleep time 45 seconds between retries
+                            'cache_time': 3 * 60 * 60,  # 3 hours
                             'fname': os.path.join(cache_dir, 'agis_schedconf.agis.%s.json' %
-                                                 ('_'.join(sorted(pandaqueues)) or 'ALL'))},
+                                                  ('_'.join(sorted(pandaqueues)) or 'ALL'))},
                    'LOCAL': {'url': None,
                              'nretry': 1,
-                             'cache_time': 3*60*60, #  3 hours
+                             'cache_time': 3 * 60 * 60,  # 3 hours
                              'fname': os.path.join(cache_dir, 'agis_schedconf.json')},
-                   'PANDA': None ## NOT implemented, FIX ME LATER
+                   'PANDA': None  ## NOT implemented, FIX ME LATER
                    }
 
         priority = priority or ['LOCAL', 'CVMFS', 'AGIS', 'PANDA']
 
         return self.load_data(sources, priority, cache_time)
-
 
     @classmethod
     def load_queuedata(self, pandaqueue, priority=[], cache_time=60):
@@ -92,37 +92,36 @@ class ExtInfoProvider(DataLoader):
             dat = json.loads(c)
             if dat and isinstance(dat, dict) and 'error' in dat:
                 raise Exception('response contains error, data=%s' % dat)
-            return {pandaqueue:dat}
+            return {pandaqueue: dat}
 
         sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_schedconf.json',
                              'nretry': 1,
                              'fname': os.path.join(cache_dir, 'agis_schedconf.cvmfs.json')},
                    'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json'
-                                  '&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
+                                   '&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
                             'nretry': 3,
-                            'sleep_time': lambda: 15 + random.randint(0, 30), ## max sleep time 45 seconds between retries
-                            'cache_time': 3*60*60, #  3 hours
+                            'sleep_time': lambda: 15 + random.randint(0, 30),  # max sleep time 45 seconds between retries
+                            'cache_time': 3 * 60 * 60,  # 3 hours
                             'fname': os.path.join(cache_dir, 'agis_schedconf.agis.%s.json' %
-                                                 ('_'.join(sorted(pandaqueues)) or 'ALL'))},
+                                                  ('_'.join(sorted(pandaqueues)) or 'ALL'))},
                    'LOCAL': {'url': None,
                              'nretry': 1,
-                             'cache_time': 3*60*60, #  3 hours
+                             'cache_time': 3 * 60 * 60,  # 3 hours
                              'fname': os.path.join(cache_dir, 'queuedata.json'),
-                             'parser':jsonparser_panda
+                             'parser': jsonparser_panda
                              },
-                    ### FIX ME LATER: move hardcoded urls to the Config?
+                   # FIX ME LATER: move hardcoded urls to the Config?
                    'PANDA': {'url': 'http://pandaserver.cern.ch:25085/cache/schedconfig/%s.all.json' % pandaqueues[0],
                              'nretry': 3,
-                             'cache_time': 3*60*60, #  3 hours,
+                             'cache_time': 3 * 60 * 60,  # 3 hours,
                              'fname': os.path.join(cache_dir, 'queuedata.json'),
-                             'parser':jsonparser_panda
-                            }
+                             'parser': jsonparser_panda
+                             }
                    }
 
         priority = priority or ['LOCAL', 'PANDA', 'CVMFS', 'AGIS']
 
         return self.load_data(sources, priority, cache_time)
-
 
     @classmethod
     def load_storage_data(self, ddmendpoints=[], priority=[], cache_time=60):
@@ -144,23 +143,22 @@ class ExtInfoProvider(DataLoader):
                              'nretry': 1,
                              'fname': os.path.join(cache_dir, 'agis_ddmendpoints.cvmfs.json')},
                    'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json&'
-                                           'state=ACTIVE&preset=dict&ddmendpoint=%s' % ','.join(ddmendpoints),
+                                   'state=ACTIVE&preset=dict&ddmendpoint=%s' % ','.join(ddmendpoints),
                             'nretry': 3,
-                            'sleep_time': lambda: 15 + random.randint(0, 30), ## max sleep time 45 seconds between retries
-                            'cache_time': 3*60*60, #  3 hours
+                            'sleep_time': lambda: 15 + random.randint(0, 30),  ## max sleep time 45 seconds between retries
+                            'cache_time': 3 * 60 * 60,  # 3 hours
                             'fname': os.path.join(cache_dir, 'agis_ddmendpoints.agis.%s.json' %
-                                                 ('_'.join(sorted(ddmendpoints)) or 'ALL'))},
+                                                  ('_'.join(sorted(ddmendpoints)) or 'ALL'))},
                    'LOCAL': {'url': None,
                              'nretry': 1,
-                             'cache_time': 3*60*60, #  3 hours
+                             'cache_time': 3 * 60 * 60,  # 3 hours
                              'fname': os.path.join(cache_dir, 'agis_ddmendpoints.json')},
-                   'PANDA': None ## NOT implemented, FIX ME LATER if need
+                   'PANDA': None  ## NOT implemented, FIX ME LATER if need
                    }
 
         priority = priority or ['LOCAL', 'CVMFS', 'AGIS', 'PANDA']
 
         return self.load_data(sources, priority, cache_time)
-
 
     def resolve_queuedata(self, pandaqueue, schedconf_priority=None):
         """
@@ -172,14 +170,13 @@ class ExtInfoProvider(DataLoader):
         """
 
         # load queuedata (min schedconfig settings)
-        master_data = self.load_queuedata(pandaqueue, cache_time=self.cache_time) ## use default priority
+        master_data = self.load_queuedata(pandaqueue, cache_time=self.cache_time)  ## use default priority
 
         # load full queue details
         r = self.load_schedconfig_data([pandaqueue], priority=schedconf_priority, cache_time=self.cache_time)
 
         # merge
         return merge_dict_data(r, master_data)
-
 
     def resolve_storage_data(self, ddmendpoints=[]):
         """
@@ -191,5 +188,4 @@ class ExtInfoProvider(DataLoader):
         """
 
         # load ddmconf settings
-        return self.load_storage_data(ddmendpoints, cache_time=self.cache_time) ## use default priority
-
+        return self.load_storage_data(ddmendpoints, cache_time=self.cache_time)  ## use default priority

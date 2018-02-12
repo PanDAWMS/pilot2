@@ -20,6 +20,7 @@ from .basedata import BaseData
 import logging
 logger = logging.getLogger(__name__)
 
+
 class QueueData(BaseData):
     """
         High-level object to host all queuedata settings associated to given PandaQueue
@@ -36,7 +37,7 @@ class QueueData(BaseData):
 
     cmtconfig = ""
     container_options = ""
-    container_type = {} # dict of container names by user as a key
+    container_type = {}  # dict of container names by user as a key
 
     copytools = None
     acopytools = None
@@ -49,9 +50,9 @@ class QueueData(BaseData):
     direct_access_lan = False
     direct_access_lan = False
 
-    maxwdir = 0   # in MB
+    maxwdir = 0    # in MB
 
-    timefloor = 0 # The maximum time during which the pilot is allowed to start a new job, in seconds
+    timefloor = 0  # The maximum time during which the pilot is allowed to start a new job, in seconds
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['timefloor', 'maxwdir'],
@@ -59,8 +60,7 @@ class QueueData(BaseData):
                    'state', 'site'],
              dict: ['copytools', 'acopytools', 'astorages', 'aprotocols'],
              bool: ['direct_access_lan', 'direct_access_wan']
-            }
-
+             }
 
     def __init__(self, data):
         """
@@ -73,7 +73,6 @@ class QueueData(BaseData):
         import pprint
         logger.debug('initialize QueueData from raw:\n%s' % pprint.pformat(data))
         logger.debug('Final parsed QueueData content:\n%s' % self)
-
 
     def load(self, data):
         """
@@ -92,10 +91,9 @@ class QueueData(BaseData):
         kmap = {
             'name': 'nickname',
             'site': ('atlas_site', 'gstat'),
-            }
+        }
 
         self._load_data(data, kmap)
-
 
     ## custom function pattern to apply extra validation to the key values
     ##def clean__keyname(self, raw, value):

@@ -19,11 +19,10 @@ class PilotConfigProvider(object):
         and overwrite general configuration used by Information Service
     """
 
-    config = None ## Pilot Config instance
+    config = None  # Pilot Config instance
 
     def __init__(self, conf=None):
         self.config = conf or config
-
 
     def resolve_schedconf_sources(self):
         """
@@ -31,13 +30,11 @@ class PilotConfigProvider(object):
             :return: prioritized list of source names
         """
 
-        ## FIX ME LATER
-        ## an example of return data:
-        ## return ['AGIS', 'LOCAL', 'CVMFS']
-        ##
+        # ## FIX ME LATER
+        # an example of return data:
+        # return ['AGIS', 'LOCAL', 'CVMFS']
 
-        return None ## Not implemented yet
-
+        return None  # ## Not implemented yet
 
     def resolve_queuedata(self, pandaqueue, **kwargs):
         """
@@ -47,9 +44,9 @@ class PilotConfigProvider(object):
             :return: dict of settings for given PandaQueue as a key
         """
 
-        data = {'maxwdir': 10555, # in MB
-                'maxwdir_broken': config.Pilot.maximum_input_file_sizes, ## Config API is broken -- FIX me later
-                #'container_type': 'singularity:pilot;docker:wrapper', ## for testing
+        data = {'maxwdir': 10555,  # in MB
+                'maxwdir_broken': self.config.Pilot.maximum_input_file_sizes,  # ## Config API is broken -- FIX me later
+                #'container_type': 'singularity:pilot;docker:wrapper',  # ## for testing
                 }
 
         logger.info('queuedata: following keys will be overwritten by config values: %s' % data)

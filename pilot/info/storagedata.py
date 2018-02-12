@@ -35,12 +35,11 @@ class StorageData(BaseData):
     site = None   # ATLAS Site name
 
     # specify the type of attributes for proper data validation and casting
-    _keys = {int: ["pk"],
+    _keys = {int: ['pk'],
              str: ['name', 'state', 'site', 'type'],
              dict: ['copytools', 'acopytools', 'astorages', 'aprotocols'],
              bool: []
-            }
-
+             }
 
     def __init__(self, data):
         """
@@ -54,7 +53,6 @@ class StorageData(BaseData):
         #logger.debug('initialize StorageData from raw:\n%s' % pprint.pformat(data))
         #logger.debug('Final parsed StorageData content:\n%s' % self)
 
-
     def load(self, data):
         """
             Construct and initialize data from ext source
@@ -67,10 +65,10 @@ class StorageData(BaseData):
         ## fix me later to proper internal names if need
 
         kmap = {
-            # 'internal_name':('ext_name1', 'extname2_if_any')
-            # 'internal_name2':'ext_name3'
-                'pk':'id',
-            }
+            # 'internal_name': ('ext_name1', 'extname2_if_any')
+            # 'internal_name2': 'ext_name3'
+            'pk': 'id',
+        }
 
         self._load_data(data, kmap)
 

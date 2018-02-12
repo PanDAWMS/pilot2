@@ -17,11 +17,10 @@ class JobInfoProvider(object):
         and overwrite general configuration used by Information Service
     """
 
-    job = None ## Job instance
+    job = None  ## Job instance
 
     def __init__(self, job):
         self.job = job
-
 
     def resolve_schedconf_sources(self):
         """
@@ -35,7 +34,7 @@ class JobInfoProvider(object):
         ## return ['AGIS', 'LOCAL', 'CVMFS']
         ##
 
-        return None ## Not implemented yet
+        return None  ## Not implemented yet
 
     def resolve_queuedata(self, pandaqueue, **kwargs):
         """

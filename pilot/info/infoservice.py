@@ -9,21 +9,17 @@ in a unified structured way via provided high-level API
 :date: January 2018
 """
 
-import os
-import json
-import time
-import random
 import inspect
+
+from pilot.common.exception import PilotException
 
 from .configinfo import PilotConfigProvider
 from .extinfo import ExtInfoProvider
-from .jobinfo import JobInfoProvider
+# from .jobinfo import JobInfoProvider
 
-from .dataloader import DataLoader, merge_dict_data
+from .dataloader import merge_dict_data
 from .queuedata import QueueData
 from .storagedata import StorageData
-
-from pilot.common.exception import PilotException
 
 import logging
 logger = logging.getLogger(__name__)
@@ -34,13 +30,14 @@ class InfoService(object):
         High-level Information Service
     """
 
-    cache_time = 60 # default cache time in seconds
+    cache_time = 60  # default cache time in seconds
 
     def require_init(func):
         """
             Method decorator to check if object is initialized
         """
         key = 'pandaqueue'
+
         def inner(self, *args, **kwargs):
             if getattr(self, key, None) is None:
                 raise PilotException("failed to call %s(): InfoService instance is not initialized. Call init() first!" % func.__name__)
@@ -57,11 +54,10 @@ class InfoService(object):
         self.storages_info = {}   ## cache of QueueData objects for DDMEndpoint settings
         #self.sites_info = {}     ## cache for Site settings
 
-
     def init(self, pandaqueue, confinfo=None, extinfo=None, jobinfo=None):
 
         self.confinfo = confinfo or PilotConfigProvider()
-        self.jobinfo = jobinfo # or JobInfoProvider()
+        self.jobinfo = jobinfo  # or JobInfoProvider()
         self.extinfo = extinfo or ExtInfoProvider(cache_time=self.cache_time)
 
         self.pandaqueue = pandaqueue
@@ -75,7 +71,6 @@ class InfoService(object):
             raise PilotException("Failed to resolve queuedata for queue=%s, wrong PandaQueue name?" % self.pandaqueue)
 
         self.resolve_storage_data()  ## prefetch details for all storages
-
 
     @classmethod
     def whoami(self):
@@ -97,7 +92,7 @@ class InfoService(object):
         """
 
         ret = None
-        if merge: ##
+        if merge:
             providers = list(providers)
             providers.reverse()
         for provider in providers:
@@ -110,7 +105,7 @@ class InfoService(object):
                     ret = merge_dict_data(ret or {}, r or {})
                 except Exception, e:
                     logger.warning("failed to resolve data (%s) from provider=%s .. skipped, error=%s" % (fcall.__name__, provider, e))
-                    import sys, traceback
+                    import traceback
                     logger.warning(traceback.format_exc())
 
         return ret
@@ -126,11 +121,11 @@ class InfoService(object):
 
         cache = self.queues_info
 
-        if pandaqueue not in cache: # not found in cache: do load and initialize data
+        if pandaqueue not in cache:  # not found in cache: do load and initialize data
 
             # the order of providers makes the priority
             r = self._resolve_data(self.whoami(), providers=(self.confinfo, self.jobinfo, self.extinfo), args=[pandaqueue],
-                                   kwargs={'schedconf_priority':self.resolve_schedconf_sources()},
+                                   kwargs={'schedconf_priority': self.resolve_schedconf_sources()},
                                    merge=True)
             queuedata = r.get(pandaqueue)
             if queuedata:
@@ -150,13 +145,13 @@ class InfoService(object):
         cache = self.storages_info
 
         miss_objs = set(ddmendpoints) - set(cache)
-        if not ddmendpoints or miss_objs: # not found in cache: do load and initialize data
+        if not ddmendpoints or miss_objs:  # not found in cache: do load and initialize data
             # the order of providers makes the priority
             r = self._resolve_data(self.whoami(), providers=(self.confinfo, self.jobinfo, self.extinfo),
                                    args=[miss_objs], merge=True)
             if ddmendpoints:
                 not_resolved = set(ddmendpoints) - set(r)
-                if not resolved:
+                if not_resolved:
                     raise PilotException("internal error: Failed to load storage details for ddms=%s" % sorted(not_resolved))
             for ddm in r:
                 cache[ddm] = StorageData(r[ddm])
