@@ -21,7 +21,9 @@ if hasattr(os, 'statvfs'):  # POSIX
         return _ntuple_diskusage(total, used, free)
 
 else:
-    raise NotImplementedError("platform not supported")
+    def disk_usage(path):
+        return _ntuple_diskusage(0,0,0)
+    #raise NotImplementedError("platform not supported")
 
 disk_usage.__doc__ = """
 Return disk usage statistics about the given path as a (total, used, free)

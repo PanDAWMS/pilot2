@@ -167,7 +167,7 @@ def request(url, data=None, plain=False):
         req = 'curl -sS --compressed --connect-timeout %s --max-time %s '\
               '--capath %s --cert %s --cacert %s --key %s '\
               '-H %s %s %s' % (100, 120,
-                               pipes.quote(_ctx.capath), pipes.quote(_ctx.cacert), pipes.quote(_ctx.cacert), pipes.quote(_ctx.cacert),
+                               pipes.quote(_ctx.capath or ''), pipes.quote(_ctx.cacert or ''), pipes.quote(_ctx.cacert or ''), pipes.quote(_ctx.cacert or ''),
                                pipes.quote('User-Agent: %s' % _ctx.user_agent),
                                "-H " + pipes.quote('Accept: application/json') if not plain else '',
                                pipes.quote(url + '?' + urllib.urlencode(data) if data else ''))
