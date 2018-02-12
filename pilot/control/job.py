@@ -198,8 +198,8 @@ def validate(queues, traces, args):
                 os.symlink('../pilotlog.txt', os.path.join(job_dir, 'pilotlog.txt'))
             except Exception as e:
                 log.debug('cannot symlink pilot log: %s' % str(e))
-                #queues.failed_jobs.put(job)
-                #break
+#                queues.failed_jobs.put(job)
+#                break
 
             queues.validated_jobs.put(job)
         else:
