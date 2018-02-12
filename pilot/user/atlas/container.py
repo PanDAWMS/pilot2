@@ -33,7 +33,7 @@ def wrapper(executable, **kwargs):
     if workdir == '.' and pilot_home != '':
         workdir = pilot_home
 
-    return singularity_wrapper(executable, platform, workdir)
+    return singularity_wrapper(executable, platform, workdir, job=kwargs.get('job'))
 
 
 def use_payload_container(job):
@@ -162,7 +162,7 @@ def get_middleware_type():
     return middleware_type
 
 
-def get_container_name(user="pilot"):
+def get_container_name(user="pilot"):  ## TO BE DEPRECATED: consider job['infosys'].queuedata.container_type.get("pilot")
     """
     Return the container name
     E.g. container_type = 'singularity:pilot;docker:wrapper'
@@ -190,7 +190,7 @@ def get_container_name(user="pilot"):
     return container_name
 
 
-def singularity_wrapper(cmd, platform, workdir):
+def singularity_wrapper(cmd, platform, workdir, job):
     """
     Prepend the given command with the singularity execution command
     E.g. cmd = /bin/bash hello_world.sh
@@ -200,11 +200,16 @@ def singularity_wrapper(cmd, platform, workdir):
     :param cmd (string): command to be prepended.
     :param platform (string): platform specifics.
     :param workdir: explicit work directory where the command should be executed (needs to be set for Singularity).
+    :param job: Job object, passed here to properly resolve Information Service intance to access queuedata with Job overwrites applied
+
     :return: prepended command with singularity execution command (string).
     """
 
     # Should a container be used?
-    container_name = get_container_name()
+    #container_name = get_container_name()
+    container_name = job['infosys'].queuedata.container_type.get("pilot")  # resolve container name for user=pilot
+    logger.debug("resolved container_name from job.infosys.queuedata.contaner_type: %s" % container_name)
+
     if container_name == 'singularity':
         logger.info("singularity has been requested")
 

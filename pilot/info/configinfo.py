@@ -48,9 +48,10 @@ class PilotConfigProvider(object):
         """
 
         data = {'maxwdir': 10555, # in MB
-                'maxwdir_broken': config.Pilot.maximum_input_file_sizes, ## Config API is broken
+                'maxwdir_broken': config.Pilot.maximum_input_file_sizes, ## Config API is broken -- FIX me later
+                #'container_type': 'singularity:pilot;docker:wrapper', ## for testing
                 }
 
-        logger.info('queuedata: following keys will be overwritten with data extracted from config: %s' % data)
+        logger.info('queuedata: following keys will be overwritten by config values: %s' % data)
 
         return {pandaqueue: data}

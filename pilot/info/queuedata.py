@@ -36,7 +36,7 @@ class QueueData(BaseData):
 
     cmtconfig = ""
     container_options = ""
-    container_type = ""
+    container_type = {} # dict of container names by user as a key
 
     copytools = None
     acopytools = None
@@ -110,3 +110,22 @@ class QueueData(BaseData):
         """
 
         return value * 60
+
+    def clean__container_type(self, raw, value):
+        """
+            Parse and prepare value for the container_type key
+            Expected raw data in format 'container_name:user_name;'
+            E.g. container_type = 'singularity:pilot;docker:wrapper'
+
+            :return: dict of container names by user as a key
+        """
+
+        ret = {}
+        val = value or ''
+        for e in val.split(';'):
+            dat = e.split(':')
+            if len(dat) == 2:
+                name, user = dat[0].strip(), dat[1].strip()
+                ret[user] = name
+
+        return ret

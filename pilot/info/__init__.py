@@ -12,6 +12,8 @@ in a unified structured way to all Pilot modules by providing high-level API
 
 
 from .infoservice import InfoService
+from .jobinfo import JobInfoProvider
+
 #from .queuedata import QueueData
 
 from pilot.common.exception import PilotException
@@ -44,7 +46,7 @@ def set_info(args):
                                                         #'site_info',
                                                         ])
     args.info.queue = args.queue
-    args.info.infoservice = infosys
+    args.info.infoservice = infosys  ## THIS is actually for tests and redundant - the pilot.info.infosys should be used 
     # args.infoservice = infosys # ??
 
     # check if queue is ACTIVE
