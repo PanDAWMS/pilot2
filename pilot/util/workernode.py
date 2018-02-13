@@ -83,8 +83,13 @@ def get_node_name():
 
     :return: node name (string)
     """
+    if hasattr(os, 'uname'):
+        host = os.uname()[1]
+    else:
+        import socket
+        host = socket.gethostname()
 
-    return get_condor_node_name(os.uname()[1])
+    return get_condor_node_name(host)
 
 
 def get_condor_node_name(nodename):
