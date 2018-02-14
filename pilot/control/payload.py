@@ -185,7 +185,8 @@ def process_job_report(job):
 
     with open(os.path.join(job['working_dir'], config.Payload.jobreport)) as data_file:
         # compulsory field; the payload must procude a job report (see config file for file name)
-        job['metaData'] = json.load(data_file)
+        jobreport_data = json.load(data_file)
+        job['metaData'] = parse_jobreport_data(jobreport_data)
 
         # extract user specific info from job report
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
