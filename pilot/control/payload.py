@@ -200,12 +200,17 @@ def process_job_report(job):
                 job['exitCode'] = job['metaData']['exitCode']
             except Exception as e:
                 log.warning('could not find compulsory payload exitCode in job report: %s (will be set to 0)' % e)
-                job['exitCode']
+                job['exitCode'] = 0
+            else:
+                log.info('extracted exit code from job report: %d' % job['exitCode'])
+
             try:
                 job['exitMsg'] = job['metaData']['exitMsg']
             except Exception as e:
                 log.warning('could not find compulsory payload exitMsg in job report: %s (will be set to empty string)' % e)
                 job['exitMsg'] = ""
+            else:
+                log.info('extracted exit message from job report: %s' % job['exitMsg'])
 
 def validate_post(queues, traces, args):
     """
