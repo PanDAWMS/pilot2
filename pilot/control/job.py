@@ -264,9 +264,12 @@ def get_dispatcher_dictionary(args):
     """
 
     #_diskspace = get_disk_space(args.location.queuedata)
-    _diskspace = get_disk_space(args.info.infoservice.queuedata)  ## passing here the queuedata is redundant since it's available
-                                                                  ## globally via pilot.info.infosys
-                                                                  ## kept for a while as "wrong" example .. to be cleaned soon
+
+    ## passing here the queuedata is redundant since it's available
+    ## globally via pilot.info.infosys
+    ## kept for a while as "wrong" example .. to be cleaned soon
+    _diskspace = get_disk_space(args.info.infoservice.queuedata)
+
     _mem, _cpu = collect_workernode_info()
     _nodename = get_node_name()
 
