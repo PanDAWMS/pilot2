@@ -14,12 +14,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class JobInfoService(InfoService):
+class JobInfoService(InfoService):  ## TO BE DEPRECATED/REMOVED
     """
         Info service: Job specific
         Job could overwrite settings provided by Info Service
 
-        should be passed as instance to job related functions/workflow
+        *** KEPT for a while in repo .. most probably will be deprecated and removed soon **
     """
 
     def __init__(self, job):
