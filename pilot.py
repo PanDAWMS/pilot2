@@ -24,7 +24,7 @@ from pilot.info import set_info
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 
-VERSION = '2018-02-06.002'
+VERSION = '2018-02-13.001'
 
 
 def main():
@@ -308,6 +308,11 @@ if __name__ == '__main__':
             logging.info("removed %s" % mainworkdir)
 
     logging.shutdown()
+
+    # in Harvester mode, create a kill_worker file that will instruct Harvester that the pilot has finished
+    if args.harvester:
+        from pilot.util.harvester import kill_worker
+        kill_worker()
 
     if not trace:
         logging.getLogger(__name__).critical('pilot startup did not succeed -- aborting')

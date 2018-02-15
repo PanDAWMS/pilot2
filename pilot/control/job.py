@@ -173,12 +173,12 @@ def validate(queues, traces, args):
             job = queues.jobs.get(block=True, timeout=1)
         except Queue.Empty:
             continue
-        log = logger.getChild(str(job['PandaID']))
 
+        log = logger.getChild(str(job['PandaID']))
         traces.pilot['nr_jobs'] += 1
 
         # set the environmental variable for the task id
-        os.environ['PanDA_TaskID'] = job['taskID']
+        os.environ['PanDA_TaskID'] = str(job['taskID'])
         logger.info('processing PanDA job %s from task %s' % (job['PandaID'], job['taskID']))
 
         if _validate_job(job):

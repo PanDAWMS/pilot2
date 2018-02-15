@@ -102,7 +102,9 @@ class Executor(object):
 
         breaker = False
         exit_code = None
+        iteration = 0L
         while True:
+            iteration += 1
             for i in xrange(100):
                 if args.graceful_stop.is_set():
                     breaker = True
@@ -117,7 +119,9 @@ class Executor(object):
                 break
 
             exit_code = proc.poll()
-            log.info('running: pid=%s exit_code=%s' % (proc.pid, exit_code))
+
+            if iteration % 10 == 0:
+                log.info('running: iteration=%d pid=%s exit_code=%s' % (iteration, proc.pid, exit_code))
             if exit_code is not None:
                 break
             else:

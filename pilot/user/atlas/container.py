@@ -72,15 +72,18 @@ def extract_container_options():
     container_options = get_container_options()
     if container_options == "":
         logger.warning("container_options either does not exist in queuedata or is empty, trying with catchall instead")
-        catchall = get_catchall()
         # E.g. catchall = "singularity_options=\'-B /etc/grid-security/certificates,/cvmfs,${workdir} --contain\'"
+        catchall = get_catchall()
+        if catchall:
+            pattern = re.compile(r"singularity\_options\=\'?\"?(.+)\'?\"?")
+            found = re.findall(pattern, catchall)
+            if len(found) > 0:
+                container_options = found[0]
+                logger.info('extracted from catchall: %s' % str(container_options))
+        else:
+            logger.info('catchall not set')
 
-        pattern = re.compile(r"singularity\_options\=\'?\"?(.+)\'?\"?")
-        found = re.findall(pattern, catchall)
-        if len(found) > 0:
-            container_options = found[0]
-
-    if container_options != "":
+    if container_options and container_options != "":
         if container_options.endswith("'") or container_options.endswith('"'):
             container_options = container_options[:-1]
         # add the workdir if missing
@@ -126,9 +129,22 @@ def get_grid_image_for_singularity(platform):
 
     arch_and_os = extract_platform_and_os(platform)
     image = arch_and_os + ".img"
-    path = os.path.join(get_file_system_root_path(), "atlas.cern.ch/repo/containers/images/singularity")
+    _path = os.path.join(get_file_system_root_path(), "atlas.cern.ch/repo/containers/images/singularity")
+    logger.info('_path=%s' % str(_path))
+    path = os.path.join(_path, image)
+    logger.info('path=%s' % str(path))
+    if not os.path.exists(path):
+        image = 'x86_64-centos7.img'
+        logger.warning('path does not exist: %s (trying with image %s instead)' % (path, image))
+        logger.info('_path=%s' % str(_path))
+        logger.info('image=%s' % str(image))
+        path = os.path.join(_path, image)
+        logger.info('path=%s' % str(path))
+        if not os.path.exists(path):
+            logger.warning('path does not exist either: %s' % path)
+            path = ""
 
-    return os.path.join(path, image)
+    return path
 
 
 def get_middleware_type():
@@ -215,20 +231,19 @@ def singularity_wrapper(cmd, platform, workdir, job):
 
         # Get the singularity options
         singularity_options = extract_container_options()
-        if singularity_options != "":
-            # Get the image path
-            image_path = get_grid_image_for_singularity(platform)
+        if singularity_options == "":
+            logger.warning('singularity options not set')
 
-            # Does the image exist?
-            if os.path.exists(image_path):
-                # Prepend it to the given command
-                cmd = "export workdir=" + workdir + "; singularity exec " + singularity_options + " " + image_path + \
-                      " /bin/bash -c \'cd $workdir;pwd;" + cmd.replace("\'", "\\'").replace('\"', '\\"') + "\'"
-            else:
-                logger.warning("singularity options found but image does not exist: %s" % (image_path))
+        # Get the image path
+        image_path = get_grid_image_for_singularity(platform)
+
+        # Does the image exist?
+        if image_path != '':
+            # Prepend it to the given command
+            cmd = "export workdir=" + workdir + "; singularity exec " + singularity_options + " " + image_path + \
+                  " /bin/bash -c \'cd $workdir;pwd;" + cmd.replace("\'", "\\'").replace('\"', '\\"') + "\'"
         else:
-            # Return the original command as it was
-            logger.warning("no singularity options found in container_options or catchall fields")
+            logger.warning("singularity options found but image does not exist")
 
     logger.info("Updated command: %s" % cmd)
 
