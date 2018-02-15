@@ -213,6 +213,7 @@ def process_job_report(job):
             else:
                 log.info('extracted exit message from job report: %s' % job['exitMsg'])
 
+
 def validate_post(queues, traces, args):
     """
     Validate finished payloads.
