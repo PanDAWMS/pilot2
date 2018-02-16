@@ -4,3 +4,5 @@ show-source = true
 max-line-length = 160
 select=A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z
 max-complexity = 15
+
+xconfig27 = Fake to check which conf is used
