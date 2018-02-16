@@ -263,7 +263,13 @@ def get_dispatcher_dictionary(args):
     :returns: dictionary prepared for the dispatcher getJob operation.
     """
 
-    _diskspace = get_disk_space(args.location.queuedata)
+    #_diskspace = get_disk_space(args.location.queuedata)
+
+    ## passing here the queuedata is redundant since it's available
+    ## globally via pilot.info.infosys
+    ## kept for a while as "wrong" example .. to be cleaned soon
+    _diskspace = get_disk_space(args.info.infoservice.queuedata)
+
     _mem, _cpu = collect_workernode_info()
     _nodename = get_node_name()
 
@@ -525,6 +531,14 @@ def get_job_definition(args):
         else:
             logger.info('will download job definition from server')
             res = get_job_definition_from_server(args)
+
+    if res:  # initialize (job specific) InfoService instance
+        from pilot.info import InfoService, JobInfoProvider, infosys
+
+        jobinfosys = InfoService()
+        jobinfosys.init(args.queue, infosys.confinfo, infosys.extinfo, JobInfoProvider(res))
+        if res:
+            res['infosys'] = jobinfosys
 
     return res
 

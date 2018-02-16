@@ -79,7 +79,7 @@ class Executor(object):
             #                         shell=True)
 
             proc = execute(cmd, platform=job['cmtConfig'], workdir=job['working_dir'], returnproc=True,
-                           usecontainer=True, stdout=out, stderr=err, cwd=job['working_dir'])
+                           usecontainer=True, stdout=out, stderr=err, cwd=job['working_dir'], job=job)
         except Exception as e:
             log.error('could not execute: %s' % str(e))
             return None
