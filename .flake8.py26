@@ -5,5 +5,3 @@ max-line-length = 160
 # select and ignore options do not work properly together in flake8<3.0
 #select=A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z
 max-complexity = 15
-
-xconfig26 = Fake to check which conf is used

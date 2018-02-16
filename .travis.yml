@@ -5,7 +5,7 @@ python:
   - 2.7
 install:
   - pip install 'unittest2'
-  - pip install flake8${FLAKE8_VERSION}
+  - pip install 'flake8${FLAKE8_VERSION}'
   - pip install 'pep8-naming'
   - pip install 'flake8-blind-except'
 before_script:
@@ -14,9 +14,9 @@ before_script:
   - pip freeze
   - flake8 --help
   - if [[ $FLAKE8_CONFIG != ".flake8" ]]; then rm .flake8; fi
-  - flake8 --config ${FLAKE8_CONFIG} pilot.py pilot/
+  - flake8 --config $FLAKE8_CONFIG pilot.py pilot/
 script:
-  -  unit2 -v
+  - unit2 -v
 matrix:
   include:
   - python: 2.6
@@ -24,6 +24,5 @@ matrix:
   - python: 2.7
     env: FLAKE8_CONFIG=.flake8
   exclude:
-    - python: 2.6
-    - python: 2.7
-    
+  - python: 2.6
+  - python: 2.7
