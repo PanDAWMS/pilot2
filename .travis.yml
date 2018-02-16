@@ -10,6 +10,8 @@ install:
   - pip install 'flake8-blind-except'
   - pip install 'pycodestyle'
 before_script:
+  - pwd
+  - ls -lah
   - flake8 --config ./.flake8 pilot.py pilot/
 script:
   -  unit2 -v
