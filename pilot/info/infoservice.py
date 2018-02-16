@@ -32,7 +32,7 @@ class InfoService(object):
 
     cache_time = 60  # default cache time in seconds
 
-    def require_init(func):
+    def require_init(func):  # noqa
         """
             Method decorator to check if object is initialized
         """
