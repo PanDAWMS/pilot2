@@ -484,11 +484,11 @@ def queue_monitoring(queues, traces, args):
         else:
             # use the payload/transform exitCode from the job report if it exists
             if 'exitCode' in job:
-                exitCode = job['exitCode']
+                exit_code = job['exitCode']
             else:  # ignore it
-                exitCode = 0
+                exit_code = 0
 
-            if ('transExitCode' in job and job['transExitCode'] == 0) and (exitCode == 0):
+            if ('transExitCode' in job and job['transExitCode'] == 0) and (exit_code == 0):
                 logger.info('finished stage-out for finished payload, adding job to finished_jobs queue')
                 queues.finished_jobs.put(job)
             else:
