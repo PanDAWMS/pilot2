@@ -10,6 +10,6 @@ install:
   - pip install 'flake8-blind-except'
   - pip install 'pycodestyle'
 before_script:
-  - flake8 pilot.py pilot/
+  - flake8 --ignore E262,E265,E266,N804 pilot.py pilot/
 script:
   -  unit2 -v
