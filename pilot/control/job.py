@@ -695,6 +695,8 @@ def job_monitor(queues, traces, args):
             pass
         else:
             logger.info("job %d has finished" % job['PandaID'])
+            # make sure that state=finished
+            job['state'] = 'finished'
 
         # check if the job has failed
         try:
@@ -704,6 +706,8 @@ def job_monitor(queues, traces, args):
             pass
         else:
             logger.info("job %d has failed" % job['PandaID'])
+            # make sure that state=failed
+            job['state'] = 'failed'
 
         # job has not been defined if it's still running
         if job:

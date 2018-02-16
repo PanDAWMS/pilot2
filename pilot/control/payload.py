@@ -173,7 +173,7 @@ def execute_payloads(queues, traces, args):
 
 def process_job_report(job):
     """
-    Process the required job report.
+    Process the job report produced by the payload/transform if it exists.
     Payload error codes and diagnostics, as well as payload metadata (for output files) and stageout type will be
     extracted. The stageout type is either "all" (i.e. stage-out both output and log files) or "log" (i.e. only log file
     will be staged out).
@@ -183,15 +183,35 @@ def process_job_report(job):
     :return:
     """
 
-    with open(os.path.join(job['working_dir'], config.Payload.jobreport)) as data_file:
-        # compulsory field; the payload must procude a job report (see config file for file name)
-        jobreport_data = json.load(data_file)
-        job['metaData'] = parse_jobreport_data(jobreport_data)
+    log = logger.getChild(str(job['PandaID']))
+    path = os.path.join(job['working_dir'], config.Payload.jobreport)
+    if not os.path.exists(path):
+        log.warning('job report does not exist: %s' % path)
+    else:
+        with open(path) as data_file:
+            # compulsory field; the payload must procude a job report (see config file for file name)
+            job['metaData'] = json.load(data_file)
 
-        # extract user specific info from job report
-        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
-        user.update_job_data(job)
+            # extract user specific info from job report
+            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+            user.update_job_data(job)
+
+            # compulsory fields
+            try:
+                job['exitCode'] = job['metaData']['exitCode']
+            except Exception as e:
+                log.warning('could not find compulsory payload exitCode in job report: %s (will be set to 0)' % e)
+                job['exitCode'] = 0
+            else:
+                log.info('extracted exit code from job report: %d' % job['exitCode'])
+            try:
+                job['exitMsg'] = job['metaData']['exitMsg']
+            except Exception as e:
+                log.warning('could not find compulsory payload exitMsg in job report: %s (will be set to empty string)' % e)
+                job['exitMsg'] = ""
+            else:
+                log.info('extracted exit message from job report: %s' % job['exitMsg'])
 
 
 def validate_post(queues, traces, args):
@@ -214,8 +234,7 @@ def validate_post(queues, traces, args):
             continue
         log = logger.getChild(str(job['PandaID']))
 
-        # note: all PanDA users should generate a job report json file (required by Harvester)
-        # process the job report and set multiple fields
+        # process the job report if it exists and set multiple fields
         process_job_report(job)
 
         log.debug('adding job to data_out queue')
