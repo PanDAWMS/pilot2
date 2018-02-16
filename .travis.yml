@@ -12,6 +12,6 @@ install:
 before_script:
   - pwd
   - ls -lah
-  - flake8 --config ./.flake8 pilot.py pilot/
+  - flake8 --config .flake8 pilot.py pilot/
 script:
   -  unit2 -v
