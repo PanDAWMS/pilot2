@@ -13,6 +13,7 @@ before_script:
   - ls -lah
   - pip freeze
   - flake8 --help
+  - if [[ $FLAKE8_CONFIG != ".flake8" ]]; then rm .flake8; fi
   - flake8 --config ${FLAKE8_CONFIG} pilot.py pilot/
 script:
   -  unit2 -v
@@ -20,7 +21,6 @@ matrix:
   include:
   - python: 2.6
     env: FLAKE8_CONFIG=".flake8.py26" FLAKE8_VERSION="<3.0.0"
-    rm .flake8
   - python: 2.7
     env: FLAKE8_CONFIG=.flake8
   exclude:
