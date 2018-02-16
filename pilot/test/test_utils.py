@@ -24,6 +24,9 @@ class TestUtils(unittest.TestCase):
         if os.environ.get('MACOSX') == 'true':
             self.mac = True
 
+        from pilot.info import infosys
+        infosys.init("AGLT2_TEST-condor")
+
     def test_collect_workernode_info(self):
         """
         Make sure that collect_workernode_info() returns the proper types (float, float).
@@ -52,7 +55,9 @@ class TestUtils(unittest.TestCase):
         if self.mac:
             return True
 
-        queuedata = {'maxwdir': 123456789}
-        diskspace = get_disk_space(queuedata)
+        #queuedata = {'maxwdir': 123456789}
+        from pilot.info import infosys
+
+        diskspace = get_disk_space(infosys.queuedata)  ## FIX ME LATER
 
         self.assertEqual(type(diskspace), int)
