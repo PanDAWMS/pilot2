@@ -70,7 +70,12 @@ class Executor(generic.Executor, ESHook):
 
         try:
             payload = {'executable': asetup + cmd, 'workdir': job['working_dir'], 'output_file': out, 'error_file': err}
+            log.debug("payload: %s" % payload)
+
+            log.info("Starting ESProcess")
             proc = ESProcess(payload)
+            log.info("ESProcess started")
+
             proc.set_get_event_ranges_hook(self.get_event_ranges)
             proc.set_handle_out_message_hook(self.handle_out_message)
 

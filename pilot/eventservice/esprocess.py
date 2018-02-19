@@ -100,13 +100,11 @@ class ESProcess():
                 elif not os.path.isdir(workdir):
                     raise SetupFailure('Workdir exists but it is not a directory.')
                 executable = 'cd %s; %s' % (workdir, executable)
-            output_file = self.__payload['output_file'] if 'output_file' in self.__payload else os.path.join(workdir, "ES_payload_output.txt")
-            error_file = self.__payload['error_file'] if 'error_file' in self.__payload else os.path.join(workdir, "ES_payload_error.txt")
-            output_file_fd = open(output_file, 'w')
-            error_file_fd = open(error_file, 'w')
+            output_file_fd = self.__payload['output_file'] if 'output_file' in self.__payload else open(os.path.join(workdir, "ES_payload_output.txt"), 'w')
+            error_file_fd = self.__payload['error_file'] if 'error_file' in self.__payload else open(os.path.join(workdir, "ES_payload_error.txt"), 'w')
             self.__process = subprocess.Popen(executable, stdout=output_file_fd, stderr=error_file_fd, shell=True)
             self.pid = self.__process.pid
-            logger.debug("Started new processs(executable: %s, stdout: %s, stderr: %s, pid: %s)" % (executable, output_file, error_file, self.__process.pid))
+            logger.debug("Started new processs(executable: %s, stdout: %s, stderr: %s, pid: %s)" % (executable, output_file_fd, error_file_fd, self.__process.pid))
         except PilotException as e:
             logger.error("Failed to start payload process: %s" % e.get_detail())
             self.__ret_code = -1
@@ -136,7 +134,7 @@ class ESProcess():
 
     def set_handle_out_message_hook(self, hook):
         """
-/        set handle_out_message hook.
+        set handle_out_message hook.
 
         :param hook: a hook method to handle payload output and error messages.
         """
