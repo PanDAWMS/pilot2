@@ -93,7 +93,7 @@ class Executor(generic.Executor, ESHook):
             status = message['status'] if message['status'] in ['failed', 'fatal'] else 'failed'
             # ToBeFixed errorCode
             event_ranges.append({"errorCode": 1220, "eventRangeID": message['id'], "eventStatus": status})
-        update_event_ranges(job, event_ranges)
+        update_event_ranges(job, event_ranges, version=0)
 
     def handle_out_message(self, message):
         """
@@ -126,7 +126,7 @@ class Executor(generic.Executor, ESHook):
         while len(self.__queued_out_messages) > 0:
             out_messages.append(self.__queued_out_messages.pop())
 
-        output_file = "EventService_premerge_%s" % out_messages[0]['id']
+        output_file = "EventService_premerge_%s.tar" % out_messages[0]['id']
 
         ret_messages = []
         try:
