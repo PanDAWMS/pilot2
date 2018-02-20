@@ -14,6 +14,7 @@ import re
 import signal
 import subprocess
 import time
+import threading
 
 from pilot.common.exception import PilotException, MessageFailure, SetupFailure, RunPayloadFailure, UnknownException
 from pilot.eventservice.esmessage import MessageThread
@@ -28,7 +29,7 @@ it's running. The process will handle the logic of Event service independently.
 """
 
 
-class ESProcess():
+class ESProcess(threading.Thread):
     """
     Main EventService Process.
     """
@@ -38,6 +39,8 @@ class ESProcess():
 
         :param payload: a dict of {'executable': <cmd string>, 'output_file': <filename or without it>, 'error_file': <filename or without it>}
         """
+        threading.Thread.__init__(self)
+
         self.__message_queue = Queue.Queue()
         self.__payload = payload
 
@@ -50,12 +53,9 @@ class ESProcess():
         self.__monitor_log_time = None
         self.__no_more_event_time = None
         self.__waiting_time = 30 * 60
+        self.__stop = False
 
         self.pid = None
-
-        logger.debug('initializing.')
-        self.init()
-        logger.debug('initialization finished.')
 
         self.__ret_code = None
 
@@ -104,7 +104,10 @@ class ESProcess():
             error_file_fd = self.__payload['error_file'] if 'error_file' in self.__payload else open(os.path.join(workdir, "ES_payload_error.txt"), 'w')
             self.__process = subprocess.Popen(executable, stdout=output_file_fd, stderr=error_file_fd, shell=True)
             self.pid = self.__process.pid
-            logger.debug("Started new processs(executable: %s, stdout: %s, stderr: %s, pid: %s)" % (executable, output_file_fd, error_file_fd, self.__process.pid))
+            logger.debug("Started new processs(executable: %s, stdout: %s, stderr: %s, pid: %s)" % (executable,
+                                                                                                    output_file_fd,
+                                                                                                    error_file_fd,
+                                                                                                    self.__process.pid))
         except PilotException as e:
             logger.error("Failed to start payload process: %s" % e.get_detail())
             self.__ret_code = -1
@@ -161,6 +164,7 @@ class ESProcess():
         except Exception as e:
             # TODO: raise exceptions
             self.__ret_code = -1
+            self.__stop = True
             raise e
 
     def monitor(self):
@@ -188,6 +192,7 @@ class ESProcess():
         if self.__process is None:
             raise RunPayloadFailure("Payload Process has not started.")
         if self.__process.poll() is not None:
+            self.__ret_code = self.__process.poll()
             raise RunPayloadFailure("Payload process is not alive: %s" % self.__process.poll())
 
     def get_event_ranges(self, num_ranges=1):
@@ -329,8 +334,6 @@ class ESProcess():
                   0: finished successfully.
                   others: failed.
         """
-        if self.__ret_code is not None:
-            self.terminate()
         return self.__ret_code
 
     def terminate(self, time_to_wait=30):
@@ -357,12 +360,16 @@ class ESProcess():
                     logger.info('terminating payload process.')
                     pgid = os.getpgid(self.__process.pid)
                     logger.info('got process group id for pid %s: %s' % (self.__process.pid, pgid))
-                    logger.info('send SIGTERM to process group: %s' % pgid)
-                    os.killpg(pgid, signal.SIGTERM)
+                    # logger.info('send SIGTERM to process group: %s' % pgid)
+                    # os.killpg(pgid, signal.SIGTERM)
+                    logger.info('send SIGTERM to process: %s' % self.__process.pid)
+                    os.kill(self.__process.pid, signal.SIGTERM)
             self.__ret_code = self.__process.poll()
+            self.__stop = True
         except Exception as e:
             logger.error('Exception caught when terminating ESProcess: %s' % e)
             self.__ret_code = -1
+            self.__stop = True
             raise UnknownException(e)
 
     def kill(self):
@@ -390,8 +397,10 @@ class ESProcess():
                     logger.info('got process group id for pid %s: %s' % (self.__process.pid, pgid))
                     logger.info('send SIGKILL to process group: %s' % pgid)
                     os.killpg(pgid, signal.SIGKILL)
+            self.__stop = True
         except Exception as e:
             logger.error('Exception caught when terminating ESProcess: %s' % e)
+            self.__stop = True
             raise UnknownException(e)
 
     def run(self):
@@ -403,8 +412,12 @@ class ESProcess():
                  UnknownException: when other unknown exception is caught.
         """
 
+        logger.debug('initializing.')
+        self.init()
+        logger.debug('initialization finished.')
+
         logger.debug('starts to main loop')
-        while True:
+        while not self.__stop:
             try:
                 self.monitor()
                 self.handle_messages()
@@ -412,9 +425,11 @@ class ESProcess():
             except PilotException as e:
                 logger.error('Exception caught in the main loop: %s' % e.get_detail())
                 # TODO: define output message exception. If caught 3 output message exception, terminate
+                self.__stop = True
             except Exception as e:
                 logger.error('Exception caught in the main loop: %s' % e)
                 # TODO: catch and raise exceptions
                 # if catching dead process exception, terminate.
                 self.terminate()
                 break
+        logger.debug('main loop finished')
