@@ -61,7 +61,7 @@ class Executor(object):
 
         :return: seconds.
         """
-        gap = self.__args.location.queuedata['zip_time_gap'] if 'zip_time_gap' in self.__args.location.queuedata['zip_time_gap'] else None
+        gap = self.__args.location.queuedata['zip_time_gap'] if 'zip_time_gap' in self.__args.location.queuedata else None
         if not gap:
             pledgedcpu = self.__args.location.queuedata['pledgedcpu']
             if pledgedcpu and pledgedcpu == -1:
