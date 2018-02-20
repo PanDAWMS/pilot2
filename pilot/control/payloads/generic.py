@@ -28,6 +28,48 @@ class Executor(object):
         self.__out = out
         self.__err = err
 
+    def get_job(self):
+        """
+        Get the job object.
+
+        :return: job object.
+        """
+        return self.__job
+
+    def get_queuedata(self):
+        """
+        Get queue data.
+
+        :return: queue data.
+        """
+        return self.__args.location.queuedata
+
+    def get_corecount(self):
+        """
+        Get corecount.
+
+        :return: corecount.
+        """
+        corecount = self.__args.location.queuedata['corecount']
+        if not corecount:
+            corecount = 1
+        return corecount
+
+    def get_es_stageout_gap(self):
+        """
+        Get gap time of ES stageout.
+
+        :return: seconds.
+        """
+        gap = self.__args.location.queuedata['zip_time_gap'] if 'zip_time_gap' in self.__args.location.queuedata['zip_time_gap'] else None
+        if not gap:
+            pledgedcpu = self.__args.location.queuedata['pledgedcpu']
+            if pledgedcpu and pledgedcpu == -1:
+                gap = 600  ## 10 minutes
+            else:
+                gap = 600  ## ToBeFixed 7200 default. 600 is just for test
+        return gap
+
     def setup_payload(self, job, out, err):
         """
         (add description)
