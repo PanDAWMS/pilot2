@@ -144,3 +144,10 @@ class QueueData(BaseData):
                 ret[user] = name
 
         return ret
+
+    def clean__corecount(self, raw, value):
+        """
+            Verify and validate value for the corecount key (set to 1 if not set)
+        """
+
+        return value if value else 1

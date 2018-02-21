@@ -17,6 +17,7 @@ from pilot.control.payloads import generic
 from pilot.eventservice.eshook import ESHook
 from pilot.eventservice.esprocess import ESProcess
 from pilot.eventservice.eventrange import download_event_ranges, update_event_ranges
+from pilot.info import infosys
 
 import logging
 logger = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ class Executor(generic.Executor, ESHook):
         log = logger.getChild(str(job['PandaID']))
         log.info("Getting event ranges: (num_ranges: %s)" % num_ranges)
         if len(self.__event_ranges) < num_ranges:
-            ret = download_event_ranges(job, num_ranges=self.get_corecount())
+            ret = download_event_ranges(job, num_ranges=infosys.queuedata.corecount)
             for event_range in ret:
                 self.__event_ranges.append(event_range)
 
@@ -171,7 +172,7 @@ class Executor(generic.Executor, ESHook):
         """
 
         if len(self.__queued_out_messages):
-            if force or self.__last_stageout_time is None or (time.time() > self.__last_stageout_time + self.get_es_stageout_gap()):
+            if force or self.__last_stageout_time is None or (time.time() > self.__last_stageout_time + infosys.queuedata.es_stageout_gap):
                 job = self.get_job()
                 log = logger.getChild(str(job['PandaID']))
 
@@ -211,7 +212,7 @@ class Executor(generic.Executor, ESHook):
                  'source $AtlasSetup/scripts/asetup.sh %s,here; ' % athena_version
         cmd = job['transformation'] + ' ' + job['jobPars']
 
-        executable = "export ATHENA_PROC_NUMBER=%s; " % self.get_corecount()
+        executable = "export ATHENA_PROC_NUMBER=%s; " % infosys.queuedata.corecount
         executable = executable + asetup + cmd
         log.debug('executable=%s' % executable)
 
