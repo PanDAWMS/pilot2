@@ -432,7 +432,8 @@ def _stage_out_all(job, args):
     if failed:
         # set error code + message
         job['pilotErrorCodes'], job['pilotErrorDiags'] = errors.add_error_code(errors.STAGEOUTFAILED)
-        job['state'] = "failed"
+        if not 'state' in job:
+            job['state'] = "failed"
         log.warning('stage-out failed')  # with error: %d, %s (setting job state to failed)' %
         # log.warning('stage-out failed with error: %d, %s (setting job state to failed)' %
         #  (job['pilotErrorCode'], job['pilotErrorDiag']))
@@ -442,7 +443,7 @@ def _stage_out_all(job, args):
         log.info('stage-out finished correctly')
         job['fileinfodict'] = fileinfodict
         # is the job state already set? if so, don't change the state
-        if job['state'] == "":
+        if not 'state' in job:
             job['state'] = "finished"
 
         # send final server update since all transfers have finished correctly
