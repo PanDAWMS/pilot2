@@ -8,9 +8,6 @@
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 import json
-import Queue
-import os
-import time
 
 from pilot.util import https
 from pilot.util.config import config
@@ -32,7 +29,7 @@ def download_event_ranges(job, num_ranges=None):
     log = logger.getChild(str(job['PandaID']))
 
     try:
-        if num_ranges == None:
+        if not num_ranges:
             # ToBeFix num_ranges with corecount
             num_ranges = 1
 
@@ -43,7 +40,7 @@ def download_event_ranges(job, num_ranges=None):
 
         log.info("Downloading new event ranges: %s" % data)
         res = https.request('{pandaserver}/server/panda/getEventRanges'.format(pandaserver=config.Pilot.pandaserver),
-                             data=data)
+                            data=data)
         log.info("Downloaded event ranges: %s" % res)
         if res['StatusCode'] == 0 or str(res['StatusCode']) == '0':
             return res['eventRanges']
@@ -72,7 +69,7 @@ def update_event_ranges(job, event_ranges, version=1):
 
         log.info("Updating event ranges: %s" % data)
         res = https.request('{pandaserver}/server/panda/updateEventRanges'.format(pandaserver=config.Pilot.pandaserver),
-                             data=data)
+                            data=data)
 
         log.info("Updated event ranges status: %s" % res)
     except Exception, e:
