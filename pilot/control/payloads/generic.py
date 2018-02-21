@@ -15,6 +15,7 @@ import time
 import os
 
 from pilot.control.job import send_state
+from pilot.info import infosys
 from pilot.util.container import execute
 
 import logging
@@ -27,6 +28,40 @@ class Executor(object):
         self.__job = job
         self.__out = out
         self.__err = err
+
+    def get_job(self):
+        """
+        Get the job object.
+
+        :return: job object.
+        """
+        return self.__job
+
+    def get_corecount(self):
+        """
+        Get corecount.
+
+        :return: corecount.
+        """
+        corecount = infosys.queuedata.corecount
+        if not corecount:
+            corecount = 1
+        return corecount
+
+    def get_es_stageout_gap(self):
+        """
+        Get gap time of ES stageout.
+
+        :return: seconds.
+        """
+        gap = infosys.queuedata.es_stageout_gap
+        if not gap:
+            pledgedcpu = infosys.queuedata.pledgedcpu
+            if pledgedcpu and pledgedcpu == -1:
+                gap = 600  ## 10 minutes
+            else:
+                gap = 600  ## ToBeFixed 7200 default. 600 is just for test
+        return gap
 
     def setup_payload(self, job, out, err):
         """

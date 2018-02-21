@@ -50,6 +50,12 @@ class PilotException(Exception):
         return self._error_string.strip()
 
     def get_detail(self):
+        try:
+            self._error_string = "Error code: %s, message: %s" % (self._errorCode, self._message % self.kwargs)
+        except Exception:
+            # at least get the core message out if something happened
+            self._error_string = "Error code: %s, message: %s" % (self._errorCode, self._message)
+
         return self._error_string + "\nStacktrace: %s" % self._stack_trace
 
     def get_error_code(self):

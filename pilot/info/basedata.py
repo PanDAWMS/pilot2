@@ -74,13 +74,24 @@ class BaseData(object):
                 ## cast to required type and apply default validation
                 hvalidator = validators.get(ktype, validators.get(None))
                 if callable(hvalidator):
-                    value = hvalidator(raw, ktype, kname)
+                    value = hvalidator(raw, ktype, kname, defval=getattr(self, kname, None))
                 ## apply custom validation if defined
                 hvalidator = getattr(self, 'clean__%s' % kname, None)
                 if callable(hvalidator):
                     value = hvalidator(raw, value)
 
                 setattr(self, kname, value)
+
+        self.clean()
+
+    def clean(self):
+        """
+            Validate and finally clean up required data values (required object properties) if need
+            Executed once all fields have already passed field-specific validation checks
+            Could be customized by child object
+            :return: None
+        """
+        pass
 
     ##
     ## default validators
