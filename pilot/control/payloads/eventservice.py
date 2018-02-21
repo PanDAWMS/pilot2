@@ -30,6 +30,7 @@ class Executor(generic.Executor, ESHook):
         self.__event_ranges = []
         self.__queued_out_messages = []
         self.__last_stageout_time = None
+        self.__all_out_messages = []
 
     def get_event_ranges(self, num_ranges=1):
         """
@@ -108,6 +109,8 @@ class Executor(generic.Executor, ESHook):
         job = self.get_job()
         log = logger.getChild(str(job['PandaID']))
         log.info("Handling out message: %s" % message)
+
+        self.__all_out_messages.append(message)
 
         if message['status'] in ['failed', 'fatal']:
             self.update_failed_event_ranges([message])
@@ -194,6 +197,27 @@ class Executor(generic.Executor, ESHook):
                         self.__queued_out_messages += out_messagess
                         self.update_failed_event_ranges(out_messagess)
 
+    def clean(self):
+        """
+        Clean temp produced files
+        """
+        job = self.get_job()
+        log = logger.getChild(str(job['PandaID']))
+
+        for msg in self.__all_out_messages:
+            if msg['status'] in ['failed', 'fatal']:
+                pass
+            elif 'output' in msg:
+                try:
+                    log.info("Removing es premerge file: %s" % msg['output'])
+                    os.remove(msg['output'])
+                except Exception as e:
+                    log.error("Failed to remove file(%s): %s" % (msg['output'], str(e)))
+        self.__event_ranges = []
+        self.__queued_out_messages = []
+        self.__last_stageout_time = None
+        self.__all_out_messages = []
+
     def run_payload(self, job, out, err):
         """
         (add description)
@@ -273,6 +297,7 @@ class Executor(generic.Executor, ESHook):
                 log.info('running: iteration=%d pid=%s exit_code=%s' % (iteration, proc.pid, exit_code))
 
         self.stageout_es(force=True)
+        self.clean()
 
         exit_code = proc.poll()
         return exit_code
