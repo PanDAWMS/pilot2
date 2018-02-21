@@ -55,11 +55,10 @@ class QueueData(BaseData):
     corecount = 1  #
 
     pledgedcpu = 0  #
-    zip_time_gap = 0  # time gap value in seconds
     es_stageout_gap = 0  ## time gap value in seconds for ES stageout
 
     # specify the type of attributes for proper data validation and casting
-    _keys = {int: ['timefloor', 'maxwdir', 'pledgedcpu', 'es_stageout_gap', 'zip_time_gap',
+    _keys = {int: ['timefloor', 'maxwdir', 'pledgedcpu', 'es_stageout_gap',
                    'corecount'],
              str: ['name', 'appdir', 'catchall', 'cmtconfig', 'container_options', 'container_type',
                    'state', 'site'],
