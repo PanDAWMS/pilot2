@@ -52,9 +52,15 @@ class QueueData(BaseData):
     maxwdir = 0    # in MB
 
     timefloor = 0  # The maximum time during which the pilot is allowed to start a new job, in seconds
+    corecount = 1  #
+
+    pledgedcpu = 0  #
+    zip_time_gap = 0  # time gap value in seconds
+    es_stageout_gap = 0  ## time gap value in seconds for ES stageout
 
     # specify the type of attributes for proper data validation and casting
-    _keys = {int: ['timefloor', 'maxwdir'],
+    _keys = {int: ['timefloor', 'maxwdir', 'pledgedcpu', 'es_stageout_gap', 'zip_time_gap',
+                   'corecount'],
              str: ['name', 'appdir', 'catchall', 'cmtconfig', 'container_options', 'container_type',
                    'state', 'site'],
              dict: ['copytools', 'acopytools', 'astorages', 'aprotocols'],
@@ -93,6 +99,17 @@ class QueueData(BaseData):
         }
 
         self._load_data(data, kmap)
+
+    def clean(self):
+        """
+            Validate and finally clean up required data values (required object properties) if need
+            :return: None
+        """
+        # validate es_stageout_gap value
+        if not self.es_stageout_gap:
+            is_opportunistic = self.pledgedcpu and self.pledgedcpu == -1
+            self.es_stageout_gap = 600 if is_opportunistic else 7200  ## 10 munites for opportunistic or 5 hours for normal resources
+        pass
 
     ## custom function pattern to apply extra validation to the key values
     ##def clean__keyname(self, raw, value):
