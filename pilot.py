@@ -48,8 +48,13 @@ def main():
     logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
 
-    return workflow.run(args)
+    try:
+        ret = workflow.run(args)
+    except Exception as e:
+        logger.fatal('Pilot caught exception: %s' % e)
+        ret = None
 
+    return ret
 
 class Args:
     """
