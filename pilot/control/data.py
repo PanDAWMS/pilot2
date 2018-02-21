@@ -438,9 +438,11 @@ def _stage_out_all(job, args):
         # send_state(job, args, 'failed')
         return False
     else:
-        log.info('stage-out finished correctly (setting job state to finished)')
+        log.info('stage-out finished correctly')
         job['fileinfodict'] = fileinfodict
-        job['state'] = "finished"
+        # is the job state already set? if so, don't change the state
+        if job['state'] == "":
+            job['state'] = "finished"
 
         # send final server update since all transfers have finished correctly
         # send_state(job, args, 'finished', xml=dumps(fileinfodict))
