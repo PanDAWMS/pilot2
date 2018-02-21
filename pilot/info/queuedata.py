@@ -55,11 +55,10 @@ class QueueData(BaseData):
     corecount = 1  #
 
     pledgedcpu = 0  #
-    zip_time_gap = 0  # time gap value in seconds
     es_stageout_gap = 0  ## time gap value in seconds for ES stageout
 
     # specify the type of attributes for proper data validation and casting
-    _keys = {int: ['timefloor', 'maxwdir', 'pledgedcpu', 'es_stageout_gap', 'zip_time_gap',
+    _keys = {int: ['timefloor', 'maxwdir', 'pledgedcpu', 'es_stageout_gap',
                    'corecount'],
              str: ['name', 'appdir', 'catchall', 'cmtconfig', 'container_options', 'container_type',
                    'state', 'site'],
@@ -144,3 +143,10 @@ class QueueData(BaseData):
                 ret[user] = name
 
         return ret
+
+    def clean__corecount(self, raw, value):
+        """
+            Verify and validate value for the corecount key (set to 1 if not set)
+        """
+
+        return value if value else 1
