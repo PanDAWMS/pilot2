@@ -425,6 +425,7 @@ def _stage_out_all(job, args):
                         'adler32': outputs[outfile]['adler32'],
                         'surl': outputs[outfile]['pfn']}
             fileinfodict[outputs[outfile]['name']] = filedict
+            log.info('fileinfodict=%s'%str(fileinfodict))
         else:
             failed = True
 
