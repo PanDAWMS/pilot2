@@ -403,6 +403,13 @@ class ESProcess(threading.Thread):
             self.__stop = True
             raise UnknownException(e)
 
+    def clean(self):
+        """
+        Clean left resources
+        """
+        if self.__message_thread:
+            self.__message_thread.terminate()
+
     def run(self):
         """
         Main run loops: monitor message thread and payload process.
@@ -432,4 +439,5 @@ class ESProcess(threading.Thread):
                 # if catching dead process exception, terminate.
                 self.terminate()
                 break
+        self.clean()
         logger.debug('main loop finished')

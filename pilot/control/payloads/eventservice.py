@@ -164,14 +164,14 @@ class Executor(generic.Executor, ESHook):
         """
         raise exception.NotImplemented("stageout_es_real is not implemented")
 
-    def stageout_es(self):
+    def stageout_es(self, force=False):
         """
         Stage out event service outputs.
 
         """
 
         if len(self.__queued_out_messages):
-            if self.__last_stageout_time is None or (time.time() > self.__last_stageout_time + self.get_es_stageout_gap()):
+            if force or self.__last_stageout_time is None or (time.time() > self.__last_stageout_time + self.get_es_stageout_gap()):
                 job = self.get_job()
                 log = logger.getChild(str(job['PandaID']))
 
@@ -271,7 +271,7 @@ class Executor(generic.Executor, ESHook):
             if iteration % 10 == 0:
                 log.info('running: iteration=%d pid=%s exit_code=%s' % (iteration, proc.pid, exit_code))
 
-        self.stageout_es()
+        self.stageout_es(force=True)
 
         exit_code = proc.poll()
         return exit_code
