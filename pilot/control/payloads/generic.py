@@ -15,6 +15,7 @@ import time
 import os
 
 from pilot.control.job import send_state
+from pilot.info import infosys
 from pilot.util.container import execute
 
 import logging
@@ -36,21 +37,13 @@ class Executor(object):
         """
         return self.__job
 
-    def get_queuedata(self):
-        """
-        Get queue data.
-
-        :return: queue data.
-        """
-        return self.__args.location.queuedata
-
     def get_corecount(self):
         """
         Get corecount.
 
         :return: corecount.
         """
-        corecount = self.__args.location.queuedata['corecount']
+        corecount = infosys.queuedata.corecount
         if not corecount:
             corecount = 1
         return corecount
@@ -61,9 +54,9 @@ class Executor(object):
 
         :return: seconds.
         """
-        gap = self.__args.location.queuedata['zip_time_gap'] if 'zip_time_gap' in self.__args.location.queuedata else None
+        gap = infosys.queuedata.es_stageout_gap
         if not gap:
-            pledgedcpu = self.__args.location.queuedata['pledgedcpu']
+            pledgedcpu = infosys.queuedata.pledgedcpu
             if pledgedcpu and pledgedcpu == -1:
                 gap = 600  ## 10 minutes
             else:
