@@ -712,9 +712,14 @@ def job_monitor(queues, traces, args):
         # job has not been defined if it's still running
         if job:
             # send final server update
-            if job['state'] == "finished":
-                send_state(job, args, 'finished', xml=dumps(job['fileinfodict']))
+            if job['fileinfodict']:
+                send_state(job, args, job['state'], xml=dumps(job['fileinfodict']))
             else:
-                send_state(job, args, 'failed')
+                send_state(job, args, job['state'])
+            #if job['state'] == "finished":
+            #
+            #    send_state(job, args, 'finished', xml=dumps(job['fileinfodict']))
+            #else:
+            #    send_state(job, args, 'failed')
 
             # now ready for the next job (or quit)
