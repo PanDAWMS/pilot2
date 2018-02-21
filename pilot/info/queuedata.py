@@ -96,6 +96,7 @@ class QueueData(BaseData):
         kmap = {
             'name': 'nickname',
             'site': ('atlas_site', 'gstat'),
+            'es_stageout_gap': 'zip_time_gap',
         }
 
         self._load_data(data, kmap)
