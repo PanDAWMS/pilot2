@@ -12,6 +12,7 @@ import re
 
 from pilot.util.information import get_container_options, get_container_type, get_catchall
 from pilot.user.atlas.setup import get_file_system_root_path
+from pilot.info import infosys
 
 import logging
 logger = logging.getLogger(__name__)
@@ -59,7 +60,7 @@ def get_middleware_container():
     pass
 
 
-def extract_container_options():  ## TO BE DEPRECATED: consider job['infosys'].queuedata.container_options
+def extract_container_options():  # DEPRECATED
     """ Extract any singularity options from catchall """
 
     # e.g. catchall = "somestuff singularity_options=\'-B /etc/grid-security/certificates,/var/spool/slurmd,/cvmfs,/ceph/grid,/data0,/sys/fs/cgroup\'"
@@ -69,7 +70,7 @@ def extract_container_options():  ## TO BE DEPRECATED: consider job['infosys'].q
     # if not there, add it
 
     # First try with reading new parameters from schedconfig
-    container_options = get_container_options()
+    container_options = infosys.queuedata.container_options  # get_container_options()
     if container_options == "":
         logger.warning("container_options either does not exist in queuedata or is empty, trying with catchall instead")
         # E.g. catchall = "singularity_options=\'-B /etc/grid-security/certificates,/cvmfs,${workdir} --contain\'"
@@ -158,7 +159,7 @@ def get_middleware_type():
     """
 
     middleware_type = ""
-    container_type = get_container_type()
+    container_type = infosys.queuedata.container_type # get_container_type()
 
     mw = 'middleware'
     if container_type and container_type != "" and mw in container_type:
@@ -178,7 +179,7 @@ def get_middleware_type():
     return middleware_type
 
 
-def get_container_name(user="pilot"):  ## TO BE DEPRECATED: consider job['infosys'].queuedata.container_type.get("pilot")
+def get_container_name(user="pilot"):  # DEPRECATED
     """
     Return the container name
     E.g. container_type = 'singularity:pilot;docker:wrapper'
@@ -189,7 +190,7 @@ def get_container_name(user="pilot"):  ## TO BE DEPRECATED: consider job['infosy
     """
 
     container_name = ""
-    container_type = get_container_type()
+    container_type = infosys.queuedata.container_type  # get_container_type()
 
     if container_type and container_type != "" and user in container_type:
         try:
