@@ -296,7 +296,10 @@ def parse_jobreport_data(job_report):
                     v = v[key]
                 else:
                     return
-            dst_dict[dst_key] = v[last_key]
+            if last_key in v:
+                dst_dict[dst_key] = v[last_key]
+            else:
+                return
 
     if 'ATHENA_PROC_NUMBER' in os.environ:
         work_attributes['core_count'] = os.environ['ATHENA_PROC_NUMBER']
