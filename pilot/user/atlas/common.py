@@ -10,6 +10,7 @@
 import os
 
 # from pilot.common.exception import PilotException
+from pilot.util.container import execute
 from pilot.user.atlas.setup import should_pilot_prepare_asetup, is_user_analysis_job, get_platform, get_asetup, \
     get_asetup_options, is_standard_atlas_job
 
@@ -178,6 +179,7 @@ def parse_jobreport_data(job_report):
     if 'resource' in job_report and 'executor' in job_report['resource']:
         j = job_report['resource']['executor']
         exc_report = []
+        from collections import defaultdict
         fin_report = defaultdict(int)
         for v in filter(lambda d: 'memory' in d and ('Max' or 'Avg' in d['memory']), j.itervalues()):
             if 'Avg' in v['memory']:
@@ -202,6 +204,18 @@ def parse_jobreport_data(job_report):
     del(work_attributes["__db_data"])
 
     return work_attributes
+
+
+def get_workdir_size():
+    """
+    Tmp function - move later to file_handling
+
+    :return:
+    """
+    c, o, e = execute('du -s', shell=True)
+    if o is not None:
+        return o.split()[0]
+    return None
 
 
 def get_executor_dictionary(jobreport_dictionary):

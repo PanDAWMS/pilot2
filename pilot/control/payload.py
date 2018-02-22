@@ -263,10 +263,3 @@ def failed_post(queues, traces, args):
 
         job['stageout'] = "log"  # only stage-out log file
         queues.data_out.put(job)
-
-
-def get_workdir_size():
-    c, o, e = execute('du -s', shell=True)
-    if o is not None:
-        return o.split()[0]
-    return None
