@@ -59,7 +59,7 @@ def get_middleware_container():
     pass
 
 
-def extract_container_options():
+def extract_container_options():  ## TO BE DEPRECATED: consider job['infosys'].queuedata.container_options
     """ Extract any singularity options from catchall """
 
     # e.g. catchall = "somestuff singularity_options=\'-B /etc/grid-security/certificates,/var/spool/slurmd,/cvmfs,/ceph/grid,/data0,/sys/fs/cgroup\'"
@@ -230,8 +230,11 @@ def singularity_wrapper(cmd, platform, workdir, job):
         logger.info("singularity has been requested")
 
         # Get the singularity options
-        singularity_options = extract_container_options()
-        if singularity_options == "":
+        #singularity_options = extract_container_options()
+        singularity_options = job['infosys'].queuedata.container_options
+        logger.debug("resolved singularity_options from job.infosys.queuedata.container_options: %s" % singularity_options)
+
+        if not singularity_options:
             logger.warning('singularity options not set')
 
         # Get the image path
