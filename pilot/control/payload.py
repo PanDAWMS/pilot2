@@ -272,6 +272,7 @@ def failed_post(queues, traces, args):
         queues.data_out.put(job)
 
 
+#  MOVE TO ATLAS CODE
 def parse_jobreport_data(job_report):
     work_attributes = {}
     if job_report is None or not any(job_report):
