@@ -122,9 +122,9 @@ def update_job_data(job):
     try:
         work_attributes = parse_jobreport_data(job['metaData'])
     except Exception as e:
-        log.warning('failed to parse job report: %s' % e)
+        logger.warning('failed to parse job report: %s' % e)
     else:
-        log.info('work_attributes = %s' % str(work_attributes))
+        logger.info('work_attributes = %s' % str(work_attributes))
 
 
 def parse_jobreport_data(job_report):
