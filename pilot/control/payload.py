@@ -192,6 +192,13 @@ def process_job_report(job):
             # compulsory field; the payload must procude a job report (see config file for file name)
             job['metaData'] = json.load(data_file)
 
+            try:
+                work_attributes = parse_jobreport_data(job['metaData'])
+            except Exception as e:
+                log.warning('failed to parse job report: %s' % e)
+            else:
+                log.info('work_attributes = %s' % str(work_attributes))
+
             # extract user specific info from job report
             pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
             user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
