@@ -8,6 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Wen Guan, wen.guan@cern.ch, 2018
 
 import copy
 import Queue
@@ -305,9 +306,10 @@ def prepare_log(job, tarball_name):
                       mode='w:gz',
                       dereference=True) as log_tar:
         for _file in list(set(os.listdir(job['working_dir'])) - set(input_files) - set(output_files) - set(force_exclude)):
-            logging.debug('adding to log: %s' % _file)
-            log_tar.add(os.path.join(job['working_dir'], _file),
-                        arcname=os.path.join(tarball_name, _file))
+            if os.path.exists(os.path.join(job['working_dir'], _file)):
+                logging.debug('adding to log: %s' % _file)
+                log_tar.add(os.path.join(job['working_dir'], _file),
+                            arcname=os.path.join(tarball_name, _file))
 
     return {'scope': job['scopeLog'],
             'name': job['logFile'],
@@ -413,6 +415,8 @@ def _stage_out_all(job, args):
     failed = False
 
     for outfile in outputs:
+        if outfile not in job['outFiles']:
+            continue
         summary = _stage_out(args, outputs[outfile], job)
 
         if summary is not None:

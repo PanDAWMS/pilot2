@@ -62,6 +62,9 @@ class MessageThread(threading.Thread):
         """
         logger.debug('Send a message to yampl: %s' % message)
         try:
+            if not self.__message_server:
+                raise MessageFailure("No message server.")
+
             self.__message_server.send_raw(message)
         except Exception as e:
             raise MessageFailure(e)
@@ -85,9 +88,10 @@ class MessageThread(threading.Thread):
         """
         Terminate message server.
         """
-        logger.info('terminate message thread')
-        del self.__message_server
-        self.__message_server = None
+        if self.__message_server:
+            logger.info("Terminating message server.")
+            del self.__message_server
+            self.__message_server = None
 
     def run(self):
         """
@@ -100,14 +104,20 @@ class MessageThread(threading.Thread):
                 if self.stopped():
                     self.terminate()
                     break
+                if not self.__message_server:
+                    raise MessageFailure("No message server.")
+
                 size, buf = self.__message_server.try_recv_raw()
                 if size == -1:
                     time.sleep(0.00001)
                 else:
                     self.__message_queue.put(buf)
         except PilotException as e:
-            raise e
+            self.terminate()
+            logger.error("Message thread got an exception, will finish: %s" % e.get_detail())
+            # raise e
         except Exception as e:
             self.terminate()
-            raise MessageFailure(e)
+            logger.error("Message thread got an exception, will finish: %s" % str(e))
+            # raise MessageFailure(e)
         logger.info('Message thread finished.')

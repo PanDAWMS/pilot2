@@ -14,6 +14,7 @@ on the configuration settings
 :contact: anisyonk@cern.ch
 :date: January 2018
 """
+import re
 
 from .basedata import BaseData
 
@@ -35,7 +36,7 @@ class QueueData(BaseData):
     catchall = ""   #
 
     cmtconfig = ""
-    container_options = ""
+    container_options = ""  # singularity only options? to be reviewed and forced to be a dict (support options for other containers?)
     container_type = {}  # dict of container names by user as a key
 
     copytools = None
@@ -55,11 +56,10 @@ class QueueData(BaseData):
     corecount = 1  #
 
     pledgedcpu = 0  #
-    zip_time_gap = 0  # time gap value in seconds
     es_stageout_gap = 0  ## time gap value in seconds for ES stageout
 
     # specify the type of attributes for proper data validation and casting
-    _keys = {int: ['timefloor', 'maxwdir', 'pledgedcpu', 'es_stageout_gap', 'zip_time_gap',
+    _keys = {int: ['timefloor', 'maxwdir', 'pledgedcpu', 'es_stageout_gap',
                    'corecount'],
              str: ['name', 'appdir', 'catchall', 'cmtconfig', 'container_options', 'container_type',
                    'state', 'site'],
@@ -106,10 +106,28 @@ class QueueData(BaseData):
             Validate and finally clean up required data values (required object properties) if need
             :return: None
         """
+
         # validate es_stageout_gap value
         if not self.es_stageout_gap:
             is_opportunistic = self.pledgedcpu and self.pledgedcpu == -1
             self.es_stageout_gap = 600 if is_opportunistic else 7200  ## 10 munites for opportunistic or 5 hours for normal resources
+
+        # validate container_options: extract from the catchall if not set
+        if not self.container_options and self.catchall:  ## container_options is considered for the singularity container, FIX ME LATER IF NEED
+            # expected format
+            # of catchall = "singularity_options=\'-B /etc/grid-security/certificates,/cvmfs,${workdir} --contain\'"
+            pattern = re.compile("singularity_options=['\"]?([^'\"]+)['\"]?")  ### FIX ME LATER: move to proper args parsing via shlex at Job class
+            found = re.findall(pattern, self.catchall)
+            if found:
+                self.container_options = found[0]
+                logger.info('container_options extracted from catchall: %s' % self.container_options)
+
+        # verify container_options: add the workdir if missing
+        if self.container_options:
+            if "${workdir}" not in self.container_options and " --contain" in self.container_options:  ## reimplement with shlex later
+                self.container_options = self.container_options.replace(" --contain", ",${workdir} --contain")
+                logger.info("Note: added missing ${workdir} to container_options/singularity_options: %s" % self.container_options)
+
         pass
 
     ## custom function pattern to apply extra validation to the key values
@@ -144,3 +162,17 @@ class QueueData(BaseData):
                 ret[user] = name
 
         return ret
+
+    def clean__container_options(self, raw, value):
+        """
+            Verify and validate value for the container_options key (remove bad values)
+        """
+
+        return value if value.lower() not in ['none'] else ''
+
+    def clean__corecount(self, raw, value):
+        """
+            Verify and validate value for the corecount key (set to 1 if not set)
+        """
+
+        return value if value else 1

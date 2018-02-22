@@ -17,6 +17,7 @@ from pilot.control.payloads import generic
 from pilot.eventservice.eshook import ESHook
 from pilot.eventservice.esprocess import ESProcess
 from pilot.eventservice.eventrange import download_event_ranges, update_event_ranges
+from pilot.info import infosys
 
 import logging
 logger = logging.getLogger(__name__)
@@ -29,6 +30,7 @@ class Executor(generic.Executor, ESHook):
         self.__event_ranges = []
         self.__queued_out_messages = []
         self.__last_stageout_time = None
+        self.__all_out_messages = []
 
     def get_event_ranges(self, num_ranges=1):
         """
@@ -41,7 +43,7 @@ class Executor(generic.Executor, ESHook):
         log = logger.getChild(str(job['PandaID']))
         log.info("Getting event ranges: (num_ranges: %s)" % num_ranges)
         if len(self.__event_ranges) < num_ranges:
-            ret = download_event_ranges(job, num_ranges=self.get_corecount())
+            ret = download_event_ranges(job, num_ranges=infosys.queuedata.corecount)
             for event_range in ret:
                 self.__event_ranges.append(event_range)
 
@@ -108,6 +110,8 @@ class Executor(generic.Executor, ESHook):
         log = logger.getChild(str(job['PandaID']))
         log.info("Handling out message: %s" % message)
 
+        self.__all_out_messages.append(message)
+
         if message['status'] in ['failed', 'fatal']:
             self.update_failed_event_ranges([message])
         else:
@@ -164,14 +168,14 @@ class Executor(generic.Executor, ESHook):
         """
         raise exception.NotImplemented("stageout_es_real is not implemented")
 
-    def stageout_es(self):
+    def stageout_es(self, force=False):
         """
         Stage out event service outputs.
 
         """
 
         if len(self.__queued_out_messages):
-            if self.__last_stageout_time is None or (time.time() > self.__last_stageout_time + self.get_es_stageout_gap()):
+            if force or self.__last_stageout_time is None or (time.time() > self.__last_stageout_time + infosys.queuedata.es_stageout_gap):
                 job = self.get_job()
                 log = logger.getChild(str(job['PandaID']))
 
@@ -193,6 +197,27 @@ class Executor(generic.Executor, ESHook):
                         self.__queued_out_messages += out_messagess
                         self.update_failed_event_ranges(out_messagess)
 
+    def clean(self):
+        """
+        Clean temp produced files
+        """
+        job = self.get_job()
+        log = logger.getChild(str(job['PandaID']))
+
+        for msg in self.__all_out_messages:
+            if msg['status'] in ['failed', 'fatal']:
+                pass
+            elif 'output' in msg:
+                try:
+                    log.info("Removing es premerge file: %s" % msg['output'])
+                    os.remove(msg['output'])
+                except Exception as e:
+                    log.error("Failed to remove file(%s): %s" % (msg['output'], str(e)))
+        self.__event_ranges = []
+        self.__queued_out_messages = []
+        self.__last_stageout_time = None
+        self.__all_out_messages = []
+
     def run_payload(self, job, out, err):
         """
         (add description)
@@ -211,7 +236,7 @@ class Executor(generic.Executor, ESHook):
                  'source $AtlasSetup/scripts/asetup.sh %s,here; ' % athena_version
         cmd = job['transformation'] + ' ' + job['jobPars']
 
-        executable = "export ATHENA_PROC_NUMBER=%s; " % self.get_corecount()
+        executable = "export ATHENA_PROC_NUMBER=%s; " % infosys.queuedata.corecount
         executable = executable + asetup + cmd
         log.debug('executable=%s' % executable)
 
@@ -271,7 +296,8 @@ class Executor(generic.Executor, ESHook):
             if iteration % 10 == 0:
                 log.info('running: iteration=%d pid=%s exit_code=%s' % (iteration, proc.pid, exit_code))
 
-        self.stageout_es()
+        self.stageout_es(force=True)
+        self.clean()
 
         exit_code = proc.poll()
         return exit_code
