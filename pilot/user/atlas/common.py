@@ -8,6 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import os
+from collections import defaultdict
 
 # from pilot.common.exception import PilotException
 from pilot.util.container import execute
@@ -179,7 +180,6 @@ def parse_jobreport_data(job_report):
     if 'resource' in job_report and 'executor' in job_report['resource']:
         j = job_report['resource']['executor']
         exc_report = []
-        from collections import defaultdict
         fin_report = defaultdict(int)
         for v in filter(lambda d: 'memory' in d and ('Max' or 'Avg' in d['memory']), j.itervalues()):
             if 'Avg' in v['memory']:
