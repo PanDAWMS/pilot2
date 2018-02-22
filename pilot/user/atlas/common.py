@@ -117,6 +117,92 @@ def update_job_data(job):
     # extract the number of events
     job['nEvents'] = get_number_of_events(job['metaData'])
 
+    try:
+        work_attributes = parse_jobreport_data(job['metaData'])
+    except Exception as e:
+        log.warning('failed to parse job report: %s' % e)
+    else:
+        log.info('work_attributes = %s' % str(work_attributes))
+
+
+def parse_jobreport_data(job_report):
+    """
+    Parse a job report and extract relevant fields.
+
+    :param job_report:
+    :return:
+    """
+    work_attributes = {}
+    if job_report is None or not any(job_report):
+        return work_attributes
+
+    # these are default values for job metrics
+    core_count = "undef"
+    work_attributes["n_events"] = "undef"
+    work_attributes["__db_time"] = "undef"
+    work_attributes["__db_data"] = "undef"
+
+    class DictQuery(dict):
+        def get(self, path, dst_dict, dst_key):
+            keys = path.split("/")
+            if len(keys) == 0:
+                return
+            last_key = keys.pop()
+            v = self
+            for key in keys:
+                if key in v and isinstance(v[key], dict):
+                    v = v[key]
+                else:
+                    return
+            if last_key in v:
+                dst_dict[dst_key] = v[last_key]
+            else:
+                return
+
+    if 'ATHENA_PROC_NUMBER' in os.environ:
+        work_attributes['core_count'] = os.environ['ATHENA_PROC_NUMBER']
+        core_count = os.environ['ATHENA_PROC_NUMBER']
+
+    dq = DictQuery(job_report)
+    dq.get("resource/transform/processedEvents", work_attributes, "n_events")
+    dq.get("resource/transform/cpuTimeTotal", work_attributes, "cpuConsumptionTime")
+    dq.get("resource/machine/node", work_attributes, "node")
+    dq.get("resource/machine/model_name", work_attributes, "cpuConsumptionUnit")
+    dq.get("resource/dbTimeTotal", work_attributes, "__db_time")
+    dq.get("resource/dbDataTotal", work_attributes, "__db_data")
+    dq.get("exitCode", work_attributes, "transExitCode")
+    dq.get("exitCode", work_attributes, "exeErrorCode")
+    dq.get("exitMsg", work_attributes, "exeErrorDiag")
+    dq.get("files/input/subfiles", work_attributes, "nInputFiles")
+
+    if 'resource' in job_report and 'executor' in job_report['resource']:
+        j = job_report['resource']['executor']
+        exc_report = []
+        fin_report = defaultdict(int)
+        for v in filter(lambda d: 'memory' in d and ('Max' or 'Avg' in d['memory']), j.itervalues()):
+            if 'Avg' in v['memory']:
+                exc_report.extend(v['memory']['Avg'].items())
+            if 'Max' in v['memory']:
+                exc_report.extend(v['memory']['Max'].items())
+        for x in exc_report:
+            fin_report[x[0]] += x[1]
+        work_attributes.update(fin_report)
+
+    if 'files' in job_report and 'input' in job_report['files'] and 'subfiles' in job_report['files']['input']:
+                work_attributes['nInputFiles'] = len(job_report['files']['input']['subfiles'])
+
+    workdir_size = get_workdir_size()
+    work_attributes['jobMetrics'] = 'core_count=%s n_events=%s db_time=%s db_data=%s workdir_size=%s' % \
+                                    (core_count,
+                                        work_attributes["n_events"],
+                                        work_attributes["__db_time"],
+                                        work_attributes["__db_data"],
+                                        workdir_size)
+    del(work_attributes["__db_time"])
+    del(work_attributes["__db_data"])
+
+    return work_attributes
+
 
 def get_executor_dictionary(jobreport_dictionary):
     """
