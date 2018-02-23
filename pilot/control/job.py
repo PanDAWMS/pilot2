@@ -20,8 +20,9 @@ from pilot.util.config import config
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id
-from pilot.util.information import get_timefloor
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
+
+from pilot.info import infosys, JobData
 
 import logging
 logger = logging.getLogger(__name__)
@@ -184,7 +185,7 @@ def validate(queues, traces, args):
         if _validate_job(job):
 
             log.debug('creating job working directory')
-            job_dir = os.path.join(args.mainworkdir, 'PanDA_Pilot-%s' % job['PandaID'])
+            job_dir = os.path.join(args.mainworkdir, 'PanDA_Pilot-%s' % job.jobid)
             try:
                 os.mkdir(job_dir)
                 job['working_dir'] = job_dir
@@ -532,14 +533,6 @@ def get_job_definition(args):
             logger.info('will download job definition from server')
             res = get_job_definition_from_server(args)
 
-    if res:  # initialize (job specific) InfoService instance
-        from pilot.info import InfoService, JobInfoProvider, infosys
-
-        jobinfosys = InfoService()
-        jobinfosys.init(args.queue, infosys.confinfo, infosys.extinfo, JobInfoProvider(res))
-        if res:
-            res['infosys'] = jobinfosys
-
     return res
 
 
@@ -575,7 +568,7 @@ def retrieve(queues, traces, args):
     :param args: arguments (e.g. containing queue name, queuedata dictionary, etc).
     """
 
-    timefloor = get_timefloor()
+    timefloor = infosys.queuedata.timefloor
     starttime = time.time()
 
     jobnumber = 0  # number of downloaded jobs
@@ -599,7 +592,7 @@ def retrieve(queues, traces, args):
             logger.fatal('fatal error in job download loop - cannot continue')
             break
 
-        if res == {}:
+        if not res:
             delay = get_job_retrieval_delay(args.harvester)
             if not args.harvester:
                 logger.warning('did not get a job -- sleep %d s and repeat' % delay)
@@ -615,17 +608,28 @@ def retrieve(queues, traces, args):
                         break
                     time.sleep(1)
             else:
-                logger.info('received job: %s (sleep until the job has finished)' % res['PandaID'])
-
-                # payload environment wants the PandaID to be set, also used below
-                os.environ['PandaID'] = str(res['PandaID'])
-
                 # update dispatcher data for ES (if necessary)
                 res = update_es_dispatcher_data(res)
 
+                # initialize (job specific) InfoService instance
+                from pilot.info import InfoService, JobInfoProvider
+
+                job = JobData(res)
+
+                jobinfosys = InfoService()
+                jobinfosys.init(args.queue, infosys.confinfo, infosys.extinfo, JobInfoProvider(job))
+                job.infosys = jobinfosys
+
+                logger.info('received job: %s (sleep until the job has finished)' % job.jobid)
+                logger.info('job details: \n%s' % job)
+
+                # payload environment wants the PandaID to be set, also used below
+                os.environ['PandaID'] = job.jobid
+
                 # add the job definition to the jobs queue and increase the job counter,
                 # and wait until the job has finished
-                queues.jobs.put(res)
+                queues.jobs.put(job)
+
                 jobnumber += 1
                 if args.graceful_stop.is_set():
                     logger.info('graceful stop is currently set')

@@ -154,7 +154,7 @@ class BaseData(object):
             logger.warning('failed to convert data for key=%s, raw=%s to type=%s' % (kname, raw, ktype))
             return defval
 
-        return raw.lower() in ['1', 'true', 'yes']
+        return val.lower() in ['1', 'true', 'yes']
 
     def clean_dictdata(self, raw, ktype, kname=None, defval=None):
         """
