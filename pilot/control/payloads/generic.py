@@ -86,7 +86,7 @@ class Executor(object):
             #                         cwd=job['working_dir'],
             #                         shell=True)
 
-            proc = execute(cmd, platform=job['cmtConfig'], workdir=job['working_dir'], returnproc=True,
+            proc = execute(cmd, platform=job.platform, workdir=job['working_dir'], returnproc=True,
                            usecontainer=True, stdout=out, stderr=err, cwd=job['working_dir'], job=job)
         except Exception as e:
             log.error('could not execute: %s' % str(e))

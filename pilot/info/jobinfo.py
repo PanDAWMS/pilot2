@@ -42,5 +42,20 @@ class JobInfoProvider(object):
             :return: dict of settings for given PandaQueue as a key
         """
 
-        ## TO BE IMPLEMENTED
-        return None
+        # keys format: [(inputkey, outputkey), inputkey2]
+        # outputkey is the name of external source attribute
+        keys = [('platform', 'cmtconfig')]
+
+        data = {}
+        for key in keys:
+            if not isinstance(key, (list, tuple)):
+                key = [key, key]
+            ikey = key[0]
+            okey = key[1] if len(key) > 1 else key[0]
+            val = getattr(self.job, ikey)
+            if val:  # ignore empty or zero values -- FIX ME LATER for integers later if need
+                data[okey] = val
+
+        logger.info('queuedata: following keys will be overwritten by Job values: %s' % data)
+
+        return {pandaqueue: data}
