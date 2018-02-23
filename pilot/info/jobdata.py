@@ -132,7 +132,7 @@ class JobData(BaseData):
 
         self._load_data(data, kmap)
 
-    def is_analysis(self):
+    def is_analysis(self):  ## if it's experiment specific logic then it could be isolated into extended JobDataATLAS class
         """
             Determine whether the job is an analysis user job or not.
             :return: True in case of user analysis job

@@ -10,7 +10,7 @@
 import os
 
 # from pilot.common.exception import PilotException
-from pilot.user.atlas.setup import should_pilot_prepare_asetup, is_user_analysis_job, get_asetup, \
+from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, \
     get_asetup_options, is_standard_atlas_job
 
 import logging
@@ -30,7 +30,7 @@ def get_payload_command(job):
     prepareasetup = should_pilot_prepare_asetup(job.get('noExecStrCnv', None), job['jobPars'])
 
     # Is it a user job or not?
-    userjob = is_user_analysis_job(job['transformation'])
+    userjob = job.is_analysis()
 
     # Get the platform value
     platform = job.infosys.queuedata.platform
