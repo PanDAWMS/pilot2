@@ -67,7 +67,7 @@ def _validate_job(job):
     """
     # valid = random.uniform(0, 100)
     # if valid > 99:
-    #     logger.warning('%s: job did not validate correctly -- skipping' % job['PandaID'])
+    #     logger.warning('%s: job did not validate correctly -- skipping' % job.jobid)
     #     job['errno'] = random.randint(0, 100)
     #     job['errmsg'] = 'job failed random validation'
     #     return False
@@ -85,16 +85,16 @@ def send_state(job, args, state, xml=None):
     :return:
     """
 
-    log = logger.getChild(str(job['PandaID']))
+    log = logger.getChild(job.jobid)
     if state == 'finished':
-        log.info('job %d has finished - sending final server update' % job['PandaID'])
+        log.info('job %s has finished - sending final server update' % job.jobid)
     else:
         log.debug('set job state=%s' % state)
 
     # report the batch system job id, if available
     batchsystem_type, batchsystem_id = get_batchsystem_jobid()
 
-    data = {'jobId': job['PandaID'],
+    data = {'jobId': job.jobid,
             'state': state,
             'timestamp': time_stamp(),
             'siteName': args.site,
@@ -149,7 +149,7 @@ def send_state(job, args, state, xml=None):
         if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=config.Pilot.pandaserver),
                          data=data) is not None:
 
-            log.info('server updateJob request completed for job %s' % job['PandaID'])
+            log.info('server updateJob request completed for job %s' % job.jobid)
             return True
     except Exception as e:
         log.warning('while setting job state, Exception caught: %s' % str(e.message))
@@ -175,12 +175,12 @@ def validate(queues, traces, args):
         except Queue.Empty:
             continue
 
-        log = logger.getChild(str(job['PandaID']))
+        log = logger.getChild(job.jobid)
         traces.pilot['nr_jobs'] += 1
 
         # set the environmental variable for the task id
         os.environ['PanDA_TaskID'] = str(job['taskID'])
-        logger.info('processing PanDA job %s from task %s' % (job['PandaID'], job['taskID']))
+        logger.info('processing PanDA job %s from task %s' % (job.jobid, job['taskID']))
 
         if _validate_job(job):
 
@@ -204,7 +204,7 @@ def validate(queues, traces, args):
 
             queues.validated_jobs.put(job)
         else:
-            log.debug('Failed to validate job=%s' % job['PandaID'])
+            log.debug('Failed to validate job=%s' % job.jobid)
             queues.failed_jobs.put(job)
 
 
@@ -657,14 +657,14 @@ def job_has_finished(queues):
 
     # is there anything in the finished_jobs queue?
     finished_queue_snapshot = list(queues.finished_jobs.queue)
-    peek = [s_job for s_job in finished_queue_snapshot if panda_id == s_job['PandaID']]
+    peek = [s_job for s_job in finished_queue_snapshot if panda_id == s_job.jobid]
     if len(peek) != 0:
         logger.info("job %d has completed (finished)" % panda_id)
         return True
 
     # is there anything in the failed_jobs queue?
     failed_queue_snapshot = list(queues.failed_jobs.queue)
-    peek = [s_job for s_job in failed_queue_snapshot if panda_id == s_job['PandaID']]
+    peek = [s_job for s_job in failed_queue_snapshot if panda_id == s_job.jobid]
     if len(peek) != 0:
         logger.info("job %d has completed (failed)" % panda_id)
         return True
@@ -698,7 +698,7 @@ def job_monitor(queues, traces, args):
             # logger.info("(job still running)")
             pass
         else:
-            logger.info("job %d has finished" % job['PandaID'])
+            logger.info("job %s has finished" % job.jobid)
             # make sure that state=finished
             job['state'] = 'finished'
 
@@ -709,7 +709,7 @@ def job_monitor(queues, traces, args):
             # logger.info("(job still running)")
             pass
         else:
-            logger.info("job %d has failed" % job['PandaID'])
+            logger.info("job %s has failed" % job.jobid)
             # make sure that state=failed
             job['state'] = 'failed'
 

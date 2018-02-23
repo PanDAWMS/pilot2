@@ -93,7 +93,7 @@ def _call(args, executable, cwd=os.getcwd(), logger=logger):
 
 
 def _stage_in(args, job):
-    log = logger.getChild(str(job['PandaID']))
+    log = logger.getChild(job.jobid)
 
     os.environ['RUCIO_LOGGING_FORMAT'] = '{0}%(asctime)s %(levelname)s [%(message)s]'
     if not _call(args,
@@ -318,7 +318,7 @@ def prepare_log(job, tarball_name):
 
 
 def _stage_out(args, outfile, job):
-    log = logger.getChild(str(job['PandaID']))
+    log = logger.getChild(job.jobid)
 
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
     executable = ['/usr/bin/env',
@@ -393,7 +393,7 @@ def _stage_out_all(job, args):
     :return:
     """
 
-    log = logger.getChild(str(job['PandaID']))
+    log = logger.getChild(job.jobid)
     outputs = {}
 
     if job['stageout'] == 'log':
@@ -409,7 +409,7 @@ def _stage_out_all(job, args):
         else:
             log.warning('Job object does not contain a job report (payload failed?) - will only stage-out log file')
     outputs['%s:%s' % (job['scopeLog'], job['logFile'])] = prepare_log(job, 'tarball_PandaJob_%s_%s' %
-                                                                       (job['PandaID'], args.queue))
+                                                                       (job.jobid, args.queue))
 
     fileinfodict = {}
     failed = False
@@ -475,11 +475,11 @@ def queue_monitoring(queues, traces, args):
             # stage-out log file then add the job to the failed_jobs queue
             job['stageout'] = "log"
             if not _stage_out_all(job, args):
-                logger.info("job %d failed during stage-in and stage-out of log, adding job object to failed_data_outs "
-                            "queue" % job['PandaID'])
+                logger.info("job %s failed during stage-in and stage-out of log, adding job object to failed_data_outs "
+                            "queue" % job.jobid)
                 queues.failed_data_out.put(job)
             else:
-                logger.info("job %d failed during stage-in, adding job object to failed_jobs queue" % job['PandaID'])
+                logger.info("job %s failed during stage-in, adding job object to failed_jobs queue" % job.jobid)
                 queues.failed_jobs.put(job)
 
         # monitor the finished_data_out queue
@@ -507,5 +507,5 @@ def queue_monitoring(queues, traces, args):
         except Queue.Empty:
             pass
         else:
-            logger.info("job %d failed during stage-out, adding job object to failed_jobs queue" % job['PandaID'])
+            logger.info("job %s failed during stage-out, adding job object to failed_jobs queue" % job.jobid)
             queues.failed_jobs.put(job)
