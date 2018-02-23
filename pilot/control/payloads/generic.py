@@ -83,11 +83,11 @@ class Executor(object):
             #                         bufsize=-1,
             #                         stdout=out,
             #                         stderr=err,
-            #                         cwd=job['working_dir'],
+            #                         cwd=job.workdir,
             #                         shell=True)
 
-            proc = execute(cmd, platform=job.platform, workdir=job['working_dir'], returnproc=True,
-                           usecontainer=True, stdout=out, stderr=err, cwd=job['working_dir'], job=job)
+            proc = execute(cmd, platform=job.platform, workdir=job.workdir, returnproc=True,
+                           usecontainer=True, stdout=out, stderr=err, cwd=job.workdir, job=job)
         except Exception as e:
             log.error('could not execute: %s' % str(e))
             return None

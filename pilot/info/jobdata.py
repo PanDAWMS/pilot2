@@ -127,6 +127,7 @@ class JobData(BaseData):
             'jobparams': 'jobPars',
             'corecount': 'coreCount',
             'platform': 'cmtConfig',
+            'is_eventservice': 'eventService',  ## is it coming from Job def??
         }
 
         self._load_data(data, kmap)

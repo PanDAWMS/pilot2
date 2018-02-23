@@ -102,7 +102,7 @@ def _stage_in(args, job):
                   '--no-subdir',
                   '--rse', job['ddmEndPointIn'],
                   '%s:%s' % (job['scopeIn'], job['inFiles'])],
-                 cwd=job['working_dir'],
+                 cwd=job.workdir,
                  logger=log):
         return False
     return True
@@ -295,26 +295,26 @@ def copytool_out(queues, traces, args):
 
 
 def prepare_log(job, tarball_name):
-    log = logger.getChild(str(job['PandaID']))
+    log = logger.getChild(job.jobid)
     log.info('preparing log file')
 
     input_files = job['inFiles'].split(',')
     output_files = job['outFiles'].split(',')
     force_exclude = ['geomDB', 'sqlite200']
 
-    with tarfile.open(name=os.path.join(job['working_dir'], job['logFile']),
+    with tarfile.open(name=os.path.join(job.workdir, job['logFile']),
                       mode='w:gz',
                       dereference=True) as log_tar:
-        for _file in list(set(os.listdir(job['working_dir'])) - set(input_files) - set(output_files) - set(force_exclude)):
-            if os.path.exists(os.path.join(job['working_dir'], _file)):
+        for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files) - set(force_exclude)):
+            if os.path.exists(os.path.join(job.workdir, _file)):
                 logging.debug('adding to log: %s' % _file)
-                log_tar.add(os.path.join(job['working_dir'], _file),
+                log_tar.add(os.path.join(job.workdir, _file),
                             arcname=os.path.join(tarball_name, _file))
 
     return {'scope': job['scopeLog'],
             'name': job['logFile'],
             'guid': job['logGUID'],
-            'bytes': os.stat(os.path.join(job['working_dir'], job['logFile'])).st_size}
+            'bytes': os.stat(os.path.join(job.workdir, job['logFile'])).st_size}
 
 
 def _stage_out(args, outfile, job):
@@ -334,7 +334,7 @@ def _stage_out(args, outfile, job):
                                    bufsize=-1,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
-                                   cwd=job['working_dir'])
+                                   cwd=job.workdir)
     except Exception as e:
         log.error('could not execute: %s' % str(e))
         return None
@@ -373,7 +373,7 @@ def _stage_out(args, outfile, job):
         return None
 
     summary = None
-    path = os.path.join(job['working_dir'], 'rucio_upload.json')
+    path = os.path.join(job.workdir, 'rucio_upload.json')
     if not os.path.exists(path):
         log.warning('no such file: %s' % path)
         return None

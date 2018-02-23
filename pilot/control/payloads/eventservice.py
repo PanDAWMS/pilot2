@@ -241,7 +241,7 @@ class Executor(generic.Executor, ESHook):
         log.debug('executable=%s' % executable)
 
         try:
-            payload = {'executable': executable, 'workdir': job['working_dir'], 'output_file': out, 'error_file': err}
+            payload = {'executable': executable, 'workdir': job.workdir, 'output_file': out, 'error_file': err}
             log.debug("payload: %s" % payload)
 
             log.info("Starting ESProcess")

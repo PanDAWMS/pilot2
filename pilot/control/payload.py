@@ -139,12 +139,12 @@ def execute_payloads(queues, traces, args):
                     time.sleep(0.1)
                 continue
 
-            out = open(os.path.join(job['working_dir'], 'payload.stdout'), 'wb')
-            err = open(os.path.join(job['working_dir'], 'payload.stderr'), 'wb')
+            out = open(os.path.join(job.workdir, 'payload.stdout'), 'wb')
+            err = open(os.path.join(job.workdir, 'payload.stderr'), 'wb')
 
             send_state(job, args, 'starting')
 
-            if job.get('eventService', '').lower() == "true":
+            if job.is_eventservice:
                 payload_executor = eventservice.Executor(args, job, out, err)
             else:
                 payload_executor = generic.Executor(args, job, out, err)
@@ -184,7 +184,7 @@ def process_job_report(job):
     """
 
     log = logger.getChild(str(job['PandaID']))
-    path = os.path.join(job['working_dir'], config.Payload.jobreport)
+    path = os.path.join(job.workdir, config.Payload.jobreport)
     if not os.path.exists(path):
         log.warning('job report does not exist: %s' % path)
     else:
