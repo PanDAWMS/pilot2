@@ -320,6 +320,8 @@ def prepare_log(job, tarball_name):
 def _stage_out(args, outfile, job):
     log = logger.getChild(str(job['PandaID']))
 
+    log.info('will stage-out: %s' % outfile)
+
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
     executable = ['/usr/bin/env',
                   'rucio', '-v', 'upload',
@@ -418,6 +420,7 @@ def _stage_out_all(job, args):
         if outfile not in job['outFiles']:
             continue
         summary = _stage_out(args, outputs[outfile], job)
+        log.info('stage-out finished for %s (summary=%s)' % (outfile, str(summary)))
 
         if summary is not None:
             outputs[outfile]['pfn'] = summary['%s:%s' % (outputs[outfile]['scope'], outputs[outfile]['name'])]['pfn']
