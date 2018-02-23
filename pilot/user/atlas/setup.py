@@ -54,7 +54,7 @@ def should_pilot_prepare_asetup(noexecstrcnv, jobpars):
     return prepareasetup
 
 
-def is_user_analysis_job(trf):
+def is_user_analysis_job(trf):  ## DEPRECATED: consider job.is_analysis()
     """
     Determine whether the job is an analysis job or not.
     The trf name begins with a protocol for user analysis jobs.

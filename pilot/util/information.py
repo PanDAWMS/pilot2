@@ -211,7 +211,7 @@ def get_appdir():
     return get_field_value('appdir')
 
 
-def get_catchall():  ## TO BE DEPRECATED: consider job['infosys'].queuedata.catchall
+def get_catchall():  ## TO BE DEPRECATED: consider job.infosys.queuedata.catchall
     """
     Return the catchall field value from the schedconfig queuedata.
 
@@ -231,7 +231,7 @@ def get_cmtconfig():
     return get_field_value('cmtconfig')
 
 
-def get_container_options():  ## TO BE DEPRECATED: consider job['infosys'].queuedata.container_options
+def get_container_options():  ## TO BE DEPRECATED: consider job.infosys.queuedata.container_options
     """
     Return the container_options field value from the schedconfig queuedata.
 
@@ -244,7 +244,7 @@ def get_container_options():  ## TO BE DEPRECATED: consider job['infosys'].queue
     return container_options
 
 
-def get_container_type():  ## TO BE DEPRECATED: consider job['infosys'].queuedata.container_type
+def get_container_type():  ## TO BE DEPRECATED: consider job.infosys.queuedata.container_type
     """
     Return the container_type field value from the schedconfig queuedata.
 

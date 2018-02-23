@@ -260,7 +260,7 @@ def copytool_in(queues, traces, args):
 
             send_state(job, args, 'running')
 
-            logger.info('Test job.infosys: queuedata.copytools=%s' % job['infosys'].queuedata.copytools)
+            logger.info('Test job.infosys: queuedata.copytools=%s' % job.infosys.queuedata.copytools)
 
             if _stage_in(args, job):
                 queues.finished_data_in.put(job)
