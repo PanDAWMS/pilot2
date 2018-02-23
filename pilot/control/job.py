@@ -650,23 +650,20 @@ def job_has_finished(queues):
     :return: True is the payload has finished or failed
     """
 
-    try:
-        panda_id = int(os.environ.get('PandaID', 0))
-    except TypeError:
-        panda_id = 0
+    jobid = os.environ.get('PandaID')
 
     # is there anything in the finished_jobs queue?
     finished_queue_snapshot = list(queues.finished_jobs.queue)
-    peek = [s_job for s_job in finished_queue_snapshot if panda_id == s_job.jobid]
-    if len(peek) != 0:
-        logger.info("job %d has completed (finished)" % panda_id)
+    peek = [obj for obj in finished_queue_snapshot if jobid == obj.jobid]
+    if peek:
+        logger.info("job %s has completed (finished)" % jobid)
         return True
 
     # is there anything in the failed_jobs queue?
     failed_queue_snapshot = list(queues.failed_jobs.queue)
-    peek = [s_job for s_job in failed_queue_snapshot if panda_id == s_job.jobid]
-    if len(peek) != 0:
-        logger.info("job %d has completed (failed)" % panda_id)
+    peek = [obj for obj in failed_queue_snapshot if jobid == obj.jobid]
+    if peek:
+        logger.info("job %s has completed (failed)" % jobid)
         return True
 
     return False
