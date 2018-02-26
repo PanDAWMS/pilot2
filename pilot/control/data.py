@@ -101,7 +101,7 @@ def _stage_in(args, job):
                   'rucio', '-v', 'download',
                   '--no-subdir',
                   '--rse', job.ddmendpointin,
-                  '%s:%s' % (job.scopein, job.infiles[0])],  # note the bug here
+                  '%s:%s' % (job.scopein, job.infiles)],  # notice the bug here, infiles might be a ,-separated str
                  cwd=job.workdir,
                  logger=log):
         return False
