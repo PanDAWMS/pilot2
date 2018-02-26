@@ -415,6 +415,7 @@ def _stage_out_all(job, args):
 
     fileinfodict = {}
     failed = False
+    log.info('outFiles=%s' % job['outFiles'])
 
     for outfile in outputs:
         if outfile not in job['outFiles']:
