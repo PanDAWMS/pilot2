@@ -35,7 +35,7 @@ class QueueData(BaseData):
     appdir = ""     #
     catchall = ""   #
 
-    cmtconfig = ""
+    platform = ""     # cmtconfig value
     container_options = ""  # singularity only options? to be reviewed and forced to be a dict (support options for other containers?)
     container_type = {}  # dict of container names by user as a key
 
@@ -61,7 +61,7 @@ class QueueData(BaseData):
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['timefloor', 'maxwdir', 'pledgedcpu', 'es_stageout_gap',
                    'corecount'],
-             str: ['name', 'appdir', 'catchall', 'cmtconfig', 'container_options', 'container_type',
+             str: ['name', 'appdir', 'catchall', 'platform', 'container_options', 'container_type',
                    'state', 'site'],
              dict: ['copytools', 'acopytools', 'astorages', 'aprotocols'],
              bool: ['direct_access_lan', 'direct_access_wan']
@@ -95,6 +95,7 @@ class QueueData(BaseData):
 
         kmap = {
             'name': 'nickname',
+            'platform': 'cmtconfig',
             'site': ('atlas_site', 'gstat'),
             'es_stageout_gap': 'zip_time_gap',
         }

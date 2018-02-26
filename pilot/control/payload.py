@@ -127,10 +127,10 @@ def execute_payloads(queues, traces, args):
     while not args.graceful_stop.is_set():
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
-            log = logger.getChild(str(job['PandaID']))
+            log = logger.getChild(job.jobid)
 
             q_snapshot = list(queues.finished_data_in.queue)
-            peek = [s_job for s_job in q_snapshot if job['PandaID'] == s_job['PandaID']]
+            peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
             if len(peek) == 0:
                 queues.validated_payloads.put(job)
                 for i in xrange(10):
@@ -139,12 +139,12 @@ def execute_payloads(queues, traces, args):
                     time.sleep(0.1)
                 continue
 
-            out = open(os.path.join(job['working_dir'], 'payload.stdout'), 'wb')
-            err = open(os.path.join(job['working_dir'], 'payload.stderr'), 'wb')
+            out = open(os.path.join(job.workdir, 'payload.stdout'), 'wb')
+            err = open(os.path.join(job.workdir, 'payload.stderr'), 'wb')
 
             send_state(job, args, 'starting')
 
-            if job.get('eventService', '').lower() == "true":
+            if job.is_eventservice:
                 payload_executor = eventservice.Executor(args, job, out, err)
             else:
                 payload_executor = generic.Executor(args, job, out, err)
@@ -183,8 +183,8 @@ def process_job_report(job):
     :return:
     """
 
-    log = logger.getChild(str(job['PandaID']))
-    path = os.path.join(job['working_dir'], config.Payload.jobreport)
+    log = logger.getChild(job.jobid)
+    path = os.path.join(job.workdir, config.Payload.jobreport)
     if not os.path.exists(path):
         log.warning('job report does not exist: %s' % path)
     else:
@@ -232,7 +232,7 @@ def validate_post(queues, traces, args):
             job = queues.finished_payloads.get(block=True, timeout=1)
         except Queue.Empty:
             continue
-        log = logger.getChild(str(job['PandaID']))
+        log = logger.getChild(job.jobid)
 
         # process the job report if it exists and set multiple fields
         process_job_report(job)
@@ -257,7 +257,7 @@ def failed_post(queues, traces, args):
             job = queues.failed_payloads.get(block=True, timeout=1)
         except Queue.Empty:
             continue
-        log = logger.getChild(str(job['PandaID']))
+        log = logger.getChild(job.jobid)
 
         log.debug('adding log for log stageout')
 
