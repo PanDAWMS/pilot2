@@ -136,7 +136,7 @@ class StageInClient(StagingClient):
         """
         logger = self.logger
         try:
-            if not copytool.is_valid_copyin_input(files):
+            if not copytool.is_valid_for_copy_in(files):
                 logger.warning('Input is not valid for copytool %s' % copytool_name)
                 logger.debug('Input: %s' % files)
                 return None
@@ -181,11 +181,11 @@ class StageOutClient(StagingClient):
         """
         logger = self.logger
         try:
-            if not copytool.is_valid_copyin_input(files):
+            if not copytool.is_valid_for_copy_out(files):
                 logger.warning('Input is not valid for copytool %s' % copytool_name)
                 logger.debug('Input: %s' % files)
                 return None
-            return copytool.copy_in(files)
+            return copytool.copy_out(files)
         except Exception as error:
             logger.warning('Failed transferring files with %s' % copytool_name)
             logger.debug('Error: %s' % error)
