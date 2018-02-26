@@ -433,7 +433,6 @@ def _stage_out_all(job, args):
                         'adler32': outputs[outfile]['adler32'],
                         'surl': outputs[outfile]['pfn']}
             fileinfodict[outputs[outfile]['name']] = filedict
-            log.info('fileinfodict=%s'%str(fileinfodict))
         else:
             failed = True
 
@@ -448,7 +447,6 @@ def _stage_out_all(job, args):
         return False
     else:
         log.info('stage-out finished correctly')
-        job['fileinfodict'] = fileinfodict
         # is the job state already set? if so, don't change the state
         if not 'state' in job:
             job['state'] = "finished"
