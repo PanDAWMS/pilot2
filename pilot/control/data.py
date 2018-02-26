@@ -415,11 +415,11 @@ def _stage_out_all(job, args):
 
     fileinfodict = {}
     failed = False
-    log.info('outFiles=%s' % job['outFiles'])
 
     for outfile in outputs:
-        if outfile not in job['outFiles']:
-            continue
+        # this doesn't work since scope is added above, but scope is not present in outFiles
+        # if outfile not in job['outFiles']:
+        #     continue
         summary = _stage_out(args, outputs[outfile], job)
         log.info('stage-out finished for %s (summary=%s)' % (outfile, str(summary)))
 
