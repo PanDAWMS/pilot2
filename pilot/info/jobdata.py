@@ -63,8 +63,8 @@ class JobData(BaseData):
     nevents = 0
     payload = ""  # payload name
 
-    infiles = []
-    outfiles = []
+    infiles = ""
+    outfiles = ""
     scopein = ""
     scopeout = ""
     scopelog = ""
@@ -85,8 +85,9 @@ class JobData(BaseData):
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'logguid', 'destinationdblock', 'exeerrordiag'
                    'state', 'status', 'workdir', 'state', 'stageout', 'ddmendpointin', 'ddmendpointout',
                    'platform', 'piloterrordiag', 'scopeout', 'scopein', 'scopelog', 'logfile', 'exitmsg',
-                   'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload'],
-             list: ['piloterrorcodes', 'piloterrordiags', 'infiles', 'outfiles'],
+                   'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload', 'infiles',
+                   'outfiles'],
+             list: ['piloterrorcodes', 'piloterrordiags'],
              dict: ['fileinfo', 'metadata'],
              bool: ['is_eventservice', 'noexecstrcnv']
              }
