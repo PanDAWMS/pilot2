@@ -43,6 +43,8 @@ class JobData(BaseData):
 
     is_eventservice = False        # True for event service jobs
 
+    fileinfo = {}
+
     _rawdata = {}  ## RAW data to keep backward compatible behavior for a while ## TO BE REMOVED once all job attributes will be covered
 
     # specify the type of attributes for proper data validation and casting
@@ -50,7 +52,7 @@ class JobData(BaseData):
              str: ['jobid', 'taskid', 'jobparams', 'transformation',
                    'state', 'status', 'workdir',
                    'platform'],
-             dict: [],
+             dict: ['fileinfo'],
              bool: ['is_eventservice']
              }
 
@@ -172,6 +174,8 @@ class JobData(BaseData):
         """
             Verify and validate value for the corecount key (set to 1 if not set)
         """
+
+        # note: experiment specific
 
         # Overwrite the corecount value with ATHENA_PROC_NUMBER if it is set
         athena_corecount = os.environ.get('ATHENA_PROC_NUMBER')
