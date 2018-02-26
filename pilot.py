@@ -15,14 +15,16 @@ import sys
 import threading
 import time
 from os import getcwd, chdir, environ
+from shutil import rmtree
 
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
 from pilot.util.https import https_setup
 from pilot.util.information import set_location
+from pilot.info import set_info
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 
-VERSION = '2017-10-31.001'
+VERSION = '2018-02-16.003'
 
 
 def main():
@@ -32,12 +34,15 @@ def main():
     logger.info('PanDA Pilot 2 version %s' % VERSION)
 
     args.graceful_stop = threading.Event()
+    args.retrieve_next_job = True  # go ahead and download a new job
     config.read(args.config)
 
     https_setup(args, VERSION)
 
-    if not set_location(args):
+    if not set_location(args):  # ## DEPRECATE ME LATER
         return False
+
+    set_info(args)  # initialize InfoService and populate args.info structure
 
     logger.info('pilot arguments: %s' % str(args))
     logger.info('selected workflow: %s' % args.workflow)
@@ -46,8 +51,53 @@ def main():
     return workflow.run(args)
 
 
-def import_module(workflow=None, user=None):
+class Args:
+    """
+    Dummy namespace class used to contain pilot arguments.
+    """
     pass
+
+
+# rename module to pilot2 to avoid conflict in import with pilot directory
+def import_module(**kwargs):
+    """
+    This function allows for importing the pilot code.
+
+    :param kwargs: pilot options (dictionary).
+    :return: pilot error code (integer).
+    """
+
+    argument_dictionary = {'-a': kwargs.get('workdir', ''),
+                           '-d': kwargs.get('debug', None),
+                           '-w': kwargs.get('workflow', 'generic'),
+                           '-l': kwargs.get('lifetime', '3600'),
+                           '-q': kwargs.get('queue'),  # required
+                           '-r': kwargs.get('resource'),  # required
+                           '-s': kwargs.get('site'),  # required
+                           '-j': kwargs.get('job_label', 'ptest'),  # change default later to 'managed'
+                           '-i': kwargs.get('version_tag', 'PR'),
+                           '--cacert': kwargs.get('cacert', None),
+                           '--capath': kwargs.get('capath'),
+                           '--url': kwargs.get('url', ''),
+                           '-p': kwargs.get('port', '25443'),
+                           '--config': kwargs.get('config', ''),
+                           '--country-group': kwargs.get('country_group', ''),
+                           '--working-group': kwargs.get('working_group', ''),
+                           '--allow-other-country': kwargs.get('allow_other_country', 'False'),
+                           '--allow-same-user': kwargs.get('allow_same_user', 'True'),
+                           '--pilot-user': kwargs.get('pilot_user', 'generic')
+                           }
+
+    args = Args()
+    parser = argparse.ArgumentParser()
+    for key, value in argument_dictionary.iteritems():
+        print key, value
+        parser.add_argument(key)
+        parser.parse_args(args=[key, value], namespace=args)  # convert back int and bool strings to int and bool??
+
+    # call main pilot function
+
+    return 0
 
 
 if __name__ == '__main__':
@@ -56,7 +106,7 @@ if __name__ == '__main__':
     # pilot work directory
     arg_parser.add_argument('-a',
                             dest='workdir',
-                            default=getcwd(),
+                            default="",
                             help='Pilot work directory')
 
     # debug option to enable more log messages
@@ -80,6 +130,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('-l',
                             dest='lifetime',
                             default=3600,
+                            required=False,
                             type=int,
                             help='Pilot lifetime seconds (default: 3600 s)')
 
@@ -102,6 +153,18 @@ if __name__ == '__main__':
                             dest='job_label',
                             default='ptest',
                             help='Job prod/source label (default: ptest)')
+
+    # pilot version tag; PR or RC
+    arg_parser.add_argument('-i',
+                            dest='version_tag',
+                            default='PR',
+                            help='Version tag (default: PR, optional: RC)')
+
+    arg_parser.add_argument('-z',
+                            dest='update_server',
+                            default=True,
+                            type=bool,
+                            help='Update server (default: True)')
 
     # SSL certificates
     arg_parser.add_argument('--cacert',
@@ -165,42 +228,91 @@ if __name__ == '__main__':
                             required=True,
                             help='Pilot user, e.g. name of experiment')
 
+    # Harvester specific options (if any of the following options are used, args.harvester will be set to True)
+    arg_parser.add_argument('--harvester-workdir',
+                            dest='harvester_workdir',
+                            default='',
+                            help='Harvester work directory')
+    arg_parser.add_argument('--harvester-datadir',
+                            dest='harvester_datadir',
+                            default='',
+                            help='Harvester data directory')
+    arg_parser.add_argument('--harvester-eventstatusdump',
+                            dest='harvester_eventstatusdump',
+                            default='',
+                            help='Harvester event status dump json file')
+    arg_parser.add_argument('--harvester-workerattributes',
+                            dest='harvester_workerattributes',
+                            default='',
+                            help='Harvester worker attributes json file')
+
     args = arg_parser.parse_args()
 
-    # Create the main pilot workdir and cd into it
-    mainworkdir = get_pilot_work_dir(args.workdir)
-    try:
-        create_pilot_work_dir(mainworkdir)
-    except Exception as e:
-        # print to stderr since logging has not been established yet
-        from sys import stderr
-        print >> stderr, 'failed to create workdir at %s -- aborting: %s' % (mainworkdir, e)
-        sys.exit(FAILURE)
+    # Define and set the main harvester control boolean
+    if (args.harvester_workdir != '' or args.harvester_datadir != '' or args.harvester_eventstatusdump != '' or
+            args.harvester_workerattributes != '') and not args.update_server:
+        args.harvester = True
     else:
-        environ['PILOT_HOME'] = mainworkdir  # TODO: replace with singleton
-        args.mainworkdir = mainworkdir
-        chdir(mainworkdir)
+        args.harvester = False
+
+    # If requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
+    initdir = getcwd()
+    if args.workdir != "":
+        mainworkdir = get_pilot_work_dir(args.workdir)
+        try:
+            create_pilot_work_dir(mainworkdir)
+        except Exception as e:
+            # print to stderr since logging has not been established yet
+            from sys import stderr
+            print >> stderr, 'failed to create workdir at %s -- aborting: %s' % (mainworkdir, e)
+            sys.exit(FAILURE)
+    else:
+        mainworkdir = getcwd()
+
+    environ['PILOT_HOME'] = mainworkdir  # TODO: replace with singleton
+    args.mainworkdir = mainworkdir
+    chdir(mainworkdir)
 
     # Set the pilot user
     environ['PILOT_USER'] = args.pilot_user  # TODO: replace with singleton
 
+    # Set the pilot version
+    environ['PILOT_VERSION'] = VERSION
+
     # Establish logging
     console = logging.StreamHandler(sys.stdout)
     if args.debug:
-        logging.basicConfig(filename='pilotlog.txt', level=logging.DEBUG,
-                            format='%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-32s | %(message)s')
-        logging.Formatter.converter = time.gmtime
+        logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.DEBUG,
+                            format='%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-25s | %(message)s')
         console.setLevel(logging.DEBUG)
-        console.setFormatter(logging.Formatter('%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-32s | %(message)s'))
+        console.setFormatter(logging.Formatter(
+            '%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-32s | %(message)s'))
     else:
-        logging.basicConfig(filename='pilotlog.txt', level=logging.INFO,
+        logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.INFO,
                             format='%(asctime)s | %(levelname)-8s | %(message)s')
         console.setLevel(logging.INFO)
         console.setFormatter(logging.Formatter('%(asctime)s | %(levelname)-8s | %(message)s'))
+    logging.Formatter.converter = time.gmtime
     logging.getLogger('').addHandler(console)
 
     trace = main()
+
+    # cleanup pilot workdir if created
+    if initdir != mainworkdir:
+        chdir(initdir)
+        try:
+            rmtree(mainworkdir)
+        except Exception as e:
+            logging.warning("failed to remove %s: %s" % (mainworkdir, e))
+        else:
+            logging.info("removed %s" % mainworkdir)
+
     logging.shutdown()
+
+    # in Harvester mode, create a kill_worker file that will instruct Harvester that the pilot has finished
+    if args.harvester:
+        from pilot.util.harvester import kill_worker
+        kill_worker()
 
     if not trace:
         logging.getLogger(__name__).critical('pilot startup did not succeed -- aborting')

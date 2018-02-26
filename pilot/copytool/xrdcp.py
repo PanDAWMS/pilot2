@@ -9,9 +9,9 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import re
-import subprocess
 
 from pilot.copytool.common import merge_destinations
+from pilot.util.container import execute
 
 import logging
 logger = logging.getLogger(__name__)
@@ -39,12 +39,15 @@ def copy_in(files):
     executable.extend(lfns)
 
     logger.info('Querying file replicas from rucio...')
-    process = subprocess.Popen(executable,
-                               bufsize=-1,
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
-    stdout, stderr = process.communicate()
-    exit_code = process.poll()
+
+    # process = subprocess.Popen(executable,
+    #                            bufsize=-1,
+    #                            stdout=subprocess.PIPE,
+    #                            stderr=subprocess.PIPE)
+    # stdout, stderr = process.communicate()
+    # exit_code = process.poll()
+
+    exit_code, stdout, stderr = execute(executable)
 
     if exit_code != 0:
         raise Exception('Could not query file replicas from rucio!')
@@ -76,12 +79,16 @@ def copy_in(files):
             executable.append(lfns_with_pfns[lfn][0])
 
         executable.append(dst)
-        process = subprocess.Popen(executable,
-                                   bufsize=-1,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate()
-        exit_code = process.poll()
+
+        # process = subprocess.Popen(executable,
+        #                            bufsize=-1,
+        #                            stdout=subprocess.PIPE,
+        #                            stderr=subprocess.PIPE)
+        # stdout, stderr = process.communicate()
+        # exit_code = process.poll()
+
+        exit_code, stdout, stderr = execute(executable)
+
         stats = {}
         if exit_code == 0:
             stats['status'] = 'done'

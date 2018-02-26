@@ -7,7 +7,7 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-from container import execute
+from pilot.util.container import execute
 
 import logging
 logger = logging.getLogger(__name__)

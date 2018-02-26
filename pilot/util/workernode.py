@@ -10,7 +10,7 @@
 import os
 
 from pilot.util.disk import disk_usage
-from pilot.util.parameters import get_maximum_input_sizes
+#from pilot.util.parameters import get_maximum_input_sizes
 
 import logging
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ def collect_workernode_info():
     return mem, cpu
 
 
-def get_disk_space_for_dispatcher(queuedata):
+def get_disk_space(queuedata):
     """
 
     Return the amound of disk space that should be available for running the job, either what is actually locally
@@ -61,7 +61,16 @@ def get_disk_space_for_dispatcher(queuedata):
     :return: disk space that should be available for running the job
     """
 
-    _maxinputsize = get_maximum_input_sizes(queuedata)
+    #_maxinputsize = get_maximum_input_sizes(queuedata)
+    #
+    from pilot.info import infosys
+    # --- non Job related queue data
+    # jobinfo provider is required to consider overwriteAGIS data coming from Job
+    _maxinputsize = infosys.queuedata.maxwdir
+    logger.debug("resolved value from global infosys.queuedata instance: infosys.queuedata.maxwdir=%s" % _maxinputsize)
+    _maxinputsize = queuedata.maxwdir
+    logger.debug("resolved value: queuedata.maxwdir=%s" % _maxinputsize)
+
     try:
         du = disk_usage(os.path.abspath("."))
         _diskspace = int(du[2] / (1024 * 1024))  # need to convert from B to MB
@@ -83,8 +92,13 @@ def get_node_name():
 
     :return: node name (string)
     """
+    if hasattr(os, 'uname'):
+        host = os.uname()[1]
+    else:
+        import socket
+        host = socket.gethostname()
 
-    return get_condor_node_name(os.uname()[1])
+    return get_condor_node_name(host)
 
 
 def get_condor_node_name(nodename):

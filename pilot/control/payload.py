@@ -9,15 +9,19 @@
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Wen Guan, wen.guan@cern.ch, 2017-2018
 
 import Queue
 import json
 import os
-import subprocess
 import threading
 import time
+from collections import defaultdict
 
+from pilot.control.payloads import generic, eventservice
 from pilot.control.job import send_state
+from pilot.util.config import config
+from pilot.util.container import execute
 
 import logging
 logger = logging.getLogger(__name__)
@@ -37,15 +41,18 @@ def control(queues, traces, args):
                                 kwargs={'queues': queues,
                                         'traces': traces,
                                         'args': args}),
-               threading.Thread(target=execute,
+               threading.Thread(target=execute_payloads,
                                 kwargs={'queues': queues,
                                         'traces': traces,
                                         'args': args}),
                threading.Thread(target=validate_post,
                                 kwargs={'queues': queues,
                                         'traces': traces,
+                                        'args': args}),
+               threading.Thread(target=failed_post,
+                                kwargs={'queues': queues,
+                                        'traces': traces,
                                         'args': args})]
-
     [t.start() for t in threads]
 
 
@@ -86,113 +93,37 @@ def _validate_payload(job):
     return True
 
 
-def setup_payload(job, out, err):
+def set_time_consumed(t_tuple):
     """
-    (add description)
+    Set the system+user time spent by the payload.
+    The cpuConsumptionTime is the system+user time while wall time is encoded in pilotTiming (third number).
+    Previously the cpuConsumptionTime was "corrected" with a scaling factor but this was deemed outdated and is now set
+    to 1.
+    The t_tuple is defined as map(lambda x, y:x-y, t1, t0), here t0 and t1 are os.times() measured before and after
+    the payload execution command.
 
-    :param job:
-    :param out:
-    :param err:
-    :return:
+    :param t_tuple: map(lambda x, y:x-y, t1, t0)
+    :return: cpu_consumption_unit, cpu_consumption_time, cpu_conversion_factor
     """
-    # log = logger.getChild(str(job['PandaID']))
 
-    # try:
-    # create symbolic link for sqlite200 and geomDB in job dir
-    #    for db_name in ['sqlite200', 'geomDB']:
-    #         src = '/cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/%s' % db_name
-    #         link_name = 'job-%s/%s' % (job['PandaID'], db_name)
-    #         os.symlink(src, link_name)
-    # except Exception as e:
-    #     log.error('could not create symbolic links to database files: %s' % e)
-    #     return False
+    t_tot = reduce(lambda x, y: x + y, t_tuple[2:3])
+    cpu_conversion_factor = 1.0
+    cpu_consumption_unit = "s"  # used to be "kSI2kseconds"
+    cpu_consumption_time = int(t_tot * cpu_conversion_factor)
 
-    return True
+    return cpu_consumption_unit, cpu_consumption_time, cpu_conversion_factor
 
 
-def run_payload(job, out, err):
+def execute_payloads(queues, traces, args):
     """
-    (add description)
-
-    :param job:
-    :param out:
-    :param err:
-    :return:
-    """
-    log = logger.getChild(str(job['PandaID']))
-
-    # get the payload command from the user specific code
-    # cmd = get_payload_command(job, queuedata)
-    athena_version = job['homepackage'].split('/')[1]
-    asetup = 'source $ATLAS_LOCAL_ROOT_BASE/user/atlasLocalSetup.sh --quiet; '\
-             'source $AtlasSetup/scripts/asetup.sh %s,here; ' % athena_version
-    cmd = job['transformation'] + ' ' + job['jobPars']
-
-    log.debug('executable=%s' % asetup + cmd)
-
-    try:
-        proc = subprocess.Popen(asetup + cmd,
-                                bufsize=-1,
-                                stdout=out,
-                                stderr=err,
-                                cwd=job['working_dir'],
-                                shell=True)
-    except Exception as e:
-        log.error('could not execute: %s' % str(e))
-        return None
-
-    log.info('started -- pid=%s executable=%s' % (proc.pid, asetup + cmd))
-
-    return proc
-
-
-def wait_graceful(args, proc, job):
-    """
-    (add description)
-
-    :param args:
-    :param proc:
-    :param job:
-    :return:
-    """
-    log = logger.getChild(str(job['PandaID']))
-
-    breaker = False
-    exit_code = None
-    while True:
-        for i in xrange(100):
-            if args.graceful_stop.is_set():
-                breaker = True
-                log.debug('breaking -- sending SIGTERM pid=%s' % proc.pid)
-                proc.terminate()
-                break
-            time.sleep(0.1)
-        if breaker:
-            log.debug('breaking -- sleep 3s before sending SIGKILL pid=%s' % proc.pid)
-            time.sleep(3)
-            proc.kill()
-            break
-
-        exit_code = proc.poll()
-        log.info('running: pid=%s exit_code=%s' % (proc.pid, exit_code))
-        if exit_code is not None:
-            break
-        else:
-            send_state(job, args, 'running')
-            continue
-
-    return exit_code
-
-
-def execute(queues, traces, args):
-    """
-    (add description)
+    Execute queued payloads.
 
     :param queues:
     :param traces:
     :param args:
     :return:
     """
+
     while not args.graceful_stop.is_set():
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
@@ -208,36 +139,109 @@ def execute(queues, traces, args):
                     time.sleep(0.1)
                 continue
 
-            log.debug('opening payload stdout/err logs')
             out = open(os.path.join(job['working_dir'], 'payload.stdout'), 'wb')
             err = open(os.path.join(job['working_dir'], 'payload.stderr'), 'wb')
 
-            log.debug('setting up payload environment')
             send_state(job, args, 'starting')
 
-            exit_code = 1
-            if setup_payload(job, out, err):
-                log.debug('running payload')
-                send_state(job, args, 'running')
-                proc = run_payload(job, out, err)
-                if proc is not None:
-                    exit_code = wait_graceful(args, proc, job)
-                    log.info('finished pid=%s exit_code=%s' % (proc.pid, exit_code))
+            if job.get('eventService', '').lower() == "true":
+                payload_executor = eventservice.Executor(args, job, out, err)
+            else:
+                payload_executor = generic.Executor(args, job, out, err)
 
-            log.debug('closing payload stdout/err logs')
+            # run the payload and measure the execution time
+            t0 = os.times()
+            exit_code = payload_executor.run()
+            t1 = os.times()
+            t = map(lambda x, y: x - y, t1, t0)
+            job['cpuConsumptionUnit'], job['cpuConsumptionTime'], job['cpuConversionFactor'] = set_time_consumed(t)
+            log.info('CPU consumption time: %s' % job['cpuConsumptionTime'])
+
             out.close()
             err.close()
 
             if exit_code == 0:
+                job['transExitCode'] = 0
                 queues.finished_payloads.put(job)
             else:
+                job['transExitCode'] = exit_code
                 queues.failed_payloads.put(job)
 
         except Queue.Empty:
             continue
 
 
+def process_job_report(job):
+    """
+    Process the job report produced by the payload/transform if it exists.
+    Payload error codes and diagnostics, as well as payload metadata (for output files) and stageout type will be
+    extracted. The stageout type is either "all" (i.e. stage-out both output and log files) or "log" (i.e. only log file
+    will be staged out).
+    Note: some fields might be experiment specific. A call to a user function is therefore also done.
+
+    :param job: job dictionary will be updated by the function and several fields set.
+    :return:
+    """
+
+    log = logger.getChild(str(job['PandaID']))
+    path = os.path.join(job['working_dir'], config.Payload.jobreport)
+    if not os.path.exists(path):
+        log.warning('job report does not exist: %s' % path)
+    else:
+        with open(path) as data_file:
+            # compulsory field; the payload must procude a job report (see config file for file name)
+            job['metaData'] = json.load(data_file)
+
+            # extract user specific info from job report
+            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+            user.update_job_data(job)
+
+            # compulsory fields
+            try:
+                job['exitCode'] = job['metaData']['exitCode']
+            except Exception as e:
+                log.warning('could not find compulsory payload exitCode in job report: %s (will be set to 0)' % e)
+                job['exitCode'] = 0
+            else:
+                log.info('extracted exit code from job report: %d' % job['exitCode'])
+            try:
+                job['exitMsg'] = job['metaData']['exitMsg']
+            except Exception as e:
+                log.warning('could not find compulsory payload exitMsg in job report: %s (will be set to empty string)' % e)
+                job['exitMsg'] = ""
+            else:
+                log.info('extracted exit message from job report: %s' % job['exitMsg'])
+
+
 def validate_post(queues, traces, args):
+    """
+    Validate finished payloads.
+    If payload finished correctly, add the job to the data_out queue. If it failed, add it to the data_out queue as
+    well but only for log stage-out.
+
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
+
+    while not args.graceful_stop.is_set():
+        # finished payloads
+        try:
+            job = queues.finished_payloads.get(block=True, timeout=1)
+        except Queue.Empty:
+            continue
+        log = logger.getChild(str(job['PandaID']))
+
+        # process the job report if it exists and set multiple fields
+        process_job_report(job)
+
+        log.debug('adding job to data_out queue')
+        queues.data_out.put(job)
+
+
+def failed_post(queues, traces, args):
     """
     (add description)
 
@@ -248,14 +252,91 @@ def validate_post(queues, traces, args):
     """
 
     while not args.graceful_stop.is_set():
+        # finished payloads
         try:
-            job = queues.finished_payloads.get(block=True, timeout=1)
+            job = queues.failed_payloads.get(block=True, timeout=1)
         except Queue.Empty:
             continue
         log = logger.getChild(str(job['PandaID']))
 
-        log.debug('adding job report for stageout')
-        with open(os.path.join(job['working_dir'], 'jobReport.json')) as data_file:
-            job['job_report'] = json.load(data_file)
+        log.debug('adding log for log stageout')
 
+        job['stageout'] = "log"  # only stage-out log file
         queues.data_out.put(job)
+
+
+def parse_jobreport_data(job_report):
+    work_attributes = {}
+    if job_report is None or not any(job_report):
+        return work_attributes
+
+    # these are default values for job metrics
+    core_count = "undef"
+    work_attributes["n_events"] = "undef"
+    work_attributes["__db_time"] = "undef"
+    work_attributes["__db_data"] = "undef"
+
+    class DictQuery(dict):
+        def get(self, path, dst_dict, dst_key):
+            keys = path.split("/")
+            if len(keys) == 0:
+                return
+            last_key = keys.pop()
+            v = self
+            for key in keys:
+                if key in v and isinstance(v[key], dict):
+                    v = v[key]
+                else:
+                    return
+            dst_dict[dst_key] = v[last_key]
+
+    if 'ATHENA_PROC_NUMBER' in os.environ:
+        work_attributes['core_count'] = os.environ['ATHENA_PROC_NUMBER']
+        core_count = os.environ['ATHENA_PROC_NUMBER']
+
+    dq = DictQuery(job_report)
+    dq.get("resource/transform/processedEvents", work_attributes, "n_events")
+    dq.get("resource/transform/cpuTimeTotal", work_attributes, "cpuConsumptionTime")
+    dq.get("resource/machine/node", work_attributes, "node")
+    dq.get("resource/machine/model_name", work_attributes, "cpuConsumptionUnit")
+    dq.get("resource/dbTimeTotal", work_attributes, "__db_time")
+    dq.get("resource/dbDataTotal", work_attributes, "__db_data")
+    dq.get("exitCode", work_attributes, "transExitCode")
+    dq.get("exitCode", work_attributes, "exeErrorCode")
+    dq.get("exitMsg", work_attributes, "exeErrorDiag")
+    dq.get("files/input/subfiles", work_attributes, "nInputFiles")
+
+    if 'resource' in job_report and 'executor' in job_report['resource']:
+        j = job_report['resource']['executor']
+        exc_report = []
+        fin_report = defaultdict(int)
+        for v in filter(lambda d: 'memory' in d and ('Max' or 'Avg' in d['memory']), j.itervalues()):
+            if 'Avg' in v['memory']:
+                exc_report.extend(v['memory']['Avg'].items())
+            if 'Max' in v['memory']:
+                exc_report.extend(v['memory']['Max'].items())
+        for x in exc_report:
+            fin_report[x[0]] += x[1]
+        work_attributes.update(fin_report)
+
+    if 'files' in job_report and 'input' in job_report['files'] and 'subfiles' in job_report['files']['input']:
+                work_attributes['nInputFiles'] = len(job_report['files']['input']['subfiles'])
+
+    workdir_size = get_workdir_size()
+    work_attributes['jobMetrics'] = 'core_count=%s n_events=%s db_time=%s db_data=%s workdir_size=%s' % \
+                                    (core_count,
+                                        work_attributes["n_events"],
+                                        work_attributes["__db_time"],
+                                        work_attributes["__db_data"],
+                                        workdir_size)
+    del(work_attributes["__db_time"])
+    del(work_attributes["__db_data"])
+
+    return work_attributes
+
+
+def get_workdir_size():
+    c, o, e = execute('du -s', shell=True)
+    if o is not None:
+        return o.split()[0]
+    return None

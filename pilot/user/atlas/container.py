@@ -33,10 +33,33 @@ def wrapper(executable, **kwargs):
     if workdir == '.' and pilot_home != '':
         workdir = pilot_home
 
-    return singularity_wrapper(executable, platform, workdir)
+    return singularity_wrapper(executable, platform, workdir, job=kwargs.get('job'))
 
 
-def extract_container_options():
+def use_payload_container(job):
+    pass
+
+
+def use_middleware_container():
+    """
+    Should middleware from container be used?
+    In case middleware, i.e. the copy command for stage-in/out, should be taken from a container this function should
+    return True.
+
+    :return: True if middleware should be taken from container. False otherwise.
+    """
+
+    if get_middleware_type() == 'container':
+        return True
+    else:
+        return False
+
+
+def get_middleware_container():
+    pass
+
+
+def extract_container_options():  ## TO BE DEPRECATED: consider job['infosys'].queuedata.container_options
     """ Extract any singularity options from catchall """
 
     # e.g. catchall = "somestuff singularity_options=\'-B /etc/grid-security/certificates,/var/spool/slurmd,/cvmfs,/ceph/grid,/data0,/sys/fs/cgroup\'"
@@ -49,15 +72,18 @@ def extract_container_options():
     container_options = get_container_options()
     if container_options == "":
         logger.warning("container_options either does not exist in queuedata or is empty, trying with catchall instead")
-        catchall = get_catchall()
         # E.g. catchall = "singularity_options=\'-B /etc/grid-security/certificates,/cvmfs,${workdir} --contain\'"
+        catchall = get_catchall()
+        if catchall:
+            pattern = re.compile(r"singularity\_options\=\'?\"?(.+)\'?\"?")
+            found = re.findall(pattern, catchall)
+            if len(found) > 0:
+                container_options = found[0]
+                logger.info('extracted from catchall: %s' % str(container_options))
+        else:
+            logger.info('catchall not set')
 
-        pattern = re.compile(r"singularity\_options\=\'?\"?(.+)\'?\"?")
-        found = re.findall(pattern, catchall)
-        if len(found) > 0:
-            container_options = found[0]
-
-    if container_options != "":
+    if container_options and container_options != "":
         if container_options.endswith("'") or container_options.endswith('"'):
             container_options = container_options[:-1]
         # add the workdir if missing
@@ -103,13 +129,56 @@ def get_grid_image_for_singularity(platform):
 
     arch_and_os = extract_platform_and_os(platform)
     image = arch_and_os + ".img"
-    logger.info("constructed image name %s from %s" % (image, platform))
-    path = os.path.join(get_file_system_root_path(), "atlas.cern.ch/repo/images/singularity")
+    _path = os.path.join(get_file_system_root_path(), "atlas.cern.ch/repo/containers/images/singularity")
+    logger.info('_path=%s' % str(_path))
+    path = os.path.join(_path, image)
+    logger.info('path=%s' % str(path))
+    if not os.path.exists(path):
+        image = 'x86_64-centos7.img'
+        logger.warning('path does not exist: %s (trying with image %s instead)' % (path, image))
+        logger.info('_path=%s' % str(_path))
+        logger.info('image=%s' % str(image))
+        path = os.path.join(_path, image)
+        logger.info('path=%s' % str(path))
+        if not os.path.exists(path):
+            logger.warning('path does not exist either: %s' % path)
+            path = ""
 
-    return os.path.join(path, image)
+    return path
 
 
-def get_container_name(user="pilot"):
+def get_middleware_type():
+    """
+    Return the middleware type from the container type.
+    E.g. container_type = 'singularity:pilot;docker:wrapper;middleware:container'
+    get_middleware_type() -> 'container', meaning that middleware should be taken from the container. The default
+    is otherwise 'workernode', i.e. middleware is assumed to be present on the worker node.
+
+    :return: middleware_type (string)
+    """
+
+    middleware_type = ""
+    container_type = get_container_type()
+
+    mw = 'middleware'
+    if container_type and container_type != "" and mw in container_type:
+        try:
+            container_names = container_type.split(';')
+            for name in container_names:
+                t = name.split(':')
+                if mw == t[0]:
+                    middleware_type = t[1]
+        except Exception as e:
+            logger.warning("failed to parse the container name: %s, %s" % (container_type, e))
+    else:
+        # logger.warning("container middleware type not specified in queuedata")
+        # no middleware type was specified, assume that middleware is present on worker node
+        middleware_type = "workernode"
+
+    return middleware_type
+
+
+def get_container_name(user="pilot"):  ## TO BE DEPRECATED: consider job['infosys'].queuedata.container_type.get("pilot")
     """
     Return the container name
     E.g. container_type = 'singularity:pilot;docker:wrapper'
@@ -137,7 +206,7 @@ def get_container_name(user="pilot"):
     return container_name
 
 
-def singularity_wrapper(cmd, platform, workdir):
+def singularity_wrapper(cmd, platform, workdir, job):
     """
     Prepend the given command with the singularity execution command
     E.g. cmd = /bin/bash hello_world.sh
@@ -147,30 +216,37 @@ def singularity_wrapper(cmd, platform, workdir):
     :param cmd (string): command to be prepended.
     :param platform (string): platform specifics.
     :param workdir: explicit work directory where the command should be executed (needs to be set for Singularity).
+    :param job: Job object, passed here to properly resolve Information Service intance to access queuedata with Job overwrites applied
+
     :return: prepended command with singularity execution command (string).
     """
 
     # Should a container be used?
-    container_name = get_container_name()
+    #container_name = get_container_name()
+    container_name = job['infosys'].queuedata.container_type.get("pilot")  # resolve container name for user=pilot
+    logger.debug("resolved container_name from job.infosys.queuedata.contaner_type: %s" % container_name)
+
     if container_name == 'singularity':
         logger.info("singularity has been requested")
 
         # Get the singularity options
-        singularity_options = extract_container_options()
-        if singularity_options != "":
-            # Get the image path
-            image_path = get_grid_image_for_singularity(platform)
+        #singularity_options = extract_container_options()
+        singularity_options = job['infosys'].queuedata.container_options
+        logger.debug("resolved singularity_options from job.infosys.queuedata.container_options: %s" % singularity_options)
 
-            # Does the image exist?
-            if os.path.exists(image_path):
-                # Prepend it to the given command
-                cmd = "export workdir=" + workdir + "; singularity exec " + singularity_options + " " + image_path + \
-                      " /bin/bash -c \'cd $workdir;pwd;" + cmd.replace("\'", "\\'").replace('\"', '\\"') + "\'"
-            else:
-                logger.warning("singularity options found but image does not exist: %s" % (image_path))
+        if not singularity_options:
+            logger.warning('singularity options not set')
+
+        # Get the image path
+        image_path = get_grid_image_for_singularity(platform)
+
+        # Does the image exist?
+        if image_path != '':
+            # Prepend it to the given command
+            cmd = "export workdir=" + workdir + "; singularity exec " + singularity_options + " " + image_path + \
+                  " /bin/bash -c \'cd $workdir;pwd;" + cmd.replace("\'", "\\'").replace('\"', '\\"') + "\'"
         else:
-            # Return the original command as it was
-            logger.warning("no singularity options found in container_options or catchall fields")
+            logger.warning("singularity options found but image does not exist")
 
     logger.info("Updated command: %s" % cmd)
 

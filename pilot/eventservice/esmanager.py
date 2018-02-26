@@ -48,5 +48,6 @@ class ESManager:
         process.set_handle_out_message_hook(self.__hook.handle_out_message)
 
         logger.info('ESProcess starts to run')
-        process.run()
+        process.start()
+        process.join()
         logger.info('ESProcess finishes')
