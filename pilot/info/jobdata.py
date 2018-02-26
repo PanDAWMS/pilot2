@@ -48,18 +48,47 @@ class JobData(BaseData):
     piloterrorcodes = []
     piloterrordiag = ""
     piloterrordiags = []
+    transexitcode = 0
+    exeerrorcode = 0
+    exeerrordiag = ""
+    exitcode = 0
+    exitmsg = ""
     state = ""
+    stageout = ""
+    metadata = {}
+    cpuconsumptionunit = ""
+    cpuconsumptiontime = ""
+    cpuconversionfactor = 1
+    attemptnr = 0
+    nevents = 0
+    payload = ""  # payload name
+
+    infiles = []
+    outfiles = []
+    scopein = ""
+    scopeout = ""
+    scopelog = ""
+    logfile = ""
+    ddmendpointin = ""
+    ddmendpointout = ""
+    destinationdblock = ""
+    logguid = ""
+    noexecstrcnv = None
+    homepackage = ""  # does not need to be added to the conversion function since it's already lower case
+    jobsetid = ""
 
     _rawdata = {}  ## RAW data to keep backward compatible behavior for a while ## TO BE REMOVED once all job attributes will be covered
 
     # specify the type of attributes for proper data validation and casting
-    _keys = {int: ['corecount','piloterrorcode'],
-             str: ['jobid', 'taskid', 'jobparams', 'transformation',
-                   'state', 'status', 'workdir', 'state',
-                   'platform', 'piloterrordiag'],
-             list: ['piloterrorcodes', 'piloterrordiags'],
-             dict: ['fileinfo'],
-             bool: ['is_eventservice']
+    _keys = {int: ['corecount','piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
+                   'attemptnr', 'nevents'],
+             str: ['jobid', 'taskid', 'jobparams', 'transformation', 'logguid', 'destinationdblock', 'exeerrordiag'
+                   'state', 'status', 'workdir', 'state', 'stageout', 'ddmendpointin', 'ddmendpointout',
+                   'platform', 'piloterrordiag', 'scopeout', 'scopein', 'scopelog', 'logfile', 'exitmsg',
+                   'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload'],
+             list: ['piloterrorcodes', 'piloterrordiags', 'infiles', 'outfiles'],
+             dict: ['fileinfo', 'metadata'],
+             bool: ['is_eventservice', 'noexecstrcnv']
              }
 
     def __init__(self, data):
@@ -135,7 +164,21 @@ class JobData(BaseData):
             'jobparams': 'jobPars',
             'corecount': 'coreCount',
             'platform': 'cmtConfig',
-            'is_eventservice': 'eventService',  ## is it coming from Job def??
+            'scopein': 'scopeIn',
+            'scopeout': 'scopeOut',
+            'scopelog': 'scopeLog',
+            'logfile': 'logFile',
+            'infiles': 'inFiles',
+            'outfiles': 'outFiles',
+            'logguid': 'logGUID',
+            'attemptnr': 'attemptNr',
+            'ddmendpointin': 'ddmEndPointIn',
+            'ddmendpointout': 'ddmEndPointOut',
+            'destinationdblock': 'destinationDblock',
+            'noexecstrcnv': 'noExecStrCnv',
+            'swrelease': 'swRelease',
+            'jobsetid': 'jobsetID',
+            'is_eventservice': 'eventService',  ## is it coming from Job def?? yes (PN)
         }
 
         self._load_data(data, kmap)

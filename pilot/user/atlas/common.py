@@ -29,7 +29,7 @@ def get_payload_command(job):
     """
 
     # Should the pilot do the asetup or do the jobPars already contain the information?
-    prepareasetup = should_pilot_prepare_asetup(job.get('noExecStrCnv', None), job['jobPars'])
+    prepareasetup = should_pilot_prepare_asetup(job.noexecstrcnv, job.jobparams)
 
     # Is it a user job or not?
     userjob = job.is_analysis()
@@ -41,14 +41,14 @@ def get_payload_command(job):
     asetuppath = get_asetup(asetup=prepareasetup)
     asetupoptions = " "
 
-    if is_standard_atlas_job(job['swRelease']):
+    if is_standard_atlas_job(job.swrelease):
 
         # Normal setup (production and user jobs)
         logger.info("preparing normal production/analysis job setup command")
 
         cmd = asetuppath
         if prepareasetup:
-            options = get_asetup_options(job['swRelease'], job['homepackage'])
+            options = get_asetup_options(job.swrelease, job.homepackage)
             asetupoptions = " " + options + " --platform " + platform
 
             # Always set the --makeflags option (to prevent asetup from overwriting it)
@@ -73,9 +73,9 @@ def get_payload_command(job):
                 cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
                 # Add the transform and the job parameters (production jobs)
                 if prepareasetup:
-                    cmd += ";%s %s" % (job['transformation'], job['jobPars'])
+                    cmd += ";%s %s" % (job.transformation, job.jobparams)
                 else:
-                    cmd += "; " + job['jobPars']
+                    cmd += "; " + job.jobparams
 
             cmd = cmd.replace(';;', ';')
 
@@ -101,26 +101,26 @@ def update_job_data(job):
     stageout = "all"
 
     # handle any error codes
-    if 'exeErrorCode' in job['metaData']:
-        job['exeErrorCode'] = job['metaData']['exeErrorCode']
-        if job['exeErrorCode'] == 0:
+    if 'exeErrorCode' in job.metadata:
+        job.exeerrorcode = job.metadata['exeErrorCode']
+        if job.exeerrorcode == 0:
             stageout = "all"
         else:
-            logger.info('payload failed: exeErrorCode=%d' % job['exeErrorCode'])
+            logger.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
             stageout = "log"
-    if 'exeErrorDiag' in job['metaData']:
-        job['exeErrorDiag'] = job['metaData']['exeErrorDiag']
-        if job['exeErrorDiag'] != "":
-            logger.warning('payload failed: exeErrorDiag=%s' % job['exeErrorDiag'])
+    if 'exeErrorDiag' in job.metadata:
+        job.exeerrordiag = job.metadata['exeErrorDiag']
+        if job.exeerrordiag != "":
+            logger.warning('payload failed: exeErrorDiag=%s' % job.exeerrordiag)
 
     # determine what should be staged out
-    job['stageout'] = stageout  # output and log file or only log file
+    job.stageout = stageout  # output and log file or only log file
 
     # extract the number of events
-    job['nEvents'] = get_number_of_events(job['metaData'])
+    job.nevents = get_number_of_events(job.metadata)
 
     try:
-        work_attributes = parse_jobreport_data(job['metaData'])
+        work_attributes = parse_jobreport_data(job.metadata)
     except Exception as e:
         logger.warning('failed to parse job report: %s' % e)
     else:

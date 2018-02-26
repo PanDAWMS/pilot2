@@ -101,27 +101,27 @@ def send_state(job, args, state, xml=None):
             'node': get_node_name()}
 
     # error codes
-    pilot_error_code = job.get('pilotErrorCode', 0)
-    pilot_error_codes = job.get('pilotErrorCodes', [])
+    pilot_error_code = job.piloterrorcode, 0)
+    pilot_error_codes = job.piloterrorcodes, [])
     if pilot_error_codes != []:
         log.warning('pilotErrorCodes = %s (will report primary/first error code)' % str(pilot_error_codes))
         data['pilotErrorCode'] = pilot_error_codes[0]
     else:
         data['pilotErrorCode'] = pilot_error_code
 
-    pilot_error_diag = job.get('pilotErrorDiag', 0)
-    pilot_error_diags = job.get('pilotErrorDiags', [])
+    pilot_error_diag = job.piloterrordiag, 0)
+    pilot_error_diags = job.piloterrordiags, [])
     if pilot_error_diags != []:
         log.warning('pilotErrorDiags = %s (will report primary/first error diag)' % str(pilot_error_diags))
         data['pilotErrorDiag'] = pilot_error_diags[0]
     else:
         data['pilotErrorDiag'] = pilot_error_diag
 
-    data['transExitCode'] = job.get('transExitCode', 0)
-    data['exeErrorCode'] = job.get('exeErrorCode', 0)
-    data['exeErrorDiag'] = job.get('exeErrorDiag', '')
+    data['transExitCode'] = job.transexitcode, 0)
+    data['exeErrorCode'] = job.exeerrorcode
+    data['exeErrorDiag'] = job.exeerrordiag
 
-    data['attemptNr'] = job.get('attemptNr', 0)
+    data['attemptNr'] = job.attemptnr
 
     schedulerid = get_job_scheduler_id()
     if schedulerid:
@@ -179,8 +179,8 @@ def validate(queues, traces, args):
         traces.pilot['nr_jobs'] += 1
 
         # set the environmental variable for the task id
-        os.environ['PanDA_TaskID'] = str(job['taskID'])
-        logger.info('processing PanDA job %s from task %s' % (job.jobid, job['taskID']))
+        os.environ['PanDA_TaskID'] = str(job.taskid)
+        logger.info('processing PanDA job %s from task %s' % (job.jobid, job.taskid))
 
         if _validate_job(job):
 
@@ -697,7 +697,7 @@ def job_monitor(queues, traces, args):
         else:
             logger.info("job %s has finished" % job.jobid)
             # make sure that state=finished
-            job['state'] = 'finished'
+            job.state = 'finished'
 
         # check if the job has failed
         try:
@@ -708,19 +708,14 @@ def job_monitor(queues, traces, args):
         else:
             logger.info("job %s has failed" % job.jobid)
             # make sure that state=failed
-            job['state'] = 'failed'
+            job.state = 'failed'
 
         # job has not been defined if it's still running
         if job:
             # send final server update
-            if job['fileinfodict']:
-                send_state(job, args, job['state'], xml=dumps(job['fileinfodict']))
+            if job.fileinfo:
+                send_state(job, args, job.state, xml=dumps(job.fileinfo))
             else:
-                send_state(job, args, job['state'])
-            #if job['state'] == "finished":
-            #
-            #    send_state(job, args, 'finished', xml=dumps(job['fileinfodict']))
-            #else:
-            #    send_state(job, args, 'failed')
+                send_state(job, args, job.state)
 
             # now ready for the next job (or quit)

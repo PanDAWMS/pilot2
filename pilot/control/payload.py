@@ -154,17 +154,17 @@ def execute_payloads(queues, traces, args):
             exit_code = payload_executor.run()
             t1 = os.times()
             t = map(lambda x, y: x - y, t1, t0)
-            job['cpuConsumptionUnit'], job['cpuConsumptionTime'], job['cpuConversionFactor'] = set_time_consumed(t)
-            log.info('CPU consumption time: %s' % job['cpuConsumptionTime'])
+            job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconversionfactor = set_time_consumed(t)
+            log.info('CPU consumption time: %s' % job.cpuconsumptiontime)
 
             out.close()
             err.close()
 
             if exit_code == 0:
-                job['transExitCode'] = 0
+                job.transexitcode = 0
                 queues.finished_payloads.put(job)
             else:
-                job['transExitCode'] = exit_code
+                job.transexitcode = exit_code
                 queues.failed_payloads.put(job)
 
         except Queue.Empty:
@@ -190,7 +190,7 @@ def process_job_report(job):
     else:
         with open(path) as data_file:
             # compulsory field; the payload must procude a job report (see config file for file name)
-            job['metaData'] = json.load(data_file)
+            job.metadata = json.load(data_file)
 
             # extract user specific info from job report
             pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -199,19 +199,19 @@ def process_job_report(job):
 
             # compulsory fields
             try:
-                job['exitCode'] = job['metaData']['exitCode']
+                job.exitcode = job.metadata['exitCode']
             except Exception as e:
                 log.warning('could not find compulsory payload exitCode in job report: %s (will be set to 0)' % e)
-                job['exitCode'] = 0
+                job.exitcode = 0
             else:
-                log.info('extracted exit code from job report: %d' % job['exitCode'])
+                log.info('extracted exit code from job report: %d' % job.exitcode)
             try:
-                job['exitMsg'] = job['metaData']['exitMsg']
+                job.exitmsg = job.metadata['exitMsg']
             except Exception as e:
                 log.warning('could not find compulsory payload exitMsg in job report: %s (will be set to empty string)' % e)
-                job['exitMsg'] = ""
+                job.exitmsg = ""
             else:
-                log.info('extracted exit message from job report: %s' % job['exitMsg'])
+                log.info('extracted exit message from job report: %s' % job.exitmsg)
 
 
 def validate_post(queues, traces, args):
@@ -261,5 +261,5 @@ def failed_post(queues, traces, args):
 
         log.debug('adding log for log stageout')
 
-        job['stageout'] = "log"  # only stage-out log file
+        job.stageout = "log"  # only stage-out log file
         queues.data_out.put(job)
