@@ -44,14 +44,20 @@ class JobData(BaseData):
     is_eventservice = False        # True for event service jobs
 
     fileinfo = {}
+    piloterrorcode = 0
+    piloterrorcodes = []
+    piloterrordiag = 0
+    piloterrordiags = []
+
 
     _rawdata = {}  ## RAW data to keep backward compatible behavior for a while ## TO BE REMOVED once all job attributes will be covered
 
     # specify the type of attributes for proper data validation and casting
-    _keys = {int: ['corecount'],
+    _keys = {int: ['corecount','piloterrorcode'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation',
                    'state', 'status', 'workdir',
-                   'platform'],
+                   'platform', 'piloterrordiag'],
+             list: ['piloterrorcodes', 'piloterrordiags'],
              dict: ['fileinfo'],
              bool: ['is_eventservice']
              }
