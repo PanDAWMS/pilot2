@@ -101,8 +101,8 @@ def send_state(job, args, state, xml=None):
             'node': get_node_name()}
 
     # error codes
-    pilot_error_code = job.piloterrorcode, 0)
-    pilot_error_codes = job.piloterrorcodes, [])
+    pilot_error_code = job.piloterrorcode
+    pilot_error_codes = job.piloterrorcodes
     if pilot_error_codes != []:
         log.warning('pilotErrorCodes = %s (will report primary/first error code)' % str(pilot_error_codes))
         data['pilotErrorCode'] = pilot_error_codes[0]
