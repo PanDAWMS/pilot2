@@ -46,16 +46,16 @@ class JobData(BaseData):
     fileinfo = {}
     piloterrorcode = 0
     piloterrorcodes = []
-    piloterrordiag = 0
+    piloterrordiag = ""
     piloterrordiags = []
-
+    state = ""
 
     _rawdata = {}  ## RAW data to keep backward compatible behavior for a while ## TO BE REMOVED once all job attributes will be covered
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['corecount','piloterrorcode'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation',
-                   'state', 'status', 'workdir',
+                   'state', 'status', 'workdir', 'state',
                    'platform', 'piloterrordiag'],
              list: ['piloterrorcodes', 'piloterrordiags'],
              dict: ['fileinfo'],
