@@ -109,15 +109,15 @@ def send_state(job, args, state, xml=None):
     else:
         data['pilotErrorCode'] = pilot_error_code
 
-    pilot_error_diag = job.piloterrordiag, 0)
-    pilot_error_diags = job.piloterrordiags, [])
+    pilot_error_diag = job.piloterrordiag
+    pilot_error_diags = job.piloterrordiags
     if pilot_error_diags != []:
         log.warning('pilotErrorDiags = %s (will report primary/first error diag)' % str(pilot_error_diags))
         data['pilotErrorDiag'] = pilot_error_diags[0]
     else:
         data['pilotErrorDiag'] = pilot_error_diag
 
-    data['transExitCode'] = job.transexitcode, 0)
+    data['transExitCode'] = job.transexitcode
     data['exeErrorCode'] = job.exeerrorcode
     data['exeErrorDiag'] = job.exeerrordiag
 
