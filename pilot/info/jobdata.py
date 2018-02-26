@@ -76,6 +76,7 @@ class JobData(BaseData):
     noexecstrcnv = None
     homepackage = ""  # does not need to be added to the conversion function since it's already lower case
     jobsetid = ""
+    swrelease = ""  # software release string
 
     _rawdata = {}  ## RAW data to keep backward compatible behavior for a while ## TO BE REMOVED once all job attributes will be covered
 
