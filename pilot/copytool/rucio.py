@@ -5,13 +5,24 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Tobias Wegner, tobias.wegner@cern.ch, 2017
+# - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
 
 import os
 
 from pilot.copytool.common import merge_destinations
 from pilot.util.container import execute
 
+def is_valid_for_copy_in(files):
+    for f in files:
+        if not all(key in f for key in ('scope', 'name', 'destination'))
+            return False
+    return True
+
+def is_valid_for_copy_out(files):
+    for f in files:
+        if not all(key in f for key in ('scope', 'file', 'rse'))
+            return False
+    return True
 
 def copy_in(files):
     """
