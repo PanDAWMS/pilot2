@@ -224,7 +224,7 @@ def singularity_wrapper(cmd, platform, workdir, job):
 
     # Should a container be used?
     #container_name = get_container_name()
-    container_name = job['infosys'].queuedata.container_type.get("pilot")  # resolve container name for user=pilot
+    container_name = job.infosys.queuedata.container_type.get("pilot")  # resolve container name for user=pilot
     logger.debug("resolved container_name from job.infosys.queuedata.contaner_type: %s" % container_name)
 
     if container_name == 'singularity':
@@ -232,7 +232,7 @@ def singularity_wrapper(cmd, platform, workdir, job):
 
         # Get the singularity options
         #singularity_options = extract_container_options()
-        singularity_options = job['infosys'].queuedata.container_options
+        singularity_options = job.infosys.queuedata.container_options
         logger.debug("resolved singularity_options from job.infosys.queuedata.container_options: %s" % singularity_options)
 
         if not singularity_options:

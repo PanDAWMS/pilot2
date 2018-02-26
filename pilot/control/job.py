@@ -20,8 +20,9 @@ from pilot.util.config import config
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id
-from pilot.util.information import get_timefloor
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
+
+from pilot.info import infosys, JobData
 
 import logging
 logger = logging.getLogger(__name__)
@@ -66,7 +67,7 @@ def _validate_job(job):
     """
     # valid = random.uniform(0, 100)
     # if valid > 99:
-    #     logger.warning('%s: job did not validate correctly -- skipping' % job['PandaID'])
+    #     logger.warning('%s: job did not validate correctly -- skipping' % job.jobid)
     #     job['errno'] = random.randint(0, 100)
     #     job['errmsg'] = 'job failed random validation'
     #     return False
@@ -84,16 +85,16 @@ def send_state(job, args, state, xml=None):
     :return:
     """
 
-    log = logger.getChild(str(job['PandaID']))
+    log = logger.getChild(job.jobid)
     if state == 'finished':
-        log.info('job %d has finished - sending final server update' % job['PandaID'])
+        log.info('job %s has finished - sending final server update' % job.jobid)
     else:
         log.debug('set job state=%s' % state)
 
     # report the batch system job id, if available
     batchsystem_type, batchsystem_id = get_batchsystem_jobid()
 
-    data = {'jobId': job['PandaID'],
+    data = {'jobId': job.jobid,
             'state': state,
             'timestamp': time_stamp(),
             'siteName': args.site,
@@ -148,7 +149,7 @@ def send_state(job, args, state, xml=None):
         if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=config.Pilot.pandaserver),
                          data=data) is not None:
 
-            log.info('server updateJob request completed for job %s' % job['PandaID'])
+            log.info('server updateJob request completed for job %s' % job.jobid)
             return True
     except Exception as e:
         log.warning('while setting job state, Exception caught: %s' % str(e.message))
@@ -174,20 +175,20 @@ def validate(queues, traces, args):
         except Queue.Empty:
             continue
 
-        log = logger.getChild(str(job['PandaID']))
+        log = logger.getChild(job.jobid)
         traces.pilot['nr_jobs'] += 1
 
         # set the environmental variable for the task id
         os.environ['PanDA_TaskID'] = str(job['taskID'])
-        logger.info('processing PanDA job %s from task %s' % (job['PandaID'], job['taskID']))
+        logger.info('processing PanDA job %s from task %s' % (job.jobid, job['taskID']))
 
         if _validate_job(job):
 
             log.debug('creating job working directory')
-            job_dir = os.path.join(args.mainworkdir, 'PanDA_Pilot-%s' % job['PandaID'])
+            job_dir = os.path.join(args.mainworkdir, 'PanDA_Pilot-%s' % job.jobid)
             try:
                 os.mkdir(job_dir)
-                job['working_dir'] = job_dir
+                job.workdir = job_dir
             except Exception as e:
                 log.debug('cannot create working directory: %s' % str(e))
                 queues.failed_jobs.put(job)
@@ -203,7 +204,7 @@ def validate(queues, traces, args):
 
             queues.validated_jobs.put(job)
         else:
-            log.debug('Failed to validate job=%s' % job['PandaID'])
+            log.debug('Failed to validate job=%s' % job.jobid)
             queues.failed_jobs.put(job)
 
 
@@ -532,14 +533,6 @@ def get_job_definition(args):
             logger.info('will download job definition from server')
             res = get_job_definition_from_server(args)
 
-    if res:  # initialize (job specific) InfoService instance
-        from pilot.info import InfoService, JobInfoProvider, infosys
-
-        jobinfosys = InfoService()
-        jobinfosys.init(args.queue, infosys.confinfo, infosys.extinfo, JobInfoProvider(res))
-        if res:
-            res['infosys'] = jobinfosys
-
     return res
 
 
@@ -575,7 +568,7 @@ def retrieve(queues, traces, args):
     :param args: arguments (e.g. containing queue name, queuedata dictionary, etc).
     """
 
-    timefloor = get_timefloor()
+    timefloor = infosys.queuedata.timefloor
     starttime = time.time()
 
     jobnumber = 0  # number of downloaded jobs
@@ -599,7 +592,7 @@ def retrieve(queues, traces, args):
             logger.fatal('fatal error in job download loop - cannot continue')
             break
 
-        if res == {}:
+        if not res:
             delay = get_job_retrieval_delay(args.harvester)
             if not args.harvester:
                 logger.warning('did not get a job -- sleep %d s and repeat' % delay)
@@ -615,17 +608,28 @@ def retrieve(queues, traces, args):
                         break
                     time.sleep(1)
             else:
-                logger.info('received job: %s (sleep until the job has finished)' % res['PandaID'])
-
-                # payload environment wants the PandaID to be set, also used below
-                os.environ['PandaID'] = str(res['PandaID'])
-
                 # update dispatcher data for ES (if necessary)
                 res = update_es_dispatcher_data(res)
 
+                # initialize (job specific) InfoService instance
+                from pilot.info import InfoService, JobInfoProvider
+
+                job = JobData(res)
+
+                jobinfosys = InfoService()
+                jobinfosys.init(args.queue, infosys.confinfo, infosys.extinfo, JobInfoProvider(job))
+                job.infosys = jobinfosys
+
+                logger.info('received job: %s (sleep until the job has finished)' % job.jobid)
+                logger.info('job details: \n%s' % job)
+
+                # payload environment wants the PandaID to be set, also used below
+                os.environ['PandaID'] = job.jobid
+
                 # add the job definition to the jobs queue and increase the job counter,
                 # and wait until the job has finished
-                queues.jobs.put(res)
+                queues.jobs.put(job)
+
                 jobnumber += 1
                 if args.graceful_stop.is_set():
                     logger.info('graceful stop is currently set')
@@ -646,23 +650,20 @@ def job_has_finished(queues):
     :return: True is the payload has finished or failed
     """
 
-    try:
-        panda_id = int(os.environ.get('PandaID', 0))
-    except TypeError:
-        panda_id = 0
+    jobid = os.environ.get('PandaID')
 
     # is there anything in the finished_jobs queue?
     finished_queue_snapshot = list(queues.finished_jobs.queue)
-    peek = [s_job for s_job in finished_queue_snapshot if panda_id == s_job['PandaID']]
-    if len(peek) != 0:
-        logger.info("job %d has completed (finished)" % panda_id)
+    peek = [obj for obj in finished_queue_snapshot if jobid == obj.jobid]
+    if peek:
+        logger.info("job %s has completed (finished)" % jobid)
         return True
 
     # is there anything in the failed_jobs queue?
     failed_queue_snapshot = list(queues.failed_jobs.queue)
-    peek = [s_job for s_job in failed_queue_snapshot if panda_id == s_job['PandaID']]
-    if len(peek) != 0:
-        logger.info("job %d has completed (failed)" % panda_id)
+    peek = [obj for obj in failed_queue_snapshot if jobid == obj.jobid]
+    if peek:
+        logger.info("job %s has completed (failed)" % jobid)
         return True
 
     return False
@@ -694,7 +695,7 @@ def job_monitor(queues, traces, args):
             # logger.info("(job still running)")
             pass
         else:
-            logger.info("job %d has finished" % job['PandaID'])
+            logger.info("job %s has finished" % job.jobid)
             # make sure that state=finished
             job['state'] = 'finished'
 
@@ -705,7 +706,7 @@ def job_monitor(queues, traces, args):
             # logger.info("(job still running)")
             pass
         else:
-            logger.info("job %d has failed" % job['PandaID'])
+            logger.info("job %s has failed" % job.jobid)
             # make sure that state=failed
             job['state'] = 'failed'
 
