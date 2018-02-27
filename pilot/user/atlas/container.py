@@ -59,7 +59,7 @@ def get_middleware_container():
     pass
 
 
-def extract_container_options():  ## TO BE DEPRECATED: consider job['infosys'].queuedata.container_options
+def extract_container_options():  ## TO BE DEPRECATED: consider job.infosys.queuedata.container_options
     """ Extract any singularity options from catchall """
 
     # e.g. catchall = "somestuff singularity_options=\'-B /etc/grid-security/certificates,/var/spool/slurmd,/cvmfs,/ceph/grid,/data0,/sys/fs/cgroup\'"
@@ -178,7 +178,7 @@ def get_middleware_type():
     return middleware_type
 
 
-def get_container_name(user="pilot"):  ## TO BE DEPRECATED: consider job['infosys'].queuedata.container_type.get("pilot")
+def get_container_name(user="pilot"):  ## TO BE DEPRECATED: consider job.infosys.queuedata.container_type.get("pilot")
     """
     Return the container name
     E.g. container_type = 'singularity:pilot;docker:wrapper'
@@ -223,7 +223,7 @@ def singularity_wrapper(cmd, platform, workdir, job):
 
     # Should a container be used?
     #container_name = get_container_name()
-    container_name = job['infosys'].queuedata.container_type.get("pilot")  # resolve container name for user=pilot
+    container_name = job.infosys.queuedata.container_type.get("pilot")  # resolve container name for user=pilot
     logger.debug("resolved container_name from job.infosys.queuedata.contaner_type: %s" % container_name)
 
     if container_name == 'singularity':
@@ -231,7 +231,7 @@ def singularity_wrapper(cmd, platform, workdir, job):
 
         # Get the singularity options
         #singularity_options = extract_container_options()
-        singularity_options = job['infosys'].queuedata.container_options
+        singularity_options = job.infosys.queuedata.container_options
         logger.debug("resolved singularity_options from job.infosys.queuedata.container_options: %s" % singularity_options)
 
         if not singularity_options:

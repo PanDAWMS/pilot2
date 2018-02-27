@@ -45,13 +45,13 @@ class Executor(object):
         :param err:
         :return:
         """
-        # log = logger.getChild(str(job['PandaID']))
+        # log = logger.getChild(job.jobid)
 
         # try:
         # create symbolic link for sqlite200 and geomDB in job dir
         #    for db_name in ['sqlite200', 'geomDB']:
         #         src = '/cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/%s' % db_name
-        #         link_name = 'job-%s/%s' % (job['PandaID'], db_name)
+        #         link_name = 'job-%s/%s' % (job.jobid, db_name)
         #         os.symlink(src, link_name)
         # except Exception as e:
         #     log.error('could not create symbolic links to database files: %s' % e)
@@ -69,7 +69,7 @@ class Executor(object):
         :return: proc (subprocess returned by Popen())
         """
 
-        log = logger.getChild(str(job['PandaID']))
+        log = logger.getChild(job.jobid)
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -83,11 +83,11 @@ class Executor(object):
             #                         bufsize=-1,
             #                         stdout=out,
             #                         stderr=err,
-            #                         cwd=job['working_dir'],
+            #                         cwd=job.workdir,
             #                         shell=True)
 
-            proc = execute(cmd, platform=job['cmtConfig'], workdir=job['working_dir'], returnproc=True,
-                           usecontainer=True, stdout=out, stderr=err, cwd=job['working_dir'], job=job)
+            proc = execute(cmd, platform=job.platform, workdir=job.workdir, returnproc=True,
+                           usecontainer=True, stdout=out, stderr=err, cwd=job.workdir, job=job)
         except Exception as e:
             log.error('could not execute: %s' % str(e))
             return None
@@ -106,7 +106,7 @@ class Executor(object):
         :return:
         """
 
-        log = logger.getChild(str(job['PandaID']))
+        log = logger.getChild(job.jobid)
 
         breaker = False
         exit_code = None
@@ -144,7 +144,7 @@ class Executor(object):
 
         :return:
         """
-        log = logger.getChild(str(self.__job['PandaID']))
+        log = logger.getChild(str(self.__job.jobid))
 
         exit_code = 1
         if self.setup_payload(self.__job, self.__out, self.__err):

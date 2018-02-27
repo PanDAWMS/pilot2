@@ -26,14 +26,14 @@ def download_event_ranges(job, num_ranges=None):
     :return: List of event ranges.
     """
 
-    log = logger.getChild(str(job['PandaID']))
+    log = logger.getChild(job.jobid)
 
     try:
         if not num_ranges:
             # ToBeFix num_ranges with corecount
             num_ranges = 1
 
-        data = {'pandaID': job['PandaID'],
+        data = {'pandaID': job.jobid,
                 'jobsetID': job['jobsetID'],
                 'taskID': job['taskID'],
                 'nRanges': num_ranges}
@@ -57,7 +57,7 @@ def update_event_ranges(job, event_ranges, version=1):
 
     :param event_ranges:
     """
-    log = logger.getChild(str(job['PandaID']))
+    log = logger.getChild(job.jobid)
 
     log.info("Updating event ranges: %s" % event_ranges)
 
