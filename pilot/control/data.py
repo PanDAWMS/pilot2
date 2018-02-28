@@ -296,7 +296,9 @@ def _stage_out_all(job, args):
     fileinfodict = {}
     failed = False
     try:
-        stage_client = StageOutClient(logger=log)
+        copytools = job.infosys.queuedata.copytools
+        logger.info('Test job.infosys: queuedata.copytools=%s' % copytools)
+        stage_client = StageOutClient(copytool_names=copytools, logger=log)
         for outfile in outputs:
             if outfile not in job['outFiles']:
                 continue
