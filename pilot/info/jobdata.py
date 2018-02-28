@@ -1,3 +1,12 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Authors:
+# - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+
 """
 The implementation of data structure to host Job definition.
 
@@ -43,6 +52,7 @@ class JobData(BaseData):
 
     is_eventservice = False        # True for event service jobs
 
+    # set by the pilot (not from job definition)
     fileinfo = {}
     piloterrorcode = 0
     piloterrorcodes = []
@@ -54,28 +64,30 @@ class JobData(BaseData):
     exitcode = 0
     exitmsg = ""
     state = ""
-    stageout = ""
-    metadata = {}
+    stageout = ""  # stage-out identifier, e.g. log
+    metadata = {}  # payload metadata (job report)
     cpuconsumptionunit = ""
     cpuconsumptiontime = ""
     cpuconversionfactor = 1
-    attemptnr = 0
-    nevents = 0
+    nevents = 0  # number of events
     payload = ""  # payload name
 
-    infiles = ""
-    outfiles = ""
-    scopein = ""
-    scopeout = ""
-    scopelog = ""
-    logfile = ""
-    ddmendpointin = ""
-    ddmendpointout = ""
+    # from job definition
+    attemptnr = 0  # job attempt number
+    ddmendpointin = ""  # comma-separated list (string) of ddm endpoints for input
+    ddmendpointout = ""  # comma-separated list (string) of ddm endpoints for output
     destinationdblock = ""
-    logguid = ""
-    noexecstrcnv = None
-    homepackage = ""  # does not need to be added to the conversion function since it's already lower case
-    jobsetid = ""
+    infiles = ""  # comma-separated list (string) of input files
+    homepackage = ""  # home package string with additional payload release information; does not need to be added to
+                      # the conversion function since it's already lower case
+    jobsetid = ""  # job set id
+    logfile = ""  #  file name for log
+    logguid = ""  # unique guid for log file
+    noexecstrcnv = None  # server instruction to the pilot if it should take payload setup from job parameters
+    outfiles = ""  # comma-separated list (string) of output files
+    scopein = ""  # comma-separated list (string) of input file scopes
+    scopelog = ""  # scope for log file
+    scopeout = ""  # comma-separated list (string) of output file scopes
     swrelease = ""  # software release string
 
     _rawdata = {}  ## RAW data to keep backward compatible behavior for a while ## TO BE REMOVED once all job attributes will be covered
