@@ -87,7 +87,7 @@ class JobData(BaseData):
                    'state', 'status', 'workdir', 'state', 'stageout', 'ddmendpointin', 'ddmendpointout',
                    'platform', 'piloterrordiag', 'scopeout', 'scopein', 'scopelog', 'logfile', 'exitmsg',
                    'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload', 'infiles',
-                   'outfiles'],
+                   'outfiles', 'swrelease'],
              list: ['piloterrorcodes', 'piloterrordiags'],
              dict: ['fileinfo', 'metadata'],
              bool: ['is_eventservice', 'noexecstrcnv']
