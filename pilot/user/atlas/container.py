@@ -31,10 +31,28 @@ def wrapper(executable, **kwargs):
     platform = kwargs.get('platform', '')
     workdir = kwargs.get('workdir', '.')
     pilot_home = os.environ.get('PILOT_HOME', '')
+    job = kwargs.get('job')
+
     if workdir == '.' and pilot_home != '':
         workdir = pilot_home
 
-    return singularity_wrapper(executable, platform, workdir, job=kwargs.get('job'))
+    if preferred_setup(job) == "ALRB":
+        fctn = alrb_wrapper
+    else:
+        fctn = singularity_wrapper
+    return fctn(executable, platform, workdir, job)
+
+
+def preferred_setup(job):
+    """
+    Determine which container setup to use.
+    E.g. explicit singularity or via the ALRB setup (setupATLAS)
+
+    :param job: job object
+    :return:
+    """
+
+    return "ALRB"
 
 
 def use_payload_container(job):
@@ -144,6 +162,36 @@ def get_middleware_type():
     return middleware_type
 
 
+def alrb_wrapper(cmd, platform, workdir, job):
+    """
+    Wrap the given command with the special ALRB setup for containers
+    E.g. cmd = /bin/bash hello_world.sh
+    ->
+    export thePlatform="x86_64-slc6-gcc48-opt"
+    export ALRB_CONT_RUNPAYLOAD="cmd'
+    setupATLAS -c $thePlatform
+
+    :param cmd (string): command to be executed in a container.
+    :param platform (string): platform specifics.
+    :param workdir: (not used)
+    :param job: Job object, passed here to properly resolve Information Service intance to access queuedata with Job overwrites applied
+
+    :return: prepended command with singularity execution command (string).
+    """
+
+    container_name = job.infosys.queuedata.container_type.get("pilot")  # resolve container name for user=pilot
+    logger.debug("resolved container_name from job.infosys.queuedata.contaner_type: %s" % container_name)
+
+    if container_name == 'singularity':
+        _cmd = 'export thePlatform=\"%s\";' % platform
+        _cmd += 'export ALRB_CONT_RUNPAYLOAD=\"%s\";' % cmd
+        _cmd += 'setupATLAS -c $thePlatform'
+
+    logger.info("Updated command: %s" % cmd)
+
+    return cmd
+
+
 def singularity_wrapper(cmd, platform, workdir, job):
     """
     Prepend the given command with the singularity execution command
@@ -159,7 +207,6 @@ def singularity_wrapper(cmd, platform, workdir, job):
     :return: prepended command with singularity execution command (string).
     """
 
-    # Should a container be used?
     container_name = job.infosys.queuedata.container_type.get("pilot")  # resolve container name for user=pilot
     logger.debug("resolved container_name from job.infosys.queuedata.contaner_type: %s" % container_name)
 
