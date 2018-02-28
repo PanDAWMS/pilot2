@@ -9,6 +9,7 @@
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 # - Wen Guan, wen.guan@cern.ch, 2018
+# - Tobias Wegner, tobias.wegner@cern.ch, 2018
 
 import copy
 import Queue
@@ -19,6 +20,7 @@ import tarfile
 import threading
 import time
 
+from pilot.api.data import StageInClient, StageOutClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 
@@ -44,69 +46,6 @@ def control(queues, traces, args):
                                         'args': args})]
 
     [t.start() for t in threads]
-
-
-def _call(args, executable, cwd=os.getcwd(), logger=logger):
-    try:
-        process = subprocess.Popen(executable,
-                                   bufsize=-1,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE,
-                                   cwd=cwd)
-    except Exception as e:
-        logger.error('could not execute: %s' % str(e))
-        return False
-
-    logger.info('started -- pid=%s executable=%s' % (process.pid, executable))
-
-    breaker = False
-    exit_code = None
-    while True:
-        for i in xrange(10):
-            if args.graceful_stop.is_set():
-                breaker = True
-                logger.debug('breaking: sending SIGTERM pid=%s' % process.pid)
-                process.terminate()
-                break
-            time.sleep(0.1)
-        if breaker:
-            logger.debug('breaking: sleep 3s before sending SIGKILL pid=%s' % process.pid)
-            time.sleep(3)
-            process.kill()
-            break
-
-        exit_code = process.poll()
-        if exit_code is not None:
-            break
-        else:
-            continue
-
-    logger.info('finished -- pid=%s exit_code=%s' % (process.pid, exit_code))
-    stdout, stderr = process.communicate()
-    logger.debug('stdout:\n%s' % stdout)
-    logger.debug('stderr:\n%s' % stderr)
-
-    if exit_code == 0:
-        return True
-    else:
-        return False
-
-
-def _stage_in(args, job):
-    log = logger.getChild(job.jobid)
-
-    os.environ['RUCIO_LOGGING_FORMAT'] = '{0}%(asctime)s %(levelname)s [%(message)s]'
-    if not _call(args,
-                 ['/usr/bin/env',
-                  'rucio', '-v', 'download',
-                  '--no-subdir',
-                  '--rse', job['ddmEndPointIn'],
-                  '%s:%s' % (job['scopeIn'], job['inFiles'])],
-                 cwd=job.workdir,
-                 logger=log):
-        return False
-    return True
-
 
 def stage_in_auto(site, files):
     """
@@ -260,11 +199,19 @@ def copytool_in(queues, traces, args):
 
             send_state(job, args, 'running')
 
-            logger.info('Test job.infosys: queuedata.copytools=%s' % job.infosys.queuedata.copytools)
+            copytools = job.infosys.queuedata.copytools
+            logger.info('Test job.infosys: queuedata.copytools=%s' % copytools)
+            output = None
+            try:
+                stageInClient = StageInClient(copytool_names=copytools, logger=logger)
+                files={'destination': job['ddmEndPointIn'],
+                        'scope': job['scopeIn'],
+                        'name': job['inFiles']}
+                output = stageInClient.transfer(files)
+            except Exception as error:
+                logger.debug('Error: %s' % error)
 
-            if _stage_in(args, job):
-                queues.finished_data_in.put(job)
-            else:
+            if not output or output['status'] == 'failed':
                 logger.warning('stage-in failed, adding job object to failed_data_in queue')
                 queues.failed_data_in.put(job)
                 job['pilotErrorCodes'], job['pilotErrorDiags'] = errors.add_error_code(errors.STAGEINFAILED)
@@ -317,73 +264,6 @@ def prepare_log(job, tarball_name):
             'bytes': os.stat(os.path.join(job.workdir, job['logFile'])).st_size}
 
 
-def _stage_out(args, outfile, job):
-    log = logger.getChild(job.jobid)
-
-    os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
-    executable = ['/usr/bin/env',
-                  'rucio', '-v', 'upload',
-                  '--summary', '--no-register',
-                  '--guid', outfile['guid'],
-                  '--rse', job['ddmEndPointOut'].split(',')[0],
-                  '--scope', outfile['scope'],
-                  outfile['name']]
-
-    try:
-        process = subprocess.Popen(executable,
-                                   bufsize=-1,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE,
-                                   cwd=job.workdir)
-    except Exception as e:
-        log.error('could not execute: %s' % str(e))
-        return None
-
-    log.info('started -- pid=%s executable=%s' % (process.pid, executable))
-
-    breaker = False
-    exit_code = None
-    while True:
-        for i in xrange(10):
-            if args.graceful_stop.is_set():
-                breaker = True
-                log.debug('breaking -- sending SIGTERM pid=%s' % process.pid)
-                process.terminate()
-                break
-            time.sleep(0.1)
-        if breaker:
-            log.debug('breaking -- sleep 3s before sending SIGKILL pid=%s' % process.pid)
-            time.sleep(3)
-            process.kill()
-            break
-
-        exit_code = process.poll()
-        log.info('running -- pid=%s exit_code=%s' % (process.pid, exit_code))
-        if exit_code is not None:
-            break
-        else:
-            continue
-
-    log.info('finished -- pid=%s exit_code=%s' % (process.pid, exit_code))
-    out, err = process.communicate()
-    log.debug('stdout:\n%s' % out)
-    log.debug('stderr:\n%s' % err)
-
-    if exit_code is None:
-        return None
-
-    summary = None
-    path = os.path.join(job.workdir, 'rucio_upload.json')
-    if not os.path.exists(path):
-        log.warning('no such file: %s' % path)
-        return None
-    else:
-        with open(path, 'rb') as summary_file:
-            summary = json.load(summary_file)
-
-    return summary
-
-
 def _stage_out_all(job, args):
     """
     Order stage-out of all output files and the log file, or only the log file.
@@ -400,12 +280,14 @@ def _stage_out_all(job, args):
         log.info('will stage-out log file')
     else:
         log.info('will stage-out all output files and log file')
-        if 'metaData' in job:
-            for f in job['metaData']['files']['output']:
-                outputs[f['subFiles'][0]['name']] = {'scope': job['scopeOut'],
-                                                     'name': f['subFiles'][0]['name'],
-                                                     'guid': f['subFiles'][0]['file_guid'],
-                                                     'bytes': f['subFiles'][0]['file_size']}
+        out_files = job.get('metaData', {}).get('files', {}).get('output', {})
+        for f in out_files:
+            subfile = f['subFiles'][0]
+            # TODO source/destination?
+            outputs[subfile['name']] = {'scope': job['scopeOut'],
+                                        'name': subfile['name'],
+                                        'guid': subfile['file_guid'],
+                                        'bytes': subfile['file_size']}
         else:
             log.warning('Job object does not contain a job report (payload failed?) - will only stage-out log file')
     outputs['%s:%s' % (job['scopeLog'], job['logFile'])] = prepare_log(job, 'tarball_PandaJob_%s_%s' %
@@ -413,24 +295,33 @@ def _stage_out_all(job, args):
 
     fileinfodict = {}
     failed = False
+    try:
+        stage_client = StageOutClient(logger=log)
+        for outfile in outputs:
+            if outfile not in job['outFiles']:
+                continue
+            output = None
+            output = stage_client.transfer(outputs[outfile])
 
-    for outfile in outputs:
-        if outfile not in job['outFiles']:
-            continue
-        summary = _stage_out(args, outputs[outfile], job)
+            failed = not output or output['status'] == 'failed':
+            if failed:
+                break
+# 
+#        if summary is not None:
+#            outputs[outfile]['pfn'] = summary['%s:%s' % (outputs[outfile]['scope'], outputs[outfile]['name'])]['pfn']
+#            outputs[outfile]['adler32'] = summary['%s:%s' % (outputs[outfile]['scope'],
+#                                                             outputs[outfile]['name'])]['adler32']
+#
+#            filedict = {'guid': outputs[outfile]['guid'],
+#                        'fsize': outputs[outfile]['bytes'],
+#                        'adler32': outputs[outfile]['adler32'],
+#                        'surl': outputs[outfile]['pfn']}
+#            fileinfodict[outputs[outfile]['name']] = filedict
+#        else:
+#            failed = True
+    except Exception as error:
+        logger.debug('Error: %s' % error)
 
-        if summary is not None:
-            outputs[outfile]['pfn'] = summary['%s:%s' % (outputs[outfile]['scope'], outputs[outfile]['name'])]['pfn']
-            outputs[outfile]['adler32'] = summary['%s:%s' % (outputs[outfile]['scope'],
-                                                             outputs[outfile]['name'])]['adler32']
-
-            filedict = {'guid': outputs[outfile]['guid'],
-                        'fsize': outputs[outfile]['bytes'],
-                        'adler32': outputs[outfile]['adler32'],
-                        'surl': outputs[outfile]['pfn']}
-            fileinfodict[outputs[outfile]['name']] = filedict
-        else:
-            failed = True
 
     if failed:
         # set error code + message
