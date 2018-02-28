@@ -345,6 +345,7 @@ def _stage_out(args, outfile, job):
 
     breaker = False
     exit_code = None
+    first = True
     while True:
         for i in xrange(10):
             if args.graceful_stop.is_set():
@@ -360,7 +361,9 @@ def _stage_out(args, outfile, job):
             break
 
         exit_code = process.poll()
-        log.info('running -- pid=%s exit_code=%s' % (process.pid, exit_code))
+        if first and not exit_code:
+            log.info('running -- pid=%s exit_code=%s' % (process.pid, exit_code))
+            first = False
         if exit_code is not None:
             break
         else:
