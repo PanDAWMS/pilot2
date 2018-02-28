@@ -186,6 +186,7 @@ def alrb_wrapper(cmd, platform, workdir, job):
         _cmd = 'export thePlatform=\"%s\";' % platform
         _cmd += 'export ALRB_CONT_RUNPAYLOAD=\"%s\";' % cmd
         _cmd += 'setupATLAS -c $thePlatform'
+        cmd = _cmd
 
     logger.info("Updated command: %s" % cmd)
 
