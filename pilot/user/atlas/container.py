@@ -60,41 +60,6 @@ def get_middleware_container():
     pass
 
 
-def extract_container_options():  # DEPRECATED
-    """ Extract any singularity options from catchall """
-
-    # e.g. catchall = "somestuff singularity_options=\'-B /etc/grid-security/certificates,/var/spool/slurmd,/cvmfs,/ceph/grid,/data0,/sys/fs/cgroup\'"
-    # catchall = "singularity_options=\'-B /etc/grid-security/certificates,/cvmfs,${workdir} --contain\'" #readpar("catchall")
-
-    # ${workdir} should be there, otherwise the pilot cannot add the current workdir
-    # if not there, add it
-
-    # First try with reading new parameters from schedconfig
-    container_options = infosys.queuedata.container_options  # get_container_options()
-    if container_options == "":
-        logger.warning("container_options either does not exist in queuedata or is empty, trying with catchall instead")
-        # E.g. catchall = "singularity_options=\'-B /etc/grid-security/certificates,/cvmfs,${workdir} --contain\'"
-        catchall = get_catchall()
-        if catchall:
-            pattern = re.compile(r"singularity\_options\=\'?\"?(.+)\'?\"?")
-            found = re.findall(pattern, catchall)
-            if len(found) > 0:
-                container_options = found[0]
-                logger.info('extracted from catchall: %s' % str(container_options))
-        else:
-            logger.info('catchall not set')
-
-    if container_options and container_options != "":
-        if container_options.endswith("'") or container_options.endswith('"'):
-            container_options = container_options[:-1]
-        # add the workdir if missing
-        if "${workdir}" not in container_options and " --contain" in container_options:
-            container_options = container_options.replace(" --contain", ",${workdir} --contain")
-            logger.info("Note: added missing ${workdir} to singularity_options")
-
-    return container_options
-
-
 def extract_platform_and_os(platform):
     """
     Extract the platform and OS substring from platform
@@ -179,34 +144,6 @@ def get_middleware_type():
     return middleware_type
 
 
-def get_container_name(user="pilot"):  # DEPRECATED
-    """
-    Return the container name
-    E.g. container_type = 'singularity:pilot;docker:wrapper'
-    get_container_name(user='pilot') -> return 'singularity'
-
-    :param user (string): E.g. "pilot" or "wrapper".
-    :return: container name (string). E.g. "singularity"
-    """
-
-    container_name = ""
-    container_type = infosys.queuedata.container_type  # get_container_type()
-
-    if container_type and container_type != "" and user in container_type:
-        try:
-            container_names = container_type.split(';')
-            for name in container_names:
-                t = name.split(':')
-                if user == t[1]:
-                    container_name = t[0]
-        except Exception as e:
-            logger.warning("failed to parse the container name: %s, %s" % (container_type, e))
-    else:
-        logger.warning("container type not specified in queuedata")
-
-    return container_name
-
-
 def singularity_wrapper(cmd, platform, workdir, job):
     """
     Prepend the given command with the singularity execution command
@@ -223,7 +160,6 @@ def singularity_wrapper(cmd, platform, workdir, job):
     """
 
     # Should a container be used?
-    #container_name = get_container_name()
     container_name = job.infosys.queuedata.container_type.get("pilot")  # resolve container name for user=pilot
     logger.debug("resolved container_name from job.infosys.queuedata.contaner_type: %s" % container_name)
 
@@ -231,7 +167,6 @@ def singularity_wrapper(cmd, platform, workdir, job):
         logger.info("singularity has been requested")
 
         # Get the singularity options
-        #singularity_options = extract_container_options()
         singularity_options = job.infosys.queuedata.container_options
         logger.debug("resolved singularity_options from job.infosys.queuedata.container_options: %s" % singularity_options)
 
