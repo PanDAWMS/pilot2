@@ -183,10 +183,9 @@ def alrb_wrapper(cmd, platform, workdir, job):
     logger.debug("resolved container_name from job.infosys.queuedata.contaner_type: %s" % container_name)
 
     if container_name == 'singularity':
-        asetup = get_asetup() + ";"
-        if asetup in cmd:
-            cmd = cmd.replace(asetup, '')
-        _cmd = asetup;
+        # get the alias for setupATLAS
+        asetup = get_asetup(setupatlas=True) + ";"
+        _cmd = asetup
         _cmd += 'export thePlatform=\"%s\";' % platform
         _cmd += 'export ALRB_CONT_RUNPAYLOAD=\"%s\";' % cmd
         _cmd += 'setupATLAS -c $thePlatform'
