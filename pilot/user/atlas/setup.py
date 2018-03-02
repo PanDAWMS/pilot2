@@ -90,13 +90,14 @@ def get_platform(jobcmtconfig):  ## DEPRECATED: consider job.infosys.queuedata.p
     return cmtconfig
 
 
-def get_asetup(asetup=True):
+def get_asetup(asetup=True, setupatlas=False):
     """
     Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
     Only include the actual asetup script if asetup=True. This is not needed if the jobPars contain the payload command
     but the pilot still needs to add the exports and the atlasLocalSetup.
 
     :param asetup: Boolean. True value means that the pilot should include the asetup command.
+    :param setupatlas: Boolean. True value means that the function should make the alias for setupATLAS only.
     :return: asetup (string).
     """
 
@@ -104,9 +105,12 @@ def get_asetup(asetup=True):
     path = "%s/atlas.cern.ch/repo" % get_file_system_root_path()
     if os.path.exists(path):
         cmd = "export ATLAS_LOCAL_ROOT_BASE=%s/ATLASLocalRootBase;" % path
-        cmd += "source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;"
-        if asetup:
-            cmd += "source $AtlasSetup/scripts/asetup.sh"
+        if setupatlas:
+            cmd += "alias setupATLAS=\'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh\'"
+        else:
+            cmd += "source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;"
+            if asetup:
+                cmd += "source $AtlasSetup/scripts/asetup.sh"
     else:
         appdir = get_appdir()
         if appdir == "":
