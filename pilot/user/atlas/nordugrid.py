@@ -10,6 +10,9 @@
 import re
 from xml.dom import minidom
 
+import logging
+logger = logging.getLogger(__name__)
+
 class XMLDictionary(object):
     """
     This is a helper class that is used to create the dictionary which is converted to the special XML files for
@@ -54,7 +57,7 @@ class XMLDictionary(object):
             else:
                 pass
         else:
-            print "not a dictionary: %s" % str(self._dictionary)
+            logger.info("not a dictionary: %s" % str(self._dictionary))
 
     def get_dictionary(self):
         """
@@ -93,8 +96,8 @@ def convert_to_xml(dictionary):
 
     single_file_tag = dictionary.keys()
     if len(single_file_tag) != 1:
-        print "unexpected format - expected single entry, got %d entries" % len(single_file_tag)
-        print dictionary
+        logger.warning("unexpected format - expected single entry, got %d entries" % len(single_file_tag))
+        logger.warning('dictionary = %s' % str(dictionary))
         return None
 
     file_tag = single_file_tag[0]
@@ -117,13 +120,13 @@ def convert_to_xml(dictionary):
                         entry = xml.SubElement(file_element, dictionary_entry)
                         entry.text = file_dictionary[dictionary_entry]
                 else:
-                    print "unexpected format - expected a dictionary, got %s" % file_dictionary
+                    logger.warning("unexpected format - expected a dictionary, got %s" % file_dictionary)
                     failed = True
             else:
-                print "unexpected format - expected a length 1 dictionary, got %s" % file_entry
+                logger.warning("unexpected format - expected a length 1 dictionary, got %s" % file_entry)
                 failed = True
     else:
-        print "unexpected format - expected a list, got %s" % file_list
+        logger.warning("unexpected format - expected a list, got %s" % file_list)
         failed = True
 
     if failed:
