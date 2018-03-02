@@ -52,7 +52,7 @@ def preferred_setup(job):
     :return:
     """
 
-    return "ALRB"
+    return "singularity"  # "ALRB"
 
 
 def use_payload_container(job):
