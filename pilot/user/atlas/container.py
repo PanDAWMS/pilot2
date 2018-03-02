@@ -180,8 +180,6 @@ def alrb_wrapper(cmd, platform, workdir, job):
     """
 
     container_name = job.infosys.queuedata.container_type.get("pilot")  # resolve container name for user=pilot
-    logger.debug("resolved container_name from job.infosys.queuedata.contaner_type: %s" % container_name)
-
     if container_name == 'singularity':
         # get the alias for setupATLAS
         asetup = get_asetup(setupatlas=True)
@@ -189,13 +187,8 @@ def alrb_wrapper(cmd, platform, workdir, job):
         _cmd += 'export thePlatform=\"%s\";' % platform
         _cmd += 'export ALRB_CONT_RUNPAYLOAD=\"%s\";' % cmd
         _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c $thePlatform'
-#        _cmd += 'setupATLAS -c $thePlatform'
         cmd = _cmd
-        logger.info('_cmd=%s'%_cmd)
-    else:
-        logger.info('name=%s'%container_name)
-
-    logger.info("Updated command: %s" % cmd)
+        logger.info("Updated command: %s" % cmd)
 
     return cmd
 
@@ -239,6 +232,6 @@ def singularity_wrapper(cmd, platform, workdir, job):
         else:
             logger.warning("singularity options found but image does not exist")
 
-    logger.info("Updated command: %s" % cmd)
+        logger.info("Updated command: %s" % cmd)
 
     return cmd
