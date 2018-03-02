@@ -105,9 +105,7 @@ def get_asetup(asetup=True, setupatlas=False):
     path = "%s/atlas.cern.ch/repo" % get_file_system_root_path()
     if os.path.exists(path):
         cmd = "export ATLAS_LOCAL_ROOT_BASE=%s/ATLASLocalRootBase;" % path
-        if setupatlas:
-            cmd += ""  # ""alias setupATLAS=\'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh\'"
-        else:
+        if not setupatlas:
             cmd += "source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;"
             if asetup:
                 cmd += "source $AtlasSetup/scripts/asetup.sh"
