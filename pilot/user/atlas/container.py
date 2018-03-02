@@ -10,7 +10,7 @@
 import os
 import re
 
-from pilot.util.information import get_container_options, get_container_type, get_catchall
+from pilot.user.atlas.setup import get_asetup
 from pilot.user.atlas.setup import get_file_system_root_path
 from pilot.info import infosys
 
@@ -183,7 +183,11 @@ def alrb_wrapper(cmd, platform, workdir, job):
     logger.debug("resolved container_name from job.infosys.queuedata.contaner_type: %s" % container_name)
 
     if container_name == 'singularity':
-        _cmd = 'export thePlatform=\"%s\";' % platform
+        asetup = get_asetup() + ";"
+        if asetup in cmd:
+            cmd = cmd.replace(asetup, '')
+        _cmd = asetup;
+        _cmd += 'export thePlatform=\"%s\";' % platform
         _cmd += 'export ALRB_CONT_RUNPAYLOAD=\"%s\";' % cmd
         _cmd += 'setupATLAS -c $thePlatform'
         cmd = _cmd
