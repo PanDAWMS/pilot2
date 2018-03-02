@@ -188,7 +188,8 @@ def alrb_wrapper(cmd, platform, workdir, job):
         _cmd = asetup
         _cmd += 'export thePlatform=\"%s\";' % platform
         _cmd += 'export ALRB_CONT_RUNPAYLOAD=\"%s\";' % cmd
-        _cmd += 'setupATLAS -c $thePlatform'
+        _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c $thePlatform'
+#        _cmd += 'setupATLAS -c $thePlatform'
         cmd = _cmd
         logger.info('_cmd=%s'%_cmd)
     else:

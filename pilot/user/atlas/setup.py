@@ -106,7 +106,7 @@ def get_asetup(asetup=True, setupatlas=False):
     if os.path.exists(path):
         cmd = "export ATLAS_LOCAL_ROOT_BASE=%s/ATLASLocalRootBase;" % path
         if setupatlas:
-            cmd += "alias setupATLAS=\'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh\'"
+            cmd += ""  # ""alias setupATLAS=\'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh\'"
         else:
             cmd += "source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;"
             if asetup:
