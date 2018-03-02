@@ -1,5 +1,5 @@
 ..
-    Pilot 2 documentation pilot.user.atlas index
+    Pilot 2 pilot.user.atlas.nordugrid doc file
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -9,13 +9,11 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-atlas components
-================
+nordugrid
+=========
 
-.. toctree::
-    :maxdepth: 2
-
-    common
-    container
-    nordugrid
-    setup
+.. automodule:: pilot.user.atlas.nordugrid
+    :members:
+    :private-members:
+    :special-members:
+    :undoc-members:
