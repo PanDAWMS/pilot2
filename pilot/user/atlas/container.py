@@ -176,7 +176,10 @@ def alrb_wrapper(cmd, platform, workdir, job):
 
     container_name = job.infosys.queuedata.container_type.get("pilot")  # resolve container name for user=pilot
     if container_name == 'singularity':
-        # get the alias for setupATLAS
+        # first get the full setup, which should be removed from cmd (or ALRB setup won't work)
+        _asetup = get_asetup(asetup=False)
+        cmd = cmd.replace(_asetup, "")
+        # get simplified ALRB setup (export)
         asetup = get_asetup(alrb=True)
         _cmd = asetup
         _cmd += 'export thePlatform=\"%s\";' % platform
