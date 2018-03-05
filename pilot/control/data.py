@@ -452,7 +452,7 @@ def _stage_out_all(job, args):
     else:
         log.info('stage-out finished correctly')
         # is the job state already set? if so, don't change the state
-        if 'state' in not job:
+        if 'state' not in job:
             job.state = "finished"
 
         # send final server update since all transfers have finished correctly
