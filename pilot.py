@@ -24,7 +24,7 @@ from pilot.info import set_info
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 
-VERSION = '2018-02-16.003'
+VERSION = '2018-03-05.005'
 
 
 def main():
@@ -48,7 +48,13 @@ def main():
     logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
 
-    return workflow.run(args)
+    try:
+        ret = workflow.run(args)
+    except Exception as e:
+        logger.fatal('Pilot caught exception: %s' % e)
+        ret = None
+
+    return ret
 
 
 class Args:

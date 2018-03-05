@@ -1,5 +1,5 @@
 ..
-    Pilot 2 pilot.copytool.mv doc file
+    Pilot 2 pilot.info.extinfo doc file
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -9,10 +9,10 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-mv
-==
+extinfo
+=======
 
-.. automodule:: pilot.copytool.mv
+.. automodule:: pilot.info.extinfo
     :members:
     :private-members:
     :special-members:

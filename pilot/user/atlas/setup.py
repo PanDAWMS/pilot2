@@ -90,23 +90,40 @@ def get_platform(jobcmtconfig):  ## DEPRECATED: consider job.infosys.queuedata.p
     return cmtconfig
 
 
-def get_asetup(asetup=True):
+def get_alrb_export():
+    """
+    Return the export command for the ALRB path if it exists.
+    If the path does not exist, return empty string.
+    :return: export command
+    """
+
+    path = "%s/atlas.cern.ch/repo" % get_file_system_root_path()
+    if os.path.exists(path):
+        cmd = "export ATLAS_LOCAL_ROOT_BASE=%s/ATLASLocalRootBase;" % path
+    else:
+        cmd = ""
+    return cmd
+
+
+def get_asetup(asetup=True, alrb=False):
     """
     Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
     Only include the actual asetup script if asetup=True. This is not needed if the jobPars contain the payload command
     but the pilot still needs to add the exports and the atlasLocalSetup.
 
     :param asetup: Boolean. True value means that the pilot should include the asetup command.
+    :param alrb: Boolean. True value means that the function should return special setup used with ALRB and containers.
     :return: asetup (string).
     """
 
     cmd = ""
-    path = "%s/atlas.cern.ch/repo" % get_file_system_root_path()
-    if os.path.exists(path):
-        cmd = "export ATLAS_LOCAL_ROOT_BASE=%s/ATLASLocalRootBase;" % path
-        cmd += "source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;"
-        if asetup:
-            cmd += "source $AtlasSetup/scripts/asetup.sh"
+    alrb_cmd = get_alrb_export()
+    if alrb_cmd != "":
+        cmd = alrb_cmd
+        if not alrb:
+            cmd += "source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;"
+            if asetup:
+                cmd += "source $AtlasSetup/scripts/asetup.sh"
     else:
         appdir = get_appdir()
         if appdir == "":

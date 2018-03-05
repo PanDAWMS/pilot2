@@ -1,3 +1,12 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Authors:
+# - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+
 """
 The implementation of data structure to host Job definition.
 
@@ -43,15 +52,61 @@ class JobData(BaseData):
 
     is_eventservice = False        # True for event service jobs
 
-    _rawdata = {}  ## RAW data to keep backward compatible behavior for a while ## TO BE REMOVED once all job attributes will be covered
+    # set by the pilot (not from job definition)
+    fileinfo = {}
+    piloterrorcode = 0
+    piloterrorcodes = []
+    piloterrordiag = ""
+    piloterrordiags = []
+    transexitcode = 0
+    exeerrorcode = 0
+    exeerrordiag = ""
+    exitcode = 0
+    exitmsg = ""
+    state = ""
+    stageout = ""  # stage-out identifier, e.g. log
+    metadata = {}  # payload metadata (job report)
+    cpuconsumptionunit = ""
+    cpuconsumptiontime = ""
+    cpuconversionfactor = 1
+    nevents = 0  # number of events
+    payload = ""  # payload name
+
+    # from job definition
+    attemptnr = 0  # job attempt number
+    ddmendpointin = ""  # comma-separated list (string) of ddm endpoints for input
+    ddmendpointout = ""  # comma-separated list (string) of ddm endpoints for output
+    destinationdblock = ""
+    infiles = ""  # comma-separated list (string) of input files
+
+    # home package string with additional payload release information; does not need to be added to
+    # the conversion function since it's already lower case
+    homepackage = ""
+
+    jobsetid = ""  # job set id
+    logfile = ""  #  file name for log
+    logguid = ""  # unique guid for log file
+    noexecstrcnv = None  # server instruction to the pilot if it should take payload setup from job parameters
+    outfiles = ""  # comma-separated list (string) of output files
+    scopein = ""  # comma-separated list (string) of input file scopes
+    scopelog = ""  # scope for log file
+    scopeout = ""  # comma-separated list (string) of output file scopes
+    swrelease = ""  # software release string
+
+    # RAW data to keep backward compatible behavior for a while ## TO BE REMOVED once all job attributes will be covered
+    _rawdata = {}
 
     # specify the type of attributes for proper data validation and casting
-    _keys = {int: ['corecount'],
-             str: ['jobid', 'taskid', 'jobparams', 'transformation',
-                   'state', 'status', 'workdir',
-                   'platform'],
-             dict: [],
-             bool: ['is_eventservice']
+    _keys = {int: ['corecount', 'piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
+                   'attemptnr', 'nevents'],
+             str: ['jobid', 'taskid', 'jobparams', 'transformation', 'logguid', 'destinationdblock', 'exeerrordiag'
+                   'state', 'status', 'workdir', 'state', 'stageout', 'ddmendpointin', 'ddmendpointout',
+                   'platform', 'piloterrordiag', 'scopeout', 'scopein', 'scopelog', 'logfile', 'exitmsg',
+                   'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload', 'infiles',
+                   'outfiles', 'swrelease'],
+             list: ['piloterrorcodes', 'piloterrordiags'],
+             dict: ['fileinfo', 'metadata'],
+             bool: ['is_eventservice', 'noexecstrcnv']
              }
 
     def __init__(self, data):
@@ -127,7 +182,21 @@ class JobData(BaseData):
             'jobparams': 'jobPars',
             'corecount': 'coreCount',
             'platform': 'cmtConfig',
-            'is_eventservice': 'eventService',  ## is it coming from Job def??
+            'scopein': 'scopeIn',
+            'scopeout': 'scopeOut',
+            'scopelog': 'scopeLog',
+            'logfile': 'logFile',
+            'infiles': 'inFiles',
+            'outfiles': 'outFiles',
+            'logguid': 'logGUID',
+            'attemptnr': 'attemptNr',
+            'ddmendpointin': 'ddmEndPointIn',
+            'ddmendpointout': 'ddmEndPointOut',
+            'destinationdblock': 'destinationDblock',
+            'noexecstrcnv': 'noExecStrCnv',
+            'swrelease': 'swRelease',
+            'jobsetid': 'jobsetID',
+            'is_eventservice': 'eventService',  ## is it coming from Job def?? yes (PN)
         }
 
         self._load_data(data, kmap)
@@ -172,6 +241,8 @@ class JobData(BaseData):
         """
             Verify and validate value for the corecount key (set to 1 if not set)
         """
+
+        # note: experiment specific
 
         # Overwrite the corecount value with ATHENA_PROC_NUMBER if it is set
         athena_corecount = os.environ.get('ATHENA_PROC_NUMBER')
