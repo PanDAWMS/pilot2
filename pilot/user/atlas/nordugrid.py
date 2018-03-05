@@ -9,9 +9,11 @@
 
 import re
 from xml.dom import minidom
+import xml.etree.ElementTree as xml
 
 import logging
 logger = logging.getLogger(__name__)
+
 
 class XMLDictionary(object):
     """
@@ -52,7 +54,7 @@ class XMLDictionary(object):
         """
         if type(self._dictionary) == dict:
             if type(self._dictionary[rootname]) == list:
-                _dic = { itemname: dictionary }
+                _dic = {itemname: dictionary}
                 self._dictionary[rootname].append(_dic)
             else:
                 pass

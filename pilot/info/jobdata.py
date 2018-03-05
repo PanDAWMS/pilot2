@@ -78,8 +78,11 @@ class JobData(BaseData):
     ddmendpointout = ""  # comma-separated list (string) of ddm endpoints for output
     destinationdblock = ""
     infiles = ""  # comma-separated list (string) of input files
-    homepackage = ""  # home package string with additional payload release information; does not need to be added to
-                      # the conversion function since it's already lower case
+
+    # home package string with additional payload release information; does not need to be added to
+    # the conversion function since it's already lower case
+    homepackage = ""
+
     jobsetid = ""  # job set id
     logfile = ""  #  file name for log
     logguid = ""  # unique guid for log file
@@ -90,10 +93,11 @@ class JobData(BaseData):
     scopeout = ""  # comma-separated list (string) of output file scopes
     swrelease = ""  # software release string
 
-    _rawdata = {}  ## RAW data to keep backward compatible behavior for a while ## TO BE REMOVED once all job attributes will be covered
+    # RAW data to keep backward compatible behavior for a while ## TO BE REMOVED once all job attributes will be covered
+    _rawdata = {}
 
     # specify the type of attributes for proper data validation and casting
-    _keys = {int: ['corecount','piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
+    _keys = {int: ['corecount', 'piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
                    'attemptnr', 'nevents'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'logguid', 'destinationdblock', 'exeerrordiag'
                    'state', 'status', 'workdir', 'state', 'stageout', 'ddmendpointin', 'ddmendpointout',

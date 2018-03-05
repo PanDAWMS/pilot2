@@ -137,7 +137,7 @@ def get_middleware_type():
     """
 
     middleware_type = ""
-    container_type = infosys.queuedata.container_type # get_container_type()
+    container_type = infosys.queuedata.container_type
 
     mw = 'middleware'
     if container_type and container_type != "" and mw in container_type:

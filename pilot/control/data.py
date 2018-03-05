@@ -414,7 +414,7 @@ def _stage_out_all(job, args):
         else:
             log.warning('Job object does not contain a job report (payload failed?) - will only stage-out log file')
     outputs['%s:%s' % (job.scopelog, job.logfile)] = prepare_log(job, 'tarball_PandaJob_%s_%s' %
-                                                                       (job.jobid, args.queue))
+                                                                 (job.jobid, args.queue))
 
     fileinfodict = {}
     failed = False
@@ -452,7 +452,7 @@ def _stage_out_all(job, args):
     else:
         log.info('stage-out finished correctly')
         # is the job state already set? if so, don't change the state
-        if not 'state' in job:
+        if 'state' in not job:
             job.state = "finished"
 
         # send final server update since all transfers have finished correctly
