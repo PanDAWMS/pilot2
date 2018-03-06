@@ -201,18 +201,6 @@ def _write_cache(url, j):
         json.dump(j, outfile)
 
 
-def get_parameter(queuedata, field):
-    """
-    Return value of schedconfig queuedata field.
-
-    :param queuedata: queuedata json dictionary.
-    :param field: schedconfig field
-    :return: schedconfig queuedata field value.
-    """
-
-    return queuedata[field] if field in queuedata else None
-
-
 def is_file_expired(fname, cache_time=0):
     """
     Check if file fname is older than cache_time seconds from its last_update_time.
