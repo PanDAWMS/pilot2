@@ -92,7 +92,9 @@ def import_module(**kwargs):
                            '--working-group': kwargs.get('working_group', ''),
                            '--allow-other-country': kwargs.get('allow_other_country', 'False'),
                            '--allow-same-user': kwargs.get('allow_same_user', 'True'),
-                           '--pilot-user': kwargs.get('pilot_user', 'generic')
+                           '--pilot-user': kwargs.get('pilot_user', 'generic'),
+                           '--input-dir': kwargs.get('input_dir', ''),
+                           '--output-dir': kwargs.get('output_dir', '')
                            }
 
     args = Args()
@@ -252,6 +254,16 @@ if __name__ == '__main__':
                             dest='harvester_workerattributes',
                             default='',
                             help='Harvester worker attributes json file')
+
+    # Harvester and Nordugrid specific options
+    arg_parser.add_argument('--input-dir',
+                            dest='input_dir',
+                            default='',
+                            help='Input directory')
+    arg_parser.add_argument('--output-dir',
+                            dest='output_dir',
+                            default='',
+                            help='Output directory')
 
     args = arg_parser.parse_args()
 
