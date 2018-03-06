@@ -23,6 +23,7 @@ from pilot.util.information import set_location
 from pilot.info import set_info
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
+from pilot.util.harvester import is_harvester_mode
 
 VERSION = '2018-03-06.002'
 
