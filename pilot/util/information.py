@@ -201,16 +201,6 @@ def _write_cache(url, j):
         json.dump(j, outfile)
 
 
-def get_catchall():  ## TO BE DEPRECATED: consider job.infosys.queuedata.catchall
-    """
-    Return the catchall field value from the schedconfig queuedata.
-
-    :return: catchall field value (string).
-    """
-
-    return get_field_value('catchall')
-
-
 def get_container_options():  ## TO BE DEPRECATED: consider job.infosys.queuedata.container_options
     """
     Return the container_options field value from the schedconfig queuedata.
