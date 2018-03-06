@@ -10,7 +10,6 @@
 import os
 import re
 
-from pilot.util.information import get_cmtconfig
 from pilot.info import infosys
 
 import logging
@@ -85,7 +84,7 @@ def get_platform(jobcmtconfig):  ## DEPRECATED: consider job.infosys.queuedata.p
         cmtconfig = jobcmtconfig
         logger.info("Will try to use cmtconfig: %s (from job definition)" % cmtconfig)
     else:
-        cmtconfig = get_cmtconfig()
+        cmtconfig = infosys.queuedata.cmtconfig
         logger.info("Will try to use cmtconfig: %s (from schedconfig DB)" % cmtconfig)
 
     return cmtconfig
