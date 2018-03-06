@@ -18,6 +18,24 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def is_harvester_mode(args):
+    """
+    Determine if the pilot is running in Harvester mode.
+    :param args:
+    :return:
+    """
+
+    if (args.harvester_workdir != '' or args.harvester_datadir != '' or args.harvester_eventstatusdump != '' or
+            args.harvester_workerattributes != '') and not args.update_server:
+        harvester = True
+    elif 'HARVESTER_ID' in environ or 'HARVESTER_WORKER_ID' in environ:
+        harvester = True
+    else:
+        harvester = False
+
+    return harvester
+
+
 def get_job_request_file_name():
     """
     Return the name of the job request file as defined in the pilot config file.
