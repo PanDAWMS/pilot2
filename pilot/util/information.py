@@ -211,16 +211,6 @@ def get_catchall():  ## TO BE DEPRECATED: consider job.infosys.queuedata.catchal
     return get_field_value('catchall')
 
 
-def get_cmtconfig():
-    """
-    Return the cmtconfig field value from the schedconfig queuedata.
-
-    :return: cmtconfig field value (string).
-    """
-
-    return get_field_value('cmtconfig')
-
-
 def get_container_options():  ## TO BE DEPRECATED: consider job.infosys.queuedata.container_options
     """
     Return the container_options field value from the schedconfig queuedata.
