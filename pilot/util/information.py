@@ -201,16 +201,6 @@ def _write_cache(url, j):
         json.dump(j, outfile)
 
 
-def get_container_type():  ## TO BE DEPRECATED: consider job.infosys.queuedata.container_type
-    """
-    Return the container_type field value from the schedconfig queuedata.
-
-    :return: container_type field value (string).
-    """
-
-    return get_field_value('container_type')
-
-
 def get_timefloor():
     """
     Return the timefloor field value from the schedconfig queuedata.
