@@ -201,16 +201,6 @@ def _write_cache(url, j):
         json.dump(j, outfile)
 
 
-def get_appdir():
-    """
-    Return the appdir field value from the schedconfig queuedata.
-
-    :return: appdir field (string).
-    """
-
-    return get_field_value('appdir')
-
-
 def get_catchall():  ## TO BE DEPRECATED: consider job.infosys.queuedata.catchall
     """
     Return the catchall field value from the schedconfig queuedata.
