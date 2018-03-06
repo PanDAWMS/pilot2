@@ -24,7 +24,7 @@ from pilot.info import set_info
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 
-VERSION = '2018-03-06.001'
+VERSION = '2018-03-06.002'
 
 
 def main():
