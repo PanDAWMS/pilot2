@@ -201,23 +201,6 @@ def _write_cache(url, j):
         json.dump(j, outfile)
 
 
-def get_field_value(field):
-    """
-    Return the value from the given schedconfig field
-
-    :param field: schedconfig field (string, e.g. catchall)
-    :return: schedconfig field value (string)
-    """
-
-    value = ""
-    fname = os.path.join(os.environ.get('PILOT_HOME', '.'), config.Information.queuedata)
-    if os.path.exists(fname):
-        queuedata = read_json(fname)
-        value = get_parameter(queuedata, field)
-
-    return value
-
-
 def get_parameter(queuedata, field):
     """
     Return value of schedconfig queuedata field.
