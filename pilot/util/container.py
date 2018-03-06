@@ -47,7 +47,8 @@ def execute(executable, **kwargs):
         pass
 
     logger.info('executing command: %s' % executable)
-    process = subprocess.Popen(executable,
+    exe = ['/bin/bash', '-c', executable]
+    process = subprocess.Popen(exe,
                                bufsize=-1,
                                stdout=stdout,
                                stderr=stderr,
