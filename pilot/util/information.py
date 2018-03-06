@@ -201,19 +201,6 @@ def _write_cache(url, j):
         json.dump(j, outfile)
 
 
-def get_container_options():  ## TO BE DEPRECATED: consider job.infosys.queuedata.container_options
-    """
-    Return the container_options field value from the schedconfig queuedata.
-
-    :return: container_options field value (string).
-    """
-
-    container_options = get_field_value('container_options')
-    if not container_options or container_options == "None":
-        container_options = ""
-    return container_options
-
-
 def get_container_type():  ## TO BE DEPRECATED: consider job.infosys.queuedata.container_type
     """
     Return the container_type field value from the schedconfig queuedata.
