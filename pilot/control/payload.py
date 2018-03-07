@@ -167,7 +167,7 @@ def execute_payloads(queues, traces, args):
             else:
                 stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
                 if stderr != "":
-                    msg = extract_stderr_msg(stderr)
+                    msg = errors.extract_stderr_msg(stderr)
                     if msg != "":
                         log.warning("extracted message from stderr:\n%s" % msg)
                 ec = errors.resolve_transform_error(exit_code, stderr)
