@@ -182,7 +182,7 @@ def execute_payloads(queues, traces, args):
         except Exception as e:
             logger.fatal('execute payloads caught an exception: %s' % e)
             if job:
-                ec = errors.GENERALERROR
+                ec = errors.PAYLOADEXECUTIONEXCEPTION
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
                 queues.failed_payloads.put(job)
             continue
