@@ -182,10 +182,9 @@ def execute_payloads(queues, traces, args):
         except Exception as e:
             logger.fatal('execute payloads caught an exception (cannot recover): %s' % e)
             if job:
-                ec = errors.PAYLOADEXECUTIONEXCEPTION
-                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADEXECUTIONEXCEPTION)
                 queues.failed_payloads.put(job)
-            while not args.graceful_stop.is_set()
+            while not args.graceful_stop.is_set():
                 # let stage-out of log finish, but stop running payloads as there should be a problem with the pilot
                 time.sleep(5)
 
