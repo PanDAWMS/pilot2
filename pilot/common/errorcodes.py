@@ -38,6 +38,7 @@ class ErrorCodes:
     SINGULARITYNOLOOPDEVICES = 1307
     SINGULARITYBINDPOINTFAILURE = 1308
     SINGULARITYIMAGEMOUNTFAILURE = 1309
+    PAYLOADEXECUTIONEXCEPTION = 1310
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -56,6 +57,7 @@ class ErrorCodes:
         SINGULARITYNOLOOPDEVICES: "Singularity: No more available loop devices",
         SINGULARITYBINDPOINTFAILURE: "Singularity: Not mounting requested bind point",
         SINGULARITYIMAGEMOUNTFAILURE: "Singularity: Failed to mount image",
+        PAYLOADEXECUTIONEXCEPTION: "Exception caught during payload execution"
     }
 
     def get_error_message(self, errorcode):
