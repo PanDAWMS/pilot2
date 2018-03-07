@@ -185,7 +185,8 @@ def execute_payloads(queues, traces, args):
                 ec = errors.GENERALERROR
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
                 queues.failed_payloads.put(job)
-            args.graceful_stop.set()
+            continue
+            # args.graceful_stop.set()
 
 
 def process_job_report(job):
