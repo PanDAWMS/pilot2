@@ -7,7 +7,7 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-import re
+# import re
 
 
 class ErrorCodes:

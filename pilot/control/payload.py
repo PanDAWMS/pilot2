@@ -125,6 +125,7 @@ def execute_payloads(queues, traces, args):
     :return:
     """
 
+    job = None
     while not args.graceful_stop.is_set():
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
@@ -180,6 +181,10 @@ def execute_payloads(queues, traces, args):
             continue
         except Exception as e:
             logger.fatal('execute payloads caught an exception: %s' % e)
+            if job:
+                ec = errors.GENERALERROR
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
+                queues.failed_payloads.put(job)
             args.graceful_stop.set()
 
 
