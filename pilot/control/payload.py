@@ -178,6 +178,9 @@ def execute_payloads(queues, traces, args):
 
         except Queue.Empty:
             continue
+        except Exception as e:
+            logger.fatal('execute payloads caught an exception: %s' % e)
+            args.graceful_stop.set()
 
 
 def process_job_report(job):
