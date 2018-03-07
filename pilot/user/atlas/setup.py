@@ -10,7 +10,7 @@
 import os
 import re
 
-from pilot.util.information import get_cmtconfig, get_appdir
+from pilot.info import infosys
 
 import logging
 logger = logging.getLogger(__name__)
@@ -71,25 +71,6 @@ def is_user_analysis_job(trf):  ## DEPRECATED: consider job.is_analysis()
     return analysisjob
 
 
-def get_platform(jobcmtconfig):  ## DEPRECATED: consider job.infosys.queuedata.platform
-    """
-    Get the platform (cmtconfig) from the job def or schedconfig
-
-    :param jobcmtconfig: platform information from the job definition (string).
-    :return: chosen platform (string).
-    """
-
-    # the job def should always contain the cmtconfig
-    if jobcmtconfig != "" and jobcmtconfig != "None" and jobcmtconfig != "NULL":
-        cmtconfig = jobcmtconfig
-        logger.info("Will try to use cmtconfig: %s (from job definition)" % cmtconfig)
-    else:
-        cmtconfig = get_cmtconfig()
-        logger.info("Will try to use cmtconfig: %s (from schedconfig DB)" % cmtconfig)
-
-    return cmtconfig
-
-
 def get_alrb_export():
     """
     Return the export command for the ALRB path if it exists.
@@ -125,7 +106,7 @@ def get_asetup(asetup=True, alrb=False):
             if asetup:
                 cmd += "source $AtlasSetup/scripts/asetup.sh"
     else:
-        appdir = get_appdir()
+        appdir = infosys.queuedata.appdir
         if appdir == "":
             appdir = os.environ.get('VO_ATLAS_SW_DIR', '')
         if appdir != "":

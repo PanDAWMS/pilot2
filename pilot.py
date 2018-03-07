@@ -23,8 +23,9 @@ from pilot.util.information import set_location
 from pilot.info import set_info
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
+from pilot.util.harvester import is_harvester_mode
 
-VERSION = '2018-03-05.005'
+VERSION = '2018-03-07.002'
 
 
 def main():
@@ -91,7 +92,9 @@ def import_module(**kwargs):
                            '--working-group': kwargs.get('working_group', ''),
                            '--allow-other-country': kwargs.get('allow_other_country', 'False'),
                            '--allow-same-user': kwargs.get('allow_same_user', 'True'),
-                           '--pilot-user': kwargs.get('pilot_user', 'generic')
+                           '--pilot-user': kwargs.get('pilot_user', 'generic'),
+                           '--input-dir': kwargs.get('input_dir', ''),
+                           '--output-dir': kwargs.get('output_dir', '')
                            }
 
     args = Args()
@@ -252,14 +255,20 @@ if __name__ == '__main__':
                             default='',
                             help='Harvester worker attributes json file')
 
+    # Harvester and Nordugrid specific options
+    arg_parser.add_argument('--input-dir',
+                            dest='input_dir',
+                            default='',
+                            help='Input directory')
+    arg_parser.add_argument('--output-dir',
+                            dest='output_dir',
+                            default='',
+                            help='Output directory')
+
     args = arg_parser.parse_args()
 
     # Define and set the main harvester control boolean
-    if (args.harvester_workdir != '' or args.harvester_datadir != '' or args.harvester_eventstatusdump != '' or
-            args.harvester_workerattributes != '') and not args.update_server:
-        args.harvester = True
-    else:
-        args.harvester = False
+    args.harvester = is_harvester_mode(args)
 
     # If requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
     initdir = getcwd()

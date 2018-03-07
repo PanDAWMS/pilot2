@@ -11,7 +11,7 @@
 
 # WARNING: IN GENERAL, NEEDS TO USE PLUG-IN MANAGER
 
-from pilot.util.information import get_parameter
+from pilot.info import infosys
 
 import logging
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def get_maximum_input_sizes(queuedata):
     """
 
     try:
-        _maxinputsizes = int(get_parameter(queuedata, 'maxwdir'))  # normally 14336+2000 MB
+        _maxinputsizes = infosys.queuedata.maxwdir  # normally 14336+2000 MB
     except TypeError, e:
         from pilot.util.config import config
         _maxinputsizes = config.Pilot.maximum_input_file_sizes  # MB
