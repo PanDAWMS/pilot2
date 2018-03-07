@@ -32,6 +32,9 @@ class ErrorCodes:
     FILEHANDLINGFAILURE = 1303
     MESSAGEHANDLINGFAILURE = 1304
     PAYLOADEXECUTIONFAILURE = 1305
+    SINGULARITYGENERALFAILURE = 1306
+    SINGULARITYNOLOOPDEVICES = 1307
+    SINGULARITYBINDPOINTFAILURE = 1308
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -102,3 +105,43 @@ class ErrorCodes:
                 report += "\n%d.\t%d\t%s" % (i, errorcode, pilot_error_diags[i - 1])
 
         return report
+
+    def resolve_singularity_error(self, exit_code, stderr):
+        """
+        Assign a pilot error code to a singularity error.
+        :param exit_code: singularity exit code.
+        :param stderr: singularity stderr
+        :return: pilot error code (int)
+        """
+
+        if exit_code == 251 and "Not mounting requested bind point" in stderr:
+            ec = self.SINGULARITYBINDPOINTFAILURE
+        elif exit_code == 255 and "No more available loop devices" in stderr:
+            ec = self.SINGULARITYNOLOOPDEVICES
+        elif exit_code != 0:
+            ec = self.SINGULARITYGENERALFAILURE
+        else:
+            ec = 0
+
+        return ec
+
+    def extract_stderr_msg(self, stderr):
+        """
+        Extract the ERROR or WARNING message from the singularity stderr.
+        :param stderr: string.
+        :return: string.
+        """
+
+        msg = ""
+        pattern = r"ERROR +\: (.+)"
+        found = re.findall(pattern, stderr)
+        if len(found) > 0:
+            msg = found[0]
+        else:
+            pattern = r"WARNING\: (.+)"
+            found = re.findall(pattern, stderr)
+            if len(found) > 0:
+                msg = found[0]
+
+        return msg
+

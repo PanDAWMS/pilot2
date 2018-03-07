@@ -241,24 +241,3 @@ def singularity_wrapper(cmd, platform, workdir, job):
         logger.info("Updated command: %s" % cmd)
 
     return cmd
-
-
-def extract_stderr_msg(stderr):
-    """
-    Extract the ERROR or WARNING message from the singularity stderr.
-    :param stderr: string.
-    :return: string.
-    """
-
-    msg = ""
-    pattern = r"ERROR +\: (.+)"
-    found = re.findall(pattern, stderr)
-    if len(found) > 0:
-        msg = found[0]
-    else:
-        pattern = r"WARNING\: (.+)"
-        found = re.findall(pattern, stderr)
-        if len(found) > 0:
-            msg = found[0]
-
-    return msg
