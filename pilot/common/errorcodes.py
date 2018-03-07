@@ -35,6 +35,7 @@ class ErrorCodes:
     SINGULARITYGENERALFAILURE = 1306
     SINGULARITYNOLOOPDEVICES = 1307
     SINGULARITYBINDPOINTFAILURE = 1308
+    SINGULARITYIMAGEMOUNTFAILURE = 1309
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -49,6 +50,10 @@ class ErrorCodes:
         FILEHANDLINGFAILURE: "Failed during file handling",
         MESSAGEHANDLINGFAILURE: "Failed to handle message from payload",
         PAYLOADEXECUTIONFAILURE: "Failed to execute payload",
+        SINGULARITYGENERALFAILURE: "Singularity: general failure",
+        SINGULARITYNOLOOPDEVICES: "Singularity: No more available loop devices",
+        SINGULARITYBINDPOINTFAILURE: "Singularity: Not mounting requested bind point",
+        SINGULARITYIMAGEMOUNTFAILURE: "Singularity: Failed to mount image",
     }
 
     def get_error_message(self, errorcode):
@@ -118,6 +123,8 @@ class ErrorCodes:
             ec = self.SINGULARITYBINDPOINTFAILURE
         elif exit_code == 255 and "No more available loop devices" in stderr:
             ec = self.SINGULARITYNOLOOPDEVICES
+        elif exit_code == 255 and "Failed to mount image" in stderr:
+            ec = self.SINGULARITYIMAGEMOUNTFAILURE
         else:
             # do not assign a pilot error code for unidentified transform error, return 0
             ec = 0
