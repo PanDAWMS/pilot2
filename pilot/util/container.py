@@ -52,8 +52,7 @@ def execute(executable, **kwargs):
                                bufsize=-1,
                                stdout=stdout,
                                stderr=stderr,
-                               cwd=cwd)  #,
-#                               shell=True)
+                               cwd=cwd)
     if returnproc:
         return process
     else:

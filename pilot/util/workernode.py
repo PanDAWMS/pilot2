@@ -10,7 +10,7 @@
 import os
 
 from pilot.util.disk import disk_usage
-#from pilot.util.parameters import get_maximum_input_sizes
+from pilot.info import infosys
 
 import logging
 logger = logging.getLogger(__name__)
@@ -61,9 +61,6 @@ def get_disk_space(queuedata):
     :return: disk space that should be available for running the job
     """
 
-    #_maxinputsize = get_maximum_input_sizes(queuedata)
-    #
-    from pilot.info import infosys
     # --- non Job related queue data
     # jobinfo provider is required to consider overwriteAGIS data coming from Job
     _maxinputsize = infosys.queuedata.maxwdir
