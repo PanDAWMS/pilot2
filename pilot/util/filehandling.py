@@ -43,6 +43,22 @@ def create_pilot_work_dir(workdir):
         raise MKDirFailure(e)
 
 
+def read_file(filename):
+    """
+    Open, read and close a file.
+    :param filename: string
+    :return: file content (string)
+    """
+
+    out = ""
+    f = open_file(filename, 'r')
+    if f:
+        out = f.read()
+        f.close()
+
+    return out
+
+
 def open_file(filename, mode):
     """
     Open and return a file pointer for the given mode.
