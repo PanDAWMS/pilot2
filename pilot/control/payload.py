@@ -20,6 +20,7 @@ import time
 from pilot.control.payloads import generic, eventservice
 from pilot.control.job import send_state
 from pilot.util.config import config
+from pilot.util.filehandling import read_file
 from pilot.common.errorcodes import ErrorCodes
 errors = ErrorCodes()
 
@@ -157,11 +158,14 @@ def execute_payloads(queues, traces, args):
             job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconversionfactor = set_time_consumed(t)
             log.info('CPU consumption time: %s' % job.cpuconsumptiontime)
 
+            out.close()
+            err.close()
+
             if exit_code == 0:
                 job.transexitcode = 0
                 queues.finished_payloads.put(job)
             else:
-                stderr = err.read()
+                stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
                 if stderr != "":
                     msg = extract_stderr_msg(stderr)
                     if msg != "":
@@ -171,9 +175,6 @@ def execute_payloads(queues, traces, args):
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
                 job.transexitcode = exit_code
                 queues.failed_payloads.put(job)
-
-            out.close()
-            err.close()
 
         except Queue.Empty:
             continue
