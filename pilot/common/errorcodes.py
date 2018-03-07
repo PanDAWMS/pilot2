@@ -106,11 +106,11 @@ class ErrorCodes:
 
         return report
 
-    def resolve_singularity_error(self, exit_code, stderr):
+    def resolve_transform_error(self, exit_code, stderr):
         """
-        Assign a pilot error code to a singularity error.
-        :param exit_code: singularity exit code.
-        :param stderr: singularity stderr
+        Assign a pilot error code to a specific transform error.
+        :param exit_code: transform exit code.
+        :param stderr: transform stderr
         :return: pilot error code (int)
         """
 
@@ -118,9 +118,8 @@ class ErrorCodes:
             ec = self.SINGULARITYBINDPOINTFAILURE
         elif exit_code == 255 and "No more available loop devices" in stderr:
             ec = self.SINGULARITYNOLOOPDEVICES
-        elif exit_code != 0:
-            ec = self.SINGULARITYGENERALFAILURE
         else:
+            # do not assign a pilot error code for unidentified transform error, return 0
             ec = 0
 
         return ec

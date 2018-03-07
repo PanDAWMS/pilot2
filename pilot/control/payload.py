@@ -20,6 +20,8 @@ import time
 from pilot.control.payloads import generic, eventservice
 from pilot.control.job import send_state
 from pilot.util.config import config
+from pilot.common.errorcodes import ErrorCodes
+errors = ErrorCodes()
 
 import logging
 logger = logging.getLogger(__name__)
@@ -137,8 +139,8 @@ def execute_payloads(queues, traces, args):
                     time.sleep(0.1)
                 continue
 
-            out = open(os.path.join(job.workdir, 'payload.stdout'), 'wb')
-            err = open(os.path.join(job.workdir, 'payload.stderr'), 'wb')
+            out = open(os.path.join(job.workdir, config.Payload.payloadstdout), 'wb')
+            err = open(os.path.join(job.workdir, config.Payload.payloadstderr), 'wb')
 
             send_state(job, args, 'starting')
 
@@ -155,15 +157,23 @@ def execute_payloads(queues, traces, args):
             job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconversionfactor = set_time_consumed(t)
             log.info('CPU consumption time: %s' % job.cpuconsumptiontime)
 
-            out.close()
-            err.close()
-
             if exit_code == 0:
                 job.transexitcode = 0
                 queues.finished_payloads.put(job)
             else:
+                stderr = err.read()
+                if stderr != "":
+                    msg = extract_stderr_msg(stderr)
+                    if msg != "":
+                        log.warning("extracted message from stderr:\n%s" % msg)
+                ec = errors.resolve_transform_error(exit_code, stderr)
+                if ec != 0:
+                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
                 job.transexitcode = exit_code
                 queues.failed_payloads.put(job)
+
+            out.close()
+            err.close()
 
         except Queue.Empty:
             continue
