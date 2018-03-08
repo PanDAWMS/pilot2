@@ -14,6 +14,7 @@ from collections import defaultdict
 from pilot.util.container import execute
 from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, \
     get_asetup_options, is_standard_atlas_job
+from pilot.util.filehandling import remove
 
 import logging
 logger = logging.getLogger(__name__)
@@ -375,3 +376,26 @@ def get_exit_info(jobreport_dictionary):
     """
 
     return jobreport_dictionary['exitCode'], jobreport_dictionary['exitMsg']
+
+
+def cleanup_payload(workdir, outputfiles = []):
+    """
+    Cleanup of payload (specifically AthenaMP) sub directories prior to log file creation.
+
+    :param workdir: working directory (string)
+    :param outputfiles: list of output files
+    :return:
+    """
+
+    for ampdir in glob('%s/athenaMP-workers-*' % (workdir)):
+        for (p, d, f) in os.walk(ampdir):
+            for filename in f:
+                if 'core' in filename or 'tmp.' in filename:
+                    path = os.path.join(p, filename)
+                    path = os.path.abspath(path)
+                    remove(path)
+                for outfile in outputfiles:
+                    if outfile in filename:
+                        path = os.path.join(p, filename)
+                        path = os.path.abspath(path)
+                        remove(path)
