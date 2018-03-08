@@ -22,10 +22,11 @@ from pilot.control.job import send_state
 from pilot.util.config import config
 from pilot.util.filehandling import read_file
 from pilot.common.errorcodes import ErrorCodes
-errors = ErrorCodes()
 
 import logging
 logger = logging.getLogger(__name__)
+
+errors = ErrorCodes()
 
 
 def control(queues, traces, args):

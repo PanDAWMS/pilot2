@@ -154,4 +154,3 @@ class ErrorCodes:
                 msg = found[0]
 
         return msg
-

@@ -105,7 +105,6 @@ def get_initial_work_report():
                    'cpuConsumptionTime': '',
                    'node': gethostname(),
                    'workdir': '',
-                   'jobStatus': '',
                    'timestamp': time_stamp(),
                    'endTime': '',
                    'transExitCode': 0,
@@ -126,8 +125,6 @@ def publish_work_report(work_report=None, worker_attributes_file="worker_attribu
     """
 
     if work_report:
-        with open(worker_attributes_file, 'w') as outputfile:
-            work_report['timestamp'] = timestamp()
-            json.dump(work_report, outputfile)
-        logger.debug("Work report published: {0}".format(work_report))
-
+        work_report['timestamp'] = time_stamp()
+        if write_json(worker_attributes_file, work_report):
+            logger.info("work report published: {0}".format(work_report))

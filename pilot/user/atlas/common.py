@@ -512,7 +512,7 @@ def remove_redundant_files(workdir, outputfiles=[]):
 
             _files = []
             for f in files:
-                if not f in exclude:
+                if f not in exclude:
                     _files.append(os.path.abspath(f))
             to_delete += _files
 
@@ -520,19 +520,19 @@ def remove_redundant_files(workdir, outputfiles=[]):
     for of in outputfiles:
         exclude_files.append(os.path.join(workdir, of))
     for f in to_delete:
-        if not f in exclude_files:
+        if f not in exclude_files:
             remove(f)
 
     # run a second pass to clean up any broken links
     broken = []
     for root, dirs, files in os.walk(workdir):
         for filename in files:
-            path = os.path.join(root,filename)
+            path = os.path.join(root, filename)
             if os.path.islink(path):
                 target_path = os.readlink(path)
                 # Resolve relative symlinks
                 if not os.path.isabs(target_path):
-                    target_path = os.path.join(os.path.dirname(path),target_path)
+                    target_path = os.path.join(os.path.dirname(path), target_path)
                 if not os.path.exists(target_path):
                     broken.append(path)
             else:
@@ -542,4 +542,3 @@ def remove_redundant_files(workdir, outputfiles=[]):
     if broken:
         for p in broken:
             remove(p)
-

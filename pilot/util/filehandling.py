@@ -204,7 +204,7 @@ def remove_empty_directories(src_dir):
             break
         try:
             os.rmdir(dirpath)
-        except OSError as e:
+        except OSError:
             pass
 
 
@@ -238,9 +238,9 @@ def tar_files(wkdir, excludedfiles, logfile_name, attempt=0):
     pack_start = time.time()
     for path, subdir, files in os.walk(wkdir):
         for file in files:
-            if not file in excludedfiles:
-                relDir = os.path.relpath(path, wkdir)
-                file_rel_path = os.path.join(relDir, file)
+            if file not in excludedfiles:
+                rel_dir = os.path.relpath(path, wkdir)
+                file_rel_path = os.path.join(rel_dir, file)
                 file_path = os.path.join(path, file)
                 to_pack.append((file_path, file_rel_path))
     if to_pack:
@@ -250,7 +250,7 @@ def tar_files(wkdir, excludedfiles, logfile_name, attempt=0):
             for f in to_pack:
                 log_pack.add(f[0], arcname=f[1])
             log_pack.close()
-        except IOError as e:
+        except IOError:
             if attempt == 0:
                 safe_delay = 15
                 logger.warning('i/o error - will retry in {0} seconds'.format(safe_delay))
