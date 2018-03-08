@@ -181,8 +181,16 @@ def alrb_wrapper(cmd, platform, workdir, job):
         cmd = cmd.replace(_asetup, "asetup ")
         # get simplified ALRB setup (export)
         asetup = get_asetup(alrb=True)
+
+        # Get the singularity options
+        singularity_options = job.infosys.queuedata.container_options
+        logger.debug(
+            "resolved singularity_options from job.infosys.queuedata.container_options: %s" % singularity_options)
+
         _cmd = asetup
         _cmd += 'export thePlatform=\"%s\";' % platform
+        if singularity_options != "":
+            _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % singularity_options
         _cmd += 'export ALRB_CONT_RUNPAYLOAD=\"%s\";' % cmd
         _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c images:$thePlatform'
         cmd = _cmd

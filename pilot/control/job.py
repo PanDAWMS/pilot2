@@ -180,7 +180,7 @@ def validate(queues, traces, args):
 
         # set the environmental variable for the task id
         os.environ['PanDA_TaskID'] = str(job.taskid)
-        logger.info('processing PanDA job %s from task %s' % (job.jobid, job.taskid))
+        log.info('processing PanDA job %s from task %s' % (job.jobid, job.taskid))
 
         if _validate_job(job):
 

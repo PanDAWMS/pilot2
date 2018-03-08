@@ -8,12 +8,15 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import os
+import fnmatch
 from collections import defaultdict
+from glob import glob
 
 # from pilot.common.exception import PilotException
 from pilot.util.container import execute
 from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, \
     get_asetup_options, is_standard_atlas_job
+from pilot.util.filehandling import remove
 
 import logging
 logger = logging.getLogger(__name__)
@@ -375,3 +378,190 @@ def get_exit_info(jobreport_dictionary):
     """
 
     return jobreport_dictionary['exitCode'], jobreport_dictionary['exitMsg']
+
+
+def cleanup_payload(workdir, outputfiles=[]):
+    """
+    Cleanup of payload (specifically AthenaMP) sub directories prior to log file creation.
+
+    :param workdir: working directory (string)
+    :param outputfiles: list of output files
+    :return:
+    """
+
+    for ampdir in glob('%s/athenaMP-workers-*' % (workdir)):
+        for (p, d, f) in os.walk(ampdir):
+            for filename in f:
+                if 'core' in filename or 'tmp.' in filename:
+                    path = os.path.join(p, filename)
+                    path = os.path.abspath(path)
+                    remove(path)
+                for outfile in outputfiles:
+                    if outfile in filename:
+                        path = os.path.join(p, filename)
+                        path = os.path.abspath(path)
+                        remove(path)
+
+
+def get_redundants():
+    """
+    Get list of redundant files and directories (to be removed).
+    :return: files and directories list
+    """
+
+    dir_list = ["AtlasProduction*",
+                "AtlasPoint1",
+                "AtlasTier0",
+                "buildJob*",
+                "CDRelease*",
+                "csc*.log",
+                "DBRelease*",
+                "EvgenJobOptions",
+                "external",
+                "fort.*",
+                "geant4",
+                "geomDB",
+                "geomDB_sqlite",
+                "home",
+                "o..pacman..o",
+                "pacman-*",
+                "python",
+                "runAthena*",
+                "share",
+                "sources.*",
+                "sqlite*",
+                "sw",
+                "tcf_*",
+                "triggerDB",
+                "trusted.caches",
+                "workdir",
+                "*.data*",
+                "*.events",
+                "*.py",
+                "*.pyc",
+                "*.root*",
+                "JEM",
+                "tmp*",
+                "*.tmp",
+                "*.TMP",
+                "MC11JobOptions",
+                "scratch",
+                "jobState-*-test.pickle",
+                "*.writing",
+                "pwg*",
+                "pwhg*",
+                "*PROC*",
+                "madevent",
+                "HPC",
+                "objectstore*.json",
+                "saga",
+                "radical",
+                "ckpt*"]
+
+    return dir_list
+
+
+def remove_archives(workdir):
+    """
+    Explicitly remove any soft linked archives (.a files) since they will be dereferenced by the tar command
+    (--dereference option).
+
+    :param workdir: working directory (string)
+    :return:
+    """
+
+    matches = []
+    for root, dirnames, filenames in os.walk(workdir):
+        for filename in fnmatch.filter(filenames, '*.a'):
+            matches.append(os.path.join(root, filename))
+    for root, dirnames, filenames in os.walk(os.path.dirname(workdir)):
+        for filename in fnmatch.filter(filenames, 'EventService_premerge_*.tar'):
+            matches.append(os.path.join(root, filename))
+    if matches != []:
+        for f in matches:
+            remove(f)
+
+
+def cleanup_broken_links(workdir):
+    """
+    Run a second pass to clean up any broken links prior to log file creation.
+
+    :param workdir: working directory (string)
+    :return:
+    """
+
+    broken = []
+    for root, dirs, files in os.walk(workdir):
+        for filename in files:
+            path = os.path.join(root, filename)
+            if os.path.islink(path):
+                target_path = os.readlink(path)
+                # Resolve relative symlinks
+                if not os.path.isabs(target_path):
+                    target_path = os.path.join(os.path.dirname(path), target_path)
+                if not os.path.exists(target_path):
+                    broken.append(path)
+            else:
+                # If it's not a symlink we're not interested.
+                continue
+
+    if broken:
+        for p in broken:
+            remove(p)
+
+
+def remove_redundant_files(workdir, outputfiles=[]):
+    """
+    Remove redundant files and directories prior to creating the log file.
+
+    :param workdir: working directory (string).
+    :param outputfiles: list of output files.
+    :return:
+    """
+
+    logger.info("removing redundant files prior to log creation")
+
+    workdir = os.path.abspath(workdir)
+
+    # get list of redundant files and directories (to be removed)
+    dir_list = get_redundants()
+
+    # remove core and pool.root files from AthenaMP sub directories
+    try:
+        cleanup_payload(workdir, outputfiles)
+    except Exception, e:
+        logger.warning("failed to execute cleanup_payload(): %s" % e)
+
+    # explicitly remove any soft linked archives (.a files) since they will be dereferenced by the tar command
+    # (--dereference option)
+    remove_archives(workdir)
+
+    # note: these should be partial file/dir names, not containing any wildcards
+    exceptions_list = ["runargs", "runwrapper", "jobReport", "log."]
+
+    to_delete = []
+    for _dir in dir_list:
+        files = glob(os.path.join(workdir, _dir))
+        exclude = []
+
+        if files:
+            for exc in exceptions_list:
+                for f in files:
+                    if exc in f:
+                        exclude.append(os.path.abspath(f))
+
+            _files = []
+            for f in files:
+                if f not in exclude:
+                    _files.append(os.path.abspath(f))
+            to_delete += _files
+
+    exclude_files = []
+    for of in outputfiles:
+        exclude_files.append(os.path.join(workdir, of))
+    for f in to_delete:
+        if f not in exclude_files:
+            remove(f)
+
+    # run a second pass to clean up any broken links
+    cleanup_broken_links(workdir)

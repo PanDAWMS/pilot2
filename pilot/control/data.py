@@ -302,6 +302,11 @@ def prepare_log(job, tarball_name):
     output_files = job.outfiles.split(',')
     force_exclude = ['geomDB', 'sqlite200']
 
+    # perform special cleanup (user specific) prior to log file creation
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+    user.remove_redundant_files(job.workdir)
+
     with tarfile.open(name=os.path.join(job.workdir, job.logfile),
                       mode='w:gz',
                       dereference=True) as log_tar:

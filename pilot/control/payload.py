@@ -20,9 +20,13 @@ import time
 from pilot.control.payloads import generic, eventservice
 from pilot.control.job import send_state
 from pilot.util.config import config
+from pilot.util.filehandling import read_file
+from pilot.common.errorcodes import ErrorCodes
 
 import logging
 logger = logging.getLogger(__name__)
+
+errors = ErrorCodes()
 
 
 def control(queues, traces, args):
@@ -122,6 +126,7 @@ def execute_payloads(queues, traces, args):
     :return:
     """
 
+    job = None
     while not args.graceful_stop.is_set():
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
@@ -137,8 +142,8 @@ def execute_payloads(queues, traces, args):
                     time.sleep(0.1)
                 continue
 
-            out = open(os.path.join(job.workdir, 'payload.stdout'), 'wb')
-            err = open(os.path.join(job.workdir, 'payload.stderr'), 'wb')
+            out = open(os.path.join(job.workdir, config.Payload.payloadstdout), 'wb')
+            err = open(os.path.join(job.workdir, config.Payload.payloadstderr), 'wb')
 
             send_state(job, args, 'starting')
 
@@ -162,11 +167,27 @@ def execute_payloads(queues, traces, args):
                 job.transexitcode = 0
                 queues.finished_payloads.put(job)
             else:
+                stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
+                if stderr != "":
+                    msg = errors.extract_stderr_msg(stderr)
+                    if msg != "":
+                        log.warning("extracted message from stderr:\n%s" % msg)
+                ec = errors.resolve_transform_error(exit_code, stderr)
+                if ec != 0:
+                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
                 job.transexitcode = exit_code
                 queues.failed_payloads.put(job)
 
         except Queue.Empty:
             continue
+        except Exception as e:
+            logger.fatal('execute payloads caught an exception (cannot recover): %s' % e)
+            if job:
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADEXECUTIONEXCEPTION)
+                queues.failed_payloads.put(job)
+            while not args.graceful_stop.is_set():
+                # let stage-out of log finish, but stop running payloads as there should be a problem with the pilot
+                time.sleep(5)
 
 
 def process_job_report(job):
