@@ -21,6 +21,8 @@ import urllib2
 
 from datetime import datetime, timedelta
 
+from pilot.util.timer import timeout
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -79,18 +81,25 @@ class DataLoader(object):
         :return: data loaded from the url or file content if url passed is a filename.
         """
 
+        @timeout(seconds=20)
+        def _readfile(url):
+            if os.path.isfile(url):
+                with open(url, "r") as f:
+                    content = f.read()
+                return content
+
         content = None
         if url and self.is_file_expired(fname, cache_time):  # load data into temporary cache file
-            for trial in range(nretry):
+            for trial in range(1, nretry + 1):
                 if content:
                     break
                 try:
-                    if os.path.isfile(url):
-                        logger.info('[attempt=%s] loading data from file=%s' % (trial, url))
-                        with open(url, "r") as f:
-                            content = f.read()
+                    native_access = '://' not in url  ## trival check for file access, non accurate.. FIXME later if need
+                    if native_access:
+                        logger.info('[attempt=%s/%s] loading data from file=%s' % (trial, nretry, url))
+                        content = _readfile(url)
                     else:
-                        logger.info('[attempt=%s] loading data from url=%s' % (trial, url))
+                        logger.info('[attempt=%s/%s] loading data from url=%s' % (trial, nretry, url))
                         content = urllib2.urlopen(url, timeout=20).read()
 
                     if fname:  # save to cache
@@ -103,7 +112,7 @@ class DataLoader(object):
                     logger.warning('failed to load data from url=%s, error: %s .. trying to use data from cache=%s' %
                                    (url, e, fname))
                     # will try to use old cache below
-                    if trial < nretry - 1:
+                    if trial < nretry:
                         xsleep_time = sleep_time() if callable(sleep_time) else sleep_time
                         logger.info("will try again after %ss.." % xsleep_time)
                         time.sleep(xsleep_time)
