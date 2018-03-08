@@ -461,6 +461,27 @@ def get_redundants():
     return dir_list
 
 
+def remove_archives(workdir):
+    """
+    Explicitly remove any soft linked archives (.a files) since they will be dereferenced by the tar command
+    (--dereference option).
+
+    :param workdir: working directory (string)
+    :return:
+    """
+
+    matches = []
+    for root, dirnames, filenames in os.walk(workdir):
+        for filename in fnmatch.filter(filenames, '*.a'):
+            matches.append(os.path.join(root, filename))
+    for root, dirnames, filenames in os.walk(os.path.dirname(workdir)):
+        for filename in fnmatch.filter(filenames, 'EventService_premerge_*.tar'):
+            matches.append(os.path.join(root, filename))
+    if matches != []:
+        for f in matches:
+            remove(f)
+
+
 def remove_redundant_files(workdir, outputfiles=[]):
     """
     Remove redundant files and directories prior to creating the log file.
@@ -485,16 +506,7 @@ def remove_redundant_files(workdir, outputfiles=[]):
 
     # explicitly remove any soft linked archives (.a files) since they will be dereferenced by the tar command
     # (--dereference option)
-    matches = []
-    for root, dirnames, filenames in os.walk(workdir):
-        for filename in fnmatch.filter(filenames, '*.a'):
-            matches.append(os.path.join(root, filename))
-    for root, dirnames, filenames in os.walk(os.path.dirname(workdir)):
-        for filename in fnmatch.filter(filenames, 'EventService_premerge_*.tar'):
-            matches.append(os.path.join(root, filename))
-    if matches != []:
-        for f in matches:
-            remove(f)
+    remove_archives(workdir)
 
     # note: these should be partial file/dir names, not containing any wildcards
     exceptions_list = ["runargs", "runwrapper", "jobReport", "log."]
