@@ -187,3 +187,22 @@ def touch(path):
 
     with open(path, 'a'):
         os.utime(path, None)
+
+
+def remove_empty_directories(src_dir):
+    """
+    Removal of empty directories in the given src_dir tree.
+    Only empty directories will be removed.
+
+    :param src_dir: directory to be purged of empty directories.
+    :return:
+    """
+
+    for dirpath, subdirs, files in os.walk(src_dir, topdown=False):
+        if dirpath == src_dir:
+            break
+        try:
+            os.rmdir(dirpath)
+        except OSError as e:
+            pass
+
