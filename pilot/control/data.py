@@ -418,31 +418,25 @@ def _stage_out_all(job, args):
                                                      'bytes': f['subFiles'][0]['file_size']}
         else:
             log.warning('Job object does not contain a job report (payload failed?) - will only stage-out log file')
-    outputs['%s:%s' % (job.scopelog, job.logfile)] = prepare_log(job, 'tarball_PandaJob_%s_%s' %
-                                                                 (job.jobid, args.queue))
 
     fileinfodict = {}
     failed = False
 
+    # stage-out output files first, wait with log
+
+
     for outfile in outputs:
-        # this doesn't work since scope is added above, but scope is not present in outFiles
-        # if outfile not in job['outFiles']:
-        #     continue
-        summary = _stage_out(args, outputs[outfile], job)
-        log.info('stage-out finished for %s (summary=%s)' % (outfile, str(summary)))
-
-        if summary is not None:
-            outputs[outfile]['pfn'] = summary['%s:%s' % (outputs[outfile]['scope'], outputs[outfile]['name'])]['pfn']
-            outputs[outfile]['adler32'] = summary['%s:%s' % (outputs[outfile]['scope'],
-                                                             outputs[outfile]['name'])]['adler32']
-
-            filedict = {'guid': outputs[outfile]['guid'],
-                        'fsize': outputs[outfile]['bytes'],
-                        'adler32': outputs[outfile]['adler32'],
-                        'surl': outputs[outfile]['pfn']}
-            fileinfodict[outputs[outfile]['name']] = filedict
-        else:
+        status = single_stage_out(args, outputs, fileinfodict)
+        if not status:
             failed = True
+            log.warning('transfer of output file(s) failed')
+
+    # proceed with log transfer
+    outputs['%s:%s' % (job.scopelog, job.logfile)] = prepare_log(job, 'tarball_PandaJob_%s_%s' %
+                                                                 (job.jobid, args.queue))
+    status = single_stage_out(args, outputs, fileinfodict)
+    if not status:
+        log.warning('log transfer failed')
 
     job.fileinfo = fileinfodict
     if failed:
@@ -463,6 +457,40 @@ def _stage_out_all(job, args):
         # send final server update since all transfers have finished correctly
         # send_state(job, args, 'finished', xml=dumps(fileinfodict))
         return True
+
+
+def single_stage_out(args, outputs, fileinfodict):
+    """
+    Perform stage-out for single file and populate the outputs and fileinfodict dictionaries.
+
+    :param args: pilot arguments
+    :param outputs: output file dictionary
+    :param fileinfodict: file metadata dictionary
+    :return: status (boolean)
+    """
+
+    status = True
+
+    # this doesn't work since scope is added above, but scope is not present in outFiles
+    # if outfile not in job['outFiles']:
+    #     continue
+    summary = _stage_out(args, outputs[outfile], job)
+    log.info('stage-out finished for %s (summary=%s)' % (outfile, str(summary)))
+
+    if summary is not None:
+        outputs[outfile]['pfn'] = summary['%s:%s' % (outputs[outfile]['scope'], outputs[outfile]['name'])]['pfn']
+        outputs[outfile]['adler32'] = summary['%s:%s' % (outputs[outfile]['scope'],
+                                                         outputs[outfile]['name'])]['adler32']
+
+        filedict = {'guid': outputs[outfile]['guid'],
+                    'fsize': outputs[outfile]['bytes'],
+                    'adler32': outputs[outfile]['adler32'],
+                    'surl': outputs[outfile]['pfn']}
+        fileinfodict[outputs[outfile]['name']] = filedict
+    else:
+        status = False
+
+    return status
 
 
 def queue_monitoring(queues, traces, args):
