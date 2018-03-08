@@ -426,7 +426,7 @@ def _stage_out_all(job, args):
 
 
     for outfile in outputs:
-        status = single_stage_out(args, outputs, fileinfodict)
+        status = single_stage_out(args, job, outputs[outfile], fileinfodict)
         if not status:
             failed = True
             log.warning('transfer of output file(s) failed')
@@ -434,8 +434,9 @@ def _stage_out_all(job, args):
     # proceed with log transfer
     outputs['%s:%s' % (job.scopelog, job.logfile)] = prepare_log(job, 'tarball_PandaJob_%s_%s' %
                                                                  (job.jobid, args.queue))
-    status = single_stage_out(args, outputs, fileinfodict)
+    status = single_stage_out(args, job, outputs['%s:%s' % (job.scopelog, job.logfile)], fileinfodict)
     if not status:
+        failed = True
         log.warning('log transfer failed')
 
     job.fileinfo = fileinfodict
@@ -459,12 +460,13 @@ def _stage_out_all(job, args):
         return True
 
 
-def single_stage_out(args, outputs, fileinfodict):
+def single_stage_out(args, job, outputs_output, fileinfodict):
     """
     Perform stage-out for single file and populate the outputs and fileinfodict dictionaries.
 
     :param args: pilot arguments
-    :param outputs: output file dictionary
+    :param job: job object
+    :param outputs_output: output file dictionary entry
     :param fileinfodict: file metadata dictionary
     :return: status (boolean)
     """
@@ -474,19 +476,19 @@ def single_stage_out(args, outputs, fileinfodict):
     # this doesn't work since scope is added above, but scope is not present in outFiles
     # if outfile not in job['outFiles']:
     #     continue
-    summary = _stage_out(args, outputs[outfile], job)
-    log.info('stage-out finished for %s (summary=%s)' % (outfile, str(summary)))
+    summary = _stage_out(args, outputs_outfile, job)
+    log.info('stage-out finished for %s (summary=%s)' % (outputs_output, str(summary)))
 
     if summary is not None:
-        outputs[outfile]['pfn'] = summary['%s:%s' % (outputs[outfile]['scope'], outputs[outfile]['name'])]['pfn']
-        outputs[outfile]['adler32'] = summary['%s:%s' % (outputs[outfile]['scope'],
-                                                         outputs[outfile]['name'])]['adler32']
+        outputs_output['pfn'] = summary['%s:%s' % (outputs_output['scope'], outputs_output['name'])]['pfn']
+        outputs_output['adler32'] = summary['%s:%s' % (outputs_output['scope'],
+                                                         outputs_output['name'])]['adler32']
 
-        filedict = {'guid': outputs[outfile]['guid'],
-                    'fsize': outputs[outfile]['bytes'],
-                    'adler32': outputs[outfile]['adler32'],
-                    'surl': outputs[outfile]['pfn']}
-        fileinfodict[outputs[outfile]['name']] = filedict
+        filedict = {'guid': outputs_output['guid'],
+                    'fsize': outputs_output['bytes'],
+                    'adler32': outputs_output['adler32'],
+                    'surl': outputs_output['pfn']}
+        fileinfodict[outputs_output['name']] = filedict
     else:
         status = False
 
