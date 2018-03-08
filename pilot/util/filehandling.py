@@ -9,11 +9,12 @@
 
 import os
 import time
+import tarfile
 
 from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure
 
-# import logging
-# logger = logging.getLogger(__name__)
+import logging
+logger = logging.getLogger(__name__)
 
 
 def get_pilot_work_dir(workdir):
@@ -187,3 +188,83 @@ def touch(path):
 
     with open(path, 'a'):
         os.utime(path, None)
+
+
+def remove_empty_directories(src_dir):
+    """
+    Removal of empty directories in the given src_dir tree.
+    Only empty directories will be removed.
+
+    :param src_dir: directory to be purged of empty directories.
+    :return:
+    """
+
+    for dirpath, subdirs, files in os.walk(src_dir, topdown=False):
+        if dirpath == src_dir:
+            break
+        try:
+            os.rmdir(dirpath)
+        except OSError:
+            pass
+
+
+def remove(path):
+    """
+    Remove file.
+    :param path: path to file (string).
+    :return: 0 if successful, -1 if failed (int)
+    """
+
+    try:
+        os.remove(path)
+    except OSError as e:
+        logger.warning("failed to delete file: %s : %s" % (e.errno, e.strerror))
+        return -1
+    return 0
+
+
+def tar_files(wkdir, excludedfiles, logfile_name, attempt=0):
+    """
+    Tarring of files in given directory.
+
+    :param wkdir: work directory (string)
+    :param excludedfiles: list of files to be excluded from tar operation (list)
+    :param logfile_name: file name (string)
+    :param attempt: attempt number (integer)
+    :return: 0 if successful, 1 in case of error (int)
+    """
+
+    to_pack = []
+    pack_start = time.time()
+    for path, subdir, files in os.walk(wkdir):
+        for file in files:
+            if file not in excludedfiles:
+                rel_dir = os.path.relpath(path, wkdir)
+                file_rel_path = os.path.join(rel_dir, file)
+                file_path = os.path.join(path, file)
+                to_pack.append((file_path, file_rel_path))
+    if to_pack:
+        try:
+            logfile_name = os.path.join(wkdir, logfile_name)
+            log_pack = tarfile.open(logfile_name, 'w:gz')
+            for f in to_pack:
+                log_pack.add(f[0], arcname=f[1])
+            log_pack.close()
+        except IOError:
+            if attempt == 0:
+                safe_delay = 15
+                logger.warning('i/o error - will retry in {0} seconds'.format(safe_delay))
+                time.sleep(safe_delay)
+                tar_files(wkdir, excludedfiles, logfile_name, attempt=1)
+            else:
+                logger.warning("continues i/o errors during packing of logs - job will fail")
+                return 1
+
+    for f in to_pack:
+        remove(f[0])
+
+    remove_empty_directories(wkdir)
+    pack_time = time.time() - pack_start
+    logger.debug("packing of logs took {0} seconds".format(pack_time))
+
+    return 0
