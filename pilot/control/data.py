@@ -423,8 +423,6 @@ def _stage_out_all(job, args):
     failed = False
 
     # stage-out output files first, wait with log
-
-
     for outfile in outputs:
         status = single_stage_out(args, job, outputs[outfile], fileinfodict)
         if not status:
@@ -460,7 +458,7 @@ def _stage_out_all(job, args):
         return True
 
 
-def single_stage_out(args, job, outputs_output, fileinfodict):
+def single_stage_out(args, job, outputs_outfile, fileinfodict):
     """
     Perform stage-out for single file and populate the outputs and fileinfodict dictionaries.
 
@@ -472,23 +470,24 @@ def single_stage_out(args, job, outputs_output, fileinfodict):
     """
 
     status = True
+    log = logger.getChild(job.jobid)
 
     # this doesn't work since scope is added above, but scope is not present in outFiles
     # if outfile not in job['outFiles']:
     #     continue
     summary = _stage_out(args, outputs_outfile, job)
-    log.info('stage-out finished for %s (summary=%s)' % (outputs_output, str(summary)))
+    log.info('stage-out finished for %s (summary=%s)' % (outputs_outfile, str(summary)))
 
     if summary is not None:
-        outputs_output['pfn'] = summary['%s:%s' % (outputs_output['scope'], outputs_output['name'])]['pfn']
-        outputs_output['adler32'] = summary['%s:%s' % (outputs_output['scope'],
-                                                         outputs_output['name'])]['adler32']
+        outputs_outfile['pfn'] = summary['%s:%s' % (outputs_outfile['scope'], outputs_outfile['name'])]['pfn']
+        outputs_outfile['adler32'] = summary['%s:%s' % (outputs_outfile['scope'],
+                                                        outputs_outfile['name'])]['adler32']
 
-        filedict = {'guid': outputs_output['guid'],
-                    'fsize': outputs_output['bytes'],
-                    'adler32': outputs_output['adler32'],
-                    'surl': outputs_output['pfn']}
-        fileinfodict[outputs_output['name']] = filedict
+        filedict = {'guid': outputs_outfile['guid'],
+                    'fsize': outputs_outfile['bytes'],
+                    'adler32': outputs_outfile['adler32'],
+                    'surl': outputs_outfile['pfn']}
+        fileinfodict[outputs_outfile['name']] = filedict
     else:
         status = False
 
