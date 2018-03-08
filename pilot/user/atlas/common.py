@@ -482,6 +482,34 @@ def remove_archives(workdir):
             remove(f)
 
 
+def cleanup_broken_links(workdir):
+    """
+    Run a second pass to clean up any broken links prior to log file creation.
+
+    :param workdir: working directory (string)
+    :return:
+    """
+
+    broken = []
+    for root, dirs, files in os.walk(workdir):
+        for filename in files:
+            path = os.path.join(root, filename)
+            if os.path.islink(path):
+                target_path = os.readlink(path)
+                # Resolve relative symlinks
+                if not os.path.isabs(target_path):
+                    target_path = os.path.join(os.path.dirname(path), target_path)
+                if not os.path.exists(target_path):
+                    broken.append(path)
+            else:
+                # If it's not a symlink we're not interested.
+                continue
+
+    if broken:
+        for p in broken:
+            remove(p)
+
+
 def remove_redundant_files(workdir, outputfiles=[]):
     """
     Remove redundant files and directories prior to creating the log file.
@@ -536,21 +564,4 @@ def remove_redundant_files(workdir, outputfiles=[]):
             remove(f)
 
     # run a second pass to clean up any broken links
-    broken = []
-    for root, dirs, files in os.walk(workdir):
-        for filename in files:
-            path = os.path.join(root, filename)
-            if os.path.islink(path):
-                target_path = os.readlink(path)
-                # Resolve relative symlinks
-                if not os.path.isabs(target_path):
-                    target_path = os.path.join(os.path.dirname(path), target_path)
-                if not os.path.exists(target_path):
-                    broken.append(path)
-            else:
-                # If it's not a symlink we're not interested.
-                continue
-
-    if broken:
-        for p in broken:
-            remove(p)
+    cleanup_broken_links(workdir)
