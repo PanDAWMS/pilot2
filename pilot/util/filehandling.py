@@ -12,8 +12,8 @@ import time
 
 from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure
 
-# import logging
-# logger = logging.getLogger(__name__)
+import logging
+logger = logging.getLogger(__name__)
 
 
 def get_pilot_work_dir(workdir):
@@ -205,4 +205,19 @@ def remove_empty_directories(src_dir):
             os.rmdir(dirpath)
         except OSError as e:
             pass
+
+
+def remove(path):
+    """
+    Remove file.
+    :param path: path to file (string).
+    :return: 0 if successful, -1 if failed (int)
+    """
+
+    try:
+        os.remove(path)
+    except OSError as e:
+        logger.warning("failed to delete file: %s : %s" % (e.errno, e.strerror))
+        return -1
+    return 0
 

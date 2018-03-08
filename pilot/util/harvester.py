@@ -7,10 +7,10 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
-from os import environ, remove
-from os.path import exists, join
+from os import environ
+from os.path import join
 
-from pilot.util.filehandling import write_json, touch
+from pilot.util.filehandling import write_json, touch, remove
 from pilot.util.config import config
 from pilot.common.exception import FileHandlingFailure
 
@@ -54,14 +54,7 @@ def remove_job_request_file():
     """
 
     path = get_job_request_file_name()
-    try:
-        remove(path)
-    except OSError as e:
-        if exists(path):
-            logger.warning('failed to remove %s: %s' % (path, e))
-        else:
-            pass
-    else:
+    if remove(path) == 0:
         logger.info('removed %s' % path)
 
 
