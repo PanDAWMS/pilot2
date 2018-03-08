@@ -9,10 +9,12 @@
 
 from os import environ
 from os.path import join
+from socket import gethostname
 
 from pilot.util.filehandling import write_json, touch, remove
 from pilot.util.config import config
 from pilot.common.exception import FileHandlingFailure
+from pilot.util.auxiliary import time_stamp
 
 import logging
 logger = logging.getLogger(__name__)
@@ -87,3 +89,45 @@ def kill_worker():
     """
 
     touch(join(environ['PILOT_HOME'], config.Harvester.kill_worker_file))
+
+
+def get_initial_work_report():
+    """
+    Prepare the work report dictionary.
+    Note: the work_report should also contain all fields defined in parse_jobreport_data().
+
+    :return: work report dictionary.
+    """
+
+    work_report = {'jobStatus': 'starting',
+                   'messageLevel': logging.getLevelName(logger.getEffectiveLevel()),
+                   'cpuConversionFactor': 1.0,
+                   'cpuConsumptionTime': '',
+                   'node': gethostname(),
+                   'workdir': '',
+                   'jobStatus': '',
+                   'timestamp': time_stamp(),
+                   'endTime': '',
+                   'transExitCode': 0,
+                   'pilotErrorCode': 0,  # only add this in case of failure?
+                   }
+
+    return work_report
+
+
+def publish_work_report(work_report=None, worker_attributes_file="worker_attributes.json"):
+    """
+    Publishing of work report to file.
+    The work report dictionary should contain the fields defined in get_initial_work_report().
+
+    :param work_report: work report dictionary.
+    :param worker_attributes_file:
+    :return:
+    """
+
+    if work_report:
+        with open(worker_attributes_file, 'w') as outputfile:
+            work_report['timestamp'] = timestamp()
+            json.dump(work_report, outputfile)
+        logger.debug("Work report published: {0}".format(work_report))
+
