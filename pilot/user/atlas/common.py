@@ -380,7 +380,7 @@ def get_exit_info(jobreport_dictionary):
     return jobreport_dictionary['exitCode'], jobreport_dictionary['exitMsg']
 
 
-def cleanup_payload(workdir, outputfiles = []):
+def cleanup_payload(workdir, outputfiles=[]):
     """
     Cleanup of payload (specifically AthenaMP) sub directories prior to log file creation.
 
@@ -470,7 +470,7 @@ def remove_redundant_files(workdir, outputfiles=[]):
     :return:
     """
 
-    logger.info("Removing redundant files prior to log creation")
+    logger.info("removing redundant files prior to log creation")
 
     workdir = os.path.abspath(workdir)
 
