@@ -143,9 +143,9 @@ def parse_jobreport_data(job_report):
 
     # these are default values for job metrics
     core_count = "undef"
-    work_attributes["n_events"] = "undef"
-    work_attributes["__db_time"] = "undef"
-    work_attributes["__db_data"] = "undef"
+    work_attributes["n_events"] = "None"
+    work_attributes["__db_time"] = "None"
+    work_attributes["__db_data"] = "None"
 
     class DictQuery(dict):
         def get(self, path, dst_dict, dst_key):
@@ -176,7 +176,6 @@ def parse_jobreport_data(job_report):
     dq.get("resource/dbTimeTotal", work_attributes, "__db_time")
     dq.get("resource/dbDataTotal", work_attributes, "__db_data")
     dq.get("exitCode", work_attributes, "transExitCode")
-    dq.get("exitCode", work_attributes, "exeErrorCode")
     dq.get("exitMsg", work_attributes, "exeErrorDiag")
     dq.get("files/input/subfiles", work_attributes, "nInputFiles")
 
