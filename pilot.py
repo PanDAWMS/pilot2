@@ -329,8 +329,6 @@ if __name__ == '__main__':
         else:
             logging.info("removed %s" % mainworkdir)
 
-    logging.shutdown()
-
     # in Harvester mode, create a kill_worker file that will instruct Harvester that the pilot has finished
     if args.harvester:
         from pilot.util.harvester import kill_worker
@@ -338,20 +336,22 @@ if __name__ == '__main__':
 
     if not trace:
         logging.critical('pilot startup did not succeed -- aborting')
-        sys.exit(FAILURE)
+        exit_code = FAILURE
     elif trace.pilot['nr_jobs'] > 0:
         if trace.pilot['nr_jobs'] == 1:
             logging.getLogger(__name__).info('pilot has finished (%d job was processed)' % trace.pilot['nr_jobs'])
         else:
             logging.getLogger(__name__).info('pilot has finished (%d jobs were processed)' % trace.pilot['nr_jobs'])
-        sys.exit(SUCCESS)
+        exit_code = SUCCESS
     elif trace.pilot['state'] == FAILURE:
         logging.critical('pilot workflow failure -- aborting')
-        sys.exit(FAILURE)
+        exit_code = FAILURE
     elif trace.pilot['state'] == ERRNO_NOJOBS:
         logging.critical('pilot did not process any events -- aborting')
-        #logging.getLogger(__name__).critical('pilot did not process any events -- aborting')
-        sys.exit(ERRNO_NOJOBS)
+        exit_code = ERRNO_NOJOBS
     else:
         logging.info('pilot has finished')
-        sys.exit(0)
+        exit_code = SUCCESS
+
+    logging.shutdown()
+    sys.exit(exit_code)
