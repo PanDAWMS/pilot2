@@ -55,7 +55,8 @@ def run(args):
     logger.info('setup for resource %s: %s' % (args.hpc_resource, str(resource.get_setup())))
 
     # extract user specific info from job report
-    user = __import__('pilot.user.%s.common' % args.pilot_user, globals(), locals(), [args.pilot_user], -1)
+    user = __import__('pilot.user.%s.common' % args.pilot_user.lower(), globals(), locals(),
+                      [args.pilot_user.lower()], -1)
     # example usage:
     # user.remove_redundant_files()
     # user.cleanup_payload()
