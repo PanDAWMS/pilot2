@@ -6,11 +6,40 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+
+import signal
+from collections import namedtuple
+
+# from pilot.control import job, payload, data, lifetime, monitor
+from pilot.util.constants import SUCCESS
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-def run():
-    logger.critical('not implemented')
-    return -1
+def interrupt(args, signum, frame):
+    logger.info('caught signal: %s' % [v for v, k in signal.__dict__.iteritems() if k == signum][0])
+    args.graceful_stop.set()
+
+
+def run(args):
+    """
+     Main execution function for the generic HPC workflow.
+
+     :param args: pilot arguments.
+     :returns: traces.
+     """
+
+    logger.info('setting up signal handling')
+    signal.signal(signal.SIGINT, functools.partial(interrupt, args))
+
+    logger.info('setting up tracing')
+    traces = namedtuple('traces', ['pilot'])
+    traces.pilot = {'state': SUCCESS,
+                    'nr_jobs': 0}
+
+    # implement main function here
+    # ..
+
+    return traces
