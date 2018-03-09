@@ -340,5 +340,9 @@ if __name__ == '__main__':
         sys.exit(FAILURE)
     elif trace.pilot['nr_jobs'] > 0:
         sys.exit(SUCCESS)
+    elif trace.pilot['state'] == FAILURE:
+        logging.getLogger(__name__).critical('pilot workflow failure -- aborting')
+        sys.exit(FAILURE)
     else:
+        logging.getLogger(__name__).critical('pilot did not process any events -- aborting')
         sys.exit(ERRNO_NOJOBS)
