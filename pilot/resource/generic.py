@@ -16,7 +16,7 @@ def get_setup(job=None):
     Return the resource specific setup.
 
     :param job: optional job object.
-    :return: setup string.
+    :return: setup commands (list).
     """
 
-    pass
+    return []
