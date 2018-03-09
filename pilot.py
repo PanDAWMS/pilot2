@@ -353,5 +353,5 @@ if __name__ == '__main__':
         #logging.getLogger(__name__).critical('pilot did not process any events -- aborting')
         sys.exit(ERRNO_NOJOBS)
     else:
-        logging.getLogger(__name__).info('pilot has finished')
+        logging.info('pilot has finished')
         sys.exit(0)
