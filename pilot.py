@@ -94,7 +94,8 @@ def import_module(**kwargs):
                            '--allow-same-user': kwargs.get('allow_same_user', 'True'),
                            '--pilot-user': kwargs.get('pilot_user', 'generic'),
                            '--input-dir': kwargs.get('input_dir', ''),
-                           '--output-dir': kwargs.get('output_dir', '')
+                           '--output-dir': kwargs.get('output_dir', ''),
+                           '--hpc-resource': kwargs.get('hpc_resource', '')
                            }
 
     args = Args()
