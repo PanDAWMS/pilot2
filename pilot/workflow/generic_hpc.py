@@ -45,7 +45,11 @@ def run(args):
         traces.pilot['state'] = FAILURE
         return traces
 
-    logger.info('hpc resource: %s' % args.hpc_resource)
+    # get the resource reference
+    resource = __import__('pilot.resource.%s' % args.hpc_resource, globals(), locals(), [args.hpc_resource], -1)
+
+    # example usage:
+    logger.info('setup for resource %s: %s' % (args.hpc_resource, str(resource.get_setup())))
 
     # implement main function here
     # ..
