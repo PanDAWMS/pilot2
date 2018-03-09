@@ -265,6 +265,12 @@ if __name__ == '__main__':
                             default='',
                             help='Output directory')
 
+    # HPC options
+    arg_parser.add_argument('--hpc-resource',
+                            dest='hpc_resource',
+                            default='',
+                            help='Name of the HPC (e.g. Titan)')
+
     args = arg_parser.parse_args()
 
     # Define and set the main harvester control boolean
