@@ -196,7 +196,7 @@ def parse_jobreport_data(job_report):
                 work_attributes['nInputFiles'] = len(job_report['files']['input']['subfiles'])
 
     workdir_size = get_workdir_size()
-    work_attributes['jobMetrics'] = 'core_count=%s n_events=%s db_time=%s db_data=%s workdir_size=%s' % \
+    work_attributes['jobMetrics'] = 'coreCount=%s nEvents=%s dbTime=%s dbData=%s workDirSize=%s' % \
                                     (core_count,
                                         work_attributes["n_events"],
                                         work_attributes["__db_time"],

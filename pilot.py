@@ -25,7 +25,7 @@ from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 from pilot.util.harvester import is_harvester_mode
 
-VERSION = '2018-03-08.003'
+VERSION = '2018-03-09.001'
 
 
 def main():
@@ -94,7 +94,8 @@ def import_module(**kwargs):
                            '--allow-same-user': kwargs.get('allow_same_user', 'True'),
                            '--pilot-user': kwargs.get('pilot_user', 'generic'),
                            '--input-dir': kwargs.get('input_dir', ''),
-                           '--output-dir': kwargs.get('output_dir', '')
+                           '--output-dir': kwargs.get('output_dir', ''),
+                           '--hpc-resource': kwargs.get('hpc_resource', '')
                            }
 
     args = Args()
@@ -265,6 +266,12 @@ if __name__ == '__main__':
                             default='',
                             help='Output directory')
 
+    # HPC options
+    arg_parser.add_argument('--hpc-resource',
+                            dest='hpc_resource',
+                            default='',
+                            help='Name of the HPC (e.g. Titan)')
+
     args = arg_parser.parse_args()
 
     # Define and set the main harvester control boolean
@@ -322,17 +329,29 @@ if __name__ == '__main__':
         else:
             logging.info("removed %s" % mainworkdir)
 
-    logging.shutdown()
-
     # in Harvester mode, create a kill_worker file that will instruct Harvester that the pilot has finished
     if args.harvester:
         from pilot.util.harvester import kill_worker
         kill_worker()
 
     if not trace:
-        logging.getLogger(__name__).critical('pilot startup did not succeed -- aborting')
-        sys.exit(FAILURE)
+        logging.critical('pilot startup did not succeed -- aborting')
+        exit_code = FAILURE
     elif trace.pilot['nr_jobs'] > 0:
-        sys.exit(SUCCESS)
+        if trace.pilot['nr_jobs'] == 1:
+            logging.getLogger(__name__).info('pilot has finished (%d job was processed)' % trace.pilot['nr_jobs'])
+        else:
+            logging.getLogger(__name__).info('pilot has finished (%d jobs were processed)' % trace.pilot['nr_jobs'])
+        exit_code = SUCCESS
+    elif trace.pilot['state'] == FAILURE:
+        logging.critical('pilot workflow failure -- aborting')
+        exit_code = FAILURE
+    elif trace.pilot['state'] == ERRNO_NOJOBS:
+        logging.critical('pilot did not process any events -- aborting')
+        exit_code = ERRNO_NOJOBS
     else:
-        sys.exit(ERRNO_NOJOBS)
+        logging.info('pilot has finished')
+        exit_code = SUCCESS
+
+    logging.shutdown()
+    sys.exit(exit_code)
