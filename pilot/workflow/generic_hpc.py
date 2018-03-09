@@ -8,11 +8,12 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
+import functools
 import signal
 from collections import namedtuple
 
 # from pilot.control import job, payload, data, lifetime, monitor
-from pilot.util.constants import SUCCESS
+from pilot.util.constants import SUCCESS, FAILURE
 
 import logging
 logger = logging.getLogger(__name__)
@@ -38,6 +39,13 @@ def run(args):
     traces = namedtuple('traces', ['pilot'])
     traces.pilot = {'state': SUCCESS,
                     'nr_jobs': 0}
+
+    if args.hpc_resource == '':
+        logger.critical('hpc resource not specified, cannot continue')
+        traces.pilot['state'] = FAILURE
+        return traces
+
+    logger.info('hpc resource: %s' % args.hpc_resource)
 
     # implement main function here
     # ..
