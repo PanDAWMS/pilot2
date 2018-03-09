@@ -337,15 +337,20 @@ if __name__ == '__main__':
         kill_worker()
 
     if not trace:
-        logging.getLogger(__name__).critical('pilot startup did not succeed -- aborting')
+        logging.critical('pilot startup did not succeed -- aborting')
         sys.exit(FAILURE)
     elif trace.pilot['nr_jobs'] > 0:
+        if trace.pilot['nr_jobs'] == 1:
+            logging.getLogger(__name__).info('pilot has finished (%d job was processed)' % trace.pilot['nr_jobs'])
+        else:
+            logging.getLogger(__name__).info('pilot has finished (%d jobs were processed)' % trace.pilot['nr_jobs'])
         sys.exit(SUCCESS)
     elif trace.pilot['state'] == FAILURE:
-        logging.getLogger(__name__).critical('pilot workflow failure -- aborting')
+        logging.critical('pilot workflow failure -- aborting')
         sys.exit(FAILURE)
     elif trace.pilot['state'] == ERRNO_NOJOBS:
-        logging.getLogger(__name__).critical('pilot did not process any events -- aborting')
+        logging.critical('pilot did not process any events -- aborting')
+        #logging.getLogger(__name__).critical('pilot did not process any events -- aborting')
         sys.exit(ERRNO_NOJOBS)
     else:
         logging.getLogger(__name__).info('pilot has finished')
