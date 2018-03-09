@@ -344,6 +344,9 @@ if __name__ == '__main__':
     elif trace.pilot['state'] == FAILURE:
         logging.getLogger(__name__).critical('pilot workflow failure -- aborting')
         sys.exit(FAILURE)
-    else:
+    elif trace.pilot['state'] == ERRNO_NOJOBS:
         logging.getLogger(__name__).critical('pilot did not process any events -- aborting')
         sys.exit(ERRNO_NOJOBS)
+    else:
+        logging.getLogger(__name__).info('pilot has finished')
+        sys.exit(0)
