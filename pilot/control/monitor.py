@@ -34,19 +34,27 @@ def control(queues, traces, args):
     """
     while not args.graceful_stop.is_set():
         # every 30 ninutes, run the monitoring checks
-        if args.graceful_stop.wait(30 * 60) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
+        # if args.graceful_stop.wait(30 * 60) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
+        if args.graceful_stop.wait(1 * 60) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
             break
 
         # proceed with running the checks
         run_checks(args)
 
-        # extract a job from the jobs queue and send it to the heartbeat function
-        try:
-            job = queues.jobs.get(block=True, timeout=1)
-        except Queue.Empty:
-            continue
-        else:
-            send_heartbeat(job)
+        # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
+        jobs = queues.validated_payloads.queue
+        states = ['starting', 'stagein', 'running', 'stageout']
+        for i in range(len(jobs)):
+            log = logger.getChild(jobs[i].jobid)
+            if jobs[i].state in states:
+                log.info('job %d is in state \'%s\'' % jobs[i].state)
+
+        #try:
+        #    job = queues.jobs.get(block=True, timeout=1)
+        #except Queue.Empty:
+        #    continue
+        #else:
+        #    send_heartbeat(job)
 
 
 def run_checks(args):

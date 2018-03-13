@@ -50,6 +50,10 @@ def control(queues, traces, args):
                                 kwargs={'queues': queues,
                                         'traces': traces,
                                         'args': args}),
+               threading.Thread(target=queue_monitor,
+                                kwargs={'queues': queues,
+                                        'traces': traces,
+                                        'args': args}),
                threading.Thread(target=job_monitor,
                                 kwargs={'queues': queues,
                                         'traces': traces,
@@ -669,11 +673,61 @@ def job_has_finished(queues):
     return False
 
 
+def queue_monitor(queues, traces, args):
+    """
+    Monitoring of queues.
+    This function monitors queue activity, specifically if a job has finished or failed and then reports to the server.
+
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
+
+    while not args.graceful_stop.is_set():
+        # wait a second
+        if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
+            break
+
+        job = None
+
+        # check if the job has finished
+        try:
+            job = queues.finished_jobs.get(block=True, timeout=1)
+        except Queue.Empty:
+            # logger.info("(job still running)")
+            pass
+        else:
+            logger.info("job %s has finished" % job.jobid)
+            # make sure that state=finished
+            job.state = 'finished'
+
+        # check if the job has failed
+        try:
+            job = queues.failed_jobs.get(block=True, timeout=1)
+        except Queue.Empty:
+            # logger.info("(job still running)")
+            pass
+        else:
+            logger.info("job %s has failed" % job.jobid)
+            # make sure that state=failed
+            job.state = 'failed'
+
+        # job has not been defined if it's still running
+        if job:
+            # send final server update
+            if job.fileinfo:
+                send_state(job, args, job.state, xml=dumps(job.fileinfo))
+            else:
+                send_state(job, args, job.state)
+
+            # now ready for the next job (or quit)
+
+
 def job_monitor(queues, traces, args):
     """
     Monitoring of job parameters.
-    This function monitors certain job parameters, such as job looping. It also monitors queue activity, specifically
-    if a job has finished or failed and then reports to the server.
+    This function monitors certain job parameters, such as job looping.
 
     :param queues:
     :param traces:

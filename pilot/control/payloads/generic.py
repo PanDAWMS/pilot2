@@ -149,7 +149,8 @@ class Executor(object):
         exit_code = 1
         if self.setup_payload(self.__job, self.__out, self.__err):
             log.debug('running payload')
-            send_state(self.__job, self.__args, 'running')
+            self.__job.state = 'running'
+            send_state(self.__job, self.__args, self.__job.state)
             proc = self.run_payload(self.__job, self.__out, self.__err)
             if proc is not None:
                 log.info('will wait for graceful exit')
