@@ -35,11 +35,11 @@ def run(args):
 
     The function sets up the internal queues which handle the flow of jobs.
 
-    :param args: arguments.
+    :param args: pilot arguments.
     :returns: traces.
     """
 
-    logger.info('setting up signal')
+    logger.info('setting up signal handling')
     signal.signal(signal.SIGINT, functools.partial(interrupt, args))
 
     logger.info('setting up queues')

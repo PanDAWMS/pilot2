@@ -197,7 +197,7 @@ def parse_jobreport_data(job_report):
                 work_attributes['nInputFiles'] = len(job_report['files']['input']['subfiles'])
 
     workdir_size = get_workdir_size()
-    work_attributes['jobMetrics'] = 'core_count=%s n_events=%s db_time=%s db_data=%s workdir_size=%s' % \
+    work_attributes['jobMetrics'] = 'coreCount=%s nEvents=%s dbTime=%s dbData=%s workDirSize=%s' % \
                                     (core_count,
                                         work_attributes["n_events"],
                                         work_attributes["__db_time"],
@@ -565,3 +565,90 @@ def remove_redundant_files(workdir, outputfiles=[]):
 
     # run a second pass to clean up any broken links
     cleanup_broken_links(workdir)
+
+
+    def getJobMetrics(job):
+        """
+        Return a properly formatted job metrics string.
+        Format: nEvents=<int> nEventsW=<int> vmPeakMax=<int> vmPeakMean=<int> RSSMean=<int>
+                hs06=<float> shutdownTime=<int> cpuFactor=<float> cpuLimit=<float> diskLimit=<float> jobStart=<int>
+                memLimit=<int> runLimit=<float>
+
+        :param job: job object
+        :return: jobMetrics string.
+        """
+
+        if "HPC_HPC" in readpar('catchall'):
+            if job.coreCount is None:
+                job.coreCount = 0
+        else:
+            if job.coreCount:
+                # Always use the ATHENA_PROC_NUMBER first, if set
+                if os.environ.has_key('ATHENA_PROC_NUMBER'):
+                    try:
+                        job.coreCount = int(os.environ['ATHENA_PROC_NUMBER'])
+                    except Exception, e:
+                        tolog("ATHENA_PROC_NUMBER is not properly set: %s (will use existing job.coreCount value)" % (e))
+            else:
+                try:
+                    job.coreCount = int(os.environ['ATHENA_PROC_NUMBER'])
+                except:
+                    tolog("env ATHENA_PROC_NUMBER is not set. corecount is not set")
+        coreCount = job.coreCount
+        jobMetrics = ""
+        if coreCount is not None and coreCount != "NULL" and coreCount != 'null':
+            jobMetrics += self.jobMetric(key="coreCount", value=coreCount)
+        if job.nEvents > 0:
+            jobMetrics += self.jobMetric(key="nEvents", value=job.nEvents)
+        if job.nEventsW > 0:
+            jobMetrics += self.jobMetric(key="nEventsW", value=job.nEventsW)
+
+        if job.external_stageout_time:
+            jobMetrics += self.jobMetric(key="ExStageoutTime", value=job.external_stageout_time)
+
+        if job.yodaJobMetrics:
+            for key in job.yodaJobMetrics:
+                if key == 'startTime' or key == 'endTime':
+                    value = strftime("%Y-%m-%d %H:%M:%S", gmtime(job.yodaJobMetrics[key]))
+                    jobMetrics += self.jobMetric(key=key, value=value)
+                elif key.startswith("min") or key.startswith("max"):
+                    pass
+                else:
+                    jobMetrics += self.jobMetric(key=key, value=job.yodaJobMetrics[key])
+
+        # eventservice zip file
+        if job.outputZipName and job.outputZipBucketID:
+            jobMetrics += self.jobMetric(key="outputZipName", value=os.path.basename(job.outputZipName))
+            jobMetrics += self.jobMetric(key="outputZipBucketID", value=job.outputZipBucketID)
+
+        # report on which OS bucket the log was written to, if any
+        if job.logBucketID != -1:
+            jobMetrics += self.jobMetric(key="logBucketID", value=job.logBucketID)
+
+        if job.dbTime != "":
+            jobMetrics += self.jobMetric(key="dbTime", value=job.dbTime)
+        if job.dbData != "":
+            jobMetrics += self.jobMetric(key="dbData", value=job.dbData)
+
+        # machine and job features, max disk space used by the payload
+        jobMetrics += workerNode.addToJobMetrics(job.result[0], self.__pilot_initdir, job.jobId)
+
+        # correct for potential initial and trailing space
+        jobMetrics = jobMetrics.lstrip().rstrip()
+
+        if jobMetrics != "":
+            tolog('Job metrics=\"%s\"' % (jobMetrics))
+        else:
+            tolog("No job metrics (all values are zero)")
+
+        # is jobMetrics within allowed size?
+        if len(jobMetrics) > 500:
+            tolog("!!WARNING!!2223!! jobMetrics out of size (%d)" % (len(jobMetrics)))
+
+            # try to reduce the field size and remove the last entry which might be cut
+            jobMetrics = jobMetrics[:500]
+            jobMetrics = " ".join(jobMetrics.split(" ")[:-1])
+
+            tolog("jobMetrics has been reduced to: %s" % (jobMetrics))
+
+        return jobMetrics
