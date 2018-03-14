@@ -15,6 +15,7 @@ import signal
 import threading
 
 from collections import namedtuple
+from sys import exc_info
 
 from pilot.control import job, payload, data, lifetime, monitor
 from pilot.util.constants import SUCCESS
@@ -34,12 +35,14 @@ class ExcThread(threading.Thread):
     Support class that allows for catching exceptions in threads.
     """
 
-    def __init__(self, bucket):
+    def __init__(self, bucket, target, kwargs):
         """
         Init function with a bucket that can be used to communicate exceptions to the caller.
         :param bucket: Queue based bucket.
+        :param target: target function to execute.
+        :param kwargs: target function options.
         """
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, target=target, kwargs=kwargs)
         self.bucket = bucket
 
     def run(self):
@@ -47,6 +50,18 @@ class ExcThread(threading.Thread):
         Run function.
         :return:
         """
+        try:
+            self._Thread__target(**self._Thread__kwargs)
+        except Exception:
+            self.bucket.put(exc_info())
+
+    def get_bucket(self):
+        """
+        Return an exception bucket
+        :return: bucket (Queue object)
+        """
+        return self.bucket
+
 
 def run(args):
     """
@@ -94,7 +109,7 @@ def run(args):
     logger.info('starting threads')
 
     targets = [job.control, payload.control, data.control, lifetime.control, monitor.control]
-    threads = [threading.Thread(target=target, kwargs={'queues': queues, 'traces': traces, 'args': args})
+    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args})
                for target in targets]
 
     # threads = [threading.Thread(target=job.control,
@@ -124,6 +139,25 @@ def run(args):
 
     # Interruptible joins require a timeout
     while threading.activeCount() > 1:
-        [t.join(timeout=1) for t in threads]
+        # [t.join(timeout=1) for t in threads]
+        for t in threads:
+            try:
+                bucket = t.get_bucket()
+                exc = bucket.get(block=False)
+            except Queue.Empty:
+                pass
+            else:
+                exc_type, exc_obj, exc_trace = exc
+                # deal with the exception
+                logger.warning('exception caught:')
+                logger.warning('exc_type=%s' % exc_type)
+                logger.warning('exc_obj=%s' % exc_obj)
+                logger.warning('exc_trace=%s' % exc_trace)
+
+            t.join(0.1)
+            if t.isAlive():
+                continue
+            else:
+                break
 
     return traces
