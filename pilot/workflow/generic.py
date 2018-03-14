@@ -29,6 +29,25 @@ def interrupt(args, signum, frame):
     args.graceful_stop.set()
 
 
+class ExcThread(threading.Thread):
+    """
+    Support class that allows for catching exceptions in threads.
+    """
+
+    def __init__(self, bucket):
+        """
+        Init function with a bucket that can be used to communicate exceptions to the caller.
+        :param bucket: Queue based bucket.
+        """
+        threading.Thread.__init__(self)
+        self.bucket = bucket
+
+    def run(self):
+        """
+        Run function.
+        :return:
+        """
+
 def run(args):
     """
     Main execution function for the generic workflow.
@@ -74,26 +93,30 @@ def run(args):
 
     logger.info('starting threads')
 
-    threads = [threading.Thread(target=job.control,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=payload.control,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=data.control,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=lifetime.control,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=monitor.control,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args})]
+    targets = [job.control, payload.control, data.control, lifetime.control, monitor.control]
+    threads = [threading.Thread(target=target, kwargs={'queues': queues, 'traces': traces, 'args': args})
+               for target in targets]
+
+    # threads = [threading.Thread(target=job.control,
+    #                             kwargs={'queues': queues,
+    #                                     'traces': traces,
+    #                                     'args': args}),
+    #            threading.Thread(target=payload.control,
+    #                             kwargs={'queues': queues,
+    #                                     'traces': traces,
+    #                                     'args': args}),
+    #            threading.Thread(target=data.control,
+    #                             kwargs={'queues': queues,
+    #                                     'traces': traces,
+    #                                     'args': args}),
+    #            threading.Thread(target=lifetime.control,
+    #                             kwargs={'queues': queues,
+    #                                     'traces': traces,
+    #                                     'args': args}),
+    #            threading.Thread(target=monitor.control,
+    #                             kwargs={'queues': queues,
+    #                                     'traces': traces,
+    #                                     'args': args})]
 
     [t.start() for t in threads]
 
