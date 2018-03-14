@@ -148,6 +148,7 @@ class Executor(object):
 
         exit_code = 1
         if self.setup_payload(self.__job, self.__out, self.__err):
+            a=1/0
             log.debug('running payload')
             self.__job.state = 'running'
             send_state(self.__job, self.__args, self.__job.state)
