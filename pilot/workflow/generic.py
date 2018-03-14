@@ -54,7 +54,7 @@ class ExcThread(threading.Thread):
             logger.info('starting thread')
             self._Thread__target(**self._Thread__kwargs)
         except Exception:
-            logger.warning('exception caught by thread run function: %s' % exc_info())
+            logger.warning('exception caught by thread run function: %s' % str(exc_info()))
             self.bucket.put(exc_info())
 
     def get_bucket(self):
