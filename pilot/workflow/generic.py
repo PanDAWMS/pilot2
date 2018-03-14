@@ -35,7 +35,7 @@ class ExcThread(threading.Thread):
     Support class that allows for catching exceptions in threads.
     """
 
-    def __init__(self, bucket, target, kwargs, logger):
+    def __init__(self, bucket, target, kwargs):
         """
         Init function with a bucket that can be used to communicate exceptions to the caller.
         :param bucket: Queue based bucket.
@@ -44,7 +44,6 @@ class ExcThread(threading.Thread):
         """
         threading.Thread.__init__(self, target=target, kwargs=kwargs)
         self.bucket = bucket
-        self.logger = logger
 
     def run(self):
         """
@@ -55,7 +54,7 @@ class ExcThread(threading.Thread):
             logger.info('starting thread')
             self._Thread__target(**self._Thread__kwargs)
         except Exception:
-            self.logger.warning('exception caught by thread run function: %s' % str(exc_info()))
+            print 'exception caught by thread run function: %s' % str(exc_info())
             self.bucket.put(exc_info())
 
     def get_bucket(self):
@@ -112,8 +111,7 @@ def run(args):
     logger.info('starting threads')
 
     targets = [job.control, payload.control, data.control, lifetime.control, monitor.control]
-    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
-                         logger=logger)
+    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args})
                for target in targets]
 
     # threads = [threading.Thread(target=job.control,
