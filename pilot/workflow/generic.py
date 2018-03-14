@@ -141,7 +141,7 @@ def run(args):
 
     # Interruptible joins require a timeout
     status = True
-    while threading.activeCount() > 1:
+    while threading.activeCount() > 1 and status:
         # [t.join(timeout=1) for t in threads]
         for t in threads:
             try:
@@ -156,13 +156,12 @@ def run(args):
                 logger.warning('exc_type=%s' % exc_type)
                 logger.warning('exc_obj=%s' % exc_obj)
                 logger.warning('exc_trace=%s' % exc_trace)
-                status = False
 
             t.join(0.1)
             if t.isAlive():
                 continue
             else:
-                logger.warning('thread is not alive, aborting')
+                status = False
                 break
 
         if not status:
