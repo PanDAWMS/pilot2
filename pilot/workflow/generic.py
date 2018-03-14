@@ -138,6 +138,7 @@ def run(args):
     logger.info('waiting for interrupts')
 
     # Interruptible joins require a timeout
+    status = True
     while threading.activeCount() > 1:
         # [t.join(timeout=1) for t in threads]
         for t in threads:
@@ -153,11 +154,15 @@ def run(args):
                 logger.warning('exc_type=%s' % exc_type)
                 logger.warning('exc_obj=%s' % exc_obj)
                 logger.warning('exc_trace=%s' % exc_trace)
+                status = False
 
             t.join(0.1)
             if t.isAlive():
                 continue
             else:
                 break
+
+        if not status:
+            break
 
     return traces
