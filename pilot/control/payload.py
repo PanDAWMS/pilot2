@@ -39,6 +39,7 @@ def control(queues, traces, args):
     :return:
     """
 
+    raise Exception('An error occured here.')
     threads = [threading.Thread(target=validate_pre,
                                 kwargs={'queues': queues,
                                         'traces': traces,
