@@ -162,9 +162,11 @@ def run(args):
             if t.isAlive():
                 continue
             else:
+                logger.warning('thread is not alive, aborting')
                 break
 
         if not status:
+            logger.warning('thread is dead')
             break
 
     return traces
