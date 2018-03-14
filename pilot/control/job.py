@@ -299,6 +299,8 @@ def get_dispatcher_dictionary(args):
         dn = get_distinguished_name()
         data['prodUserID'] = dn
 
+    a = 1 / 0
+
     taskid = get_task_id()
     if taskid != "" and args.allow_same_user:
         data['taskID'] = taskid
