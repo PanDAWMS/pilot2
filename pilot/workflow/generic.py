@@ -35,6 +35,8 @@ class ExcThread(threading.Thread):
     Support class that allows for catching exceptions in threads.
     """
 
+    logger = logging.getLogger(__name__)
+
     def __init__(self, bucket, target, kwargs):
         """
         Init function with a bucket that can be used to communicate exceptions to the caller.
@@ -54,7 +56,7 @@ class ExcThread(threading.Thread):
             logger.info('starting thread')
             self._Thread__target(**self._Thread__kwargs)
         except Exception:
-            logger.warning('exception caught by thread run function: %s' % str(exc_info()))
+            self.logger.warning('exception caught by thread run function: %s' % str(exc_info()))
             self.bucket.put(exc_info())
 
     def get_bucket(self):
