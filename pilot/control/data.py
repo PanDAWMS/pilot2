@@ -30,18 +30,9 @@ errors = ErrorCodes()
 
 def control(queues, traces, args):
 
-    threads = [threading.Thread(target=copytool_in,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=copytool_out,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=queue_monitoring,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args})]
+    targets = [copytool_in, copytool_out, queue_monitoring]
+    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args})
+               for target in targets]
 
     [t.start() for t in threads]
 

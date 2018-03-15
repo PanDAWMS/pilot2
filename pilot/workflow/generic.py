@@ -103,7 +103,7 @@ def run(args):
 
     logger.info('waiting for interrupts')
 
-    # Interruptible joins require a timeout
+    # Interruptable joins require a timeout
     status = True
     while threading.activeCount() > 1 and status:
         # [t.join(timeout=1) for t in threads]

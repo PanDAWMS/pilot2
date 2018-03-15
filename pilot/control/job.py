@@ -21,6 +21,7 @@ from pilot.util.workernode import get_disk_space, collect_workernode_info, get_n
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
+from pilot.common.exception import ExcThread
 
 from pilot.info import infosys, JobData
 
@@ -38,26 +39,9 @@ def control(queues, traces, args):
     :return:
     """
 
-    threads = [threading.Thread(target=validate,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=retrieve,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=create_data_payload,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=queue_monitor,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=job_monitor,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args})]
+    targets = [validate, retrieve, create_data_payload, queue_monitor, job_monitor]
+    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args})
+               for target in targets]
 
     [t.start() for t in threads]
 

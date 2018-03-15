@@ -39,23 +39,11 @@ def control(queues, traces, args):
     :return:
     """
 
-    raise Exception('An error occured here.')
-    threads = [threading.Thread(target=validate_pre,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=execute_payloads,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=validate_post,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=failed_post,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args})]
+    # raise Exception('An error occured here.')
+    targets = [validate_pre, execute_payloads, validate_post, failed_post]
+    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args})
+               for target in targets]
+
     [t.start() for t in threads]
 
 
