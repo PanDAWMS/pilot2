@@ -116,6 +116,7 @@ def run(args):
             else:
                 exc_type, exc_obj, exc_trace = exc
                 # deal with the exception
+                print 'got exception info: %s' % str(exc)
                 logger.warning('exception caught:')
                 logger.warning('exc_type=%s' % exc_type)
                 logger.warning('exc_obj=%s' % exc_obj)
