@@ -14,6 +14,7 @@ Exceptions in pilot
 
 import traceback
 import threading
+import traceback
 from sys import exc_info
 
 from errorcodes import ErrorCodes
@@ -211,6 +212,8 @@ class ExcThread(threading.Thread):
             # logger object can't be used here for some reason:
             # IOError: [Errno 2] No such file or directory: '/state/partition1/scratch/PanDA_Pilot2_*/pilotlog.txt'
             print 'exception caught by thread run function: %s' % str(exc_info())
+            print traceback.format_exc()
+            print traceback.print_tb(exc_info()[2])
             self.bucket.put(exc_info())
 
     def get_bucket(self):
