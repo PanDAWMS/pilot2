@@ -16,11 +16,11 @@ import json
 import os
 import subprocess
 import tarfile
-import threading
 import time
 
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
+from pilot.common.exception import ExcThread
 
 import logging
 

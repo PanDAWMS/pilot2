@@ -14,7 +14,6 @@
 import Queue
 import json
 import os
-import threading
 import time
 
 from pilot.control.payloads import generic, eventservice
@@ -22,6 +21,7 @@ from pilot.control.job import send_state
 from pilot.util.config import config
 from pilot.util.filehandling import read_file
 from pilot.common.errorcodes import ErrorCodes
+from pilot.common.exception import ExcThread
 
 import logging
 logger = logging.getLogger(__name__)

@@ -11,7 +11,6 @@
 
 import Queue
 import os
-import threading
 import time
 from json import dumps
 
