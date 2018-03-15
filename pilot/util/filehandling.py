@@ -85,12 +85,20 @@ def open_file(filename, mode):
 
 
 def tail(filename, n=10):
-    'Return the last n lines of a file'
+    """
+    Return the last n lines of a file.
+
+    :param filename: name of file to do the tail on (string).
+    :param n: number of lines (int).
+    :return: file tail
+    """
+
     f = open_file(filename, 'r')
     if f:
         tail = deque(f, n)
     else:
         tail = ""
+
     return tail
 
 
