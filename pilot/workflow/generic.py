@@ -115,8 +115,6 @@ def run(args):
                 exc_type, exc_obj, exc_trace = exc
                 # deal with the exception
                 logger.fatal('caught exception: %s' % exc_obj)
-                print exc_type, exc_obj
-                print exc_trace
 
             t.join(timeout=0.1)
             if t.isAlive():
