@@ -106,7 +106,6 @@ def run(args):
     status = True
     while True:
         for t in threads:
-
             try:
                 bucket = t.get_bucket()
                 exc = bucket.get(block=False)
@@ -115,11 +114,11 @@ def run(args):
             else:
                 exc_type, exc_obj, exc_trace = exc
                 # deal with the exception
-                print 'caught exception:'
+                logger.fatal('caught exception: %s' % exc_obj)
                 print exc_type, exc_obj
                 print exc_trace
 
-            t.join(0.1)
+            t.join(timeout=0.1)
             if t.isAlive():
                 continue
             else:
@@ -129,34 +128,6 @@ def run(args):
         if not status:
             break
 
-    # Interruptable joins require a timeout
-    #status = True
-    #while threading.activeCount() > 1 and status:
-    #    # [t.join(timeout=1) for t in threads]
-    #    for t in threads:
-    #        try:
-    #            bucket = t.get_bucket()
-    #            exc = bucket.get(block=False)
-    #        except Queue.Empty:
-    #            pass
-    #        else:
-    #            exc_type, exc_obj, exc_trace = exc
-    #            # deal with the exception
-    #            print 'got exception info: %s' % str(exc)
-    #            logger.warning('exception caught:')
-    #            logger.warning('exc_type=%s' % exc_type)
-    #            logger.warning('exc_obj=%s' % exc_obj)
-    #            logger.warning('exc_trace=%s' % exc_trace)
-
-    #        t.join(0.1)
-    #        if t.isAlive():
-    #            continue
-    #        else:
-    #            status = False
-    #            break
-
-    #    if not status:
-    #        logger.warning('thread is dead')
-    #        break
+    logger.info('end of generic workflow')
 
     return traces
