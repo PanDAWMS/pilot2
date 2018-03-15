@@ -191,14 +191,14 @@ class ExcThread(threading.Thread):
     Support class that allows for catching exceptions in threads.
     """
 
-    def __init__(self, bucket, target, kwargs):
+    def __init__(self, bucket, target, kwargs, name):
         """
         Init function with a bucket that can be used to communicate exceptions to the caller.
         :param bucket: Queue based bucket.
         :param target: target function to execute.
         :param kwargs: target function options.
         """
-        threading.Thread.__init__(self, target=target, kwargs=kwargs)
+        threading.Thread.__init__(self, target=target, kwargs=kwargs, name=name)
         self.bucket = bucket
 
     def run(self):
