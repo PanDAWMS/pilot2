@@ -35,34 +35,37 @@ def run(args):
      :returns: traces.
      """
 
-    logger.info('setting up signal handling')
-    signal.signal(signal.SIGINT, functools.partial(interrupt, args))
+    try:
+        logger.info('setting up signal handling')
+        signal.signal(signal.SIGINT, functools.partial(interrupt, args))
 
-    logger.info('setting up tracing')
-    traces = namedtuple('traces', ['pilot'])
-    traces.pilot = {'state': SUCCESS,
-                    'nr_jobs': 0}
+        logger.info('setting up tracing')
+        traces = namedtuple('traces', ['pilot'])
+        traces.pilot = {'state': SUCCESS,
+                        'nr_jobs': 0}
 
-    if args.hpc_resource == '':
-        logger.critical('hpc resource not specified, cannot continue')
-        traces.pilot['state'] = FAILURE
-        return traces
+        if args.hpc_resource == '':
+            logger.critical('hpc resource not specified, cannot continue')
+            traces.pilot['state'] = FAILURE
+            return traces
 
-    # get the resource reference
-    resource = __import__('pilot.resource.%s' % args.hpc_resource, globals(), locals(), [args.hpc_resource], -1)
+        # get the resource reference
+        resource = __import__('pilot.resource.%s' % args.hpc_resource, globals(), locals(), [args.hpc_resource], -1)
 
-    # example usage:
-    logger.info('setup for resource %s: %s' % (args.hpc_resource, str(resource.get_setup())))
+        # example usage:
+        logger.info('setup for resource %s: %s' % (args.hpc_resource, str(resource.get_setup())))
 
-    # extract user specific info from job report
-    user = __import__('pilot.user.%s.common' % args.pilot_user.lower(), globals(), locals(),
-                      [args.pilot_user.lower()], -1)
-    # example usage:
-    # user.remove_redundant_files()
-    # user.cleanup_payload()
-    # parse_jobreport_data()
+        # extract user specific info from job report
+        user = __import__('pilot.user.%s.common' % args.pilot_user.lower(), globals(), locals(),
+                          [args.pilot_user.lower()], -1)
+        # example usage:
+        # user.remove_redundant_files()
+        # user.cleanup_payload()
+        # parse_jobreport_data()
 
-    # implement main function here
-    # ..
+        # implement main function here
+        # ..
+    except Exception as e:
+        logger.fatal('exception caught: %s' % e)
 
     return traces
