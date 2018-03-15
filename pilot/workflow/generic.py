@@ -19,7 +19,7 @@ from sys import exc_info
 
 from pilot.control import job, payload, data, lifetime, monitor
 from pilot.util.constants import SUCCESS
-
+from pilot.common.exception import ExcThread
 
 import logging
 logger = logging.getLogger(__name__)
@@ -28,41 +28,6 @@ logger = logging.getLogger(__name__)
 def interrupt(args, signum, frame):
     logger.info('caught signal: %s' % [v for v, k in signal.__dict__.iteritems() if k == signum][0])
     args.graceful_stop.set()
-
-
-class ExcThread(threading.Thread):
-    """
-    Support class that allows for catching exceptions in threads.
-    """
-
-    def __init__(self, bucket, target, kwargs):
-        """
-        Init function with a bucket that can be used to communicate exceptions to the caller.
-        :param bucket: Queue based bucket.
-        :param target: target function to execute.
-        :param kwargs: target function options.
-        """
-        threading.Thread.__init__(self, target=target, kwargs=kwargs)
-        self.bucket = bucket
-
-    def run(self):
-        """
-        Run function.
-        :return:
-        """
-        try:
-            logger.info('starting thread')
-            self._Thread__target(**self._Thread__kwargs)
-        except Exception:
-            print 'exception caught by thread run function: %s' % str(exc_info())
-            self.bucket.put(exc_info())
-
-    def get_bucket(self):
-        """
-        Return an exception bucket
-        :return: bucket (Queue object)
-        """
-        return self.bucket
 
 
 def run(args):
