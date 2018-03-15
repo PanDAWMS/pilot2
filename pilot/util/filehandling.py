@@ -10,8 +10,9 @@
 import os
 import time
 import tarfile
+from collections import deque
 
-from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure
+from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile
 
 import logging
 logger = logging.getLogger(__name__)
@@ -78,9 +79,19 @@ def open_file(filename, mode):
         except IOError as e:
             raise FileHandlingFailure(e)
     else:
-        raise FileHandlingFailure("File does not exist: %s" % filename)
+        raise NoSuchFile("File does not exist: %s" % filename)
 
     return f
+
+
+def tail(filename, n=10):
+    'Return the last n lines of a file'
+    f = open_file(filename, 'r')
+    if f:
+        tail = deque(f, n)
+    else:
+        tail = ""
+    return tail
 
 
 def convert(data):
