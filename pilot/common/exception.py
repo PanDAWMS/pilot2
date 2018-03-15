@@ -14,6 +14,7 @@ Exceptions in pilot
 
 import traceback
 import threading
+from sys import exc_info
 
 from errorcodes import ErrorCodes
 errors = ErrorCodes()

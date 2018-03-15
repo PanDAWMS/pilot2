@@ -15,7 +15,6 @@ import signal
 import threading
 
 from collections import namedtuple
-from sys import exc_info
 
 from pilot.control import job, payload, data, lifetime, monitor
 from pilot.util.constants import SUCCESS
