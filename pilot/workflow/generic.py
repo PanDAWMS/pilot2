@@ -72,12 +72,13 @@ def run(args):
     traces.pilot = {'state': SUCCESS,
                     'nr_jobs': 0}
 
-    logger.info('starting threads')
-
+    # define the threads
     targets = [job.control, payload.control, data.control, lifetime.control, monitor.control]
     threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args})
                for target in targets]
-    names = ['job', 'payload', 'data', 'lifetime', 'monitor']
+
+    # add some names to the threads
+    names = ['job_thread', 'payload_thread', 'data_thread', 'lifetime_thread', 'monitor_thread']
     for thread, name in map(None, threads, names):
         thread.setName(name)
 
@@ -102,6 +103,7 @@ def run(args):
     #                                     'traces': traces,
     #                                     'args': args})]
 
+    logger.info('starting threads')
     [thread.start() for thread in threads]
 
     logger.info('waiting for interrupts')
