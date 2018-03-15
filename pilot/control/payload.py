@@ -44,7 +44,7 @@ def control(queues, traces, args):
     threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args})
                for target in targets]
 
-    [t.start() for t in threads]
+    [thread.start() for thread in threads]
 
 
 def validate_pre(queues, traces, args):
