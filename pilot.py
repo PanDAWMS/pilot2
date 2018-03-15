@@ -52,7 +52,7 @@ def main():
     try:
         ret = workflow.run(args)
     except Exception as e:
-        logger.fatal('Pilot caught exception: %s' % e)
+        logger.fatal('main pilot function caught exception: %s' % e)
         ret = None
 
     return ret
