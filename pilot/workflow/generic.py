@@ -117,7 +117,7 @@ def run(args):
                 print 'caught exception: %s' % exc_obj
                 logger.fatal('caught exception: %s' % exc_obj)
 
-            t.join(timeout=0.1)
+            t.join(0.1)
             if t.isAlive():
                 continue
             else:
