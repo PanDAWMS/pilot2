@@ -196,7 +196,8 @@ class ExcThread(threading.Thread):
         :return:
         """
         try:
-            self._Thread__target(**self._Thread__kwargs)
+            raise Exception('An error occured here.')
+            # self._Thread__target(**self._Thread__kwargs)
         except Exception:
             # logger object can't be used here for some reason:
             # IOError: [Errno 2] No such file or directory: '/state/partition1/scratch/PanDA_Pilot2_*/pilotlog.txt'
