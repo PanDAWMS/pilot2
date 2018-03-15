@@ -77,6 +77,9 @@ def run(args):
     targets = [job.control, payload.control, data.control, lifetime.control, monitor.control]
     threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args})
                for target in targets]
+    names = ['job', 'payload', 'data', 'lifetime', 'monitor']
+    for thread, name in map(None, threads, names):
+        thread.setName(name)
 
     # threads = [threading.Thread(target=job.control,
     #                             kwargs={'queues': queues,
