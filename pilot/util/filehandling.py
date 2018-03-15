@@ -90,14 +90,14 @@ def tail(filename, n=10):
 
     :param filename: name of file to do the tail on (string).
     :param n: number of lines (int).
-    :return: file tail
+    :return: file tail (list)
     """
 
     f = open_file(filename, 'r')
     if f:
-        tail = deque(f, n)
+        tail = list(deque(f, n))
     else:
-        tail = ""
+        tail = []
 
     return tail
 
