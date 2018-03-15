@@ -155,6 +155,16 @@ class FileHandlingFailure(PilotException):
         self._message = errors.get_error_message(self._errorCode)
 
 
+class NoSuchFile(PilotException):
+    """
+    No such file or directory.
+    """
+    def __init__(self, *args, **kwargs):
+        super(NoSuchFile, self).__init__(args, kwargs)
+        self._errorCode = errors.NOSUCHFILE
+        self._message = errors.get_error_message(self._errorCode)
+
+
 class ConversionFailure(PilotException):
     """
     Failed to convert object data.
