@@ -104,7 +104,7 @@ def run(args):
     logger.info('waiting for interrupts')
 
     status = True
-    while status:
+    while threading.activeCount() > 1:
         for thread in threads:
             try:
                 bucket = thread.get_bucket()
