@@ -99,15 +99,15 @@ def run(args):
     #                                     'traces': traces,
     #                                     'args': args})]
 
-    [t.start() for t in threads]
+    [thread.start() for thread in threads]
 
     logger.info('waiting for interrupts')
 
     status = True
     while status:
-        for t in threads:
+        for thread in threads:
             try:
-                bucket = t.get_bucket()
+                bucket = thread.get_bucket()
                 exc = bucket.get(block=False)
             except Queue.Empty:
                 pass
@@ -117,8 +117,8 @@ def run(args):
                 print 'caught exception: %s' % exc_obj
                 logger.fatal('caught exception: %s' % exc_obj)
 
-            t.join(0.1)
-            if t.isAlive():
+            thread.join(0.1)
+            if thread.isAlive():
                 continue
             else:
                 status = False
