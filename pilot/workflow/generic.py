@@ -104,7 +104,7 @@ def run(args):
     logger.info('waiting for interrupts')
 
     status = True
-    while True:
+    while status:
         for t in threads:
             try:
                 bucket = t.get_bucket()
@@ -114,6 +114,7 @@ def run(args):
             else:
                 exc_type, exc_obj, exc_trace = exc
                 # deal with the exception
+                print 'caught exception: %s' % exc_obj
                 logger.fatal('caught exception: %s' % exc_obj)
 
             t.join(timeout=0.1)
@@ -122,9 +123,6 @@ def run(args):
             else:
                 status = False
                 break
-
-        if not status:
-            break
 
     logger.info('end of generic workflow')
 
