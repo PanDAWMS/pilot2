@@ -43,12 +43,12 @@ def control(queues, traces, args):
 
         # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
         jobs = queues.validated_payloads.queue
-        states = ['starting', 'stagein', 'running', 'stageout']
+        # states = ['starting', 'stagein', 'running', 'stageout']
         for i in range(len(jobs)):
             log = logger.getChild(jobs[i].jobid)
             log.info('test log message from monitor loop')
-            if jobs[i].state in states:
-                log.info('job %d is in state \'%s\'' % jobs[i].state)
+            # if jobs[i].state in states:
+            log.info('job %d is in state \'%s\'' % (jobs[i].jobid, jobs[i].state))
 
         #try:
         #    job = queues.jobs.get(block=True, timeout=1)
