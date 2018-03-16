@@ -109,7 +109,7 @@ def run(args):
 
     logger.info('waiting for interrupts')
 
-    status = True
+    # status = True
     while threading.activeCount() > 1:
         for thread in threads:
             try:
@@ -124,11 +124,11 @@ def run(args):
                 logger.fatal('caught exception: %s' % exc_obj)
 
             thread.join(0.1)
-            if thread.isAlive():
-                continue
-            else:
-                status = False
-                break
+            # if thread.isAlive():
+            #     continue
+            # else:
+            #     status = False
+            #    break
 
     logger.info('end of generic workflow')
 
