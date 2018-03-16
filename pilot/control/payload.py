@@ -40,9 +40,10 @@ def control(queues, traces, args):
     """
 
     # raise Exception('An error occured here.')
-    targets = [validate_pre, execute_payloads, validate_post, failed_post]
-    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args})
-               for target in targets]
+    targets = {'validate_pre':validate_pre, 'execute_payloads':execute_payloads, 'validate_post':validate_post,
+               'failed_post':failed_post}
+    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
+                         name=name) for name, target in targets.items()]
 
     [thread.start() for thread in threads]
 

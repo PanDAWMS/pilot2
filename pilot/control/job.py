@@ -38,9 +38,10 @@ def control(queues, traces, args):
     :return:
     """
 
-    targets = [validate, retrieve, create_data_payload, queue_monitor, job_monitor]
-    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args})
-               for target in targets]
+    targets = {'validate':validate, 'retrieve':retrieve, 'create_data_payload':create_data_payload,
+               'queue_monitor':queue_monitor, 'job_monitor':job_monitor}
+    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
+                         name=name) for name, target in targets.items()]
 
     [thread.start() for thread in threads]
 

@@ -46,6 +46,7 @@ def control(queues, traces, args):
         states = ['starting', 'stagein', 'running', 'stageout']
         for i in range(len(jobs)):
             log = logger.getChild(jobs[i].jobid)
+            log.info('test log message from monitor loop')
             if jobs[i].state in states:
                 log.info('job %d is in state \'%s\'' % jobs[i].state)
 
