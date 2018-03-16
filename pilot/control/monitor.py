@@ -17,6 +17,7 @@ import logging
 import os
 from pilot.util.disk import disk_usage
 from pilot.util.config import config, human2bytes
+from pilot.common.exception import UnknownException
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,7 @@ def control(queues, traces, args):
             n += 1
     except Exception as e:
         print "monitor: exception caught: %s" % e
+        raise UnknownException(e)
 
 def run_checks(args):
     if not check_local_space_limit():
