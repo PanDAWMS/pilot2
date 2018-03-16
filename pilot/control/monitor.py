@@ -39,8 +39,8 @@ def control(queues, traces, args):
 
         while not args.graceful_stop.is_set():
             # every 30 ninutes, run the monitoring checks
-            # if args.graceful_stop.wait(30 * 60) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
-            if args.graceful_stop.wait(1 * 60) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
+            # if args.graceful_stop.wait(30 * 60) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility
+            if args.graceful_stop.wait(1 * 60) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility
                 break
 
             print "monitor loop (iteration %d)" % i
@@ -58,7 +58,7 @@ def control(queues, traces, args):
                     log = logger.getChild(jobs[i].jobid)
                     log.info('test log message from monitor loop')
                     # if jobs[i].state in states:
-                    log.info('job %d is in state \'%s\'' % (jobs[i].jobid, jobs[i].state))
+                    log.info('job %s is in state \'%s\'' % (jobs[i].jobid, jobs[i].state))
             else:
                 print "no jobs in validated_payloads queue"
 
