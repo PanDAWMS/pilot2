@@ -49,7 +49,7 @@ def control(queues, traces, args):
             # run_checks(args)
 
             # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
-            jobs = queues.validated_payloads.queue
+            jobs = queues.monitored_payloads.queue
 
             # states = ['starting', 'stagein', 'running', 'stageout']
             if jobs:
