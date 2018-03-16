@@ -35,15 +35,13 @@ def control(queues, traces, args):
 
     try:
         # overall loop counter (ignoring the fact that more than one job may be running)
-        i = 0
+        n = 0
 
         while not args.graceful_stop.is_set():
             # every 30 ninutes, run the monitoring checks
             # if args.graceful_stop.wait(30 * 60) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility
             if args.graceful_stop.wait(1 * 60) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility
                 break
-
-            print "monitor loop (iteration %d)" % i
 
             # proceed with running the checks
             # run_checks(args)
@@ -53,12 +51,9 @@ def control(queues, traces, args):
 
             # states = ['starting', 'stagein', 'running', 'stageout']
             if jobs:
-                print "number of jobs in validated_payloads queue: %s" % len(jobs)
                 for i in range(len(jobs)):
                     log = logger.getChild(jobs[i].jobid)
-                    log.info('test log message from monitor loop')
-                    # if jobs[i].state in states:
-                    log.info('job %s is in state \'%s\'' % (jobs[i].jobid, jobs[i].state))
+                    log.info('monitor loop #%d: job %s is in state \'%s\'' % (n, jobs[i].jobid, jobs[i].state))
             else:
                 print "no jobs in validated_payloads queue"
 
@@ -69,7 +64,7 @@ def control(queues, traces, args):
             #else:
             #    send_heartbeat(job)
 
-            i += 1
+            n += 1
     except Exception as e:
         print "monitor: exception caught: %s" % e
 
