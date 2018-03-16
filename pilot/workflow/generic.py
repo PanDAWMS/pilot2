@@ -45,7 +45,7 @@ def run(args):
     logger.info('setting up queues')
 
     queues = namedtuple('queues', ['jobs', 'payloads', 'data_in', 'data_out',
-                                   'validated_jobs', 'validated_payloads',
+                                   'validated_jobs', 'validated_payloads', 'monitored_payloads',
                                    'finished_jobs', 'finished_payloads', 'finished_data_in', 'finished_data_out',
                                    'failed_jobs', 'failed_payloads', 'failed_data_in', 'failed_data_out'])
 
@@ -56,6 +56,7 @@ def run(args):
 
     queues.validated_jobs = Queue.Queue()
     queues.validated_payloads = Queue.Queue()
+    queues.monitored_payloads = Queue.Queue()
 
     queues.finished_jobs = Queue.Queue()
     queues.finished_payloads = Queue.Queue()
