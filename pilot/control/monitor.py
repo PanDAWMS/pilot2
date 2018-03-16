@@ -39,7 +39,7 @@ def control(queues, traces, args):
             break
 
         # proceed with running the checks
-        run_checks(args)
+        # run_checks(args)
 
         # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
         jobs = queues.validated_payloads.queue
