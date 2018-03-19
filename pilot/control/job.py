@@ -726,10 +726,11 @@ def job_monitor(queues, traces, args):
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
     while not args.graceful_stop.is_set():
-        # wait a second
         if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
             break
 
+        # wait a minute
+        time.sleep(10)
         try:
             # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
             jobs = queues.monitored_payloads.queue
