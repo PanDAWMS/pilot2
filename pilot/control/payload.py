@@ -125,6 +125,7 @@ def execute_payloads(queues, traces, args):
             queues.monitored_payloads.put(job)
 
             log = logger.getChild(job.jobid)
+            log.info('job %s added to monitored payloads queue' % job.jobid)
 
             q_snapshot = list(queues.finished_data_in.queue)
             peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
