@@ -706,7 +706,8 @@ def queue_monitor(queues, traces, args):
                 send_state(job, args, job.state)
 
             # we can now stop monitoring this job, so remove it from the monitored_payloads queue
-            _ = queues.monitored_payloads.get(block=True, timeout=1)
+            _job = queues.monitored_payloads.get(block=True, timeout=1)
+            logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
 
             # now ready for the next job (or quit)
 
