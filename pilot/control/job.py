@@ -745,7 +745,7 @@ def job_monitor(queues, traces, args):
                     logger.warning(msg)
                 else:
                     print msg
-            except PilotException as e:
+        except PilotException as e:
             msg = 'exception caught: %s' % e
             if logger:
                 logger.warning(msg)
