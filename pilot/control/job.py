@@ -740,7 +740,7 @@ def job_monitor(queues, traces, args):
                     log = logger.getChild(jobs[i].jobid)
                     log.info('monitor loop #%d: job %s is in state \'%s\'' % (n, jobs[i].jobid, jobs[i].state))
             else:
-                msg = 'no jobs in validated_payloads queue''
+                msg = 'no jobs in validated_payloads queue'
                 if logger:
                     logger.warning(msg)
                 else:
