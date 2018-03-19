@@ -558,7 +558,7 @@ def retrieve(queues, traces, args):
 
     timefloor = infosys.queuedata.timefloor
     starttime = time.time()
-0
+
     jobnumber = 0  # number of downloaded jobs
     getjob_requests = 0  # number of getjob requests
 
