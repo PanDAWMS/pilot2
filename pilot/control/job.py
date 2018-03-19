@@ -752,3 +752,5 @@ def job_monitor(queues, traces, args):
                 logger.warning(msg)
             else:
                 print >> sys.stderr, msg
+        else:
+            n += 1
