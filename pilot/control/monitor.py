@@ -47,17 +47,6 @@ def control(queues, traces, args):
             # proceed with running the checks
             # run_checks(args)
 
-            # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
-            jobs = queues.monitored_payloads.queue
-
-            # states = ['starting', 'stagein', 'running', 'stageout']
-            if jobs:
-                for i in range(len(jobs)):
-                    log = logger.getChild(jobs[i].jobid)
-                    log.info('monitor loop #%d: job %s is in state \'%s\'' % (n, jobs[i].jobid, jobs[i].state))
-            else:
-                print "no jobs in validated_payloads queue"
-
             #try:
             #    job = queues.jobs.get(block=True, timeout=1)
             #except Queue.Empty:

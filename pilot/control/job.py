@@ -11,6 +11,7 @@
 
 import Queue
 import os
+import sys
 import time
 from json import dumps
 
@@ -20,8 +21,7 @@ from pilot.util.workernode import get_disk_space, collect_workernode_info, get_n
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
-from pilot.common.exception import ExcThread
-
+from pilot.common.exception import ExcThread, PilotException
 from pilot.info import infosys, JobData
 
 import logging
@@ -558,7 +558,7 @@ def retrieve(queues, traces, args):
 
     timefloor = infosys.queuedata.timefloor
     starttime = time.time()
-
+0
     jobnumber = 0  # number of downloaded jobs
     getjob_requests = 0  # number of getjob requests
 
@@ -722,41 +722,31 @@ def job_monitor(queues, traces, args):
     :return:
     """
 
+    # overall loop counter (ignoring the fact that more than one job may be running)
+    n = 0
     while not args.graceful_stop.is_set():
         # wait a second
         if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
             break
 
-        job = None
-
-        # check if the job has finished
         try:
-            job = queues.finished_jobs.get(block=True, timeout=1)
-        except Queue.Empty:
-            # logger.info("(job still running)")
-            pass
-        else:
-            logger.info("job %s has finished" % job.jobid)
-            # make sure that state=finished
-            job.state = 'finished'
+            # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
+            jobs = queues.monitored_payloads.queue
 
-        # check if the job has failed
-        try:
-            job = queues.failed_jobs.get(block=True, timeout=1)
-        except Queue.Empty:
-            # logger.info("(job still running)")
-            pass
-        else:
-            logger.info("job %s has failed" % job.jobid)
-            # make sure that state=failed
-            job.state = 'failed'
-
-        # job has not been defined if it's still running
-        if job:
-            # send final server update
-            if job.fileinfo:
-                send_state(job, args, job.state, xml=dumps(job.fileinfo))
+            # states = ['starting', 'stagein', 'running', 'stageout']
+            if jobs:
+                for i in range(len(jobs)):
+                    log = logger.getChild(jobs[i].jobid)
+                    log.info('monitor loop #%d: job %s is in state \'%s\'' % (n, jobs[i].jobid, jobs[i].state))
             else:
-                send_state(job, args, job.state)
-
-            # now ready for the next job (or quit)
+                msg = 'no jobs in validated_payloads queue''
+                if logger:
+                    logger.warning(msg)
+                else:
+                    print msg
+            except PilotException as e:
+            msg = 'exception caught: %s' % e
+            if logger:
+                logger.warning(msg)
+            else:
+                print >> sys.stderr, msg
