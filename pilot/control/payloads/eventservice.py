@@ -281,7 +281,8 @@ class Executor(generic.Executor, ESHook):
                 if args.graceful_stop.is_set():
                     breaker = True
                     log.debug('breaking -- sending SIGTERM pid=%s' % proc.pid)
-                    proc.terminate()
+                    os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                    # proc.terminate()
                     break
                 time.sleep(0.1)
             if breaker:
