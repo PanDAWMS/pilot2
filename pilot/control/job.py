@@ -730,12 +730,10 @@ def job_monitor(queues, traces, args):
             break
 
         # wait a minute
-        time.sleep(10)
+        time.sleep(60)
         try:
             # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
             jobs = queues.monitored_payloads.queue
-            logger.info('jobs:%d' % len(jobs))
-            logger.info('jobs=%s'%str(jobs))
 
             # states = ['starting', 'stagein', 'running', 'stageout']
             if jobs:
