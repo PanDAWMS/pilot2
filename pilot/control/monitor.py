@@ -12,7 +12,6 @@
 #       be the task of the job_monitor thread in the Job component. Job related functions should be moved to the
 #       Job component, with the exception of the heartbeat function.
 
-import Queue
 import logging
 import os
 from pilot.util.disk import disk_usage
@@ -47,12 +46,7 @@ def control(queues, traces, args):
             # proceed with running the checks
             # run_checks(args)
 
-            #try:
-            #    job = queues.jobs.get(block=True, timeout=1)
-            #except Queue.Empty:
-            #    continue
-            #else:
-            #    send_heartbeat(job)
+            # send_heartbeat(job)
 
             n += 1
     except Exception as e:
