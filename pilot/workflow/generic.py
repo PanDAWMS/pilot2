@@ -74,36 +74,10 @@ def run(args):
                     'nr_jobs': 0}
 
     # define the threads
-    targets = {'job':job.control, 'payload':payload.control, 'data':data.control, 'lifetime':lifetime.control,
-               'monitor':monitor.control}
+    targets = {'job': job.control, 'payload': payload.control, 'data': data.control, 'lifetime': lifetime.control,
+               'monitor': monitor.control}
     threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
                          name=name) for name, target in targets.items()]
-
-    # add some names to the threads
-    #names = ['job_thread', 'payload_thread', 'data_thread', 'lifetime_thread', 'monitor_thread']
-    #for thread, name in map(None, threads, names):
-    #    thread.setName(name)
-
-    # threads = [threading.Thread(target=job.control,
-    #                             kwargs={'queues': queues,
-    #                                     'traces': traces,
-    #                                     'args': args}),
-    #            threading.Thread(target=payload.control,
-    #                             kwargs={'queues': queues,
-    #                                     'traces': traces,
-    #                                     'args': args}),
-    #            threading.Thread(target=data.control,
-    #                             kwargs={'queues': queues,
-    #                                     'traces': traces,
-    #                                     'args': args}),
-    #            threading.Thread(target=lifetime.control,
-    #                             kwargs={'queues': queues,
-    #                                     'traces': traces,
-    #                                     'args': args}),
-    #            threading.Thread(target=monitor.control,
-    #                             kwargs={'queues': queues,
-    #                                     'traces': traces,
-    #                                     'args': args})]
 
     logger.info('starting threads')
     [thread.start() for thread in threads]
