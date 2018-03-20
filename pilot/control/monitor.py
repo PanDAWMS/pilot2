@@ -53,6 +53,7 @@ def control(queues, traces, args):
         print "monitor: exception caught: %s" % e
         raise UnknownException(e)
 
+
 def run_checks(args):
     if not check_local_space_limit():
         return args.graceful_stop.set()

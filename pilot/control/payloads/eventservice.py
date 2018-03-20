@@ -11,6 +11,7 @@
 import commands
 import os
 import time
+import signal
 
 from pilot.common import exception
 from pilot.control.payloads import generic

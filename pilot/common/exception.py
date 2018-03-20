@@ -12,7 +12,6 @@
 Exceptions in pilot
 """
 
-import traceback
 import threading
 import traceback
 from sys import exc_info

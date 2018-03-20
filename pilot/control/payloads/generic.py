@@ -13,6 +13,7 @@
 
 import time
 import os
+import signal
 
 from pilot.control.job import send_state
 from pilot.util.container import execute
