@@ -121,12 +121,6 @@ def execute_payloads(queues, traces, args):
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
 
-            # this job is now to be monitored, so add it to the monitored_payloads queue
-            queues.monitored_payloads.put(job)
-
-            log = logger.getChild(job.jobid)
-            log.info('job %s added to monitored payloads queue' % job.jobid)
-
             q_snapshot = list(queues.finished_data_in.queue)
             peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
             if len(peek) == 0:
@@ -136,6 +130,12 @@ def execute_payloads(queues, traces, args):
                         break
                     time.sleep(0.1)
                 continue
+
+            # this job is now to be monitored, so add it to the monitored_payloads queue
+            queues.monitored_payloads.put(job)
+
+            log = logger.getChild(job.jobid)
+            log.info('job %s added to monitored payloads queue' % job.jobid)
 
             out = open(os.path.join(job.workdir, config.Payload.payloadstdout), 'wb')
             err = open(os.path.join(job.workdir, config.Payload.payloadstderr), 'wb')
