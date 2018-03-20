@@ -12,7 +12,10 @@
 Exceptions in pilot
 """
 
+import threading
 import traceback
+from sys import exc_info
+
 from errorcodes import ErrorCodes
 errors = ErrorCodes()
 
@@ -152,6 +155,16 @@ class FileHandlingFailure(PilotException):
         self._message = errors.get_error_message(self._errorCode)
 
 
+class NoSuchFile(PilotException):
+    """
+    No such file or directory.
+    """
+    def __init__(self, *args, **kwargs):
+        super(NoSuchFile, self).__init__(args, kwargs)
+        self._errorCode = errors.NOSUCHFILE
+        self._message = errors.get_error_message(self._errorCode)
+
+
 class ConversionFailure(PilotException):
     """
     Failed to convert object data.
@@ -170,3 +183,42 @@ class MKDirFailure(PilotException):
         super(MKDirFailure, self).__init__(args, kwargs)
         self._errorCode = errors.MKDIR
         self._message = errors.get_error_message(self._errorCode)
+
+
+class ExcThread(threading.Thread):
+    """
+    Support class that allows for catching exceptions in threads.
+    """
+
+    def __init__(self, bucket, target, kwargs, name):
+        """
+        Init function with a bucket that can be used to communicate exceptions to the caller.
+        :param bucket: Queue based bucket.
+        :param target: target function to execute.
+        :param kwargs: target function options.
+        """
+        threading.Thread.__init__(self, target=target, kwargs=kwargs, name=name)
+        self.bucket = bucket
+
+    def run(self):
+        """
+        Run function.
+        :return:
+        """
+        try:
+            self._Thread__target(**self._Thread__kwargs)
+        except Exception:
+            # logger object can't be used here for some reason:
+            # IOError: [Errno 2] No such file or directory: '/state/partition1/scratch/PanDA_Pilot2_*/pilotlog.txt'
+            print 'exception caught by thread run function: %s' % str(exc_info())
+            print traceback.format_exc()
+            print traceback.print_tb(exc_info()[2])
+            self.bucket.put(exc_info())
+
+    def get_bucket(self):
+        """
+        Return the bucket object that holds any information about thrown exceptions.
+
+        :return: bucket (Queue object)
+        """
+        return self.bucket

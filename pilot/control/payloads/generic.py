@@ -13,6 +13,7 @@
 
 import time
 import os
+import signal
 
 from pilot.control.job import send_state
 from pilot.util.container import execute
@@ -117,7 +118,8 @@ class Executor(object):
                 if args.graceful_stop.is_set():
                     breaker = True
                     log.debug('breaking -- sending SIGTERM pid=%s' % proc.pid)
-                    proc.terminate()
+                    os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                    # proc.terminate()
                     break
                 time.sleep(0.1)
             if breaker:
@@ -149,7 +151,8 @@ class Executor(object):
         exit_code = 1
         if self.setup_payload(self.__job, self.__out, self.__err):
             log.debug('running payload')
-            send_state(self.__job, self.__args, 'running')
+            self.__job.state = 'running'
+            send_state(self.__job, self.__args, self.__job.state)
             proc = self.run_payload(self.__job, self.__out, self.__err)
             if proc is not None:
                 log.info('will wait for graceful exit')

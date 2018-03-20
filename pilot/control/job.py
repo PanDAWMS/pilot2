@@ -11,7 +11,7 @@
 
 import Queue
 import os
-import threading
+import sys
 import time
 from json import dumps
 
@@ -21,7 +21,7 @@ from pilot.util.workernode import get_disk_space, collect_workernode_info, get_n
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
-
+from pilot.common.exception import ExcThread, PilotException
 from pilot.info import infosys, JobData
 
 import logging
@@ -38,24 +38,12 @@ def control(queues, traces, args):
     :return:
     """
 
-    threads = [threading.Thread(target=validate,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=retrieve,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=create_data_payload,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=job_monitor,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args})]
+    targets = {'validate': validate, 'retrieve': retrieve, 'create_data_payload': create_data_payload,
+               'queue_monitor': queue_monitor, 'job_monitor': job_monitor}
+    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
+                         name=name) for name, target in targets.items()]
 
-    [t.start() for t in threads]
+    [thread.start() for thread in threads]
 
 
 def _validate_job(job):
@@ -669,11 +657,10 @@ def job_has_finished(queues):
     return False
 
 
-def job_monitor(queues, traces, args):
+def queue_monitor(queues, traces, args):
     """
-    Monitoring of job parameters.
-    This function monitors certain job parameters, such as job looping. It also monitors queue activity, specifically
-    if a job has finished or failed and then reports to the server.
+    Monitoring of queues.
+    This function monitors queue activity, specifically if a job has finished or failed and then reports to the server.
 
     :param queues:
     :param traces:
@@ -718,4 +705,52 @@ def job_monitor(queues, traces, args):
             else:
                 send_state(job, args, job.state)
 
+            # we can now stop monitoring this job, so remove it from the monitored_payloads queue
+            _job = queues.monitored_payloads.get(block=True, timeout=1)
+            logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
+
             # now ready for the next job (or quit)
+
+
+def job_monitor(queues, traces, args):
+    """
+    Monitoring of job parameters.
+    This function monitors certain job parameters, such as job looping.
+
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
+
+    # overall loop counter (ignoring the fact that more than one job may be running)
+    n = 0
+    while not args.graceful_stop.is_set():
+        if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
+            break
+
+        # wait a minute
+        time.sleep(60)
+        try:
+            # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
+            jobs = queues.monitored_payloads.queue
+
+            # states = ['starting', 'stagein', 'running', 'stageout']
+            if jobs:
+                for i in range(len(jobs)):
+                    log = logger.getChild(jobs[i].jobid)
+                    log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
+            else:
+                msg = 'no jobs in validated_payloads queue'
+                if logger:
+                    logger.warning(msg)
+                else:
+                    print msg
+        except PilotException as e:
+            msg = 'exception caught: %s' % e
+            if logger:
+                logger.warning(msg)
+            else:
+                print >> sys.stderr, msg
+        else:
+            n += 1

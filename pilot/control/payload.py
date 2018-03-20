@@ -14,7 +14,6 @@
 import Queue
 import json
 import os
-import threading
 import time
 
 from pilot.control.payloads import generic, eventservice
@@ -22,6 +21,7 @@ from pilot.control.job import send_state
 from pilot.util.config import config
 from pilot.util.filehandling import read_file
 from pilot.common.errorcodes import ErrorCodes
+from pilot.common.exception import ExcThread
 
 import logging
 logger = logging.getLogger(__name__)
@@ -39,23 +39,12 @@ def control(queues, traces, args):
     :return:
     """
 
-    threads = [threading.Thread(target=validate_pre,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=execute_payloads,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=validate_post,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=failed_post,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args})]
-    [t.start() for t in threads]
+    targets = {'validate_pre': validate_pre, 'execute_payloads': execute_payloads, 'validate_post': validate_post,
+               'failed_post': failed_post}
+    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
+                         name=name) for name, target in targets.items()]
+
+    [thread.start() for thread in threads]
 
 
 def validate_pre(queues, traces, args):
@@ -130,7 +119,6 @@ def execute_payloads(queues, traces, args):
     while not args.graceful_stop.is_set():
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
-            log = logger.getChild(job.jobid)
 
             q_snapshot = list(queues.finished_data_in.queue)
             peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
@@ -141,6 +129,12 @@ def execute_payloads(queues, traces, args):
                         break
                     time.sleep(0.1)
                 continue
+
+            # this job is now to be monitored, so add it to the monitored_payloads queue
+            queues.monitored_payloads.put(job)
+
+            log = logger.getChild(job.jobid)
+            log.info('job %s added to monitored payloads queue' % job.jobid)
 
             out = open(os.path.join(job.workdir, config.Payload.payloadstdout), 'wb')
             err = open(os.path.join(job.workdir, config.Payload.payloadstderr), 'wb')

@@ -16,11 +16,11 @@ import json
 import os
 import subprocess
 import tarfile
-import threading
 import time
 
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
+from pilot.common.exception import ExcThread
 
 import logging
 
@@ -30,20 +30,11 @@ errors = ErrorCodes()
 
 def control(queues, traces, args):
 
-    threads = [threading.Thread(target=copytool_in,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=copytool_out,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=queue_monitoring,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args})]
+    targets = {'copytool_in': copytool_in, 'copytool_out': copytool_out, 'queue_monitoring': queue_monitoring}
+    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
+                         name=name) for name, target in targets.items()]
 
-    [t.start() for t in threads]
+    [thread.start() for thread in threads]
 
 
 def _call(args, executable, cwd=os.getcwd(), logger=logger):

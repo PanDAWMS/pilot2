@@ -12,11 +12,11 @@
 #       be the task of the job_monitor thread in the Job component. Job related functions should be moved to the
 #       Job component, with the exception of the heartbeat function.
 
-import Queue
 import logging
 import os
 from pilot.util.disk import disk_usage
 from pilot.util.config import config, human2bytes
+from pilot.common.exception import UnknownException
 
 logger = logging.getLogger(__name__)
 
@@ -32,21 +32,26 @@ def control(queues, traces, args):
     :param args:
     :return:
     """
-    while not args.graceful_stop.is_set():
-        # every 30 ninutes, run the monitoring checks
-        if args.graceful_stop.wait(30 * 60) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
-            break
 
-        # proceed with running the checks
-        run_checks(args)
+    try:
+        # overall loop counter (ignoring the fact that more than one job may be running)
+        n = 0
 
-        # extract a job from the jobs queue and send it to the heartbeat function
-        try:
-            job = queues.jobs.get(block=True, timeout=1)
-        except Queue.Empty:
-            continue
-        else:
-            send_heartbeat(job)
+        while not args.graceful_stop.is_set():
+            # every 30 ninutes, run the monitoring checks
+            # if args.graceful_stop.wait(30 * 60) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility
+            if args.graceful_stop.wait(1 * 60) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility
+                break
+
+            # proceed with running the checks
+            # run_checks(args)
+
+            # send_heartbeat(job)
+
+            n += 1
+    except Exception as e:
+        print "monitor: exception caught: %s" % e
+        raise UnknownException(e)
 
 
 def run_checks(args):

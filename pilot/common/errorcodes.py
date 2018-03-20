@@ -23,6 +23,7 @@ class ErrorCodes:
     GENERALERROR = 1008
     NOLOCALSPACE = 1098
     STAGEINFAILED = 1099
+    NOSUCHFILE = 1103
     SETUPFAILURE = 1110
     MKDIR = 1134
     STAGEOUTFAILED = 1137
@@ -44,6 +45,7 @@ class ErrorCodes:
         GENERALERROR: "General pilot error, consult batch log",
         NOLOCALSPACE: "Not enough local space",
         STAGEINFAILED: "Failed to stage-in file",
+        NOSUCHFILE: "No such file or directory",
         SETUPFAILURE: "Failed during payload setup",
         MKDIR: "Failed to create local directory",
         STAGEOUTFAILED: "Failed to stage-out file",

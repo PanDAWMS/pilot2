@@ -25,7 +25,7 @@ from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 from pilot.util.harvester import is_harvester_mode
 
-VERSION = '2018-03-09.001'
+VERSION = '2018-03-20.002'
 
 
 def main():
@@ -52,7 +52,7 @@ def main():
     try:
         ret = workflow.run(args)
     except Exception as e:
-        logger.fatal('Pilot caught exception: %s' % e)
+        logger.fatal('main pilot function caught exception: %s' % e)
         ret = None
 
     return ret
@@ -305,7 +305,7 @@ if __name__ == '__main__':
     console = logging.StreamHandler(sys.stdout)
     if args.debug:
         logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.DEBUG,
-                            format='%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-25s | %(message)s')
+                            format='%(asctime)s | %(levelname)-8s | %(threadName)-12s | %(name)-32s | %(funcName)-25s | %(message)s')
         console.setLevel(logging.DEBUG)
         console.setFormatter(logging.Formatter(
             '%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-32s | %(message)s'))
