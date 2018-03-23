@@ -7,9 +7,9 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
-import os
+# import os
 
-from pilot.info import infosys
+# from pilot.info import infosys
 
 import logging
 logger = logging.getLogger(__name__)

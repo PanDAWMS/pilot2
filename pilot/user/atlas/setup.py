@@ -200,16 +200,16 @@ def split_version(s):
     return tuple(tryint(x) for x in re.split('([^.]+)', s))
 
 
-def is_greater_or_equal(A, B):
+def is_greater_or_equal(a, b):
     """
-    Is the numbered string A >= B?
+    Is the numbered string a >= b?
     "1.2.3" > "1.2"  -- more digits
     "1.2.3" > "1.2.2"  -- rank based comparison
     "1.3.2" > "1.2.3"  -- rank based comparison
     "1.2.N" > "1.2.2"  -- nightlies checker, always greater
 
-    :param A: string.
-    :param B: string.
+    :param a: numbered string.
+    :param b: numbered string.
     :return: boolean.
     """
 

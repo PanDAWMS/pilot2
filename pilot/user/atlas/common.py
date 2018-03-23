@@ -13,6 +13,7 @@ from collections import defaultdict
 from glob import glob
 
 # from pilot.common.exception import PilotException
+from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_AFTER_PAYLOAD
 from pilot.util.container import execute
 from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, \
     get_asetup_options, is_standard_atlas_job
