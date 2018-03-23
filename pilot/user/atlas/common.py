@@ -576,3 +576,33 @@ def get_utility_commands_list():
     """
 
     return ['MemoryMonitor', 'NetworkMonitor']
+
+
+def get_utility_command_setup(name, setup=None):
+    """
+    Return the proper setup for the given utility command.
+    If a payload setup is specified
+    :param name:
+    :param setup:
+    :return:
+    """
+
+    pass
+
+
+def get_utility_command_execution_order(name):
+    """
+    Should the given utility command be executed before or after the payload?
+
+    :param name: utility name (string).
+    :return: execution order constant (UTILITY_BEFORE_PAYLOAD or UTILITY_AFTER_PAYLOAD)
+    """
+
+    # example implementation
+    if name == 'NetworkMonitor':
+        return UTILITY_BEFORE_PAYLOAD
+    elif name == 'MemoryMonitor':
+        return UTILITY_AFTER_PAYLOAD
+    else:
+        logger.warning('unknown utility name: %s' % name)
+        return UTILITY_AFTER_PAYLOAD

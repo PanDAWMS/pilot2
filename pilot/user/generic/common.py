@@ -7,6 +7,8 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
+from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_AFTER_PAYLOAD
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -57,3 +59,30 @@ def get_utility_commands_list():
     """
 
     return []
+
+
+def get_utility_command_setup(name, setup=None):
+    """
+    Return the proper setup for the given utility command.
+    If a payload setup is specified
+    :param name:
+    :param setup:
+    :return:
+    """
+
+    pass
+
+
+def get_utility_command_execution_order(name):
+    """
+    Should the given utility command be executed before or after the payload?
+
+    :param name: utility name (string).
+    :return: execution order constant (UTILITY_BEFORE_PAYLOAD or UTILITY_AFTER_PAYLOAD)
+    """
+
+    # example implementation
+    if name == 'monitor':
+        return UTILITY_BEFORE_PAYLOAD
+    else:
+        return UTILITY_AFTER_PAYLOAD
