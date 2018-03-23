@@ -80,13 +80,6 @@ class Executor(object):
 
         # replace platform and workdir with new function get_payload_options() or someting from experiment specific code
         try:
-            # proc = subprocess.Popen(cmd,
-            #                         bufsize=-1,
-            #                         stdout=out,
-            #                         stderr=err,
-            #                         cwd=job.workdir,
-            #                         shell=True)
-
             proc = execute(cmd, platform=job.platform, workdir=job.workdir, returnproc=True,
                            usecontainer=True, stdout=out, stderr=err, cwd=job.workdir, job=job)
         except Exception as e:
@@ -94,6 +87,9 @@ class Executor(object):
             return None
 
         log.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
+
+        # should we run any additional commands? (e.g. special monitoring commands)
+        cmds = user.
 
         return proc
 

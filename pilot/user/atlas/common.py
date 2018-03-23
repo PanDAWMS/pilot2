@@ -565,3 +565,14 @@ def remove_redundant_files(workdir, outputfiles=[]):
 
     # run a second pass to clean up any broken links
     cleanup_broken_links(workdir)
+
+
+def get_utility_commands_list():
+    """
+    Return a list of utility commands to be executed in parallel with the payload.
+    This could e.g. be memory and network monitor commands. A separate function can be used to determine the
+    corresponding command setups using the utility command name.
+    :return: list of utilities to be executed in parallel with the payload.
+    """
+
+    return ['MemoryMonitor', 'NetworkMonitor']
