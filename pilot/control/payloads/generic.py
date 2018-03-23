@@ -78,6 +78,12 @@ class Executor(object):
         cmd = user.get_payload_command(job)
         log.info("payload execution command: %s" % cmd)
 
+        # should we run any additional commands? (e.g. special monitoring commands)
+        cmds = user.get_utility_commands_list()
+        if cmds != []:
+            for utcmd in cmds:
+                log.info('utility command: %s' % utcmd)
+
         # replace platform and workdir with new function get_payload_options() or someting from experiment specific code
         try:
             proc = execute(cmd, platform=job.platform, workdir=job.workdir, returnproc=True,
@@ -87,9 +93,6 @@ class Executor(object):
             return None
 
         log.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
-
-        # should we run any additional commands? (e.g. special monitoring commands)
-        cmds = user.
 
         return proc
 

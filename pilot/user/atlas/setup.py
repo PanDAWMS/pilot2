@@ -213,4 +213,4 @@ def is_greater_or_equal(a, b):
     :return: boolean.
     """
 
-    return split_version(A) >= split_version(B)
+    return split_version(a) >= split_version(b)
