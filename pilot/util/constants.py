@@ -6,8 +6,12 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 SUCCESS = 0
 FAILURE = 1
 
 ERRNO_NOJOBS = 20
+
+UTILITY_BEFORE_PAYLOAD = 0
+UTILITY_AFTER_PAYLOAD = 1
