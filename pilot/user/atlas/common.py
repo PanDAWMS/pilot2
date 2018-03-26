@@ -15,8 +15,7 @@ from glob import glob
 # from pilot.common.exception import PilotException
 from pilot.util.constants import UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD
 from pilot.util.container import execute
-from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, \
-    get_asetup_options, is_standard_atlas_job
+from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job
 from pilot.util.filehandling import remove
 from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup
 
@@ -40,7 +39,7 @@ def get_payload_command(job):
     userjob = job.is_analysis()
 
     # Get the platform value
-    platform = job.infosys.queuedata.platform
+    # platform = job.infosys.queuedata.platform
 
     # Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
     asetuppath = get_asetup(asetup=prepareasetup)
@@ -54,7 +53,7 @@ def get_payload_command(job):
         cmd = asetuppath
         if prepareasetup:
             options = get_asetup_options(job.swrelease, job.homepackage)
-            asetupoptions = " " + options + " --platform " + platform
+            asetupoptions = " " + options + " --platform " + job.platform
 
             # Always set the --makeflags option (to prevent asetup from overwriting it)
             asetupoptions += ' --makeflags=\"$MAKEFLAGS\"'
