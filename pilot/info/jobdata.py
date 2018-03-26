@@ -71,7 +71,7 @@ class JobData(BaseData):
     cpuconversionfactor = 1
     nevents = 0  # number of events
     payload = ""  # payload name
-    utilities = {}  # utility processes { <name>: <process handle>, .. }
+    utilities = {}  # utility processes { <name>: [<process handle>, number of launches], .. }
     pid = -1  # payload pid
 
     # from job definition

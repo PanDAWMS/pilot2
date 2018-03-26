@@ -17,7 +17,7 @@ from pilot.util.constants import UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD
 from pilot.util.container import execute
 from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job
 from pilot.util.filehandling import remove
-from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup
+from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action
 
 import logging
 logger = logging.getLogger(__name__)
@@ -627,3 +627,18 @@ def get_utility_command_execution_order(name):
     else:
         logger.warning('unknown utility name: %s' % name)
         return UTILITY_AFTER_PAYLOAD
+
+
+def post_utility_command_action(name, job):
+    """
+    Perform post action for given utility command.
+
+    :param name: name of utility command (string).
+    :param job: job object.
+    :return:
+    """
+
+    if name == 'NetworkMonitor':
+        pass
+    elif name == 'MemoryMonitor':
+        post_memory_monitor_action(job)

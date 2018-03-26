@@ -122,8 +122,8 @@ class Executor(object):
                 except Exception as e:
                     log.error('could not execute: %s' % e)
                 else:
-                    # store process handle in job object
-                    job.utilities[utcmd] = proc1
+                    # store process handle in job object, and keep track on how many times the command has been launched
+                    job.utilities[utcmd] = [proc1, 1]
 
         return proc
 
@@ -188,4 +188,18 @@ class Executor(object):
                 log.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
                 log.info('finished pid=%s exit_code=%s' % (proc.pid, exit_code))
+
+                # stop any running utilities
+                if self.__job.utilities != {}:
+                    for utcmd in self.__job.utilities.keys():
+                        utproc = self.__job.utilities[utcmd][0]
+                        if utproc:
+                            log.info('stopping process %s' % utcmd)
+                            os.killpg(os.getpgid(utproc.pid), signal.SIGTERM)
+
+                            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+                            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user],
+                                              -1)
+                            user.post_utility_command_action(utcmd, __self.job)
+
         return exit_code

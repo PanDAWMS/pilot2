@@ -8,10 +8,11 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 import os
+import time
 
 # from pilot.info import infosys
 from pilot.user.atlas.setup import get_asetup
-from pilot.util.filehandling import read_json
+from pilot.util.filehandling import read_json, copy
 
 import logging
 logger = logging.getLogger(__name__)
@@ -335,3 +336,22 @@ def get_memory_values(workdir):
             pass
 
     return summary_dictionary
+
+
+def post_memory_monitor_action(job):
+    """
+    Perform post action items for memory monitor.
+
+    :param job: job object.
+    :return:
+    """
+
+    log = logger.getChild(str(job.jobid))
+
+    _nap = 10
+    log.info("taking a short nap (%d s) to allow the memory monitor to finish writing to the summary file" % (_nap))
+    time.sleep(_nap)
+
+    path1 = os.join.path(job.workdir, get_memory_monitor_summary_filename())
+    path2 = os.environ.get('PILOT_HOME')
+    copy(path1, path2)

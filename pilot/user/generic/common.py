@@ -93,3 +93,15 @@ def get_utility_command_execution_order(name):
         return UTILITY_BEFORE_PAYLOAD
     else:
         return UTILITY_AFTER_PAYLOAD
+
+
+def post_utility_command_action(name, job):
+    """
+    Perform post action for given utility command.
+
+    :param name: name of utility command (string).
+    :param job: job object.
+    :return:
+    """
+
+    pass
