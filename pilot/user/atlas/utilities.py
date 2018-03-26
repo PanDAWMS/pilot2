@@ -10,9 +10,30 @@
 # import os
 
 # from pilot.info import infosys
+from pilot.user.atlas.setup import get_asetup
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+def get_memory_monitor_summary_filename():
+    """
+    Return the name for the memory monitor summary file.
+
+    :return: File name (string).
+    """
+
+    return "memory_monitor_summary.json"
+
+
+def get_memory_monitor_output_filename():
+    """
+    Return the filename of the memory monitor text output file.
+
+    :return: File name (string).
+    """
+
+    return "memory_monitor_output.txt"
 
 
 def get_memory_monitor_setup(job):
@@ -26,7 +47,17 @@ def get_memory_monitor_setup(job):
     :return: memory monitor setup string.
     """
 
-    return '<some setup>'
+    release = "21.0.22"
+    platform = "x86_64-slc6-gcc62-opt"
+    setup = get_asetup(asetup=prepareasetup) + " Athena," + release + " --platform " + platform
+    interval = 60
+
+    # Now add the MemoryMonitor command
+    cmd = "%s; MemoryMonitor --pid %d --filename %s --json-summary %s --interval %d" % \
+           (setup, job.pid, get_memory_monitor_output_filename, get_memory_monitor_summary_filename(), interval)
+    cmd = "cd " + job.workdir + ";" + cmd
+
+    return cmd
 
 
 def get_network_monitor_setup(setup, job):
