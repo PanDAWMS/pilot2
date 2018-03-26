@@ -17,6 +17,7 @@ import signal
 
 from pilot.control.job import send_state
 from pilot.util.container import execute
+from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD
 
 import logging
 logger = logging.getLogger(__name__)
@@ -79,10 +80,19 @@ class Executor(object):
         log.info("payload execution command: %s" % cmd)
 
         # should we run any additional commands? (e.g. special monitoring commands)
-        cmds = user.get_utility_commands_list()
+        cmds = user.get_utility_commands_list(order=UTILITY_BEFORE_PAYLOAD)
         if cmds != []:
             for utcmd in cmds:
-                log.info('utility command: %s' % utcmd)
+                log.info('utility command to be executed before the payload: %s' % utcmd)
+                # add execution code here
+                # store pid in job object
+
+        # should any additional commands be prepended to the payload execution string?
+        cmds = user.get_utility_commands_list(order=UTILITY_WITH_PAYLOAD)
+        if cmds != []:
+            for utcmd in cmds:
+                log.info('utility command to be executed with the payload: %s' % utcmd)
+                # add execution code here
 
         # replace platform and workdir with new function get_payload_options() or someting from experiment specific code
         try:
@@ -93,6 +103,14 @@ class Executor(object):
             return None
 
         log.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
+
+        # should any additional commands be executed after the payload?
+        cmds = user.get_utility_commands_list(order=UTILITY_AFTER_PAYLOAD)
+        if cmds != []:
+            for utcmd in cmds:
+                log.info('utility command to be executed after the payload: %s' % utcmd)
+                # add execution code here
+                # store pid in job object
 
         return proc
 

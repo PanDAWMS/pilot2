@@ -50,11 +50,18 @@ def remove_redundant_files(workdir, outputfiles=[]):
     pass
 
 
-def get_utility_commands_list():
+def get_utility_commands_list(order=None):
     """
     Return a list of utility commands to be executed in parallel with the payload.
     This could e.g. be memory and network monitor commands. A separate function can be used to determine the
     corresponding command setups using the utility command name.
+    If the optional order parameter is set, the function should return the list of corresponding commands.
+    E.g. if order=UTILITY_BEFORE_PAYLOAD, the function should return all commands that are to be executed before the
+    payload. If order=UTILITY_WITH_PAYLOAD, the corresponding commands will be prepended to the payload execution
+    string. If order=UTILITY_AFTER_PAYLOAD, the commands that should be executed after the payload has been started
+    should be returned.
+
+    :param order: optional sorting order (see pilot.util.constants)
     :return: list of utilities to be executed in parallel with the payload.
     """
 
