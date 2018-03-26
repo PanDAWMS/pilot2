@@ -18,6 +18,7 @@ from pilot.util.container import execute
 from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, \
     get_asetup_options, is_standard_atlas_job
 from pilot.util.filehandling import remove
+from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup
 
 import logging
 logger = logging.getLogger(__name__)
