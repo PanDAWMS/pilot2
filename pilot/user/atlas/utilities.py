@@ -266,7 +266,7 @@ def get_memory_values(workdir):
                         try:
                             # Remove empty entries from list (caused by multiple \t)
                             _l = filter(None, line.split('\t'))
-                            _time = _l[0]  # 'Time' not user
+                            # _time = _l[0]  # 'Time' not user
                             vmem = _l[1]
                             pss = _l[2]
                             rss = _l[3]
@@ -297,8 +297,8 @@ def get_memory_values(workdir):
                                 n += 1
 
                 # Calculate averages and store all values
-                summary_dictionary = { "Max": {}, "Avg": {}, "Other": {} }
-                summary_dictionary["Max"] = {"maxVMEM":maxvmem, "maxPSS":maxpss, "maxRSS":maxrss, "maxSwap":maxswap}
+                summary_dictionary = {"Max": {}, "Avg": {}, "Other": {}}
+                summary_dictionary["Max"] = {"maxVMEM": maxvmem, "maxPSS": maxpss, "maxRSS": maxrss, "maxSwap": maxswap}
                 if rchar:
                     summary_dictionary["Other"]["rchar"] = rchar
                 if wchar:
