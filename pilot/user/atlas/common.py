@@ -592,16 +592,23 @@ def get_utility_commands_list(order=None):
     return []
 
 
-def get_utility_command_setup(name, setup=None):
+def get_utility_command_setup(name, job, setup=None):
     """
     Return the proper setup for the given utility command.
-    If a payload setup is specified
-    :param name:
-    :param setup:
-    :return:
+    If a payload setup is specified, then the utility command string should be prepended to it.
+
+    :param name: name of utility (string).
+    :param job: job object.
+    :param setup: optional payload setup string.
+    :return: utility command setup (string).
     """
 
-    pass
+    if name == 'MemoryMonitor':
+        return get_memory_monitor_setup(job)
+    elif name == 'NetworkMonitor' and setup:
+        return get_network_monitor_setup(setup, job)
+    else:
+        return ""
 
 
 def get_utility_command_execution_order(name):

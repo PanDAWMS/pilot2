@@ -85,7 +85,8 @@ class Executor(object):
             for utcmd in cmds:
                 log.info('utility command to be executed before the payload: %s' % utcmd)
                 # add execution code here
-                # store pid in job object
+                # store pid in job object job.utilitypids = {<name>: <pid>}
+                job.utilitypids[utcmd] = -1
 
         # should any additional commands be prepended to the payload execution string?
         cmds = user.get_utility_commands_list(order=UTILITY_WITH_PAYLOAD)
@@ -103,14 +104,20 @@ class Executor(object):
             return None
 
         log.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
+        job.pid = proc.pid
 
         # should any additional commands be executed after the payload?
         cmds = user.get_utility_commands_list(order=UTILITY_AFTER_PAYLOAD)
         if cmds != []:
             for utcmd in cmds:
                 log.info('utility command to be executed after the payload: %s' % utcmd)
-                # add execution code here
+
+                # how should this command be executed?
+                utilitycommand = user.get_utility_command_setup(utcmd, job)
+                log.info('utility command setup: %s' % utilitycommand)
+
                 # store pid in job object
+                job.utilitypids[utcmd] = -1
 
         return proc
 

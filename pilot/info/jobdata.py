@@ -71,6 +71,8 @@ class JobData(BaseData):
     cpuconversionfactor = 1
     nevents = 0  # number of events
     payload = ""  # payload name
+    utilitypids = {}  # pid's of utility commands; { <name>: <pid>, .. }
+    pid = -1  # payload pid
 
     # from job definition
     attemptnr = 0  # job attempt number
@@ -98,14 +100,14 @@ class JobData(BaseData):
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['corecount', 'piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
-                   'attemptnr', 'nevents'],
+                   'attemptnr', 'nevents', 'pid'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'logguid', 'destinationdblock', 'exeerrordiag'
                    'state', 'status', 'workdir', 'state', 'stageout', 'ddmendpointin', 'ddmendpointout',
                    'platform', 'piloterrordiag', 'scopeout', 'scopein', 'scopelog', 'logfile', 'exitmsg',
                    'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload', 'infiles',
                    'outfiles', 'swrelease'],
              list: ['piloterrorcodes', 'piloterrordiags'],
-             dict: ['fileinfo', 'metadata'],
+             dict: ['fileinfo', 'metadata', 'utilitypids'],
              bool: ['is_eventservice', 'noexecstrcnv']
              }
 

@@ -15,25 +15,28 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_memory_monitor_setup(release=''):
+def get_memory_monitor_setup(job):
     """
     Return the proper setup for the memory monitor.
     If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the
     memory monitor was still located in the release area. After many problems with the memory monitor, it was decided
     to use a fixed version for the setup. Currently, release 21.0.22 is used.
-    :param release: payload release string (currently ignored but should be provided to the function).
+
+    :param job: job object.
     :return: memory monitor setup string.
     """
 
-    return ''
+    return '<some setup>'
 
 
-def get_network_monitor_setup(setup):
+def get_network_monitor_setup(setup, job):
     """
     Return the proper setup for the network monitor.
     The network monitor is currently setup together with the payload and is start before it. The payload setup should
     therefore be provided. The network monitor setup is prepended to it.
+
     :param setup: payload setup string.
+    :param job: job object.
     :return: network monitor setup string.
     """
 
