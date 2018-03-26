@@ -17,6 +17,20 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def get_network_monitor_setup(setup, job):
+    """
+    Return the proper setup for the network monitor.
+    The network monitor is currently setup together with the payload and is start before it. The payload setup should
+    therefore be provided. The network monitor setup is prepended to it.
+
+    :param setup: payload setup string.
+    :param job: job object.
+    :return: network monitor setup string.
+    """
+
+    return ''
+
+
 def get_memory_monitor_summary_filename():
     """
     Return the name for the memory monitor summary file.
@@ -59,20 +73,6 @@ def get_memory_monitor_setup(job):
     cmd = "cd " + job.workdir + ";" + cmd
 
     return cmd
-
-
-def get_network_monitor_setup(setup, job):
-    """
-    Return the proper setup for the network monitor.
-    The network monitor is currently setup together with the payload and is start before it. The payload setup should
-    therefore be provided. The network monitor setup is prepended to it.
-
-    :param setup: payload setup string.
-    :param job: job object.
-    :return: network monitor setup string.
-    """
-
-    return ''
 
 
 def get_memory_monitor_info_path(workdir, allowtxtfile=False):
