@@ -122,7 +122,8 @@ class Executor(object):
                     log.error('could not execute: %s' % e)
                 else:
                     # store process handle in job object, and keep track on how many times the command has been launched
-                    job.utilities[utcmd] = [proc1, 1]
+                    # also store the full command in case it needs to be restarted later (by the job_monitor() thread)
+                    job.utilities[utcmd] = [proc1, 1, utilitycommand]
 
         return proc
 
