@@ -116,8 +116,14 @@ class Executor(object):
                 utilitycommand = user.get_utility_command_setup(utcmd, job)
                 log.info('utility command setup: %s' % utilitycommand)
 
-                # store process handle in job object
-                job.utilities[utcmd] = proc0
+                try:
+                    proc1 = execute(utilitycommand, workdir=job.workdir, returnproc=True,
+                                   usecontainer=True, stdout=out, stderr=err, cwd=job.workdir, job=job)
+                except Exception as e:
+                    log.error('could not execute: %s' % e)
+                else:
+                    # store process handle in job object
+                    job.utilities[utcmd] = proc1
 
         return proc
 
