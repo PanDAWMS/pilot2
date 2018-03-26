@@ -71,7 +71,7 @@ class JobData(BaseData):
     cpuconversionfactor = 1
     nevents = 0  # number of events
     payload = ""  # payload name
-    utilitypids = {}  # pid's of utility commands; { <name>: <pid>, .. }
+    utilities = {}  # utility processes { <name>: <process handle>, .. }
     pid = -1  # payload pid
 
     # from job definition
@@ -107,7 +107,7 @@ class JobData(BaseData):
                    'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload', 'infiles',
                    'outfiles', 'swrelease'],
              list: ['piloterrorcodes', 'piloterrordiags'],
-             dict: ['fileinfo', 'metadata', 'utilitypids'],
+             dict: ['fileinfo', 'metadata', 'utilities'],
              bool: ['is_eventservice', 'noexecstrcnv']
              }
 
