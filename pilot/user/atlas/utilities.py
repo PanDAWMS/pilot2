@@ -206,6 +206,77 @@ def convert_unicode_string(unicode_string):
     return None
 
 
+def get_average_summary_dictionary(path):
+    """
+    Loop over the memory monitor output file and create the averaged summary dictionary.
+
+    :param path: path to memory monitor output file (string).
+    :return: summary dictionary.
+    """
+
+    first = True
+    with open(path) as f:
+        for line in f:
+            # Skip the first line
+            if first:
+                first = False
+                continue
+            line = convert_unicode_string(line)
+            if line != "":
+                try:
+                    # Remove empty entries from list (caused by multiple \t)
+                    _l = filter(None, line.split('\t'))
+                    # _time = _l[0]  # 'Time' not user
+                    vmem = _l[1]
+                    pss = _l[2]
+                    rss = _l[3]
+                    swap = _l[4]
+                    # note: the last rchar etc values will be reported
+                    if len(_l) == 9:
+                        rchar = int(_l[5])
+                        wchar = int(_l[6])
+                        rbytes = int(_l[7])
+                        wbytes = int(_l[8])
+                    else:
+                        rchar = None
+                        wchar = None
+                        rbytes = None
+                        wbytes = None
+                except Exception:
+                    logger.warning("unexpected format of utility output: %s (expected format: Time, VMEM,"
+                                   " PSS, RSS, Swap [, RCHAR, WCHAR, RBYTES, WBYTES])" % (line))
+                else:
+                    # Convert to int
+                    ec1, maxvmem, totalvmem = get_max_memory_monitor_value(vmem, maxvmem, totalvmem)
+                    ec2, maxpss, totalpss = get_max_memory_monitor_value(pss, maxpss, totalpss)
+                    ec3, maxrss, totalrss = get_max_memory_monitor_value(rss, maxrss, totalrss)
+                    ec4, maxswap, totalswap = get_max_memory_monitor_value(swap, maxswap, totalswap)
+                    if ec1 or ec2 or ec3 or ec4:
+                        logger.warning("will skip this row of numbers due to value exception: %s" % (line))
+                    else:
+                        n += 1
+
+        # Calculate averages and store all values
+        summary_dictionary = {"Max": {}, "Avg": {}, "Other": {}}
+        summary_dictionary["Max"] = {"maxVMEM": maxvmem, "maxPSS": maxpss, "maxRSS": maxrss, "maxSwap": maxswap}
+        if rchar:
+            summary_dictionary["Other"]["rchar"] = rchar
+        if wchar:
+            summary_dictionary["Other"]["wchar"] = wchar
+        if rbytes:
+            summary_dictionary["Other"]["rbytes"] = rbytes
+        if wbytes:
+            summary_dictionary["Other"]["wbytes"] = wbytes
+        if n > 0:
+            avgvmem = int(float(totalvmem) / float(n))
+            avgpss = int(float(totalpss) / float(n))
+            avgrss = int(float(totalrss) / float(n))
+            avgswap = int(float(totalswap) / float(n))
+        summary_dictionary["Avg"] = {"avgVMEM": avgvmem, "avgPSS": avgpss, "avgRSS": avgrss, "avgSwap": avgswap}
+
+    return summary_dictionary
+
+
 def get_memory_values(workdir):
     """
     Find the values in the memory monitor output file.
@@ -245,7 +316,6 @@ def get_memory_values(workdir):
     # Get the path to the proper memory info file (priority ordered)
     path = get_memory_monitor_info_path(workdir, allowtxtfile=True)
     if os.path.exists(path):
-
         logger.info("using path: %s" % (path))
 
         # Does a JSON summary file exist? If so, there's no need to calculate maximums and averages in the pilot
@@ -254,65 +324,7 @@ def get_memory_values(workdir):
             summary_dictionary = read_json(path)
         else:
             # Loop over the output file, line by line, and look for the maximum PSS value
-            first = True
-            with open(path) as f:
-                for line in f:
-                    # Skip the first line
-                    if first:
-                        first = False
-                        continue
-                    line = convert_unicode_string(line)
-                    if line != "":
-                        try:
-                            # Remove empty entries from list (caused by multiple \t)
-                            _l = filter(None, line.split('\t'))
-                            # _time = _l[0]  # 'Time' not user
-                            vmem = _l[1]
-                            pss = _l[2]
-                            rss = _l[3]
-                            swap = _l[4]
-                            # note: the last rchar etc values will be reported
-                            if len(_l) == 9:
-                                rchar = int(_l[5])
-                                wchar = int(_l[6])
-                                rbytes = int(_l[7])
-                                wbytes = int(_l[8])
-                            else:
-                                rchar = None
-                                wchar = None
-                                rbytes = None
-                                wbytes = None
-                        except Exception:
-                            logger.warning("unexpected format of utility output: %s (expected format: Time, VMEM,"
-                                           " PSS, RSS, Swap [, RCHAR, WCHAR, RBYTES, WBYTES])" % (line))
-                        else:
-                            # Convert to int
-                            ec1, maxvmem, totalvmem = get_max_memory_monitor_value(vmem, maxvmem, totalvmem)
-                            ec2, maxpss, totalpss = get_max_memory_monitor_value(pss, maxpss, totalpss)
-                            ec3, maxrss, totalrss = get_max_memory_monitor_value(rss, maxrss, totalrss)
-                            ec4, maxswap, totalswap = get_max_memory_monitor_value(swap, maxswap, totalswap)
-                            if ec1 or ec2 or ec3 or ec4:
-                                logger.warning("will skip this row of numbers due to value exception: %s" % (line))
-                            else:
-                                n += 1
-
-                # Calculate averages and store all values
-                summary_dictionary = {"Max": {}, "Avg": {}, "Other": {}}
-                summary_dictionary["Max"] = {"maxVMEM": maxvmem, "maxPSS": maxpss, "maxRSS": maxrss, "maxSwap": maxswap}
-                if rchar:
-                    summary_dictionary["Other"]["rchar"] = rchar
-                if wchar:
-                    summary_dictionary["Other"]["wchar"] = wchar
-                if rbytes:
-                    summary_dictionary["Other"]["rbytes"] = rbytes
-                if wbytes:
-                    summary_dictionary["Other"]["wbytes"] = wbytes
-                if n > 0:
-                    avgvmem = int(float(totalvmem) / float(n))
-                    avgpss = int(float(totalpss) / float(n))
-                    avgrss = int(float(totalrss) / float(n))
-                    avgswap = int(float(totalswap) / float(n))
-                summary_dictionary["Avg"] = {"avgVMEM": avgvmem, "avgPSS": avgpss, "avgRSS": avgrss, "avgSwap": avgswap}
+            summary_dictionary = get_average_summary_dictionary(path)
     else:
         if path == "":
             logger.warning("filename not set for memory monitor output")
