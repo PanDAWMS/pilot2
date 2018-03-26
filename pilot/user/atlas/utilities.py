@@ -50,12 +50,12 @@ def get_memory_monitor_setup(job):
 
     release = "21.0.22"
     platform = "x86_64-slc6-gcc62-opt"
-    setup = get_asetup(asetup=prepareasetup) + " Athena," + release + " --platform " + platform
+    setup = get_asetup() + " Athena," + release + " --platform " + platform
     interval = 60
 
     # Now add the MemoryMonitor command
-    cmd = "%s; MemoryMonitor --pid %d --filename %s --json-summary %s --interval %d" % \
-           (setup, job.pid, get_memory_monitor_output_filename, get_memory_monitor_summary_filename(), interval)
+    cmd = "%s; MemoryMonitor --pid %d --filename %s --json-summary %s --interval %d" %\
+          (setup, job.pid, get_memory_monitor_output_filename, get_memory_monitor_summary_filename(), interval)
     cmd = "cd " + job.workdir + ";" + cmd
 
     return cmd
@@ -100,7 +100,7 @@ def get_memory_monitor_info_path(workdir, allowtxtfile=False):
             logger.info("file does not exist either: %s" % (init_path))
             path = ""
 
-        if path == "" and allowTxtFile:
+        if path == "" and allowtxtfile:
             path = os.path.join(workdir, get_memory_monitor_output_filename)
             if not os.path.exists(path):
                 logger.warning("File does not exist either: %s" % (path))
@@ -123,7 +123,7 @@ def get_memory_monitor_info(workdir, allowtxtfile=False):
     # Note that only the final json file will contain the totRBYTES, etc
     summary_dictionary = get_memory_values(workdir)
 
-    logger.debug("summary_dictionary=%s"%str(summary_dictionary))
+    logger.debug("summary_dictionary=%s" % str(summary_dictionary))
 
     # Fill the node dictionary
     if summary_dictionary and summary_dictionary != {}:
@@ -136,30 +136,6 @@ def get_memory_monitor_info(workdir, allowtxtfile=False):
             node['avgVMEM'] = summary_dictionary['Avg']['avgVMEM']
             node['avgSWAP'] = summary_dictionary['Avg']['avgSwap']
             node['avgPSS'] = summary_dictionary['Avg']['avgPSS']
-            #try:
-            #    rchar = summary_dictionary['Other']['rchar']
-            #except:
-            #    rchar = -1
-            #else:
-            #    node['rchar'] = rchar
-            #try:
-            #    wchar = summary_dictionary['Other']['wchar']
-            #except:
-            #    wchar = -1
-            #else:
-            #    node['wchar'] = wchar
-            #try:
-            #    rbytes = summary_dictionary['Other']['rbytes']
-            #except:
-            #    rbytes = -1
-            #else:
-            #    node['rbytes'] = rbytes
-            #try:
-            #    wbytes = summary_dictionary['Other']['wbytes']
-            #except:
-            #    wbytes = -1
-            #else:
-            #    node['wbytes'] = wbytes
         except Exception, e:
             logger.warning("exception caught while parsing memory monitor file: %s" % (e))
             logger.warning("will add -1 values for the memory info")
@@ -171,10 +147,6 @@ def get_memory_monitor_info(workdir, allowtxtfile=False):
             node['avgVMEM'] = -1
             node['avgSWAP'] = -1
             node['avgPSS'] = -1
-            #node['rchar'] = -1
-            #node['wchar'] = -1
-            #node['rbytes'] = -1
-            #node['wbytes'] = -1
         else:
             logger.info("extracted standard info from memory monitor json")
         try:
@@ -186,7 +158,7 @@ def get_memory_monitor_info(workdir, allowtxtfile=False):
             node['rateWCHAR'] = summary_dictionary['Avg']['rateWCHAR']
             node['rateRBYTES'] = summary_dictionary['Avg']['rateRBYTES']
             node['rateWBYTES'] = summary_dictionary['Avg']['rateWBYTES']
-        except Exception, e:
+        except Exception:
             logger.warning("standard memory fields were not found in memory monitor json (or json doesn't exist yet)")
         else:
             logger.info("extracted standard memory fields from memory monitor json")
