@@ -584,9 +584,9 @@ def get_utility_commands_list(order=None):
     """
 
     if order:
-        if order=UTILITY_WITH_PAYLOAD:
+        if order == UTILITY_WITH_PAYLOAD:
             return ['NetworkMonitor']
-        elif order=UTILITY_AFTER_PAYLOAD:
+        elif order == UTILITY_AFTER_PAYLOAD:
             return ['MemoryMonitor']
 
     return []
