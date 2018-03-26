@@ -7,10 +7,11 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
-# import os
+import os
 
 # from pilot.info import infosys
 from pilot.user.atlas.setup import get_asetup
+from pilot.util.filehandling import read_json
 
 import logging
 logger = logging.getLogger(__name__)
@@ -72,3 +73,280 @@ def get_network_monitor_setup(setup, job):
     """
 
     return ''
+
+
+def get_memory_monitor_info_path(workdir, allowtxtfile=False):
+    """
+    Find the proper path to the utility info file
+    Priority order:
+       1. JSON summary file from workdir
+       2. JSON summary file from pilot initdir
+       3. Text output file from workdir (if allowtxtfile is True)
+
+    :param workdir: relevant work directory (string).
+    :param allowtxtfile: boolean attribute to allow for reading the raw memory monitor output.
+    :return: path (string).
+    """
+
+    pilot_initdir = os.environ.get('PILOT_HOME', '')
+    path = os.path.join(workdir, get_memory_monitor_summary_filename())
+    init_path = os.path.join(pilot_initdir, get_memory_monitor_summary_filename())
+
+    if not os.path.exists(path):
+        logger.info("file does not exist: %s" % (path))
+        if os.path.exists(init_path):
+            path = init_path
+        else:
+            logger.info("file does not exist either: %s" % (init_path))
+            path = ""
+
+        if path == "" and allowTxtFile:
+            path = os.path.join(workdir, get_memory_monitor_output_filename)
+            if not os.path.exists(path):
+                logger.warning("File does not exist either: %s" % (path))
+
+    return path
+
+
+def get_memory_monitor_info(workdir, allowtxtfile=False):
+    """
+    Add the utility info to the node structure if available.
+
+    :param workdir: relevant work directory (string).
+    :param allowtxtfile: boolean attribute to allow for reading the raw memory monitor output.
+    :return: node structure (dictionary).
+    """
+
+    node = {}
+
+    # Get the values from the memory monitor file (json if it exists, otherwise the preliminary txt file)
+    # Note that only the final json file will contain the totRBYTES, etc
+    summary_dictionary = get_memory_values(workdir)
+
+    logger.debug("summary_dictionary=%s"%str(summary_dictionary))
+
+    # Fill the node dictionary
+    if summary_dictionary and summary_dictionary != {}:
+        try:
+            node['maxRSS'] = summary_dictionary['Max']['maxRSS']
+            node['maxVMEM'] = summary_dictionary['Max']['maxVMEM']
+            node['maxSWAP'] = summary_dictionary['Max']['maxSwap']
+            node['maxPSS'] = summary_dictionary['Max']['maxPSS']
+            node['avgRSS'] = summary_dictionary['Avg']['avgRSS']
+            node['avgVMEM'] = summary_dictionary['Avg']['avgVMEM']
+            node['avgSWAP'] = summary_dictionary['Avg']['avgSwap']
+            node['avgPSS'] = summary_dictionary['Avg']['avgPSS']
+            #try:
+            #    rchar = summary_dictionary['Other']['rchar']
+            #except:
+            #    rchar = -1
+            #else:
+            #    node['rchar'] = rchar
+            #try:
+            #    wchar = summary_dictionary['Other']['wchar']
+            #except:
+            #    wchar = -1
+            #else:
+            #    node['wchar'] = wchar
+            #try:
+            #    rbytes = summary_dictionary['Other']['rbytes']
+            #except:
+            #    rbytes = -1
+            #else:
+            #    node['rbytes'] = rbytes
+            #try:
+            #    wbytes = summary_dictionary['Other']['wbytes']
+            #except:
+            #    wbytes = -1
+            #else:
+            #    node['wbytes'] = wbytes
+        except Exception, e:
+            logger.warning("exception caught while parsing memory monitor file: %s" % (e))
+            logger.warning("will add -1 values for the memory info")
+            node['maxRSS'] = -1
+            node['maxVMEM'] = -1
+            node['maxSWAP'] = -1
+            node['maxPSS'] = -1
+            node['avgRSS'] = -1
+            node['avgVMEM'] = -1
+            node['avgSWAP'] = -1
+            node['avgPSS'] = -1
+            #node['rchar'] = -1
+            #node['wchar'] = -1
+            #node['rbytes'] = -1
+            #node['wbytes'] = -1
+        else:
+            logger.info("extracted standard info from memory monitor json")
+        try:
+            node['totRCHAR'] = summary_dictionary['Max']['totRCHAR']
+            node['totWCHAR'] = summary_dictionary['Max']['totWCHAR']
+            node['totRBYTES'] = summary_dictionary['Max']['totRBYTES']
+            node['totWBYTES'] = summary_dictionary['Max']['totWBYTES']
+            node['rateRCHAR'] = summary_dictionary['Avg']['rateRCHAR']
+            node['rateWCHAR'] = summary_dictionary['Avg']['rateWCHAR']
+            node['rateRBYTES'] = summary_dictionary['Avg']['rateRBYTES']
+            node['rateWBYTES'] = summary_dictionary['Avg']['rateWBYTES']
+        except Exception, e:
+            logger.warning("standard memory fields were not found in memory monitor json (or json doesn't exist yet)")
+        else:
+            logger.info("extracted standard memory fields from memory monitor json")
+    else:
+        logger.info("memory summary dictionary not yet available")
+
+    return node
+
+
+def get_max_memory_monitor_value(value, maxvalue, totalvalue):
+    """
+    Return the max and total value (used by memory monitoring).
+    Return an error code, 1, in case of value error.
+
+    :param value: value to be tested (integer).
+    :param maxvalue: current maximum value (integer).
+    :param totalvalue: total value (integer).
+    :return: exit code, maximum and total value (tuple of integers).
+    """
+
+    ec = 0
+    try:
+        value_int = int(value)
+    except Exception, e:
+        logger.warning("exception caught: %s" % e)
+        ec = 1
+    else:
+        totalvalue += value_int
+        if value_int > maxvalue:
+            maxvalue = value_int
+
+    return ec, maxvalue, totalvalue
+
+
+def convert_unicode_string(unicode_string):
+    """
+    Convert a unicode string into str.
+
+    :param unicode_string:
+    :return: string.
+    """
+
+    if unicode_string is not None:
+        return str(unicode_string)
+    return None
+
+
+def get_memory_values(workdir):
+    """
+    Find the values in the memory monitor output file.
+
+    In case the summary JSON file has not yet been produced, create a summary dictionary with the same format
+    using the output text file (produced by the memory monitor and which is updated once per minute).
+
+    FORMAT:
+       {"Max":{"maxVMEM":40058624,"maxPSS":10340177,"maxRSS":16342012,"maxSwap":16235568},
+        "Avg":{"avgVMEM":19384236,"avgPSS":5023500,"avgRSS":6501489,"avgSwap":5964997},
+        "Other":{"rchar":NN,"wchar":NN,"rbytes":NN,"wbytes":NN}}
+
+    :param workdir: relevant work directory (string).
+    :return: memory values dictionary.
+    """
+
+    maxvmem = -1
+    maxrss = -1
+    maxpss = -1
+    maxswap = -1
+    avgvmem = 0
+    avgrss = 0
+    avgpss = 0
+    avgswap = 0
+    totalvmem = 0
+    totalrss = 0
+    totalpss = 0
+    totalswap = 0
+    n = 0
+    summary_dictionary = {}
+
+    rchar = None
+    wchar = None
+    rbytes = None
+    wbytes = None
+
+    # Get the path to the proper memory info file (priority ordered)
+    path = get_memory_monitor_info_path(workdir, allowtxtfile=True)
+    if os.path.exists(path):
+
+        logger.info("using path: %s" % (path))
+
+        # Does a JSON summary file exist? If so, there's no need to calculate maximums and averages in the pilot
+        if path.lower().endswith('json'):
+            # Read the dictionary from the JSON file
+            summary_dictionary = read_json(path)
+        else:
+            # Loop over the output file, line by line, and look for the maximum PSS value
+            first = True
+            with open(path) as f:
+                for line in f:
+                    # Skip the first line
+                    if first:
+                        first = False
+                        continue
+                    line = convert_unicode_string(line)
+                    if line != "":
+                        try:
+                            # Remove empty entries from list (caused by multiple \t)
+                            l = filter(None, line.split('\t'))
+                            _ = l[0]  # 'Time' not user
+                            vmem = l[1]
+                            pss = l[2]
+                            rss = l[3]
+                            swap = l[4]
+                            # note: the last rchar etc values will be reported
+                            if len(l) == 9:
+                                rchar = int(l[5])
+                                wchar = int(l[6])
+                                rbytes = int(l[7])
+                                wbytes = int(l[8])
+                            else:
+                                rchar = None
+                                wchar = None
+                                rbytes = None
+                                wbytes = None
+                        except Exception, e:
+                            logger.warning("unexpected format of utility output: %s (expected format: Time, VMEM,"
+                                           " PSS, RSS, Swap [, RCHAR, WCHAR, RBYTES, WBYTES])" % (line))
+                        else:
+                            # Convert to int
+                            ec1, maxvmem, totalvmem = get_max_memory_monitor_value(vmem, maxvmem, totalvmem)
+                            ec2, maxpss, totalpss = get_max_memory_monitor_value(pss, maxpss, totalpss)
+                            ec3, maxrss, totalrss = get_max_memory_monitor_value(rss, maxrss, totalrss)
+                            ec4, maxswap, totalswap = get_max_memory_monitor_value(swap, maxswap, totalswap)
+                            if ec1 or ec2 or ec3 or ec4:
+                                logger.warning("will skip this row of numbers due to value exception: %s" % (line))
+                            else:
+                                n += 1
+
+                # Calculate averages and store all values
+                summary_dictionary = { "Max": {}, "Avg": {}, "Other": {} }
+                summary_dictionary["Max"] = {"maxVMEM":maxvmem, "maxPSS":maxpss, "maxRSS":maxrss, "maxSwap":maxswap}
+                if rchar:
+                    summary_dictionary["Other"]["rchar"] = rchar
+                if wchar:
+                    summary_dictionary["Other"]["wchar"] = wchar
+                if rbytes:
+                    summary_dictionary["Other"]["rbytes"] = rbytes
+                if wbytes:
+                    summary_dictionary["Other"]["wbytes"] = wbytes
+                if n > 0:
+                    avgvmem = int(float(totalvmem)/float(n))
+                    avgpss = int(float(totalpss)/float(n))
+                    avgrss = int(float(totalrss)/float(n))
+                    avgswap = int(float(totalswap)/float(n))
+                summary_dictionary["Avg"] = {"avgVMEM":avgvmem, "avgPSS":avgpss, "avgRSS":avgrss, "avgSwap":avgswap}
+    else:
+        if path == "":
+            logger.warning("filename not set for memory monitor output")
+        else:
+            # Normally this means that the memory output file has not been produced yet
+            pass
+
+    return summary_dictionary
+
