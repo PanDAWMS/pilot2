@@ -114,7 +114,6 @@ class Executor(object):
 
                 # how should this command be executed?
                 utilitycommand = user.get_utility_command_setup(utcmd, job)
-                log.info('utility command setup: %s' % utilitycommand)
 
                 try:
                     proc1 = execute(utilitycommand, workdir=job.workdir, returnproc=True,
