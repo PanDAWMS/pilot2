@@ -13,7 +13,7 @@ from collections import defaultdict
 from glob import glob
 
 # from pilot.common.exception import PilotException
-from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD
+from pilot.util.constants import UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD
 from pilot.util.container import execute
 from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, \
     get_asetup_options, is_standard_atlas_job
@@ -617,12 +617,12 @@ def get_utility_command_execution_order(name):
     Should the given utility command be executed before or after the payload?
 
     :param name: utility name (string).
-    :return: execution order constant (UTILITY_BEFORE_PAYLOAD or UTILITY_AFTER_PAYLOAD)
+    :return: execution order constant.
     """
 
     # example implementation
     if name == 'NetworkMonitor':
-        return UTILITY_BEFORE_PAYLOAD
+        return UTILITY_WITH_PAYLOAD
     elif name == 'MemoryMonitor':
         return UTILITY_AFTER_PAYLOAD
     else:
