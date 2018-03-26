@@ -265,24 +265,24 @@ def get_memory_values(workdir):
                     if line != "":
                         try:
                             # Remove empty entries from list (caused by multiple \t)
-                            l = filter(None, line.split('\t'))
-                            _ = l[0]  # 'Time' not user
-                            vmem = l[1]
-                            pss = l[2]
-                            rss = l[3]
-                            swap = l[4]
+                            _l = filter(None, line.split('\t'))
+                            _time = _l[0]  # 'Time' not user
+                            vmem = _l[1]
+                            pss = _l[2]
+                            rss = _l[3]
+                            swap = _l[4]
                             # note: the last rchar etc values will be reported
-                            if len(l) == 9:
-                                rchar = int(l[5])
-                                wchar = int(l[6])
-                                rbytes = int(l[7])
-                                wbytes = int(l[8])
+                            if len(_l) == 9:
+                                rchar = int(_l[5])
+                                wchar = int(_l[6])
+                                rbytes = int(_l[7])
+                                wbytes = int(_l[8])
                             else:
                                 rchar = None
                                 wchar = None
                                 rbytes = None
                                 wbytes = None
-                        except Exception, e:
+                        except Exception:
                             logger.warning("unexpected format of utility output: %s (expected format: Time, VMEM,"
                                            " PSS, RSS, Swap [, RCHAR, WCHAR, RBYTES, WBYTES])" % (line))
                         else:
@@ -308,11 +308,11 @@ def get_memory_values(workdir):
                 if wbytes:
                     summary_dictionary["Other"]["wbytes"] = wbytes
                 if n > 0:
-                    avgvmem = int(float(totalvmem)/float(n))
-                    avgpss = int(float(totalpss)/float(n))
-                    avgrss = int(float(totalrss)/float(n))
-                    avgswap = int(float(totalswap)/float(n))
-                summary_dictionary["Avg"] = {"avgVMEM":avgvmem, "avgPSS":avgpss, "avgRSS":avgrss, "avgSwap":avgswap}
+                    avgvmem = int(float(totalvmem) / float(n))
+                    avgpss = int(float(totalpss) / float(n))
+                    avgrss = int(float(totalrss) / float(n))
+                    avgswap = int(float(totalswap) / float(n))
+                summary_dictionary["Avg"] = {"avgVMEM": avgvmem, "avgPSS": avgpss, "avgRSS": avgrss, "avgSwap": avgswap}
     else:
         if path == "":
             logger.warning("filename not set for memory monitor output")
@@ -321,4 +321,3 @@ def get_memory_values(workdir):
             pass
 
     return summary_dictionary
-
