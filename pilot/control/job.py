@@ -14,6 +14,7 @@ import os
 import sys
 import time
 from json import dumps
+from subprocess import PIPE
 
 from pilot.util import https
 from pilot.util.config import config
@@ -23,6 +24,7 @@ from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_sche
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.common.exception import ExcThread, PilotException
 from pilot.info import infosys, JobData
+from pilot.util.container import execute
 
 import logging
 logger = logging.getLogger(__name__)
@@ -755,7 +757,7 @@ def job_monitor(queues, traces, args):
 
                                     try:
                                         proc1 = execute(utility_command, workdir=jobs[i].workdir, returnproc=True,
-                                                        usecontainer=True, stdout=out, stderr=err,
+                                                        usecontainer=True, stdout=PIPE, stderr=PIPE,
                                                         cwd=jobs[i].workdir, job=jobs[i])
                                     except Exception as e:
                                         log.error('could not execute: %s' % e)
