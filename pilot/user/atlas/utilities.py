@@ -214,6 +214,26 @@ def get_average_summary_dictionary(path):
     :return: summary dictionary.
     """
 
+    maxvmem = -1
+    maxrss = -1
+    maxpss = -1
+    maxswap = -1
+    avgvmem = 0
+    avgrss = 0
+    avgpss = 0
+    avgswap = 0
+    totalvmem = 0
+    totalrss = 0
+    totalpss = 0
+    totalswap = 0
+    n = 0
+    summary_dictionary = {}
+
+    rchar = None
+    wchar = None
+    rbytes = None
+    wbytes = None
+
     first = True
     with open(path) as f:
         for line in f:
@@ -293,25 +313,7 @@ def get_memory_values(workdir):
     :return: memory values dictionary.
     """
 
-    maxvmem = -1
-    maxrss = -1
-    maxpss = -1
-    maxswap = -1
-    avgvmem = 0
-    avgrss = 0
-    avgpss = 0
-    avgswap = 0
-    totalvmem = 0
-    totalrss = 0
-    totalpss = 0
-    totalswap = 0
-    n = 0
     summary_dictionary = {}
-
-    rchar = None
-    wchar = None
-    rbytes = None
-    wbytes = None
 
     # Get the path to the proper memory info file (priority ordered)
     path = get_memory_monitor_info_path(workdir, allowtxtfile=True)
