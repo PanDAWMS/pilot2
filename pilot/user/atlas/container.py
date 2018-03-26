@@ -13,6 +13,7 @@ import re
 from pilot.user.atlas.setup import get_asetup
 from pilot.user.atlas.setup import get_file_system_root_path
 from pilot.info import infosys
+from pilot.util.config import config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -36,23 +37,11 @@ def wrapper(executable, **kwargs):
     if workdir == '.' and pilot_home != '':
         workdir = pilot_home
 
-    if preferred_setup(job) == "ALRB":
+    if config.Container.setup_type == "ALRB":
         fctn = alrb_wrapper
     else:
         fctn = singularity_wrapper
     return fctn(executable, platform, workdir, job)
-
-
-def preferred_setup(job):
-    """
-    Determine which container setup to use.
-    E.g. explicit singularity or via the ALRB setup (setupATLAS)
-
-    :param job: job object
-    :return:
-    """
-
-    return "ALRB"  # "singularity"  # "ALRB"
 
 
 def use_payload_container(job):
