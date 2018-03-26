@@ -11,6 +11,7 @@ import os
 import time
 import tarfile
 from collections import deque
+from shutil import copy2
 
 from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile
 
@@ -288,3 +289,26 @@ def tar_files(wkdir, excludedfiles, logfile_name, attempt=0):
     logger.debug("packing of logs took {0} seconds".format(pack_time))
 
     return 0
+
+
+def copy(path1, path2):
+    """
+    Copy path1 to path2.
+
+    :param path1: file path (string).
+    :param path2: file path (string).
+    :raises PilotException: FileHandlingFailure, NoSuchFile
+    :return:
+    """
+
+    if not os.path.exists(path1):
+        logger.warning('file copy failure: path does not exist: %s' % path1)
+        raise NoSuchFile("File does not exist: %s" % path1)
+
+    try:
+        copy2(path1, path2)
+    except IOError as e:
+        logger.warning("exception caught during file copy: %s" % e)
+        raise FileHandlingFailure(e)
+    else:
+        logger.info("copied %s to %s" % (path1, path2))
