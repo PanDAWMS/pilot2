@@ -118,7 +118,7 @@ class Executor(object):
 
                 try:
                     proc1 = execute(utilitycommand, workdir=job.workdir, returnproc=True,
-                                   usecontainer=True, stdout=out, stderr=err, cwd=job.workdir, job=job)
+                                    usecontainer=True, stdout=out, stderr=err, cwd=job.workdir, job=job)
                 except Exception as e:
                     log.error('could not execute: %s' % e)
                 else:
@@ -200,6 +200,6 @@ class Executor(object):
                             pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
                             user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user],
                                               -1)
-                            user.post_utility_command_action(utcmd, __self.job)
+                            user.post_utility_command_action(utcmd, self.__job)
 
         return exit_code
