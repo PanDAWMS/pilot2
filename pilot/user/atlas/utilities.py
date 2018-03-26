@@ -352,6 +352,6 @@ def post_memory_monitor_action(job):
     log.info("taking a short nap (%d s) to allow the memory monitor to finish writing to the summary file" % (_nap))
     time.sleep(_nap)
 
-    path1 = os.join.path(job.workdir, get_memory_monitor_summary_filename())
+    path1 = os.path.join(job.workdir, get_memory_monitor_summary_filename())
     path2 = os.environ.get('PILOT_HOME')
     copy(path1, path2)
