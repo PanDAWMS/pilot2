@@ -348,7 +348,7 @@ def post_memory_monitor_action(job):
 
     log = logger.getChild(str(job.jobid))
 
-    _nap = 10
+    _nap = 20
     log.info("taking a short nap (%d s) to allow the memory monitor to finish writing to the summary file" % (_nap))
     time.sleep(_nap)
 
