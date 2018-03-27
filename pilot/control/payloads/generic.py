@@ -196,7 +196,7 @@ class Executor(object):
                     for utcmd in self.__job.utilities.keys():
                         utproc = self.__job.utilities[utcmd][0]
                         if utproc:
-                            log.info('stopping process %s' % utcmd)
+                            log.info("stopping process \'%s\'" % utcmd)
                             os.killpg(os.getpgid(utproc.pid), signal.SIGTERM)
 
                             pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
