@@ -745,6 +745,9 @@ def job_monitor(queues, traces, args):
                 for i in range(len(jobs)):
                     log = logger.getChild(jobs[i].jobid)
                     log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
+                    if jobs[i].state == 'finished' or jobs[i].state == 'failed':
+                        log.info('aborting job monitoring since job is now in state: %s' % jobs[i].state)
+                        break
 
                     # make sure that any utility commands are still running
                     if jobs[i].utilities != {}:

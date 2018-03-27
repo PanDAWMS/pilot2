@@ -189,6 +189,7 @@ class Executor(object):
                 log.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
                 log.info('finished pid=%s exit_code=%s' % (proc.pid, exit_code))
+                self.__job.state = 'finished' if exit_code == 0 else 'failed'
 
                 # stop any running utilities
                 if self.__job.utilities != {}:
