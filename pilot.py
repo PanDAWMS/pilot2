@@ -25,7 +25,7 @@ from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 from pilot.util.harvester import is_harvester_mode
 
-VERSION = '2018-03-26.003'
+VERSION = '2018-03-27.001'
 
 
 def main():
@@ -255,6 +255,12 @@ if __name__ == '__main__':
                             dest='harvester_workerattributes',
                             default='',
                             help='Harvester worker attributes json file')
+    arg_parser.add_argument('--resource-type',
+                            dest='resource_type',
+                            default='',
+                            type=str,
+                            choices=['MCORE', 'SCORE'],
+                            help='Resource type; MSCORE or SCORE')
 
     # Harvester and Nordugrid specific options
     arg_parser.add_argument('--input-dir',
