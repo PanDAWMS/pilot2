@@ -95,7 +95,12 @@ def import_module(**kwargs):
                            '--pilot-user': kwargs.get('pilot_user', 'generic'),
                            '--input-dir': kwargs.get('input_dir', ''),
                            '--output-dir': kwargs.get('output_dir', ''),
-                           '--hpc-resource': kwargs.get('hpc_resource', '')
+                           '--hpc-resource': kwargs.get('hpc_resource', ''),
+                           '--harvester-workdir': kwargs.get('harvester_workdir', ''),
+                           '--harvester-datadir': kwargs.get('harvester_datadir', ''),
+                           '--harvester-eventstatusdump': kwargs.get('harvester_eventstatusdump', ''),
+                           '--harvester-workerattributes': kwargs.get('harvester_workerattributes', ''),
+                           '--resource-type': kwargs.get('resource_type', '')
                            }
 
     args = Args()
