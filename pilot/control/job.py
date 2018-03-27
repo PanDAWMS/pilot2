@@ -748,8 +748,7 @@ def utility_monitor(job):
                 else:
                     # store process handle in job object, and keep track on how many times the
                     # command has been launched
-                    job.utilities[utcmd] = [proc1, utility_subprocess_launches + 1,
-                                            utility_command]
+                    job.utilities[utcmd] = [proc1, utility_subprocess_launches + 1, utility_command]
             else:
                 log.warning('dectected crashed utility subprocess - too many restarts, will not restart %s again' %
                             utcmd)
