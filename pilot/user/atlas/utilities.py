@@ -348,10 +348,16 @@ def post_memory_monitor_action(job):
 
     log = logger.getChild(str(job.jobid))
 
-    _nap = 20
-    log.info("taking a short nap (%d s) to allow the memory monitor to finish writing to the summary file" % (_nap))
-    time.sleep(_nap)
-
+    _nap = 3
     path1 = os.path.join(job.workdir, get_memory_monitor_summary_filename())
     path2 = os.environ.get('PILOT_HOME')
+    i = 0
+    maxretry = 10
+    while i <= maxretry:
+        if os.path.exists(path1):
+            break
+        log.info("taking a short nap (%d s) to allow the memory monitor to finish writing to the summary file (#d/%d)" %
+                 (_nap, i, maxretry))
+        time.sleep(_nap)
+
     copy(path1, path2)
