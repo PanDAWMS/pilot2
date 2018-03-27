@@ -724,7 +724,7 @@ def utility_monitor(job):
     The function is used by the job monitor thread.
 
     :param job: job object.
-    :return:
+    :return: updated job object.
     """
 
     log = logger.getChild(job.jobid)
@@ -754,6 +754,8 @@ def utility_monitor(job):
                             utcmd)
         else:
             log.info('utility %s is still running' % utcmd)
+
+    return job
 
 
 def job_monitor(queues, traces, args):
@@ -790,7 +792,7 @@ def job_monitor(queues, traces, args):
 
                     # make sure that any utility commands are still running
                     if jobs[i].utilities != {}:
-                        utility_monitor(jobs[i])
+                        jobs[i] = utility_monitor(jobs[i])
             else:
                 msg = 'no jobs in validated_payloads queue'
                 if logger:
