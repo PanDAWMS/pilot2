@@ -717,6 +717,46 @@ def queue_monitor(queues, traces, args):
             # now ready for the next job (or quit)
 
 
+def utility_monitor(job):
+    """
+    Make sure that any utility commands are still running.
+    In case a utility tool has crashed, this function may restart the process.
+    The function is used by the job monitor thread.
+
+    :param job: job object.
+    :return:
+    """
+
+    log = logger.getChild(job.jobid)
+
+    # loop over all utilities
+    for utcmd in job.utilities.keys():
+        utproc = job.utilities[utcmd][0]
+        if not utproc.poll() is None:
+            # if poll() returns anything but None it means that the subprocess has ended - which it
+            # should not have done by itself
+            utility_subprocess_launches = job.utilities[utcmd][1]
+            if utility_subprocess_launches <= 5:
+                log.warning('dectected crashed utility subprocess - will restart it')
+                utility_command = job.utilities[utcmd][2]
+
+                try:
+                    proc1 = execute(utility_command, workdir=job.workdir, returnproc=True, usecontainer=True,
+                                    stdout=PIPE, stderr=PIPE, cwd=job.workdir, job=job)
+                except Exception as e:
+                    log.error('could not execute: %s' % e)
+                else:
+                    # store process handle in job object, and keep track on how many times the
+                    # command has been launched
+                    job.utilities[utcmd] = [proc1, utility_subprocess_launches + 1,
+                                            utility_command]
+            else:
+                log.warning('dectected crashed utility subprocess - too many restarts, will not restart %s again' %
+                            utcmd)
+        else:
+            log.info('utility %s is still running' % utcmd)
+
+
 def job_monitor(queues, traces, args):
     """
     Monitoring of job parameters.
@@ -751,32 +791,7 @@ def job_monitor(queues, traces, args):
 
                     # make sure that any utility commands are still running
                     if jobs[i].utilities != {}:
-                        for utcmd in jobs[i].utilities.keys():
-                            utproc = jobs[i].utilities[utcmd][0]
-                            if not utproc.poll() is None:
-                                # if poll() returns anything but None it means that the subprocess has ended - which it
-                                # should not have done by itself
-                                utility_subprocess_launches = jobs[i].utilities[utcmd][1]
-                                if utility_subprocess_launches <= 5:
-                                    log.warning('dectected crashed utility subprocess - will restart it')
-                                    utility_command = jobs[i].utilities[utcmd][2]
-
-                                    try:
-                                        proc1 = execute(utility_command, workdir=jobs[i].workdir, returnproc=True,
-                                                        usecontainer=True, stdout=PIPE, stderr=PIPE,
-                                                        cwd=jobs[i].workdir, job=jobs[i])
-                                    except Exception as e:
-                                        log.error('could not execute: %s' % e)
-                                    else:
-                                        # store process handle in job object, and keep track on how many times the
-                                        # command has been launched
-                                        jobs[i].utilities[utcmd] = [proc1, utility_subprocess_launches + 1,
-                                                                    utility_command]
-                                else:
-                                    log.warning('dectected crashed utility subprocess - too many restarts, '
-                                                'will not restart %s again' % utcmd)
-                            else:
-                                log.info('utility %s is still running' % utcmd)
+                        utility_monitor(jobs[i])
             else:
                 msg = 'no jobs in validated_payloads queue'
                 if logger:
