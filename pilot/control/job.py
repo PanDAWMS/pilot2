@@ -290,6 +290,9 @@ def get_dispatcher_dictionary(args):
         data['taskID'] = taskid
         logger.info("will download a new job belonging to task id: %s" % (data['taskID']))
 
+    if args.resource_type != "":
+        data['resourceType'] = args.resource_type
+
     return data
 
 
