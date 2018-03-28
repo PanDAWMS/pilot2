@@ -16,18 +16,21 @@ import time
 from json import dumps
 from subprocess import PIPE
 
+from pilot.info import infosys, JobData
 from pilot.util import https
 from pilot.util.config import config
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
-from pilot.common.exception import ExcThread, PilotException
-from pilot.info import infosys, JobData
 from pilot.util.container import execute
+from pilot.common.errorcodes import ErrorCodes
+from pilot.common.exception import ExcThread, PilotException
 
 import logging
 logger = logging.getLogger(__name__)
+
+errors = ErrorCodes()
 
 
 def control(queues, traces, args):
@@ -769,6 +772,9 @@ def job_monitor(queues, traces, args):
     :return:
     """
 
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
+
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
     while not args.graceful_stop.is_set():
@@ -791,6 +797,12 @@ def job_monitor(queues, traces, args):
                         break
 
                     # Is the proxy still valid?
+                    exitcode, diagnostics = userproxy.verify_proxy()
+                    if exitcode != 0:
+                        log.warning('proxy is not valid')
+                        jobs[i].state = 'failed'
+                        jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exitcode)
+                        queues.failed_payloads.put(jobs[i])
 
                     # looping job detection
 
