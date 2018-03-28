@@ -118,3 +118,14 @@ def get_utility_command_kill_signal(name):
     """
 
     return signal.SIGTERM
+
+
+def get_utility_command_output_filename(name):
+    """
+    Return the filename of the output from the utility command.
+
+    :param name: utility name (string).
+    :return: filename (string).
+    """
+
+    return ""

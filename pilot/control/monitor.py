@@ -6,11 +6,11 @@
 #
 # Authors:
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 # NOTE: this module should deal with non-job related monitoring, such as thread monitoring. Job monitoring should
 #       be the task of the job_monitor thread in the Job component. Job related functions should be moved to the
-#       Job component, with the exception of the heartbeat function.
+#       Job component, with the exception of the heartbeat function (??).
 
 import logging
 import os
@@ -46,7 +46,7 @@ def control(queues, traces, args):
             # proceed with running the checks
             # run_checks(args)
 
-            # send_heartbeat(job)
+            # send_heartbeat(job) - all job monitoring should be removed from here
 
             n += 1
     except Exception as e:

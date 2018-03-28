@@ -18,7 +18,8 @@ from pilot.util.constants import UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD
 from pilot.util.container import execute
 from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job
 from pilot.util.filehandling import remove
-from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action
+from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
+    get_memory_monitor_summary_filename
 
 import logging
 logger = logging.getLogger(__name__)
@@ -660,3 +661,19 @@ def get_utility_command_kill_signal(name):
         sig = SIGTERM
 
     return sig
+
+
+def get_utility_command_output_filename(name):
+    """
+    Return the filename to the output of the utility command.
+
+    :param name: utility name (string).
+    :return: filename (string).
+    """
+
+    if name == 'MemoryMonitor':
+        filename = get_memory_monitor_summary_filename()
+    else:
+        filename = ""
+
+    return filename

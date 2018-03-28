@@ -730,10 +730,14 @@ def utility_monitor(job):
     :return: updated job object.
     """
 
+    usercommon = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+
     log = logger.getChild(job.jobid)
 
     # loop over all utilities
     for utcmd in job.utilities.keys():
+
+        # make sure the subprocess is still running
         utproc = job.utilities[utcmd][0]
         if not utproc.poll() is None:
             # if poll() returns anything but None it means that the subprocess has ended - which it
@@ -756,8 +760,15 @@ def utility_monitor(job):
                 log.warning('dectected crashed utility subprocess - too many restarts, will not restart %s again' %
                             utcmd)
         else:
-            log.info('utility %s is still running' % utcmd)
+            # log.info('utility %s is still running' % utcmd)
 
+            # check the utility output
+            filename = usercommon.get_utility_command_output_filename(utcmd)
+            path = os.path.join(job.workdir, filename)
+            if os.path.exists(path):
+                log.info('file: %s exists' % path)
+            else:
+                log.warning('file: %s does not exist' % path)
     return job
 
 
@@ -815,6 +826,8 @@ def job_monitor(queues, traces, args):
                     # make sure that any utility commands are still running
                     if jobs[i].utilities != {}:
                         jobs[i] = utility_monitor(jobs[i])
+
+                    # send heartbeat
             else:
                 msg = 'no jobs in validated_payloads queue'
                 if logger:
