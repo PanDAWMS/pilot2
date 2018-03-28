@@ -790,6 +790,16 @@ def job_monitor(queues, traces, args):
                         log.info('aborting job monitoring')
                         break
 
+                    # Is the proxy still valid?
+
+                    # looping job detection
+
+                    # is the job using too much space?
+
+                    # Is the payload stdout within allowed limits?
+
+                    # Are the output files within allowed limits?
+
                     # make sure that any utility commands are still running
                     if jobs[i].utilities != {}:
                         jobs[i] = utility_monitor(jobs[i])

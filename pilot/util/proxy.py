@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 from pilot.util.container import execute
 
@@ -17,7 +17,7 @@ def get_distinguished_name():
     """
     Get the user DN.
 
-    :return: User DN.
+    :return: User DN (string).
     """
 
     dn = ""
