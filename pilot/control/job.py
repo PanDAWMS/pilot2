@@ -730,6 +730,7 @@ def utility_monitor(job):
     :return: updated job object.
     """
 
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     usercommon = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
 
     log = logger.getChild(job.jobid)
