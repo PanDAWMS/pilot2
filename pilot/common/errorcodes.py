@@ -27,6 +27,8 @@ class ErrorCodes:
     SETUPFAILURE = 1110
     MKDIR = 1134
     STAGEOUTFAILED = 1137
+    NOPROXY = 1163
+    NOVOMSPROXY = 1177
 
     # Error code constants (new since Pilot 2)
     NOTIMPLEMENTED = 1300
@@ -49,6 +51,8 @@ class ErrorCodes:
         SETUPFAILURE: "Failed during payload setup",
         MKDIR: "Failed to create local directory",
         STAGEOUTFAILED: "Failed to stage-out file",
+        NOPROXY: "Grid proxy not valid",
+        NOVOMSPROXY: "Voms proxy not valid",
         NOTIMPLEMENTED: "The class or function is not implemented",
         UNKNOWNEXCEPTION: "An unknown pilot exception has occurred",
         CONVERSIONFAILURE: "Failed to convert object data",
