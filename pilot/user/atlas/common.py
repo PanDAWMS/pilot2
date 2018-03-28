@@ -11,6 +11,7 @@ import os
 import fnmatch
 from collections import defaultdict
 from glob import glob
+from signal import SIGTERM, SIGUSR1
 
 # from pilot.common.exception import PilotException
 from pilot.util.constants import UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD
@@ -642,3 +643,20 @@ def post_utility_command_action(name, job):
         pass
     elif name == 'MemoryMonitor':
         post_memory_monitor_action(job)
+
+
+def get_utility_command_kill_signal(name):
+    """
+    Return the proper kill signal used to stop the utility command.
+
+    :param name:
+    :return: kill signal
+    """
+
+    if name == 'MemoryMonitor':
+        sig = SIGUSR1
+    else:
+        # note that the NetworkMonitor does not require killing (to be confirmed)
+        sig = SIGTERM
+
+    return sig

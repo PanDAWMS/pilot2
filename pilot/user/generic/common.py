@@ -7,6 +7,8 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
+from signal import SIGTERM
+
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_AFTER_PAYLOAD
 
 import logging
@@ -105,3 +107,14 @@ def post_utility_command_action(name, job):
     """
 
     pass
+
+
+def get_utility_command_kill_signal(name):
+    """
+    Return the proper kill signal used to stop the utility command.
+
+    :param name:
+    :return: kill signal
+    """
+
+    return signal.SIGTERM
