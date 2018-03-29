@@ -312,3 +312,15 @@ def copy(path1, path2):
         raise FileHandlingFailure(e)
     else:
         logger.info("copied %s to %s" % (path1, path2))
+
+
+def find_executable(name):
+    """
+    Is the command 'name' available locally?
+
+    :param name: command name (string).
+    :return: full path to command if it exists, otherwise empty string.
+    """
+
+    from distutils.spawn import find_executable
+    return find_executable(name)

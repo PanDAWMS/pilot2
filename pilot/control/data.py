@@ -40,6 +40,8 @@ def control(queues, traces, args):
 
 def _call(args, executable, cwd=os.getcwd(), logger=logger):
     try:
+        # if the middleware is available locally, do not use container
+
         process = execute(executable, workdir=cwd, returnproc=True,
                           usecontainer=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
 
