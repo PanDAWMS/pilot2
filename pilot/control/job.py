@@ -750,7 +750,7 @@ def utility_monitor(job):
 
                 try:
                     proc1 = execute(utility_command, workdir=job.workdir, returnproc=True, usecontainer=True,
-                                    stdout=PIPE, stderr=PIPE, cwd=job.workdir, job=job)
+                                    stdout=PIPE, stderr=PIPE, cwd=job.workdir, queuedata=job.infosys.queuedata)
                 except Exception as e:
                     log.error('could not execute: %s' % e)
                 else:
