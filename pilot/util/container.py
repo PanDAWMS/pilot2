@@ -20,7 +20,7 @@ def execute(executable, **kwargs):
     The function also determines whether the command should be executed within a container.
     TODO: add time-out functionality.
 
-    :param executable: Command list to be executed.
+    :param executable: command to be executed (string or list).
     :param kwargs (timeout, usecontainer, returnproc):
     :return: exit code, stdout and stderr (or process if requested via returnproc argument)
     """
@@ -31,6 +31,10 @@ def execute(executable, **kwargs):
     timeout = kwargs.get('timeout', 120)
     usecontainer = kwargs.get('usecontainer', False)
     returnproc = kwargs.get('returnproc', False)
+
+    # convert executable to string if it is a list
+    if type(executable) is list:
+        executable = ' '.join(executable)
 
     # Import user specific code if necessary (in case the command should be executed in a container)
     # Note: the container.wrapper() function must at least be declared
@@ -45,6 +49,7 @@ def execute(executable, **kwargs):
     else:
         # logger.info("will not use container")
         pass
+
 
     logger.info('executing command: %s' % executable)
     exe = ['/bin/bash', '-c', executable]
