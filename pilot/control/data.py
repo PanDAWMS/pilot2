@@ -22,6 +22,7 @@ from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
 from pilot.util.container import execute
+from pilot.util.filehandling import find_executable
 
 import logging
 
@@ -41,6 +42,14 @@ def control(queues, traces, args):
 def _call(args, executable, cwd=os.getcwd(), logger=logger):
     try:
         # if the middleware is available locally, do not use container
+        if find_executable(executable[1]) == "":
+            usecontainer = True
+        else:
+            usecontainer = False
+        if usecontainer:
+            logger.info('command %s is not available locally, will attempt to use container' % executable[1])
+        else:
+            logger.info('command %s is available locally, no need to use container' % executable[1])
 
         process = execute(executable, workdir=cwd, returnproc=True,
                           usecontainer=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
@@ -334,6 +343,16 @@ def _stage_out(args, outfile, job):
                   outfile['name']]
 
     try:
+        # if the middleware is available locally, do not use container
+        if find_executable(executable[1]) == "":
+            usecontainer = True
+        else:
+            usecontainer = False
+        if usecontainer:
+            logger.info('command %s is not available locally, will attempt to use container' % executable[1])
+        else:
+            logger.info('command %s is available locally, no need to use container' % executable[1])
+
         process = execute(executable, workdir=job.workdir, returnproc=True,
                           usecontainer=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=job.workdir)
 
