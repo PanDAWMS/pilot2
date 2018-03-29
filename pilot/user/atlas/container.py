@@ -33,7 +33,7 @@ def wrapper(executable, **kwargs):
     platform = kwargs.get('platform', '')
     workdir = kwargs.get('workdir', '.')
     pilot_home = os.environ.get('PILOT_HOME', '')
-    queuedata = kwargs.get('queuedata')
+    job = kwargs.get('job')
 
     if workdir == '.' and pilot_home != '':
         workdir = pilot_home
@@ -42,7 +42,7 @@ def wrapper(executable, **kwargs):
         fctn = alrb_wrapper
     else:
         fctn = singularity_wrapper
-    return fctn(executable, platform, workdir, queuedata=queuedata)
+    return fctn(executable, platform, workdir, job=job)
 
 
 # def use_payload_container(job):
@@ -147,7 +147,7 @@ def get_middleware_type():
     return middleware_type
 
 
-def alrb_wrapper(cmd, platform, workdir, queuedata=None):
+def alrb_wrapper(cmd, platform, workdir, job=None):
     """
     Wrap the given command with the special ALRB setup for containers
     E.g. cmd = /bin/bash hello_world.sh
@@ -159,12 +159,11 @@ def alrb_wrapper(cmd, platform, workdir, queuedata=None):
     :param cmd (string): command to be executed in a container.
     :param platform (string): platform specifics.
     :param workdir: (not used)
-    :param queuedata: optional queuedata from the information service object.
+    :param job: optional job object.
     :return: prepended command with singularity execution command (string).
     """
 
-    if not queuedata:
-        queuedata = infosys.queuedata
+    queuedata = job.infosys.queuedata
 
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
     if container_name == 'singularity':
@@ -191,7 +190,7 @@ def alrb_wrapper(cmd, platform, workdir, queuedata=None):
     return cmd
 
 
-def singularity_wrapper(cmd, platform, workdir, queuedata=None):
+def singularity_wrapper(cmd, platform, workdir, job=None):
     """
     Prepend the given command with the singularity execution command
     E.g. cmd = /bin/bash hello_world.sh
@@ -201,12 +200,11 @@ def singularity_wrapper(cmd, platform, workdir, queuedata=None):
     :param cmd (string): command to be prepended.
     :param platform (string): platform specifics.
     :param workdir: explicit work directory where the command should be executed (needs to be set for Singularity).
-    :param queuedata: optional queuedata from the information service object.
+    :param job: optional job object.
     :return: prepended command with singularity execution command (string).
     """
 
-    if not queuedata:
-        queuedata = infosys.queuedata
+    queuedata = job.infosys.queuedata
 
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
     logger.debug("resolved container_name from queuedata.contaner_type: %s" % container_name)

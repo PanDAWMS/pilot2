@@ -39,7 +39,7 @@ def control(queues, traces, args):
     [thread.start() for thread in threads]
 
 
-def _call(args, executable, cwd=os.getcwd(), logger=logger):
+def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
     try:
         # if the middleware is available locally, do not use container
         if find_executable(executable[1]) == "":
@@ -51,8 +51,8 @@ def _call(args, executable, cwd=os.getcwd(), logger=logger):
         else:
             logger.info('command %s is available locally, no need to use container' % executable[1])
 
-        process = execute(executable, workdir=cwd, returnproc=True,
-                          usecontainer=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
+        process = execute(executable, workdir=job.workdir, returnproc=True,
+                          usecontainer=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, job=job)
 
         # process = subprocess.Popen(executable,
         #                            bufsize=-1,
@@ -108,6 +108,7 @@ def _stage_in(args, job):
                   '--no-subdir',
                   '--rse', job.ddmendpointin,
                   '%s:%s' % (job.scopein, job.infiles)],  # notice the bug here, infiles might be a ,-separated str
+                 job,
                  cwd=job.workdir,
                  logger=log):
         return False
