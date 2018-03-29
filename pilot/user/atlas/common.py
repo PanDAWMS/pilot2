@@ -673,7 +673,7 @@ def get_utility_command_output_filename(name, selector=None):
     """
 
     if name == 'MemoryMonitor':
-        filename = get_memory_monitor_summary_filename(selector)
+        filename = get_memory_monitor_summary_filename(selector=selector)
     else:
         filename = ""
 

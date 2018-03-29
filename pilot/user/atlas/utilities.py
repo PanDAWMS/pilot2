@@ -32,7 +32,7 @@ def get_network_monitor_setup(setup, job):
     return ''
 
 
-def get_memory_monitor_summary_filename(selector):
+def get_memory_monitor_summary_filename(selector=None):
     """
     Return the name for the memory monitor summary file.
 
