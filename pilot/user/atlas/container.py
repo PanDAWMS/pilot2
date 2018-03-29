@@ -41,7 +41,7 @@ def wrapper(executable, **kwargs):
         fctn = alrb_wrapper
     else:
         fctn = singularity_wrapper
-    return fctn(executable, workdir, job=job)
+    return fctn(executable, workdir, job)
 
 
 # def use_payload_container(job):
@@ -146,7 +146,7 @@ def get_middleware_type():
     return middleware_type
 
 
-def alrb_wrapper(cmd, workdir, job=None):
+def alrb_wrapper(cmd, workdir, job):
     """
     Wrap the given command with the special ALRB setup for containers
     E.g. cmd = /bin/bash hello_world.sh
@@ -157,7 +157,7 @@ def alrb_wrapper(cmd, workdir, job=None):
 
     :param cmd (string): command to be executed in a container.
     :param workdir: (not used)
-    :param job: optional job object.
+    :param job: job object.
     :return: prepended command with singularity execution command (string).
     """
 
@@ -188,7 +188,7 @@ def alrb_wrapper(cmd, workdir, job=None):
     return cmd
 
 
-def singularity_wrapper(cmd, workdir, job=None):
+def singularity_wrapper(cmd, workdir, job):
     """
     Prepend the given command with the singularity execution command
     E.g. cmd = /bin/bash hello_world.sh
@@ -197,7 +197,7 @@ def singularity_wrapper(cmd, workdir, job=None):
 
     :param cmd (string): command to be prepended.
     :param workdir: explicit work directory where the command should be executed (needs to be set for Singularity).
-    :param job: optional job object.
+    :param job: job object.
     :return: prepended command with singularity execution command (string).
     """
 
