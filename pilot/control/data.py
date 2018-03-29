@@ -40,11 +40,14 @@ def control(queues, traces, args):
 
 def _call(args, executable, cwd=os.getcwd(), logger=logger):
     try:
-        process = subprocess.Popen(executable,
-                                   bufsize=-1,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE,
-                                   cwd=cwd)
+        process = execute(executable, workdir=cwd, returnproc=True,
+                          usecontainer=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
+
+        # process = subprocess.Popen(executable,
+        #                            bufsize=-1,
+        #                            stdout=subprocess.PIPE,
+        #                            stderr=subprocess.PIPE,
+        #                            cwd=cwd)
     except Exception as e:
         logger.error('could not execute: %s' % str(e))
         return False
@@ -329,11 +332,14 @@ def _stage_out(args, outfile, job):
                   outfile['name']]
 
     try:
-        process = subprocess.Popen(executable,
-                                   bufsize=-1,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE,
-                                   cwd=job.workdir)
+        process = execute(executable, workdir=job.workdir, returnproc=True,
+                          usecontainer=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=job.workdir)
+
+        # process = subprocess.Popen(executable,
+        #                            bufsize=-1,
+        #                            stdout=subprocess.PIPE,
+        #                            stderr=subprocess.PIPE,
+        #                            cwd=job.workdir)
     except Exception as e:
         log.error('could not execute: %s' % str(e))
         return None
