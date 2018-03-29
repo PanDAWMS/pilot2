@@ -14,6 +14,7 @@ from pilot.user.atlas.setup import get_asetup
 from pilot.user.atlas.setup import get_file_system_root_path
 from pilot.info import infosys
 from pilot.util.config import config
+# import pilot.info.infoservice as infosys
 
 import logging
 logger = logging.getLogger(__name__)
@@ -163,7 +164,6 @@ def alrb_wrapper(cmd, platform, workdir, queuedata=None):
     """
 
     if not queuedata:
-        import pilot.info.infosys as infosys
         queuedata = infosys.queuedata
 
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
@@ -206,7 +206,6 @@ def singularity_wrapper(cmd, platform, workdir, queuedata=None):
     """
 
     if not queuedata:
-        import pilot.info.infosys as infosys
         queuedata = infosys.queuedata
 
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
