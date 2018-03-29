@@ -30,7 +30,6 @@ def wrapper(executable, **kwargs):
     :return: executable wrapped with container command (string).
     """
 
-    platform = kwargs.get('platform', '')
     workdir = kwargs.get('workdir', '.')
     pilot_home = os.environ.get('PILOT_HOME', '')
     job = kwargs.get('job')
@@ -42,7 +41,7 @@ def wrapper(executable, **kwargs):
         fctn = alrb_wrapper
     else:
         fctn = singularity_wrapper
-    return fctn(executable, platform, workdir, job=job)
+    return fctn(executable, workdir, job=job)
 
 
 # def use_payload_container(job):
@@ -147,7 +146,7 @@ def get_middleware_type():
     return middleware_type
 
 
-def alrb_wrapper(cmd, platform, workdir, job=None):
+def alrb_wrapper(cmd, workdir, job=None):
     """
     Wrap the given command with the special ALRB setup for containers
     E.g. cmd = /bin/bash hello_world.sh
@@ -157,7 +156,6 @@ def alrb_wrapper(cmd, platform, workdir, job=None):
     setupATLAS -c $thePlatform
 
     :param cmd (string): command to be executed in a container.
-    :param platform (string): platform specifics.
     :param workdir: (not used)
     :param job: optional job object.
     :return: prepended command with singularity execution command (string).
@@ -179,7 +177,7 @@ def alrb_wrapper(cmd, platform, workdir, job=None):
             "resolved singularity_options from queuedata.container_options: %s" % singularity_options)
 
         _cmd = asetup
-        _cmd += 'export thePlatform=\"%s\";' % platform
+        _cmd += 'export thePlatform=\"%s\";' % job.platform
         if singularity_options != "":
             _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % singularity_options
         _cmd += 'export ALRB_CONT_RUNPAYLOAD=\"%s\";' % cmd
@@ -190,7 +188,7 @@ def alrb_wrapper(cmd, platform, workdir, job=None):
     return cmd
 
 
-def singularity_wrapper(cmd, platform, workdir, job=None):
+def singularity_wrapper(cmd, workdir, job=None):
     """
     Prepend the given command with the singularity execution command
     E.g. cmd = /bin/bash hello_world.sh
@@ -198,7 +196,6 @@ def singularity_wrapper(cmd, platform, workdir, job=None):
     singularity exec -B <bindmountsfromcatchall>  /cvmfs/atlas.cern.ch/repo/images/singularity/x86_64-slc6.img <script>
 
     :param cmd (string): command to be prepended.
-    :param platform (string): platform specifics.
     :param workdir: explicit work directory where the command should be executed (needs to be set for Singularity).
     :param job: optional job object.
     :return: prepended command with singularity execution command (string).
@@ -220,7 +217,7 @@ def singularity_wrapper(cmd, platform, workdir, job=None):
             logger.warning('singularity options not set')
 
         # Get the image path
-        image_path = get_grid_image_for_singularity(platform)
+        image_path = get_grid_image_for_singularity(job.platform)
 
         # Does the image exist?
         if image_path != '':
