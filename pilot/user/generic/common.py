@@ -120,11 +120,12 @@ def get_utility_command_kill_signal(name):
     return signal.SIGTERM
 
 
-def get_utility_command_output_filename(name):
+def get_utility_command_output_filename(name, selector=None):
     """
-    Return the filename of the output from the utility command.
+    Return the filename to the output of the utility command.
 
     :param name: utility name (string).
+    :param selector: optional special conditions flag (boolean).
     :return: filename (string).
     """
 

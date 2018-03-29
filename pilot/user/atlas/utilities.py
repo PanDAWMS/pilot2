@@ -32,14 +32,19 @@ def get_network_monitor_setup(setup, job):
     return ''
 
 
-def get_memory_monitor_summary_filename():
+def get_memory_monitor_summary_filename(selector):
     """
     Return the name for the memory monitor summary file.
 
+    :param selector: special conditions flag (boolean).
     :return: File name (string).
     """
 
-    return "memory_monitor_summary.json"
+    name = "memory_monitor_summary.json"
+    if selector:
+        name += '_snapshot'
+
+    return name
 
 
 def get_memory_monitor_output_filename():

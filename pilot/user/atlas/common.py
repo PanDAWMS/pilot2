@@ -663,16 +663,17 @@ def get_utility_command_kill_signal(name):
     return sig
 
 
-def get_utility_command_output_filename(name):
+def get_utility_command_output_filename(name, selector=None):
     """
     Return the filename to the output of the utility command.
 
     :param name: utility name (string).
+    :param selector: optional special conditions flag (boolean).
     :return: filename (string).
     """
 
     if name == 'MemoryMonitor':
-        filename = get_memory_monitor_summary_filename()
+        filename = get_memory_monitor_summary_filename(selector)
     else:
         filename = ""
 
