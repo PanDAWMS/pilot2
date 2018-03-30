@@ -103,8 +103,8 @@ def _stage_in(args, job):
 
     os.environ['RUCIO_LOGGING_FORMAT'] = '{0}%(asctime)s %(levelname)s [%(message)s]'
     if not _call(args,
-#                 ['/usr/bin/env',
-                  ['rucio', '-v', 'download',
+                 ['/usr/bin/env',
+                  'rucio', '-v', 'download',
                   '--no-subdir',
                   '--rse', job.ddmendpointin,
                   '%s:%s' % (job.scopein, job.infiles)],  # notice the bug here, infiles might be a ,-separated str
