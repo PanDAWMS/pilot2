@@ -31,6 +31,8 @@ def execute(executable, **kwargs):
     timeout = kwargs.get('timeout', 120)
     usecontainer = kwargs.get('usecontainer', False)
     returnproc = kwargs.get('returnproc', False)
+    job = kwargs.get('job')
+    logger.info('workdir = %s' % job.workdir)
 
     # convert executable to string if it is a list
     if type(executable) is list:
