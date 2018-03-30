@@ -48,7 +48,7 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
         else:
             usecontainer = False
             logger.info('command %s is available locally, no need to use container' % executable[1])
-        log.info('workdir=%s' % job.workdir)
+        logger.info('workdir=%s' % job.workdir)
         process = execute(executable, workdir=job.workdir, returnproc=True,
                           usecontainer=usecontainer, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, job=job)
 
