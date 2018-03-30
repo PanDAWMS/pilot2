@@ -44,15 +44,13 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
         # if the middleware is available locally, do not use container
         if find_executable(executable[1]) == "":
             usecontainer = True
-        else:
-            usecontainer = False
-        if usecontainer:
             logger.info('command %s is not available locally, will attempt to use container' % executable[1])
         else:
+            usecontainer = False
             logger.info('command %s is available locally, no need to use container' % executable[1])
 
         process = execute(executable, workdir=job.workdir, returnproc=True,
-                          usecontainer=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, job=job)
+                          usecontainer=usecontainer, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, job=job)
 
         # process = subprocess.Popen(executable,
         #                            bufsize=-1,
