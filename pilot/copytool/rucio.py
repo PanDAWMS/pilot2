@@ -65,7 +65,7 @@ def copy_in(files):
     return files
 
 
-def copy_out(files, rse=None, scope=None):
+def copy_out(files, rse=None, scope=None, register=True):
     """
     Tries to upload the given files using rucio
 
@@ -79,16 +79,21 @@ def copy_out(files, rse=None, scope=None):
 
     # destinations = merge_destinations(files)
 
-    if len(destinations) == 0:
+    if len(files) == 0:
         raise Exception('No lfn with existing destination path given!')
 
     executable = ['/usr/bin/env',
                   'rucio', 'upload']
 
-    if rse is not None: executable.extend(['--rse', rse])
-    if scope is not None: executable.extend(['--scope', scope])
+    if rse is not None:
+        executable.extend(['--rse', rse])
+    if scope is not None:
+        executable.extend(['--scope', scope])
+    if not register:
+        executable.append('--no-register')
+
     for f in files:
-        if f is None or f=='':
+        if f is None or f == '':
             continue
         executable.extend(['--files', f])
 
@@ -108,6 +113,4 @@ def copy_out(files, rse=None, scope=None):
             except Exception as e:
                 stats['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % \
                                   str(e)
-        for f in destinations[dst]['files']:
-            f.update(stats)
     return files
