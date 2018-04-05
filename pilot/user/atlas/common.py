@@ -19,7 +19,7 @@ from pilot.util.container import execute
 from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job
 from pilot.util.filehandling import remove
 from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
-    get_memory_monitor_summary_filename
+    get_memory_monitor_summary_filename, get_prefetcher_setup(job)
 
 import logging
 logger = logging.getLogger(__name__)
@@ -609,6 +609,8 @@ def get_utility_command_setup(name, job, setup=None):
         return get_memory_monitor_setup(job)
     elif name == 'NetworkMonitor' and setup:
         return get_network_monitor_setup(setup, job)
+    elif name == 'Prefetcher':
+        return get_prefetcher_setup(job)
     else:
         return ""
 
