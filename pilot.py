@@ -25,7 +25,7 @@ from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 from pilot.util.harvester import is_harvester_mode
 
-VERSION = '2018-03-30.004'
+VERSION = '2018-04-05.001'
 
 
 def main():
@@ -255,11 +255,11 @@ if __name__ == '__main__':
     arg_parser.add_argument('--harvester-eventstatusdump',
                             dest='harvester_eventstatusdump',
                             default='',
-                            help='Harvester event status dump json file')
+                            help='Harvester event status dump json file containing processing status')
     arg_parser.add_argument('--harvester-workerattributes',
                             dest='harvester_workerattributes',
                             default='',
-                            help='Harvester worker attributes json file')
+                            help='Harvester worker attributes json file containing job status')
     arg_parser.add_argument('--resource-type',
                             dest='resource_type',
                             default='',
