@@ -18,13 +18,24 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def get_benchmark_setup(job):
+    """
+    Return the proper setup for the benchmark command.
+
+    :param job: job object.
+    :return: setup string for the benchmark command.
+    """
+
+    return ''
+
+
 def get_prefetcher_setup(job):
     """
     Return the proper setup for the Prefetcher.
     Prefetcher is a tool used with the Event Streaming Service.
 
-    :param job: job object
-    :return:
+    :param job: job object.
+    :return: setup string for the Prefetcher command.
     """
 
     # add code here ..
