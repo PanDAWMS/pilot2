@@ -14,7 +14,7 @@ from glob import glob
 from signal import SIGTERM, SIGUSR1
 
 # from pilot.common.exception import PilotException
-from pilot.util.constants import UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD
+from pilot.util.constants import UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD, UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
 from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job
 from pilot.util.filehandling import remove
@@ -579,7 +579,8 @@ def get_utility_commands_list(order=None):
     E.g. if order=UTILITY_BEFORE_PAYLOAD, the function should return all commands that are to be executed before the
     payload. If order=UTILITY_WITH_PAYLOAD, the corresponding commands will be prepended to the payload execution
     string. If order=UTILITY_AFTER_PAYLOAD, the commands that should be executed after the payload has been started
-    should be returned.
+    should be returned. If order=UTILITY_WITH_STAGEIN, the commands that should be executed parallel with stage-in will
+    be returned.
 
     :param order: optional sorting order (see pilot.util.constants)
     :return: list of utilities to be executed in parallel with the payload.
@@ -590,7 +591,8 @@ def get_utility_commands_list(order=None):
             return ['NetworkMonitor']
         elif order == UTILITY_AFTER_PAYLOAD:
             return ['MemoryMonitor']
-
+        elif order == UTILITY_WITH_STAGEIN:
+            return ['Benchmark']
     return []
 
 
