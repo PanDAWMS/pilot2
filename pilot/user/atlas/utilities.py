@@ -18,6 +18,20 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def get_prefetcher_setup(job):
+    """
+    Return the proper setup for the Prefetcher.
+    Prefetcher is a tool used with the Event Streaming Service.
+
+    :param job: job object
+    :return:
+    """
+
+    # add code here ..
+
+    return ''
+
+
 def get_network_monitor_setup(setup, job):
     """
     Return the proper setup for the network monitor.
