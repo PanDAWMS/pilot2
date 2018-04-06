@@ -41,6 +41,11 @@ def control(queues, traces, args):
 
 def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
     try:
+        #
+        from pilot.user.atlas.setup import get_asetup
+        setup = get_asetup(asetup=False)
+        executable = setup.split() + executable
+
         # if the middleware is available locally, do not use container
         if find_executable(executable[1]) == "":
             usecontainer = True
@@ -102,7 +107,7 @@ def _stage_in(args, job):
     os.environ['RUCIO_LOGGING_FORMAT'] = '{0}%(asctime)s %(levelname)s [%(message)s]'
     if not _call(args,
                  ['/usr/bin/env',
-                  'lsetup rucio', 'rucio', '-v', 'download',
+                  'rucio', '-v', 'download',
                   '--no-subdir',
                   '--rse', job.ddmendpointin,
                   '%s:%s' % (job.scopein, job.infiles)],  # notice the bug here, infiles might be a ,-separated str
