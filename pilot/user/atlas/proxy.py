@@ -9,7 +9,7 @@
 
 # from pilot.util.container import execute
 
-from pilot.user.atlas import get_file_system_root_path
+from pilot.user.atlas.setup import get_file_system_root_path
 from pilot.util.container import execute
 
 import logging
