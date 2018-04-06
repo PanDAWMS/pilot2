@@ -324,3 +324,21 @@ def find_executable(name):
 
     from distutils.spawn import find_executable
     return find_executable(name)
+
+
+def get_directory_size(directory="."):
+    """
+    Return the size of the given directory.
+
+    :param directory: directory name (string).
+    :return: size of directory
+    """
+    """
+    Tmp function - move later to file_handling
+
+    :return:
+    """
+    c, o, e = execute('du -s', shell=True)
+    if o is not None:
+        return o.split()[0]
+    return None
