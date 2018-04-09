@@ -53,15 +53,10 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
         else:
             usecontainer = False
             logger.info('command %s is available locally, no need to use container' % executable[1])
-        usecontainer = True
+
         process = execute(executable, workdir=job.workdir, returnproc=True,
                           usecontainer=usecontainer, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, job=job)
 
-        # process = subprocess.Popen(executable,
-        #                            bufsize=-1,
-        #                            stdout=subprocess.PIPE,
-        #                            stderr=subprocess.PIPE,
-        #                            cwd=cwd)
     except Exception as e:
         logger.error('could not execute: %s' % str(e))
         return False
