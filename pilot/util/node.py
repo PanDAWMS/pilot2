@@ -27,7 +27,7 @@ def get_meminfo():
         while mems:
             if mems.upper().find("MEMTOTAL") != -1:
                 try:
-                    mem = float(mems.split()[1]) / 1024
+                    mem = float(mems.split()[1]) / 1024  # value listed by command as kB, convert to MB
                 except ValueError as e:
                     logger.warning('exception caught while trying to convert meminfo: %s' % e)
                 break
@@ -52,7 +52,7 @@ def get_cpuinfo():
                     cpu = float(line.split(":")[1])
                 except ValueError as e:
                     logger.warning('exception caught while trying to convert cpuinfo: %s' % e)
-                break
+                break  # command info is the same for all cores, so break here
 
     return cpu
 
@@ -67,13 +67,15 @@ def get_diskspace(path):
     """
 
     disk = 0.0
-    diskpipe = popen("df -mP %s" % (path))  # -m = MB
+    # -mP = blocks of 1024*1024 (MB) and POSIX format
+    diskpipe = popen("df -mP %s" % (path))
     disks = diskpipe.read()
     if not diskpipe.close():
         try:
             disk = float(disks.splitlines()[1].split()[3])
         except ValueError as e:
             logger.warning('exception caught while trying to convert disk info: %s' % e)
+
     return disk
 
 
