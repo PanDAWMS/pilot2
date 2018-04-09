@@ -337,7 +337,7 @@ def get_directory_size(directory="."):
 
     size = 0
 
-    c, o, e = execute('du -sk', shell=True)
+    c, o, e = execute('du -sk %s' % directory, shell=True)
     if o is not None:
         try:
             size = int(o.split()[0])
