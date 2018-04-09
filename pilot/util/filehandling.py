@@ -341,7 +341,7 @@ def get_directory_size(directory="."):
     if o is not None:
         try:
             size = int(o.split()[0])
-        except ValueError as e:
+        except Exception as e:
             logger.warning('exception caught while trying convert dirsize: %s' % e)
 
     return size
