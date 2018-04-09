@@ -7,6 +7,8 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
+from string import find
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -44,7 +46,7 @@ def get_cpuinfo():
     with open("/proc/cpuinfo", "r") as fd:
         lines = fd.readlines()
         for line in lines:
-            if not string.find(line, "cpu MHz"):
+            if not find(line, "cpu MHz"):
                 try:
                     cpu = float(line.split(":")[1])
                 except ValueError as e:
