@@ -11,10 +11,12 @@
 
 from pilot.user.atlas.setup import get_file_system_root_path
 from pilot.util.container import execute
+from pilot.common.errorcodes import ErrorCodes
 
 import logging
 
 logger = logging.getLogger(__name__)
+errors = ErrorCodes()
 
 
 def verify_proxy(limit=None):
@@ -41,34 +43,41 @@ def verify_proxy(limit=None):
 
     cmd = "%sarcproxy -i vomsACvalidityLeft" % (envsetup)
 
-    tolog("Executing command: %s" % (cmd))
-    exitcode, output = commands.getstatusoutput(cmd)
-    if "command not found" in output:
-        tolog("!!WARNING!!1234!! arcproxy is not available on this queue, this can lead to memory issues with voms-proxy-info on SL6: %s" % (output))
-    else:
-        ec, pilotErrorDiag = self.interpretProxyInfo(exitcode, output, limit)
-        if ec == 0:
-            tolog("Voms proxy verified using arcproxy")
-            return 0, pilotErrorDiag
-        elif ec == error.ERR_NOVOMSPROXY:
-            return ec, pilotErrorDiag
+    logger.info('executing command: %s' % cmd)
+    exit_code, stdout, stderr = execute(cmd, shell=True)
+    if stdout is not None:
+        if "command not found" in stdout:
+            logger.warning("arcproxy is not available on this queue,"
+                           "this can lead to memory issues with voms-proxy-info on SL6: %s" % (stdout))
         else:
-            tolog("Will try voms-proxy-info instead")
+            ec, diagnostics = interpret_proxy_info(exit_code, stdout, limit)
+            if ec == 0:
+                logger.info("voms proxy verified using arcproxy")
+                return 0, diagnostics
+            elif ec == errors.NOVOMSPROXY:
+                return ec, diagnostics
+            else:
+                logger.info("will try voms-proxy-info instead")
+    else:
+        logger.warning('command execution failed')
 
     # -valid HH:MM is broken
     if "; ;" in envsetup:
         envsetup = envsetup.replace('; ;', ';')
-        tolog("Removed a double ; from envsetup")
+
     cmd = "%svoms-proxy-info -actimeleft --file $X509_USER_PROXY" % (envsetup)
-    tolog("Executing command: %s" % (cmd))
-    exitcode, output = commands.getstatusoutput(cmd)
-    if "command not found" in output:
-        tolog("Skipping voms proxy check since command is not available")
+    logger.info('executing command: %s' % cmd)
+    exit_code, stdout, stderr = execute(cmd, shell=True)
+    if stdout is not None:
+        if "command not found" in stdout:
+            logger.info("skipping voms proxy check since command is not available")
+        else:
+            ec, diagnostics = interpret_proxy_info(exit_code, stdout, limit)
+            if ec == 0:
+                logger.info("voms proxy verified using voms-proxy-info")
+                return 0, diagnostics
     else:
-        ec, pilotErrorDiag = self.interpretProxyInfo(exitcode, output, limit)
-        if ec == 0:
-            tolog("Voms proxy verified using voms-proxy-info")
-            return 0, pilotErrorDiag
+        logger.warning('command execution failed')
 
     if limit:
         # next clause had problems: grid-proxy-info -exists -valid 0.166666666667:00
@@ -79,21 +88,78 @@ def verify_proxy(limit=None):
         cmd = "%sgrid-proxy-info -exists -valid %d:%02d" % (envsetup, limit_hours, limit_minutes)
     else:
         cmd = "%sgrid-proxy-info -exists -valid 24:00" % (envsetup)
-    tolog("Executing command: %s" % (cmd))
-    exitcode, output = commands.getstatusoutput(cmd)
-    if exitcode != 0:
-        if output.find("command not found") > 0:
-            tolog("Skipping grid proxy check since command is not available")
+
+    logger.info('executing command: %s' % cmd)
+    exit_code, stdout, stderr = execute(cmd, shell=True)
+    if stdout is not None:
+        if exit_code != 0:
+            if stdout.find("command not found") > 0:
+                logger.info("skipping grid proxy check since command is not available")
+            else:
+                # Analyze exit code / stdout
+                diagnostics = "grid proxy certificate does not exist or is too short: %d, %s" % (exit_code, stdout)
+                logger.warning(diagnostics)
+                return errors.NOPROXY, diagnostics
+        else:
+            logger.info("grid proxy verified")
+    else:
+        logger.warning('command execution failed')
+
+    return exit_code, diagnostics
+
+
+def interpret_proxy_info(ec, output, limit):
+    """
+    Interpret the output from arcproxy or voms-proxy-info.
+
+    :param ec: exit code from proxy command (int).
+    :param output: output from proxy command (string).
+    :param limit: time limit in hours (int).
+    :return: exit code (int), diagnostics (string).
+    """
+
+    exitcode = 0
+    diagnostics = ""
+
+    if ec != 0:
+        if "Unable to verify signature! Server certificate possibly not installed" in output:
+            logger.warning("skipping voms proxy check: %s" % (output))
+        # test for command errors
+        elif "arcproxy:" in output:
+            diagnostics = "Arcproxy failed: %s" % (output)
+            logger.warning(diagnostics)
+            exitcode = errors.GENERALERROR
         else:
             # Analyze exit code / output
-            from futil import check_syserr
-            check_syserr(exitcode, output)
-            pilotErrorDiag = "Grid proxy certificate does not exist or is too short: %d, %s" % (exitcode, output)
-            tolog("!!WARNING!!2999!! %s" % (pilotErrorDiag))
-            return error.ERR_NOPROXY, pilotErrorDiag
+            diagnostics = "Voms proxy certificate check failure: %d, %s" % (ec, output)
+            logger.warning(diagnostics)
+            exitcode = errors.NOVOMSPROXY
     else:
-        tolog("Grid proxy verified")
+        # remove any additional print-outs if present, assume that the last line is the time left
+        if "\n" in output:
+            output = output.split('\n')[-1]
 
-#    return 0, pilotErrorDiag
+        # test for command errors
+        if "arcproxy:" in output:
+            diagnostics = "Arcproxy failed: %s" % (output)
+            logger.warning(diagnostics)
+            exitcode = errors.GENERALERROR
+        else:
+            # on EMI-3 the time output is different (HH:MM:SS as compared to SS on EMI-2)
+            if ":" in output:
+                ftr = [3600, 60, 1]
+                output = sum([a*b for a,b in zip(ftr, map(int,output.split(':')))])
+            try:
+                validity = int(output)
+                if validity >= limit * 3600:
+                    logger.info("voms proxy verified (%ds)" % (validity))
+                else:
+                    diagnostics = "voms proxy certificate does not exist or is too short (lifetime %d s)" % (validity)
+                    logger.warning(diagnostics)
+                    exitcode = errors.NOVOMSPROXY
+            except ValueError:
+                diagnostics = "failed to evalute command output: %s" % (output)
+                logger.warning(diagnostics)
+                exitcode = errors.GENERALERROR
 
     return exitcode, diagnostics

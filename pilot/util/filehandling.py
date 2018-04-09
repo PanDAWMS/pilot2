@@ -337,10 +337,10 @@ def get_directory_size(directory="."):
 
     size = 0
 
-    c, o, e = execute('du -sk %s' % directory, shell=True)
-    if o is not None:
+    exit_code, stdout, stderr = execute('du -sk %s' % directory, shell=True)
+    if stdout is not None:
         try:
-            size = int(o.split()[0])
+            size = int(stdout.split()[0])
         except Exception as e:
             logger.warning('exception caught while trying convert dirsize: %s' % e)
 
