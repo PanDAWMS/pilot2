@@ -14,6 +14,7 @@ from collections import deque
 from shutil import copy2
 
 from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile
+from pilot.util.container import execute
 
 import logging
 logger = logging.getLogger(__name__)
@@ -338,3 +339,23 @@ def get_directory_size(directory="."):
     if o is not None:
         return o.split()[0]
     return None
+
+
+def getDirSize(d):
+    """ Return the size of directory d using du -sk """
+
+    tolog("Checking size of work dir: %s" % (d))
+    from commands import getoutput
+    size_str = getoutput("du -sk %s" % (d))
+    size = 0
+
+    # E.g., size_str = "900\t/scratch-local/nilsson/pilot3z"
+    try:
+       # Remove tab and path, and convert to int (and B)
+        size = int(size_str.split("\t")[0])*1024
+    except Exception, e:
+        tolog("!!WARNING!!4343!! Failed to convert to int: %s" % (e))
+    else:
+        tolog("Size of directory %s: %d B" % (d, size))
+
+    return size
