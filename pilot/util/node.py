@@ -8,6 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 from string import find
+from os import popen
 
 import logging
 logger = logging.getLogger(__name__)
@@ -66,7 +67,7 @@ def get_diskspace(path):
     """
 
     disk = 0.0
-    diskpipe = os.popen("df -mP %s" % (path))  # -m = MB
+    diskpipe = popen("df -mP %s" % (path))  # -m = MB
     disks = diskpipe.read()
     if not diskpipe.close():
         try:
