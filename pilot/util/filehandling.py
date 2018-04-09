@@ -332,30 +332,16 @@ def get_directory_size(directory="."):
     Return the size of the given directory.
 
     :param directory: directory name (string).
-    :return: size of directory
+    :return: size of directory (int).
     """
+
+    size = 0
 
     c, o, e = execute('du -sk', shell=True)
     if o is not None:
-        return o.split()[0]
-    return None
-
-
-def getDirSize(d):
-    """ Return the size of directory d using du -sk """
-
-    tolog("Checking size of work dir: %s" % (d))
-    from commands import getoutput
-    size_str = getoutput("du -sk %s" % (d))
-    size = 0
-
-    # E.g., size_str = "900\t/scratch-local/nilsson/pilot3z"
-    try:
-       # Remove tab and path, and convert to int (and B)
-        size = int(size_str.split("\t")[0])*1024
-    except Exception, e:
-        tolog("!!WARNING!!4343!! Failed to convert to int: %s" % (e))
-    else:
-        tolog("Size of directory %s: %d B" % (d, size))
+        try:
+            size = int(o.split()[0])
+        except ValueError as e:
+            logger.warning('exception caught while trying convert dirsize: %s' % e)
 
     return size
