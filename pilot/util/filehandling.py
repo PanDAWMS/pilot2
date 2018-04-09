@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 import os
 import time
@@ -333,12 +333,8 @@ def get_directory_size(directory="."):
     :param directory: directory name (string).
     :return: size of directory
     """
-    """
-    Tmp function - move later to file_handling
 
-    :return:
-    """
-    c, o, e = execute('du -s', shell=True)
+    c, o, e = execute('du -sk', shell=True)
     if o is not None:
         return o.split()[0]
     return None
