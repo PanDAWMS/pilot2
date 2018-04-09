@@ -93,3 +93,25 @@ def collect_workernode_info(path):
     disk = get_diskspace(path)
 
     return mem, cpu, disk
+
+
+def is_virtual_machine():
+    """
+    Are we running in a virtual machine?
+    If we are running inside a VM, then linux will put 'hypervisor' in cpuinfo. This function looks for the presence
+    of that.
+
+    :return: boolean.
+    """
+
+    status = False
+
+    # look for 'hypervisor' in cpuinfo
+    with open("/proc/cpuinfo", "r") as fd:
+        lines = fd.readlines()
+        for line in lines:
+            if "hypervisor" in line:
+                status = True
+                break
+
+    return status
