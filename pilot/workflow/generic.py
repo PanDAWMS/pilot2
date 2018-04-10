@@ -88,23 +88,15 @@ def run(args):
     while threading.activeCount() > 1:
         for thread in threads:
             print 'generic workflow - thread name: %s' % thread.name
+            bucket = thread.get_bucket()
             try:
-                bucket = thread.get_bucket()
-                if bucket:
-                    print 'received bucket'
-                    exc = bucket.get(block=True)
-                    if exc:
-                        print 'received bucket content'
-                    else:
-                        print 'received empty bucket'
-                else:
-                    print 'did not receive any buckets'
+                exc = bucket.get(block=False)
             except Queue.Empty:
-                pass
+                print 'bucket queue is empty'
             else:
                 exc_type, exc_obj, exc_trace = exc
                 # deal with the exception
-                print 'caught exception: %s' % exc_obj
+                print 'received exception from bucket queue: %s' % exc_obj
                 # logger.fatal('caught exception: %s' % exc_obj)
 
             thread.join(0.1)

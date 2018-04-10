@@ -226,9 +226,10 @@ class ExcThread(threading.Thread):
             print traceback.format_exc()
             print traceback.print_tb(exc_info()[2])
             self.bucket.put(exc_info())
+            print 'exception info put in bucket queue'
             args = self._Thread__kwargs.get('args', None)
             if args:
-                print 'set graceful stop'
+                print 'setting graceful stop since there is no point in continuing'
                 args.graceful_stop.set()
 
     def get_bucket(self):
