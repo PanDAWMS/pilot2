@@ -15,6 +15,7 @@ import sys
 import time
 from json import dumps
 from subprocess import PIPE
+import threading
 
 from pilot.info import infosys, JobData
 from pilot.util import https
