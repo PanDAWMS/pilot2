@@ -208,6 +208,7 @@ class ExcThread(threading.Thread):
         :param kwargs: target function options.
         """
         threading.Thread.__init__(self, target=target, kwargs=kwargs, name=name)
+        self.name = name
         self.bucket = bucket
 
     def run(self):
@@ -224,6 +225,13 @@ class ExcThread(threading.Thread):
             print traceback.format_exc()
             print traceback.print_tb(exc_info()[2])
             self.bucket.put(exc_info())
+            args = self._Thread__kwargs.get('args', None)
+            if args:
+                print 'set graceful stop'
+                args.graceful_stop.set()
+            else:
+                print 'args not received'
+            print 'thread %s' % self.name
 
     def get_bucket(self):
         """

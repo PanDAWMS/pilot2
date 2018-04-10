@@ -86,7 +86,9 @@ def run(args):
 
     # status = True
     while threading.activeCount() > 1:
-        for thread in threads:
+ #       for thread in threads:
+        for thread in threading.enumerate():
+            print 'thread name %s' % thread.name
             try:
                 bucket = thread.get_bucket()
                 exc = bucket.get(block=False)
