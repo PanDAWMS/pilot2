@@ -222,6 +222,7 @@ class ExcThread(threading.Thread):
             # logger object can't be used here for some reason:
             # IOError: [Errno 2] No such file or directory: '/state/partition1/scratch/PanDA_Pilot2_*/pilotlog.txt'
             print 'exception caught by thread run function: %s' % str(exc_info())
+            print 'thread name: %s' % self.name
             print traceback.format_exc()
             print traceback.print_tb(exc_info()[2])
             self.bucket.put(exc_info())
@@ -229,9 +230,6 @@ class ExcThread(threading.Thread):
             if args:
                 print 'set graceful stop'
                 args.graceful_stop.set()
-            else:
-                print 'args not received'
-            print 'thread %s' % self.name
 
     def get_bucket(self):
         """

@@ -98,7 +98,7 @@ def run(args):
                 exc_type, exc_obj, exc_trace = exc
                 # deal with the exception
                 print 'caught exception: %s' % exc_obj
-                logger.fatal('caught exception: %s' % exc_obj)
+                # logger.fatal('caught exception: %s' % exc_obj)
 
             thread.join(0.1)
             # if thread.isAlive():
