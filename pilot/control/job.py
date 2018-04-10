@@ -67,7 +67,8 @@ def control(queues, traces, args):
                 exc_type, exc_obj, exc_trace = exc
                 # deal with the exception
                 print 'received exception from bucket queue in job thread: %s' % exc_obj
-
+                print 'setting graceful stop since there is no point in continuing'
+                args.graceful_stop.set()
             thread.join(0.1)
 
 
