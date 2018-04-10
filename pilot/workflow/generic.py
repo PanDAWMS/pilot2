@@ -84,27 +84,20 @@ def run(args):
 
     logger.info('waiting for interrupts')
 
-    # status = True
     while threading.activeCount() > 1:
         for thread in threads:
-            print 'generic workflow - thread name: %s' % thread.name
             bucket = thread.get_bucket()
             try:
                 exc = bucket.get(block=False)
             except Queue.Empty:
-                print 'bucket queue is empty'
+                pass
             else:
                 exc_type, exc_obj, exc_trace = exc
                 # deal with the exception
-                print 'received exception from bucket queue: %s' % exc_obj
+                print 'received exception from bucket queue in generic workflow: %s' % exc_obj
                 # logger.fatal('caught exception: %s' % exc_obj)
 
             thread.join(0.1)
-            # if thread.isAlive():
-            #     continue
-            # else:
-            #     status = False
-            #    break
 
     logger.info('end of generic workflow')
 
