@@ -86,12 +86,19 @@ def run(args):
 
     # status = True
     while threading.activeCount() > 1:
- #       for thread in threads:
-        for thread in threading.enumerate():
-            print 'thread name %s' % thread.name
+        for thread in threads:
+            print 'thread name: %s' % thread.name
             try:
                 bucket = thread.get_bucket()
-                exc = bucket.get(block=False)
+                if bucket:
+                    print 'received bucket'
+                    exc = bucket.get(block=False)
+                    if exc:
+                        print 'received bucket content'
+                    else:
+                        print 'received empty bucket'
+                else:
+                    print 'did not receive any buckets'
             except Queue.Empty:
                 pass
             else:
