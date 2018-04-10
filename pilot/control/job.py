@@ -25,7 +25,7 @@ from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_sche
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.util.container import execute
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import ExcThread, PilotException
+from pilot.common.exception import ExcThread, PilotException, NoLocalSpace
 
 import logging
 logger = logging.getLogger(__name__)
@@ -311,6 +311,10 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     :param harvester: True if Harvester is used, False otherwise. Affects the max number of getjob reads (from file).
     :return: Boolean based on the input parameters
     """
+
+    time.sleep(10)
+
+    raise NoLocalSpace('testing exception from proceed_with_getjob')
 
     currenttime = time.time()
 
