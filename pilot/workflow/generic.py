@@ -87,12 +87,12 @@ def run(args):
     # status = True
     while threading.activeCount() > 1:
         for thread in threads:
-            print 'thread name: %s' % thread.name
+            print 'generic workflow - thread name: %s' % thread.name
             try:
                 bucket = thread.get_bucket()
                 if bucket:
                     print 'received bucket'
-                    exc = bucket.get(block=False)
+                    exc = bucket.get(block=True)
                     if exc:
                         print 'received bucket content'
                     else:
