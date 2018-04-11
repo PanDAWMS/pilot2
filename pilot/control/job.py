@@ -64,7 +64,7 @@ def control(queues, traces, args):
                 exc = bucket.get(block=False)
                 logger.debug('exc=%s' % str(exc))
             except Queue.Empty:
-                loger.debug('empty bucket')
+                logger.debug('empty bucket')
                 pass
             else:
                 exc_type, exc_obj, exc_trace = exc
