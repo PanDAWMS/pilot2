@@ -316,7 +316,7 @@ if __name__ == '__main__':
     console = logging.StreamHandler(sys.stdout)
     if args.debug:
         logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.DEBUG,
-                            format='%(asctime)s | %(levelname)-8s | %(threadName)-16s | %(name)-32s | %(funcName)-25s | %(message)s')
+                            format='%(asctime)s | %(levelname)-8s | %(threadName)-17s | %(name)-32s | %(funcName)-25s | %(message)s')
         console.setLevel(logging.DEBUG)
         console.setFormatter(logging.Formatter(
             '%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-32s | %(message)s'))
