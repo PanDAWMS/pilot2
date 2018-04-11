@@ -67,12 +67,14 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
             usecontainer = False
             logger.info('command %s is available locally, no need to use container' % executable[1])
 
+        # for containers, we can not use a list
+        executable = ' '.join(executable)
+
         # uncomment the following for container testing
         from pilot.user.atlas.setup import get_asetup
         setup = get_asetup(asetup=False)
         setup += 'lsetup rucio;'
-        setup = setup.replace(';', ' ')
-        executable = setup.split() + executable
+        executable = setup + executable
         usecontainer = True
 
         process = execute(executable, workdir=job.workdir, returnproc=True,
@@ -121,12 +123,15 @@ def _stage_in(args, job):
     log = logger.getChild(job.jobid)
 
     os.environ['RUCIO_LOGGING_FORMAT'] = '{0}%(asctime)s %(levelname)s [%(message)s]'
-    if not _call(args,
-                 ['/usr/bin/env',
+
+    executable = ['/usr/bin/env',
                   'rucio', '-v', 'download',
                   '--no-subdir',
                   '--rse', job.ddmendpointin,
                   '%s:%s' % (job.scopein, job.infiles)],  # notice the bug here, infiles might be a ,-separated str
+
+    if not _call(args,
+                 executable,
                  job,
                  cwd=job.workdir,
                  logger=log):
