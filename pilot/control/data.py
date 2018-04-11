@@ -59,11 +59,6 @@ def control(queues, traces, args):
 
 def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
     try:
-        #
-        from pilot.user.atlas.setup import get_asetup
-        setup = get_asetup(asetup=False)
-        executable = setup.split() + executable
-
         # if the middleware is available locally, do not use container
         if find_executable(executable[1]) == "":
             usecontainer = True
@@ -72,8 +67,12 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
             usecontainer = False
             logger.info('command %s is available locally, no need to use container' % executable[1])
 
-        # force container for testing
+        # uncomment the following for container testing
+        from pilot.user.atlas.setup import get_asetup
+        setup = get_asetup(asetup=False)
+        executable = setup.split() + executable
         usecontainer = True
+
         process = execute(executable, workdir=job.workdir, returnproc=True,
                           usecontainer=usecontainer, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, job=job)
 

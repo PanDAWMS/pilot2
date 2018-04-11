@@ -44,8 +44,8 @@ def control(queues, traces, args):
     :return:
     """
 
-    t = threading.current_thread()
-    logger.debug('job.control is run by thread: %s' % t.name)
+    # t = threading.current_thread()
+    # logger.debug('job.control is run by thread: %s' % t.name)
 
     targets = {'validate': validate, 'retrieve': retrieve, 'create_data_payload': create_data_payload,
                'queue_monitor': queue_monitor, 'job_monitor': job_monitor}
