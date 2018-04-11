@@ -12,6 +12,7 @@
 Exceptions in pilot
 """
 
+import time
 import threading
 import traceback
 from sys import exc_info
@@ -229,7 +230,8 @@ class ExcThread(threading.Thread):
             print 'exception info put in bucket queue'
             args = self._Thread__kwargs.get('args', None)
             if args:
-                print 'setting graceful stop since there is no point in continuing'
+                print 'setting graceful stop in 10 s since there is no point in continuing'
+                time.sleep(10)
                 args.graceful_stop.set()
 
     def get_bucket(self):

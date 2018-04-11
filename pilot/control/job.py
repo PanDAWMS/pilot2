@@ -56,13 +56,15 @@ def control(queues, traces, args):
 
     logger.info('waiting for interrupts')
 
-#    while threading.activeCount() > 1:
     while not args.graceful_stop.is_set():
         for thread in threads:
+            logger.debug('thread name: %s' % thread.name)
             bucket = thread.get_bucket()
             try:
                 exc = bucket.get(block=False)
+                logger.debug('exc=%s' % str(exc))
             except Queue.Empty:
+                loger.debug('empty bucket')
                 pass
             else:
                 exc_type, exc_obj, exc_trace = exc
@@ -71,6 +73,7 @@ def control(queues, traces, args):
                 print 'setting graceful stop since there is no point in continuing'
                 args.graceful_stop.set()
             thread.join(0.1)
+            time.sleep(1)
 
 
 def _validate_job(job):
