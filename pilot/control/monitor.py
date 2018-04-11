@@ -14,6 +14,8 @@
 
 import logging
 import os
+import time
+
 from pilot.util.disk import disk_usage
 from pilot.util.config import config, human2bytes
 from pilot.common.exception import UnknownException

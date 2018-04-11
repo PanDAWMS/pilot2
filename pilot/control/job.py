@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 import Queue
 import os
@@ -56,6 +56,7 @@ def control(queues, traces, args):
 
     logger.info('waiting for interrupts')
 
+    # if an exception is thrown, the graceful_stop will be set by the ExcThread class run() function
     while not args.graceful_stop.is_set():
         for thread in threads:
             bucket = thread.get_bucket()
@@ -65,13 +66,13 @@ def control(queues, traces, args):
                 pass
             else:
                 exc_type, exc_obj, exc_trace = exc
-                # deal with the exception
                 logger.warning("thread \'%s\' received an exception from bucket: %s" % (thread.name, exc_obj))
-                #print 'received exception from bucket queue in job thread: %s' % exc_obj
-                #print 'setting graceful stop since there is no point in continuing'
-                #args.graceful_stop.set()
+
+                # deal with the exception
+                # ..
+
             thread.join(0.1)
-            time.sleep(1)
+            time.sleep(0.1)
 
 
 def _validate_job(job):
@@ -337,7 +338,8 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
 
     time.sleep(10)
 
-    raise NoLocalSpace('testing exception from proceed_with_getjob')
+    # use for testing thread exceptions. the exception will be picked up by ExcThread run() and caught in job.control()
+    # raise NoLocalSpace('testing exception from proceed_with_getjob')
 
     currenttime = time.time()
 

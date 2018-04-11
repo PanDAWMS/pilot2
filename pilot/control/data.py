@@ -38,6 +38,24 @@ def control(queues, traces, args):
 
     [thread.start() for thread in threads]
 
+    # if an exception is thrown, the graceful_stop will be set by the ExcThread class run() function
+    while not args.graceful_stop.is_set():
+        for thread in threads:
+            bucket = thread.get_bucket()
+            try:
+                exc = bucket.get(block=False)
+            except Queue.Empty:
+                pass
+            else:
+                exc_type, exc_obj, exc_trace = exc
+                logger.warning("thread \'%s\' received an exception from bucket: %s" % (thread.name, exc_obj))
+
+                # deal with the exception
+                # ..
+
+            thread.join(0.1)
+            time.sleep(0.1)
+
 
 def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
     try:
