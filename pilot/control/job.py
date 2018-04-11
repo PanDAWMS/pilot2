@@ -45,7 +45,7 @@ def control(queues, traces, args):
     """
 
     t = threading.current_thread()
-    logger.info('job.control is run by thread: %s' % t.name)
+    logger.debug('job.control is run by thread: %s' % t.name)
 
     targets = {'validate': validate, 'retrieve': retrieve, 'create_data_payload': create_data_payload,
                'queue_monitor': queue_monitor, 'job_monitor': job_monitor}
@@ -54,22 +54,22 @@ def control(queues, traces, args):
 
     [thread.start() for thread in threads]
 
-#    logger.info('waiting for interrupts')
+    logger.info('waiting for interrupts')
 
-#    while threading.activeCount() > 1:
-#        for thread in threads:
-#            bucket = thread.get_bucket()
-#            try:
-#                exc = bucket.get(block=False)
-#            except Queue.Empty:
-#                pass
-#            else:
-#                exc_type, exc_obj, exc_trace = exc
-#                # deal with the exception
-#                print 'received exception from bucket queue in job thread: %s' % exc_obj
-#                print 'setting graceful stop since there is no point in continuing'
-#                args.graceful_stop.set()
-#            thread.join(0.1)
+    while threading.activeCount() > 1:
+        for thread in threads:
+            bucket = thread.get_bucket()
+            try:
+                exc = bucket.get(block=False)
+            except Queue.Empty:
+                pass
+            else:
+                exc_type, exc_obj, exc_trace = exc
+                # deal with the exception
+                print 'received exception from bucket queue in job thread: %s' % exc_obj
+                print 'setting graceful stop since there is no point in continuing'
+                args.graceful_stop.set()
+            thread.join(0.1)
 
 
 def _validate_job(job):
