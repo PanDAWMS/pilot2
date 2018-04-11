@@ -58,20 +58,18 @@ def control(queues, traces, args):
 
     while not args.graceful_stop.is_set():
         for thread in threads:
-            logger.debug('thread name: %s' % thread.name)
             bucket = thread.get_bucket()
             try:
                 exc = bucket.get(block=False)
-                logger.debug('exc=%s' % str(exc))
             except Queue.Empty:
-                logger.debug('empty bucket')
                 pass
             else:
                 exc_type, exc_obj, exc_trace = exc
                 # deal with the exception
-                print 'received exception from bucket queue in job thread: %s' % exc_obj
-                print 'setting graceful stop since there is no point in continuing'
-                args.graceful_stop.set()
+                logger.warning("thread \'%s\' received an exception from bucket: %s" % (thread.name, exc_obj))
+                #print 'received exception from bucket queue in job thread: %s' % exc_obj
+                #print 'setting graceful stop since there is no point in continuing'
+                #args.graceful_stop.set()
             thread.join(0.1)
             time.sleep(1)
 
