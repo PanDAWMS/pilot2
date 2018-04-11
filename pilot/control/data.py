@@ -128,7 +128,7 @@ def _stage_in(args, job):
                   'rucio', '-v', 'download',
                   '--no-subdir',
                   '--rse', job.ddmendpointin,
-                  '%s:%s' % (job.scopein, job.infiles)],  # notice the bug here, infiles might be a ,-separated str
+                  '%s:%s' % (job.scopein, job.infiles)]  # notice the bug here, infiles might be a ,-separated str
 
     if not _call(args,
                  executable,
