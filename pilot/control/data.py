@@ -70,6 +70,8 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
         # uncomment the following for container testing
         from pilot.user.atlas.setup import get_asetup
         setup = get_asetup(asetup=False)
+        setup += 'lsetup rucio;'
+        setup = setup.replace(';', ' ')
         executable = setup.split() + executable
         usecontainer = True
 
