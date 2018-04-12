@@ -43,14 +43,13 @@ def verify_proxy(limit=None):
 
     cmd = "%sarcproxy -i vomsACvalidityLeft" % (envsetup)
 
-    logger.info('executing command: %s' % cmd)
     exit_code, stdout, stderr = execute(cmd, shell=True)
     if stdout is not None:
         if "command not found" in stdout:
             logger.warning("arcproxy is not available on this queue,"
                            "this can lead to memory issues with voms-proxy-info on SL6: %s" % (stdout))
         else:
-            ec, diagnostics = interpret_proxy_info(exit_code, stdout, limit)
+            ec, diagnostics = interpret_proxy_info(exit_code, stdout, stderr, limit)
             if ec == 0:
                 logger.info("voms proxy verified using arcproxy")
                 return 0, diagnostics
@@ -72,7 +71,7 @@ def verify_proxy(limit=None):
         if "command not found" in stdout:
             logger.info("skipping voms proxy check since command is not available")
         else:
-            ec, diagnostics = interpret_proxy_info(exit_code, stdout, limit)
+            ec, diagnostics = interpret_proxy_info(exit_code, stdout, stderr, limit)
             if ec == 0:
                 logger.info("voms proxy verified using voms-proxy-info")
                 return 0, diagnostics
@@ -108,12 +107,13 @@ def verify_proxy(limit=None):
     return exit_code, diagnostics
 
 
-def interpret_proxy_info(ec, output, limit):
+def interpret_proxy_info(ec, stdout, stderr, limit):
     """
     Interpret the output from arcproxy or voms-proxy-info.
 
     :param ec: exit code from proxy command (int).
-    :param output: output from proxy command (string).
+    :param stdout: stdout from proxy command (string).
+    :param stderr: stderr from proxy command (string).
     :param limit: time limit in hours (int).
     :return: exit code (int), diagnostics (string).
     """
@@ -122,35 +122,35 @@ def interpret_proxy_info(ec, output, limit):
     diagnostics = ""
 
     if ec != 0:
-        if "Unable to verify signature! Server certificate possibly not installed" in output:
-            logger.warning("skipping voms proxy check: %s" % (output))
+        if "Unable to verify signature! Server certificate possibly not installed" in stdout:
+            logger.warning("skipping voms proxy check: %s" % (stdout))
         # test for command errors
-        elif "arcproxy:" in output:
-            diagnostics = "Arcproxy failed: %s" % (output)
+        elif "arcproxy:" in stdout:
+            diagnostics = "Arcproxy failed: %s" % (stdout)
             logger.warning(diagnostics)
             exitcode = errors.GENERALERROR
         else:
             # Analyze exit code / output
-            diagnostics = "Voms proxy certificate check failure: %d, %s" % (ec, output)
+            diagnostics = "Voms proxy certificate check failure: %d, %s" % (ec, stdout)
             logger.warning(diagnostics)
             exitcode = errors.NOVOMSPROXY
     else:
         # remove any additional print-outs if present, assume that the last line is the time left
-        if "\n" in output:
-            output = output.split('\n')[-1]
+        if "\n" in stdout:
+            stdout = stdout.split('\n')[-1]
 
         # test for command errors
-        if "arcproxy:" in output:
-            diagnostics = "Arcproxy failed: %s" % (output)
+        if "arcproxy:" in stdout:
+            diagnostics = "Arcproxy failed: %s" % (stdout)
             logger.warning(diagnostics)
             exitcode = errors.GENERALERROR
         else:
             # on EMI-3 the time output is different (HH:MM:SS as compared to SS on EMI-2)
-            if ":" in output:
+            if ":" in stdout:
                 ftr = [3600, 60, 1]
-                output = sum([a*b for a,b in zip(ftr, map(int,output.split(':')))])
+                stdout = sum([a*b for a,b in zip(ftr, map(int,stdout.split(':')))])
             try:
-                validity = int(output)
+                validity = int(stdout)
                 if validity >= limit * 3600:
                     logger.info("voms proxy verified (%ds)" % (validity))
                 else:
@@ -158,7 +158,7 @@ def interpret_proxy_info(ec, output, limit):
                     logger.warning(diagnostics)
                     exitcode = errors.NOVOMSPROXY
             except ValueError:
-                diagnostics = "failed to evalute command output: %s" % (output)
+                diagnostics = "failed to evalute command stdout: %s, stderr: %s" % (stdout, stderr)
                 logger.warning(diagnostics)
                 exitcode = errors.GENERALERROR
 
