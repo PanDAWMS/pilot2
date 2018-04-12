@@ -450,16 +450,11 @@ def get_redundants():
                 "*.TMP",
                 "MC11JobOptions",
                 "scratch",
-                "jobState-*-test.pickle",
                 "*.writing",
                 "pwg*",
                 "pwhg*",
                 "*PROC*",
                 "madevent",
-                "HPC",
-                "objectstore*.json",
-                "saga",
-                "radical",
                 "*proxy",
                 "ckpt*"]
 
