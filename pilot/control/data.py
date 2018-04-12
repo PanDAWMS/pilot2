@@ -74,7 +74,18 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
         setup = ''
         proxy = os.environ.get('X509_USER_PROXY', None)
         if proxy:
-            setup = 'export X509_USER_PROXY=%s;' % proxy
+            # move the proxy to the current workdir to allow the container to reach it
+            from pilot.util.filehandling import copy
+            try:
+                copy(proxy, job.workdir)
+            except PilotException as e:
+                logger.warning('failed to copy proxy: %s (will use default X509_USER_PROXY)' % e)
+                setup = 'export X509_USER_PROXY=%s;' % proxy
+            else:
+                path = os.path.join(job.workdir, os.path.basename(proxy))
+                os.environ['X509_USER_PROXY'] = path
+                logger.info('redefined X509_USER_PROXY to %s' % path)
+                setup = 'export X509_USER_PROXY=%s;' % path
         from pilot.user.atlas.setup import get_asetup
         setup += get_asetup(asetup=False)
         setup += 'lsetup rucio;'
