@@ -460,6 +460,7 @@ def get_redundants():
                 "objectstore*.json",
                 "saga",
                 "radical",
+                "*proxy",
                 "ckpt*"]
 
     return dir_list

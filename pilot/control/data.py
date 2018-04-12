@@ -77,6 +77,7 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
             # move the proxy to the current workdir to allow the container to reach it
             from pilot.util.filehandling import copy
             try:
+                # the proxy must be deleted before the tarball is created
                 copy(proxy, job.workdir)
             except PilotException as e:
                 logger.warning('failed to copy proxy: %s (will use default X509_USER_PROXY)' % e)
