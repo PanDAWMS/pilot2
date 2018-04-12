@@ -444,9 +444,9 @@ def _stage_out(args, outfile, job):
     log.debug('stderr:\n%s' % err)
 
     # in case of problems, try to identify the error (and set it in the job object)
-    if stderr != "":
+    if err != "":
         # rucio stage-out error
-        if "Operation timed out" in stderr:
+        if "Operation timed out" in err:
             log.warning('rucio stage-out error identified - problem with local storage, stage-out timed out')
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEOUTTIMEOUT)
 
