@@ -117,7 +117,7 @@ def get_utility_command_kill_signal(name):
     :return: kill signal
     """
 
-    return signal.SIGTERM
+    return SIGTERM
 
 
 def get_utility_command_output_filename(name, selector=None):

@@ -15,7 +15,6 @@ import sys
 import time
 from json import dumps
 from subprocess import PIPE
-import threading
 
 from pilot.info import infosys, JobData
 from pilot.util import https
@@ -26,7 +25,7 @@ from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_sche
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.util.container import execute
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import ExcThread, PilotException, NoLocalSpace
+from pilot.common.exception import ExcThread, PilotException
 
 import logging
 logger = logging.getLogger(__name__)

@@ -9,11 +9,12 @@
 
 # from pilot.util.container import execute
 
+import os
+import logging
+
 from pilot.user.atlas.setup import get_file_system_root_path
 from pilot.util.container import execute
 from pilot.common.errorcodes import ErrorCodes
-
-import logging
 
 logger = logging.getLogger(__name__)
 errors = ErrorCodes()
@@ -28,10 +29,9 @@ def verify_proxy(limit=None):
     :return: exit code (NOPROXY or NOVOMSPROXY), diagnostics (error diagnostics string).
     """
 
-    exitcode = 0
     diagnostics = ""
 
-    if limit == None:
+    if limit is None:
         limit = 48
 
     # add setup for arcproxy if it exists
@@ -85,8 +85,8 @@ def verify_proxy(limit=None):
         # next clause had problems: grid-proxy-info -exists -valid 0.166666666667:00
         #cmd = "%sgrid-proxy-info -exists -valid %s:00" % (envsetup, str(limit))
         # more accurate calculation of HH:MM
-        limit_hours=int(limit*60)/60
-        limit_minutes=int(limit*60+.999)-limit_hours*60
+        limit_hours = int(limit * 60) / 60
+        limit_minutes = int(limit * 60 + .999) - limit_hours * 60
         cmd = "%sgrid-proxy-info -exists -valid %d:%02d" % (envsetup, limit_hours, limit_minutes)
     else:
         cmd = "%sgrid-proxy-info -exists -valid 24:00" % (envsetup)
@@ -151,7 +151,7 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
             # on EMI-3 the time output is different (HH:MM:SS as compared to SS on EMI-2)
             if ":" in stdout:
                 ftr = [3600, 60, 1]
-                stdout = sum([a*b for a,b in zip(ftr, map(int,stdout.split(':')))])
+                stdout = sum([a * b for a, b in zip(ftr, map(int, stdout.split(':')))])
             try:
                 validity = int(stdout)
                 if validity >= limit * 3600:
