@@ -51,7 +51,6 @@ def execute(executable, **kwargs):
         # logger.info("will not use container")
         pass
 
-
     logger.info('executing command: %s' % executable)
     exe = ['/bin/bash', '-c', executable]
     process = subprocess.Popen(exe,
