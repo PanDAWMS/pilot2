@@ -745,7 +745,7 @@ def queue_monitor(queues, traces, args):
             try:
                 _job = queues.monitored_payloads.get(block=True, timeout=1)
             except Queue.Empty:
-                logger.warning('failed to dequeue job: queue is empty')
+                logger.warning('failed to dequeue job: queue is empty (did job fail before job monitor started?)')
             else:
                 logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
 

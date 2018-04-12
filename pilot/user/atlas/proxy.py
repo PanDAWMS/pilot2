@@ -36,7 +36,12 @@ def verify_proxy(limit=None):
 
     # add setup for arcproxy if it exists
     arcproxy_setup = "%s/atlas.cern.ch/repo/sw/arc/client/latest/slc6/x86_64/setup.sh" % get_file_system_root_path()
-    envsetup = ". %s;" % (arcproxy_setup)
+    x509 = os.environ.get('X509_USER_PROXY', '')
+    if x509 != '':
+        envsetup = 'export X509_USER_PROXY=%s;' % x509
+    else:
+        envsetup = ''
+    envsetup += ". %s;" % (arcproxy_setup)
 
     # first try to use arcproxy since voms-proxy-info is not working properly on SL6
     #  (memory issues on queues with limited memory)
