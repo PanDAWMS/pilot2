@@ -166,16 +166,6 @@ class NoSuchFile(PilotException):
         self._message = errors.get_error_message(self._errorCode)
 
 
-class NoLocalSpace(PilotException):
-    """
-    No local space.
-    """
-    def __init__(self, *args, **kwargs):
-        super(NoLocalSpace, self).__init__(args, kwargs)
-        self._errorCode = errors.NOLOCALSPACE
-        self._message = errors.get_error_message(self._errorCode)
-
-
 class ConversionFailure(PilotException):
     """
     Failed to convert object data.
