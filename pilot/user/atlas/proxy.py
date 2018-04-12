@@ -129,6 +129,9 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
     exitcode = 0
     diagnostics = ""
 
+    logger.debug('stdout = %s' % stdout)
+    logger.debug('stderr = %s' % stderr)
+
     if ec != 0:
         if "Unable to verify signature! Server certificate possibly not installed" in stdout:
             logger.warning("skipping voms proxy check: %s" % (stdout))

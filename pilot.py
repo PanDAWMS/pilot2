@@ -25,7 +25,7 @@ from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 from pilot.util.harvester import is_harvester_mode
 
-VERSION = '2018-04-12.012'
+VERSION = '2018-04-12.013'
 
 
 def main():
