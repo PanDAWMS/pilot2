@@ -34,9 +34,6 @@ def wrapper(executable, **kwargs):
     pilot_home = os.environ.get('PILOT_HOME', '')
     job = kwargs.get('job')
 
-    job = kwargs.get('job')
-    logger.info('workdir2 = %s' % job.workdir)
-
     if workdir == '.' and pilot_home != '':
         workdir = pilot_home
 
