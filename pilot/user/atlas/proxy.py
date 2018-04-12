@@ -65,10 +65,6 @@ def verify_proxy(limit=None):
     else:
         logger.warning('command execution failed')
 
-    # -valid HH:MM is broken
-    if "; ;" in envsetup:
-        envsetup = envsetup.replace('; ;', ';')
-
     if os.environ.get('X509_USER_PROXY', '') != '':
         cmd = "%svoms-proxy-info -actimeleft --file $X509_USER_PROXY" % (envsetup)
         logger.info('executing command: %s' % cmd)
