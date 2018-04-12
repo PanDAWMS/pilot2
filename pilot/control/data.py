@@ -90,7 +90,7 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
         from pilot.user.atlas.setup import get_asetup
         setup += get_asetup(asetup=False)
         setup += 'lsetup rucio;'
-        executable = setup + executable
+        # executable = setup + executable
         usecontainer = True
 
         process = execute(executable, workdir=job.workdir, returnproc=True,
