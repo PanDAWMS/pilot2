@@ -148,6 +148,9 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
     else:
         # remove any additional print-outs if present, assume that the last line is the time left
         if "\n" in stdout:
+            # also remove the last \n in case there is one
+            if stdout[-1] == '\n':
+                stdout = stdout[:-1]
             stdout = stdout.split('\n')[-1]
         logger.debug('stdout(2) = %s' % stdout)
 
