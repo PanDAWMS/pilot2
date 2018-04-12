@@ -152,7 +152,6 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
             if stdout[-1] == '\n':
                 stdout = stdout[:-1]
             stdout = stdout.split('\n')[-1]
-        logger.debug('stdout(2) = %s' % stdout)
 
         # test for command errors
         if "arcproxy:" in stdout:
@@ -167,7 +166,7 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
             try:
                 validity = int(stdout)
                 if validity >= limit * 3600:
-                    logger.info("voms proxy verified (%ds)" % (validity))
+                    logger.info("voms proxy verified (%d s)" % (validity))
                 else:
                     diagnostics = "voms proxy certificate does not exist or is too short (lifetime %d s)" % (validity)
                     logger.warning(diagnostics)
