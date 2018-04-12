@@ -84,7 +84,7 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
                 setup = 'export X509_USER_PROXY=%s;' % proxy
             else:
                 path = os.path.join(job.workdir, os.path.basename(proxy))
-                os.environ['X509_USER_PROXY'] = path
+                # os.environ['X509_USER_PROXY'] = path
                 logger.info('redefined X509_USER_PROXY to %s' % path)
                 setup = 'export X509_USER_PROXY=%s;' % path
         from pilot.user.atlas.setup import get_asetup
