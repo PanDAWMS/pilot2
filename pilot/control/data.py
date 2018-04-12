@@ -436,6 +436,10 @@ def _stage_out(args, outfile, job):
     log.debug('stdout:\n%s' % out)
     log.debug('stderr:\n%s' % err)
 
+    # in case of problems, try to identify the error (and set it in the job object)
+    # if stderr != "":
+    #     pass
+
     if exit_code is None:
         return None
 
