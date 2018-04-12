@@ -292,7 +292,9 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
                 exitcode = errors.GENERALERROR
 
     return exitcode, diagnostics
-oxy_info(ec, stdout, stderr, limit):
+
+
+def interpret_proxy_info(ec, stdout, stderr, limit):
     """
     Interpret the output from arcproxy or voms-proxy-info.
 
