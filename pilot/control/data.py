@@ -437,8 +437,11 @@ def _stage_out(args, outfile, job):
     log.debug('stderr:\n%s' % err)
 
     # in case of problems, try to identify the error (and set it in the job object)
-    # if stderr != "":
-    #     pass
+    if stderr != "":
+        # rucio stage-out error
+        if "Operation timed out" in stderr:
+            log.warning('rucio stage-out error identified - problem with local storage, stage-out timed out')
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEOUTTIMEOUT)
 
     if exit_code is None:
         return None
@@ -500,7 +503,7 @@ def _stage_out_all(job, args):
 
     job.fileinfo = fileinfodict
     if failed:
-        # set error code + message
+        # set error code + message (a more precise error code might have been set already)
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEOUTFAILED)
         job.state = "failed"
         log.warning('stage-out failed')  # with error: %d, %s (setting job state to failed)' %
