@@ -132,7 +132,7 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
     if stderr != "":
         # rucio stage-out error
         if "Operation timed out" in stderr:
-            log.warning('rucio stage-in error identified - problem with local storage, stage-in timed out')
+            logger.warning('rucio stage-in error identified - problem with local storage, stage-in timed out')
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINTIMEOUT)
 
     if exit_code == 0:
