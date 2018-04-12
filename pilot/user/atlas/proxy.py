@@ -64,19 +64,22 @@ def verify_proxy(limit=None):
     if "; ;" in envsetup:
         envsetup = envsetup.replace('; ;', ';')
 
-    cmd = "%svoms-proxy-info -actimeleft --file $X509_USER_PROXY" % (envsetup)
-    logger.info('executing command: %s' % cmd)
-    exit_code, stdout, stderr = execute(cmd, shell=True)
-    if stdout is not None:
-        if "command not found" in stdout:
-            logger.info("skipping voms proxy check since command is not available")
+    if os.environ.get('X509_USER_PROXY', '') != '':
+        cmd = "%svoms-proxy-info -actimeleft --file $X509_USER_PROXY" % (envsetup)
+        logger.info('executing command: %s' % cmd)
+        exit_code, stdout, stderr = execute(cmd, shell=True)
+        if stdout is not None:
+            if "command not found" in stdout:
+                logger.info("skipping voms proxy check since command is not available")
+            else:
+                ec, diagnostics = interpret_proxy_info(exit_code, stdout, stderr, limit)
+                if ec == 0:
+                    logger.info("voms proxy verified using voms-proxy-info")
+                    return 0, diagnostics
         else:
-            ec, diagnostics = interpret_proxy_info(exit_code, stdout, stderr, limit)
-            if ec == 0:
-                logger.info("voms proxy verified using voms-proxy-info")
-                return 0, diagnostics
+            logger.warning('command execution failed')
     else:
-        logger.warning('command execution failed')
+        logger.warning('X509_USER_PROXY is not set')
 
     if limit:
         # next clause had problems: grid-proxy-info -exists -valid 0.166666666667:00
@@ -126,12 +129,12 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
             logger.warning("skipping voms proxy check: %s" % (stdout))
         # test for command errors
         elif "arcproxy:" in stdout:
-            diagnostics = "Arcproxy failed: %s" % (stdout)
+            diagnostics = "arcproxy failed: %s" % (stdout)
             logger.warning(diagnostics)
             exitcode = errors.GENERALERROR
         else:
             # Analyze exit code / output
-            diagnostics = "Voms proxy certificate check failure: %d, %s" % (ec, stdout)
+            diagnostics = "voms proxy certificate check failure: %d, %s" % (ec, stdout)
             logger.warning(diagnostics)
             exitcode = errors.NOVOMSPROXY
     else:
@@ -141,7 +144,7 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
 
         # test for command errors
         if "arcproxy:" in stdout:
-            diagnostics = "Arcproxy failed: %s" % (stdout)
+            diagnostics = "arcproxy failed: %s" % (stdout)
             logger.warning(diagnostics)
             exitcode = errors.GENERALERROR
         else:
