@@ -46,24 +46,7 @@ def verify_proxy(limit=None):
     # first try to use arcproxy since voms-proxy-info is not working properly on SL6
     #  (memory issues on queues with limited memory)
 
-    cmd = "%sarcproxy -i vomsACvalidityLeft" % (envsetup)
-
-    exit_code, stdout, stderr = execute(cmd, shell=True)
-    if stdout is not None:
-        if "command not found" in stdout:
-            logger.warning("arcproxy is not available on this queue,"
-                           "this can lead to memory issues with voms-proxy-info on SL6: %s" % (stdout))
-        else:
-            ec, diagnostics = interpret_proxy_info(exit_code, stdout, stderr, limit)
-            if ec == 0:
-                logger.info("voms proxy verified using arcproxy")
-                return 0, diagnostics
-            elif ec == errors.NOVOMSPROXY:
-                return ec, diagnostics
-            else:
-                logger.info("will try voms-proxy-info instead")
-    else:
-        logger.warning('command execution failed')
+    ec, diagnostics = verify_arcproxy(envsetup, limit)
 
     if os.environ.get('X509_USER_PROXY', '') != '':
         cmd = "%svoms-proxy-info -actimeleft --file $X509_USER_PROXY" % (envsetup)
@@ -109,6 +92,40 @@ def verify_proxy(limit=None):
         logger.warning('command execution failed')
 
     return exit_code, diagnostics
+
+
+def verify_arcproxy(envsetup, limit):
+    """
+    Verify the proxy using arcproxy.
+
+    :param envsetup: general setup string for proxy commands (string).
+    :param limit: time limit in hours (int).
+    :return: exit code (int), error diagnostics (string).
+    """
+
+    ec = 0
+    diagnostics = ""
+
+    cmd = "%sarcproxy -i vomsACvalidityLeft" % (envsetup)
+
+    exit_code, stdout, stderr = execute(cmd, shell=True)
+    if stdout is not None:
+        if "command not found" in stdout:
+            logger.warning("arcproxy is not available on this queue,"
+                           "this can lead to memory issues with voms-proxy-info on SL6: %s" % (stdout))
+        else:
+            ec, diagnostics = interpret_proxy_info(exit_code, stdout, stderr, limit)
+            if ec == 0:
+                logger.info("voms proxy verified using arcproxy")
+                return 0, diagnostics
+            elif ec == errors.NOVOMSPROXY:
+                return ec, diagnostics
+            else:
+                logger.info("will try voms-proxy-info instead")
+    else:
+        logger.warning('command execution failed')
+
+    return ec, diagnostics
 
 
 def interpret_proxy_info(ec, stdout, stderr, limit):
