@@ -29,6 +29,7 @@ def verify_proxy(limit=None):
     :return: exit code (NOPROXY or NOVOMSPROXY), diagnostics (error diagnostics string).
     """
 
+    exit_code = 0
     diagnostics = ""
 
     if limit is None:
@@ -54,31 +55,11 @@ def verify_proxy(limit=None):
     if ec == 0:
         return ec, diagnostics
 
-    if limit:
-        # next clause had problems: grid-proxy-info -exists -valid 0.166666666667:00
-        #cmd = "%sgrid-proxy-info -exists -valid %s:00" % (envsetup, str(limit))
-        # more accurate calculation of HH:MM
-        limit_hours = int(limit * 60) / 60
-        limit_minutes = int(limit * 60 + .999) - limit_hours * 60
-        cmd = "%sgrid-proxy-info -exists -valid %d:%02d" % (envsetup, limit_hours, limit_minutes)
-    else:
-        cmd = "%sgrid-proxy-info -exists -valid 24:00" % (envsetup)
+    ec, diagnostics = verify_gridproxy(envsetup, limit)
+    if ec == 0:
+        return ec, diagnostics
 
-    logger.info('executing command: %s' % cmd)
-    exit_code, stdout, stderr = execute(cmd, shell=True)
-    if stdout is not None:
-        if exit_code != 0:
-            if stdout.find("command not found") > 0:
-                logger.info("skipping grid proxy check since command is not available")
-            else:
-                # Analyze exit code / stdout
-                diagnostics = "grid proxy certificate does not exist or is too short: %d, %s" % (exit_code, stdout)
-                logger.warning(diagnostics)
-                return errors.NOPROXY, diagnostics
-        else:
-            logger.info("grid proxy verified")
-    else:
-        logger.warning('command execution failed')
+    logger.warning('none of the proxy verification methods worked - skipping verification')
 
     return exit_code, diagnostics
 
@@ -145,6 +126,47 @@ def verify_vomsproxy(envsetup, limit):
             logger.warning('command execution failed')
     else:
         logger.warning('X509_USER_PROXY is not set')
+
+    return ec, diagnostics
+
+
+def verify_gridproxy(envsetup, limit):
+    """
+    Verify proxy using grid-proxy-info command.
+
+    :param envsetup: general setup string for proxy commands (string).
+    :param limit: time limit in hours (int).
+    :return: exit code (int), error diagnostics (string).
+    """
+
+    ec = 0
+    diagnostics = ""
+
+    if limit:
+        # next clause had problems: grid-proxy-info -exists -valid 0.166666666667:00
+        #cmd = "%sgrid-proxy-info -exists -valid %s:00" % (envsetup, str(limit))
+        # more accurate calculation of HH:MM
+        limit_hours = int(limit * 60) / 60
+        limit_minutes = int(limit * 60 + .999) - limit_hours * 60
+        cmd = "%sgrid-proxy-info -exists -valid %d:%02d" % (envsetup, limit_hours, limit_minutes)
+    else:
+        cmd = "%sgrid-proxy-info -exists -valid 24:00" % (envsetup)
+
+    logger.info('executing command: %s' % cmd)
+    exit_code, stdout, stderr = execute(cmd, shell=True)
+    if stdout is not None:
+        if exit_code != 0:
+            if stdout.find("command not found") > 0:
+                logger.info("skipping grid proxy check since command is not available")
+            else:
+                # Analyze exit code / stdout
+                diagnostics = "grid proxy certificate does not exist or is too short: %d, %s" % (exit_code, stdout)
+                logger.warning(diagnostics)
+                return errors.NOPROXY, diagnostics
+        else:
+            logger.info("grid proxy verified")
+    else:
+        logger.warning('command execution failed')
 
     return ec, diagnostics
 
