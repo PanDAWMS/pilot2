@@ -47,23 +47,12 @@ def verify_proxy(limit=None):
     #  (memory issues on queues with limited memory)
 
     ec, diagnostics = verify_arcproxy(envsetup, limit)
+    if ec == 0:
+        return ec, diagnostics
 
-    if os.environ.get('X509_USER_PROXY', '') != '':
-        cmd = "%svoms-proxy-info -actimeleft --file $X509_USER_PROXY" % (envsetup)
-        logger.info('executing command: %s' % cmd)
-        exit_code, stdout, stderr = execute(cmd, shell=True)
-        if stdout is not None:
-            if "command not found" in stdout:
-                logger.info("skipping voms proxy check since command is not available")
-            else:
-                ec, diagnostics = interpret_proxy_info(exit_code, stdout, stderr, limit)
-                if ec == 0:
-                    logger.info("voms proxy verified using voms-proxy-info")
-                    return 0, diagnostics
-        else:
-            logger.warning('command execution failed')
-    else:
-        logger.warning('X509_USER_PROXY is not set')
+    ec, diagnostics = verify_vomsproxy(envsetup, limit)
+    if ec == 0:
+        return ec, diagnostics
 
     if limit:
         # next clause had problems: grid-proxy-info -exists -valid 0.166666666667:00
@@ -124,6 +113,38 @@ def verify_arcproxy(envsetup, limit):
                 logger.info("will try voms-proxy-info instead")
     else:
         logger.warning('command execution failed')
+
+    return ec, diagnostics
+
+
+def verify_vomsproxy(envsetup, limit):
+    """
+    Verify proxy using voms-proxy-info command.
+
+    :param envsetup: general setup string for proxy commands (string).
+    :param limit: time limit in hours (int).
+    :return: exit code (int), error diagnostics (string).
+    """
+
+    ec = 0
+    diagnostics = ""
+
+    if os.environ.get('X509_USER_PROXY', '') != '':
+        cmd = "%svoms-proxy-info -actimeleft --file $X509_USER_PROXY" % (envsetup)
+        logger.info('executing command: %s' % cmd)
+        exit_code, stdout, stderr = execute(cmd, shell=True)
+        if stdout is not None:
+            if "command not found" in stdout:
+                logger.info("skipping voms proxy check since command is not available")
+            else:
+                ec, diagnostics = interpret_proxy_info(exit_code, stdout, stderr, limit)
+                if ec == 0:
+                    logger.info("voms proxy verified using voms-proxy-info")
+                    return 0, diagnostics
+        else:
+            logger.warning('command execution failed')
+    else:
+        logger.warning('X509_USER_PROXY is not set')
 
     return ec, diagnostics
 
