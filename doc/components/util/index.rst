@@ -8,7 +8,7 @@
 
     Authors:
      - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-     - Paul Nilsson, paul.nilsson@cern.ch, 2017
+     - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 util components
 ===============
@@ -24,6 +24,7 @@ util components
     harvester
     https
     information
+    node
     parameters
     proxy
     workernode

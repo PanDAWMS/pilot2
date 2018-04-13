@@ -8,7 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
 
 import Queue
@@ -45,6 +45,24 @@ def control(queues, traces, args):
                          name=name) for name, target in targets.items()]
 
     [thread.start() for thread in threads]
+
+    # if an exception is thrown, the graceful_stop will be set by the ExcThread class run() function
+    while not args.graceful_stop.is_set():
+        for thread in threads:
+            bucket = thread.get_bucket()
+            try:
+                exc = bucket.get(block=False)
+            except Queue.Empty:
+                pass
+            else:
+                exc_type, exc_obj, exc_trace = exc
+                logger.warning("thread \'%s\' received an exception from bucket: %s" % (thread.name, exc_obj))
+
+                # deal with the exception
+                # ..
+
+            thread.join(0.1)
+            time.sleep(0.1)
 
 
 def validate_pre(queues, traces, args):

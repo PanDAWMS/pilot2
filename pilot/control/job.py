@@ -7,25 +7,30 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 import Queue
 import os
 import sys
 import time
 from json import dumps
+from subprocess import PIPE
 
+from pilot.info import infosys, JobData
 from pilot.util import https
 from pilot.util.config import config
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
+from pilot.util.container import execute
+from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
-from pilot.info import infosys, JobData
 
 import logging
 logger = logging.getLogger(__name__)
+
+errors = ErrorCodes()
 
 
 def control(queues, traces, args):
@@ -38,12 +43,35 @@ def control(queues, traces, args):
     :return:
     """
 
+    # t = threading.current_thread()
+    # logger.debug('job.control is run by thread: %s' % t.name)
+
     targets = {'validate': validate, 'retrieve': retrieve, 'create_data_payload': create_data_payload,
                'queue_monitor': queue_monitor, 'job_monitor': job_monitor}
     threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
                          name=name) for name, target in targets.items()]
 
     [thread.start() for thread in threads]
+
+    logger.info('waiting for interrupts')
+
+    # if an exception is thrown, the graceful_stop will be set by the ExcThread class run() function
+    while not args.graceful_stop.is_set():
+        for thread in threads:
+            bucket = thread.get_bucket()
+            try:
+                exc = bucket.get(block=False)
+            except Queue.Empty:
+                pass
+            else:
+                exc_type, exc_obj, exc_trace = exc
+                logger.warning("thread \'%s\' received an exception from bucket: %s" % (thread.name, exc_obj))
+
+                # deal with the exception
+                # ..
+
+            thread.join(0.1)
+            time.sleep(0.1)
 
 
 def _validate_job(job):
@@ -288,6 +316,9 @@ def get_dispatcher_dictionary(args):
         data['taskID'] = taskid
         logger.info("will download a new job belonging to task id: %s" % (data['taskID']))
 
+    if args.resource_type != "":
+        data['resourceType'] = args.resource_type
+
     return data
 
 
@@ -303,6 +334,11 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     :param harvester: True if Harvester is used, False otherwise. Affects the max number of getjob reads (from file).
     :return: Boolean based on the input parameters
     """
+
+    time.sleep(10)
+
+    # use for testing thread exceptions. the exception will be picked up by ExcThread run() and caught in job.control()
+    # raise NoLocalSpace('testing exception from proceed_with_getjob')
 
     currenttime = time.time()
 
@@ -706,10 +742,67 @@ def queue_monitor(queues, traces, args):
                 send_state(job, args, job.state)
 
             # we can now stop monitoring this job, so remove it from the monitored_payloads queue
-            _job = queues.monitored_payloads.get(block=True, timeout=1)
-            logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
+            try:
+                _job = queues.monitored_payloads.get(block=True, timeout=1)
+            except Queue.Empty:
+                logger.warning('failed to dequeue job: queue is empty (did job fail before job monitor started?)')
+            else:
+                logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
 
             # now ready for the next job (or quit)
+
+
+def utility_monitor(job):
+    """
+    Make sure that any utility commands are still running.
+    In case a utility tool has crashed, this function may restart the process.
+    The function is used by the job monitor thread.
+
+    :param job: job object.
+    :return: updated job object.
+    """
+
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    usercommon = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+
+    log = logger.getChild(job.jobid)
+
+    # loop over all utilities
+    for utcmd in job.utilities.keys():
+
+        # make sure the subprocess is still running
+        utproc = job.utilities[utcmd][0]
+        if not utproc.poll() is None:
+            # if poll() returns anything but None it means that the subprocess has ended - which it
+            # should not have done by itself
+            utility_subprocess_launches = job.utilities[utcmd][1]
+            if utility_subprocess_launches <= 5:
+                log.warning('dectected crashed utility subprocess - will restart it')
+                utility_command = job.utilities[utcmd][2]
+
+                try:
+                    proc1 = execute(utility_command, workdir=job.workdir, returnproc=True, usecontainer=True,
+                                    stdout=PIPE, stderr=PIPE, cwd=job.workdir, queuedata=job.infosys.queuedata)
+                except Exception as e:
+                    log.error('could not execute: %s' % e)
+                else:
+                    # store process handle in job object, and keep track on how many times the
+                    # command has been launched
+                    job.utilities[utcmd] = [proc1, utility_subprocess_launches + 1, utility_command]
+            else:
+                log.warning('dectected crashed utility subprocess - too many restarts, will not restart %s again' %
+                            utcmd)
+        else:
+            # log.info('utility %s is still running' % utcmd)
+
+            # check the utility output (the selector option adds a substring to the output file name)
+            filename = usercommon.get_utility_command_output_filename(utcmd, selector=True)
+            path = os.path.join(job.workdir, filename)
+            if os.path.exists(path):
+                log.info('file: %s exists' % path)
+            else:
+                log.warning('file: %s does not exist' % path)
+    return job
 
 
 def job_monitor(queues, traces, args):
@@ -722,6 +815,9 @@ def job_monitor(queues, traces, args):
     :param args:
     :return:
     """
+
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
 
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
@@ -740,6 +836,31 @@ def job_monitor(queues, traces, args):
                 for i in range(len(jobs)):
                     log = logger.getChild(jobs[i].jobid)
                     log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
+                    if jobs[i].state == 'finished' or jobs[i].state == 'failed':
+                        log.info('aborting job monitoring')
+                        break
+
+                    # Is the proxy still valid?
+                    exitcode, diagnostics = userproxy.verify_proxy()
+                    if exitcode != 0:
+                        log.warning('proxy is not valid')
+                        jobs[i].state = 'failed'
+                        jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exitcode)
+                        queues.failed_payloads.put(jobs[i])
+
+                    # looping job detection
+
+                    # is the job using too much space?
+
+                    # Is the payload stdout within allowed limits?
+
+                    # Are the output files within allowed limits?
+
+                    # make sure that any utility commands are still running
+                    if jobs[i].utilities != {}:
+                        jobs[i] = utility_monitor(jobs[i])
+
+                    # send heartbeat
             else:
                 msg = 'no jobs in validated_payloads queue'
                 if logger:

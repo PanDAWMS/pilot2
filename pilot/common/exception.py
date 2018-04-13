@@ -12,6 +12,7 @@
 Exceptions in pilot
 """
 
+import time
 import threading
 import traceback
 from sys import exc_info
@@ -193,16 +194,25 @@ class ExcThread(threading.Thread):
     def __init__(self, bucket, target, kwargs, name):
         """
         Init function with a bucket that can be used to communicate exceptions to the caller.
+        The bucket is a Queue.Queue() object that can hold an exception thrown by a thread.
+
         :param bucket: Queue based bucket.
         :param target: target function to execute.
         :param kwargs: target function options.
         """
         threading.Thread.__init__(self, target=target, kwargs=kwargs, name=name)
+        self.name = name
         self.bucket = bucket
 
     def run(self):
         """
-        Run function.
+        Thread run function.
+        Any exceptions in the threads are caught in this function and placed in the bucket of the current thread.
+        The bucket will be emptied by the control module that launched the thread. E.g. an exception is thrown in
+        the retrieve thread (in function retrieve()) that is created by the job.control thread. The exception is caught
+        by the run() function and placed in the bucket belonging to the retrieve thread. The bucket is emptied in
+        job.control().
+
         :return:
         """
         try:
@@ -210,10 +220,17 @@ class ExcThread(threading.Thread):
         except Exception:
             # logger object can't be used here for some reason:
             # IOError: [Errno 2] No such file or directory: '/state/partition1/scratch/PanDA_Pilot2_*/pilotlog.txt'
-            print 'exception caught by thread run function: %s' % str(exc_info())
+            print 'exception caught by thread run() function: %s' % str(exc_info())
             print traceback.format_exc()
             print traceback.print_tb(exc_info()[2])
             self.bucket.put(exc_info())
+            print "exception has been put in bucket queue belonging to thread \'%s\'" % self.name
+            args = self._Thread__kwargs.get('args', None)
+            if args:
+                # the sleep is needed to allow the threads to catch up
+                print 'setting graceful stop in 10 s since there is no point in continuing'
+                time.sleep(10)
+                args.graceful_stop.set()
 
     def get_bucket(self):
         """

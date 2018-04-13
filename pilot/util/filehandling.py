@@ -5,14 +5,16 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 import os
 import time
 import tarfile
 from collections import deque
+from shutil import copy2
 
 from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile
+from pilot.util.container import execute
 
 import logging
 logger = logging.getLogger(__name__)
@@ -288,3 +290,58 @@ def tar_files(wkdir, excludedfiles, logfile_name, attempt=0):
     logger.debug("packing of logs took {0} seconds".format(pack_time))
 
     return 0
+
+
+def copy(path1, path2):
+    """
+    Copy path1 to path2.
+
+    :param path1: file path (string).
+    :param path2: file path (string).
+    :raises PilotException: FileHandlingFailure, NoSuchFile
+    :return:
+    """
+
+    if not os.path.exists(path1):
+        logger.warning('file copy failure: path does not exist: %s' % path1)
+        raise NoSuchFile("File does not exist: %s" % path1)
+
+    try:
+        copy2(path1, path2)
+    except IOError as e:
+        logger.warning("exception caught during file copy: %s" % e)
+        raise FileHandlingFailure(e)
+    else:
+        logger.info("copied %s to %s" % (path1, path2))
+
+
+def find_executable(name):
+    """
+    Is the command 'name' available locally?
+
+    :param name: command name (string).
+    :return: full path to command if it exists, otherwise empty string.
+    """
+
+    from distutils.spawn import find_executable
+    return find_executable(name)
+
+
+def get_directory_size(directory="."):
+    """
+    Return the size of the given directory.
+
+    :param directory: directory name (string).
+    :return: size of directory (int).
+    """
+
+    size = 0
+
+    exit_code, stdout, stderr = execute('du -sk %s' % directory, shell=True)
+    if stdout is not None:
+        try:
+            size = int(stdout.split()[0])
+        except Exception as e:
+            logger.warning('exception caught while trying convert dirsize: %s' % e)
+
+    return size

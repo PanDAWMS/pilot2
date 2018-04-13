@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 import argparse
 import logging
@@ -25,7 +25,7 @@ from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 from pilot.util.harvester import is_harvester_mode
 
-VERSION = '2018-03-20.002'
+VERSION = '2018-04-13.001'
 
 
 def main():
@@ -95,7 +95,12 @@ def import_module(**kwargs):
                            '--pilot-user': kwargs.get('pilot_user', 'generic'),
                            '--input-dir': kwargs.get('input_dir', ''),
                            '--output-dir': kwargs.get('output_dir', ''),
-                           '--hpc-resource': kwargs.get('hpc_resource', '')
+                           '--hpc-resource': kwargs.get('hpc_resource', ''),
+                           '--harvester-workdir': kwargs.get('harvester_workdir', ''),
+                           '--harvester-datadir': kwargs.get('harvester_datadir', ''),
+                           '--harvester-eventstatusdump': kwargs.get('harvester_eventstatusdump', ''),
+                           '--harvester-workerattributes': kwargs.get('harvester_workerattributes', ''),
+                           '--resource-type': kwargs.get('resource_type', '')
                            }
 
     args = Args()
@@ -250,11 +255,17 @@ if __name__ == '__main__':
     arg_parser.add_argument('--harvester-eventstatusdump',
                             dest='harvester_eventstatusdump',
                             default='',
-                            help='Harvester event status dump json file')
+                            help='Harvester event status dump json file containing processing status')
     arg_parser.add_argument('--harvester-workerattributes',
                             dest='harvester_workerattributes',
                             default='',
-                            help='Harvester worker attributes json file')
+                            help='Harvester worker attributes json file containing job status')
+    arg_parser.add_argument('--resource-type',
+                            dest='resource_type',
+                            default='',
+                            type=str,
+                            choices=['MCORE', 'SCORE'],
+                            help='Resource type; MSCORE or SCORE')
 
     # Harvester and Nordugrid specific options
     arg_parser.add_argument('--input-dir',
@@ -305,7 +316,7 @@ if __name__ == '__main__':
     console = logging.StreamHandler(sys.stdout)
     if args.debug:
         logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.DEBUG,
-                            format='%(asctime)s | %(levelname)-8s | %(threadName)-12s | %(name)-32s | %(funcName)-25s | %(message)s')
+                            format='%(asctime)s | %(levelname)-8s | %(threadName)-18s | %(name)-32s | %(funcName)-25s | %(message)s')
         console.setLevel(logging.DEBUG)
         console.setFormatter(logging.Formatter(
             '%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-32s | %(message)s'))
