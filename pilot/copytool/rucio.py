@@ -44,7 +44,7 @@ def copy_in(files):
         # stdout, stderr = process.communicate()
         # exit_code = process.poll()
 
-        exit_code, stdout, stderr = execute(executable)
+        exit_code, stdout, stderr = execute(" ".join(executable))
 
         stats = {}
         if exit_code == 0:
@@ -77,27 +77,23 @@ def copy_out(files, rse=None, scope=None, register=True):
     # don't spoil the output, we depend on stderr parsing
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
-    # destinations = merge_destinations(files)
-
     if len(files) == 0:
         raise Exception('No lfn with existing destination path given!')
 
-    executable = ['/usr/bin/env',
-                  'rucio', 'upload']
-
-    if rse is not None:
-        executable.extend(['--rse', rse])
-    if scope is not None:
-        executable.extend(['--scope', scope])
-    if not register:
-        executable.append('--no-register')
-
     for f in files:
+        executable = ['/usr/bin/env', 'rucio', 'upload']
         if f is None or f == '':
             continue
-        executable.extend(['--files', f])
+        if rse is not None:
+            executable.extend(['--rse', rse])
+        if scope is not None:
+            executable.extend(['--scope', scope])
+        if not register:
+            executable.append('--no-register')
 
-        exit_code, stdout, stderr = execute(executable)
+        executable.append(f)
+
+        exit_code, stdout, stderr = execute(" ".join(executable))
 
         stats = {}
         if exit_code == 0:
