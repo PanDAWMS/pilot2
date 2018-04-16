@@ -831,36 +831,20 @@ def job_monitor(queues, traces, args):
             # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
             jobs = queues.monitored_payloads.queue
 
-            # states = ['starting', 'stagein', 'running', 'stageout']
             if jobs:
                 for i in range(len(jobs)):
                     log = logger.getChild(jobs[i].jobid)
                     log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
                     if jobs[i].state == 'finished' or jobs[i].state == 'failed':
-                        log.info('aborting job monitoring')
+                        log.info('aborting job monitoring since job state=%s' % jobs[i].state)
                         break
 
-                    # Is the proxy still valid?
-                    exitcode, diagnostics = userproxy.verify_proxy()
+                    # perform the monitoring tasks
+                    exit_code, diagnostics = job_monitor_tasks(job)
                     if exitcode != 0:
-                        log.warning('proxy is not valid')
                         jobs[i].state = 'failed'
                         jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exitcode)
                         queues.failed_payloads.put(jobs[i])
-
-                    # looping job detection
-
-                    # is the job using too much space?
-
-                    # Is the payload stdout within allowed limits?
-
-                    # Are the output files within allowed limits?
-
-                    # make sure that any utility commands are still running
-                    if jobs[i].utilities != {}:
-                        jobs[i] = utility_monitor(jobs[i])
-
-                    # send heartbeat
             else:
                 msg = 'no jobs in validated_payloads queue'
                 if logger:
@@ -875,3 +859,37 @@ def job_monitor(queues, traces, args):
                 print >> sys.stderr, msg
         else:
             n += 1
+
+
+def job_monitor_tasks(job):
+    """
+    Perform the tasks for the job monitoring.
+
+    :param job: job object.
+    :return: exit code (int), diagnostics (string).
+    """
+
+    log = logger.getChild(job.jobid)
+
+    current_time = int(time.time())
+
+    # Is the proxy still valid?
+    exit_code, diagnostics = userproxy.verify_proxy()
+    if exit_code != 0:
+        return exit_code, diagnostics
+
+    # looping job detection
+
+    # is the job using too much space?
+
+    # Is the payload stdout within allowed limits?
+
+    # Are the output files within allowed limits?
+
+    # make sure that any utility commands are still running
+    if job.utilities != {}:
+        job = utility_monitor(job)
+
+    # send heartbeat
+
+    return exit_code, diagnostics
