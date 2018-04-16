@@ -71,8 +71,8 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
         executable = ' '.join(executable)
 
         # uncomment the following for container testing
-        #setup = ''
-        #proxy = os.environ.get('X509_USER_PROXY', None)
+        setup = ''
+        proxy = os.environ.get('X509_USER_PROXY', None)
         #if proxy:
         #    # move the proxy to the current workdir to allow the container to reach it
         #    from pilot.util.filehandling import copy
@@ -86,10 +86,10 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
         #        path = os.path.join(job.workdir, os.path.basename(proxy))
         #        logger.info('redefined X509_USER_PROXY for container to %s' % path)
         #        setup = 'export X509_USER_PROXY=%s;' % path
-        #from pilot.user.atlas.setup import get_asetup
-        #setup += get_asetup(asetup=False)
-        #setup += 'lsetup rucio;'
-        # executable = setup + executable
+        from pilot.user.atlas.setup import get_asetup
+        setup += get_asetup(asetup=False)
+        setup += 'lsetup rucio;'
+        executable = setup + executable
         usecontainer = True
 
         process = execute(executable, workdir=job.workdir, returnproc=True,
