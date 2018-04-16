@@ -68,7 +68,7 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
             logger.info('command %s is available locally, no need to use container' % executable[1])
 
         # for containers, we can not use a list
-        #executable = ' '.join(executable)
+        executable = ' '.join(executable)
 
         # uncomment the following for container testing
         #setup = ''
@@ -90,7 +90,7 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
         #setup += get_asetup(asetup=False)
         #setup += 'lsetup rucio;'
         # executable = setup + executable
-        #usecontainer = True
+        usecontainer = True
 
         process = execute(executable, workdir=job.workdir, returnproc=True,
                           usecontainer=usecontainer, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, job=job)
