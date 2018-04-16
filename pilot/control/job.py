@@ -906,7 +906,8 @@ def job_monitor_tasks(job):
     # is it time to check for looping jobs?
     looping_limit = get_looping_job_limit(job)
 
-    if current_time - mt.get('ct_looping') > looping_limit_default
+    if current_time - mt.get('ct_looping') > config.Pilot.looping_verifiction_time:
+
     # is the job using too much space?
 
     # Is the payload stdout within allowed limits?
