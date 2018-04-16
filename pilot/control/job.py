@@ -24,6 +24,7 @@ from pilot.util.proxy import get_distinguished_name
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.util.container import execute
+from pilot.util.monitoringtime import MonitoringTime
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
 
@@ -869,14 +870,19 @@ def job_monitor_tasks(job):
     :return: exit code (int), diagnostics (string).
     """
 
-    log = logger.getChild(job.jobid)
-
+    # log = logger.getChild(job.jobid)
+    mt = MonitoringTime()
     current_time = int(time.time())
 
-    # Is the proxy still valid?
-    exit_code, diagnostics = userproxy.verify_proxy()
-    if exit_code != 0:
-        return exit_code, diagnostics
+    # is it time to verify the proxy?
+    if current_time - mt.get('ct_proxy') > config.Pilot.proxy_verification_time:
+        # Is the proxy still valid?
+        exit_code, diagnostics = userproxy.verify_proxy()
+        if exit_code != 0:
+            return exit_code, diagnostics
+        else:
+            # update the ct_proxy with the current time
+            mt.update('ct_proxy')
 
     # looping job detection
 
