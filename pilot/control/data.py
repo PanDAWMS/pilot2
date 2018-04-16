@@ -103,7 +103,7 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
         executable = ' '.join(executable)
 
         # uncomment the following for container testing
-        usecontainer = True
+        #usecontainer = True
         if usecontainer:
             executable = prepare_for_container(job.workdir) + executable
 
