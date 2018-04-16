@@ -28,11 +28,29 @@ from pilot.util.harvester import is_harvester_mode
 VERSION = '2018-04-16.005'
 
 
+def pilot_version_banner():
+    """
+    Print a pilot version banner.
+
+    :return:
+    """
+
+    logger = logging.getLogger(__name__)
+
+    version = '***  PanDA Pilot 2 version %s  ***' % VERSION
+    logger.info('*'*len(version))
+    logger.info(version)
+    logger.info('*'*len(version))
+    logger.info('')
+
+
 def main():
     """ Main function of PanDA Pilot 2 """
 
     logger = logging.getLogger(__name__)
-    logger.info('PanDA Pilot 2 version %s' % VERSION)
+
+    # print the pilot version
+    pilot_version_banner()
 
     args.graceful_stop = threading.Event()
     args.retrieve_next_job = True  # go ahead and download a new job
