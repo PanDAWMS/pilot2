@@ -27,3 +27,30 @@ class MonitoringTime(object):
         self.ct_proxy = ct
         self.ct_looping = ct
         # add more here
+
+    def update(self, key):
+        """
+        Update a given key with the current time.
+        Usage: mt=MonitoringTime()
+               mt.update('ct_proxy')
+
+        :param key: name of key (string).
+        :return:
+        """
+
+        ct = int(time.time())
+        if hasattr(self, key):
+            setattr(self, key, ct)
+
+    def get(self, key):
+        """
+        Return the value for the given key.
+        Usage: mt=MonitoringTime()
+               mt.get('ct_proxy')
+        The method throws an AttributeError in case of no such key.
+
+        :param key: name of key (string).
+        :return: key value (int).
+        """
+
+        return getattr(self, key)
