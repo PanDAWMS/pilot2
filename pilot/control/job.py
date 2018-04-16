@@ -838,11 +838,14 @@ def job_monitor(queues, traces, args):
                         break
 
                     # perform the monitoring tasks
-                    exit_code, diagnostics = job_monitor_tasks(job)
-                    if exit_code != 0:
-                        jobs[i].state = 'failed'
-                        jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
-                        queues.failed_payloads.put(jobs[i])
+                    try:
+                        exit_code, diagnostics = job_monitor_tasks(job)
+                        if exit_code != 0:
+                            jobs[i].state = 'failed'
+                            jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
+                            queues.failed_payloads.put(jobs[i])
+                    except Exception as e:
+                        log.warning('exception caught in job monitoring: %s' % e)
             else:
                 msg = 'no jobs in validated_payloads queue'
                 if logger:
