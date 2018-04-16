@@ -57,6 +57,38 @@ def control(queues, traces, args):
             time.sleep(0.1)
 
 
+def prepare_for_container(workdir):
+    """
+    Prepare the executable for using a container.
+    The function adds necessary setup variables to the executable.
+    WARNING: CURRENTLY ATLAS SPECIFIC
+
+    :param workdir: working directory of the job (string).
+    :return: setup string to be prepended to the executable.
+    """
+
+    setup = ""
+    proxy = os.environ.get('X509_USER_PROXY', None)
+    if proxy:
+        # move the proxy to the current workdir to allow the container to reach it
+        from pilot.util.filehandling import copy
+        try:
+            # the proxy must be deleted before the tarball is created
+            copy(proxy, job.workdir)
+        except PilotException as e:
+            logger.warning('failed to copy proxy: %s (will use default X509_USER_PROXY)' % e)
+            setup = 'export X509_USER_PROXY=%s;' % proxy
+        else:
+            path = os.path.join(job.workdir, os.path.basename(proxy))
+            logger.info('redefined X509_USER_PROXY for container to %s' % path)
+            setup = 'export X509_USER_PROXY=%s;' % path
+    from pilot.user.atlas.setup import get_asetup
+    setup += get_asetup(asetup=False)
+    setup += 'lsetup rucio;'
+
+    return setup
+
+
 def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
     try:
         # if the middleware is available locally, do not use container
@@ -71,26 +103,9 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
         executable = ' '.join(executable)
 
         # uncomment the following for container testing
-        setup = ''
-        proxy = os.environ.get('X509_USER_PROXY', None)
-        if proxy:
-            # move the proxy to the current workdir to allow the container to reach it
-            from pilot.util.filehandling import copy
-            try:
-                # the proxy must be deleted before the tarball is created
-                copy(proxy, job.workdir)
-            except PilotException as e:
-                logger.warning('failed to copy proxy: %s (will use default X509_USER_PROXY)' % e)
-                setup = 'export X509_USER_PROXY=%s;' % proxy
-            else:
-                path = os.path.join(job.workdir, os.path.basename(proxy))
-                logger.info('redefined X509_USER_PROXY for container to %s' % path)
-                setup = 'export X509_USER_PROXY=%s;' % path
-        from pilot.user.atlas.setup import get_asetup
-        setup += get_asetup(asetup=False)
-        setup += 'lsetup rucio;'
-        executable = setup + executable
         usecontainer = True
+        if usecontainer:
+            executable = prepare_for_container(job.workdir) + executable
 
         process = execute(executable, workdir=job.workdir, returnproc=True,
                           usecontainer=usecontainer, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, job=job)
