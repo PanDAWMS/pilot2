@@ -817,9 +817,6 @@ def job_monitor(queues, traces, args):
     :return:
     """
 
-    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
-
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
     while not args.graceful_stop.is_set():
@@ -892,6 +889,9 @@ def job_monitor_tasks(job):
     # log = logger.getChild(job.jobid)
     mt = MonitoringTime()
     current_time = int(time.time())
+
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
 
     # is it time to verify the proxy?
     if current_time - mt.get('ct_proxy') > config.Pilot.proxy_verification_time:
