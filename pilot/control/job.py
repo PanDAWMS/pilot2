@@ -895,7 +895,7 @@ def job_monitor_tasks(job):
 
     # is it time to verify the proxy?
     if current_time - mt.get('ct_proxy') > config.Pilot.proxy_verification_time:
-        # Is the proxy still valid?
+        # is the proxy still valid?
         exit_code, diagnostics = userproxy.verify_proxy()
         if exit_code != 0:
             return exit_code, diagnostics
@@ -905,8 +905,10 @@ def job_monitor_tasks(job):
 
     # is it time to check for looping jobs?
     looping_limit = get_looping_job_limit(job)
-
     if current_time - mt.get('ct_looping') > config.Pilot.looping_verifiction_time:
+        # is the job looping?
+        #exit_code, diagnostics = loopingjob.
+        pass
 
     # is the job using too much space?
 
