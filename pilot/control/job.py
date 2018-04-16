@@ -862,6 +862,25 @@ def job_monitor(queues, traces, args):
             n += 1
 
 
+def get_looping_job_limit(job):
+    """
+    Get the time limit for looping job detection.
+
+    :param job: job object.
+    :return: looping job time limit (int).
+    """
+
+    try:
+        looping_limit = int(config.Pilot.looping_limit_default_prod)
+        if job.is_analysis():
+            looping_limit = int(config.Pilot.looping_limit_default_user)
+    except ValueError as e:
+        looping_limit = 12*3600
+        logger.warning('exception caught: %s (using default looping limit: %d s)' % (e, looping_limit))
+
+    return looping_limit
+
+
 def job_monitor_tasks(job):
     """
     Perform the tasks for the job monitoring.
@@ -884,8 +903,10 @@ def job_monitor_tasks(job):
             # update the ct_proxy with the current time
             mt.update('ct_proxy')
 
-    # looping job detection
+    # is it time to check for looping jobs?
+    looping_limit = get_looping_job_limit(job)
 
+    if current_time - mt.get('ct_looping') > looping_limit_default
     # is the job using too much space?
 
     # Is the payload stdout within allowed limits?
