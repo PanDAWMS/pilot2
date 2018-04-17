@@ -178,10 +178,12 @@ def alrb_wrapper(cmd, workdir, job):
 
         _cmd = asetup
         _cmd += 'export thePlatform=\"%s\";' % job.platform
-        if singularity_options != "":
-            _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % singularity_options
+        if '--containall' not in singularity_options:
+            singularity_options += ' --containall'
+        _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % singularity_options
         _cmd += 'export ALRB_CONT_RUNPAYLOAD=\"%s\";' % cmd
         _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c images:$thePlatform'
+        _cmd = _cmd.replace('  ', ' ')
         cmd = _cmd
         logger.info("Updated command: %s" % cmd)
 
