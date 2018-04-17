@@ -24,6 +24,7 @@ util components
     harvester
     https
     information
+    monitoring
     monitoringtime
     node
     parameters
