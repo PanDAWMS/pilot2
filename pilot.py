@@ -25,7 +25,7 @@ from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 from pilot.util.harvester import is_harvester_mode
 
-VERSION = '2018-04-17.003'
+VERSION = '2018-04-17.004'
 
 
 def pilot_version_banner():
@@ -38,9 +38,9 @@ def pilot_version_banner():
     logger = logging.getLogger(__name__)
 
     version = '***  PanDA Pilot 2 version %s  ***' % VERSION
-    logger.info('*'*len(version))
+    logger.info('*' * len(version))
     logger.info(version)
-    logger.info('*'*len(version))
+    logger.info('*' * len(version))
     logger.info('')
 
 

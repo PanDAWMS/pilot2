@@ -875,7 +875,7 @@ def get_looping_job_limit(job):
         if job.is_analysis():
             looping_limit = int(config.Pilot.looping_limit_default_user)
     except ValueError as e:
-        looping_limit = 12*3600
+        looping_limit = 12 * 3600
         logger.warning('exception caught: %s (using default looping limit: %d s)' % (e, looping_limit))
 
     return looping_limit
