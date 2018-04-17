@@ -35,12 +35,15 @@ def job_monitor_tasks(job, mt):
     exit_code = 0
     diagnostics = ""
 
-    # log = logger.getChild(job.jobid)
+    log = logger.getChild(job.jobid)
     current_time = int(time.time())
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
 
+    log.info('ct=%d' % current_time)
+    log.info('ct_proxy=%s' % mt.get('ct_proxy'))
+    log.info('pvt=%d' % config.Pilot.proxy_verification_time)
     # is it time to verify the proxy?
     if current_time - mt.get('ct_proxy') > config.Pilot.proxy_verification_time:
         # is the proxy still valid?
