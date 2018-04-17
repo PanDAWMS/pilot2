@@ -82,7 +82,7 @@ def prepare_for_container(workdir):
         #    path = os.path.join(job.workdir, os.path.basename(proxy))
         #    logger.info('redefined X509_USER_PROXY for container to %s' % path)
         #    setup = 'export X509_USER_PROXY=%s;' % path
-        setup = 'export X509_USER_PROXY=%s;' % proxy
+        setup = ''  # ''export X509_USER_PROXY=%s;' % proxy
     else:
         logger.warning('X509_USER_PROXY is not set - container setup might fail')
 
@@ -107,7 +107,7 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
         executable = ' '.join(executable)
 
         # uncomment the following for container testing
-        #usecontainer = True
+        usecontainer = True
         if usecontainer:
             executable = prepare_for_container(job.workdir) + executable
 
