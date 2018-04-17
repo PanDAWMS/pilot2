@@ -85,7 +85,7 @@ def prepare_for_container(workdir):
     if proxy:
         setup = 'export X509_USER_PROXY=%s;' % proxy
     else:
-        logger.warning('proxy is not known - container setup might fail')
+        logger.warning('X509_USER_PROXY is not set - container setup might fail')
 
     from pilot.user.atlas.setup import get_asetup
     setup += get_asetup(asetup=False)
