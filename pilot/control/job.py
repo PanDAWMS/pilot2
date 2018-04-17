@@ -762,6 +762,9 @@ def job_monitor(queues, traces, args):
     :return:
     """
 
+    # initialize the monitoring time object
+    mt = MonitoringTime()
+
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
     while not args.graceful_stop.is_set():
@@ -783,7 +786,7 @@ def job_monitor(queues, traces, args):
                         break
 
                     # perform the monitoring tasks
-                    exit_code, diagnostics = job_monitor_tasks(jobs[i])
+                    exit_code, diagnostics = job_monitor_tasks(jobs[i], mt)
                     if exit_code != 0:
                         jobs[i].state = 'failed'
                         jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)

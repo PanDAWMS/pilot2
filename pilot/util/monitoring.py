@@ -24,11 +24,12 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def job_monitor_tasks(job):
+def job_monitor_tasks(job, mt):
     """
     Perform the tasks for the job monitoring.
 
     :param job: job object.
+    :param mt: `MonitoringTime` object.
     :return: exit code (int), diagnostics (string).
     """
 
@@ -36,7 +37,6 @@ def job_monitor_tasks(job):
     diagnostics = ""
 
     # log = logger.getChild(job.jobid)
-    mt = MonitoringTime()
     current_time = int(time.time())
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
