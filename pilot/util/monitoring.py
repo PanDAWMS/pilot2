@@ -16,7 +16,6 @@ from subprocess import PIPE
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.config import config
 from pilot.util.container import execute
-from pilot.util.monitoringtime import MonitoringTime
 
 import logging
 logger = logging.getLogger(__name__)
