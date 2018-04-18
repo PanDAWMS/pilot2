@@ -360,6 +360,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # is there enough local space to run a job?
     # convert local space to B and compare with the space limit
     spaceleft = int(get_diskspace(os.getcwd())) * 1024 ** 2  # B (node.disk is in MB)
+    raise NoLocalSpace('testing no local space')
 #    _localspacelimit = env['localspacelimit0']*1024 # B
 #    pUtil.tolog("Local space limit: %d B" % (_localspacelimit))
 #    if spaceleft < _localspacelimit:
