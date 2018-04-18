@@ -63,7 +63,7 @@ def main():
 
     set_info(args)  # initialize InfoService and populate args.info structure
 
-    logger.info('pilot arguments: %s' % str(args))
+    logger.debug('pilot arguments: %s' % str(args))
     logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
 

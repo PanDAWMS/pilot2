@@ -24,6 +24,7 @@ from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_sche
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.util.monitoring import job_monitor_tasks
 from pilot.util.monitoringtime import MonitoringTime
+from pilot.util.node import is_virtual_machine
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException, NoGridProxy, NoVomsProxy
 
@@ -611,6 +612,12 @@ def retrieve(queues, traces, args):
 
     jobnumber = 0  # number of downloaded jobs
     getjob_requests = 0  # number of getjob requests
+
+    # collect machine info
+    if is_virtual_machine():
+        logger.info("pilot is running in a virtual machine")
+    else:
+        logger.info("pilot is not running in a virtual machine")
 
     if args.harvester:
         logger.info('harvester mode: pilot will look for local job definition file(s)')
