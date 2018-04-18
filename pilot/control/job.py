@@ -364,7 +364,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     free_space_limit = human2bytes('%s G' % config.Pilot.free_space_limit)
     logger.info('converted free space limit=%d' % free_space_limit)
 
-    if spaceleft <= int(config.Pilot.free_space_limit)
+    #if spaceleft <= int(config.Pilot.free_space_limit)
     raise NoLocalSpace('testing no local space')
 #    _localspacelimit = env['localspacelimit0']*1024 # B
 #    pUtil.tolog("Local space limit: %d B" % (_localspacelimit))
