@@ -24,7 +24,7 @@ from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_sche
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.util.monitoring import job_monitor_tasks
 from pilot.util.monitoringtime import MonitoringTime
-from pilot.util.node import is_virtual_machine
+from pilot.util.node import is_virtual_machine, get_diskspace
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException, NoGridProxy, NoVomsProxy
 
@@ -356,6 +356,17 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
             raise NoGridProxy(diagnostics)
         elif exit_code == errors.NOVOMSPROXY:
             raise NoVomsProxy(diagnostics)
+
+    # is there enough local space to run a job?
+    # convert local space to B and compare with the space limit
+    spaceleft = int(get_diskspace(os.getcwd())) * 1024 ** 2  # B (node.disk is in MB)
+#    _localspacelimit = env['localspacelimit0']*1024 # B
+#    pUtil.tolog("Local space limit: %d B" % (_localspacelimit))
+#    if spaceleft < _localspacelimit:
+#        pUtil.tolog("!!FAILED!!1999!! Too little space left on local disk to run job: %d B (need > %d B)" % (spaceleft, _localspacelimit))
+#        ec = error.ERR_NOLOCALSPACE
+#    else:
+#        pUtil.tolog("Remaining local disk space: %d B" % (spaceleft))
 
     if harvester:
         maximum_getjob_requests = 60  # 1 s apart
