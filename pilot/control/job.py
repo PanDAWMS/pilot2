@@ -360,7 +360,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # is there enough local space to run a job?
     # convert local space to B and compare with the space limit
     spaceleft = int(get_diskspace(os.getcwd())) * 1024 ** 2  # B (node.disk is in MB)
-    raise NoLocalSpace('testing no local space')
+#    raise NoLocalSpace('testing no local space')
 #    _localspacelimit = env['localspacelimit0']*1024 # B
 #    pUtil.tolog("Local space limit: %d B" % (_localspacelimit))
 #    if spaceleft < _localspacelimit:
@@ -614,6 +614,8 @@ def retrieve(queues, traces, args):
     The function retrieves the job definition from the proper source and places
     it in the `queues.jobs` queue.
 
+    WARNING: this function is nearly too complex. Be careful with adding more lines as flake8 will fail it.
+
     :param queues: internal queues for job handling.
     :param traces: tuple containing internal pilot states.
     :param args: arguments (e.g. containing queue name, queuedata dictionary, etc).
@@ -625,14 +627,14 @@ def retrieve(queues, traces, args):
     jobnumber = 0  # number of downloaded jobs
     getjob_requests = 0  # number of getjob requests
 
+    if args.harvester:
+        logger.info('harvester mode: pilot will look for local job definition file(s)')
+
     # collect machine info
     if is_virtual_machine():
         logger.info("pilot is running in a virtual machine")
     else:
         logger.info("pilot is not running in a virtual machine")
-
-    if args.harvester:
-        logger.info('harvester mode: pilot will look for local job definition file(s)')
 
     while not args.graceful_stop.is_set():
 
@@ -668,20 +670,8 @@ def retrieve(queues, traces, args):
                 # update dispatcher data for ES (if necessary)
                 res = update_es_dispatcher_data(res)
 
-                # initialize (job specific) InfoService instance
-                from pilot.info import InfoService, JobInfoProvider
-
-                job = JobData(res)
-
-                jobinfosys = InfoService()
-                jobinfosys.init(args.queue, infosys.confinfo, infosys.extinfo, JobInfoProvider(job))
-                job.infosys = jobinfosys
-
-                logger.info('received job: %s (sleep until the job has finished)' % job.jobid)
-                logger.info('job details: \n%s' % job)
-
-                # payload environment wants the PandaID to be set, also used below
-                os.environ['PandaID'] = job.jobid
+                # create the job object out of the raw dispatcher job dictionary
+                job = create_job(res)
 
                 # add the job definition to the jobs queue and increase the job counter,
                 # and wait until the job has finished
@@ -697,6 +687,32 @@ def retrieve(queues, traces, args):
                         logger.info('graceful stop has been set')
                         break
                     time.sleep(0.5)
+
+
+def create_job(dispatcher_response):
+    """
+    Create a job object out of the dispatcher response.
+
+    :param dispatcher_response: raw job dictionary from the dispatcher.
+    :return: job object
+    """
+
+    # initialize (job specific) InfoService instance
+    from pilot.info import InfoService, JobInfoProvider
+
+    job = JobData(dispatcher_response)
+
+    jobinfosys = InfoService()
+    jobinfosys.init(args.queue, infosys.confinfo, infosys.extinfo, JobInfoProvider(job))
+    job.infosys = jobinfosys
+
+    logger.info('received job: %s (sleep until the job has finished)' % job.jobid)
+    logger.info('job details: \n%s' % job)
+
+     # payload environment wants the PandaID to be set, also used below
+    os.environ['PandaID'] = job.jobid
+
+    return job
 
 
 def job_has_finished(queues):
