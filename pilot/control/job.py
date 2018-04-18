@@ -671,7 +671,7 @@ def retrieve(queues, traces, args):
                 res = update_es_dispatcher_data(res)
 
                 # create the job object out of the raw dispatcher job dictionary
-                job = create_job(res)
+                job = create_job(res, args.queue)
 
                 # add the job definition to the jobs queue and increase the job counter,
                 # and wait until the job has finished
@@ -689,11 +689,12 @@ def retrieve(queues, traces, args):
                     time.sleep(0.5)
 
 
-def create_job(dispatcher_response):
+def create_job(dispatcher_response, queue):
     """
     Create a job object out of the dispatcher response.
 
     :param dispatcher_response: raw job dictionary from the dispatcher.
+    :param queue: queue name (string).
     :return: job object
     """
 
@@ -703,13 +704,13 @@ def create_job(dispatcher_response):
     job = JobData(dispatcher_response)
 
     jobinfosys = InfoService()
-    jobinfosys.init(args.queue, infosys.confinfo, infosys.extinfo, JobInfoProvider(job))
+    jobinfosys.init(queue, infosys.confinfo, infosys.extinfo, JobInfoProvider(job))
     job.infosys = jobinfosys
 
     logger.info('received job: %s (sleep until the job has finished)' % job.jobid)
     logger.info('job details: \n%s' % job)
 
-     # payload environment wants the PandaID to be set, also used below
+    # payload environment wants the PandaID to be set, also used below
     os.environ['PandaID'] = job.jobid
 
     return job
