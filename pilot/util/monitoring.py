@@ -23,12 +23,13 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def job_monitor_tasks(job, mt):
+def job_monitor_tasks(job, mt, args):
     """
     Perform the tasks for the job monitoring.
 
     :param job: job object.
     :param mt: `MonitoringTime` object.
+    :param args:
     :return: exit code (int), diagnostics (string).
     """
 
@@ -38,21 +39,23 @@ def job_monitor_tasks(job, mt):
     log = logger.getChild(job.jobid)
     current_time = int(time.time())
 
-    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
+    # should the proxy be verified?
+    if args.verify_proxy:
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
 
-    log.info('ct=%d' % current_time)
-    log.info('ct_proxy=%s' % mt.get('ct_proxy'))
-    log.info('pvt=%d' % config.Pilot.proxy_verification_time)
-    # is it time to verify the proxy?
-    if current_time - mt.get('ct_proxy') > config.Pilot.proxy_verification_time:
-        # is the proxy still valid?
-        exit_code, diagnostics = userproxy.verify_proxy()
-        if exit_code != 0:
-            return exit_code, diagnostics
-        else:
-            # update the ct_proxy with the current time
-            mt.update('ct_proxy')
+        log.info('ct=%d' % current_time)
+        log.info('ct_proxy=%s' % mt.get('ct_proxy'))
+        log.info('pvt=%d' % config.Pilot.proxy_verification_time)
+        # is it time to verify the proxy?
+        if current_time - mt.get('ct_proxy') > config.Pilot.proxy_verification_time:
+            # is the proxy still valid?
+            exit_code, diagnostics = userproxy.verify_proxy()
+            if exit_code != 0:
+                return exit_code, diagnostics
+            else:
+                # update the ct_proxy with the current time
+                mt.update('ct_proxy')
 
     # is it time to check for looping jobs?
     looping_limit = get_looping_job_limit(job)
