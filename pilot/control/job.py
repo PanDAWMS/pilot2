@@ -361,8 +361,8 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     spaceleft = int(get_diskspace(os.getcwd())) * 1024 ** 2  # B (diskspace is in MB)
     free_space_limit = human2bytes(config.Pilot.free_space_limit)
     if spaceleft <= free_space_limit:
-        diagnostics = 'too little space left on local disk to run job: %d B (need > %d B)' %
-                       (spaceleft, free_space_limit)
+        diagnostics = 'too little space left on local disk to run job: %d B (need > %d B)' %\
+                      (spaceleft, free_space_limit)
         raise NoLocalSpace(diagnostics)
     else:
         logger.info('remaining disk space (%d B) is sufficient to download a job' % spaceleft)
