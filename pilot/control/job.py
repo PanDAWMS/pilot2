@@ -25,7 +25,7 @@ from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.util.monitoring import job_monitor_tasks
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import ExcThread, PilotException
+from pilot.common.exception import ExcThread, PilotException, NoGridProxy, NoVomsProxy
 
 import logging
 logger = logging.getLogger(__name__)
@@ -351,9 +351,10 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
 
         # is the proxy still valid?
         exit_code, diagnostics = userproxy.verify_proxy()
-        if exit_code != 0:
-
-            return exit_code, diagnostics
+        if exit_code == errors.NOPROXY:
+            raise NoGridProxy(diagnostics)
+        elif exit_code == errors.NOVOMDPROXY:
+            raise NoVomsProxy(diagnostics)
 
     if harvester:
         maximum_getjob_requests = 60  # 1 s apart
