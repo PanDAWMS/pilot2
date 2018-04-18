@@ -26,7 +26,7 @@ from pilot.util.monitoring import job_monitor_tasks
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.node import is_virtual_machine, get_diskspace
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import ExcThread, PilotException, NoGridProxy, NoVomsProxy
+from pilot.common.exception import ExcThread, PilotException, NoGridProxy, NoVomsProxy, NoLocalSpace
 
 import logging
 logger = logging.getLogger(__name__)
@@ -360,7 +360,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # is there enough local space to run a job?
     # convert local space to B and compare with the space limit
     spaceleft = int(get_diskspace(os.getcwd())) * 1024 ** 2  # B (node.disk is in MB)
-#    raise NoLocalSpace('testing no local space')
+    raise NoLocalSpace('testing no local space')
 #    _localspacelimit = env['localspacelimit0']*1024 # B
 #    pUtil.tolog("Local space limit: %d B" % (_localspacelimit))
 #    if spaceleft < _localspacelimit:
