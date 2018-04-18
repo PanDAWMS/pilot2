@@ -23,13 +23,13 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def job_monitor_tasks(job, mt, args):
+def job_monitor_tasks(job, mt, verify_proxy):
     """
     Perform the tasks for the job monitoring.
 
     :param job: job object.
     :param mt: `MonitoringTime` object.
-    :param args:
+    :param verify_proxy: True if the proxy should be verified. False otherwise.
     :return: exit code (int), diagnostics (string).
     """
 
@@ -40,7 +40,7 @@ def job_monitor_tasks(job, mt, args):
     current_time = int(time.time())
 
     # should the proxy be verified?
-    if args.verify_proxy:
+    if verify_proxy:
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
         userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
 

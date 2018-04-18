@@ -792,7 +792,7 @@ def job_monitor(queues, traces, args):
                         break
 
                     # perform the monitoring tasks
-                    exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
+                    exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args.verify_proxy)
                     if exit_code != 0:
                         jobs[i].state = 'failed'
                         jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
