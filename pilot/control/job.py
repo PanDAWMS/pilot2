@@ -17,7 +17,7 @@ from json import dumps
 
 from pilot.info import infosys, JobData
 from pilot.util import https
-from pilot.util.config import config
+from pilot.util.config import config, human2bytes
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id
@@ -360,6 +360,11 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # is there enough local space to run a job?
     # convert local space to B and compare with the space limit
     spaceleft = int(get_diskspace(os.getcwd())) * 1024 ** 2  # B (node.disk is in MB)
+    logger.info('free space limit=%s' % config.Pilot.free_space_limit)
+    free_space_limit = human2bytes('%s G' % config.Pilot.free_space_limit)
+    logger.info('converted free space limit=%d' % free_space_limit)
+
+    if spaceleft <= int(config.Pilot.free_space_limit)
     raise NoLocalSpace('testing no local space')
 #    _localspacelimit = env['localspacelimit0']*1024 # B
 #    pUtil.tolog("Local space limit: %d B" % (_localspacelimit))
