@@ -353,7 +353,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
         exit_code, diagnostics = userproxy.verify_proxy()
         if exit_code == errors.NOPROXY:
             raise NoGridProxy(diagnostics)
-        elif exit_code == errors.NOVOMDPROXY:
+        elif exit_code == errors.NOVOMSPROXY:
             raise NoVomsProxy(diagnostics)
 
     if harvester:
