@@ -101,6 +101,7 @@ def import_module(**kwargs):
                            '-s': kwargs.get('site'),  # required
                            '-j': kwargs.get('job_label', 'ptest'),  # change default later to 'managed'
                            '-i': kwargs.get('version_tag', 'PR'),
+                           '-t': kwargs.get('verify_proxy', True),
                            '--cacert': kwargs.get('cacert', None),
                            '--capath': kwargs.get('capath'),
                            '--url': kwargs.get('url', ''),
@@ -198,6 +199,12 @@ if __name__ == '__main__':
                             default=True,
                             type=bool,
                             help='Update server (default: True)')
+
+    arg_parser.add_argument('-t',
+                            dest='verify_proxy',
+                            default=True,
+                            type=bool,
+                            help='Proxy verification (default: True)')
 
     # SSL certificates
     arg_parser.add_argument('--cacert',
