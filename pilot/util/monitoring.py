@@ -46,7 +46,7 @@ def job_monitor_tasks(job, mt, verify_proxy):
 
         log.info('ct=%d' % current_time)
         log.info('ct_proxy=%s' % mt.get('ct_proxy'))
-        log.info('pvt=%d' % config.Pilot.proxy_verification_time)
+        log.info('pvt=%d' % int(config.Pilot.proxy_verification_time))
         # is it time to verify the proxy?
         if current_time - mt.get('ct_proxy') > config.Pilot.proxy_verification_time:
             # is the proxy still valid?
