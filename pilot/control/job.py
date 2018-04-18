@@ -26,7 +26,7 @@ from pilot.util.monitoring import job_monitor_tasks
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.node import is_virtual_machine, get_diskspace
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import ExcThread, PilotException  #, NoGridProxy, NoVomsProxy, NoLocalSpace
+from pilot.common.exception import ExcThread, PilotException
 
 import logging
 logger = logging.getLogger(__name__)
@@ -326,8 +326,8 @@ def get_dispatcher_dictionary(args):
 def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harvester, verify_proxy):
     """
     Can we proceed with getjob?
-    We may not proceed if we have run out of time (timefloor limit), if the proxy is too short or if we have already
-    proceed enough jobs.
+    We may not proceed if we have run out of time (timefloor limit), if the proxy is too short, if disk space is too
+    small or if we have already proceed enough jobs.
 
     :param timefloor: timefloor limit (s)
     :param starttime: start time of retrieve() (s)
@@ -335,7 +335,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     :param getjob_requests: number of getjob requests
     :param harvester: True if Harvester is used, False otherwise. Affects the max number of getjob reads (from file).
     :param verify_proxy: True if the proxy should be verified. False otherwise.
-    :return: Boolean based on the input parameters
+    :return: Boolean.
     """
 
     time.sleep(10)
@@ -352,14 +352,9 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
 
         # is the proxy still valid?
         exit_code, diagnostics = userproxy.verify_proxy()
-        if exit_code == errors.NOPROXY:
+        if exit_code == errors.NOPROXY or exit_code == errors.NOVOMSPROXY:
             logger.warning(diagnostics)
             return False
-            # raise NoGridProxy(diagnostics)
-        elif exit_code == errors.NOVOMSPROXY:
-            logger.warning(diagnostics)
-            return False
-            # raise NoVomsProxy(diagnostics)
 
     # is there enough local space to run a job?
     spaceleft = int(get_diskspace(os.getcwd())) * 1024 ** 2  # B (diskspace is in MB)
@@ -369,7 +364,6 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
                       (spaceleft, free_space_limit)
         logger.warning(diagnostics)
         return False
-        # raise NoLocalSpace(diagnostics)
     else:
         logger.info('remaining disk space (%d B) is sufficient to download a job' % spaceleft)
 
