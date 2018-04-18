@@ -322,16 +322,18 @@ def get_dispatcher_dictionary(args):
     return data
 
 
-def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harvester):
+def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harvester, verify_proxy):
     """
     Can we proceed with getjob?
-    We may not proceed if we have run out of time (timefloor limit) or if we have already proceed enough jobs
+    We may not proceed if we have run out of time (timefloor limit), if the proxy is too short or if we have already
+    proceed enough jobs.
 
     :param timefloor: timefloor limit (s)
     :param starttime: start time of retrieve() (s)
     :param jobnumber: number of downloaded jobs
     :param getjob_requests: number of getjob requests
     :param harvester: True if Harvester is used, False otherwise. Affects the max number of getjob reads (from file).
+    :param verify_proxy: True if the proxy should be verified. False otherwise.
     :return: Boolean based on the input parameters
     """
 
@@ -341,6 +343,9 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # raise NoLocalSpace('testing exception from proceed_with_getjob')
 
     currenttime = time.time()
+
+    if verify_proxy:
+        pass
 
     if harvester:
         maximum_getjob_requests = 60  # 1 s apart
@@ -605,7 +610,7 @@ def retrieve(queues, traces, args):
 
         getjob_requests += 1
 
-        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester):
+        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester, args.verify_proxy):
             args.graceful_stop.set()
             break
 
