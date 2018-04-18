@@ -361,18 +361,13 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # convert local space to B and compare with the space limit
     spaceleft = int(get_diskspace(os.getcwd())) * 1024 ** 2  # B (node.disk is in MB)
     logger.info('free space limit=%s' % config.Pilot.free_space_limit)
-    free_space_limit = human2bytes('%s G' % config.Pilot.free_space_limit)
+    free_space_limit = human2bytes(config.Pilot.free_space_limit)
     logger.info('converted free space limit=%d' % free_space_limit)
 
-    #if spaceleft <= int(config.Pilot.free_space_limit)
-    raise NoLocalSpace('testing no local space')
-#    _localspacelimit = env['localspacelimit0']*1024 # B
-#    pUtil.tolog("Local space limit: %d B" % (_localspacelimit))
-#    if spaceleft < _localspacelimit:
-#        pUtil.tolog("!!FAILED!!1999!! Too little space left on local disk to run job: %d B (need > %d B)" % (spaceleft, _localspacelimit))
-#        ec = error.ERR_NOLOCALSPACE
-#    else:
-#        pUtil.tolog("Remaining local disk space: %d B" % (spaceleft))
+    if spaceleft <= free_space_limit:
+        logger.warning('too little space left on local disk to run job: %d B (need > %d B)' %
+                       (spaceleft, free_space_limit))
+        raise NoLocalSpace('testing no local space')
 
     if harvester:
         maximum_getjob_requests = 60  # 1 s apart
