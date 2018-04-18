@@ -344,8 +344,16 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
 
     currenttime = time.time()
 
+    # should the proxy be verified?
     if verify_proxy:
-        pass
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
+
+        # is the proxy still valid?
+        exit_code, diagnostics = userproxy.verify_proxy()
+        if exit_code != 0:
+
+            return exit_code, diagnostics
 
     if harvester:
         maximum_getjob_requests = 60  # 1 s apart
