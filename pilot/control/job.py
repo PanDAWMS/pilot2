@@ -358,16 +358,14 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
             raise NoVomsProxy(diagnostics)
 
     # is there enough local space to run a job?
-    # convert local space to B and compare with the space limit
-    spaceleft = int(get_diskspace(os.getcwd())) * 1024 ** 2  # B (node.disk is in MB)
-    logger.info('free space limit=%s' % config.Pilot.free_space_limit)
+    spaceleft = int(get_diskspace(os.getcwd())) * 1024 ** 2  # B (diskspace is in MB)
     free_space_limit = human2bytes(config.Pilot.free_space_limit)
-    logger.info('converted free space limit=%d' % free_space_limit)
-
     if spaceleft <= free_space_limit:
-        logger.warning('too little space left on local disk to run job: %d B (need > %d B)' %
-                       (spaceleft, free_space_limit))
-        raise NoLocalSpace('testing no local space')
+        diagnostics = 'too little space left on local disk to run job: %d B (need > %d B)' %
+                       (spaceleft, free_space_limit)
+        raise NoLocalSpace(diagnostics)
+    else:
+        logger.info('remaining disk space (%d B) is sufficient to download a job' % spaceleft)
 
     if harvester:
         maximum_getjob_requests = 60  # 1 s apart
