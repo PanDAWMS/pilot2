@@ -627,14 +627,7 @@ def retrieve(queues, traces, args):
     jobnumber = 0  # number of downloaded jobs
     getjob_requests = 0  # number of getjob requests
 
-    if args.harvester:
-        logger.info('harvester mode: pilot will look for local job definition file(s)')
-
-    # collect machine info
-    if is_virtual_machine():
-        logger.info("pilot is running in a virtual machine")
-    else:
-        logger.info("pilot is not running in a virtual machine")
+    print_node_info()
 
     while not args.graceful_stop.is_set():
 
@@ -687,6 +680,19 @@ def retrieve(queues, traces, args):
                         logger.info('graceful stop has been set')
                         break
                     time.sleep(0.5)
+
+
+def print_node_info():
+    """
+    Print information about the local node to the log.
+
+    :return:
+    """
+
+    if is_virtual_machine():
+        logger.info("pilot is running in a virtual machine")
+    else:
+        logger.info("pilot is not running in a virtual machine")
 
 
 def create_job(dispatcher_response, queue):
