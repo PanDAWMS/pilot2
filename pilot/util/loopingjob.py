@@ -8,16 +8,25 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 
-def killer():
+def killer(job):
     """
     Looping job killer algorithm.
     Identify hanging tasks/processes. Did the stage-in/out finish within allowed time limit, or did the payload update
     any files recently?
 
+    :param job: job object.
     :return: exit code (int), diagnostics (string).
     """
 
     exit_code = 0
     diagnostics = ""
+
+    if job.state == 'stagein':
+        pass
+    elif job.state == 'stageout':
+        pass
+    else:
+        # most likely running state
+        pass
 
     return exit_code, diagnostics
