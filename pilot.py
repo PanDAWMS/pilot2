@@ -25,14 +25,32 @@ from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 from pilot.util.harvester import is_harvester_mode
 
-VERSION = '2018-04-13.001'
+VERSION = '2018-04-19.001'
+
+
+def pilot_version_banner():
+    """
+    Print a pilot version banner.
+
+    :return:
+    """
+
+    logger = logging.getLogger(__name__)
+
+    version = '***  PanDA Pilot 2 version %s  ***' % VERSION
+    logger.info('*' * len(version))
+    logger.info(version)
+    logger.info('*' * len(version))
+    logger.info('')
 
 
 def main():
     """ Main function of PanDA Pilot 2 """
 
     logger = logging.getLogger(__name__)
-    logger.info('PanDA Pilot 2 version %s' % VERSION)
+
+    # print the pilot version
+    pilot_version_banner()
 
     args.graceful_stop = threading.Event()
     args.retrieve_next_job = True  # go ahead and download a new job
@@ -45,7 +63,7 @@ def main():
 
     set_info(args)  # initialize InfoService and populate args.info structure
 
-    logger.info('pilot arguments: %s' % str(args))
+    logger.debug('pilot arguments: %s' % str(args))
     logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
 
@@ -83,6 +101,7 @@ def import_module(**kwargs):
                            '-s': kwargs.get('site'),  # required
                            '-j': kwargs.get('job_label', 'ptest'),  # change default later to 'managed'
                            '-i': kwargs.get('version_tag', 'PR'),
+                           '-t': kwargs.get('verify_proxy', True),
                            '--cacert': kwargs.get('cacert', None),
                            '--capath': kwargs.get('capath'),
                            '--url': kwargs.get('url', ''),
@@ -180,6 +199,12 @@ if __name__ == '__main__':
                             default=True,
                             type=bool,
                             help='Update server (default: True)')
+
+    arg_parser.add_argument('-t',
+                            dest='verify_proxy',
+                            default=True,
+                            type=bool,
+                            help='Proxy verification (default: True)')
 
     # SSL certificates
     arg_parser.add_argument('--cacert',
@@ -316,10 +341,10 @@ if __name__ == '__main__':
     console = logging.StreamHandler(sys.stdout)
     if args.debug:
         logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.DEBUG,
-                            format='%(asctime)s | %(levelname)-8s | %(threadName)-18s | %(name)-32s | %(funcName)-25s | %(message)s')
+                            format='%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s')
         console.setLevel(logging.DEBUG)
         console.setFormatter(logging.Formatter(
-            '%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-32s | %(message)s'))
+            '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'))
     else:
         logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.INFO,
                             format='%(asctime)s | %(levelname)-8s | %(message)s')

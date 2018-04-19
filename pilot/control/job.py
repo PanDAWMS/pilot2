@@ -14,16 +14,17 @@ import os
 import sys
 import time
 from json import dumps
-from subprocess import PIPE
 
 from pilot.info import infosys, JobData
 from pilot.util import https
-from pilot.util.config import config
+from pilot.util.config import config, human2bytes
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
-from pilot.util.container import execute
+from pilot.util.monitoring import job_monitor_tasks
+from pilot.util.monitoringtime import MonitoringTime
+from pilot.util.node import is_virtual_machine, get_diskspace
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
 
@@ -322,17 +323,19 @@ def get_dispatcher_dictionary(args):
     return data
 
 
-def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harvester):
+def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harvester, verify_proxy):
     """
     Can we proceed with getjob?
-    We may not proceed if we have run out of time (timefloor limit) or if we have already proceed enough jobs
+    We may not proceed if we have run out of time (timefloor limit), if the proxy is too short, if disk space is too
+    small or if we have already proceed enough jobs.
 
     :param timefloor: timefloor limit (s)
     :param starttime: start time of retrieve() (s)
     :param jobnumber: number of downloaded jobs
     :param getjob_requests: number of getjob requests
     :param harvester: True if Harvester is used, False otherwise. Affects the max number of getjob reads (from file).
-    :return: Boolean based on the input parameters
+    :param verify_proxy: True if the proxy should be verified. False otherwise.
+    :return: Boolean.
     """
 
     time.sleep(10)
@@ -341,6 +344,28 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # raise NoLocalSpace('testing exception from proceed_with_getjob')
 
     currenttime = time.time()
+
+    # should the proxy be verified?
+    if verify_proxy:
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
+
+        # is the proxy still valid?
+        exit_code, diagnostics = userproxy.verify_proxy()
+        if exit_code == errors.NOPROXY or exit_code == errors.NOVOMSPROXY:
+            logger.warning(diagnostics)
+            return False
+
+    # is there enough local space to run a job?
+    spaceleft = int(get_diskspace(os.getcwd())) * 1024 ** 2  # B (diskspace is in MB)
+    free_space_limit = human2bytes(config.Pilot.free_space_limit)
+    if spaceleft <= free_space_limit:
+        diagnostics = 'too little space left on local disk to run job: %d B (need > %d B)' %\
+                      (spaceleft, free_space_limit)
+        logger.warning(diagnostics)
+        return False
+    else:
+        logger.info('remaining disk space (%d B) is sufficient to download a job' % spaceleft)
 
     if harvester:
         maximum_getjob_requests = 60  # 1 s apart
@@ -587,6 +612,8 @@ def retrieve(queues, traces, args):
     The function retrieves the job definition from the proper source and places
     it in the `queues.jobs` queue.
 
+    WARNING: this function is nearly too complex. Be careful with adding more lines as flake8 will fail it.
+
     :param queues: internal queues for job handling.
     :param traces: tuple containing internal pilot states.
     :param args: arguments (e.g. containing queue name, queuedata dictionary, etc).
@@ -598,14 +625,13 @@ def retrieve(queues, traces, args):
     jobnumber = 0  # number of downloaded jobs
     getjob_requests = 0  # number of getjob requests
 
-    if args.harvester:
-        logger.info('harvester mode: pilot will look for local job definition file(s)')
+    print_node_info()
 
     while not args.graceful_stop.is_set():
 
         getjob_requests += 1
 
-        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester):
+        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester, args.verify_proxy):
             args.graceful_stop.set()
             break
 
@@ -635,20 +661,8 @@ def retrieve(queues, traces, args):
                 # update dispatcher data for ES (if necessary)
                 res = update_es_dispatcher_data(res)
 
-                # initialize (job specific) InfoService instance
-                from pilot.info import InfoService, JobInfoProvider
-
-                job = JobData(res)
-
-                jobinfosys = InfoService()
-                jobinfosys.init(args.queue, infosys.confinfo, infosys.extinfo, JobInfoProvider(job))
-                job.infosys = jobinfosys
-
-                logger.info('received job: %s (sleep until the job has finished)' % job.jobid)
-                logger.info('job details: \n%s' % job)
-
-                # payload environment wants the PandaID to be set, also used below
-                os.environ['PandaID'] = job.jobid
+                # create the job object out of the raw dispatcher job dictionary
+                job = create_job(res, args.queue)
 
                 # add the job definition to the jobs queue and increase the job counter,
                 # and wait until the job has finished
@@ -664,6 +678,46 @@ def retrieve(queues, traces, args):
                         logger.info('graceful stop has been set')
                         break
                     time.sleep(0.5)
+
+
+def print_node_info():
+    """
+    Print information about the local node to the log.
+
+    :return:
+    """
+
+    if is_virtual_machine():
+        logger.info("pilot is running in a virtual machine")
+    else:
+        logger.info("pilot is not running in a virtual machine")
+
+
+def create_job(dispatcher_response, queue):
+    """
+    Create a job object out of the dispatcher response.
+
+    :param dispatcher_response: raw job dictionary from the dispatcher.
+    :param queue: queue name (string).
+    :return: job object
+    """
+
+    # initialize (job specific) InfoService instance
+    from pilot.info import InfoService, JobInfoProvider
+
+    job = JobData(dispatcher_response)
+
+    jobinfosys = InfoService()
+    jobinfosys.init(queue, infosys.confinfo, infosys.extinfo, JobInfoProvider(job))
+    job.infosys = jobinfosys
+
+    logger.info('received job: %s (sleep until the job has finished)' % job.jobid)
+    logger.info('job details: \n%s' % job)
+
+    # payload environment wants the PandaID to be set, also used below
+    os.environ['PandaID'] = job.jobid
+
+    return job
 
 
 def job_has_finished(queues):
@@ -752,59 +806,6 @@ def queue_monitor(queues, traces, args):
             # now ready for the next job (or quit)
 
 
-def utility_monitor(job):
-    """
-    Make sure that any utility commands are still running.
-    In case a utility tool has crashed, this function may restart the process.
-    The function is used by the job monitor thread.
-
-    :param job: job object.
-    :return: updated job object.
-    """
-
-    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    usercommon = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
-
-    log = logger.getChild(job.jobid)
-
-    # loop over all utilities
-    for utcmd in job.utilities.keys():
-
-        # make sure the subprocess is still running
-        utproc = job.utilities[utcmd][0]
-        if not utproc.poll() is None:
-            # if poll() returns anything but None it means that the subprocess has ended - which it
-            # should not have done by itself
-            utility_subprocess_launches = job.utilities[utcmd][1]
-            if utility_subprocess_launches <= 5:
-                log.warning('dectected crashed utility subprocess - will restart it')
-                utility_command = job.utilities[utcmd][2]
-
-                try:
-                    proc1 = execute(utility_command, workdir=job.workdir, returnproc=True, usecontainer=True,
-                                    stdout=PIPE, stderr=PIPE, cwd=job.workdir, queuedata=job.infosys.queuedata)
-                except Exception as e:
-                    log.error('could not execute: %s' % e)
-                else:
-                    # store process handle in job object, and keep track on how many times the
-                    # command has been launched
-                    job.utilities[utcmd] = [proc1, utility_subprocess_launches + 1, utility_command]
-            else:
-                log.warning('dectected crashed utility subprocess - too many restarts, will not restart %s again' %
-                            utcmd)
-        else:
-            # log.info('utility %s is still running' % utcmd)
-
-            # check the utility output (the selector option adds a substring to the output file name)
-            filename = usercommon.get_utility_command_output_filename(utcmd, selector=True)
-            path = os.path.join(job.workdir, filename)
-            if os.path.exists(path):
-                log.info('file: %s exists' % path)
-            else:
-                log.warning('file: %s does not exist' % path)
-    return job
-
-
 def job_monitor(queues, traces, args):
     """
     Monitoring of job parameters.
@@ -816,8 +817,8 @@ def job_monitor(queues, traces, args):
     :return:
     """
 
-    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
+    # initialize the monitoring time object
+    mt = MonitoringTime()
 
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
@@ -831,36 +832,20 @@ def job_monitor(queues, traces, args):
             # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
             jobs = queues.monitored_payloads.queue
 
-            # states = ['starting', 'stagein', 'running', 'stageout']
             if jobs:
                 for i in range(len(jobs)):
                     log = logger.getChild(jobs[i].jobid)
                     log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
                     if jobs[i].state == 'finished' or jobs[i].state == 'failed':
-                        log.info('aborting job monitoring')
+                        log.info('aborting job monitoring since job state=%s' % jobs[i].state)
                         break
 
-                    # Is the proxy still valid?
-                    exitcode, diagnostics = userproxy.verify_proxy()
-                    if exitcode != 0:
-                        log.warning('proxy is not valid')
+                    # perform the monitoring tasks
+                    exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args.verify_proxy)
+                    if exit_code != 0:
                         jobs[i].state = 'failed'
-                        jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exitcode)
+                        jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
                         queues.failed_payloads.put(jobs[i])
-
-                    # looping job detection
-
-                    # is the job using too much space?
-
-                    # Is the payload stdout within allowed limits?
-
-                    # Are the output files within allowed limits?
-
-                    # make sure that any utility commands are still running
-                    if jobs[i].utilities != {}:
-                        jobs[i] = utility_monitor(jobs[i])
-
-                    # send heartbeat
             else:
                 msg = 'no jobs in validated_payloads queue'
                 if logger:

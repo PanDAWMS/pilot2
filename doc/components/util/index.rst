@@ -24,6 +24,9 @@ util components
     harvester
     https
     information
+    loopingjob
+    monitoring
+    monitoringtime
     node
     parameters
     proxy

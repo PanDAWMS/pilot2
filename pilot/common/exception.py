@@ -186,6 +186,26 @@ class MKDirFailure(PilotException):
         self._message = errors.get_error_message(self._errorCode)
 
 
+class NoGridProxy(PilotException):
+    """
+    Grid proxy not valid.
+    """
+    def __init__(self, *args, **kwargs):
+        super(NoGridProxy, self).__init__(args, kwargs)
+        self._errorCode = errors.NOPROXY
+        self._message = errors.get_error_message(self._errorCode)
+
+
+class NoVomsProxy(PilotException):
+    """
+    Voms proxy not valid.
+    """
+    def __init__(self, *args, **kwargs):
+        super(NoVomsProxy, self).__init__(args, kwargs)
+        self._errorCode = errors.NOVOMSPROXY
+        self._message = errors.get_error_message(self._errorCode)
+
+
 class ExcThread(threading.Thread):
     """
     Support class that allows for catching exceptions in threads.
