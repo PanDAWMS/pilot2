@@ -6,3 +6,18 @@
 #
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
+
+
+def killer():
+    """
+    Looping job killer algorithm.
+    Identify hanging tasks/processes. Did the stage-in/out finish within allowed time limit, or did the payload update
+    any files recently?
+
+    :return: exit code (int), diagnostics (string).
+    """
+
+    exit_code = 0
+    diagnostics = ""
+
+    return exit_code, diagnostics
