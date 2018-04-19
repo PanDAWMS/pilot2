@@ -45,9 +45,6 @@ def job_monitor_tasks(job, mt, verify_proxy):
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
         userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
 
-        log.info('ct=%d' % current_time)
-        log.info('ct_proxy=%s' % mt.get('ct_proxy'))
-        log.info('pvt=%d' % int(config.Pilot.proxy_verification_time))
         # is it time to verify the proxy?
         if current_time - mt.get('ct_proxy') > config.Pilot.proxy_verification_time:
             # is the proxy still valid?
@@ -59,10 +56,15 @@ def job_monitor_tasks(job, mt, verify_proxy):
                 mt.update('ct_proxy')
 
     # is it time to check for looping jobs?
-    looping_limit = get_looping_job_limit(job)
+    looping_limit = get_looping_job_limit(job.is_analysis())
     if current_time - mt.get('ct_looping') > config.Pilot.looping_verifiction_time:
         # is the job looping?
         exit_code, diagnostics = killer()
+        if exit_code != 0:
+            return exit_code, diagnostics
+        else:
+            # update the ct_proxy with the current time
+            mt.update('ct_looping')
 
     # is the job using too much space?
 
@@ -132,17 +134,17 @@ def utility_monitor(job):
     return job
 
 
-def get_looping_job_limit(job):
+def get_looping_job_limit(is_analysis):
     """
     Get the time limit for looping job detection.
 
-    :param job: job object.
+    :param is_analysis: Boolean, True if user analysis job, False otherwise.
     :return: looping job time limit (int).
     """
 
     try:
         looping_limit = int(config.Pilot.looping_limit_default_prod)
-        if job.is_analysis():
+        if is_analysis:
             looping_limit = int(config.Pilot.looping_limit_default_user)
     except ValueError as e:
         looping_limit = 12 * 3600
