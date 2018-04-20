@@ -13,6 +13,8 @@ import re
 from pilot.user.atlas.setup import get_asetup
 from pilot.user.atlas.setup import get_file_system_root_path
 from pilot.info import infosys
+from pilot.util.config import config
+# import pilot.info.infoservice as infosys
 
 import logging
 logger = logging.getLogger(__name__)
@@ -28,7 +30,6 @@ def wrapper(executable, **kwargs):
     :return: executable wrapped with container command (string).
     """
 
-    platform = kwargs.get('platform', '')
     workdir = kwargs.get('workdir', '.')
     pilot_home = os.environ.get('PILOT_HOME', '')
     job = kwargs.get('job')
@@ -36,27 +37,15 @@ def wrapper(executable, **kwargs):
     if workdir == '.' and pilot_home != '':
         workdir = pilot_home
 
-    if preferred_setup(job) == "ALRB":
+    if config.Container.setup_type == "ALRB":
         fctn = alrb_wrapper
     else:
         fctn = singularity_wrapper
-    return fctn(executable, platform, workdir, job)
+    return fctn(executable, workdir, job)
 
 
-def preferred_setup(job):
-    """
-    Determine which container setup to use.
-    E.g. explicit singularity or via the ALRB setup (setupATLAS)
-
-    :param job: job object
-    :return:
-    """
-
-    return "ALRB"  # "singularity"  # "ALRB"
-
-
-def use_payload_container(job):
-    pass
+# def use_payload_container(job):
+#     pass
 
 
 def use_middleware_container():
@@ -157,7 +146,7 @@ def get_middleware_type():
     return middleware_type
 
 
-def alrb_wrapper(cmd, platform, workdir, job):
+def alrb_wrapper(cmd, workdir, job):
     """
     Wrap the given command with the special ALRB setup for containers
     E.g. cmd = /bin/bash hello_world.sh
@@ -167,14 +156,14 @@ def alrb_wrapper(cmd, platform, workdir, job):
     setupATLAS -c $thePlatform
 
     :param cmd (string): command to be executed in a container.
-    :param platform (string): platform specifics.
     :param workdir: (not used)
-    :param job: Job object, passed here to properly resolve Information Service intance to access queuedata with Job overwrites applied
-
+    :param job: job object.
     :return: prepended command with singularity execution command (string).
     """
 
-    container_name = job.infosys.queuedata.container_type.get("pilot")  # resolve container name for user=pilot
+    queuedata = job.infosys.queuedata
+
+    container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
     if container_name == 'singularity':
         # first get the full setup, which should be removed from cmd (or ALRB setup won't work)
         _asetup = get_asetup()
@@ -183,23 +172,26 @@ def alrb_wrapper(cmd, platform, workdir, job):
         asetup = get_asetup(alrb=True)
 
         # Get the singularity options
-        singularity_options = job.infosys.queuedata.container_options
+        singularity_options = queuedata.container_options
         logger.debug(
-            "resolved singularity_options from job.infosys.queuedata.container_options: %s" % singularity_options)
+            "resolved singularity_options from queuedata.container_options: %s" % singularity_options)
 
         _cmd = asetup
-        _cmd += 'export thePlatform=\"%s\";' % platform
+        _cmd += 'export thePlatform=\"%s\";' % job.platform
+        #if '--containall' not in singularity_options:
+        #    singularity_options += ' --containall'
         if singularity_options != "":
             _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % singularity_options
         _cmd += 'export ALRB_CONT_RUNPAYLOAD=\"%s\";' % cmd
         _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c images:$thePlatform'
+        _cmd = _cmd.replace('  ', ' ')
         cmd = _cmd
         logger.info("Updated command: %s" % cmd)
 
     return cmd
 
 
-def singularity_wrapper(cmd, platform, workdir, job):
+def singularity_wrapper(cmd, workdir, job):
     """
     Prepend the given command with the singularity execution command
     E.g. cmd = /bin/bash hello_world.sh
@@ -207,28 +199,28 @@ def singularity_wrapper(cmd, platform, workdir, job):
     singularity exec -B <bindmountsfromcatchall>  /cvmfs/atlas.cern.ch/repo/images/singularity/x86_64-slc6.img <script>
 
     :param cmd (string): command to be prepended.
-    :param platform (string): platform specifics.
     :param workdir: explicit work directory where the command should be executed (needs to be set for Singularity).
-    :param job: Job object, passed here to properly resolve Information Service intance to access queuedata with Job overwrites applied
-
+    :param job: job object.
     :return: prepended command with singularity execution command (string).
     """
 
-    container_name = job.infosys.queuedata.container_type.get("pilot")  # resolve container name for user=pilot
-    logger.debug("resolved container_name from job.infosys.queuedata.contaner_type: %s" % container_name)
+    queuedata = job.infosys.queuedata
+
+    container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
+    logger.debug("resolved container_name from queuedata.contaner_type: %s" % container_name)
 
     if container_name == 'singularity':
         logger.info("singularity has been requested")
 
         # Get the singularity options
-        singularity_options = job.infosys.queuedata.container_options
-        logger.debug("resolved singularity_options from job.infosys.queuedata.container_options: %s" % singularity_options)
+        singularity_options = queuedata.container_options
+        logger.debug("resolved singularity_options from queuedata.container_options: %s" % singularity_options)
 
         if not singularity_options:
             logger.warning('singularity options not set')
 
         # Get the image path
-        image_path = get_grid_image_for_singularity(platform)
+        image_path = get_grid_image_for_singularity(job.platform)
 
         # Does the image exist?
         if image_path != '':

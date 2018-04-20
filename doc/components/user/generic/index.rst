@@ -17,4 +17,5 @@ generic components
 
     common
     container
+    proxy
     setup

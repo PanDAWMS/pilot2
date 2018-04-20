@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 import Queue
 import os
@@ -15,17 +15,23 @@ import sys
 import time
 from json import dumps
 
+from pilot.info import infosys, JobData
 from pilot.util import https
-from pilot.util.config import config
+from pilot.util.config import config, human2bytes
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
+from pilot.util.monitoring import job_monitor_tasks
+from pilot.util.monitoringtime import MonitoringTime
+from pilot.util.node import is_virtual_machine, get_diskspace
+from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
-from pilot.info import infosys, JobData
 
 import logging
 logger = logging.getLogger(__name__)
+
+errors = ErrorCodes()
 
 
 def control(queues, traces, args):
@@ -38,12 +44,35 @@ def control(queues, traces, args):
     :return:
     """
 
+    # t = threading.current_thread()
+    # logger.debug('job.control is run by thread: %s' % t.name)
+
     targets = {'validate': validate, 'retrieve': retrieve, 'create_data_payload': create_data_payload,
                'queue_monitor': queue_monitor, 'job_monitor': job_monitor}
     threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
                          name=name) for name, target in targets.items()]
 
     [thread.start() for thread in threads]
+
+    logger.info('waiting for interrupts')
+
+    # if an exception is thrown, the graceful_stop will be set by the ExcThread class run() function
+    while not args.graceful_stop.is_set():
+        for thread in threads:
+            bucket = thread.get_bucket()
+            try:
+                exc = bucket.get(block=False)
+            except Queue.Empty:
+                pass
+            else:
+                exc_type, exc_obj, exc_trace = exc
+                logger.warning("thread \'%s\' received an exception from bucket: %s" % (thread.name, exc_obj))
+
+                # deal with the exception
+                # ..
+
+            thread.join(0.1)
+            time.sleep(0.1)
 
 
 def _validate_job(job):
@@ -288,23 +317,55 @@ def get_dispatcher_dictionary(args):
         data['taskID'] = taskid
         logger.info("will download a new job belonging to task id: %s" % (data['taskID']))
 
+    if args.resource_type != "":
+        data['resourceType'] = args.resource_type
+
     return data
 
 
-def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harvester):
+def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harvester, verify_proxy):
     """
     Can we proceed with getjob?
-    We may not proceed if we have run out of time (timefloor limit) or if we have already proceed enough jobs
+    We may not proceed if we have run out of time (timefloor limit), if the proxy is too short, if disk space is too
+    small or if we have already proceed enough jobs.
 
     :param timefloor: timefloor limit (s)
     :param starttime: start time of retrieve() (s)
     :param jobnumber: number of downloaded jobs
     :param getjob_requests: number of getjob requests
     :param harvester: True if Harvester is used, False otherwise. Affects the max number of getjob reads (from file).
-    :return: Boolean based on the input parameters
+    :param verify_proxy: True if the proxy should be verified. False otherwise.
+    :return: Boolean.
     """
 
+    time.sleep(10)
+
+    # use for testing thread exceptions. the exception will be picked up by ExcThread run() and caught in job.control()
+    # raise NoLocalSpace('testing exception from proceed_with_getjob')
+
     currenttime = time.time()
+
+    # should the proxy be verified?
+    if verify_proxy:
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
+
+        # is the proxy still valid?
+        exit_code, diagnostics = userproxy.verify_proxy()
+        if exit_code == errors.NOPROXY or exit_code == errors.NOVOMSPROXY:
+            logger.warning(diagnostics)
+            return False
+
+    # is there enough local space to run a job?
+    spaceleft = int(get_diskspace(os.getcwd())) * 1024 ** 2  # B (diskspace is in MB)
+    free_space_limit = human2bytes(config.Pilot.free_space_limit)
+    if spaceleft <= free_space_limit:
+        diagnostics = 'too little space left on local disk to run job: %d B (need > %d B)' %\
+                      (spaceleft, free_space_limit)
+        logger.warning(diagnostics)
+        return False
+    else:
+        logger.info('remaining disk space (%d B) is sufficient to download a job' % spaceleft)
 
     if harvester:
         maximum_getjob_requests = 60  # 1 s apart
@@ -551,6 +612,8 @@ def retrieve(queues, traces, args):
     The function retrieves the job definition from the proper source and places
     it in the `queues.jobs` queue.
 
+    WARNING: this function is nearly too complex. Be careful with adding more lines as flake8 will fail it.
+
     :param queues: internal queues for job handling.
     :param traces: tuple containing internal pilot states.
     :param args: arguments (e.g. containing queue name, queuedata dictionary, etc).
@@ -562,14 +625,13 @@ def retrieve(queues, traces, args):
     jobnumber = 0  # number of downloaded jobs
     getjob_requests = 0  # number of getjob requests
 
-    if args.harvester:
-        logger.info('harvester mode: pilot will look for local job definition file(s)')
+    print_node_info()
 
     while not args.graceful_stop.is_set():
 
         getjob_requests += 1
 
-        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester):
+        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester, args.verify_proxy):
             args.graceful_stop.set()
             break
 
@@ -599,20 +661,8 @@ def retrieve(queues, traces, args):
                 # update dispatcher data for ES (if necessary)
                 res = update_es_dispatcher_data(res)
 
-                # initialize (job specific) InfoService instance
-                from pilot.info import InfoService, JobInfoProvider
-
-                job = JobData(res)
-
-                jobinfosys = InfoService()
-                jobinfosys.init(args.queue, infosys.confinfo, infosys.extinfo, JobInfoProvider(job))
-                job.infosys = jobinfosys
-
-                logger.info('received job: %s (sleep until the job has finished)' % job.jobid)
-                logger.info('job details: \n%s' % job)
-
-                # payload environment wants the PandaID to be set, also used below
-                os.environ['PandaID'] = job.jobid
+                # create the job object out of the raw dispatcher job dictionary
+                job = create_job(res, args.queue)
 
                 # add the job definition to the jobs queue and increase the job counter,
                 # and wait until the job has finished
@@ -628,6 +678,46 @@ def retrieve(queues, traces, args):
                         logger.info('graceful stop has been set')
                         break
                     time.sleep(0.5)
+
+
+def print_node_info():
+    """
+    Print information about the local node to the log.
+
+    :return:
+    """
+
+    if is_virtual_machine():
+        logger.info("pilot is running in a virtual machine")
+    else:
+        logger.info("pilot is not running in a virtual machine")
+
+
+def create_job(dispatcher_response, queue):
+    """
+    Create a job object out of the dispatcher response.
+
+    :param dispatcher_response: raw job dictionary from the dispatcher.
+    :param queue: queue name (string).
+    :return: job object
+    """
+
+    # initialize (job specific) InfoService instance
+    from pilot.info import InfoService, JobInfoProvider
+
+    job = JobData(dispatcher_response)
+
+    jobinfosys = InfoService()
+    jobinfosys.init(queue, infosys.confinfo, infosys.extinfo, JobInfoProvider(job))
+    job.infosys = jobinfosys
+
+    logger.info('received job: %s (sleep until the job has finished)' % job.jobid)
+    logger.info('job details: \n%s' % job)
+
+    # payload environment wants the PandaID to be set, also used below
+    os.environ['PandaID'] = job.jobid
+
+    return job
 
 
 def job_has_finished(queues):
@@ -706,8 +796,12 @@ def queue_monitor(queues, traces, args):
                 send_state(job, args, job.state)
 
             # we can now stop monitoring this job, so remove it from the monitored_payloads queue
-            _job = queues.monitored_payloads.get(block=True, timeout=1)
-            logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
+            try:
+                _job = queues.monitored_payloads.get(block=True, timeout=1)
+            except Queue.Empty:
+                logger.warning('failed to dequeue job: queue is empty (did job fail before job monitor started?)')
+            else:
+                logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
 
             # now ready for the next job (or quit)
 
@@ -723,6 +817,9 @@ def job_monitor(queues, traces, args):
     :return:
     """
 
+    # initialize the monitoring time object
+    mt = MonitoringTime()
+
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
     while not args.graceful_stop.is_set():
@@ -735,11 +832,20 @@ def job_monitor(queues, traces, args):
             # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
             jobs = queues.monitored_payloads.queue
 
-            # states = ['starting', 'stagein', 'running', 'stageout']
             if jobs:
                 for i in range(len(jobs)):
                     log = logger.getChild(jobs[i].jobid)
                     log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
+                    if jobs[i].state == 'finished' or jobs[i].state == 'failed':
+                        log.info('aborting job monitoring since job state=%s' % jobs[i].state)
+                        break
+
+                    # perform the monitoring tasks
+                    exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args.verify_proxy)
+                    if exit_code != 0:
+                        jobs[i].state = 'failed'
+                        jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
+                        queues.failed_payloads.put(jobs[i])
             else:
                 msg = 'no jobs in validated_payloads queue'
                 if logger:

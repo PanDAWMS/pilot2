@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 import copy
@@ -21,6 +21,8 @@ import time
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
+from pilot.util.container import execute
+from pilot.util.filehandling import find_executable
 
 import logging
 
@@ -36,14 +38,60 @@ def control(queues, traces, args):
 
     [thread.start() for thread in threads]
 
+    # if an exception is thrown, the graceful_stop will be set by the ExcThread class run() function
+    while not args.graceful_stop.is_set():
+        for thread in threads:
+            bucket = thread.get_bucket()
+            try:
+                exc = bucket.get(block=False)
+            except Queue.Empty:
+                pass
+            else:
+                exc_type, exc_obj, exc_trace = exc
+                logger.warning("thread \'%s\' received an exception from bucket: %s" % (thread.name, exc_obj))
 
-def _call(args, executable, cwd=os.getcwd(), logger=logger):
+                # deal with the exception
+                # ..
+
+            thread.join(0.1)
+            time.sleep(0.1)
+
+
+def prepare_for_container(workdir):
+    """
+    Prepare the executable for using a container.
+    The function adds necessary setup variables to the executable.
+    WARNING: CURRENTLY ATLAS SPECIFIC
+
+    :param workdir: working directory of the job (string).
+    :return: setup string to be prepended to the executable.
+    """
+
+    from pilot.user.atlas.setup import get_asetup
+    return get_asetup(asetup=False) + 'lsetup rucio;'
+
+
+def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
     try:
-        process = subprocess.Popen(executable,
-                                   bufsize=-1,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE,
-                                   cwd=cwd)
+        # if the middleware is available locally, do not use container
+        if find_executable(executable[1]) == "":
+            usecontainer = True
+            logger.info('command %s is not available locally, will attempt to use container' % executable[1])
+        else:
+            usecontainer = False
+            logger.info('command %s is available locally, no need to use container' % executable[1])
+
+        # for containers, we can not use a list
+        executable = ' '.join(executable)
+
+        # uncomment the following for container testing
+        usecontainer = False
+        if usecontainer:
+            executable = prepare_for_container(job.workdir) + executable
+
+        process = execute(executable, workdir=job.workdir, returnproc=True,
+                          usecontainer=usecontainer, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, job=job)
+
     except Exception as e:
         logger.error('could not execute: %s' % str(e))
         return False
@@ -77,6 +125,13 @@ def _call(args, executable, cwd=os.getcwd(), logger=logger):
     logger.debug('stdout:\n%s' % stdout)
     logger.debug('stderr:\n%s' % stderr)
 
+    # in case of problems, try to identify the error (and set it in the job object)
+    if stderr != "":
+        # rucio stage-out error
+        if "Operation timed out" in stderr:
+            logger.warning('rucio stage-in error identified - problem with local storage, stage-in timed out')
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINTIMEOUT)
+
     if exit_code == 0:
         return True
     else:
@@ -87,12 +142,16 @@ def _stage_in(args, job):
     log = logger.getChild(job.jobid)
 
     os.environ['RUCIO_LOGGING_FORMAT'] = '{0}%(asctime)s %(levelname)s [%(message)s]'
-    if not _call(args,
-                 ['/usr/bin/env',
+
+    executable = ['/usr/bin/env',
                   'rucio', '-v', 'download',
                   '--no-subdir',
                   '--rse', job.ddmendpointin,
-                  '%s:%s' % (job.scopein, job.infiles)],  # notice the bug here, infiles might be a ,-separated str
+                  '%s:%s' % (job.scopein, job.infiles)]  # notice the bug here, infiles might be a ,-separated str
+
+    if not _call(args,
+                 executable,
+                 job,
                  cwd=job.workdir,
                  logger=log):
         return False
@@ -328,11 +387,22 @@ def _stage_out(args, outfile, job):
                   outfile['name']]
 
     try:
-        process = subprocess.Popen(executable,
-                                   bufsize=-1,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE,
-                                   cwd=job.workdir)
+        # if the middleware is available locally, do not use container
+        if find_executable(executable[1]) == "":
+            usecontainer = True
+            logger.info('command %s is not available locally, will attempt to use container' % executable[1])
+        else:
+            usecontainer = False
+            logger.info('command %s is available locally, no need to use container' % executable[1])
+
+        process = execute(executable, workdir=job.workdir, returnproc=True, job=job,
+                          usecontainer=usecontainer, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=job.workdir)
+
+        # process = subprocess.Popen(executable,
+        #                            bufsize=-1,
+        #                            stdout=subprocess.PIPE,
+        #                            stderr=subprocess.PIPE,
+        #                            cwd=job.workdir)
     except Exception as e:
         log.error('could not execute: %s' % str(e))
         return None
@@ -369,6 +439,13 @@ def _stage_out(args, outfile, job):
     out, err = process.communicate()
     log.debug('stdout:\n%s' % out)
     log.debug('stderr:\n%s' % err)
+
+    # in case of problems, try to identify the error (and set it in the job object)
+    if err != "":
+        # rucio stage-out error
+        if "Operation timed out" in err:
+            log.warning('rucio stage-out error identified - problem with local storage, stage-out timed out')
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEOUTTIMEOUT)
 
     if exit_code is None:
         return None
@@ -430,7 +507,7 @@ def _stage_out_all(job, args):
 
     job.fileinfo = fileinfodict
     if failed:
-        # set error code + message
+        # set error code + message (a more precise error code might have been set already)
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEOUTFAILED)
         job.state = "failed"
         log.warning('stage-out failed')  # with error: %d, %s (setting job state to failed)' %

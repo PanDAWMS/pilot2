@@ -11,12 +11,16 @@ import os
 import fnmatch
 from collections import defaultdict
 from glob import glob
+from signal import SIGTERM, SIGUSR1
 
 # from pilot.common.exception import PilotException
+from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD,\
+    UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
-from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, \
-    get_asetup_options, is_standard_atlas_job
+from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job
 from pilot.util.filehandling import remove
+from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
+    get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
 
 import logging
 logger = logging.getLogger(__name__)
@@ -38,7 +42,7 @@ def get_payload_command(job):
     userjob = job.is_analysis()
 
     # Get the platform value
-    platform = job.infosys.queuedata.platform
+    # platform = job.infosys.queuedata.platform
 
     # Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
     asetuppath = get_asetup(asetup=prepareasetup)
@@ -52,7 +56,7 @@ def get_payload_command(job):
         cmd = asetuppath
         if prepareasetup:
             options = get_asetup_options(job.swrelease, job.homepackage)
-            asetupoptions = " " + options + " --platform " + platform
+            asetupoptions = " " + options + " --platform " + job.platform
 
             # Always set the --makeflags option (to prevent asetup from overwriting it)
             asetupoptions += ' --makeflags=\"$MAKEFLAGS\"'
@@ -445,16 +449,12 @@ def get_redundants():
                 "*.TMP",
                 "MC11JobOptions",
                 "scratch",
-                "jobState-*-test.pickle",
                 "*.writing",
                 "pwg*",
                 "pwhg*",
                 "*PROC*",
                 "madevent",
-                "HPC",
-                "objectstore*.json",
-                "saga",
-                "radical",
+                "*proxy",
                 "ckpt*"]
 
     return dir_list
@@ -564,3 +564,121 @@ def remove_redundant_files(workdir, outputfiles=[]):
 
     # run a second pass to clean up any broken links
     cleanup_broken_links(workdir)
+
+
+def get_utility_commands_list(order=None):
+    """
+    Return a list of utility commands to be executed in parallel with the payload.
+    This could e.g. be memory and network monitor commands. A separate function can be used to determine the
+    corresponding command setups using the utility command name.
+    If the optional order parameter is set, the function should return the list of corresponding commands.
+    E.g. if order=UTILITY_BEFORE_PAYLOAD, the function should return all commands that are to be executed before the
+    payload. If order=UTILITY_WITH_PAYLOAD, the corresponding commands will be prepended to the payload execution
+    string. If order=UTILITY_AFTER_PAYLOAD, the commands that should be executed after the payload has been started
+    should be returned. If order=UTILITY_WITH_STAGEIN, the commands that should be executed parallel with stage-in will
+    be returned.
+
+    :param order: optional sorting order (see pilot.util.constants)
+    :return: list of utilities to be executed in parallel with the payload.
+    """
+
+    if order:
+        if order == UTILITY_BEFORE_PAYLOAD:
+            return ['Prefetcher']
+        elif order == UTILITY_WITH_PAYLOAD:
+            return ['NetworkMonitor']
+        elif order == UTILITY_AFTER_PAYLOAD:
+            return ['MemoryMonitor']
+        elif order == UTILITY_WITH_STAGEIN:
+            return ['Benchmark']
+    return []
+
+
+def get_utility_command_setup(name, job, setup=None):
+    """
+    Return the proper setup for the given utility command.
+    If a payload setup is specified, then the utility command string should be prepended to it.
+
+    :param name: name of utility (string).
+    :param job: job object.
+    :param setup: optional payload setup string.
+    :return: utility command setup (string).
+    """
+
+    if name == 'MemoryMonitor':
+        return get_memory_monitor_setup(job)
+    elif name == 'NetworkMonitor' and setup:
+        return get_network_monitor_setup(setup, job)
+    elif name == 'Prefetcher':
+        return get_prefetcher_setup(job)
+    elif name == 'Benchmark':
+        return get_benchmark_setup(job)
+    else:
+        return ""
+
+
+def get_utility_command_execution_order(name):
+    """
+    Should the given utility command be executed before or after the payload?
+
+    :param name: utility name (string).
+    :return: execution order constant.
+    """
+
+    # example implementation
+    if name == 'NetworkMonitor':
+        return UTILITY_WITH_PAYLOAD
+    elif name == 'MemoryMonitor':
+        return UTILITY_AFTER_PAYLOAD
+    else:
+        logger.warning('unknown utility name: %s' % name)
+        return UTILITY_AFTER_PAYLOAD
+
+
+def post_utility_command_action(name, job):
+    """
+    Perform post action for given utility command.
+
+    :param name: name of utility command (string).
+    :param job: job object.
+    :return:
+    """
+
+    if name == 'NetworkMonitor':
+        pass
+    elif name == 'MemoryMonitor':
+        post_memory_monitor_action(job)
+
+
+def get_utility_command_kill_signal(name):
+    """
+    Return the proper kill signal used to stop the utility command.
+
+    :param name:
+    :return: kill signal
+    """
+
+    if name == 'MemoryMonitor':
+        sig = SIGUSR1
+    else:
+        # note that the NetworkMonitor does not require killing (to be confirmed)
+        sig = SIGTERM
+
+    return sig
+
+
+def get_utility_command_output_filename(name, selector=None):
+    """
+    Return the filename to the output of the utility command.
+
+    :param name: utility name (string).
+    :param selector: optional special conditions flag (boolean).
+    :return: filename (string).
+    """
+
+    if name == 'MemoryMonitor':
+        filename = get_memory_monitor_summary_filename(selector=selector)
+    else:
+        filename = ""
+
+    return filename

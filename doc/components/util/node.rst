@@ -1,5 +1,5 @@
 ..
-    Pilot 2 documentation pilot.user.atlas index
+    Pilot 2 pilot.util.node doc file
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -7,17 +7,13 @@
     http://www.apache.org/licenses/LICENSE-2.0
 
     Authors:
-     - Paul Nilsson, paul.nilsson@cern.ch, 2017
+     - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
-atlas components
-================
+node
+====
 
-.. toctree::
-    :maxdepth: 2
-
-    common
-    container
-    nordugrid
-    proxy
-    setup
-    utilities
+.. automodule:: pilot.util.node
+    :members:
+    :private-members:
+    :special-members:
+    :undoc-members:

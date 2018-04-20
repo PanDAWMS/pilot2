@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 import argparse
 import logging
@@ -25,14 +25,32 @@ from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 from pilot.util.harvester import is_harvester_mode
 
-VERSION = '2018-03-20.002'
+VERSION = '2018-04-19.001'
+
+
+def pilot_version_banner():
+    """
+    Print a pilot version banner.
+
+    :return:
+    """
+
+    logger = logging.getLogger(__name__)
+
+    version = '***  PanDA Pilot 2 version %s  ***' % VERSION
+    logger.info('*' * len(version))
+    logger.info(version)
+    logger.info('*' * len(version))
+    logger.info('')
 
 
 def main():
     """ Main function of PanDA Pilot 2 """
 
     logger = logging.getLogger(__name__)
-    logger.info('PanDA Pilot 2 version %s' % VERSION)
+
+    # print the pilot version
+    pilot_version_banner()
 
     args.graceful_stop = threading.Event()
     args.retrieve_next_job = True  # go ahead and download a new job
@@ -45,7 +63,7 @@ def main():
 
     set_info(args)  # initialize InfoService and populate args.info structure
 
-    logger.info('pilot arguments: %s' % str(args))
+    logger.debug('pilot arguments: %s' % str(args))
     logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
 
@@ -83,6 +101,7 @@ def import_module(**kwargs):
                            '-s': kwargs.get('site'),  # required
                            '-j': kwargs.get('job_label', 'ptest'),  # change default later to 'managed'
                            '-i': kwargs.get('version_tag', 'PR'),
+                           '-t': kwargs.get('verify_proxy', True),
                            '--cacert': kwargs.get('cacert', None),
                            '--capath': kwargs.get('capath'),
                            '--url': kwargs.get('url', ''),
@@ -95,7 +114,12 @@ def import_module(**kwargs):
                            '--pilot-user': kwargs.get('pilot_user', 'generic'),
                            '--input-dir': kwargs.get('input_dir', ''),
                            '--output-dir': kwargs.get('output_dir', ''),
-                           '--hpc-resource': kwargs.get('hpc_resource', '')
+                           '--hpc-resource': kwargs.get('hpc_resource', ''),
+                           '--harvester-workdir': kwargs.get('harvester_workdir', ''),
+                           '--harvester-datadir': kwargs.get('harvester_datadir', ''),
+                           '--harvester-eventstatusdump': kwargs.get('harvester_eventstatusdump', ''),
+                           '--harvester-workerattributes': kwargs.get('harvester_workerattributes', ''),
+                           '--resource-type': kwargs.get('resource_type', '')
                            }
 
     args = Args()
@@ -176,6 +200,12 @@ if __name__ == '__main__':
                             type=bool,
                             help='Update server (default: True)')
 
+    arg_parser.add_argument('-t',
+                            dest='verify_proxy',
+                            default=True,
+                            type=bool,
+                            help='Proxy verification (default: True)')
+
     # SSL certificates
     arg_parser.add_argument('--cacert',
                             dest='cacert',
@@ -250,11 +280,17 @@ if __name__ == '__main__':
     arg_parser.add_argument('--harvester-eventstatusdump',
                             dest='harvester_eventstatusdump',
                             default='',
-                            help='Harvester event status dump json file')
+                            help='Harvester event status dump json file containing processing status')
     arg_parser.add_argument('--harvester-workerattributes',
                             dest='harvester_workerattributes',
                             default='',
-                            help='Harvester worker attributes json file')
+                            help='Harvester worker attributes json file containing job status')
+    arg_parser.add_argument('--resource-type',
+                            dest='resource_type',
+                            default='',
+                            type=str,
+                            choices=['MCORE', 'SCORE'],
+                            help='Resource type; MSCORE or SCORE')
 
     # Harvester and Nordugrid specific options
     arg_parser.add_argument('--input-dir',
@@ -305,10 +341,10 @@ if __name__ == '__main__':
     console = logging.StreamHandler(sys.stdout)
     if args.debug:
         logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.DEBUG,
-                            format='%(asctime)s | %(levelname)-8s | %(threadName)-12s | %(name)-32s | %(funcName)-25s | %(message)s')
+                            format='%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s')
         console.setLevel(logging.DEBUG)
         console.setFormatter(logging.Formatter(
-            '%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-32s | %(message)s'))
+            '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'))
     else:
         logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.INFO,
                             format='%(asctime)s | %(levelname)-8s | %(message)s')

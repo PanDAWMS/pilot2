@@ -6,8 +6,15 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 SUCCESS = 0
 FAILURE = 1
 
 ERRNO_NOJOBS = 20
+
+# Sorting order constants
+UTILITY_BEFORE_PAYLOAD = 0
+UTILITY_WITH_PAYLOAD = 1
+UTILITY_AFTER_PAYLOAD = 2
+UTILITY_WITH_STAGEIN = 3

@@ -14,9 +14,11 @@
 import time
 import os
 import signal
+from subprocess import PIPE
 
 from pilot.control.job import send_state
 from pilot.util.container import execute
+from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD
 
 import logging
 logger = logging.getLogger(__name__)
@@ -78,22 +80,52 @@ class Executor(object):
         cmd = user.get_payload_command(job)
         log.info("payload execution command: %s" % cmd)
 
+        # should we run any additional commands? (e.g. special monitoring commands)
+        cmds = user.get_utility_commands_list(order=UTILITY_BEFORE_PAYLOAD)
+        if cmds != []:
+            for utcmd in cmds:
+                log.info('utility command to be executed before the payload: %s' % utcmd)
+                # add execution code here
+                # store pid in job object job.utilitypids = {<name>: <pid>}
+                job.utilitypids[utcmd] = -1
+
+        # should any additional commands be prepended to the payload execution string?
+        cmds = user.get_utility_commands_list(order=UTILITY_WITH_PAYLOAD)
+        if cmds != []:
+            for utcmd in cmds:
+                log.info('utility command to be executed with the payload: %s' % utcmd)
+                # add execution code here
+
         # replace platform and workdir with new function get_payload_options() or someting from experiment specific code
         try:
-            # proc = subprocess.Popen(cmd,
-            #                         bufsize=-1,
-            #                         stdout=out,
-            #                         stderr=err,
-            #                         cwd=job.workdir,
-            #                         shell=True)
-
-            proc = execute(cmd, platform=job.platform, workdir=job.workdir, returnproc=True,
+            proc = execute(cmd, workdir=job.workdir, returnproc=True,
                            usecontainer=True, stdout=out, stderr=err, cwd=job.workdir, job=job)
         except Exception as e:
             log.error('could not execute: %s' % str(e))
             return None
 
         log.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
+        job.pid = proc.pid
+
+        # should any additional commands be executed after the payload?
+        cmds = user.get_utility_commands_list(order=UTILITY_AFTER_PAYLOAD)
+        if cmds != []:
+            for utcmd in cmds:
+                log.info('utility command to be executed after the payload: %s' % utcmd)
+
+                # how should this command be executed?
+                utilitycommand = user.get_utility_command_setup(utcmd, job)
+
+                try:
+                    proc1 = execute(utilitycommand, workdir=job.workdir, returnproc=True,
+                                    usecontainer=True, stdout=PIPE, stderr=PIPE, cwd=job.workdir,
+                                    job=job)
+                except Exception as e:
+                    log.error('could not execute: %s' % e)
+                else:
+                    # store process handle in job object, and keep track on how many times the command has been launched
+                    # also store the full command in case it needs to be restarted later (by the job_monitor() thread)
+                    job.utilities[utcmd] = [proc1, 1, utilitycommand]
 
         return proc
 
@@ -158,4 +190,20 @@ class Executor(object):
                 log.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
                 log.info('finished pid=%s exit_code=%s' % (proc.pid, exit_code))
+                self.__job.state = 'finished' if exit_code == 0 else 'failed'
+
+                # stop any running utilities
+                if self.__job.utilities != {}:
+                    for utcmd in self.__job.utilities.keys():
+                        utproc = self.__job.utilities[utcmd][0]
+                        if utproc:
+                            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+                            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user],
+                                              -1)
+                            sig = user.get_utility_command_kill_signal(utcmd)
+                            log.info("stopping process \'%s\' with signal %d" % (utcmd, sig))
+                            os.killpg(os.getpgid(utproc.pid), sig)
+
+                            user.post_utility_command_action(utcmd, self.__job)
+
         return exit_code
