@@ -17,4 +17,5 @@ atlas components
 
     common
     container
+    nordugrid
     setup

@@ -7,6 +7,8 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
+import re
+
 
 class ErrorCodes:
     """
@@ -21,6 +23,7 @@ class ErrorCodes:
     GENERALERROR = 1008
     NOLOCALSPACE = 1098
     STAGEINFAILED = 1099
+    NOSUCHFILE = 1103
     SETUPFAILURE = 1110
     MKDIR = 1134
     STAGEOUTFAILED = 1137
@@ -32,11 +35,17 @@ class ErrorCodes:
     FILEHANDLINGFAILURE = 1303
     MESSAGEHANDLINGFAILURE = 1304
     PAYLOADEXECUTIONFAILURE = 1305
+    SINGULARITYGENERALFAILURE = 1306
+    SINGULARITYNOLOOPDEVICES = 1307
+    SINGULARITYBINDPOINTFAILURE = 1308
+    SINGULARITYIMAGEMOUNTFAILURE = 1309
+    PAYLOADEXECUTIONEXCEPTION = 1310
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
         NOLOCALSPACE: "Not enough local space",
         STAGEINFAILED: "Failed to stage-in file",
+        NOSUCHFILE: "No such file or directory",
         SETUPFAILURE: "Failed during payload setup",
         MKDIR: "Failed to create local directory",
         STAGEOUTFAILED: "Failed to stage-out file",
@@ -46,6 +55,11 @@ class ErrorCodes:
         FILEHANDLINGFAILURE: "Failed during file handling",
         MESSAGEHANDLINGFAILURE: "Failed to handle message from payload",
         PAYLOADEXECUTIONFAILURE: "Failed to execute payload",
+        SINGULARITYGENERALFAILURE: "Singularity: general failure",
+        SINGULARITYNOLOOPDEVICES: "Singularity: No more available loop devices",
+        SINGULARITYBINDPOINTFAILURE: "Singularity: Not mounting requested bind point",
+        SINGULARITYIMAGEMOUNTFAILURE: "Singularity: Failed to mount image",
+        PAYLOADEXECUTIONEXCEPTION: "Exception caught during payload execution"
     }
 
     def get_error_message(self, errorcode):
@@ -102,3 +116,43 @@ class ErrorCodes:
                 report += "\n%d.\t%d\t%s" % (i, errorcode, pilot_error_diags[i - 1])
 
         return report
+
+    def resolve_transform_error(self, exit_code, stderr):
+        """
+        Assign a pilot error code to a specific transform error.
+        :param exit_code: transform exit code.
+        :param stderr: transform stderr
+        :return: pilot error code (int)
+        """
+
+        if exit_code == 251 and "Not mounting requested bind point" in stderr:
+            ec = self.SINGULARITYBINDPOINTFAILURE
+        elif exit_code == 255 and "No more available loop devices" in stderr:
+            ec = self.SINGULARITYNOLOOPDEVICES
+        elif exit_code == 255 and "Failed to mount image" in stderr:
+            ec = self.SINGULARITYIMAGEMOUNTFAILURE
+        else:
+            # do not assign a pilot error code for unidentified transform error, return 0
+            ec = 0
+
+        return ec
+
+    def extract_stderr_msg(self, stderr):
+        """
+        Extract the ERROR or WARNING message from the singularity stderr.
+        :param stderr: string.
+        :return: string.
+        """
+
+        msg = ""
+        pattern = r"ERROR +\: (.+)"
+        found = re.findall(pattern, stderr)
+        if len(found) > 0:
+            msg = found[0]
+        else:
+            pattern = r"WARNING\: (.+)"
+            found = re.findall(pattern, stderr)
+            if len(found) > 0:
+                msg = found[0]
+
+        return msg

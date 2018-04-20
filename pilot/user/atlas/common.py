@@ -8,10 +8,15 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import os
+import fnmatch
+from collections import defaultdict
+from glob import glob
 
 # from pilot.common.exception import PilotException
+from pilot.util.container import execute
 from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, \
     get_asetup_options, is_standard_atlas_job
+from pilot.util.filehandling import remove
 
 import logging
 logger = logging.getLogger(__name__)
@@ -27,7 +32,7 @@ def get_payload_command(job):
     """
 
     # Should the pilot do the asetup or do the jobPars already contain the information?
-    prepareasetup = should_pilot_prepare_asetup(job.get('noExecStrCnv', None), job['jobPars'])
+    prepareasetup = should_pilot_prepare_asetup(job.noexecstrcnv, job.jobparams)
 
     # Is it a user job or not?
     userjob = job.is_analysis()
@@ -39,14 +44,14 @@ def get_payload_command(job):
     asetuppath = get_asetup(asetup=prepareasetup)
     asetupoptions = " "
 
-    if is_standard_atlas_job(job['swRelease']):
+    if is_standard_atlas_job(job.swrelease):
 
         # Normal setup (production and user jobs)
         logger.info("preparing normal production/analysis job setup command")
 
         cmd = asetuppath
         if prepareasetup:
-            options = get_asetup_options(job['swRelease'], job['homepackage'])
+            options = get_asetup_options(job.swrelease, job.homepackage)
             asetupoptions = " " + options + " --platform " + platform
 
             # Always set the --makeflags option (to prevent asetup from overwriting it)
@@ -71,9 +76,9 @@ def get_payload_command(job):
                 cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
                 # Add the transform and the job parameters (production jobs)
                 if prepareasetup:
-                    cmd += ";%s %s" % (job['transformation'], job['jobPars'])
+                    cmd += ";%s %s" % (job.transformation, job.jobparams)
                 else:
-                    cmd += "; " + job['jobPars']
+                    cmd += "; " + job.jobparams
 
             cmd = cmd.replace(';;', ';')
 
@@ -99,23 +104,120 @@ def update_job_data(job):
     stageout = "all"
 
     # handle any error codes
-    if 'exeErrorCode' in job['metaData']:
-        job['exeErrorCode'] = job['metaData']['exeErrorCode']
-        if job['exeErrorCode'] == 0:
+    if 'exeErrorCode' in job.metadata:
+        job.exeerrorcode = job.metadata['exeErrorCode']
+        if job.exeerrorcode == 0:
             stageout = "all"
         else:
-            logger.info('payload failed: exeErrorCode=%d' % job['exeErrorCode'])
+            logger.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
             stageout = "log"
-    if 'exeErrorDiag' in job['metaData']:
-        job['exeErrorDiag'] = job['metaData']['exeErrorDiag']
-        if job['exeErrorDiag'] != "":
-            logger.warning('payload failed: exeErrorDiag=%s' % job['exeErrorDiag'])
+    if 'exeErrorDiag' in job.metadata:
+        job.exeerrordiag = job.metadata['exeErrorDiag']
+        if job.exeerrordiag != "":
+            logger.warning('payload failed: exeErrorDiag=%s' % job.exeerrordiag)
 
     # determine what should be staged out
-    job['stageout'] = stageout  # output and log file or only log file
+    job.stageout = stageout  # output and log file or only log file
 
     # extract the number of events
-    job['nEvents'] = get_number_of_events(job['metaData'])
+    job.nevents = get_number_of_events(job.metadata)
+
+    try:
+        work_attributes = parse_jobreport_data(job.metadata)
+    except Exception as e:
+        logger.warning('failed to parse job report: %s' % e)
+    else:
+        logger.info('work_attributes = %s' % str(work_attributes))
+
+
+def parse_jobreport_data(job_report):
+    """
+    Parse a job report and extract relevant fields.
+
+    :param job_report:
+    :return:
+    """
+    work_attributes = {}
+    if job_report is None or not any(job_report):
+        return work_attributes
+
+    # these are default values for job metrics
+    core_count = "undef"
+    work_attributes["n_events"] = "None"
+    work_attributes["__db_time"] = "None"
+    work_attributes["__db_data"] = "None"
+
+    class DictQuery(dict):
+        def get(self, path, dst_dict, dst_key):
+            keys = path.split("/")
+            if len(keys) == 0:
+                return
+            last_key = keys.pop()
+            v = self
+            for key in keys:
+                if key in v and isinstance(v[key], dict):
+                    v = v[key]
+                else:
+                    return
+            if last_key in v:
+                dst_dict[dst_key] = v[last_key]
+            else:
+                return
+
+    if 'ATHENA_PROC_NUMBER' in os.environ:
+        work_attributes['core_count'] = os.environ['ATHENA_PROC_NUMBER']
+        core_count = os.environ['ATHENA_PROC_NUMBER']
+
+    dq = DictQuery(job_report)
+    dq.get("resource/transform/processedEvents", work_attributes, "n_events")
+    dq.get("resource/transform/cpuTimeTotal", work_attributes, "cpuConsumptionTime")
+    dq.get("resource/machine/node", work_attributes, "node")
+    dq.get("resource/machine/model_name", work_attributes, "cpuConsumptionUnit")
+    dq.get("resource/dbTimeTotal", work_attributes, "__db_time")
+    dq.get("resource/dbDataTotal", work_attributes, "__db_data")
+    dq.get("exitCode", work_attributes, "transExitCode")
+    dq.get("exitMsg", work_attributes, "exeErrorDiag")
+    dq.get("files/input/subfiles", work_attributes, "nInputFiles")
+
+    if 'resource' in job_report and 'executor' in job_report['resource']:
+        j = job_report['resource']['executor']
+        exc_report = []
+        fin_report = defaultdict(int)
+        for v in filter(lambda d: 'memory' in d and ('Max' or 'Avg' in d['memory']), j.itervalues()):
+            if 'Avg' in v['memory']:
+                exc_report.extend(v['memory']['Avg'].items())
+            if 'Max' in v['memory']:
+                exc_report.extend(v['memory']['Max'].items())
+        for x in exc_report:
+            fin_report[x[0]] += x[1]
+        work_attributes.update(fin_report)
+
+    if 'files' in job_report and 'input' in job_report['files'] and 'subfiles' in job_report['files']['input']:
+                work_attributes['nInputFiles'] = len(job_report['files']['input']['subfiles'])
+
+    workdir_size = get_workdir_size()
+    work_attributes['jobMetrics'] = 'coreCount=%s nEvents=%s dbTime=%s dbData=%s workDirSize=%s' % \
+                                    (core_count,
+                                        work_attributes["n_events"],
+                                        work_attributes["__db_time"],
+                                        work_attributes["__db_data"],
+                                        workdir_size)
+    del(work_attributes["__db_time"])
+    del(work_attributes["__db_data"])
+
+    return work_attributes
+
+
+def get_workdir_size():
+    """
+    Tmp function - move later to file_handling
+
+    :return:
+    """
+    c, o, e = execute('du -s', shell=True)
+    if o is not None:
+        return o.split()[0]
+    return None
 
 
 def get_executor_dictionary(jobreport_dictionary):
@@ -275,3 +377,190 @@ def get_exit_info(jobreport_dictionary):
     """
 
     return jobreport_dictionary['exitCode'], jobreport_dictionary['exitMsg']
+
+
+def cleanup_payload(workdir, outputfiles=[]):
+    """
+    Cleanup of payload (specifically AthenaMP) sub directories prior to log file creation.
+
+    :param workdir: working directory (string)
+    :param outputfiles: list of output files
+    :return:
+    """
+
+    for ampdir in glob('%s/athenaMP-workers-*' % (workdir)):
+        for (p, d, f) in os.walk(ampdir):
+            for filename in f:
+                if 'core' in filename or 'tmp.' in filename:
+                    path = os.path.join(p, filename)
+                    path = os.path.abspath(path)
+                    remove(path)
+                for outfile in outputfiles:
+                    if outfile in filename:
+                        path = os.path.join(p, filename)
+                        path = os.path.abspath(path)
+                        remove(path)
+
+
+def get_redundants():
+    """
+    Get list of redundant files and directories (to be removed).
+    :return: files and directories list
+    """
+
+    dir_list = ["AtlasProduction*",
+                "AtlasPoint1",
+                "AtlasTier0",
+                "buildJob*",
+                "CDRelease*",
+                "csc*.log",
+                "DBRelease*",
+                "EvgenJobOptions",
+                "external",
+                "fort.*",
+                "geant4",
+                "geomDB",
+                "geomDB_sqlite",
+                "home",
+                "o..pacman..o",
+                "pacman-*",
+                "python",
+                "runAthena*",
+                "share",
+                "sources.*",
+                "sqlite*",
+                "sw",
+                "tcf_*",
+                "triggerDB",
+                "trusted.caches",
+                "workdir",
+                "*.data*",
+                "*.events",
+                "*.py",
+                "*.pyc",
+                "*.root*",
+                "JEM",
+                "tmp*",
+                "*.tmp",
+                "*.TMP",
+                "MC11JobOptions",
+                "scratch",
+                "jobState-*-test.pickle",
+                "*.writing",
+                "pwg*",
+                "pwhg*",
+                "*PROC*",
+                "madevent",
+                "HPC",
+                "objectstore*.json",
+                "saga",
+                "radical",
+                "ckpt*"]
+
+    return dir_list
+
+
+def remove_archives(workdir):
+    """
+    Explicitly remove any soft linked archives (.a files) since they will be dereferenced by the tar command
+    (--dereference option).
+
+    :param workdir: working directory (string)
+    :return:
+    """
+
+    matches = []
+    for root, dirnames, filenames in os.walk(workdir):
+        for filename in fnmatch.filter(filenames, '*.a'):
+            matches.append(os.path.join(root, filename))
+    for root, dirnames, filenames in os.walk(os.path.dirname(workdir)):
+        for filename in fnmatch.filter(filenames, 'EventService_premerge_*.tar'):
+            matches.append(os.path.join(root, filename))
+    if matches != []:
+        for f in matches:
+            remove(f)
+
+
+def cleanup_broken_links(workdir):
+    """
+    Run a second pass to clean up any broken links prior to log file creation.
+
+    :param workdir: working directory (string)
+    :return:
+    """
+
+    broken = []
+    for root, dirs, files in os.walk(workdir):
+        for filename in files:
+            path = os.path.join(root, filename)
+            if os.path.islink(path):
+                target_path = os.readlink(path)
+                # Resolve relative symlinks
+                if not os.path.isabs(target_path):
+                    target_path = os.path.join(os.path.dirname(path), target_path)
+                if not os.path.exists(target_path):
+                    broken.append(path)
+            else:
+                # If it's not a symlink we're not interested.
+                continue
+
+    if broken:
+        for p in broken:
+            remove(p)
+
+
+def remove_redundant_files(workdir, outputfiles=[]):
+    """
+    Remove redundant files and directories prior to creating the log file.
+
+    :param workdir: working directory (string).
+    :param outputfiles: list of output files.
+    :return:
+    """
+
+    logger.info("removing redundant files prior to log creation")
+
+    workdir = os.path.abspath(workdir)
+
+    # get list of redundant files and directories (to be removed)
+    dir_list = get_redundants()
+
+    # remove core and pool.root files from AthenaMP sub directories
+    try:
+        cleanup_payload(workdir, outputfiles)
+    except Exception, e:
+        logger.warning("failed to execute cleanup_payload(): %s" % e)
+
+    # explicitly remove any soft linked archives (.a files) since they will be dereferenced by the tar command
+    # (--dereference option)
+    remove_archives(workdir)
+
+    # note: these should be partial file/dir names, not containing any wildcards
+    exceptions_list = ["runargs", "runwrapper", "jobReport", "log."]
+
+    to_delete = []
+    for _dir in dir_list:
+        files = glob(os.path.join(workdir, _dir))
+        exclude = []
+
+        if files:
+            for exc in exceptions_list:
+                for f in files:
+                    if exc in f:
+                        exclude.append(os.path.abspath(f))
+
+            _files = []
+            for f in files:
+                if f not in exclude:
+                    _files.append(os.path.abspath(f))
+            to_delete += _files
+
+    exclude_files = []
+    for of in outputfiles:
+        exclude_files.append(os.path.join(workdir, of))
+    for f in to_delete:
+        if f not in exclude_files:
+            remove(f)
+
+    # run a second pass to clean up any broken links
+    cleanup_broken_links(workdir)

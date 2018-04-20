@@ -10,8 +10,9 @@
 import os
 import re
 
-from pilot.util.information import get_container_options, get_container_type, get_catchall
+from pilot.user.atlas.setup import get_asetup
 from pilot.user.atlas.setup import get_file_system_root_path
+from pilot.info import infosys
 
 import logging
 logger = logging.getLogger(__name__)
@@ -30,10 +31,28 @@ def wrapper(executable, **kwargs):
     platform = kwargs.get('platform', '')
     workdir = kwargs.get('workdir', '.')
     pilot_home = os.environ.get('PILOT_HOME', '')
+    job = kwargs.get('job')
+
     if workdir == '.' and pilot_home != '':
         workdir = pilot_home
 
-    return singularity_wrapper(executable, platform, workdir, job=kwargs.get('job'))
+    if preferred_setup(job) == "ALRB":
+        fctn = alrb_wrapper
+    else:
+        fctn = singularity_wrapper
+    return fctn(executable, platform, workdir, job)
+
+
+def preferred_setup(job):
+    """
+    Determine which container setup to use.
+    E.g. explicit singularity or via the ALRB setup (setupATLAS)
+
+    :param job: job object
+    :return:
+    """
+
+    return "ALRB"  # "singularity"  # "ALRB"
 
 
 def use_payload_container(job):
@@ -57,41 +76,6 @@ def use_middleware_container():
 
 def get_middleware_container():
     pass
-
-
-def extract_container_options():  ## TO BE DEPRECATED: consider job.infosys.queuedata.container_options
-    """ Extract any singularity options from catchall """
-
-    # e.g. catchall = "somestuff singularity_options=\'-B /etc/grid-security/certificates,/var/spool/slurmd,/cvmfs,/ceph/grid,/data0,/sys/fs/cgroup\'"
-    # catchall = "singularity_options=\'-B /etc/grid-security/certificates,/cvmfs,${workdir} --contain\'" #readpar("catchall")
-
-    # ${workdir} should be there, otherwise the pilot cannot add the current workdir
-    # if not there, add it
-
-    # First try with reading new parameters from schedconfig
-    container_options = get_container_options()
-    if container_options == "":
-        logger.warning("container_options either does not exist in queuedata or is empty, trying with catchall instead")
-        # E.g. catchall = "singularity_options=\'-B /etc/grid-security/certificates,/cvmfs,${workdir} --contain\'"
-        catchall = get_catchall()
-        if catchall:
-            pattern = re.compile(r"singularity\_options\=\'?\"?(.+)\'?\"?")
-            found = re.findall(pattern, catchall)
-            if len(found) > 0:
-                container_options = found[0]
-                logger.info('extracted from catchall: %s' % str(container_options))
-        else:
-            logger.info('catchall not set')
-
-    if container_options and container_options != "":
-        if container_options.endswith("'") or container_options.endswith('"'):
-            container_options = container_options[:-1]
-        # add the workdir if missing
-        if "${workdir}" not in container_options and " --contain" in container_options:
-            container_options = container_options.replace(" --contain", ",${workdir} --contain")
-            logger.info("Note: added missing ${workdir} to singularity_options")
-
-    return container_options
 
 
 def extract_platform_and_os(platform):
@@ -130,16 +114,11 @@ def get_grid_image_for_singularity(platform):
     arch_and_os = extract_platform_and_os(platform)
     image = arch_and_os + ".img"
     _path = os.path.join(get_file_system_root_path(), "atlas.cern.ch/repo/containers/images/singularity")
-    logger.info('_path=%s' % str(_path))
     path = os.path.join(_path, image)
-    logger.info('path=%s' % str(path))
     if not os.path.exists(path):
         image = 'x86_64-centos7.img'
         logger.warning('path does not exist: %s (trying with image %s instead)' % (path, image))
-        logger.info('_path=%s' % str(_path))
-        logger.info('image=%s' % str(image))
         path = os.path.join(_path, image)
-        logger.info('path=%s' % str(path))
         if not os.path.exists(path):
             logger.warning('path does not exist either: %s' % path)
             path = ""
@@ -158,7 +137,7 @@ def get_middleware_type():
     """
 
     middleware_type = ""
-    container_type = get_container_type()
+    container_type = infosys.queuedata.container_type
 
     mw = 'middleware'
     if container_type and container_type != "" and mw in container_type:
@@ -178,32 +157,46 @@ def get_middleware_type():
     return middleware_type
 
 
-def get_container_name(user="pilot"):  ## TO BE DEPRECATED: consider job.infosys.queuedata.container_type.get("pilot")
+def alrb_wrapper(cmd, platform, workdir, job):
     """
-    Return the container name
-    E.g. container_type = 'singularity:pilot;docker:wrapper'
-    get_container_name(user='pilot') -> return 'singularity'
+    Wrap the given command with the special ALRB setup for containers
+    E.g. cmd = /bin/bash hello_world.sh
+    ->
+    export thePlatform="x86_64-slc6-gcc48-opt"
+    export ALRB_CONT_RUNPAYLOAD="cmd'
+    setupATLAS -c $thePlatform
 
-    :param user (string): E.g. "pilot" or "wrapper".
-    :return: container name (string). E.g. "singularity"
+    :param cmd (string): command to be executed in a container.
+    :param platform (string): platform specifics.
+    :param workdir: (not used)
+    :param job: Job object, passed here to properly resolve Information Service intance to access queuedata with Job overwrites applied
+
+    :return: prepended command with singularity execution command (string).
     """
 
-    container_name = ""
-    container_type = get_container_type()
+    container_name = job.infosys.queuedata.container_type.get("pilot")  # resolve container name for user=pilot
+    if container_name == 'singularity':
+        # first get the full setup, which should be removed from cmd (or ALRB setup won't work)
+        _asetup = get_asetup()
+        cmd = cmd.replace(_asetup, "asetup ")
+        # get simplified ALRB setup (export)
+        asetup = get_asetup(alrb=True)
 
-    if container_type and container_type != "" and user in container_type:
-        try:
-            container_names = container_type.split(';')
-            for name in container_names:
-                t = name.split(':')
-                if user == t[1]:
-                    container_name = t[0]
-        except Exception as e:
-            logger.warning("failed to parse the container name: %s, %s" % (container_type, e))
-    else:
-        logger.warning("container type not specified in queuedata")
+        # Get the singularity options
+        singularity_options = job.infosys.queuedata.container_options
+        logger.debug(
+            "resolved singularity_options from job.infosys.queuedata.container_options: %s" % singularity_options)
 
-    return container_name
+        _cmd = asetup
+        _cmd += 'export thePlatform=\"%s\";' % platform
+        if singularity_options != "":
+            _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % singularity_options
+        _cmd += 'export ALRB_CONT_RUNPAYLOAD=\"%s\";' % cmd
+        _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c images:$thePlatform'
+        cmd = _cmd
+        logger.info("Updated command: %s" % cmd)
+
+    return cmd
 
 
 def singularity_wrapper(cmd, platform, workdir, job):
@@ -221,8 +214,6 @@ def singularity_wrapper(cmd, platform, workdir, job):
     :return: prepended command with singularity execution command (string).
     """
 
-    # Should a container be used?
-    #container_name = get_container_name()
     container_name = job.infosys.queuedata.container_type.get("pilot")  # resolve container name for user=pilot
     logger.debug("resolved container_name from job.infosys.queuedata.contaner_type: %s" % container_name)
 
@@ -230,7 +221,6 @@ def singularity_wrapper(cmd, platform, workdir, job):
         logger.info("singularity has been requested")
 
         # Get the singularity options
-        #singularity_options = extract_container_options()
         singularity_options = job.infosys.queuedata.container_options
         logger.debug("resolved singularity_options from job.infosys.queuedata.container_options: %s" % singularity_options)
 
@@ -248,6 +238,6 @@ def singularity_wrapper(cmd, platform, workdir, job):
         else:
             logger.warning("singularity options found but image does not exist")
 
-    logger.info("Updated command: %s" % cmd)
+        logger.info("Updated command: %s" % cmd)
 
     return cmd

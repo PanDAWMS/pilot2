@@ -11,6 +11,7 @@
 import commands
 import os
 import time
+import signal
 
 from pilot.common import exception
 from pilot.control.payloads import generic
@@ -231,10 +232,10 @@ class Executor(generic.Executor, ESHook):
 
         # get the payload command from the user specific code
         # cmd = get_payload_command(job, queuedata)
-        athena_version = job['homepackage'].split('/')[1]
+        athena_version = job.homepackage.split('/')[1]
         asetup = 'source $ATLAS_LOCAL_ROOT_BASE/user/atlasLocalSetup.sh --quiet; '\
                  'source $AtlasSetup/scripts/asetup.sh %s,here; ' % athena_version
-        cmd = job['transformation'] + ' ' + job['jobPars']
+        cmd = job.transformation + ' ' + job.jobparams
 
         executable = "export ATHENA_PROC_NUMBER=%s; " % infosys.queuedata.corecount
         executable = executable + asetup + cmd
@@ -281,7 +282,8 @@ class Executor(generic.Executor, ESHook):
                 if args.graceful_stop.is_set():
                     breaker = True
                     log.debug('breaking -- sending SIGTERM pid=%s' % proc.pid)
-                    proc.terminate()
+                    os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                    # proc.terminate()
                     break
                 time.sleep(0.1)
             if breaker:

@@ -34,3 +34,15 @@ def update_job_data(job):
     """
 
     pass
+
+
+def remove_redundant_files(workdir, outputfiles=[]):
+    """
+    Remove redundant files and directories prior to creating the log file.
+
+    :param workdir: working directory (string).
+    :param outputfiles: list of output files.
+    :return:
+    """
+
+    pass

@@ -17,6 +17,7 @@ copytool components
 
     common
     gfal
+    lsm
     mv
     rucio
     xrdcp

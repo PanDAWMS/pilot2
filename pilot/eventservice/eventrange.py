@@ -34,8 +34,8 @@ def download_event_ranges(job, num_ranges=None):
             num_ranges = 1
 
         data = {'pandaID': job.jobid,
-                'jobsetID': job['jobsetID'],
-                'taskID': job['taskID'],
+                'jobsetID': job.jobsetid,
+                'taskID': job.taskid,
                 'nRanges': num_ranges}
 
         log.info("Downloading new event ranges: %s" % data)

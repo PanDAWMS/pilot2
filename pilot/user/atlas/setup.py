@@ -10,7 +10,7 @@
 import os
 import re
 
-from pilot.util.information import get_cmtconfig, get_appdir
+from pilot.info import infosys
 
 import logging
 logger = logging.getLogger(__name__)
@@ -71,44 +71,42 @@ def is_user_analysis_job(trf):  ## DEPRECATED: consider job.is_analysis()
     return analysisjob
 
 
-def get_platform(jobcmtconfig):  ## DEPRECATED: consider job.infosys.queuedata.platform
+def get_alrb_export():
     """
-    Get the platform (cmtconfig) from the job def or schedconfig
-
-    :param jobcmtconfig: platform information from the job definition (string).
-    :return: chosen platform (string).
+    Return the export command for the ALRB path if it exists.
+    If the path does not exist, return empty string.
+    :return: export command
     """
 
-    # the job def should always contain the cmtconfig
-    if jobcmtconfig != "" and jobcmtconfig != "None" and jobcmtconfig != "NULL":
-        cmtconfig = jobcmtconfig
-        logger.info("Will try to use cmtconfig: %s (from job definition)" % cmtconfig)
+    path = "%s/atlas.cern.ch/repo" % get_file_system_root_path()
+    if os.path.exists(path):
+        cmd = "export ATLAS_LOCAL_ROOT_BASE=%s/ATLASLocalRootBase;" % path
     else:
-        cmtconfig = get_cmtconfig()
-        logger.info("Will try to use cmtconfig: %s (from schedconfig DB)" % cmtconfig)
-
-    return cmtconfig
+        cmd = ""
+    return cmd
 
 
-def get_asetup(asetup=True):
+def get_asetup(asetup=True, alrb=False):
     """
     Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
     Only include the actual asetup script if asetup=True. This is not needed if the jobPars contain the payload command
     but the pilot still needs to add the exports and the atlasLocalSetup.
 
     :param asetup: Boolean. True value means that the pilot should include the asetup command.
+    :param alrb: Boolean. True value means that the function should return special setup used with ALRB and containers.
     :return: asetup (string).
     """
 
     cmd = ""
-    path = "%s/atlas.cern.ch/repo" % get_file_system_root_path()
-    if os.path.exists(path):
-        cmd = "export ATLAS_LOCAL_ROOT_BASE=%s/ATLASLocalRootBase;" % path
-        cmd += "source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;"
-        if asetup:
-            cmd += "source $AtlasSetup/scripts/asetup.sh"
+    alrb_cmd = get_alrb_export()
+    if alrb_cmd != "":
+        cmd = alrb_cmd
+        if not alrb:
+            cmd += "source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;"
+            if asetup:
+                cmd += "source $AtlasSetup/scripts/asetup.sh"
     else:
-        appdir = get_appdir()
+        appdir = infosys.queuedata.appdir
         if appdir == "":
             appdir = os.environ.get('VO_ATLAS_SW_DIR', '')
         if appdir != "":

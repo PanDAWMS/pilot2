@@ -23,8 +23,9 @@ from pilot.util.information import set_location
 from pilot.info import set_info
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
+from pilot.util.harvester import is_harvester_mode
 
-VERSION = '2018-02-16.003'
+VERSION = '2018-03-20.002'
 
 
 def main():
@@ -48,7 +49,13 @@ def main():
     logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
 
-    return workflow.run(args)
+    try:
+        ret = workflow.run(args)
+    except Exception as e:
+        logger.fatal('main pilot function caught exception: %s' % e)
+        ret = None
+
+    return ret
 
 
 class Args:
@@ -85,7 +92,10 @@ def import_module(**kwargs):
                            '--working-group': kwargs.get('working_group', ''),
                            '--allow-other-country': kwargs.get('allow_other_country', 'False'),
                            '--allow-same-user': kwargs.get('allow_same_user', 'True'),
-                           '--pilot-user': kwargs.get('pilot_user', 'generic')
+                           '--pilot-user': kwargs.get('pilot_user', 'generic'),
+                           '--input-dir': kwargs.get('input_dir', ''),
+                           '--output-dir': kwargs.get('output_dir', ''),
+                           '--hpc-resource': kwargs.get('hpc_resource', '')
                            }
 
     args = Args()
@@ -246,14 +256,26 @@ if __name__ == '__main__':
                             default='',
                             help='Harvester worker attributes json file')
 
+    # Harvester and Nordugrid specific options
+    arg_parser.add_argument('--input-dir',
+                            dest='input_dir',
+                            default='',
+                            help='Input directory')
+    arg_parser.add_argument('--output-dir',
+                            dest='output_dir',
+                            default='',
+                            help='Output directory')
+
+    # HPC options
+    arg_parser.add_argument('--hpc-resource',
+                            dest='hpc_resource',
+                            default='',
+                            help='Name of the HPC (e.g. Titan)')
+
     args = arg_parser.parse_args()
 
     # Define and set the main harvester control boolean
-    if (args.harvester_workdir != '' or args.harvester_datadir != '' or args.harvester_eventstatusdump != '' or
-            args.harvester_workerattributes != '') and not args.update_server:
-        args.harvester = True
-    else:
-        args.harvester = False
+    args.harvester = is_harvester_mode(args)
 
     # If requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
     initdir = getcwd()
@@ -283,7 +305,7 @@ if __name__ == '__main__':
     console = logging.StreamHandler(sys.stdout)
     if args.debug:
         logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.DEBUG,
-                            format='%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-25s | %(message)s')
+                            format='%(asctime)s | %(levelname)-8s | %(threadName)-12s | %(name)-32s | %(funcName)-25s | %(message)s')
         console.setLevel(logging.DEBUG)
         console.setFormatter(logging.Formatter(
             '%(asctime)s | %(levelname)-8s | %(threadName)-10s | %(name)-32s | %(funcName)-32s | %(message)s'))
@@ -307,17 +329,29 @@ if __name__ == '__main__':
         else:
             logging.info("removed %s" % mainworkdir)
 
-    logging.shutdown()
-
     # in Harvester mode, create a kill_worker file that will instruct Harvester that the pilot has finished
     if args.harvester:
         from pilot.util.harvester import kill_worker
         kill_worker()
 
     if not trace:
-        logging.getLogger(__name__).critical('pilot startup did not succeed -- aborting')
-        sys.exit(FAILURE)
+        logging.critical('pilot startup did not succeed -- aborting')
+        exit_code = FAILURE
     elif trace.pilot['nr_jobs'] > 0:
-        sys.exit(SUCCESS)
+        if trace.pilot['nr_jobs'] == 1:
+            logging.getLogger(__name__).info('pilot has finished (%d job was processed)' % trace.pilot['nr_jobs'])
+        else:
+            logging.getLogger(__name__).info('pilot has finished (%d jobs were processed)' % trace.pilot['nr_jobs'])
+        exit_code = SUCCESS
+    elif trace.pilot['state'] == FAILURE:
+        logging.critical('pilot workflow failure -- aborting')
+        exit_code = FAILURE
+    elif trace.pilot['state'] == ERRNO_NOJOBS:
+        logging.critical('pilot did not process any events -- aborting')
+        exit_code = ERRNO_NOJOBS
     else:
-        sys.exit(ERRNO_NOJOBS)
+        logging.info('pilot has finished')
+        exit_code = SUCCESS
+
+    logging.shutdown()
+    sys.exit(exit_code)

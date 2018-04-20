@@ -50,8 +50,8 @@ class TestESHook(ESHook):
         """
         with open('pilot/test/resource/eventservice_job.txt') as job_file:
             job = json.load(job_file)
-            self.__payload = job['payload']
-            self.__event_ranges = job['event_ranges']
+            self.__payload = job.payload
+            self.__event_ranges = job['event_ranges']  # doesn't exit
 
         if check_env():
             process = subprocess.Popen('pilot/test/resource/download_test_es_evgen.sh', shell=True, stdout=subprocess.PIPE)

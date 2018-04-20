@@ -8,7 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch
 
 import subprocess
-from os import environ, getcwd
+from os import environ, getcwd, setsid
 
 import logging
 logger = logging.getLogger(__name__)
@@ -47,12 +47,13 @@ def execute(executable, **kwargs):
         pass
 
     logger.info('executing command: %s' % executable)
-    process = subprocess.Popen(executable,
+    exe = ['/bin/bash', '-c', executable]
+    process = subprocess.Popen(exe,
                                bufsize=-1,
                                stdout=stdout,
                                stderr=stderr,
                                cwd=cwd,
-                               shell=True)
+                               preexec_fn=setsid)
     if returnproc:
         return process
     else:

@@ -1,5 +1,5 @@
 ..
-    Pilot 2 pilot.copytool.rucio doc file
+    Pilot 2 pilot.copytool.mv doc file
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
