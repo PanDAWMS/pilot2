@@ -83,8 +83,8 @@ class StagingClient(object):
     def transfer(self, files):
         logger = self.logger
         copytool_names = self.copytool_names[::-1]
-        success = False
-        while len(copytool_names) and not success:
+        output = None
+        while len(copytool_names) and output is None:
             copytool = None
             copytool_name = copytool_names.pop()
             logger.info('Trying to use copytool %s' % copytool_name)
@@ -98,10 +98,8 @@ class StagingClient(object):
                 continue
 
             output = self._try_copytool_for_transfer(copytool, files)
-            if output:
-                success = output.get('status') == 0
 
-        if not success:
+        if output is None:
             raise PilotException('transfer failed')
         return output
 
@@ -118,7 +116,7 @@ class StageInClient(StagingClient):
         :param logger: logging.Logger object to use for loggin (None means no logging)
         :return:
         """
-        super().__init__(site, ddmendpoint, copytool_names, fallback_copytool, infosys_instance, logger)
+        super(StageInClient, self).__init__(site, ddmendpoint, copytool_names, fallback_copytool, infosys_instance, logger)
 
     def _try_copytool_for_transfer(self, copytool, files):
         """
@@ -153,7 +151,7 @@ class StageOutClient(StagingClient):
         :param fallback_copytool: name or list of copytools to use if storage settings cannot be retrieved
         :param logger: logging.Logger object to use for loggin (None means no logging)
         """
-        super().__init__(site, ddmendpoint, copytool_names, fallback_copytool, infosys_instance, logger)
+        super(StageOutClient, self).__init__(site, ddmendpoint, copytool_names, fallback_copytool, infosys_instance, logger)
 
     def _try_copytool_for_transfer(self, copytool, files):
         """

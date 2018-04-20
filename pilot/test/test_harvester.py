@@ -51,7 +51,7 @@ class TestHarvesterStageIn(unittest.TestCase):
             self.travis = True
 
         # setup pilot data client
-        self.data_client = data.StageInClient(site='CERN-PROD')
+        self.data_client = data.StageInClient(site='CERN-PROD', copytool_names=['rucio'])
 
     def test_stagein_sync_fail_nodirectory(self):
         '''
@@ -214,7 +214,7 @@ class TestHarvesterStageOut(unittest.TestCase):
             self.travis = True
 
         # setup pilot data client
-        self.data_client = data.StageOutClient(site='CERN-PROD')
+        self.data_client = data.StageOutClient(site='CERN-PROD', copytool_names=['rucio'])
 
     def test_stageout_fail_notfound(self):
         '''

@@ -77,10 +77,11 @@ def copy_out(files):
         file:           - file path of the file to upload
         rse:            - storage endpoint
         scope:          - Optional: scope of the file
-        no-register:    - Optional: Do not register the file in rucio
         guid:           - Optional: guid to use for the file
         pfn:            - Optional: pfn to use for the upload
         lifetime:       - Optional: lifetime on storage for this file
+        no_register:    - Optional: if True, do not register the file in rucio
+        summary:        - Optional: if True, generates a summary json file
 
     :raises Exception
     """
@@ -89,43 +90,56 @@ def copy_out(files):
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
     if len(files) == 0:
-        raise Exception('No lfn with existing destination path given!')
+        raise Exception('No existing source given!')
 
     for f in files:
         executable = ['/usr/bin/env', 'rucio', 'upload']
         path = f.get('file')
         rse = f.get('rse')
-        exit_code = 1
-        if path and rse:
-            executable.extend(['--rse', rse])
 
-            scope = f.get('scope')
-            guid = f.get('guid')
-            pfn = f.get('pfn')
-            lifetime = f.get('lifetime')
+        stats = {'status': 'failed'}
+        if not path or not (os.path.isfile(path) or os.path.isdir(path)):
+            stats['errmgs'] = 'Source file does not exists'
+            stats['errno'] = 1
+            f.update(stats)
+            continue
+        if not rse:
+            stats['errmgs'] = 'No destination site given'
+            stats['errno'] = 1
+            f.update(stats)
+            continue
 
-            if scope:
-                executable.extend(['--scope', scope])
-            if guid:
-                executable.extend(['--guid', guid])
-            if pfn:
-                executable.extend(['--pfn', pfn])
-            if lifetime:
-                executable.extend(['--lifetime', lifetime])
-            if 'no-register' in f:
-                executable.extend(['--no-register'])
+        executable.extend(['--rse', str(rse)])
 
-            executable.append(path)
+        scope = f.get('scope')
+        guid = f.get('guid')
+        pfn = f.get('pfn')
+        lifetime = f.get('lifetime')
+        no_register = f.get('no_register', False)
+        summary = f.get('summary', False)
 
-            exit_code, stdout, stderr = execute(" ".join(executable))
+        if scope:
+            executable.extend(['--scope', str(scope)])
+        if guid:
+            executable.extend(['--guid', str(guid)])
+        if pfn:
+            executable.extend(['--pfn', pfn])
+        if lifetime:
+            executable.extend(['--lifetime', str(lifetime)])
+        if no_register:
+            executable.append('--no-register')
+        if summary:
+            executable.append('--summary')
 
-        stats = {}
+        executable.append(path)
+
+        exit_code, stdout, stderr = execute(executable)
+
         if exit_code == 0:
             stats['status'] = 'done'
             stats['errno'] = 0
-            stats['errmsg'] = 'File successfully downloaded.'
+            stats['errmsg'] = 'File successfully uploaded.'
         else:
-            stats['status'] = 'failed'
             stats['errno'] = 3
             try:
                 # the Details: string is set in rucio: lib/rucio/common/exception.py in __str__()
@@ -133,4 +147,5 @@ def copy_out(files):
             except Exception as e:
                 stats['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % \
                                   str(e)
+        f.update(stats)
     return files
