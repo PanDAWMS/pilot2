@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Pavlo Svirin, pavlo.svirin@cern.ch, 2017
+# - Tobias Wegner, tobias.wegner@cern.ch, 2018
 
 import os
 import logging
