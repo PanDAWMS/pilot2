@@ -17,17 +17,20 @@ from pilot.util.container import execute
 
 logger = logging.getLogger(__name__)
 
+
 def is_valid_for_copy_in(files):
     for f in files:
-        if not all(key in f for key in ('name', 'source', 'destination'))
+        if not all(key in f for key in ('name', 'source', 'destination')):
             return False
     return True
 
+
 def is_valid_for_copy_out(files):
     for f in files:
-        if not all(key in f for key in ('name', 'source', 'destination'))
+        if not all(key in f for key in ('name', 'source', 'destination')):
             return False
     return True
+
 
 def copy_in(files):
     """

@@ -11,9 +11,7 @@
 
 import os
 import logging
-import sys
 
-from pilot.control import data
 from pilot.info import infosys
 from pilot.common.exception import PilotException
 
@@ -28,7 +26,7 @@ class StagingClient(object):
         :param copytool_names: name of copytool or list of copytools to use (if this is, given ddmendpoint will be ignored)
         :param fallback_copytool: name or list of copytools to use if storage settings cannot be retrieved
         :param logger: logging.Logger object to use for loggin (None means no logging)
-        :return: 
+        :return:
         """
         super(StagingClient, self).__init__()
 
@@ -91,7 +89,7 @@ class StagingClient(object):
             copytool_name = copytool_names.pop()
             logger.info('Trying to use copytool %s' % copytool_name)
             try:
-                copytool = __import__('pilot.copytool.%s' % copytool_name, 
+                copytool = __import__('pilot.copytool.%s' % copytool_name,
                                       globals(), locals(),
                                       [copytool_name], -1)
             except Exception as error:
@@ -100,9 +98,8 @@ class StagingClient(object):
                 continue
 
             output = self._try_copytool_for_transfer(copytool, files)
-            if output and 'status' in output:
-            success = (out['status'] == 0)
-
+            if output:
+                success = output.get('status') == 0
 
         if not success:
             raise PilotException('transfer failed')
@@ -119,7 +116,7 @@ class StageInClient(StagingClient):
         :param copytool_names: name of copytool or list of copytools to use (if this is, given ddmendpoint will be ignored)
         :param fallback_copytool: name or list of copytools to use if storage settings cannot be retrieved
         :param logger: logging.Logger object to use for loggin (None means no logging)
-        :return: 
+        :return:
         """
         super().__init__(site, ddmendpoint, copytool_names, fallback_copytool, infosys_instance, logger)
 
@@ -130,17 +127,17 @@ class StageInClient(StagingClient):
         :param copytool: copytool to try
         :param files: List of dictionaries containing the file information
 
-        :return: the output of the copytool or None on error 
+        :return: the output of the copytool or None on error
         """
         logger = self.logger
         try:
             if not copytool.is_valid_for_copy_in(files):
-                logger.warning('Input is not valid for copytool %s' % copytool_name)
+                logger.warning('Input is not valid for this copytool')
                 logger.debug('Input: %s' % files)
                 return None
             return copytool.copy_in(files)
         except Exception as error:
-            logger.warning('Failed transferring files with %s' % copytool_name)
+            logger.warning('Failed transferring files with this copytool')
             logger.debug('Error: %s' % error)
         return None
 
@@ -156,7 +153,7 @@ class StageOutClient(StagingClient):
         :param fallback_copytool: name or list of copytools to use if storage settings cannot be retrieved
         :param logger: logging.Logger object to use for loggin (None means no logging)
         """
-        super().__init__(site, ddmendpoint, copytool_names, fallback_copytool, infosys_instance=None, logger)
+        super().__init__(site, ddmendpoint, copytool_names, fallback_copytool, infosys_instance, logger)
 
     def _try_copytool_for_transfer(self, copytool, files):
         """
@@ -165,17 +162,17 @@ class StageOutClient(StagingClient):
         :param copytool: copytool to try for the transfer
         :param files: List of dictionaries containing the target scope, the path to the file, and destination RSE
 
-        :return: the output of the copytool or None on error 
+        :return: the output of the copytool or None on error
         """
         logger = self.logger
         try:
             if not copytool.is_valid_for_copy_out(files):
-                logger.warning('Input is not valid for copytool %s' % copytool_name)
+                logger.warning('Input is not valid for this copytool')
                 logger.debug('Input: %s' % files)
                 return None
             return copytool.copy_out(files)
         except Exception as error:
-            logger.warning('Failed transferring files with %s' % copytool_name)
+            logger.warning('Failed transferring files with this copytool')
             logger.debug('Error: %s' % error)
         return None
 

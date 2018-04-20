@@ -12,17 +12,20 @@ import os
 from pilot.copytool.common import merge_destinations
 from pilot.util.container import execute
 
+
 def is_valid_for_copy_in(files):
     for f in files:
-        if not all(key in f for key in ('scope', 'name', 'destination'))
+        if not all(key in f for key in ('scope', 'name', 'destination')):
             return False
     return True
 
+
 def is_valid_for_copy_out(files):
     for f in files:
-        if not all(key in f for key in ('file', 'rse'))
+        if not all(key in f for key in ('file', 'rse')):
             return False
     return True
+
 
 def copy_in(files):
     """
@@ -100,7 +103,7 @@ def copy_out(files):
             guid = f.get('guid')
             pfn = f.get('pfn')
             lifetime = f.get('lifetime')
-            
+ 
             if scope:
                 executable.extend(['--scope', scope])
             if guid:
