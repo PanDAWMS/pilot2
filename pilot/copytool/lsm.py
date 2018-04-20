@@ -16,6 +16,17 @@ from pilot.util.container import execute
 
 logger = logging.getLogger(__name__)
 
+def is_valid_for_copy_in(files):
+    for f in files:
+        if not all(key in f for key in ('name', 'source', 'destination'))
+            return False
+    return True
+
+def is_valid_for_copy_out(files):
+    for f in files:
+        if not all(key in f for key in ('name', 'source', 'destination'))
+            return False
+    return True
 
 def copy_in(files):
     """
@@ -68,13 +79,11 @@ def move_all_files_in(files, nretries=1):
 
         source = entry['source'] + '/' + entry['name']
         destination = os.path.join(entry['destination'], entry['name'])
-        retry = nretries
-        while retry != 0:
-            retry -= 1
+        for retry in range(nretries):
             exit_code, stdout, stderr = move(source, destination, dst_in=True)
 
             if exit_code != 0:
-                if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or retry == 0:
+                if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or (retry + 1) == nretries:
                     logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
                     return exit_code, stdout, stderr
             else:  # all successful
@@ -100,13 +109,11 @@ def move_all_files_out(files, nretries=1):
 
         destination = entry['destination'] + '/' + entry['name']
         source = os.path.join(entry['source'], entry['name'])
-        retry = nretries
-        while retry != 0:
-            retry -= 1
+        for retry in range(nretries):
             exit_code, stdout, stderr = move(source, destination, dst_in=False)
 
             if exit_code != 0:
-                if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or retry == 0:
+                if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or (retry + 1) == nretries:
                     logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
                     return exit_code, stdout, stderr
             else:  # all successful

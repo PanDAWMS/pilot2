@@ -19,7 +19,7 @@ from pilot.common.exception import PilotException
 
 
 class StagingClient(object):
-    def __init__(self, site=None, ddmendpoint=None, copytool_names=None, fallback_copytool='rucio', logger=None):
+    def __init__(self, site=None, ddmendpoint=None, copytool_names=None, fallback_copytool='rucio', infosys_instance=None, logger=None):
         """
         StagingClient constructor needs either copytool_names or ddmendpoint specified
 
@@ -33,18 +33,20 @@ class StagingClient(object):
         super(StagingClient, self).__init__()
 
         if not logger:
-            logger = logging.getLogger('null_logger')
+            logger = logging.getLogger(__name__).getChild('null')
             logger.disabled = True
         self.logger = logger
 
         if not copytool_names and not ddmendpoint:
             raise PilotException('Invalid arguments passed to StagingClient.__init__')
 
+        self.infosys = infosys_instance if infosys_instance else infosys
+
         self.copytool_names = []
         if not copytool_names:
             # try to get the copytools from the storage endpoint config
             try:
-                storage_data = infosys.resolve_storage_data(ddmendpoint).get(ddmendpoint)
+                storage_data = self.infosys.resolve_storage_data(ddmendpoint).get(ddmendpoint)
                 acopytools = storage_data.acopytools.get('read_lan')
                 if acopytools and len(acopytools):
                     self.copytool_names = acopytools
@@ -108,7 +110,7 @@ class StagingClient(object):
 
 
 class StageInClient(StagingClient):
-    def __init__(self, site=None, ddmendpoint=None, copytool_names=None, fallback_copytool='rucio', logger=None):
+    def __init__(self, site=None, ddmendpoint=None, copytool_names=None, fallback_copytool='rucio', infosys_instance=None, logger=None):
         """
         StageInClient constructor needs either copytool_names or ddmendpoint specified
 
@@ -119,7 +121,7 @@ class StageInClient(StagingClient):
         :param logger: logging.Logger object to use for loggin (None means no logging)
         :return: 
         """
-        super().__init__(site, ddmendpoint, copytool_names, fallback_copytool, logger)
+        super().__init__(site, ddmendpoint, copytool_names, fallback_copytool, infosys_instance, logger)
 
     def _try_copytool_for_transfer(self, copytool, files):
         """
@@ -127,12 +129,8 @@ class StageInClient(StagingClient):
 
         :param copytool: copytool to try
         :param files: List of dictionaries containing the file information
-                      for the rucio copytool, this must contain DID and destination directory.
-                      [{scope, name, destination
-                      for other copytools, the dictionary must contain
-                      [{name, source, destination
-        :return: Annotated files -- List of dictionaries with additional variables or None on error
-                 [{..., errno, errmsg, status
+
+        :return: the output of the copytool or None on error 
         """
         logger = self.logger
         try:
@@ -148,7 +146,7 @@ class StageInClient(StagingClient):
 
 
 class StageOutClient(StagingClient):
-    def __init__(self, site=None, ddmendpoint=None, copytool_names=None, fallback_copytool='rucio', logger=None):
+    def __init__(self, site=None, ddmendpoint=None, copytool_names=None, fallback_copytool='rucio', infosys_instance=None, logger=None):
         """
         StageOutClient constructor needs either copytool_names or ddmendpoint specified
 
@@ -157,27 +155,17 @@ class StageOutClient(StagingClient):
         :param copytool_names: name of copytool or list of copytools to use (if this is, given ddmendpoint will be ignored)
         :param fallback_copytool: name or list of copytools to use if storage settings cannot be retrieved
         :param logger: logging.Logger object to use for loggin (None means no logging)
-        :return: 
         """
-        super().__init__(site, ddmendpoint, copytool_names, fallback_copytool, logger)
+        super().__init__(site, ddmendpoint, copytool_names, fallback_copytool, infosys_instance=None, logger)
 
     def _try_copytool_for_transfer(self, copytool, files):
         """
         Automatically stage out files using rucio.
 
         :param copytool: copytool to try for the transfer
-        :param files: List of dictionaries containing the target scope, the path to the file, and destination RSE.
-                      [{scope, file, rse
-                      Additional variables that can be used:
-                        lifetime                        of the file in seconds
-                        no_register                     setting this to True will not register the file to Rucio (CAREFUL!)
-                        guid                            manually set guid of file in either string format
-                                                         XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX or
-                                                         XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-                        attach: {scope, name            automatically attach this file to the given dataset
-                        summary                         setting this to True will write a rucio_upload.json with used PFNs
-        :return: Annotated files -- List of dictionaries with additional variables or None on error
-                 [{..., errno, errmsg, status
+        :param files: List of dictionaries containing the target scope, the path to the file, and destination RSE
+
+        :return: the output of the copytool or None on error 
         """
         logger = self.logger
         try:

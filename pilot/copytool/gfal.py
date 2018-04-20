@@ -82,16 +82,11 @@ def move_all_files_in(files, nretries=1):
         # why /*4 ? Because sometimes gfal-copy complains about file:// protocol (anyone knows why?)
         # with four //// this does not seem to happen
         destination = 'file:///' + os.path.join(entry['destination'], entry['name'])
-        retry = nretries
-        while retry != 0:
-            retry -= 1
-            if entry['recursive'] is None or not entry['recursive']:
-                exit_code, stdout, stderr = move(source, destination)
-            else:
-                exit_code, stdout, stderr = move(source, destination, True)
+        for retry in range(nretries):
+            exit_code, stdout, stderr = move(source, destination, entry.get('recursive', False))
 
             if exit_code != 0:
-                if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or retry == 0:
+                if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or (retry + 1) == nretries:
                     logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
                     return exit_code, stdout, stderr
             else:  # all successful
@@ -119,13 +114,11 @@ def move_all_files_out(files, nretries=1):
         # why /*4 ? Because sometimes gfal-copy complains about file:// protocol (anyone knows why?)
         # with four //// this does not seem to happen
         source = 'file:///' + os.path.join(entry['source'], entry['name'])
-        retry = nretries
-        while retry != 0:
-            retry -= 1
+        for retry in range(nretries):
             exit_code, stdout, stderr = move(source, destination)
 
             if exit_code != 0:
-                if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or retry == 0:
+                if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or (retry + 1) == nretries:
                     logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
                     return exit_code, stdout, stderr
             else:  # all successful

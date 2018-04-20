@@ -18,11 +18,13 @@ logger = logging.getLogger(__name__)
 
 def is_valid_for_copy_in(files):
     for f in files:
-        if not all(key in f for key in ('name', 'source', 'destination'))
+        if not all(key in f for key in ('scope', 'name', 'destination'))
             return False
     return True
 
 def is_valid_for_copy_out(files):
+    return False # NOT IMPLEMENTED YET
+
     for f in files:
         if not all(key in f for key in ('name', 'source', 'destination'))
             return False

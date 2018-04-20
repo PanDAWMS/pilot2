@@ -20,7 +20,7 @@ def is_valid_for_copy_in(files):
 
 def is_valid_for_copy_out(files):
     for f in files:
-        if not all(key in f for key in ('scope', 'file', 'rse'))
+        if not all(key in f for key in ('file', 'rse'))
             return False
     return True
 
@@ -45,13 +45,6 @@ def copy_in(files):
                       '--dir', dst]
         executable.extend(destinations[dst]['lfns'])
 
-        # process = subprocess.Popen(executable,
-        #                            bufsize=-1,
-        #                            stdout=subprocess.PIPE,
-        #                            stderr=subprocess.PIPE)
-        # stdout, stderr = process.communicate()
-        # exit_code = process.poll()
-
         exit_code, stdout, stderr = execute(" ".join(executable))
 
         stats = {}
@@ -73,11 +66,18 @@ def copy_in(files):
     return files
 
 
-def copy_out(files, rse=None, scope=None, register=True):
+def copy_out(files):
     """
     Tries to upload the given files using rucio
 
-    :param files Files to download
+    :param files Files to download. Dictionary with:
+        file:           - file path of the file to upload
+        rse:            - storage endpoint
+        scope:          - Optional: scope of the file
+        no-register:    - Optional: Do not register the file in rucio
+        guid:           - Optional: guid to use for the file
+        pfn:            - Optional: pfn to use for the upload
+        lifetime:       - Optional: lifetime on storage for this file
 
     :raises Exception
     """
@@ -90,18 +90,31 @@ def copy_out(files, rse=None, scope=None, register=True):
 
     for f in files:
         executable = ['/usr/bin/env', 'rucio', 'upload']
-        if f is None or f == '':
-            continue
-        if rse is not None:
+        path = f.get('file')
+        rse = f.get('rse')
+        exit_code = 1
+        if path and rse:
             executable.extend(['--rse', rse])
-        if scope is not None:
-            executable.extend(['--scope', scope])
-        if not register:
-            executable.append('--no-register')
 
-        executable.append(f)
+            scope = f.get('scope')
+            guid = f.get('guid')
+            pfn = f.get('pfn')
+            lifetime = f.get('lifetime')
+            
+            if scope:
+                executable.extend(['--scope', scope])
+            if guid:
+                executable.extend(['--guid', guid])
+            if pfn:
+                executable.extend(['--pfn', pfn])
+            if lifetime:
+                executable.extend(['--lifetime', lifetime])
+            if 'no-register' in f:
+                executable.extend(['--no-register'])
 
-        exit_code, stdout, stderr = execute(" ".join(executable))
+            executable.append(path)
+
+            exit_code, stdout, stderr = execute(" ".join(executable))
 
         stats = {}
         if exit_code == 0:
