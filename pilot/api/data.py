@@ -48,7 +48,7 @@ class StagingClient(object):
                 acopytools = storage_data.acopytools.get('read_lan')
                 if acopytools and len(acopytools):
                     self.copytool_names = acopytools
-            except:
+            except Exception:
                 logger.warning('Failed to get copytool from storage endpoint configuration. Using fallback.')
         else:
             # given copytools are used instead of storage endpoint configured copytools

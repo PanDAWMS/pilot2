@@ -103,7 +103,7 @@ def copy_out(files):
             guid = f.get('guid')
             pfn = f.get('pfn')
             lifetime = f.get('lifetime')
- 
+
             if scope:
                 executable.extend(['--scope', scope])
             if guid:
