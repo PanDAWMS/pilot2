@@ -31,7 +31,7 @@ class StagingClient(object):
         super(StagingClient, self).__init__()
 
         if not logger:
-            logger = logging.getLogger(__name__).getChild('null')
+            logger = logging.getLogger('%s.%s' % (__name__, 'null'))
             logger.disabled = True
         self.logger = logger
 
