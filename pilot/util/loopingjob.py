@@ -8,9 +8,9 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 
-def killer(job):
+def looping_job(job):
     """
-    Looping job killer algorithm.
+    Looping job detection algorithm.
     Identify hanging tasks/processes. Did the stage-in/out finish within allowed time limit, or did the payload update
     any files recently?
 
@@ -22,11 +22,13 @@ def killer(job):
     diagnostics = ""
 
     if job.state == 'stagein':
+        # set job.state to stagein during stage-in before implementing this algorithm
         pass
     elif job.state == 'stageout':
+        # set job.state to stageout during stage-out before implementing this algorithm
         pass
     else:
-        # most likely running state
+        # most likely in the 'running' state, but use the catch-all 'else'
         pass
 
     return exit_code, diagnostics

@@ -16,7 +16,7 @@ from subprocess import PIPE
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.config import config
 from pilot.util.container import execute
-from loopingjob import killer
+from loopingjob import looping_job
 
 import logging
 logger = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ def job_monitor_tasks(job, mt, verify_proxy):
     looping_limit = get_looping_job_limit(job.is_analysis())
     if current_time - mt.get('ct_looping') > config.Pilot.looping_verifiction_time:
         # is the job looping?
-        exit_code, diagnostics = killer(job)
+        exit_code, diagnostics = looping_job(job)
         if exit_code != 0:
             return exit_code, diagnostics
         else:
