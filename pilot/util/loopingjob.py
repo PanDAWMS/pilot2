@@ -10,6 +10,7 @@
 from pilot.util.container import execute
 
 import os
+import time
 import logging
 logger = logging.getLogger(__name__)
 
@@ -43,35 +44,38 @@ def looping_job(job, mt, looping_limit):
 
         # get the time when the files in the workdir were last touched. in case no file was touched since the last
         # check, the returned value will be the same as the previous time
-        time_last_touched = get_time_for_last_touch(job, looping_limit)
+        time_last_touched = get_time_for_last_touch(job, mt, looping_limit)
 
         # the payload process is considered to be looping if it's files have not been touched within looping_limit time
-        ct = int(time.time())
-        log.info('current time: %d' % ct)
-        log.info('last time files were touched: %s' % mt.ct_looping_last_touched)
-        log.info('looping limit: %d s' % looping_limit)
-
-        if ct - mt.ct_looping_last_touched > looping_limit:
-            kill_looping_job(job)
+        if mt.ct_looping_last_touched:
+            ct = int(time.time())
+            log.info('current time: %d' % ct)
+            log.info('last time files were touched: %s' % mt.ct_looping_last_touched)
+            log.info('looping limit: %d s' % looping_limit)
+            if ct - mt.ct_looping_last_touched > looping_limit:
+                kill_looping_job(job)
+        else:
+            log.info('no files were touched yet')
 
     return exit_code, diagnostics
 
 
-def get_time_for_last_touch(job, looping_limit):
+def get_time_for_last_touch(job, mt, looping_limit):
     """
     Return the time when the files in the workdir were last touched.
     in case no file was touched since the last check, the returned value will be the same as the previous time.
 
     :param job: job object.
+    :param mt: `MonitoringTime` object.
     :param looping_limit: looping limit in seconds.
     :return: time in seconds since epoch (int).
     """
 
     log = logger.getChild(job.jobid)
-    time_since_epoch = None
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    loopingjob_definitions = __import__('pilot.user.%s.loopingjob_definitions' % pilot_user, globals(), locals(), [pilot_user], -1)
+    loopingjob_definitions = __import__('pilot.user.%s.loopingjob_definitions' % pilot_user,
+                                        globals(), locals(), [pilot_user], -1)
 
     # locate all files that were modified the last N minutes
     cmd = "find %s -mmin -%d" % (job.workdir, int(looping_limit / 60))
@@ -93,7 +97,7 @@ def get_time_for_last_touch(job, looping_limit):
     else:
         log.warning('find command failed: %d, %s, %s' % (exit_code, stdout, stderr))
 
-    return time_since_epoch
+    return mt.ct_looping_last_touched
 
 
 def kill_looping_job(job):
