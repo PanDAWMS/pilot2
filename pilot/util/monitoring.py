@@ -59,7 +59,7 @@ def job_monitor_tasks(job, mt, verify_proxy):
     looping_limit = get_looping_job_limit(job.is_analysis())
     if current_time - mt.get('ct_looping') > config.Pilot.looping_verifiction_time:
         # is the job looping?
-        exit_code, diagnostics = looping_job(job)
+        exit_code, diagnostics = looping_job(job, mt, looping_limit)
         if exit_code != 0:
             return exit_code, diagnostics
         else:
