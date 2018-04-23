@@ -17,13 +17,14 @@ import time
 from os import getcwd, chdir, environ
 from shutil import rmtree
 
+from pilot.info import set_info
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
 from pilot.util.https import https_setup
 from pilot.util.information import set_location
-from pilot.info import set_info
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.config import config
 from pilot.util.harvester import is_harvester_mode
+from pilot.util.node import is_virtual_machine
 
 VERSION = '2018-04-23.001'
 
@@ -42,6 +43,9 @@ def pilot_version_banner():
     logger.info(version)
     logger.info('*' * len(version))
     logger.info('')
+
+    if is_virtual_machine():
+        logger.info('pilot is running in a VM')
 
 
 def main():
