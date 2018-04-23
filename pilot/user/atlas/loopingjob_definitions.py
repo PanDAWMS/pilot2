@@ -34,17 +34,17 @@ def remove_unwanted_files(workdir, files):
     _files = []
     for _file in files:
         if not (workdir == _file or
-                        ".lib.tgz" in _file or
-                        ".py" in _file or
-                        "PoolFileCatalog" in _file or
-                        "setup.sh" in _file or
-                        "jobState" in _file or
-                        "pandaJob" in _file or
-                        "runjob" in _file or
-                        "matched_replicas" in _file or
-                        "memory_" in _file or
-                        "mem." in _file or
-                        "DBRelease-" in _file):
+                ".lib.tgz" in _file or
+                ".py" in _file or
+                "PoolFileCatalog" in _file or
+                "setup.sh" in _file or
+                "jobState" in _file or
+                "pandaJob" in _file or
+                "runjob" in _file or
+                "matched_replicas" in _file or
+                "memory_" in _file or
+                "mem." in _file or
+                "DBRelease-" in _file):
             _files.append(_file)
 
     return _files
