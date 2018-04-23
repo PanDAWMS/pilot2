@@ -31,19 +31,6 @@ def remove_unwanted_files(workdir, files):
     :return: filtered files list.
     """
 
-    return files
-
-
-def remove_unwanted_files(workdir, files):
-    """
-    Remove files from the list that are to be ignored by the looping job algorithm.
-
-    :param workdir: working directory (string). Needed in case the find command includes the workdir in the list of
-    recently touched files.
-    :param files: list of recently touched files (file names).
-    :return: filtered files list.
-    """
-
     _files = []
     for _file in files:
         if not (workdir == _file or
