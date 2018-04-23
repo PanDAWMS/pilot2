@@ -46,8 +46,8 @@ def looping_job(job, mt, looping_limit):
         time_last_touched = get_time_for_last_touch(job, looping_limit)
 
         # the payload process is considered to be looping if it's files have not been touched within looping_limit time
-        ct = int(time.time()
-        log.info('current time: %d' % ct))
+        ct = int(time.time())
+        log.info('current time: %d' % ct)
         log.info('last time files were touched: %s' % mt.ct_looping_last_touched)
         log.info('looping limit: %d s' % looping_limit)
 
