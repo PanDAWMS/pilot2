@@ -12,6 +12,7 @@
 
 import copy
 import Queue
+import json
 import os
 import subprocess
 import tarfile
