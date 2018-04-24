@@ -12,7 +12,6 @@
 
 import copy
 import Queue
-import json
 import os
 import subprocess
 import tarfile
@@ -21,6 +20,7 @@ import time
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
+from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.filehandling import find_executable
 
@@ -71,22 +71,34 @@ def prepare_for_container(workdir):
     return get_asetup(asetup=False) + 'lsetup rucio;'
 
 
+def use_container(cmd):
+    """
+    Should the pilot use a container for the stage-in/out?
+
+    :param cmd: middleware command, used to determine if the container should be used or not (string).
+    :return: Boolean.
+    """
+
+    usecontainer = False
+    if config.Container.allow_container == "False":
+        logger.info('container usage is not allowed by pilot config')
+    else:
+        # if the middleware is available locally, do not use container
+        if find_executable(cmd) == "":
+            usecontainer = True
+            logger.info('command %s is not available locally, will attempt to use container' % cmd)
+        else:
+            logger.info('command %s is available locally, no need to use container' % cmd)
+
+    return usecontainer
+
+
 def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
     try:
-        # if the middleware is available locally, do not use container
-        if find_executable(executable[1]) == "":
-            usecontainer = True
-            logger.info('command %s is not available locally, will attempt to use container' % executable[1])
-        else:
-            usecontainer = False
-            logger.info('command %s is available locally, no need to use container' % executable[1])
-
         # for containers, we can not use a list
-        executable = ' '.join(executable)
-
-        # uncomment the following for container testing
-        usecontainer = False
+        usecontainer = use_container(executable[1])
         if usecontainer:
+            executable = ' '.join(executable)
             executable = prepare_for_container(job.workdir) + executable
 
         process = execute(executable, workdir=job.workdir, returnproc=True,
@@ -387,15 +399,10 @@ def _stage_out(args, outfile, job):
                   outfile['name']]
 
     try:
-        # if the middleware is available locally, do not use container
-        if find_executable(executable[1]) == "":
-            usecontainer = True
-            logger.info('command %s is not available locally, will attempt to use container' % executable[1])
-        else:
-            usecontainer = False
-            logger.info('command %s is available locally, no need to use container' % executable[1])
-
-        usecontainer = False
+        usecontainer = use_container(executable[1])
+        if usecontainer:
+            executable = ' '.join(executable)
+            executable = prepare_for_container(job.workdir) + executable
         process = execute(executable, workdir=job.workdir, returnproc=True, job=job,
                           usecontainer=usecontainer, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=job.workdir)
 
