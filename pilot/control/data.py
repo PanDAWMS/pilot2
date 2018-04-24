@@ -395,6 +395,7 @@ def _stage_out(args, outfile, job):
             usecontainer = False
             logger.info('command %s is available locally, no need to use container' % executable[1])
 
+        usecontainer = False
         process = execute(executable, workdir=job.workdir, returnproc=True, job=job,
                           usecontainer=usecontainer, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=job.workdir)
 
