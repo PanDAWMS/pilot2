@@ -23,6 +23,7 @@ The main reasons for such incapsulation are to
 import os
 
 from .basedata import BaseData
+from .filespec import FileSpec
 
 import logging
 logger = logging.getLogger(__name__)
@@ -76,23 +77,28 @@ class JobData(BaseData):
 
     # from job definition
     attemptnr = 0  # job attempt number
-    ddmendpointin = ""  # comma-separated list (string) of ddm endpoints for input
-    ddmendpointout = ""  # comma-separated list (string) of ddm endpoints for output
-    destinationdblock = ""
-    infiles = ""  # comma-separated list (string) of input files
+    ddmendpointin = ""  # comma-separated list (string) of ddm endpoints for input    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+    ddmendpointout = ""  # comma-separated list (string) of ddm endpoints for output  ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
+    destinationdblock = ""  ## to be moved to FileSpec (job.outdata)
+
+    infiles = ""  # comma-separated list (string) of input files  ## TO BE DEPRECATED: moved to FileSpec (use job.indata instead)
+
+    indata = []   # list of `FileSpec` objects for input files (aggregated inFiles, ddmEndPointIn, scopeIn, filesizeIn, etc)
+    outdata = []  # list of `FileSpec` objects for output files
+    logdata = []  # list of `FileSpec` objects for log file(s)
 
     # home package string with additional payload release information; does not need to be added to
     # the conversion function since it's already lower case
     homepackage = ""
 
     jobsetid = ""  # job set id
-    logfile = ""  #  file name for log
-    logguid = ""  # unique guid for log file
+    logfile = ""  #  file name for log                                   ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
+    logguid = ""  # unique guid for log file                             ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
     noexecstrcnv = None  # server instruction to the pilot if it should take payload setup from job parameters
-    outfiles = ""  # comma-separated list (string) of output files
-    scopein = ""  # comma-separated list (string) of input file scopes
-    scopelog = ""  # scope for log file
-    scopeout = ""  # comma-separated list (string) of output file scopes
+    outfiles = ""  # comma-separated list (string) of output files       ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
+    scopein = ""  # comma-separated list (string) of input file scopes   ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+    scopelog = ""  # scope for log file                                  ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
+    scopeout = ""  # comma-separated list (string) of output file scopes ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
     swrelease = ""  # software release string
 
     # RAW data to keep backward compatible behavior for a while ## TO BE REMOVED once all job attributes will be covered
@@ -101,11 +107,14 @@ class JobData(BaseData):
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['corecount', 'piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
                    'attemptnr', 'nevents', 'pid'],
-             str: ['jobid', 'taskid', 'jobparams', 'transformation', 'logguid', 'destinationdblock', 'exeerrordiag'
-                   'state', 'status', 'workdir', 'state', 'stageout', 'ddmendpointin', 'ddmendpointout',
-                   'platform', 'piloterrordiag', 'scopeout', 'scopein', 'scopelog', 'logfile', 'exitmsg',
-                   'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload', 'infiles',
-                   'outfiles', 'swrelease'],
+             str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
+                   'state', 'status', 'workdir', 'stageout',
+                   'platform', 'piloterrordiag', 'exitmsg',
+                   'infiles', 'scopein', 'ddmendpointin',       ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+                   'outfiles', 'scopeout', 'ddmendpointout',     ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
+                   'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
+                   'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload',
+                   'swrelease'],
              list: ['piloterrorcodes', 'piloterrordiags'],
              dict: ['fileinfo', 'metadata', 'utilities'],
              bool: ['is_eventservice', 'noexecstrcnv']
@@ -121,10 +130,100 @@ class JobData(BaseData):
 
         self.load(data)
 
+        self.indata = self.prepare_infiles(data)
+        self.outdata, self.logdata = self.prepare_outfiles(data)
+
         # DEBUG
         import pprint
         logger.debug('Initialize Job from raw:\n%s' % pprint.pformat(data))
         #logger.debug('Final parsed Job content:\n%s' % self)
+
+    def prepare_infiles(self, data):
+        """
+            Construct FileSpec objects for input files from raw dict `data`
+            :return: list of validated `FileSpec` objects
+        """
+
+        # form raw list data from input comma-separated values for further validataion by FileSpec
+        kmap = {
+            # 'internal_name': 'ext_key_structure'
+            'lfn': 'inFiles',
+            ##'??': 'dispatchDblock', '??define_proper_internal_name': 'dispatchDBlockToken',
+            'dataset': 'realDatasetsIn', 'guid': 'GUID',
+            'filesize': 'fsize', 'checksum': 'checksum', 'scope': 'scopeIn',
+            ##'??define_internal_key': 'prodDBlocks',
+            ##'storage_token': 'prodDBlockToken',
+            'ddmendpoint': 'ddmEndPointIn',
+        }
+
+        ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())
+
+        ret, lfns = [], set()
+        for ind, lfn in enumerate(ksources.get('inFiles', [])):
+            if lfn in ['', 'NULL'] or lfn in lfns:  # exclude null data and duplicates
+                continue
+            lfns.add(lfn)
+            idat = {}
+            for attrname, k in kmap.iteritems():
+                idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
+            finfo = FileSpec(type='input', **idat)
+            ret.append(finfo)
+
+        return ret
+
+    def prepare_outfiles(self, data):
+        """
+            Construct validated FileSpec objects for output and log files from raw dict `data`
+            :return: (list of `FileSpec` for output, list of `FileSpec` for log)
+        """
+
+        # form raw list data from input comma-separated values for further validataion by FileSpec
+        kmap = {
+            # 'internal_name': 'ext_key_structure'
+            'lfn': 'outFiles',
+            ##'??': 'destinationDblock', '??define_proper_internal_name': 'destinationDBlockToken',
+            'dataset': 'realDatasets', 'scope': 'scopeOut',
+            ##'??define_internal_key':'prodDBlocks', '??':'dispatchDBlockTokenForOut',
+            'ddmendpoint': 'ddmEndPointOut',
+        }
+
+        ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())
+
+        # unify scopeOut structure: add scope of log file there (better to properly fix at Panda side)
+        log_lfn = data.get('logFile')
+        if log_lfn:
+            scope_out = []
+            for lfn in ksources.get('outFiles', []):
+                if lfn == log_lfn:
+                    scope_out.append(data.get('scopeLog'))
+                else:
+                    if not ksources['scopeOut']:
+                        raise Exception('Failed to extract scopeOut parameter from Job structure sent by Panda, please check input format!')
+                    scope_out.append(ksources['scopeOut'].pop(0))
+            ksources['scopeOut'] = scope_out
+
+        ret_output, ret_log = [], []
+
+        lfns = set()
+        for ind, lfn in enumerate(ksources['outFiles']):
+            if lfn in ['', 'NULL'] or lfn in lfns:  # exclude null data and duplicates
+                continue
+            lfns.add(lfn)
+            idat = {}
+            for attrname, k in kmap.iteritems():
+                idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
+
+            ftype = 'output'
+            ret = ret_output
+            if lfn == log_lfn:  # log file case
+                ftype = 'log'
+                idat['guid'] = data.get('logGUID')
+                ret = ret_log
+
+            finfo = FileSpec(type=ftype, **idat)
+            ret.append(finfo)
+
+        return ret_output, ret_log
 
     def __getitem__(self, key):
         """
@@ -184,16 +283,16 @@ class JobData(BaseData):
             'jobparams': 'jobPars',
             'corecount': 'coreCount',
             'platform': 'cmtConfig',
-            'scopein': 'scopeIn',
-            'scopeout': 'scopeOut',
-            'scopelog': 'scopeLog',
-            'logfile': 'logFile',
-            'infiles': 'inFiles',
-            'outfiles': 'outFiles',
-            'logguid': 'logGUID',
+            'scopein': 'scopeIn',                        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+            'scopeout': 'scopeOut',                      ## TO BE DEPRECATED: moved to FileSpec
+            'scopelog': 'scopeLog',                      ## TO BE DEPRECATED: moved to FileSpec
+            'logfile': 'logFile',                        ## TO BE DEPRECATED: moved to FileSpec
+            'infiles': 'inFiles',                        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+            'outfiles': 'outFiles',                      ## TO BE DEPRECATED: moved to FileSpec
+            'logguid': 'logGUID',                        ## TO BE DEPRECATED: moved to FileSpec
             'attemptnr': 'attemptNr',
-            'ddmendpointin': 'ddmEndPointIn',
-            'ddmendpointout': 'ddmEndPointOut',
+            'ddmendpointin': 'ddmEndPointIn',            ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+            'ddmendpointout': 'ddmEndPointOut',          ## TO BE DEPRECATED: moved to FileSpec
             'destinationdblock': 'destinationDblock',
             'noexecstrcnv': 'noExecStrCnv',
             'swrelease': 'swRelease',
