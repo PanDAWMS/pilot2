@@ -37,8 +37,8 @@ class FileSpec(BaseData):
     guid = ""
 
     filesize = 0
-    checksum = ""
-    scope = ""  # file scope
+    checksum = {}    # file checksum values, allowed keys=['adler32', 'md5'], e.g. `fspec.checksum.get('adler32')`
+    scope = ""       # file scope
 
     dataset = ""
     ddmendpoint = ""    ## DDMEndpoint name (input or output depending on FileSpec.type)
@@ -76,8 +76,8 @@ class FileSpec(BaseData):
         self.load(data)
 
         if True:  # DEBUG
-            import pprint
-            logger.debug('initialize FileSpec from raw:\n%s' % pprint.pformat(data))
+            #import pprint
+            #logger.debug('initialize FileSpec from raw:\n%s' % pprint.pformat(data))
             logger.debug('Final parsed FileSpec content:\n%s' % self)
 
     def load(self, data):
@@ -87,14 +87,10 @@ class FileSpec(BaseData):
         """
 
         # the translation map of the key attributes from external data to internal schema
-        # first defined ext field name will be used
         # if key is not explicitly specified then ext name will be used as is
-        ## fix me later to proper internal names if need
 
         kmap = {
-            # 'internal_name': ('ext_name1', 'extname2_if_any')
             # 'internal_name2': 'ext_name3'
-
         }
 
         self._load_data(data, kmap)
@@ -105,6 +101,25 @@ class FileSpec(BaseData):
     ##  :param value: preliminary cleaned and casted to proper type value
     ##
     ##    return value
+
+    def clean__checksum(self, raw, value):
+        """
+            Validate value for the checksum key
+            Expected raw format is 'ad:value' or 'md:value'
+        """
+
+        if isinstance(value, dict):
+            return value
+
+        cmap = {'ad': 'adler32', 'md': 'md5'}
+
+        ctype, checksum = 'adler32', value
+        cc = value.split(':')
+        if len(cc) == 2:
+            ctype, checksum = cc
+            ctype = cmap.get(ctype) or 'adler32'
+
+        return {ctype: checksum}
 
     def is_directaccess(self, ensure_replica=True):
         """
