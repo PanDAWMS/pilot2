@@ -21,6 +21,7 @@ The main reasons for such incapsulation are to
 """
 
 import os
+import re
 import ast
 import shlex
 import pipes
@@ -79,6 +80,7 @@ class JobData(BaseData):
     pid = -1  # payload pid
 
     overwrite_queuedata = {}  # Custom settings extracted from JobParams (--overwriteQueueData) to be used as master values for `QueueData`
+    zipmap = ""               # ZIP MAP values extracted from JobParams
 
     # from job definition
     attemptnr = 0  # job attempt number
@@ -119,9 +121,9 @@ class JobData(BaseData):
                    'outfiles', 'scopeout', 'ddmendpointout',     ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
                    'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload',
-                   'swrelease'],
+                   'swrelease', 'zipmap'],
              list: ['piloterrorcodes', 'piloterrordiags'],
-             dict: ['fileinfo', 'metadata', 'utilities'],
+             dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
              bool: ['is_eventservice', 'noexecstrcnv']
              }
 
@@ -377,6 +379,19 @@ class JobData(BaseData):
         options, ret = self.parse_args(value, {'--overwriteQueueData': lambda x: ast.literal_eval(x) if x else {}}, remove=True)
         self.overwrite_queuedata = options.get('--overwriteQueueData', {})
 
+        # extract zip map  ## TO BE FIXED? better to pass it via dedicated sub-option in jobParams from PanDA side: e.g. using --zipmap "content"
+        # so that the zip_map can be handles more gracefully via parse_args
+
+        pattern = r" \'?<ZIP_MAP>(.+)<\/ZIP_MAP>\'?"
+        pattern = re.compile(pattern)
+
+        result = re.findall(pattern, ret)
+        if result:
+            self.zipmap = result[0]
+            # remove zip map from final jobparams
+            ret = re.sub(pattern, '', ret)
+
+        logger.debug('Extracted data from jobparams: zipmap=%s' % self.zipmap)
         logger.debug('Extracted data from jobparams: overwrite_queuedata=%s' % self.overwrite_queuedata)
 
         return ret
