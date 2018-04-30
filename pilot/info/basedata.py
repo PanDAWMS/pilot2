@@ -38,7 +38,7 @@ class BaseData(object):
         """
             Construct and initialize data from ext source.
 
-            :param data: input dictionary of queue data settings
+            :param data: input dictionary of raw data settings
             :param kmap: the translation map of data attributes from external format to internal schema
             :param validators: map of validation handlers to be applied
         """
@@ -177,6 +177,27 @@ class BaseData(object):
 
         elif raw is None:
             return defval
+        try:
+            return ktype(raw)
+        except Exception:
+            logger.warning('failed to convert data for key=%s, raw=%s to type=%s' % (kname, raw, ktype))
+            return defval
+
+    def clean_listdata(self, raw, ktype, kname=None, defval=None):
+        """
+            Clean and convert input value to requested list type
+            :param raw: raw input data
+            :param ktype: variable type to which result should be casted
+            :param defval: default value to be used in case of cast error
+        """
+
+        if isinstance(raw, ktype):
+            return raw
+
+        elif raw is None:
+            return defval
+        elif isinstance(raw, basestring):
+            raw = raw.split(',')
         try:
             return ktype(raw)
         except Exception:
