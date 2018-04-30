@@ -46,7 +46,7 @@ class JobInfoProvider(object):
 
     def resolve_queuedata(self, pandaqueue, **kwargs):
         """
-            Resolve Job specific settings for queue data (overwriteAGISData)
+            Resolve Job specific settings for queue data (overwriteQueueData)
             :return: dict of settings for given PandaQueue as a key
         """
 
@@ -63,6 +63,8 @@ class JobInfoProvider(object):
             val = getattr(self.job, ikey)
             if val:  # ignore empty or zero values -- FIX ME LATER for integers later if need
                 data[okey] = val
+
+        data.update(self.job.overwrite_queuedata)  ## use job.overwrite_queuedata as a master source
 
         logger.info('queuedata: following keys will be overwritten by Job values: %s' % data)
 
