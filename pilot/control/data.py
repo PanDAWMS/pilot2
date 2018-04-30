@@ -156,18 +156,21 @@ def _stage_in(args, job):
 
     os.environ['RUCIO_LOGGING_FORMAT'] = '{0}%(asctime)s %(levelname)s [%(message)s]'
 
-    executable = ['/usr/bin/env',
-                  'rucio', '-v', 'download',
-                  '--no-subdir',
-                  '--rse', job.ddmendpointin,
-                  '%s:%s' % (job.scopein, job.infiles)]  # notice the bug here, infiles might be a ,-separated str
+    for fspec in job.indata:
 
-    if not _call(args,
-                 executable,
-                 job,
-                 cwd=job.workdir,
-                 logger=log):
-        return False
+        executable = ['/usr/bin/env',
+                      'rucio', '-v', 'download',
+                      '--no-subdir',
+                      '--rse', fspec.ddmendpoint,
+                      '%s:%s' % (fspec.scope, fspec.lfn)]
+
+        if not _call(args,
+                     executable,
+                     job,
+                     cwd=job.workdir,
+                     logger=log):
+            return False
+
     return True
 
 
@@ -357,12 +360,12 @@ def copytool_out(queues, traces, args):
             continue
 
 
-def prepare_log(job, tarball_name):
+def prepare_log(job, logfile, tarball_name):
     log = logger.getChild(job.jobid)
     log.info('preparing log file')
 
-    input_files = job.infiles.split(',')
-    output_files = job.outfiles.split(',')
+    input_files = [e.lfn for e in job.indata]
+    output_files = [e.lfn for e in job.outdata]
     force_exclude = ['geomDB', 'sqlite200']
 
     # perform special cleanup (user specific) prior to log file creation
@@ -370,7 +373,7 @@ def prepare_log(job, tarball_name):
     user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
     user.remove_redundant_files(job.workdir)
 
-    with tarfile.open(name=os.path.join(job.workdir, job.logfile),
+    with tarfile.open(name=os.path.join(job.workdir, logfile.lfn),
                       mode='w:gz',
                       dereference=True) as log_tar:
         for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files) - set(force_exclude)):
@@ -379,10 +382,10 @@ def prepare_log(job, tarball_name):
                 log_tar.add(os.path.join(job.workdir, _file),
                             arcname=os.path.join(tarball_name, _file))
 
-    return {'scope': job.scopelog,
-            'name': job.logfile,
-            'guid': job.logguid,
-            'bytes': os.stat(os.path.join(job.workdir, job.logfile)).st_size}
+    return {'scope': logfile.scope,
+            'name': logfile.lfn,
+            'guid': logfile.guid,
+            'bytes': os.stat(os.path.join(job.workdir, logfile.lfn)).st_size}
 
 
 def _stage_out(args, outfile, job):
@@ -507,9 +510,12 @@ def _stage_out_all(job, args):
             log.warning('transfer of output file(s) failed')
 
     # proceed with log transfer
-    outputs['%s:%s' % (job.scopelog, job.logfile)] = prepare_log(job, 'tarball_PandaJob_%s_%s' %
-                                                                 (job.jobid, args.queue))
-    status = single_stage_out(args, job, outputs['%s:%s' % (job.scopelog, job.logfile)], fileinfodict)
+    # consider only 1st available log file
+    logfile = job.logdata[0]
+    key = '%s:%s' % (logfile.scope, logfile.lfn)
+    outputs[key] = prepare_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, args.queue))
+
+    status = single_stage_out(args, job, outputs[key], fileinfodict)
     if not status:
         failed = True
         log.warning('log transfer failed')
