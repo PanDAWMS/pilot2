@@ -7,169 +7,172 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
 
 import os
 import logging
-import sys
 
-from pilot.control import data
+from pilot.info import infosys
 from pilot.common.exception import PilotException
 
 
-def setup_logging():
-    """
-    Setup logging.
-    :return:
-    """
+class StagingClient(object):
+    def __init__(self, site=None, ddmendpoint=None, copytool_names=None, fallback_copytool='rucio', infosys_instance=None, logger=None):
+        """
+        StagingClient constructor needs either copytool_names or ddmendpoint specified
 
-    # Establish logging
-    console = logging.StreamHandler(sys.stdout)
-    logging.basicConfig(filename='transfer.txt', level=logging.INFO,
-                        format='%(asctime)s | %(levelname)-8s | %(message)s')
-    console.setLevel(logging.INFO)
-    console.setFormatter(logging.Formatter('%(asctime)s | %(levelname)-8s | %(message)s'))
-    logging.getLogger('').addHandler(console)
+        :param site: vo site
+        :param ddmendpoint: ddmendpoint where the copytool settings are stored
+        :param copytool_names: name of copytool or list of copytools to use (if this is, given ddmendpoint will be ignored)
+        :param fallback_copytool: name or list of copytools to use if storage settings cannot be retrieved
+        :param logger: logging.Logger object to use for loggin (None means no logging)
+        :return:
+        """
+        super(StagingClient, self).__init__()
 
+        if not logger:
+            logger = logging.getLogger('%s.%s' % (__name__, 'null'))
+            logger.disabled = True
+        self.logger = logger
 
-def shutdown_logging():
-    """
-    Shutdown logging.
-    :return:
-    """
-    logging.shutdown()
+        if not copytool_names and not ddmendpoint:
+            raise PilotException('Invalid arguments passed to StagingClient.__init__')
 
+        self.infosys = infosys_instance if infosys_instance else infosys
 
-class StageInClient(object):
-    def __init__(self, site=None, copytool=None):
-        super(StageInClient, self).__init__()
+        self.copytool_names = []
+        if not copytool_names:
+            # try to get the copytools from the storage endpoint config
+            try:
+                storage_data = self.infosys.resolve_storage_data(ddmendpoint).get(ddmendpoint)
+                acopytools = storage_data.acopytools.get('read_lan')
+                if acopytools and len(acopytools):
+                    self.copytool_names = acopytools
+            except Exception:
+                logger.warning('Failed to get copytool from storage endpoint configuration. Using fallback.')
+        else:
+            # given copytools are used instead of storage endpoint configured copytools
+            if isinstance(copytool_names, basestring):
+                copytool_names = [copytool_names]
+            self.copytool_names = copytool_names
 
-        self.copytool_name = copytool
-        if self.copytool_name is None:
-            self.copytool_name = 'rucio'
+        # if we failed getting the copytools, use rucio as default
+        if not len(self.copytool_names):
+            if isinstance(fallback_copytool, basestring):
+                fallback_copytool = [fallback_copytool]
+            self.copytool_names = fallback_copytool
+
+        logger.debug('Copytool options: %s' % self.copytool_names)
 
         # Check validity of specified site - should be refactored into VO-agnostic setup
         self.site = os.environ.get('VO_ATLAS_AGIS_SITE', site)
-        if self.site is None and self.copytool_name == 'rucio':
-            raise Exception('VO_ATLAS_AGIS_SITE not available, must set StageInClient(site=...) parameter')
+        if self.site is None and self.copytool_names == ['rucio']:
+            raise PilotException('VO_ATLAS_AGIS_SITE not available, must set StageInClient(site=...) parameter')
 
-            # Retrieve location information
-            # will need this later -- don't spam AGIS for now
-            # from pilot.util import information
-            # self.args = collections.namedtuple('args', ['location'])
-            # information.set_location(self.args, site=self.site)
+    def _try_copytool_for_transfer(self, copytool, files):
+        """
+        Try to transfer files with given copytool
+        Needs to be implemented by subclasses
+
+        :param copytool: copytool to try
+        :param files: files to transfer
+        :return: output of the given copytool or None on error
+        """
+        raise NotImplementedError
 
     def transfer(self, files):
+        logger = self.logger
+        copytool_names = self.copytool_names[::-1]
+        output = None
+        while len(copytool_names) and output is None:
+            copytool = None
+            copytool_name = copytool_names.pop()
+            logger.info('Trying to use copytool %s' % copytool_name)
+            try:
+                copytool = __import__('pilot.copytool.%s' % copytool_name,
+                                      globals(), locals(),
+                                      [copytool_name], -1)
+            except Exception as error:
+                logger.warning('Failed to import copytool %s' % copytool_name)
+                logger.debug('Error: %s' % error)
+                continue
+
+            output = self._try_copytool_for_transfer(copytool, files)
+
+        if output is None:
+            raise PilotException('transfer failed')
+        return output
+
+
+class StageInClient(StagingClient):
+    def __init__(self, site=None, ddmendpoint=None, copytool_names=None, fallback_copytool='rucio', infosys_instance=None, logger=None):
+        """
+        StageInClient constructor needs either copytool_names or ddmendpoint specified
+
+        :param site: vo site
+        :param ddmendpoint: ddmendpoint where the copytool settings are stored
+        :param copytool_names: name of copytool or list of copytools to use (if this is, given ddmendpoint will be ignored)
+        :param fallback_copytool: name or list of copytools to use if storage settings cannot be retrieved
+        :param logger: logging.Logger object to use for loggin (None means no logging)
+        :return:
+        """
+        super(StageInClient, self).__init__(site, ddmendpoint, copytool_names, fallback_copytool, infosys_instance, logger)
+
+    def _try_copytool_for_transfer(self, copytool, files):
         """
         Automatically stage in files using the selected copy tool.
 
+        :param copytool: copytool to try
         :param files: List of dictionaries containing the file information
-                      for the rucio copytool, this must contain DID and destination directory.
-                      [{scope, name, destination
-                      for other copytools, the dictionary must contain
-                      [{name, source, destination
-        :return: Annotated files -- List of dictionaries with additional variables.
-                 [{..., errno, errmsg, status
+
+        :return: the output of the copytool or None on error
         """
-
-        # setup logging
-        setup_logging()
-
-        all_files_ok = False
-        for f in files:
-            if self.copytool_name == 'rucio':
-                if all(key in f for key in ('scope', 'name', 'destination')):
-                    all_files_ok = True
-            else:
-                if all(key in f for key in ('name', 'source', 'destination')):
-                    all_files_ok = True
-
-        if all_files_ok:
-            copytool = __import__('pilot.copytool.%s' % self.copytool_name, globals(), locals(),
-                                  [self.copytool_name], -1)
-            try:
-                copytool.copy_in(files)
-            except PilotException as e:
-                logging.fatal(e.message)
-                raise Exception(e.message)
-        else:
-            if self.copytool_name == 'rucio':
-                raise Exception('Files dictionary does not conform to: scope, name, destination')
-            else:
-                raise Exception('Files dictionary does not conform to: name, source, destination')
-
-        # shutdown logging
-        shutdown_logging()
+        logger = self.logger
+        try:
+            if not copytool.is_valid_for_copy_in(files):
+                logger.warning('Input is not valid for this copytool')
+                logger.debug('Input: %s' % files)
+                return None
+            return copytool.copy_in(files)
+        except Exception as error:
+            logger.warning('Failed transferring files with this copytool')
+            logger.debug('Error: %s' % error)
+        return None
 
 
-class StageOutClient(object):
-    def __init__(self, site=None, copytool=None):
-        super(StageOutClient, self).__init__()
+class StageOutClient(StagingClient):
+    def __init__(self, site=None, ddmendpoint=None, copytool_names=None, fallback_copytool='rucio', infosys_instance=None, logger=None):
+        """
+        StageOutClient constructor needs either copytool_names or ddmendpoint specified
 
-        self.copytool_name = copytool
-        if self.copytool_name is None:
-            self.copytool_name = 'rucio'
+        :param site: vo site
+        :param ddmendpoint: ddmendpoint where the copytool settings are stored
+        :param copytool_names: name of copytool or list of copytools to use (if this is, given ddmendpoint will be ignored)
+        :param fallback_copytool: name or list of copytools to use if storage settings cannot be retrieved
+        :param logger: logging.Logger object to use for loggin (None means no logging)
+        """
+        super(StageOutClient, self).__init__(site, ddmendpoint, copytool_names, fallback_copytool, infosys_instance, logger)
 
-        # Check validity of specified site - should be refactored into VO-agnostic setup
-        self.site = os.environ.get('VO_ATLAS_AGIS_SITE', site)
-        if self.site is None and self.copytool_name == 'rucio':
-            raise Exception('VO_ATLAS_AGIS_SITE not available, must set StageOutClient(site=...) parameter')
-
-            # Retrieve location information
-            # will need this later -- don't spam AGIS for now
-            # from pilot.util import information
-            # self.args = collections.namedtuple('args', ['location'])
-            # information.set_location(self.args, site=self.site)
-
-    def transfer(self, files):
+    def _try_copytool_for_transfer(self, copytool, files):
         """
         Automatically stage out files using rucio.
 
-        :param files: List of dictionaries containing the target scope, the path to the file, and destination RSE.
-                      [{scope, file, rse
-                      Additional variables that can be used:
-                        lifetime                        of the file in seconds
-                        no_register                     setting this to True will not register the file to Rucio (CAREFUL!)
-                        guid                            manually set guid of file in either string format
-                                                         XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX or
-                                                         XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-                        attach: {scope, name            automatically attach this file to the given dataset
-                        summary                         setting this to True will write a rucio_upload.json with used PFNs
-        :return: Annotated files -- List of dictionaries with additional variables.
-                 [{..., errno, errmsg, status
+        :param copytool: copytool to try for the transfer
+        :param files: List of dictionaries containing the target scope, the path to the file, and destination RSE
+
+        :return: the output of the copytool or None on error
         """
-
-        # setup logging
-        setup_logging()
-
-        all_files_ok = False
-        for f in files:
-            if self.copytool_name == 'rucio':
-                if all(key in f for key in ('scope', 'file', 'rse')):
-                    all_files_ok = True
-            else:
-                if all(key in f for key in ('name', 'source', 'destination')):
-                    all_files_ok = True
-
-        if all_files_ok:
-            if self.copytool_name == 'rucio':
-                return data.stage_out_auto(self.site, files)
-            else:
-                copytool = __import__('pilot.copytool.%s' % self.copytool_name, globals(), locals(),
-                                      [self.copytool_name], -1)
-                try:
-                    copytool.copy_out(files)
-                except PilotException as e:
-                    logging.fatal(e.message)
-                    raise Exception(e.message)
-
-        else:
-            if self.copytool_name == 'rucio':
-                raise Exception('Files dictionary does not conform to: scope, file, rse')
-            else:
-                raise Exception('Files dictionary does not conform to: name, source, destination')
-
-        # shutdown logging
-        shutdown_logging()
+        logger = self.logger
+        try:
+            if not copytool.is_valid_for_copy_out(files):
+                logger.warning('Input is not valid for this copytool')
+                logger.debug('Input: %s' % files)
+                return None
+            return copytool.copy_out(files)
+        except Exception as error:
+            logger.warning('Failed transferring files with this copytool')
+            logger.debug('Error: %s' % error)
+        return None
 
 
 class StageInClientAsync(object):

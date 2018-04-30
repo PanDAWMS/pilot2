@@ -5,12 +5,26 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Tobias Wegner, tobias.wegner@cern.ch, 2017
+# - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
 
 import os
 
 from pilot.copytool.common import merge_destinations
 from pilot.util.container import execute
+
+
+def is_valid_for_copy_in(files):
+    for f in files:
+        if not all(key in f for key in ('scope', 'name', 'destination')):
+            return False
+    return True
+
+
+def is_valid_for_copy_out(files):
+    for f in files:
+        if not all(key in f for key in ('file', 'rse')):
+            return False
+    return True
 
 
 def copy_in(files):
@@ -27,22 +41,12 @@ def copy_in(files):
 
     destinations = merge_destinations(files)
 
-    if len(destinations) == 0:
-        raise Exception('No lfn with existing destination path given!')
-
     for dst in destinations:
         executable = ['/usr/bin/env',
                       'rucio', 'download',
                       '--no-subdir',
                       '--dir', dst]
         executable.extend(destinations[dst]['lfns'])
-
-        # process = subprocess.Popen(executable,
-        #                            bufsize=-1,
-        #                            stdout=subprocess.PIPE,
-        #                            stderr=subprocess.PIPE)
-        # stdout, stderr = process.communicate()
-        # exit_code = process.poll()
 
         exit_code, stdout, stderr = execute(" ".join(executable))
 
@@ -65,11 +69,19 @@ def copy_in(files):
     return files
 
 
-def copy_out(files, rse=None, scope=None, register=True):
+def copy_out(files):
     """
     Tries to upload the given files using rucio
 
-    :param files Files to download
+    :param files Files to download. Dictionary with:
+        file:           - file path of the file to upload
+        rse:            - storage endpoint
+        scope:          - Optional: scope of the file
+        guid:           - Optional: guid to use for the file
+        pfn:            - Optional: pfn to use for the upload
+        lifetime:       - Optional: lifetime on storage for this file
+        no_register:    - Optional: if True, do not register the file in rucio
+        summary:        - Optional: if True, generates a summary json file
 
     :raises Exception
     """
@@ -78,30 +90,56 @@ def copy_out(files, rse=None, scope=None, register=True):
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
     if len(files) == 0:
-        raise Exception('No lfn with existing destination path given!')
+        raise Exception('No existing source given!')
 
     for f in files:
         executable = ['/usr/bin/env', 'rucio', 'upload']
-        if f is None or f == '':
+        path = f.get('file')
+        rse = f.get('rse')
+
+        stats = {'status': 'failed'}
+        if not path or not (os.path.isfile(path) or os.path.isdir(path)):
+            stats['errmgs'] = 'Source file does not exists'
+            stats['errno'] = 1
+            f.update(stats)
             continue
-        if rse is not None:
-            executable.extend(['--rse', rse])
-        if scope is not None:
-            executable.extend(['--scope', scope])
-        if not register:
+        if not rse:
+            stats['errmgs'] = 'No destination site given'
+            stats['errno'] = 1
+            f.update(stats)
+            continue
+
+        executable.extend(['--rse', str(rse)])
+
+        scope = f.get('scope')
+        guid = f.get('guid')
+        pfn = f.get('pfn')
+        lifetime = f.get('lifetime')
+        no_register = f.get('no_register', False)
+        summary = f.get('summary', False)
+
+        if scope:
+            executable.extend(['--scope', str(scope)])
+        if guid:
+            executable.extend(['--guid', str(guid)])
+        if pfn:
+            executable.extend(['--pfn', pfn])
+        if lifetime:
+            executable.extend(['--lifetime', str(lifetime)])
+        if no_register:
             executable.append('--no-register')
+        if summary:
+            executable.append('--summary')
 
-        executable.append(f)
+        executable.append(path)
 
-        exit_code, stdout, stderr = execute(" ".join(executable))
+        exit_code, stdout, stderr = execute(executable)
 
-        stats = {}
         if exit_code == 0:
             stats['status'] = 'done'
             stats['errno'] = 0
-            stats['errmsg'] = 'File successfully downloaded.'
+            stats['errmsg'] = 'File successfully uploaded.'
         else:
-            stats['status'] = 'failed'
             stats['errno'] = 3
             try:
                 # the Details: string is set in rucio: lib/rucio/common/exception.py in __str__()
@@ -109,4 +147,5 @@ def copy_out(files, rse=None, scope=None, register=True):
             except Exception as e:
                 stats['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % \
                                   str(e)
+        f.update(stats)
     return files
