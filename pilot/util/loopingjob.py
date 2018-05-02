@@ -8,6 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 from pilot.util.container import execute
+from pilot.util.auxiliary import time_stamp
 
 import os
 import time
@@ -108,4 +109,23 @@ def kill_looping_job(job):
     :return: (updated job object.)
     """
 
-    pass
+    log = logger.getChild(job.jobid)
+
+    # the child process is looping, kill it
+    diagnostics = "pilot has decided to kill looping job %s at %s" % (job.jobid, time_stamp())
+    log.fatal(diagnostics)
+
+    exit_code, user, stderr = execute('whoami', mute=True)
+    cmd = 'ps -fwu %s' % (user)
+    exit_code, stdout, stderr = execute(cmd, mute=True)
+    log.info("%s: %s" % (cmd + '\n', stdout))
+
+    cmd = 'ls -ltr %s' % (job.workdir)
+    exit_code, stdout, stderr = execute(cmd, mute=True)
+    log.info("%s: %s" % (cmd + '\n', stdout))
+
+    cmd = 'ps -o pid,ppid,sid,pgid,tpgid,stat,comm -u %s' % user
+    exit_code, stdout, stderr = execute(cmd, mute=True)
+    log.info("%s: %s" % (cmd + '\n', stdout))
+
+    # kill_processes(job.pid, job.pgrp)
