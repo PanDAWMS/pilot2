@@ -79,7 +79,7 @@ def get_payload_command(job):
             set_inds(job.dataset)  # realDatasetsIn
 
             # Try to download the trf
-            ec, diagnostics, trf_name = get_analysis_trf('wget', job.transformation)
+            ec, diagnostics, trf_name = get_analysis_trf(job.transformation)
             if ec != 0:
                 pass #return ec, pilotErrorDiag, "", special_setup_cmd, JEM, cmtconfig
 

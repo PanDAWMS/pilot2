@@ -186,11 +186,12 @@ def set_inds(dataset):
         logger.warning("INDS unknown")
 
 
-def get_analysis_trf(command, transform):
+def get_analysis_trf(transform):
     """
-    ..
-    :param command: download command (usually 'wget')
-    :param transform:
+    Prepare to download the user analysis transform with curl.
+    The function will verify the download location from a known list of hosts.
+
+    :param transform: full trf path (url) (string).
     :return: exit code (int), diagnostics (string), transform_name (string)
     """
 
@@ -244,7 +245,35 @@ def download_transform(command, trf):
     pass
 
 def get_valid_base_urls(order=None):
-    pass
+    """
+    Return a list of valid base URLs from where the user analysis transform may be downloaded from.
+    If order is defined, return given item first.
+    E.g. order=http://atlpan.web.cern.ch/atlpan -> ['http://atlpan.web.cern.ch/atlpan', ...]
+    NOTE: the URL list may be out of date.
+
+    :param order: order (string).
+    :return: valid base URLs (list).
+    """
+
+    valid_base_urls = []
+    _valid_base_urls = ["http://www.usatlas.bnl.gov",
+                        "https://www.usatlas.bnl.gov",
+                        "http://pandaserver.cern.ch",
+                        "http://atlpan.web.cern.ch/atlpan",
+                        "https://atlpan.web.cern.ch/atlpan",
+                        "http://classis01.roma1.infn.it",
+                        "http://atlas-install.roma1.infn.it"]
+
+    if order:
+        valid_base_urls.append(order)
+        for url in _valid_base_urls:
+            if url != order:
+                valid_base_urls.append(url)
+    else:
+        valid_base_urls = _valid_base_urls
+
+    return valid_base_urls
+
 
 def tryint(x):
     """
