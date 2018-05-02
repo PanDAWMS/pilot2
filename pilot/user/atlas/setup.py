@@ -263,9 +263,8 @@ def download_transform(url, transform_name):
         logger.info("executing command [trial %d/%d]: %s" % (trial, max_trials, cmd))
 
         exit_code, stdout, stderr = execute(cmd, mute=True)
-        exit_code, rets = commands.getstatusoutput(cmd)
         if not stdout:
-            rets = "(None)"
+            stdout = "(None)"
         if exit_code != 0:
             # Analyze exit code / output
             diagnostics = "curl command failed: %d, %s, %s" % (exit_code, stdout, stderr)
