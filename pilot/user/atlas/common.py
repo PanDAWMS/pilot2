@@ -73,18 +73,19 @@ def get_payload_command(job):
 
             cmd += asetupoptions
 
-            if userjob:
-                pass
+        if userjob:
+            # set the INDS env variable (used by runAthena)
+            set_inds(job.dataset)  # realDatasetsIn
+        else:
+            # Add Database commands if they are set by the local site
+            cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
+            # Add the transform and the job parameters (production jobs)
+            if prepareasetup:
+                cmd += ";%s %s" % (job.transformation, job.jobparams)
             else:
-                # Add Database commands if they are set by the local site
-                cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
-                # Add the transform and the job parameters (production jobs)
-                if prepareasetup:
-                    cmd += ";%s %s" % (job.transformation, job.jobparams)
-                else:
-                    cmd += "; " + job.jobparams
+                cmd += "; " + job.jobparams
 
-            cmd = cmd.replace(';;', ';')
+        cmd = cmd.replace(';;', ';')
 
     else:  # Generic, non-ATLAS specific jobs, or at least a job with undefined swRelease
 

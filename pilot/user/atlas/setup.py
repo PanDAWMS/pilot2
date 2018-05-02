@@ -166,6 +166,26 @@ def is_standard_atlas_job(release):
     return release.startswith('Atlas-')
 
 
+def set_inds(dataset):
+    """
+    Set the INDS environmental variable used by runAthena.
+
+    :param dataset: dataset for input files (realDatasetsIn) (string).
+    :return:
+    """
+
+    inds = ""
+    for ds in dataset:
+        if "DBRelease" not in ds and ".lib." not in ds:
+            inds = ds
+            break
+    if inds != "":
+        logger.info("setting INDS environmental variable to: %s" % (inds))
+        os.environ['INDS'] = inds
+    else:
+        logger.warning("INDS unknown")
+
+
 def tryint(x):
     """
     Used by numbered string comparison (to protect against unexpected letters in version number).
