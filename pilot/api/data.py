@@ -73,9 +73,9 @@ class StagingClient(object):
             raise PilotException('VO_ATLAS_AGIS_SITE not available, must set StageInClient(site=...) parameter')
 
     def _fill_copytool_modules(self):
-        self.copytool_modules = {'rucio': {'module_name': 'pilot.copytool.rucio'},
-                                 'gfal': {'module_name': 'pilot.copytool.gfal'},
-                                 'gfalcopy': {'module_name': 'pilot.copytool.gfal'}
+        self.copytool_modules = {'rucio': {'module_name': 'rucio'},
+                                 'gfal': {'module_name': 'gfal'},
+                                 'gfalcopy': {'module_name': 'gfal'}
                                 }
 
     def _try_copytool_for_transfer(self, copytool, files):
@@ -101,9 +101,9 @@ class StagingClient(object):
             try:
                 copytool = __import__('pilot.copytool.%s' % module_name,
                                       globals(), locals(),
-                                      [copytool_name], -1)
+                                      [module_name], -1)
             except Exception as error:
-                logger.warning('Failed to import copytool %s' % copytool_name)
+                logger.warning('Failed to import copytool %s' % module_name)
                 logger.debug('Error: %s' % error)
                 continue
 
