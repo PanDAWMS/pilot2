@@ -30,6 +30,9 @@ class StagingClient(object):
         """
         super(StagingClient, self).__init__()
 
+        self.copytool_modules = {}
+        self._fill_copytool_modules()
+
         if not logger:
             logger = logging.getLogger('%s.%s' % (__name__, 'null'))
             logger.disabled = True
@@ -69,6 +72,12 @@ class StagingClient(object):
         if self.site is None and self.copytool_names == ['rucio']:
             raise PilotException('VO_ATLAS_AGIS_SITE not available, must set StageInClient(site=...) parameter')
 
+    def _fill_copytool_modules(self):
+        self.copytool_modules = {'rucio': {'module_name': 'pilot.copytool.rucio'},
+                                 'gfal': {'module_name': 'pilot.copytool.gfal'},
+                                 'gfalcopy': {'module_name': 'pilot.copytool.gfal'}
+                                }
+
     def _try_copytool_for_transfer(self, copytool, files):
         """
         Try to transfer files with given copytool
@@ -87,9 +96,10 @@ class StagingClient(object):
         while len(copytool_names) and output is None:
             copytool = None
             copytool_name = copytool_names.pop()
+            module_name = self.copytool_modules[copytool_name]['module_name']
             logger.info('Trying to use copytool %s' % copytool_name)
             try:
-                copytool = __import__('pilot.copytool.%s' % copytool_name,
+                copytool = __import__('pilot.copytool.%s' % module_name,
                                       globals(), locals(),
                                       [copytool_name], -1)
             except Exception as error:
