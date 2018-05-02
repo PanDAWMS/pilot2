@@ -76,6 +76,12 @@ def get_payload_command(job):
         if userjob:
             # set the INDS env variable (used by runAthena)
             set_inds(job.dataset)  # realDatasetsIn
+
+            # Try to download the trf
+            ec, diagnostics, trf_name = get_analysis_trf('wget', job.transformation)
+            if ec != 0:
+                pass #return ec, pilotErrorDiag, "", special_setup_cmd, JEM, cmtconfig
+
         else:
             # Add Database commands if they are set by the local site
             cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')

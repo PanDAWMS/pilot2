@@ -186,6 +186,66 @@ def set_inds(dataset):
         logger.warning("INDS unknown")
 
 
+def get_analysis_trf(command, transform):
+    """
+    ..
+    :param command: download command (usually 'wget')
+    :param transform:
+    :return: exit code (int), diagnostics (string), transform_name (string)
+    """
+
+    ec = 0
+    diagnostics = ""
+
+    pilot_initdir = os.environ.get('PILOT_HOME', '')
+    if '/' in transform:
+        transform_name = transform.split('/')[-1]
+    else:
+        logger.warning('did not detect any / in %s (using full transform name)' % (transform))
+        transform_name = transform
+    logger.debug("transform_name = %s" % (transform_name))
+    original_base_url = ""
+
+    # verify the base URL
+    for base_url in get_valid_base_urls():
+        if transform.startswith(base_url):
+            original_base_url = base_url
+            break
+
+    if original_base_url == "":
+        pilotErrorDiag = "Invalid base URL: %s" % (transform)
+        # return self.__error.ERR_TRFDOWNLOAD, pilotErrorDiag, ""
+    else:
+        logger.debug("verified the trf base url: %s" % (original_base_url))
+
+    # try to download from the required location, if not - switch to backup
+    for base_url in get_valid_base_urls(order=original_base_url):
+        trf = re.sub(original_base_url, base_url, transform)
+        logger.debug("attempting to download trf: %s" % (trf))
+        status, pilotErrorDiag = download_transform(command, trf)
+        if status:
+            break
+
+    if not status:
+        # return self.__error.ERR_TRFDOWNLOAD, diagnostics, ""
+
+    logger.info("successfully downloaded transform")
+    logger.debug("changing permission of %s to 0755" % (transform))
+    try:
+        os.chmod(transform, 0755)
+    except Exception, e:
+        diagnostics = "failed to chmod %s: %s" % (transform, e)
+        # return self.__error.ERR_CHMODTRF, diagnostics, ""
+
+    return ec, diagnostics, transform_name
+
+
+def download_transform(command, trf):
+    pass
+
+def get_valid_base_urls(order=None):
+    pass
+
 def tryint(x):
     """
     Used by numbered string comparison (to protect against unexpected letters in version number).
