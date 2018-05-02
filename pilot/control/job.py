@@ -820,6 +820,9 @@ def job_monitor(queues, traces, args):
     # initialize the monitoring time object
     mt = MonitoringTime()
 
+    # peeking time
+    peeking_time = time.time()
+
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
     while not args.graceful_stop.is_set():
@@ -833,6 +836,7 @@ def job_monitor(queues, traces, args):
             jobs = queues.monitored_payloads.queue
 
             if jobs:
+                peeking_time = time.time()
                 for i in range(len(jobs)):
                     log = logger.getChild(jobs[i].jobid)
                     log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
@@ -847,11 +851,19 @@ def job_monitor(queues, traces, args):
                         jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
                         queues.failed_payloads.put(jobs[i])
             else:
-                msg = 'no jobs in validated_payloads queue'
+                waiting_time = time.time() - peeking_time
+                msg = 'no jobs in monitored_payloads queue (waiting for %d s)' % waiting_time
+                if waiting_time > 120:
+                    abort = True
+                    msg += ' - aborting'
+                else:
+                    abort = False
                 if logger:
                     logger.warning(msg)
                 else:
                     print msg
+                if abort:
+                    args.graceful_stop.set()
         except PilotException as e:
             msg = 'exception caught: %s' % e
             if logger:
