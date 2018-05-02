@@ -9,8 +9,10 @@
 
 import os
 import re
+from time import sleep
 
 from pilot.info import infosys
+from pilot.util.container import execute
 
 import logging
 logger = logging.getLogger(__name__)
@@ -223,11 +225,12 @@ def get_analysis_trf(transform):
     for base_url in get_valid_base_urls(order=original_base_url):
         trf = re.sub(original_base_url, base_url, transform)
         logger.debug("attempting to download trf: %s" % (trf))
-        status, pilotErrorDiag = download_transform(command, trf)
+        status, pilotErrorDiag = download_transform(trf, transform_name)
         if status:
             break
 
     if not status:
+        pass
         # return self.__error.ERR_TRFDOWNLOAD, diagnostics, ""
 
     logger.info("successfully downloaded transform")
@@ -241,8 +244,47 @@ def get_analysis_trf(transform):
     return ec, diagnostics, transform_name
 
 
-def download_transform(command, trf):
-    pass
+def download_transform(url, transform_name):
+    """
+    Download the transform from the given url
+    :param url: download URL with path to transform (string).
+    :param transform_name: trf name (string).
+    :return:
+    """
+
+    status = False
+    diagnostics = ""
+    cmd = 'curl -sS \"%s\" > %s' % (url, transform_name)
+    trial = 1
+    max_trials = 3
+
+    # try to download the trf a maximum of 3 times
+    while trial <= max_trials:
+        logger.info("executing command [trial %d/%d]: %s" % (trial, max_trials, cmd))
+
+        exit_code, stdout, stderr = execute(cmd, mute=True)
+        exit_code, rets = commands.getstatusoutput(cmd)
+        if not stdout:
+            rets = "(None)"
+        if exit_code != 0:
+            # Analyze exit code / output
+            diagnostics = "curl command failed: %d, %s, %s" % (exit_code, stdout, stderr)
+            logger.warning(diagnostics)
+            if trial == max_trials:
+                logger.fatal('could not download transform: %s' % stdout)
+                status = False
+                break
+            else:
+                logger.info("will try again after 60 s")
+                sleep(60)
+        else:
+            logger.info("curl command returned: %s" % (stdout))
+            status = True
+            break
+        trial += 1
+
+    return status, diagnostics
+
 
 def get_valid_base_urls(order=None):
     """
