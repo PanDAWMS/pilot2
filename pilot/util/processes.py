@@ -39,3 +39,20 @@ def find_processes_in_group(cpids, pid):
                 pass
             if thisppid == pid:
                 findProcessesInGroup(cpids, thispid)
+
+
+def is_zombie(pid):
+    """
+    Is the given process a zombie?
+    :param pid: process id (int).
+    :return: boolean.
+    """
+
+    status = False
+
+    cmd = "ps aux | grep %d" % (pid)
+    exit_code, stdout, stderr = execute(cmd, mute=True)
+    if "<defunct>" in stdout:
+        status = True
+
+    return status
