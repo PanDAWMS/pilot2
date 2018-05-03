@@ -163,26 +163,7 @@ def kill_processes(pid, pgrp):
                     dump_stack_trace(i)
 
                     # kill the process gracefully
-                    try:
-                        os.kill(i, signal.SIGTERM)
-                    except Exception as e:
-                        logger.warning("exception thrown when killing child process %d with SIGTERM: %s" % (i, e))
-                        pass
-                    else:
-                        logger.info("killed process %d with SIGTERM" % i)
-
-                    _t = 10
-                    logger.info("sleeping %d s to allow process to exit" % _t)
-                    time.sleep(_t)
-
-                    # now do a hard kill just in case some processes haven't gone away
-                    try:
-                        os.kill(i, signal.SIGKILL)
-                    except Exception as e:
-                        logger.warning("exception thrown when killing child process %d with SIGKILL,"
-                                       "ignore this if it was already killed by previous SIGTERM: %s" % (i, e))
-                    else:
-                        logger.info("killed process %d with SIGKILL" % i)
+                    kill_process(i)
 
     # kill any remaining orphan processes
     kill_orphans()
@@ -220,6 +201,40 @@ def kill_process_group(pgrp):
         logger.warning("exception thrown when killing child group process with SIGKILL: %s" % e)
     else:
         logger.info("SIGKILL sent to process group %d" % pgrp)
+        status = True
+
+    return status
+
+
+def kill_process(pid):
+    """
+    Kill process.
+
+    :param pid: process id (int).
+    :return: boolean (True if successful SIGKILL)
+    """
+
+    status = False
+
+    try:
+        os.kill(i, signal.SIGTERM)
+    except Exception as e:
+        logger.warning("exception thrown when killing child process %d with SIGTERM: %s" % (pid, e))
+    else:
+        logger.info("killed process %d with SIGTERM" % pid)
+
+    _t = 10
+    logger.info("sleeping %d s to allow process to exit" % _t)
+    time.sleep(_t)
+
+    # now do a hard kill just in case some processes haven't gone away
+    try:
+        os.kill(pid, signal.SIGKILL)
+    except Exception as e:
+        logger.warning("exception thrown when killing child process %d with SIGKILL,"
+                        "ignore this if it was already killed by previous SIGTERM: %s" % (pid, e))
+    else:
+        logger.info("killed process %d with SIGKILL" % pid)
         status = True
 
     return status
