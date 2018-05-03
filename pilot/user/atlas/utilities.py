@@ -382,7 +382,7 @@ def post_memory_monitor_action(job):
     path1 = os.path.join(job.workdir, get_memory_monitor_summary_filename())
     path2 = os.environ.get('PILOT_HOME')
     i = 0
-    maxretry = 100
+    maxretry = 20
     while i <= maxretry:
         if os.path.exists(path1):
             break

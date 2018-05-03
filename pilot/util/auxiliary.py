@@ -10,6 +10,8 @@
 import os
 import time
 
+from pilot.util.container import execute
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -78,3 +80,15 @@ def get_pilot_id():
     """
 
     return os.environ.get("GTAG", "unknown")
+
+
+def whoami():
+    """
+    Return the name of the pilot user.
+
+    :return: whoami output (string).
+    """
+
+    exit_code, who_am_i, stderr = execute('whoami', mute=True)
+
+    return who_am_i

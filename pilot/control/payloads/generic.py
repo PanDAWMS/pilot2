@@ -99,7 +99,7 @@ class Executor(object):
         # replace platform and workdir with new function get_payload_options() or someting from experiment specific code
         try:
             proc = execute(cmd, workdir=job.workdir, returnproc=True,
-                           usecontainer=True, stdout=out, stderr=err, cwd=job.workdir, job=job)
+                           usecontainer=False, stdout=out, stderr=err, cwd=job.workdir, job=job)
         except Exception as e:
             log.error('could not execute: %s' % str(e))
             return None

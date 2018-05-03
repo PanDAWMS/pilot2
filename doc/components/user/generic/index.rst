@@ -7,7 +7,7 @@
     http://www.apache.org/licenses/LICENSE-2.0
 
     Authors:
-     - Paul Nilsson, paul.nilsson@cern.ch, 2017
+     - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 generic components
 ==================
@@ -17,5 +17,6 @@ generic components
 
     common
     container
+    loopingjob_definitions
     proxy
     setup
