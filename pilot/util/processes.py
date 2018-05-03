@@ -14,6 +14,7 @@ import re
 
 from pilot.util.container import execute
 from pilot.util.auxiliary import whoami
+from pilot.util.filehandling import read_file
 
 import logging
 logger = logging.getLogger(__name__)
@@ -280,3 +281,55 @@ def kill_orphans(sitename):
         logger.info("did not find any orphan processes")
     else:
         logger.info("found %d orphan process(es)" % count)
+
+
+def get_max_memory_usage_from_cgroups():
+    """
+    Read the max_memory from CGROUPS file memory.max_usage_in_bytes.
+
+    :return: max_memory (int).
+    """
+
+    max_memory = None
+
+    # Get the CGroups max memory using the pilot pid
+    pid = os.getpid()
+    path = "/proc/%d/cgroup" % pid
+    if os.path.exists(path):
+        cmd = "grep memory %s" % path
+        exit_code, out, stderr = execute(cmd)
+        if out == "":
+            logger.info("(command did not return anything)")
+        else:
+            logger.info(out)
+            if ":memory:" in out:
+                pos = out.find('/')
+                path = out[pos:]
+                logger.info("extracted path = %s" % path)
+
+                pre = get_cgroups_base_path()
+                if pre != "":
+                    path = pre + os.path.join(path, "memory.max_usage_in_bytes")
+                    logger.info("path to CGROUPS memory info: %s" % path)
+                    max_memory = read_file(path)
+                else:
+                    logger.info("CGROUPS base path could not be extracted - not a CGROUPS site")
+            else:
+                logger.warning("invalid format: %s (expected ..:memory:[path])" % out)
+    else:
+        logger.info("path %s does not exist (not a CGROUPS site)" % path)
+
+    return max_memory
+
+
+def get_cgroups_base_path():
+    """
+    Return the base path for CGROUPS.
+
+    :return: base path for CGROUPS (string).
+    """
+
+    cmd = "grep \'^cgroup\' /proc/mounts|grep memory| awk \'{print $2}\'"
+    exit_code, base_path, stderr = execute(cmd, mute=True)
+
+    return base_path
