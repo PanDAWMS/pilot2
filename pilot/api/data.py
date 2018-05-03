@@ -80,7 +80,7 @@ class StagingClient(object):
                                  'dccp': {'module_name': 'dccp'},
                                  'xrdcp': {'module_name': 'xrdcp'},
                                  'mv': {'module_name': 'mv'}
-                                }
+                                 }
 
     def _try_copytool_for_transfer(self, copytool, files):
         """
