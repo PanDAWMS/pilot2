@@ -11,6 +11,7 @@ from pilot.util.container import execute
 from pilot.util.auxiliary import time_stamp, whoami
 from pilot.util.processes import kill_processes
 from pilot.util.filehandling import remove_files
+from pilot.util.config import config
 from pilot.common.errorcodes import ErrorCodes
 
 import os
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def looping_job(job, mt, looping_limit):
+def looping_job(job, mt):
     """
     Looping job detection algorithm.
     Identify hanging tasks/processes. Did the stage-in/out finish within allowed time limit, or did the payload update
@@ -30,7 +31,6 @@ def looping_job(job, mt, looping_limit):
 
     :param job: job object.
     :param mt: `MonitoringTime` object.
-    :param looping_limit: looping limit in seconds.
     :return: exit code (int), diagnostics (string).
     """
 
@@ -39,6 +39,8 @@ def looping_job(job, mt, looping_limit):
 
     log = logger.getChild(job.jobid)
     log.info('checking for looping job')
+
+    looping_limit = get_looping_job_limit(job.is_analysis())
 
     if job.state == 'stagein':
         # set job.state to stagein during stage-in before implementing this algorithm
@@ -150,3 +152,22 @@ def kill_looping_job(job):
     if job.infiles:
         if len(job.infiles) > 0:
             ec = remove_files(job.workdir, job.infiles)
+
+
+def get_looping_job_limit(is_analysis):
+    """
+    Get the time limit for looping job detection.
+
+    :param is_analysis: Boolean, True if user analysis job, False otherwise.
+    :return: looping job time limit (int).
+    """
+
+    try:
+        looping_limit = int(config.Pilot.looping_limit_default_prod)
+        if is_analysis:
+            looping_limit = int(config.Pilot.looping_limit_default_user)
+    except ValueError as e:
+        looping_limit = 12 * 3600
+        logger.warning('exception caught: %s (using default looping limit: %d s)' % (e, looping_limit))
+
+    return looping_limit

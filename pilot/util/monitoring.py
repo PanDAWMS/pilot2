@@ -56,10 +56,11 @@ def job_monitor_tasks(job, mt, verify_proxy):
                 mt.update('ct_proxy')
 
     # is it time to check for looping jobs?
-    looping_limit = get_looping_job_limit(job.is_analysis())
+    log.info('current_time - mt.get(ct_looping) = %d' % (current_time - mt.get('ct_looping')))
+    log.info('config.Pilot.looping_verifiction_time = %d' % config.Pilot.looping_verifiction_time)
     if current_time - mt.get('ct_looping') > config.Pilot.looping_verifiction_time:
         # is the job looping?
-        exit_code, diagnostics = looping_job(job, mt, looping_limit)
+        exit_code, diagnostics = looping_job(job, mt)
         if exit_code != 0:
             return exit_code, diagnostics
         else:
@@ -132,22 +133,3 @@ def utility_monitor(job):
             else:
                 log.warning('file: %s does not exist' % path)
     return job
-
-
-def get_looping_job_limit(is_analysis):
-    """
-    Get the time limit for looping job detection.
-
-    :param is_analysis: Boolean, True if user analysis job, False otherwise.
-    :return: looping job time limit (int).
-    """
-
-    try:
-        looping_limit = int(config.Pilot.looping_limit_default_prod)
-        if is_analysis:
-            looping_limit = int(config.Pilot.looping_limit_default_user)
-    except ValueError as e:
-        looping_limit = 12 * 3600
-        logger.warning('exception caught: %s (using default looping limit: %d s)' % (e, looping_limit))
-
-    return looping_limit
