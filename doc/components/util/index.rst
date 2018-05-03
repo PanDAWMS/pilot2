@@ -29,6 +29,7 @@ util components
     monitoringtime
     node
     parameters
+    processes
     proxy
     workernode
 
