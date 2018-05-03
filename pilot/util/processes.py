@@ -135,28 +135,7 @@ def kill_processes(pid, pgrp):
     _sleep = True
 
     if pgrp != 0:
-        # kill the process gracefully
-        logger.info("killing group process %d" % pgrp)
-        try:
-            os.killpg(pgrp, signal.SIGTERM)
-        except Exception as e:
-            logger.warning("exception thrown when killing child group process under SIGTERM: %s" % e)
-            _sleep = False
-        else:
-            logger.info("SIGTERM sent to process group %d" % pgrp)
-
-        if _sleep:
-            _t = 30
-            logger.info("sleeping %d s to allow processes to exit" % _t)
-            time.sleep(_t)
-
-        try:
-            os.killpg(pgrp, signal.SIGKILL)
-        except Exception as e:
-            logger.warning("exception thrown when killing child group process with SIGKILL: %s" % e)
-        else:
-            logger.info("SIGKILL sent to process group %d" % pgrp)
-            status = True
+        status = kill_process_group(pgrp)
 
     if not status:
         # firstly find all the children process IDs to be killed
@@ -209,6 +188,40 @@ def kill_processes(pid, pgrp):
 
     # kill any remaining orphan processes
     kill_orphans()
+
+
+def kill_process_group(pgrp):
+    """
+    Kill the process group.
+
+    :param pgrp: process group id (int).
+    :return: boolean (True if SIGMTERM followed by SIGKILL signalling was successful)
+    """
+
+    # kill the process gracefully
+    logger.info("killing group process %d" % pgrp)
+    try:
+        os.killpg(pgrp, signal.SIGTERM)
+    except Exception as e:
+        logger.warning("exception thrown when killing child group process under SIGTERM: %s" % e)
+        _sleep = False
+    else:
+        logger.info("SIGTERM sent to process group %d" % pgrp)
+
+    if _sleep:
+        _t = 30
+        logger.info("sleeping %d s to allow processes to exit" % _t)
+        time.sleep(_t)
+
+    try:
+        os.killpg(pgrp, signal.SIGKILL)
+    except Exception as e:
+        logger.warning("exception thrown when killing child group process with SIGKILL: %s" % e)
+    else:
+        logger.info("SIGKILL sent to process group %d" % pgrp)
+        status = True
+
+    return status
 
 
 # called checkProcesses() in Pilot 1, used by process monitoring
