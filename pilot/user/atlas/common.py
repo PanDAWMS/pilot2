@@ -81,7 +81,7 @@ def get_payload_command(job):
             # Try to download the trf
             ec, diagnostics, trf_name = get_analysis_trf(job.transformation)
             if ec != 0:
-                pass #return ec, pilotErrorDiag, "", special_setup_cmd, JEM, cmtconfig
+                pass  #return ec, pilotErrorDiag, "", special_setup_cmd, JEM, cmtconfig
 
         else:
             # Add Database commands if they are set by the local site
