@@ -217,7 +217,7 @@ def kill_process(pid):
     status = False
 
     try:
-        os.kill(i, signal.SIGTERM)
+        os.kill(pid, signal.SIGTERM)
     except Exception as e:
         logger.warning("exception thrown when killing child process %d with SIGTERM: %s" % (pid, e))
     else:
@@ -232,7 +232,7 @@ def kill_process(pid):
         os.kill(pid, signal.SIGKILL)
     except Exception as e:
         logger.warning("exception thrown when killing child process %d with SIGKILL,"
-                        "ignore this if it was already killed by previous SIGTERM: %s" % (pid, e))
+                       "ignore this if it was already killed by previous SIGTERM: %s" % (pid, e))
     else:
         logger.info("killed process %d with SIGKILL" % pid)
         status = True
