@@ -240,9 +240,27 @@ def remove(path):
     try:
         os.remove(path)
     except OSError as e:
-        logger.warning("failed to delete file: %s : %s" % (e.errno, e.strerror))
+        logger.warning("failed to remove file: %s, %s" % (e.errno, e.strerror))
         return -1
     return 0
+
+
+def remove_files(workdir, files):
+    """
+    Remove all given files from workdir.
+
+    :param workdir: working directory (string).
+    :param files: file list.
+    :return: exit code (0 if all went well, -1 otherwise)
+    """
+
+    ec = 0
+    for f in files:
+        _ec = remove(os.path.join(workdir, f))
+        if _ec != 0 and ec == 0:
+            ec = _ec
+
+    return ec
 
 
 def tar_files(wkdir, excludedfiles, logfile_name, attempt=0):

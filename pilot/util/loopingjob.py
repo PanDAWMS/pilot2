@@ -10,11 +10,15 @@
 from pilot.util.container import execute
 from pilot.util.auxiliary import time_stamp, whoami
 from pilot.util.processes import kill_processes
+from pilot.util.filehandling import remove_files
+from pilot.common.errorcodes import ErrorCodes
 
 import os
 import time
 import logging
 logger = logging.getLogger(__name__)
+
+errors = ErrorCodes()
 
 
 def looping_job(job, mt, looping_limit):
@@ -133,9 +137,15 @@ def kill_looping_job(job):
 
     # set the relevant error code
     if job.state == 'stagein':
-        pass
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINTIMEOUT)
     elif job.state == 'stageout':
-        pass
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEOUTTIMEOUT)
     else:
         # most likely in the 'running' state, but use the catch-all 'else'
-        pass
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.LOOPINGJOB)
+    job.state = 'failed'
+
+    # remove any lingering input files from the work dir
+    if job.infiles:
+        if len(job.infiles) > 0:
+            ec = remove_files(job.workdir, job.infiles)
