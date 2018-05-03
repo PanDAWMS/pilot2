@@ -132,7 +132,7 @@ def kill_looping_job(job):
     exit_code, stdout, stderr = execute(cmd, mute=True)
     log.info("%s: %s" % (cmd + '\n', stdout))
 
-    cmd = 'ps -o pid,ppid,sid,pgid,tpgid,stat,comm -u %s' % user
+    cmd = 'ps -o pid,ppid,sid,pgid,tpgid,stat,comm -u %s' % whoami()
     exit_code, stdout, stderr = execute(cmd, mute=True)
     log.info("%s: %s" % (cmd + '\n', stdout))
 

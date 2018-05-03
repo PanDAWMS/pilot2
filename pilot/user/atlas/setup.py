@@ -200,7 +200,7 @@ def get_analysis_trf(transform):
     ec = 0
     diagnostics = ""
 
-    pilot_initdir = os.environ.get('PILOT_HOME', '')
+    #pilot_initdir = os.environ.get('PILOT_HOME', '')
     if '/' in transform:
         transform_name = transform.split('/')[-1]
     else:
@@ -216,7 +216,7 @@ def get_analysis_trf(transform):
             break
 
     if original_base_url == "":
-        pilotErrorDiag = "Invalid base URL: %s" % (transform)
+        diagnostics = "invalid base URL: %s" % (transform)
         # return self.__error.ERR_TRFDOWNLOAD, pilotErrorDiag, ""
     else:
         logger.debug("verified the trf base url: %s" % (original_base_url))
@@ -225,7 +225,7 @@ def get_analysis_trf(transform):
     for base_url in get_valid_base_urls(order=original_base_url):
         trf = re.sub(original_base_url, base_url, transform)
         logger.debug("attempting to download trf: %s" % (trf))
-        status, pilotErrorDiag = download_transform(trf, transform_name)
+        status, diagnostics = download_transform(trf, transform_name)
         if status:
             break
 

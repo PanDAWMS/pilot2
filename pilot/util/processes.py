@@ -45,7 +45,7 @@ def find_processes_in_group(cpids, pid):
             except Exception:
                 pass
             if thisppid == pid:
-                findProcessesInGroup(cpids, thispid)
+                find_processes_in_group(cpids, thispid)
 
 
 def is_zombie(pid):
