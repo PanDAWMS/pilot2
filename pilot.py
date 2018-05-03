@@ -335,6 +335,8 @@ if __name__ == '__main__':
     args.mainworkdir = mainworkdir
     chdir(mainworkdir)
 
+    environ['PILOT_SITENAME'] = args.site  # TODO: replace with singleton
+
     # Set the pilot user
     environ['PILOT_USER'] = args.pilot_user  # TODO: replace with singleton
 
