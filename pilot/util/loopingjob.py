@@ -8,7 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 from pilot.util.container import execute
-from pilot.util.auxiliary import time_stamp
+from pilot.util.auxiliary import time_stamp, whoami
 
 import os
 import time
@@ -115,8 +115,7 @@ def kill_looping_job(job):
     diagnostics = "pilot has decided to kill looping job %s at %s" % (job.jobid, time_stamp())
     log.fatal(diagnostics)
 
-    exit_code, user, stderr = execute('whoami', mute=True)
-    cmd = 'ps -fwu %s' % (user)
+    cmd = 'ps -fwu %s' % whoami()
     exit_code, stdout, stderr = execute(cmd, mute=True)
     log.info("%s: %s" % (cmd + '\n', stdout))
 

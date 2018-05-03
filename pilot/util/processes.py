@@ -10,8 +10,10 @@
 import os
 import time
 import signal
+import re
 
 from pilot.util.container import execute
+from pilot.util.auxiliary import whoami
 
 import logging
 logger = logging.getLogger(__name__)
@@ -118,12 +120,13 @@ def dump_stack_trace(pid):
         logger.info("skipping pstack dump for zombie process")
 
 
-def kill_processes(pid, pgrp):
+def kill_processes(pid, pgrp, sitename):
     """
     Kill process beloging to given process group.
 
     :param pid: process id (int).
     :param pgrp: process group (int).
+    :param sitename: site name to allow for exceptions in process killing (string).
     :return:
     """
 
@@ -205,7 +208,7 @@ def kill_processes(pid, pgrp):
                         logger.info("killed process %d with SIGKILL" % i)
 
     # kill any remaining orphan processes
-    kill_orphans()
+    kill_orphans(sitename)
 
 
 # called checkProcesses() in Pilot 1, used by process monitoring
@@ -228,3 +231,52 @@ def get_number_of_child_processes(pid):
         logger.info("number of running child processes to parent process %d: %d" % (pid, n))
 
     return n
+
+
+def kill_orphans(sitename):
+    """
+    Find and kill all orphan processes belonging to current pilot user.
+
+    :param sitename: site name to allow for exceptions in process killing (string).
+    :return:
+    """
+
+    if 'BOINC' in sitename:
+        logger.info("Do not look for orphan processes in BOINC jobs")
+        return
+
+    logger.info("searching for orphan processes")
+
+    cmd = "ps -o pid,ppid,args -u %s" % whoami()
+    exit_code, _processes, stderr = execute(cmd)
+    pattern = re.compile('(\d+)\s+(\d+)\s+(\S+)')
+
+    count = 0
+    for line in _processes.split('\n'):
+        ids = pattern.search(line)
+        if ids:
+            pid = ids.group(1)
+            ppid = ids.group(2)
+            args = ids.group(3)
+            if 'cvmfs2' in args:
+                logger.info("ignoring possible orphan process running cvmfs2: pid=%s, ppid=%s, args=\'%s\'" %
+                            (pid, ppid, args))
+            elif 'pilots_starter.py' in args:
+                logger.info("ignoring pilot launcher: pid=%s, ppid=%s, args='%s'" % (pid, ppid, args))
+            elif ppid == '1':
+                count += 1
+                logger.info("found orphan process: pid=%s, ppid=%s, args='%s'" % (pid, ppid, args))
+                if args.endswith('bash'):
+                    logger.info("will not kill bash process")
+                else:
+                    cmd = 'kill -9 %s' % (pid)
+                    exit_code, rs, stderr = execute(cmd)
+                    if exit_code != 0:
+                        logger.warning(rs)
+                    else:
+                        logger.info("killed orphaned process %s (%s)" % (pid, args))
+
+    if count == 0:
+        logger.info("did not find any orphan processes")
+    else:
+        logger.info("found %d orphan process(es)" % count)
