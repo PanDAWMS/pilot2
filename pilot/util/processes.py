@@ -95,3 +95,20 @@ def get_process_commands(euid, pids):
                         break
 
     return process_commands
+
+
+def dump_stack_trace(pid):
+    """
+    Execute the stack trace command (pstack <pid>).
+
+    :param pid: process id (int).
+    :return:
+    """
+
+    # make sure that the process is not in a zombie state
+    if not is_zombie(pid):
+        cmd = "pstack %d" % (pid)
+        exit_code, stdout, stderr = execute(cmd, mute=True, timeout=60)
+        logger.info(stdout or "(pstack returned empty string)")
+    else:
+        logger.info("skipping pstack dump for zombie process")
