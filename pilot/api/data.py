@@ -75,7 +75,11 @@ class StagingClient(object):
     def _fill_copytool_modules(self):
         self.copytool_modules = {'rucio': {'module_name': 'rucio'},
                                  'gfal': {'module_name': 'gfal'},
-                                 'gfalcopy': {'module_name': 'gfal'}
+                                 'gfalcopy': {'module_name': 'gfal'},
+                                 'lcgcp': {'module_name': 'lcgcp'},
+                                 'dccp': {'module_name': 'dccp'},
+                                 'xrdcp': {'module_name': 'xrdcp'},
+                                 'mv': {'module_name': 'mv'}
                                 }
 
     def _try_copytool_for_transfer(self, copytool, files):
