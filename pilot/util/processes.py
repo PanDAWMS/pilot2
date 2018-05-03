@@ -121,13 +121,12 @@ def dump_stack_trace(pid):
         logger.info("skipping pstack dump for zombie process")
 
 
-def kill_processes(pid, pgrp, sitename):
+def kill_processes(pid, pgrp):
     """
     Kill process beloging to given process group.
 
     :param pid: process id (int).
     :param pgrp: process group (int).
-    :param sitename: site name to allow for exceptions in process killing (string).
     :return:
     """
 
@@ -209,7 +208,7 @@ def kill_processes(pid, pgrp, sitename):
                         logger.info("killed process %d with SIGKILL" % i)
 
     # kill any remaining orphan processes
-    kill_orphans(sitename)
+    kill_orphans()
 
 
 # called checkProcesses() in Pilot 1, used by process monitoring
@@ -234,15 +233,15 @@ def get_number_of_child_processes(pid):
     return n
 
 
-def kill_orphans(sitename):
+def kill_orphans():
     """
     Find and kill all orphan processes belonging to current pilot user.
 
-    :param sitename: site name to allow for exceptions in process killing (string).
     :return:
     """
 
-    if 'BOINC' in sitename:
+    # exception for BOINC
+    if 'BOINC' in os.environ.get('PILOT_SITENAME', ''):
         logger.info("Do not look for orphan processes in BOINC jobs")
         return
 
