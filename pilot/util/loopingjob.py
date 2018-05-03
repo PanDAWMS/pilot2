@@ -38,6 +38,7 @@ def looping_job(job, mt, looping_limit):
     diagnostics = ""
 
     log = logger.getChild(job.jobid)
+    log.info('checking for looping job')
 
     if job.state == 'stagein':
         # set job.state to stagein during stage-in before implementing this algorithm
