@@ -56,3 +56,42 @@ def is_zombie(pid):
         status = True
 
     return status
+
+
+def get_process_commands(euid, pids):
+    """
+    Return a list of process commands corresponding to a pid list for user euid.
+
+    :param euid: user id (int).
+    :param pids: list of process id's.
+    :return: list of process commands.
+    """
+
+    cmd = 'ps u -u %d' % euid
+    process_commands = []
+    exit_code, stdout, stderr = execute(cmd, mute=True)
+
+    if exit_code != 0 or stdout == '':
+        logger.warning('ps command failed: %d, \"%s\", \"%s\"' % (exit_code, stdout, stderr))
+    else:
+        # extract the relevant processes
+        p_commands = stdout.split('\n')
+        first = True
+        for p_command in p_commands:
+            if first:
+                # get the header info line
+                process_commands.append(p_command)
+                first = False
+            else:
+                # remove extra spaces
+                _p_command = p_command
+                while "  " in _p_command:
+                    _p_command = _p_command.replace("  ", " ")
+                items = _p_command.split(" ")
+                for pid in pids:
+                    # items = username pid ...
+                    if items[1] == str(pid):
+                        process_commands.append(p_command)
+                        break
+
+    return process_commands
