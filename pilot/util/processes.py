@@ -7,6 +7,10 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
+import os
+import time
+import signal
+
 from pilot.util.container import execute
 
 import logging
@@ -22,7 +26,7 @@ def find_processes_in_group(cpids, pid):
 
     :param cpids: list of pid's for all child processes to the parent pid, as well as the parent pid itself (int).
     :param pid: parent process id (int).
-    :return:
+    :return: (updated cpids input parameter list).
     """
 
     cpids.append(pid)
@@ -35,7 +39,7 @@ def find_processes_in_group(cpids, pid):
             try:
                 thispid = int(lines[i].split()[0])
                 thisppid = int(lines[i].split()[1])
-            except ValueError:
+            except Exception:
                 pass
             if thisppid == pid:
                 findProcessesInGroup(cpids, thispid)
@@ -112,3 +116,93 @@ def dump_stack_trace(pid):
         logger.info(stdout or "(pstack returned empty string)")
     else:
         logger.info("skipping pstack dump for zombie process")
+
+
+def kill_processes(pid, pgrp):
+    """
+    Kill process beloging to given process group.
+
+    :param pid: process id (int).
+    :param pgrp: process group (int).
+    :return:
+    """
+
+    # if there is a known subprocess pgrp, then it should be enough to kill the group in one go
+    status = False
+    _sleep = True
+
+    if pgrp != 0:
+        # kill the process gracefully
+        logger.info("killing group process %d" % pgrp)
+        try:
+            os.killpg(pgrp, signal.SIGTERM)
+        except Exception as e:
+            logger.warning("exception thrown when killing child group process under SIGTERM: %s" % e)
+            _sleep = False
+        else:
+            logger.info("SIGTERM sent to process group %d" % pgrp)
+
+        if _sleep:
+            _t = 30
+            logger.info("sleeping %d s to allow processes to exit" % _t)
+            time.sleep(_t)
+
+        try:
+            os.killpg(pgrp, signal.SIGKILL)
+        except Exception as e:
+            logger.warning("exception thrown when killing child group process with SIGKILL: %s" % e)
+        else:
+            logger.info("SIGKILL sent to process group %d" % pgrp)
+            status = True
+
+    if not status:
+        # firstly find all the children process IDs to be killed
+        children = []
+        find_processes_in_group(children, pid)
+
+        # reverse the process order so that the athena process is killed first (otherwise the stdout will be truncated)
+        children.reverse()
+        logger.info("process IDs to be killed: %s (in reverse order)" % str(children))
+
+        # find which commands are still running
+        try:
+            cmds = get_process_commands(os.geteuid(), children)
+        except Exception as e:
+            logger.warning("get_process_commands() threw an exception: %s" % e)
+        else:
+            if len(cmds) <= 1:
+                logger.warning("found no corresponding commands to process id(s)")
+            else:
+                logger.info("found commands still running:")
+                for cmd in cmds:
+                    logger.info(cmd)
+
+                # loop over all child processes
+                for i in children:
+                    # dump the stack trace before killing it
+                    dump_stack_trace(i)
+
+                    # kill the process gracefully
+                    try:
+                        os.kill(i, signal.SIGTERM)
+                    except Exception as e:
+                        logger.warning("exception thrown when killing child process %d with SIGTERM: %s" % (i, e))
+                        pass
+                    else:
+                        logger.info("killed process %d with SIGTERM" % i)
+
+                    _t = 10
+                    logger.info("sleeping %d s to allow process to exit" % _t)
+                    time.sleep(_t)
+
+                    # now do a hard kill just in case some processes haven't gone away
+                    try:
+                        os.kill(i, signal.SIGKILL)
+                    except Exception as e:
+                        logger.warning("exception thrown when killing child process %d with SIGKILL,"
+                                       "ignore this if it was already killed by previous SIGTERM: %s" % (i, e))
+                    else:
+                        logger.info("killed process %d with SIGKILL" % i)
+
+    # kill any remaining orphan processes
+    kill_orphans()
