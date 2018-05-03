@@ -105,6 +105,7 @@ def get_time_for_last_touch(job, mt, looping_limit):
 def kill_looping_job(job):
     """
     Kill the looping process.
+    TODO: add allow_looping_job() exp. spec?
 
     :param job: job object.
     :return: (updated job object.)
@@ -129,3 +130,12 @@ def kill_looping_job(job):
     log.info("%s: %s" % (cmd + '\n', stdout))
 
     kill_processes(job.pid, job.pgrp)
+
+    # set the relevant error code
+    if job.state == 'stagein':
+        pass
+    elif job.state == 'stageout':
+        pass
+    else:
+        # most likely in the 'running' state, but use the catch-all 'else'
+        pass

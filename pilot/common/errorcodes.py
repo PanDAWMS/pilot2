@@ -27,6 +27,7 @@ class ErrorCodes:
     SETUPFAILURE = 1110
     MKDIR = 1134
     STAGEOUTFAILED = 1137
+    LOOPINGJOB = 1150
     STAGEINTIMEOUT = 1151  # called GETTIMEOUT in Pilot 1
     STAGEOUTTIMEOUT = 1152  # called PUTTIMEOUT in Pilot 1
     NOPROXY = 1163
@@ -53,6 +54,7 @@ class ErrorCodes:
         SETUPFAILURE: "Failed during payload setup",
         MKDIR: "Failed to create local directory",
         STAGEOUTFAILED: "Failed to stage-out file",
+        LOOPINGJOB: "Looping job killed by pilot",
         STAGEINTIMEOUT: "File transfer timed out during stage-in",
         STAGEOUTTIMEOUT: "File transfer timed out during stage-out",
         NOPROXY: "Grid proxy not valid",
