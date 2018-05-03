@@ -9,6 +9,7 @@
 
 from pilot.util.container import execute
 from pilot.util.auxiliary import time_stamp, whoami
+from pilot.util.processes import kill_processes
 
 import os
 import time
@@ -127,4 +128,4 @@ def kill_looping_job(job):
     exit_code, stdout, stderr = execute(cmd, mute=True)
     log.info("%s: %s" % (cmd + '\n', stdout))
 
-    # kill_processes(job.pid, job.pgrp)
+    kill_processes(job.pid, job.pgrp, '')  # TODO: add sitename
