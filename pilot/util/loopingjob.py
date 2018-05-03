@@ -62,7 +62,10 @@ def looping_job(job, mt):
             log.info('last time files were touched: %s' % mt.ct_looping_last_touched)
             log.info('looping limit: %d s' % looping_limit)
             if ct - time_last_touched > looping_limit:
-                kill_looping_job(job)
+                try:
+                    kill_looping_job(job)
+                except Exception as e:
+                    log.warning('exception caught: %s' % e)
         else:
             log.info('no files were touched yet')
 
