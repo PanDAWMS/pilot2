@@ -206,3 +206,25 @@ def kill_processes(pid, pgrp):
 
     # kill any remaining orphan processes
     kill_orphans()
+
+
+# called checkProcesses() in Pilot 1, used by process monitoring
+def get_number_of_child_processes(pid):
+    """
+    Get the number of child processes for a given parent process.
+
+    :param pid: parent process id (int).
+    :return: number of child processes (int).
+    """
+
+    children = []
+    n = 0
+    try:
+        find_processes_in_group(children, pid)
+    except Exception as e:
+        logger.warning("exception caught in find_processes_in_group: %s" % e)
+    else:
+        n = len(children)
+        logger.info("number of running child processes to parent process %d: %d" % (pid, n))
+
+    return n
