@@ -132,8 +132,6 @@ def kill_processes(pid, pgrp):
 
     # if there is a known subprocess pgrp, then it should be enough to kill the group in one go
     status = False
-    _sleep = True
-
     if pgrp != 0:
         status = kill_process_group(pgrp)
 
@@ -197,6 +195,9 @@ def kill_process_group(pgrp):
     :param pgrp: process group id (int).
     :return: boolean (True if SIGMTERM followed by SIGKILL signalling was successful)
     """
+
+    status = False
+    _sleep = True
 
     # kill the process gracefully
     logger.info("killing group process %d" % pgrp)
