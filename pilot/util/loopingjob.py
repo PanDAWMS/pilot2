@@ -9,6 +9,7 @@
 
 from pilot.util.container import execute
 from pilot.util.auxiliary import time_stamp, whoami
+from pilot.util.parameters import convert_to_int
 from pilot.util.processes import kill_processes
 from pilot.util.filehandling import remove_files
 from pilot.util.config import config
@@ -167,12 +168,8 @@ def get_looping_job_limit(is_analysis):
     :return: looping job time limit (int).
     """
 
-    try:
-        looping_limit = int(config.Pilot.looping_limit_default_prod)
-        if is_analysis:
-            looping_limit = int(config.Pilot.looping_limit_default_user)
-    except ValueError as e:
-        looping_limit = 12 * 3600
-        logger.warning('exception caught: %s (using default looping limit: %d s)' % (e, looping_limit))
+    looping_limit = convert_to_int(config.Pilot.looping_limit_default_prod, force_value=12 * 3600)
+    if is_analysis:
+        looping_limit = convert_to_int(config.Pilot.looping_limit_default_user, force_value=3 * 3600)
 
     return looping_limit
