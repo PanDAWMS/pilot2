@@ -16,6 +16,7 @@ from subprocess import PIPE
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.config import config
 from pilot.util.container import execute
+from pilot.util.parameters import convert_to_int
 from loopingjob import looping_job
 
 import logging
@@ -24,6 +25,15 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
+def get_proxy_verification_time():
+    """
+    Return the proxy verification time in seconds.
+
+    :return: proxy verification time (int).
+    """
+
+    try:
+        t =
 def job_monitor_tasks(job, mt, verify_proxy):
     """
     Perform the tasks for the job monitoring.
@@ -46,7 +56,8 @@ def job_monitor_tasks(job, mt, verify_proxy):
         userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
 
         # is it time to verify the proxy?
-        if current_time - mt.get('ct_proxy') > config.Pilot.proxy_verification_time:
+        proxy_verification_time = convert_to_int(config.Pilot.proxy_verification_time)
+        if current_time - mt.get('ct_proxy') > proxy_verification_time:
             # is the proxy still valid?
             exit_code, diagnostics = userproxy.verify_proxy()
             if exit_code != 0:
@@ -57,8 +68,9 @@ def job_monitor_tasks(job, mt, verify_proxy):
 
     # is it time to check for looping jobs?
     log.info('current_time - mt.get(ct_looping) = %d' % (current_time - mt.get('ct_looping')))
-    log.info('config.Pilot.looping_verifiction_time = %d' % config.Pilot.looping_verifiction_time)
-    if current_time - mt.get('ct_looping') > config.Pilot.looping_verifiction_time:
+    log.info('config.Pilot.looping_verifiction_time = %s' % config.Pilot.looping_verifiction_time)
+    looping_verifiction_time = convert_to_int(config.Pilot.looping_verifiction_time)
+    if current_time - mt.get('ct_looping') > looping_verifiction_time:
         # is the job looping?
         try:
             exit_code, diagnostics = looping_job(job, mt)
