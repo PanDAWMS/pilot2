@@ -60,12 +60,16 @@ def job_monitor_tasks(job, mt, verify_proxy):
     log.info('config.Pilot.looping_verifiction_time = %d' % config.Pilot.looping_verifiction_time)
     if current_time - mt.get('ct_looping') > config.Pilot.looping_verifiction_time:
         # is the job looping?
-        exit_code, diagnostics = looping_job(job, mt)
-        if exit_code != 0:
-            return exit_code, diagnostics
+        try:
+            exit_code, diagnostics = looping_job(job, mt)
+        except Exception as e:
+            log.warning('exeption caught in looping job algrithm: %s' % e)
         else:
-            # update the ct_proxy with the current time
-            mt.update('ct_looping')
+            if exit_code != 0:
+                return exit_code, diagnostics
+            else:
+                # update the ct_proxy with the current time
+                mt.update('ct_looping')
 
     # is the job using too much space?
 

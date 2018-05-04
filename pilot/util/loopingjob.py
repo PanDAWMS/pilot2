@@ -59,7 +59,7 @@ def looping_job(job, mt):
         if time_last_touched:
             ct = int(time.time())
             log.info('current time: %d' % ct)
-            log.info('last time files were touched: %s' % mt.ct_looping_last_touched)
+            log.info('last time files were touched: %d' % time_last_touched)
             log.info('looping limit: %d s' % looping_limit)
             if ct - time_last_touched > looping_limit:
                 try:
