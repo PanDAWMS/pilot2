@@ -77,7 +77,7 @@ class Executor(object):
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
-        cmd = user.get_payload_command(job) + ';sleep 120'
+        cmd = user.get_payload_command(job) + ';sleep 240'
         log.info("payload execution command: %s" % cmd)
 
         # should we run any additional commands? (e.g. special monitoring commands)

@@ -104,6 +104,8 @@ def get_time_for_last_touch(job, mt, looping_limit):
             files = loopingjob_definitions.remove_unwanted_files(job.workdir, files)
             if files != []:
                 log.info("found %d files that were recently updated (e.g. file %s)" % (len(files), files[0]))
+                log.info(str(files)
+
                 # update the current system time
                 mt.update('ct_looping_last_touched')
             else:
