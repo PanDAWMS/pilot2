@@ -21,6 +21,10 @@ The main reasons for such incapsulation are to
 """
 
 import os
+import re
+import ast
+import shlex
+import pipes
 
 from .basedata import BaseData
 from .filespec import FileSpec
@@ -75,6 +79,9 @@ class JobData(BaseData):
     utilities = {}  # utility processes { <name>: [<process handle>, number of launches, command string], .. }
     pid = -1  # payload pid
 
+    overwrite_queuedata = {}  # Custom settings extracted from JobParams (--overwriteQueueData) to be used as master values for `QueueData`
+    zipmap = ""               # ZIP MAP values extracted from JobParams
+
     # from job definition
     attemptnr = 0  # job attempt number
     ddmendpointin = ""  # comma-separated list (string) of ddm endpoints for input    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
@@ -114,9 +121,9 @@ class JobData(BaseData):
                    'outfiles', 'scopeout', 'ddmendpointout',     ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
                    'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload',
-                   'swrelease'],
+                   'swrelease', 'zipmap'],
              list: ['piloterrorcodes', 'piloterrordiags'],
-             dict: ['fileinfo', 'metadata', 'utilities'],
+             dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
              bool: ['is_eventservice', 'noexecstrcnv']
              }
 
@@ -361,3 +368,94 @@ class JobData(BaseData):
         """
 
         return value if value.lower() not in ['null', 'none'] else ''
+
+    def clean__jobparams(self, raw, value):
+        """
+            Verify and validate value for the jobparams key
+            Extract from jobparams non related to Job options
+        """
+
+        ## extract overwrite options
+        options, ret = self.parse_args(value, {'--overwriteQueueData': lambda x: ast.literal_eval(x) if x else {}}, remove=True)
+        self.overwrite_queuedata = options.get('--overwriteQueueData', {})
+
+        # extract zip map  ## TO BE FIXED? better to pass it via dedicated sub-option in jobParams from PanDA side: e.g. using --zipmap "content"
+        # so that the zip_map can be handles more gracefully via parse_args
+
+        pattern = r" \'?<ZIP_MAP>(.+)<\/ZIP_MAP>\'?"
+        pattern = re.compile(pattern)
+
+        result = re.findall(pattern, ret)
+        if result:
+            self.zipmap = result[0]
+            # remove zip map from final jobparams
+            ret = re.sub(pattern, '', ret)
+
+        logger.debug('Extracted data from jobparams: zipmap=%s' % self.zipmap)
+        logger.debug('Extracted data from jobparams: overwrite_queuedata=%s' % self.overwrite_queuedata)
+
+        return ret
+
+    @classmethod  # noqa: C901
+    def parse_args(self, data, options, remove=False):
+        """
+            Extract option/values from string containing command line options (arguments)
+            :param data: input command line arguments (raw string)
+            :param options: dict of option names to be considered: (name, type), type is a cast function to be applied with result value
+            :param remove: boolean, if True then exclude specified options from returned raw string of command line arguments
+            :return: tuple: (dict of extracted options, raw string of final command line options)
+        """
+
+        logger.debug('Do extract options=%s from data=%s' % (options.keys(), data))
+
+        if not options:
+            return {}, data
+
+        try:
+            args = shlex.split(data)
+        except ValueError, e:
+            logger.error('Failed to parse input arguments from data=%s, error=%s .. skipped.' % (data, e.message))
+            return {}, data
+
+        opts, curopt, pargs = {}, None, []
+        for arg in args:
+            if arg.startswith('-'):
+                if curopt is not None:
+                    opts[curopt] = None
+                    pargs.append([curopt, None])
+                curopt = arg
+                continue
+            if curopt is None:  # no open option, ignore
+                pargs.append(arg)
+            else:
+                opts[curopt] = arg
+                pargs.append([curopt, arg])
+                curopt = None
+        if curopt:
+            pargs.append([curopt, None])
+
+        ret = {}
+        for opt, fcast in options.iteritems():
+            val = opts.get(opt)
+            try:
+                val = fcast(val) if callable(fcast) else val
+            except Exception, e:
+                logger.error('Failed to extract value for option=%s from data=%s: cast function=%s failed, exception=%s .. skipped' % (opt, val, fcast, e))
+                continue
+            ret[opt] = val
+
+        ## serialize parameters back to string
+        rawdata = data
+        if remove:
+            final_args = []
+            for arg in pargs:
+                if isinstance(arg, (tuple, list)):  ## parsed option
+                    if arg[0] not in options:  # exclude considered options
+                        if arg[1] is None:
+                            arg.pop()
+                        final_args.extend(arg)
+                else:
+                    final_args.append(arg)
+            rawdata = " ".join(pipes.quote(e) for e in final_args)
+
+        return ret, rawdata

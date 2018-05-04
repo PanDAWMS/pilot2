@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 class BaseData(object):
     """
         High-level object to host structured data collected from external source
-        It's cosidered to be like a bridge (connector) in order to remove direct dependency to
+        It's considered to be like a bridge (connector) in order to remove direct dependency to
         external schema (format) implementation
     """
 
