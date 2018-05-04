@@ -25,15 +25,6 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def get_proxy_verification_time():
-    """
-    Return the proxy verification time in seconds.
-
-    :return: proxy verification time (int).
-    """
-
-    try:
-        t =
 def job_monitor_tasks(job, mt, verify_proxy):
     """
     Perform the tasks for the job monitoring.
