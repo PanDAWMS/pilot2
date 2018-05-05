@@ -17,6 +17,16 @@ from pilot.common.exception import PilotException
 
 
 class StagingClient(object):
+
+    copytool_modules = {'rucio': {'module_name': 'rucio'},
+                        'gfal': {'module_name': 'gfal'},
+                        'gfalcopy': {'module_name': 'gfal'},
+                        'lcgcp': {'module_name': 'lcgcp'},
+                        'dccp': {'module_name': 'dccp'},
+                        'xrdcp': {'module_name': 'xrdcp'},
+                        'mv': {'module_name': 'mv'}
+                        }
+
     def __init__(self, site=None, ddmendpoint=None, copytool_names=None, fallback_copytool='rucio', infosys_instance=None, logger=None):
         """
         StagingClient constructor needs either copytool_names or ddmendpoint specified
@@ -28,10 +38,8 @@ class StagingClient(object):
         :param logger: logging.Logger object to use for loggin (None means no logging)
         :return:
         """
-        super(StagingClient, self).__init__()
 
-        self.copytool_modules = {}
-        self._fill_copytool_modules()
+        super(StagingClient, self).__init__()
 
         if not logger:
             logger = logging.getLogger('%s.%s' % (__name__, 'null'))
@@ -71,16 +79,6 @@ class StagingClient(object):
         self.site = os.environ.get('VO_ATLAS_AGIS_SITE', site)
         if self.site is None and self.copytool_names == ['rucio']:
             raise PilotException('VO_ATLAS_AGIS_SITE not available, must set StageInClient(site=...) parameter')
-
-    def _fill_copytool_modules(self):
-        self.copytool_modules = {'rucio': {'module_name': 'rucio'},
-                                 'gfal': {'module_name': 'gfal'},
-                                 'gfalcopy': {'module_name': 'gfal'},
-                                 'lcgcp': {'module_name': 'lcgcp'},
-                                 'dccp': {'module_name': 'dccp'},
-                                 'xrdcp': {'module_name': 'xrdcp'},
-                                 'mv': {'module_name': 'mv'}
-                                 }
 
     def _try_copytool_for_transfer(self, copytool, files):
         """
