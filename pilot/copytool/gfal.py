@@ -67,7 +67,7 @@ def copy_in(files, **kwargs):
         source = fspec.turl
         destination = "file://%s" % os.path.abspath(os.path.join(dst, fspec.lfn))
 
-        cmd = ['gfal-copy --verbose -f', ' -t', timeout]
+        cmd = ['gfal-copy --verbose -f', ' -t %s' % timeout]
 
         if fspec.checksum:
             cmd += ['-K', '%s:%s' % fspec.checksum.items()[0]]
