@@ -52,12 +52,14 @@ class PilotConfigProvider(object):
             :return: dict of settings for given PandaQueue as a key
         """
 
+        import ast
         data = {'maxwdir': 10555,  # in MB
                 'maxwdir_broken': self.config.Pilot.maximum_input_file_sizes,  # ## Config API is broken -- FIXME LATER
                 #'container_type': 'singularity:pilot;docker:wrapper',  # ## for testing
                 #'container_options': '-B /cvmfs,/scratch,/etc/grid-security --contain',  ## for testing
                 #'catchall': "singularity_options='-B /cvmfs000' catchx=1",  ## for testing
                 'es_stageout_gap': 601,  # in seconds, for testing: FIXME LATER,
+                'acopytools': ast.literal_eval(self.config.Information.acopytools),
                 }
 
         logger.info('queuedata: following keys will be overwritten by config values: %s' % data)
