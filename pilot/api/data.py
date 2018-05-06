@@ -13,7 +13,7 @@
 import logging
 
 from pilot.info import infosys
-from pilot.common.exception import PilotException
+from pilot.common.exception import PilotException  #, ErrorCodes
 
 
 class StagingClient(object):
@@ -130,7 +130,7 @@ class StagingClient(object):
                 replicas = c.list_replicas(**bquery)
 
         except Exception, e:
-            raise PilotException("Failed to get replicas from Rucio: %s" % e)  #, code=PilotErrors.ERR_FAILEDLFCGETREPS)
+            raise PilotException("Failed to get replicas from Rucio: %s" % e)  #, code=ErrorCodes.XX__FAILEDLFCGETREPS)
 
         replicas = list(replicas)
         logger.debug("replicas received from Rucio: %s" % replicas)
@@ -234,21 +234,24 @@ class StagingClient(object):
 
         return ret
 
-    def transfer_files(self, copytool, files):
+    def transfer_files(self, copytool, files, **kwargs):
         """
             Apply transfer of given `files` using passed `copytool` module
             Should be implemented by custom Staging Client
-            :param files: list of `FileSpec` objects
             :param copytool: copytool module
+            :param files: list of `FileSpec` objects
+            :param kwargs: extra kwargs to be passed to copytool transfer handler
             :raise: PilotException in case of controlled error
         """
 
         raise NotImplementedError
 
-    def transfer(self, files, activity='default'):
+    def transfer(self, files, activity='default', **kwargs):
         """
             Automatically stage passed files using copy tools related to given `activity`
             :param files: list of `FileSpec` objects
+            :param activity: activity name used to determine appropriate copytool
+            :param kwargs: extra kwargs to be passed to copytool transfer handler
             :raise: PilotException in case of controlled error
             :return: output of copytool trasfers (to be clarified)
         """
@@ -276,7 +279,7 @@ class StagingClient(object):
                 self.logger.debug('Error: %s' % e)
                 continue
             try:
-                result = self.transfer_files(copytool, files)
+                result = self.transfer_files(copytool, files, **kwargs)
             except PilotException, e:
                 errors.append(e)
             except Exception, e:
@@ -293,23 +296,27 @@ class StagingClient(object):
 
 class StageInClient(StagingClient):
 
-    def transfer_files(self, copytool, files):
+    def transfer_files(self, copytool, files, **kwargs):
         """
             Automatically stage in files using the selected copy tool module.
 
             :param copytool: copytool module
             :param files: list of `FileSpec` objects
+            :param kwargs: extra kwargs to be passed to copytool transfer handler
 
             :return: the output of the copytool transfer operation
             :raise: PilotException in case of controlled error
         """
+
+        if getattr(copytool, 'require_replicas', False) and files and files[0].replicas is None:
+            files = self.resolve_replicas(files)
 
         if not copytool.is_valid_for_copy_in(files):
             self.logger.warning('Input is not valid for transfers using copytool=%s' % copytool)
             self.logger.debug('Input: %s' % files)
             raise PilotException('Invalid input for transfer operation')
 
-        return copytool.copy_in(files)
+        return copytool.copy_in(files, **kwargs)
 
 
 class StageOutClient(StagingClient):

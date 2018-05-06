@@ -51,12 +51,12 @@ class FileSpec(BaseData):
 
     ## local keys
     type = ''         # type of File: input, output of log
-    replicas = []     # list of resolved input replicas
+    replicas = None   # list of resolved input replicas
     surl = ''         # source url
     turl = ''         # transfer url
     mtime = 0         # file modification time
     status = None     # file transfer status value
-    status_code = 0   # file trsansfer status code
+    status_code = 0   # file transfer status code
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['filesize', 'mtime', 'status_code'],

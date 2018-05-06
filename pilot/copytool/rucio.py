@@ -8,12 +8,19 @@
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
 
 import os
+import re
 
-from pilot.copytool.common import merge_destinations
+from pilot.common.errorcodes import ErrorCodes
+from pilot.common.exception import PilotException
+
 from pilot.util.container import execute
+
+# can be disable for Rucio if allowed to use all RSE for input
+require_replicas = True  ## indicate if given copytool requires input replicas to be resolved
 
 
 def is_valid_for_copy_in(files):
+    return True  ## FIX ME LATER
     for f in files:
         if not all(key in f for key in ('scope', 'name', 'destination')):
             return False
@@ -21,52 +28,61 @@ def is_valid_for_copy_in(files):
 
 
 def is_valid_for_copy_out(files):
+    return True  ## FIX ME LATER
     for f in files:
         if not all(key in f for key in ('file', 'rse')):
             return False
     return True
 
 
-def copy_in(files):
+def copy_in(files, **kwargs):
     """
-    Tries to download the given files using rucio.
+        Download given files using rucio copytool.
 
-    :param files: Files to download
-
-    :raises Exception
+        :param files: list of `FileSpec` objects
+        :raise: PilotException in case of controlled error
     """
 
     # don't spoil the output, we depend on stderr parsing
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
-    destinations = merge_destinations(files)
+    dst = kwargs.get('workdir') or '.'
 
-    for dst in destinations:
-        executable = ['/usr/bin/env',
-                      'rucio', 'download',
-                      '--no-subdir',
-                      '--dir', dst]
-        executable.extend(destinations[dst]['lfns'])
+    for fspec in files:
+        cmd = ['/usr/bin/env', 'rucio', '-v', 'download', '--no-subdir', '--dir', dst]
+        if require_replicas:
+            cmd += ['--rse', fspec.replicas[0][0]]
+        cmd += ['%s:%s' % (fspec.scope, fspec.lfn)]
 
-        exit_code, stdout, stderr = execute(" ".join(executable))
+        rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
 
-        stats = {}
-        if exit_code == 0:
-            stats['status'] = 'done'
-            stats['errno'] = 0
-            stats['errmsg'] = 'File successfully downloaded.'
-        else:
-            stats['status'] = 'failed'
-            stats['errno'] = 3
-            try:
-                # the Details: string is set in rucio: lib/rucio/common/exception.py in __str__()
-                stats['errmsg'] = [detail for detail in stderr.split('\n') if detail.startswith('Details:')][0][9:-1]
-            except Exception as e:
-                stats['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % \
-                                  str(e)
-        for f in destinations[dst]['files']:
-            f.update(stats)
+        if rcode:  ## error occurred
+            error = resolve_transfer_error(stderr, is_stagein=True)
+            fspec.status = 'failed'
+            fspec.status_code = error.get('rcode')
+            raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
+
+        fspec.status_code = 0
+        fspec.status = 'transferred'
+
     return files
+
+
+def resolve_transfer_error(output, is_stagein):
+    """
+        Resolve error code, client state and defined error mesage from the output of transfer command
+        :return: dict {'rcode', 'state, 'error'}
+    """
+
+    ret = {'rcode': ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
+           'state': 'COPY_ERROR', 'error': 'Copy operation failed [is_stagein=%s]: %s' % (is_stagein, output)}
+
+    for line in output.split('\n'):
+        m = re.search("Details\s*:\s*(?P<error>.*)", line)
+        if m:
+            ret['error'] = m.group('error')
+
+    return ret
 
 
 def copy_out(files):
