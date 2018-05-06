@@ -13,7 +13,7 @@
 import logging
 
 from pilot.info import infosys
-from pilot.common.exception import PilotException  #, ErrorCodes
+from pilot.common.exception import PilotException, ErrorCodes
 
 
 class StagingClient(object):
@@ -296,6 +296,40 @@ class StagingClient(object):
 
 class StageInClient(StagingClient):
 
+    def resolve_replica(self, fspec, allowed_schemas=None):
+        """
+            Resolve input replica according to allowed schema
+            :param fspec: input `FileSpec` objects
+            :param allowed_schemas: list of allowed schemas or any if None
+            :return: dict(surl, ddmendpoint, pfn)
+        """
+
+        if not fspec.replicas:
+            return
+        allowed_schemas = allowed_schemas or [None]
+        replica = None
+        for sval in allowed_schemas:
+            for ddmendpoint, replicas in fspec.replicas:
+                if not replicas:  # ignore ddms with no replicas
+                    continue
+                surl = replicas[0]  # assume srm protocol is first entry
+                self.logger.info("[stage-in] surl (srm replica) from Rucio: pfn=%s, ddmendpoint=%s" % (surl, ddmendpoint))
+                for r in replicas:
+                    if sval is None or r.startswith("%s://" % sval):
+                        replica = r
+                        break
+                if replica:
+                    break
+            if replica:
+                break
+
+        if not replica:  # replica not found
+            error = 'Failed to find replica for input file=%s, allowed_schemas=%s, fspec=%s' % (fspec.lfn, allowed_schemas, fspec)
+            self.logger.error("resolve_replica: %s" % error)
+            raise PilotException(error, code=ErrorCodes.REPLICANOTFOUND)
+
+        return {'surl': surl, 'ddmendpoint': ddmendpoint, 'pfn': replica}
+
     def transfer_files(self, copytool, files, **kwargs):
         """
             Automatically stage in files using the selected copy tool module.
@@ -310,11 +344,25 @@ class StageInClient(StagingClient):
 
         if getattr(copytool, 'require_replicas', False) and files and files[0].replicas is None:
             files = self.resolve_replicas(files)
+            allowed_schemas = getattr(copytool, 'allowed_schemas', None)
+            for fspec in files:
+                resolve_replica = getattr(copytool, 'resolve_replica', None)
+                if not callable(resolve_replica):
+                    resolve_replica = self.resolve_replica
+                r = resolve_replica(fspec, allowed_schemas)
+                if r.get('pfn'):
+                    fspec.turl = r['pfn']
+                if r.get('surl'):
+                    fspec.surl = r['surl']  # TO BE CLARIFIED if it's still used and need
+                if r.get('ddmendpoint'):
+                    fspec.ddmendpoint = r['ddmendpoint']
+
+                self.logger.info("[stage-in] found replica to be used for lfn=%s: ddmendpoint=%s, pfn=%s" % (fspec.lfn, fspec.ddmendpoint, fspec.turl))
 
         if not copytool.is_valid_for_copy_in(files):
             self.logger.warning('Input is not valid for transfers using copytool=%s' % copytool)
             self.logger.debug('Input: %s' % files)
-            raise PilotException('Invalid input for transfer operation')
+            raise PilotException('Invalid input data for transfer operation')
 
         return copytool.copy_in(files, **kwargs)
 

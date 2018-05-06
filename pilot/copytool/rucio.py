@@ -10,8 +10,7 @@
 import os
 import re
 
-from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import PilotException
+from pilot.common.exception import PilotException, ErrorCodes
 
 from pilot.util.container import execute
 
