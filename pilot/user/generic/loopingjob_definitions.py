@@ -31,4 +31,13 @@ def remove_unwanted_files(workdir, files):
     :return: filtered files list.
     """
 
-    return files
+    _files = []
+    for _file in files:
+        if not (workdir == _file or
+                "pilotlog" in _file or
+                ".lib.tgz" in _file or
+                ".py" in _file or
+                "pandaJob" in _file):
+            _files.append(_file)
+
+    return _files
