@@ -46,12 +46,19 @@ class TestHarvesterStageIn(unittest.TestCase):
 
     def setUp(self):
         # skip tests if running through Travis -- github does not have working rucio
-        self.travis = False
-        if os.environ.get('TRAVIS') == 'true':
-            self.travis = True
+        self.travis = os.environ.get('TRAVIS') == 'true'
 
         # setup pilot data client
-        self.data_client = data.StageInClient(site='CERN-PROD', copytool_names=['rucio'])
+
+        # 1st example: using StageIn client with infosys
+        # initialize StageInClient using infosys component to resolve allowed input sources
+        #from pilot.info import infosys
+        #infosys.init('ANALY_CERN')
+        #self.data_client = data.StageInClient(infosys)
+
+        # 2nd example: avoid using infosys instance but it requires to pass explicitly copytools and allowed input Strorages in order to resolve replicas
+        #self.data_client = data.StageInClient(acopytools={'pr':'rucio'})
+        self.data_client = data.StageInClient(acopytools='rucio')  ## use rucio everywhere
 
     def test_stagein_sync_fail_nodirectory(self):
         '''
@@ -102,6 +109,8 @@ class TestHarvesterStageIn(unittest.TestCase):
         if self.travis:
             return True
 
+        ## if infosys was not passed to StageInClient in constructor
+        ## then it's mandatory to specify allowed `inputddms` that can be used as source for replica lookup
         tmp_dir1, tmp_dir2 = tempfile.mkdtemp(), tempfile.mkdtemp()
         result = self.data_client.transfer(files=[{'scope': 'no_scope1',
                                                    'name': 'no_name1',
