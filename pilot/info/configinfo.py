@@ -59,8 +59,10 @@ class PilotConfigProvider(object):
                 #'container_options': '-B /cvmfs,/scratch,/etc/grid-security --contain',  ## for testing
                 #'catchall': "singularity_options='-B /cvmfs000' catchx=1",  ## for testing
                 'es_stageout_gap': 601,  # in seconds, for testing: FIXME LATER,
-                'acopytools': ast.literal_eval(self.config.Information.acopytools),
                 }
+
+        if hasattr(self.config.Information, 'acopytools'):  ## FIX ME LATER: Config API should reimplemented/fixed later
+            data['acopytools'] = ast.literal_eval(self.config.Information.acopytools)
 
         logger.info('queuedata: following keys will be overwritten by config values: %s' % data)
 
