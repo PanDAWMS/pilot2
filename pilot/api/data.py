@@ -36,7 +36,8 @@ class StagingClient(object):
 
     def __init__(self, infosys_instance=None, acopytools=None, logger=None, default_copytools='rucio'):
         """
-            :param acopytools: dict of copytool names per activity to be used for transfers. If not specified will be automatically resolved via infosys.
+            If `acopytools` is not specified then it will be automatically resolved via infosys. In this case `infosys` requires initialization.
+            :param acopytools: dict of copytool names per activity to be used for transfers. Accepts also list of names or string value without activity passed.
             :param logger: logging.Logger object to use for logging (None means no logging)
             :param default_copytools: copytool name(s) to be used in case of unknown activity passed. Accepts either list of names or single string value.
         """
@@ -51,12 +52,14 @@ class StagingClient(object):
         self.infosys = infosys_instance or infosys
 
         if isinstance(acopytools, basestring):
-            acopytools = [acopytools] if acopytools else []
+            acopytools = {'default': [acopytools]} if acopytools else {}
+        if isinstance(acopytools, (list, tuple)):
+            acopytools = {'default': acopytools} if acopytools else {}
 
         self.acopytools = acopytools
-        if not self.acopytools:  # try to get associated copytools from queuedata
+        if not self.acopytools:  ## resolve from queuedata.acopytools using infosys
             self.acopytools = (self.infosys.queuedata.acopytools or {}).copy()
-        if not self.acopytools:  ## resolve from queuedata.copytools
+        if not self.acopytools:  ## resolve from queuedata.copytools using infosys
             self.acopytools = dict(default=(self.infosys.queuedata.copytools or {}).keys())
 
         if not self.acopytools:
@@ -93,7 +96,8 @@ class StagingClient(object):
             fdat.accessmode = 'copy'        ### quick hack to avoid changing logic below for DIRECT access handling  ## REVIEW AND FIX ME LATER
             fdat.allowRemoteInputs = False  ### quick hack to avoid changing logic below for DIRECT access handling  ## REVIEW AND FIX ME LATER
 
-            fdat.inputddms = self.infosys.queuedata.astorages.get('pr', {})  ## FIX ME LATER: change to proper activity=read_lan
+            if not fdat.inputddms and self.infosys.queuedata:
+                fdat.inputddms = self.infosys.queuedata.astorages.get('pr', {})  ## FIX ME LATER: change to proper activity=read_lan
             xfiles.append(fdat)
 
         if not xfiles:  # no files for replica look-up

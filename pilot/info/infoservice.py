@@ -62,6 +62,10 @@ class InfoService(object):
         self.storages_info = {}   ## cache of QueueData objects for DDMEndpoint settings
         #self.sites_info = {}     ## cache for Site settings
 
+        self.confinfo = None   ## by default (when non initalized) ignore overwrites/settings from Config
+        self.jobinfo = None    ## by default (when non initalized) ignore overwrites/settings from Job
+        self.extinfo = ExtInfoProvider(cache_time=self.cache_time)
+
     def init(self, pandaqueue, confinfo=None, extinfo=None, jobinfo=None):
 
         self.confinfo = confinfo or PilotConfigProvider()
@@ -72,6 +76,10 @@ class InfoService(object):
 
         if not self.pandaqueue:
             raise PilotException('Failed to initialize InfoService: panda queue name is not set')
+
+        self.queues_info = {}     ##  reset cache data
+        self.storages_info = {}   ##  reset cache data
+        #self.sites_info = {}     ##  reset cache data
 
         self.queuedata = self.resolve_queuedata(self.pandaqueue)
 
@@ -141,7 +149,7 @@ class InfoService(object):
 
         return cache.get(pandaqueue)
 
-    @require_init
+    #@require_init
     def resolve_storage_data(self, ddmendpoints=[]):  ## high level API
         """
             :return: dict of DDMEndpoint settings by DDMEndpoint name as a key

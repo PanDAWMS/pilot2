@@ -57,12 +57,13 @@ class FileSpec(BaseData):
     mtime = 0         # file modification time
     status = None     # file transfer status value
     status_code = 0   # file transfer status code
+    inputddms = []    # list of DDMEndpoint names which will be considered by default (if set) as allowed storage for input replicas
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['filesize', 'mtime', 'status_code'],
              str: ['lfn', 'guid', 'checksum', 'scope', 'dataset', 'ddmendpoint',
                    'type', 'surl', 'turl', 'status'],
-             list: ['replicas'],
+             list: ['replicas', 'inputddms'],
              bool: []
              }
 
