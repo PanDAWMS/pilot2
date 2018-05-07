@@ -218,12 +218,11 @@ class TestHarvesterStageOut(unittest.TestCase):
 
     def setUp(self):
         # skip tests if running through Travis -- github does not have working rucio
-        self.travis = False
-        if os.environ.get('TRAVIS') == 'true':
-            self.travis = True
+
+        self.travis = os.environ.get('TRAVIS') == 'true'
 
         # setup pilot data client
-        self.data_client = data.StageOutClient(site='CERN-PROD', copytool_names=['rucio'])
+        self.data_client = data.StageOutClient(acopytools=['rucio'])
 
     def test_stageout_fail_notfound(self):
         '''
