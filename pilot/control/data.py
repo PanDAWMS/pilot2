@@ -487,8 +487,9 @@ def _stage_out_all(job, args):
     else:
         log.info('will stage-out all output files and log file')
         if job.metadata:
+            scopes = dict([e.lfn, e.scope] for e in job.outdata)  # quick hack: to be properly implemented later
             for f in job.metadata['files']['output']:
-                outputs[f['subFiles'][0]['name']] = {'scope': job.scopeout,
+                outputs[f['subFiles'][0]['name']] = {'scope': scopes.get(f['subFiles'][0]['name'], job.scopeout.split(',')[0]),
                                                      'name': f['subFiles'][0]['name'],
                                                      'guid': f['subFiles'][0]['file_guid'],
                                                      'bytes': f['subFiles'][0]['file_size']}
