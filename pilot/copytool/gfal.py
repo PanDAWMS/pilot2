@@ -37,7 +37,7 @@ def is_valid_for_copy_out(files):
     return True
 
 
-def get_timeout(filesize):   ## ISOLATE ME LATE
+def get_timeout(filesize):   ## ISOLATE ME LATER
     """ Get a proper time-out limit based on the file size """
 
     timeout_max = 3 * 3600  # 3 hours

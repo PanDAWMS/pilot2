@@ -51,6 +51,17 @@ def copy_in_old(files):
         raise StageInFailure(stdout)
 
 
+def get_timeout(filesize):   ## ISOLATE ME LATER
+    """ Get a proper time-out limit based on the file size """
+
+    timeout_max = 3 * 3600  # 3 hours
+    timeout_min = 300  # self.timeout
+
+    timeout = timeout_min + int(filesize / 0.5e6)  # approx < 0.5 Mb/sec
+
+    return min(timeout, timeout_max)
+
+
 def copy_in(files, **kwargs):
     """
         Download given files using the LSM command.
