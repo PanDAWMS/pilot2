@@ -365,11 +365,14 @@ class StageInClient(StagingClient):
 
                 self.logger.info("[stage-in] found replica to be used for lfn=%s: ddmendpoint=%s, pfn=%s" % (fspec.lfn, fspec.ddmendpoint, fspec.turl))
 
+        self.logger.debug('xxx')
+
         if not copytool.is_valid_for_copy_in(files):
             self.logger.warning('Input is not valid for transfers using copytool=%s' % copytool)
             self.logger.debug('Input: %s' % files)
             raise PilotException('Invalid input data for transfer operation')
 
+        self.logger.debug('. files=%s' % files)
         return copytool.copy_in(files, **kwargs)
 
 
