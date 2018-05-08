@@ -293,7 +293,7 @@ class StagingClient(object):
                 break
 
         if not result:
-            raise PilotException('Failed to transfer files using copytools=%s, erros=%s' % (copytools, errors))
+            raise PilotException('Failed to transfer files using copytools=%s, error=%s' % (copytools, errors))
 
         return result
 
