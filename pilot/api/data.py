@@ -346,6 +346,8 @@ class StageInClient(StagingClient):
             :raise: PilotException in case of controlled error
         """
 
+        self.logger.debug('files=%s' % str(files))
+
         if getattr(copytool, 'require_replicas', False) and files and files[0].replicas is None:
             files = self.resolve_replicas(files)
             allowed_schemas = getattr(copytool, 'allowed_schemas', None)
