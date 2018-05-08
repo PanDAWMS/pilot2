@@ -271,7 +271,7 @@ class StagingClient(object):
 
             try:
                 if name not in self.copytool_modules:
-                    raise PilotException('passed unknow copytool with name=%s .. skipped' % name)
+                    raise PilotException('passed unknown copytool with name=%s .. skipped' % name)
                 module = self.copytool_modules[name]['module_name']
                 self.logger.info('Trying to use copytool=%s for activity=%s' % (name, activity))
                 copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], -1)
