@@ -32,7 +32,7 @@ def is_valid_for_copy_out(files):
     return True
 
 
-def copy_in(files):
+def copy_in_old(files):
     """
     Tries to download the given files using lsm-get directly.
 
@@ -46,6 +46,42 @@ def copy_in(files):
     if exit_code != 0:
         # raise failure
         raise StageInFailure(stdout)
+
+
+def copy_in(files, **kwargs):
+    """
+        Download given files using the LSM command.
+
+        :param files: list of `FileSpec` objects
+        :raise: PilotException in case of controlled error
+    """
+
+    exit_code = 0
+    stdout = ""
+    stderr = ""
+
+    nretries = kwargs.get('nretries') or 1
+    for fspec in files:
+
+        dst = fspec.workdir or kwargs.get('workdir') or '.'
+
+        timeout = get_timeout(fspec.filesize)
+        source = fspec.turl
+        destination = os.path.join(dst, fspec.lfn)
+
+        logger.info("transferring file %s from %s to %s" % (fspec.lfn, source, destination))
+
+        for retry in range(nretries):
+            exit_code, stdout, stderr = move(source, destination, dst_in=True)
+
+            if exit_code != 0:
+                if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or (retry + 1) == nretries:
+                    logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
+                    return exit_code, stdout, stderr
+            else:  # all successful
+                break
+
+    return exit_code, stdout, stderr
 
 
 def copy_out(files):
@@ -127,7 +163,14 @@ def move_all_files_out(files, nretries=1):
 
 
 def move(source, destination, dst_in=True):
-    cmd = None
+    """
+    Use lsm-get or lsm-put to transfer the file.
+    :param source: path to source (string).
+    :param destination: path to destination (string).
+    :param dst_in: True for stage-in, False for stage-out (boolean).
+    :return: exit code, stdout, stderr
+    """
+
     if dst_in:
         cmd = "lsm-get %s %s" % (source, destination)
     else:
