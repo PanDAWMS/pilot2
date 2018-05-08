@@ -375,8 +375,11 @@ class JobData(BaseData):
             Extract from jobparams non related to Job options
         """
 
+        ## clean job params from Pilot1 old-formatted options
+        ret = re.sub(r"--overwriteQueuedata={.*?}", "", value)
+
         ## extract overwrite options
-        options, ret = self.parse_args(value, {'--overwriteQueueData': lambda x: ast.literal_eval(x) if x else {}}, remove=True)
+        options, ret = self.parse_args(ret, {'--overwriteQueueData': lambda x: ast.literal_eval(x) if x else {}}, remove=True)
         self.overwrite_queuedata = options.get('--overwriteQueueData', {})
 
         # extract zip map  ## TO BE FIXED? better to pass it via dedicated sub-option in jobParams from PanDA side: e.g. using --zipmap "content"
