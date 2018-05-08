@@ -74,20 +74,14 @@ def copy_in(files, **kwargs):
     stdout = ""
     stderr = ""
 
-    logger.debug('.. files=%s' % files)
     nretries = kwargs.get('nretries') or 1
+
     for fspec in files:
 
-        logger.debug('1')
         dst = fspec.workdir or kwargs.get('workdir') or '.'
-
-        logger.debug('2')
         timeout = get_timeout(fspec.filesize)
-        logger.debug('3')
         source = fspec.turl
-        logger.debug('4')
         destination = os.path.join(dst, fspec.lfn)
-        logger.debug('5')
 
         logger.info("transferring file %s from %s to %s" % (fspec.lfn, source, destination))
 
