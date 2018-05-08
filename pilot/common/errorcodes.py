@@ -23,14 +23,19 @@ class ErrorCodes:
     GENERALERROR = 1008
     NOLOCALSPACE = 1098
     STAGEINFAILED = 1099
+    REPLICANOTFOUND = 1100
     NOSUCHFILE = 1103
     SETUPFAILURE = 1110
     MKDIR = 1134
     STAGEOUTFAILED = 1137
+    PUTMD5MISMATCH = 1141
+    GETMD5MISMATCH = 1145
     LOOPINGJOB = 1150
     STAGEINTIMEOUT = 1151  # called GETTIMEOUT in Pilot 1
     STAGEOUTTIMEOUT = 1152  # called PUTTIMEOUT in Pilot 1
     NOPROXY = 1163
+    GETADMISMATCH = 1171
+    PUTADMISMATCH = 1172
     NOVOMSPROXY = 1177
 
     # Error code constants (new since Pilot 2)
@@ -50,10 +55,15 @@ class ErrorCodes:
         GENERALERROR: "General pilot error, consult batch log",
         NOLOCALSPACE: "Not enough local space",
         STAGEINFAILED: "Failed to stage-in file",
+        REPLICANOTFOUND: "Replica not found",
         NOSUCHFILE: "No such file or directory",
         SETUPFAILURE: "Failed during payload setup",
         MKDIR: "Failed to create local directory",
         STAGEOUTFAILED: "Failed to stage-out file",
+        PUTMD5MISMATCH: "md5sum mismatch on output file",
+        GETMD5MISMATCH: "md5sum mismatch on input file",
+        GETADMISMATCH: "adler32 mismatch on input file",
+        PUTADMISMATCH: "adler32 mismatch on output file",
         LOOPINGJOB: "Looping job killed by pilot",
         STAGEINTIMEOUT: "File transfer timed out during stage-in",
         STAGEOUTTIMEOUT: "File transfer timed out during stage-out",
