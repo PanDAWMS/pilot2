@@ -58,11 +58,12 @@ class FileSpec(BaseData):
     status = None     # file transfer status value
     status_code = 0   # file transfer status code
     inputddms = []    # list of DDMEndpoint names which will be considered by default (if set) as allowed storage for input replicas
+    workdir = None    # used to declare file-specific work dir (location on give file while it's used for transfer by copytool)
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['filesize', 'mtime', 'status_code'],
              str: ['lfn', 'guid', 'checksum', 'scope', 'dataset', 'ddmendpoint',
-                   'type', 'surl', 'turl', 'status'],
+                   'type', 'surl', 'turl', 'status', 'workdir'],
              list: ['replicas', 'inputddms'],
              bool: []
              }

@@ -45,9 +45,8 @@ def copy_in(files, **kwargs):
     # don't spoil the output, we depend on stderr parsing
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
-    dst = kwargs.get('workdir') or '.'
-
     for fspec in files:
+        dst = fspec.workdir or kwargs.get('workdir') or '.'
         cmd = ['/usr/bin/env', 'rucio', '-v', 'download', '--no-subdir', '--dir', dst]
         if require_replicas:
             cmd += ['--rse', fspec.replicas[0][0]]

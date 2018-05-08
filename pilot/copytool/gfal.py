@@ -59,9 +59,9 @@ def copy_in(files, **kwargs):
     if not check_for_gfal():
         raise StageInFailure("No GFAL2 tools found")
 
-    dst = kwargs.get('workdir') or '.'
-
     for fspec in files:
+
+        dst = fspec.workdir or kwargs.get('workdir') or '.'
 
         timeout = get_timeout(fspec.filesize)
         source = fspec.turl
