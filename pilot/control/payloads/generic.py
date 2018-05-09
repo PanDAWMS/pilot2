@@ -19,6 +19,7 @@ from subprocess import PIPE
 from pilot.control.job import send_state
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD
+from pilot.common.exception import PilotException
 
 import logging
 logger = logging.getLogger(__name__)
@@ -77,7 +78,13 @@ class Executor(object):
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
-        cmd = user.get_payload_command(job) + ';sleep 240'
+        # for testing looping job:    cmd = user.get_payload_command(job) + ';sleep 240'
+        try:
+            cmd = user.get_payload_command(job) + ';sleep 240'
+        except PilotException as e:
+            log.fatal('could not define payload command')
+            return None
+
         log.info("payload execution command: %s" % cmd)
 
         # should we run any additional commands? (e.g. special monitoring commands)

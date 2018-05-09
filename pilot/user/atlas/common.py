@@ -22,6 +22,7 @@ from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_
 from pilot.util.filehandling import remove
 from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
     get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
+from pilot.common.exception import TrfDownloadFailure
 
 import logging
 logger = logging.getLogger(__name__)
@@ -32,8 +33,9 @@ def get_payload_command(job):
     Return the full command for execuring the payload, including the sourcing of all setup files and setting of
     environment variables.
 
-    :param job: job object
-    :return: command (string)
+    :param job: job object.
+    :raises PilotException: TrfDownloadFailure.
+    :return: command (string).
     """
 
     # Should the pilot do the asetup or do the jobPars already contain the information?
@@ -81,8 +83,7 @@ def get_payload_command(job):
             # Try to download the trf
             ec, diagnostics, trf_name = get_analysis_trf(job.transformation)
             if ec != 0:
-                raise NoLocalSpace('testing exception from proceed_with_getjob')
-                pass  #return ec, pilotErrorDiag, "", special_setup_cmd, JEM, cmtconfig
+                raise TrfDownloadFailure('transform for user job could not be downloaded')
 
         else:
             # Add Database commands if they are set by the local site
