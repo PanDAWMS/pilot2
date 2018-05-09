@@ -424,9 +424,9 @@ class JobData(BaseData):
         # define regexp pattern for the full container image option
         _pattern = r'(\ \-\-containerimage\=?\s?[\S]+)'
         pattern = re.compile(_pattern)
-        full_command = re.findall(pattern, jobparams)
+        image_option = re.findall(pattern, jobparams)
 
-        if full_command and full_command[0] != "":
+        if image_option and image_option[0] != "":
 
             imagepattern = re.compile(r'(\ \-\-containerimage\=?\s?([\S]+))')
             image = re.findall(imagepattern, jobparams)
@@ -442,7 +442,7 @@ class JobData(BaseData):
 
             # remove the option from the job parameters
             jobparams = re.sub(_pattern, "", jobparams)
-            logger.info("removed the %s option from job parameters: %s" % (full_command[0], jobparams))
+            logger.info("removed the %s option from job parameters: %s" % (image_option[0], jobparams))
 
         return jobparams, imagename
 
