@@ -438,7 +438,7 @@ class JobData(BaseData):
                 else:
                     logger.info("extracted image from jobparams: %s" % imagename)
             else:
-                logger.wa''("image could not be extract from %s" % jobparams)
+                logger.warning("image could not be extract from %s" % jobparams)
 
             # remove the option from the job parameters
             jobparams = re.sub(_pattern, "", jobparams)
