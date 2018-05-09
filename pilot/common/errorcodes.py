@@ -30,6 +30,7 @@ class ErrorCodes:
     STAGEOUTFAILED = 1137
     PUTMD5MISMATCH = 1141
     GETMD5MISMATCH = 1145
+    TRFDOWNLOADFAILURE = 1149
     LOOPINGJOB = 1150
     STAGEINTIMEOUT = 1151  # called GETTIMEOUT in Pilot 1
     STAGEOUTTIMEOUT = 1152  # called PUTTIMEOUT in Pilot 1
@@ -62,12 +63,13 @@ class ErrorCodes:
         STAGEOUTFAILED: "Failed to stage-out file",
         PUTMD5MISMATCH: "md5sum mismatch on output file",
         GETMD5MISMATCH: "md5sum mismatch on input file",
-        GETADMISMATCH: "adler32 mismatch on input file",
-        PUTADMISMATCH: "adler32 mismatch on output file",
+        TRFDOWNLOADFAILURE: "Transform could not be downloaded",
         LOOPINGJOB: "Looping job killed by pilot",
         STAGEINTIMEOUT: "File transfer timed out during stage-in",
         STAGEOUTTIMEOUT: "File transfer timed out during stage-out",
         NOPROXY: "Grid proxy not valid",
+        GETADMISMATCH: "adler32 mismatch on input file",
+        PUTADMISMATCH: "adler32 mismatch on output file",
         NOVOMSPROXY: "Voms proxy not valid",
         NOTIMPLEMENTED: "The class or function is not implemented",
         UNKNOWNEXCEPTION: "An unknown pilot exception has occurred",

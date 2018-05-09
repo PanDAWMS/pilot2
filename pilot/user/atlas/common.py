@@ -81,6 +81,7 @@ def get_payload_command(job):
             # Try to download the trf
             ec, diagnostics, trf_name = get_analysis_trf(job.transformation)
             if ec != 0:
+                raise NoLocalSpace('testing exception from proceed_with_getjob')
                 pass  #return ec, pilotErrorDiag, "", special_setup_cmd, JEM, cmtconfig
 
         else:
