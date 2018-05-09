@@ -57,6 +57,8 @@ class JobData(BaseData):
 
     is_eventservice = False        # True for event service jobs
 
+    transfertype = ""  # direct access
+
     # set by the pilot (not from job definition)
     fileinfo = {}
     piloterrorcode = 0
@@ -122,7 +124,7 @@ class JobData(BaseData):
                    'outfiles', 'scopeout', 'ddmendpointout',     ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
                    'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload',
-                   'swrelease', 'zipmap', 'imagename'],
+                   'swrelease', 'zipmap', 'imagename', 'transfertype'],
              list: ['piloterrorcodes', 'piloterrordiags'],
              dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
              bool: ['is_eventservice', 'noexecstrcnv']
@@ -162,7 +164,7 @@ class JobData(BaseData):
             ##'??define_internal_key': 'prodDBlocks',
             ##'storage_token': 'prodDBlockToken',
             'ddmendpoint': 'ddmEndPointIn',
-            'transfertype': 'transferType',
+            # 'transfertype': 'transferType',  # if transfertype was defined per file (it currently is not)
         }
 
         ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())
@@ -305,7 +307,6 @@ class JobData(BaseData):
             'destinationdblock': 'destinationDblock',
             'noexecstrcnv': 'noExecStrCnv',
             'swrelease': 'swRelease',
-            'transfertype': 'transferType',
             'jobsetid': 'jobsetID',
             'is_eventservice': 'eventService',  ## is it coming from Job def?? yes (PN)
         }
