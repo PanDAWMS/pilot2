@@ -83,7 +83,14 @@ def get_payload_command(job):
             # Try to download the trf
             ec, diagnostics, trf_name = get_analysis_trf(job.transformation)
             if ec != 0:
-                raise TrfDownloadFailure('transform for user job could not be downloaded')
+                raise TrfDownloadFailure(diagnostics)
+
+            if prepareasetup:
+                ec, diagnostics, _cmd = get_analysis_run_command(job, trf_name)
+                if ec != 0:
+                    pass
+            else:
+                _cmd = job.jobparams
 
         else:
             # Add Database commands if they are set by the local site
@@ -103,6 +110,22 @@ def get_payload_command(job):
         cmd = ""
 
     return cmd
+
+
+def get_analysis_run_command(job, trf_name):
+    """
+    Return the proper run command for the user job.
+
+    :param job: job object.
+    :param trf_name: name of the transform that will run the job (string).
+    :return: exit code (int), diagnostics (string), command (string).
+    """
+
+    exit_code = 0
+    diagnostics = ""
+    cmd = ""
+
+    return exit_code, diagnostics, cmd
 
 
 def update_job_data(job):
