@@ -162,6 +162,7 @@ class JobData(BaseData):
             ##'??define_internal_key': 'prodDBlocks',
             ##'storage_token': 'prodDBlockToken',
             'ddmendpoint': 'ddmEndPointIn',
+            'transfertype': 'transferType',
         }
 
         ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())
@@ -304,6 +305,7 @@ class JobData(BaseData):
             'destinationdblock': 'destinationDblock',
             'noexecstrcnv': 'noExecStrCnv',
             'swrelease': 'swRelease',
+            'transfertype': 'transferType',
             'jobsetid': 'jobsetID',
             'is_eventservice': 'eventService',  ## is it coming from Job def?? yes (PN)
         }
