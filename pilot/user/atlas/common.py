@@ -38,6 +38,8 @@ def get_payload_command(job):
     :return: command (string).
     """
 
+    log = logger.getChild(job.jobid)
+
     # Should the pilot do the asetup or do the jobPars already contain the information?
     prepareasetup = should_pilot_prepare_asetup(job.noexecstrcnv, job.jobparams)
 
@@ -54,7 +56,7 @@ def get_payload_command(job):
     if is_standard_atlas_job(job.swrelease):
 
         # Normal setup (production and user jobs)
-        logger.info("preparing normal production/analysis job setup command")
+        log.info("preparing normal production/analysis job setup command")
 
         cmd = asetuppath
         if prepareasetup:
@@ -105,7 +107,7 @@ def get_payload_command(job):
 
     else:  # Generic, non-ATLAS specific jobs, or at least a job with undefined swRelease
 
-        logger.info("generic job (non-ATLAS specific or with undefined swRelease)")
+        log.info("generic job (non-ATLAS specific or with undefined swRelease)")
 
         cmd = ""
 
@@ -125,8 +127,57 @@ def get_analysis_run_command(job, trf_name):
     diagnostics = ""
     cmd = ""
 
+    log = logger.getChild(job.jobid)
+
     # get relevant file transfer info
-    use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype, is_build_job(job.outfiles), job.infosys.queuedata)
+    use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype,
+                                                                            is_build_job(job.outfiles),
+                                                                            job.infosys.queuedata)
+
+    # add the user proxy
+    if 'X509_USER_PROXY' in os.environ:
+        cmd += 'export X509_USER_PROXY=%s;' % os.environ.get('X509_USER_PROXY')
+    else:
+        log.warning("could not add user proxy to the run command (proxy does not exist)")
+
+    # set up analysis trf
+    cmd += './%s %s' % (trfName, job.jobPars)
+
+    if use_pfc_turl and '--usePFCTurl' not in cmd:
+        cmd += ' --usePFCTurl'
+    if use_direct_access and '--directIn' not in cmd:
+        cmd += ' --directIn'
+    if "accessmode" in cmd and job.transfertype != 'direct':
+        accessmode_usect = None
+        accessmode_directin = None
+        _accessmode_dic = { "--accessmode=copy": ["copy-to-scratch mode", ""],
+                            "--accessmode=direct": ["direct access mode", " --directIn"]}
+
+        # update run_command according to jobPars
+        for _mode in _accessmode_dic.keys():
+            if _mode in job.jobPars:
+                # any accessmode set in jobPars should overrule schedconfig
+                log.info("enforcing %s" % _accessmode_dic[_mode][0])
+                if _mode == "--accessmode=copy":
+                    # make sure direct access is turned off
+                    use_pfc_turl = False
+                    accessmode_usect = True
+                    accessmode_directin = False
+                elif _mode == "--accessmode=direct":
+                    # make sure copy-to-scratch and file stager get turned off
+                    use_pfc_turl = True
+                    accessmode_usect = False
+                    accessmode_directin = True
+                else:
+                    use_pfc_turl = False
+                    accessmode_usect = False
+                    accessmode_directin = False
+
+                # update run_command (do not send the accessmode switch to runAthena)
+                cmd += _accessmode_dic[_mode][1]
+                if _mode in cmd:
+                    cmd = cmd.replace(_mode, "")
+
 
     return exit_code, diagnostics, cmd
 
