@@ -79,8 +79,9 @@ class JobData(BaseData):
     utilities = {}  # utility processes { <name>: [<process handle>, number of launches, command string], .. }
     pid = -1  # payload pid
 
-    overwrite_queuedata = {}  # Custom settings extracted from JobParams (--overwriteQueueData) to be used as master values for `QueueData`
-    zipmap = ""               # ZIP MAP values extracted from JobParams
+    overwrite_queuedata = {}  # Custom settings extracted from job parameters (--overwriteQueueData) to be used as master values for `QueueData`
+    zipmap = ""               # ZIP MAP values extracted from jobparameters
+    imagename = ""            # user defined container image name extracted from job parameters
 
     # from job definition
     attemptnr = 0  # job attempt number
@@ -121,7 +122,7 @@ class JobData(BaseData):
                    'outfiles', 'scopeout', 'ddmendpointout',     ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
                    'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload',
-                   'swrelease', 'zipmap'],
+                   'swrelease', 'zipmap', 'imagename'],
              list: ['piloterrorcodes', 'piloterrordiags'],
              dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
              bool: ['is_eventservice', 'noexecstrcnv']
@@ -371,8 +372,14 @@ class JobData(BaseData):
 
     def clean__jobparams(self, raw, value):
         """
-            Verify and validate value for the jobparams key
-            Extract from jobparams non related to Job options
+        Verify and validate value for the jobparams key
+        Extract value from jobparams not related to job options.
+        The function will in particular extract and remove --overwriteQueueData, ZIP_MAP and --containerimage.
+        It will remove the old Pilot 1 option --overwriteQueuedata which should be replaced with --overwriteQueueData.
+
+        :param raw: (unused).
+        :param value: job parameters (string).
+        :return: updated job parameers (string).
         """
 
         ## clean job params from Pilot1 old-formatted options
@@ -397,7 +404,47 @@ class JobData(BaseData):
         logger.debug('Extracted data from jobparams: zipmap=%s' % self.zipmap)
         logger.debug('Extracted data from jobparams: overwrite_queuedata=%s' % self.overwrite_queuedata)
 
+        # extract and remove any present --containerimage XYZ options
+        ret, imagename = self.extract_container_image(ret)
+        if imagename != "":
+            self.imagename = imagename
+
         return ret
+
+    def extract_container_image(self, jobparams):
+        """
+        Extract the container image from the job parameters if present, and remove it.
+
+        :param jobparams: job parameters (string).
+        :return: updated job parameters (string), extracted image name (string).
+        """
+
+        imagename = ""
+
+        # define regexp pattern for the full container image option
+        _pattern = r'(\ \-\-containerimage\=?\s?[\S]+)'
+        pattern = re.compile(_pattern)
+        full_command = re.findall(pattern, jobparams)
+
+        if full_command and full_command[0] != "":
+
+            imagepattern = re.compile(r'(\ \-\-containerimage\=?\s?([\S]+))')
+            image = re.findall(imagepattern, jobparams)
+            if image and image[0] != "":
+                try:
+                    imagename = image[0][1]
+                except Exception as e:
+                    logger.warning('failed to extract image name: %s' % e)
+                else:
+                    logger.info("extracted image from jobparams: %s" % imagename)
+            else:
+                logger.wa''("image could not be extract from %s" % jobparams)
+
+            # remove the option from the job parameters
+            jobparams = re.sub(_pattern, "", jobparams)
+            logger.info("removed the %s option from job parameters: %s" % (full_command[0], jobparams))
+
+        return jobparams, imagename
 
     @classmethod  # noqa: C901
     def parse_args(self, data, options, remove=False):
