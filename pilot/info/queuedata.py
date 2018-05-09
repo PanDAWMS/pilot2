@@ -57,7 +57,7 @@ class QueueData(BaseData):
     site = None   # ATLAS Site name
 
     direct_access_lan = False
-    direct_access_lan = False
+    direct_access_wan = False
 
     maxwdir = 0    # in MB
 
