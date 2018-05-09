@@ -205,6 +205,14 @@ class NoVomsProxy(PilotException):
         self._errorCode = errors.NOVOMSPROXY
         self._message = errors.get_error_message(self._errorCode)
 
+class TrfDownloadFailure(PilotException):
+    """
+    Transform could not be downloaded.
+    """
+    def __init__(self, *args, **kwargs):
+        super(TRFDOWNLOADFAILURE, self).__init__(args, kwargs)
+        self._errorCode = errors.TRFDOWNLOADFAILURE
+        self._message = errors.get_error_message(self._errorCode)
 
 class ExcThread(threading.Thread):
     """
