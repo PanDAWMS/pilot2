@@ -125,7 +125,52 @@ def get_analysis_run_command(job, trf_name):
     diagnostics = ""
     cmd = ""
 
+    # get relevant file transfer info
+    use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype, is_build_job(job.outfiles), job.infosys.queuedata)
+
     return exit_code, diagnostics, cmd
+
+
+def is_build_job(outfiles):
+    """
+    Check if the job is a build job.
+    (i.e. check if the job only has one output file that is a lib file).
+
+    :param outfiles: list of output files.
+    :return: boolean
+    """
+
+    is_a_build_job = False
+
+    # outfiles only contains a single file for build jobs, the lib file
+    if len(outfiles) == 1:
+        if '.lib.' in outfiles[0]:
+            is_a_build_job = True
+
+    return is_a_build_job
+
+
+def get_file_transfer_info(transfertype, is_a_build_job, queuedata):
+    """
+    Return information about desired file transfer.
+
+    :param transfertype:
+    :param is_a_build_job: boolean.
+    :param queuedata: infosys queuedata object from job object.
+    :return: use copy tool (boolean), use direct access (boolean), use PFC Turl (boolean).
+    """
+
+    use_copy_tool = True
+    use_direct_access = False
+    use_pfc_turl = False
+
+    # check with schedconfig
+    if queuedata.direct_access_lan == True or transfertype == 'direct':
+        use_copy_tool = False
+        use_direct_access = True
+        use_pfc_turl = True
+
+    return use_copy_tool, use_direct_access, use_pfc_turl
 
 
 def update_job_data(job):
