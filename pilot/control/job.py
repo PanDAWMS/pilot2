@@ -669,13 +669,9 @@ def retrieve(queues, traces, args):
                 queues.jobs.put(job)
 
                 jobnumber += 1
-                if args.graceful_stop.is_set():
-                    logger.info('graceful stop is currently set')
-                else:
-                    logger.info('graceful stop is currently not set')
                 while not args.graceful_stop.is_set():
                     if job_has_finished(queues):
-                        logger.info('graceful stop has been set')
+                        logger.info('ready for new job')
                         break
                     time.sleep(0.5)
 
@@ -736,7 +732,7 @@ def job_has_finished(queues):
         pass
     else:
         log = logger.getChild(job.jobid)
-        log.info("job %s has completed - ready for another job" % job.jobid)
+        log.info("job %s has completed" % job.jobid)
         return True
 
     #jobid = os.environ.get('PandaID')
