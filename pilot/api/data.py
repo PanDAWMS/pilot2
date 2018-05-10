@@ -368,6 +368,9 @@ class StageInClient(StagingClient):
             self.logger.debug('Input: %s' % files)
             raise PilotException('Invalid input data for transfer operation')
 
+        if self.infosys:
+            kwargs['copytools'] = self.infosys.queuedata.copytools
+
         return copytool.copy_in(files, **kwargs)
 
 
