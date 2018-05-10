@@ -14,6 +14,7 @@ import errno
 
 from pilot.common.exception import StageInFailure, StageOutFailure
 from pilot.util.container import execute
+from pilot.copytool.common import get_copysetup
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +76,8 @@ def copy_in(files, **kwargs):
     stderr = ""
 
     nretries = kwargs.get('nretries') or 1
+    copytools = kwargs.get('copytools') or []
+    copysetup = get_copysetup(copytools, 'lsm')
 
     for fspec in files:
 
@@ -86,7 +89,7 @@ def copy_in(files, **kwargs):
         logger.info("transferring file %s from %s to %s" % (fspec.lfn, source, destination))
 
         for retry in range(nretries):
-            exit_code, stdout, stderr = move(source, destination, dst_in=True)
+            exit_code, stdout, stderr = move(source, destination, dst_in=True, copysetup=copysetup)
 
             if exit_code != 0:
                 if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or (retry + 1) == nretries:
@@ -176,7 +179,7 @@ def move_all_files_out(files, nretries=1):
     return exit_code, stdout, stderr
 
 
-def move(source, destination, dst_in=True):
+def move(source, destination, dst_in=True, copysetup=""):
     """
     Use lsm-get or lsm-put to transfer the file.
     :param source: path to source (string).
@@ -185,10 +188,14 @@ def move(source, destination, dst_in=True):
     :return: exit code, stdout, stderr
     """
 
-    if dst_in:
-        cmd = "lsm-get %s %s" % (source, destination)
+    if copysetup != "":
+        cmd = 'source %s;' % copysetup
     else:
-        cmd = "lsm-put %s %s" % (source, destination)
+        cmd = ''
+    if dst_in:
+        cmd += "lsm-get %s %s" % (source, destination)
+    else:
+        cmd += "lsm-put %s %s" % (source, destination)
     logger.info("Using copy command: %s" % cmd)
     exit_code, stdout, stderr = execute(cmd)
 
