@@ -51,7 +51,7 @@ def get_copysetup(copytools, copytool_name):
 
     for ct in copytools:
         if copytool_name == ct.get('copytool'):
-               copysetup = ct.get('copysetup')
+            copysetup = ct.get('copysetup')
             break
 
     return copysetup
