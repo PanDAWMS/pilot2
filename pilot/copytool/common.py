@@ -49,9 +49,9 @@ def get_copysetup(copytools, copytool_name):
     """
     copysetup = ""
 
-    for ct in copytools:
-        if copytool_name == ct.get('copytool'):
-            copysetup = ct.get('copysetup')
+    for ct in copytools.keys():
+        if copytool == ct:
+            copysetup = copytools[ct].get('setup')
             break
 
     return copysetup
