@@ -75,7 +75,7 @@ def copy_in(files, **kwargs):
     stdout = ""
     stderr = ""
 
-    nretries = kwargs.get('nretries') or 1
+    #nretries = kwargs.get('nretries') or 1
     copytools = kwargs.get('copytools') or []
     copysetup = get_copysetup(copytools, 'lsm')
 
@@ -88,17 +88,37 @@ def copy_in(files, **kwargs):
 
         logger.info("transferring file %s from %s to %s" % (fspec.lfn, source, destination))
 
-        for retry in range(nretries):
-            exit_code, stdout, stderr = move(source, destination, dst_in=True, copysetup=copysetup)
+        exit_code, stdout, stderr = move(source, destination, dst_in=True, copysetup=copysetup)
 
-            if exit_code != 0:
-                if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or (retry + 1) == nretries:
-                    logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
-                    return exit_code, stdout, stderr
-            else:  # all successful
-                break
+        if exit_code != 0:
+            logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
 
-    return exit_code, stdout, stderr
+            error = resolve_transfer_error(stderr, is_stagein=True)
+            fspec.status = 'failed'
+            fspec.status_code = error.get('exit_code')
+            raise PilotException(error.get('error'), code=error.get('exit_code'), state=error.get('state'))
+
+        fspec.status_code = 0
+        fspec.status = 'transferred'
+
+    return files
+
+
+def resolve_transfer_error(output, is_stagein):
+    """
+        Resolve error code, client state and defined error mesage from the output of transfer command
+        :return: dict {'rcode', 'state, 'error'}
+    """
+
+    ret = {'rcode': ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
+           'state': 'COPY_ERROR', 'error': 'Copy operation failed [is_stagein=%s]: %s' % (is_stagein, output)}
+
+    for line in output.split('\n'):
+        m = re.search("Details\s*:\s*(?P<error>.*)", line)
+        if m:
+            ret['error'] = m.group('error')
+
+    return ret
 
 
 def copy_out(files):

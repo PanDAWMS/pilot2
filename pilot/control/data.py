@@ -171,7 +171,7 @@ def _stage_in(args, job):
     for e in job.indata:
         log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
 
-    log.info("stagein finished")
+    log.info("stage-in finished")
 
     remain_files = [e for e in job.indata if e.status not in ['remote_io', 'transferred', 'no_transfer']]
 
