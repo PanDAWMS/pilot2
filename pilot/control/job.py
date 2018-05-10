@@ -728,21 +728,32 @@ def job_has_finished(queues):
     :return: True is the payload has finished or failed
     """
 
-    jobid = os.environ.get('PandaID')
+    # check if the job has finished
+    try:
+        job = queues.completed_jobs.get(block=True, timeout=1)
+    except Queue.Empty:
+        # logger.info("(job still running)")
+        pass
+    else:
+        log = logger.getChild(job.jobid)
+        log.info("job %s has completed - ready for another job" % job.jobid)
+        return True
+
+    #jobid = os.environ.get('PandaID')
 
     # is there anything in the finished_jobs queue?
-    finished_queue_snapshot = list(queues.finished_jobs.queue)
-    peek = [obj for obj in finished_queue_snapshot if jobid == obj.jobid]
-    if peek:
-        logger.info("job %s has completed (finished)" % jobid)
-        return True
+    #finished_queue_snapshot = list(queues.finished_jobs.queue)
+    #peek = [obj for obj in finished_queue_snapshot if jobid == obj.jobid]
+    #if peek:
+    #    logger.info("job %s has completed (finished)" % jobid)
+    #    return True
 
     # is there anything in the failed_jobs queue?
-    failed_queue_snapshot = list(queues.failed_jobs.queue)
-    peek = [obj for obj in failed_queue_snapshot if jobid == obj.jobid]
-    if peek:
-        logger.info("job %s has completed (failed)" % jobid)
-        return True
+    #failed_queue_snapshot = list(queues.failed_jobs.queue)
+    #peek = [obj for obj in failed_queue_snapshot if jobid == obj.jobid]
+    #if peek:
+    #    logger.info("job %s has completed (failed)" % jobid)
+    #    return True
 
     return False
 
@@ -795,15 +806,16 @@ def queue_monitor(queues, traces, args):
             else:
                 send_state(job, args, job.state)
 
-            # we can now stop monitoring this job, so remove it from the monitored_payloads queue
+            # we can now stop monitoring this job, so remove it from the monitored_payloads queue and add it to the
+            # completed_jobs queue which will tell retrieve() that it can download another job
             try:
                 _job = queues.monitored_payloads.get(block=True, timeout=1)
             except Queue.Empty:
                 logger.warning('failed to dequeue job: queue is empty (did job fail before job monitor started?)')
             else:
                 logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
-
             # now ready for the next job (or quit)
+            queues.completed_jobs.put(_job)
 
 
 def job_monitor(queues, traces, args):
