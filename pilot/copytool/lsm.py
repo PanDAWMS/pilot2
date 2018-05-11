@@ -11,6 +11,7 @@
 import os
 import logging
 import errno
+import re
 
 from pilot.common.exception import StageInFailure, StageOutFailure, PilotException, ErrorCodes
 from pilot.util.container import execute
