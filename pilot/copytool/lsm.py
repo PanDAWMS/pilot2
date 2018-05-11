@@ -211,7 +211,7 @@ def move(source, destination, dst_in=True, copysetup=""):
     :return: exit code, stdout, stderr
     """
 
-    copysetup = '/osg/mwt2/app/atlas_app/atlaswn/setup.sh'
+    # copysetup = '/osg/mwt2/app/atlas_app/atlaswn/setup.sh'
     if copysetup != "":
         cmd = 'source %s;' % copysetup
     else:
