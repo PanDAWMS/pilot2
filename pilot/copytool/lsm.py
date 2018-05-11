@@ -211,18 +211,17 @@ def move(source, destination, dst_in=True, copysetup=""):
     :return: exit code, stdout, stderr
     """
 
-    copysetup = ''
     if copysetup != "":
         cmd = 'source %s;' % copysetup
     else:
         cmd = ''
     if dst_in:
-        cmd += "lsm-get %s %s" % (source, destination)
+        cmd += "which lsm-get;lsm-get %s %s" % (source, destination)
     else:
         cmd += "lsm-put %s %s" % (source, destination)
     logger.info("Using copy command: %s" % cmd)
     exit_code, stdout, stderr = execute(cmd)
-
+    logger.info('stdout=%s'%stdout)
     return exit_code, stdout, stderr
 
 
