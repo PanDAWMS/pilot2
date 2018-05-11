@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 require_replicas = True  ## indicate if given copytool requires input replicas to be resolved
 
+allowed_schemas = ['srm']  # prioritized list of supported schemas for transfers by given copytool
+
 
 def is_valid_for_copy_in(files):
     return True  ## FIX ME LATER
