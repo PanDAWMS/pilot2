@@ -216,7 +216,7 @@ def move(source, destination, dst_in=True, copysetup=""):
     else:
         cmd = ''
     if dst_in:
-        cmd += "which lsm-get;source /osg/mwt2/app/atlas_app/atlaswn/setup.sh;lsm-get %s %s" % (source, destination)
+        cmd += "lsm-get %s %s" % (source, destination)
     else:
         cmd += "lsm-put %s %s" % (source, destination)
     logger.info("Using copy command: %s" % cmd)
