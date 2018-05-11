@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 require_replicas = True  ## indicate if given copytool requires input replicas to be resolved
 
-allowed_schemas = ['srm']  # prioritized list of supported schemas for transfers by given copytool
+allowed_schemas = ['srm', 'gsiftp', 'root']  # prioritized list of supported schemas for transfers by given copytool
 
 
 def is_valid_for_copy_in(files):
@@ -211,6 +211,7 @@ def move(source, destination, dst_in=True, copysetup=""):
     :return: exit code, stdout, stderr
     """
 
+    copysetup = ''
     if copysetup != "":
         cmd = 'source %s;' % copysetup
     else:
