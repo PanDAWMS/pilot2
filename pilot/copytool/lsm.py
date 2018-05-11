@@ -12,7 +12,7 @@ import os
 import logging
 import errno
 
-from pilot.common.exception import StageInFailure, StageOutFailure, PilotException
+from pilot.common.exception import StageInFailure, StageOutFailure, PilotException, ErrorCodes
 from pilot.util.container import execute
 from pilot.copytool.common import get_copysetup
 
