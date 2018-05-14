@@ -13,6 +13,8 @@ import Queue
 import os
 import sys
 import time
+import hashlib
+
 from json import dumps
 
 from pilot.info import infosys, JobData
@@ -599,17 +601,27 @@ def get_fake_job():
 
     res = None
 
+    # create hashes
+    hash = hashlib.md5()
+    hash.update(str(time.time()))
+    log_guid = hash.hexdigest()
+    hash.update(str(time.time()))
+    guid = hash.hexdigest()
+    hash.update(str(time.time()))
+    job_name = hash.hexdigest()
+
     if config.Pilot.testjobtype == 'production':
+        logger.info('creating fake test production job definition')
         res = {u'jobsetID': u'NULL',
-               u'logGUID': u'8749c78d-53c8-4049-b94a-58172d8fa8a6',
+               u'logGUID': log_guid,
                u'cmtConfig': u'x86_64-slc6-gcc48-opt',
                u'prodDBlocks': u'user.mlassnig:user.mlassnig.pilot.test.single.hits',
                u'dispatchDBlockTokenForOut': u'NULL,NULL',
                u'destinationDBlockToken': u'NULL,NULL',
                u'destinationSE': u'AGLT2_TEST',
-               u'realDatasets': u'panda.destDB.c03438e4-79d2-44ea-aafc-a603030aee9b,panda.destDB.c03438e4-79d2-44ea-aafc-a603030aee9b',
+               u'realDatasets': job_name,
                u'prodUserID': u'no_one',
-               u'GUID': u'AC5B3759-B606-BA42-8681-4BD86455AE02',
+               u'GUID': guid,
                u'realDatasetsIn': u'user.mlassnig:user.mlassnig.pilot.test.single.hits',
                u'nSent': 0,
                u'cloud': u'US',
@@ -630,14 +642,14 @@ def get_fake_job():
                u'coreCount': 1,
                u'prodDBlockToken': u'NULL',
                u'transferType': u'NULL',
-               u'destinationDblock': u'panda.destDB.c03438e4-79d2-44ea-aafc-a603030aee9b_sub05321710,panda.destDB.c03438e4-79d2-44ea-aafc-a603030aee9b_sub05321710',
+               u'destinationDblock': job_name,
                u'dispatchDBlockToken': u'NULL',
-               u'jobPars': u'--maxEvents=1 --inputHITSFile HITS.06828093._000096.pool.root.1 --outputRDOFile RDO_fd2cb064-ff6e-4988-8a5b-bae01edcf44f.root',
+               u'jobPars': u'--maxEvents=1 --inputHITSFile HITS.06828093._000096.pool.root.1 --outputRDOFile RDO_%s.root' % job_name,
                u'attemptNr': 0,
                u'swRelease': u'Atlas-20.1.4',
                u'nucleus': u'NULL',
                u'maxCpuCount': 0,
-               u'outFiles': u'RDO_fd2cb064-ff6e-4988-8a5b-bae01edcf44f.root,4ab86f7b-1dbd-4d39-804e-903bb408557e_1.job.log.tgz',
+               u'outFiles': u'RDO_%s.root,%s.job.log.tgz' % (job_name, job_name),
                u'currentPriority': 1000,
                u'scopeIn': u'mc15_13TeV',
                u'PandaID': 0,
@@ -645,14 +657,21 @@ def get_fake_job():
                u'dispatchDblock': u'NULL',
                u'prodSourceLabel': u'ptest',
                u'checksum': u'ad:5d000974',
-               u'jobName': u'4ab86f7b-1dbd-4d39-804e-903bb408557e_1',
+               u'jobName': job_name,
                u'ddmEndPointIn': u'UTA_SWT2_DATADISK',
                u'taskID': u'NULL',
-               u'logFile': u'4ab86f7b-1dbd-4d39-804e-903bb408557e_1.job.log.tgz'}
+               u'logFile': u'%s.job.log.tgz' % job_name}
     elif config.Pilot.testjobtype == 'user':
-        pass
+        logger.info('creating fake test production job definition')
+        logger.warning('not implemented yet')
     else:
         logger.warning('unknown test job type: %s' % config.Pilot.testjobtype)
+
+    if res:
+        if config.Pilot.testtransfertype == "NULL" or config.Pilot.testtransfertype == 'direct':
+            res['transferType'] = config.Pilot.testtransfertype
+        else:
+            logger.warning('unknown test transfer type: %s (ignored)' % config.Pilot.testtransfertype)
 
     return res
 
