@@ -517,14 +517,15 @@ def _stage_out_all(job, args):
 
     # proceed with log transfer
     # consider only 1st available log file
-    logfile = job.logdata[0]
-    key = '%s:%s' % (logfile.scope, logfile.lfn)
-    outputs[key] = prepare_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, args.queue))
+    if job.logdata:
+        logfile = job.logdata[0]
+        key = '%s:%s' % (logfile.scope, logfile.lfn)
+        outputs[key] = prepare_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, args.queue))
 
-    status = single_stage_out(args, job, outputs[key], fileinfodict)
-    if not status:
-        failed = True
-        log.warning('log transfer failed')
+        status = single_stage_out(args, job, outputs[key], fileinfodict)
+        if not status:
+            failed = True
+            log.warning('log transfer failed')
 
     job.fileinfo = fileinfodict
     if failed:
