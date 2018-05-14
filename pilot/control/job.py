@@ -572,7 +572,12 @@ def get_job_definition(args):
     res = {}
 
     path = os.path.join(os.environ['PILOT_HOME'], config.Pilot.pandajobdata)
-    if os.path.exists(path):
+
+    # should we run a norma 'real' job or with a 'fake' job?
+    if config.Pilot.pandajob == 'fake':
+        logger.info('will use a fake PanDA job')
+        res = get_fake_job()
+    elif os.path.exists(path):
         logger.info('will read job definition from file %s' % path)
         res = get_job_definition_from_file(path)
     else:
@@ -583,6 +588,16 @@ def get_job_definition(args):
             res = get_job_definition_from_server(args)
 
     return res
+
+
+def get_fake_job():
+    """
+    Return a job definition for internal pilot testing.
+
+    :return: job definition (dictionary).
+    """
+
+    return None
 
 
 def get_job_retrieval_delay(harvester):
@@ -637,6 +652,7 @@ def retrieve(queues, traces, args):
 
         # get a job definition from a source (file or server)
         res = get_job_definition(args)
+        logger.info('res = %s' % str(res))
 
         if res is None:
             logger.fatal('fatal error in job download loop - cannot continue')
