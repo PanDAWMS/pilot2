@@ -86,11 +86,15 @@ def get_payload_command(job):
             ec, diagnostics, trf_name = get_analysis_trf(job.transformation)
             if ec != 0:
                 raise TrfDownloadFailure(diagnostics)
+            else:
+                log.info('user analysis trf: %s' % trf_name)
 
             if prepareasetup:
                 ec, diagnostics, _cmd = get_analysis_run_command(job, trf_name)
                 if ec != 0:
                     pass
+                else:
+                    log.info('user analysis run command: %s' % _cmd)
             else:
                 _cmd = job.jobparams
 
