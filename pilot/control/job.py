@@ -676,6 +676,9 @@ def get_fake_job():
         else:
             logger.warning('unknown test transfer type: %s (ignored)' % config.Pilot.testtransfertype)
 
+        if config.Pilot.testjobcommand == 'sleep':
+            res['transformation'] = 'sleep'
+            res['jobPars'] = '1'
     return res
 
 
