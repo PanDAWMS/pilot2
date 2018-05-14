@@ -679,6 +679,8 @@ def get_fake_job():
         if config.Pilot.testjobcommand == 'sleep':
             res['transformation'] = 'sleep'
             res['jobPars'] = '1'
+            res['inFiles'] = ''
+            res['outFiles'] = ''
     return res
 
 
