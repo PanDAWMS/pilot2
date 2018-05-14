@@ -171,9 +171,9 @@ def send_state(job, args, state, xml=None):
 
                 log.info('server updateJob request completed for job %s' % job.jobid)
                 return True
-            else:
-                log.info('skipping job update for fake test job')
-                return True
+        else:
+            log.info('skipping job update for fake test job')
+            return True
     except Exception as e:
         log.warning('while setting job state, Exception caught: %s' % str(e.message))
         pass
