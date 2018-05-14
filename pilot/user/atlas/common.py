@@ -145,7 +145,7 @@ def get_analysis_run_command(job, trf_name):
         log.warning("could not add user proxy to the run command (proxy does not exist)")
 
     # set up analysis trf
-    cmd += './%s %s' % (trfName, job.jobPars)
+    cmd += './%s %s' % (trf_name, job.jobparams)
 
     if use_pfc_turl and '--usePFCTurl' not in cmd:
         cmd += ' --usePFCTurl'
