@@ -173,6 +173,7 @@ def send_state(job, args, state, xml=None):
                 return True
             else:
                 log.info('skipping job update for fake test job')
+                return True
     except Exception as e:
         log.warning('while setting job state, Exception caught: %s' % str(e.message))
         pass
@@ -656,7 +657,7 @@ def get_fake_job():
                u'outFiles': u'RDO_%s.root,%s.job.log.tgz' % (job_name, job_name),
                u'currentPriority': 1000,
                u'scopeIn': u'mc15_13TeV',
-               u'PandaID': 0,
+               u'PandaID': '0',
                u'sourceSite': u'NULL',
                u'dispatchDblock': u'NULL',
                u'prodSourceLabel': u'ptest',
@@ -707,7 +708,7 @@ def get_fake_job():
                u'outFiles': u'%s.root,%s.job.log.tgz' % (job_name, job_name),
                u'currentPriority': u'1000',
                u'scopeIn': u'data15_13TeV',
-               u'PandaID': u'3917668284',
+               u'PandaID': u'0',
                u'sourceSite': u'NULL',
                u'dispatchDblock': u'data15_13TeV:data15_13TeV.00276336.physics_Main.merge.AOD.r7562_p2521_tid07709524_00',
                u'prodSourceLabel': u'ptest',
