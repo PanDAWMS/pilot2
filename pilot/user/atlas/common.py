@@ -8,6 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import os
+import re
 import fnmatch
 from collections import defaultdict
 from glob import glob
@@ -182,8 +183,83 @@ def get_analysis_run_command(job, trf_name):
                 if _mode in cmd:
                     cmd = cmd.replace(_mode, "")
 
+        if "directIn" in cmd:
+            if not use_pfc_turl:
+                use_pfc_turl = True
+            if not "usePFCTurl" in cmd:
+                cmd += ' --usePFCTurl'
+
+        # need to add proxy if not there already
+        if "--directIn" in cmd and not "export X509_USER_PROXY" in cmd:
+            if 'X509_USER_PROXY' in os.environ:
+                cmd = cmd.replace("./%s" % trf_name, "export X509_USER_PROXY=%s;./%s" %
+                                  (os.environ.get('X509_USER_PROXY'), trf_name))
+
+    # add guids when needed
+    # get the correct guids list (with only the direct access files)
+    if not is_build_job(job.outfiles):
+        _guids = get_guids_from_jobparams(job.jobparams, job.infiles, job.infilesguids)
+        cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
+
+    # if both direct access and the accessmode loop added a directIn switch, remove the first one from the string
+    if cmd.count("directIn") > 1:
+        cmd = cmd.replace("--directIn", "", 1)
 
     return exit_code, diagnostics, cmd
+
+
+def get_guids_from_jobparams(jobparams, infiles, infilesguids):
+    """
+    Extract the correct guid from the input file list.
+    The guids list is used for direct reading.
+    1. extract input file list for direct reading from job parameters
+    2. for each input file in this list, find the corresponding guid from the input file guid list
+    Since the job parameters string is entered by a human, the order of the input files might not be the same.
+
+    :param jobparams: job parameters.
+    :param infiles: input file list.
+    :param infilesguids: input file guids list.
+    :return: guids list.
+    """
+
+    guidlist = []
+    jobparams = jobparams.replace("'","")
+    jobparams = jobparams.replace(", ",",")
+
+    pattern = re.compile(r'\-i \"\[([A-Za-z0-9.,_-]+)\]\"')
+    directreadinginputfiles = re.findall(pattern, jobparams)
+    _infiles = []
+    if directreadinginputfiles != []:
+        _infiles = directreadinginputfiles[0].split(",")
+    else:
+        match = re.search("-i ([A-Za-z0-9.\[\],_-]+) ", jobparams)
+        if match != None:
+            compactinfiles = match.group(1)
+            match = re.search('(.*)\[(.+)\](.*)\[(.+)\]', compactinfiles)
+            if match != None:
+                infiles = []
+                head = match.group(1)
+                tail = match.group(3)
+                body = match.group(2).split(',')
+                attr = match.group(4).split(',')
+                for idx in range(len(body)):
+                    lfn = '%s%s%s%s' % (head, body[idx], tail, attr[idx])
+                    infiles.append(lfn)
+            else:
+                infiles = [compactinfiles]
+
+    if _infiles != []:
+        for infile in _infiles:
+            # get the corresponding index from the inputFiles list, which has the same order as infilesguids
+            try:
+                index = infiles.index(infile)
+            except Exception as e:
+                tolog("!!WARNING!!2999!! Exception caught: %s (direct reading will fail)" % e)
+            else:
+                # add the corresponding guid to the list
+                guidlist.append(infilesguids[index])
+
+    return guidlist
 
 
 def is_build_job(outfiles):
