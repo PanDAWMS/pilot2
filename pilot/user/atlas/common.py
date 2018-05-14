@@ -159,7 +159,7 @@ def get_analysis_run_command(job, trf_name):
 
         # update run_command according to jobPars
         for _mode in _accessmode_dic.keys():
-            if _mode in job.jobPars:
+            if _mode in job.jobparams:
                 # any accessmode set in jobPars should overrule schedconfig
                 log.info("enforcing %s" % _accessmode_dic[_mode][0])
                 if _mode == "--accessmode=copy":
