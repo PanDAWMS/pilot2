@@ -598,6 +598,7 @@ def get_job_definition(args):
 def get_fake_job():
     """
     Return a job definition for internal pilot testing.
+    Note: this function is only used for testing purposes. The job definitions below are ATLAS specific.
 
     :return: job definition (dictionary).
     """
