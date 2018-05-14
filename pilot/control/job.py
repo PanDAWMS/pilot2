@@ -165,11 +165,14 @@ def send_state(job, args, state, xml=None):
         # cmd = args.url + ':' + str(args.port) + 'server/panda/updateJob'
         # if https.request(cmd, data=data) is not None:
 
-        if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=config.Pilot.pandaserver),
-                         data=data) is not None:
+        if config.Pilot.pandajob == 'real':
+            if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=config.Pilot.pandaserver),
+                             data=data) is not None:
 
-            log.info('server updateJob request completed for job %s' % job.jobid)
-            return True
+                log.info('server updateJob request completed for job %s' % job.jobid)
+                return True
+            else:
+                log.info('skipping job update for fake test job')
     except Exception as e:
         log.warning('while setting job state, Exception caught: %s' % str(e.message))
         pass
