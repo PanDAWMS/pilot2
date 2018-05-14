@@ -80,7 +80,7 @@ def get_payload_command(job):
 
         if userjob:
             # set the INDS env variable (used by runAthena)
-            set_inds(job.dataset)  # realDatasetsIn
+            set_inds(job.datasetin)  # realDatasetsIn
 
             # Try to download the trf
             ec, diagnostics, trf_name = get_analysis_trf(job.transformation)
