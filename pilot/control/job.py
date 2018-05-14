@@ -666,7 +666,7 @@ def get_fake_job():
                u'taskID': u'NULL',
                u'logFile': u'%s.job.log.tgz' % job_name}
     elif config.Pilot.testjobtype == 'user':
-        logger.info('creating fake test production job definition')
+        logger.info('creating fake test user job definition')
         res = {u'jobsetID': u'NULL',
                u'logGUID': log_guid,
                u'cmtConfig': u'x86_64-slc6-gcc49-opt',
@@ -680,7 +680,7 @@ def get_fake_job():
                u'realDatasetsIn': u'data15_13TeV:data15_13TeV.00276336.physics_Main.merge.AOD.r7562_p2521_tid07709524_00',
                u'nSent': u'0',
                u'cloud': u'US',
-               u'StatusCode': u'0',
+               u'StatusCode': 0,
                u'homepackage': u'AnalysisTransforms-AtlasDerivation_20.7.6.4',
                u'inFiles': u'AOD.07709524._000050.pool.root.1',
                u'processingType': u'pilot-ptest',
