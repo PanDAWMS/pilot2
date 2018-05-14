@@ -99,6 +99,8 @@ def get_payload_command(job):
             else:
                 _cmd = job.jobparams
 
+            # Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
+            cmd += "; " + add_makeflags(job.corecount, "") + _cmd
         else:
             # Add Database commands if they are set by the local site
             cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
@@ -117,6 +119,31 @@ def get_payload_command(job):
         cmd = ""
 
     return cmd
+
+
+def add_makeflags(jobCoreCount, cmd2):
+    """ Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make) """
+
+    # ATHENA_PROC_NUMBER is set in Node.py using the schedconfig value
+    try:
+        coreCount = int(os.environ['ATHENA_PROC_NUMBER'])
+    except:
+        coreCount = -1
+    if coreCount == -1:
+        try:
+            coreCount = int(jobCoreCount)
+        except:
+            pass
+        else:
+            if coreCount >= 1:
+                # Note: the original request (AF) was to use j%d and not -j%d, now using the latter
+                cmd2 += 'export MAKEFLAGS="-j%d QUICK=1 -l1";' % (coreCount)
+                tolog("Added multi-core support to cmd2: %s" % (cmd2))
+    # make sure that MAKEFLAGS is always set
+    if not "MAKEFLAGS=" in cmd2:
+        cmd2 += 'export MAKEFLAGS="-j1 QUICK=1 -l1";'
+
+    return cmd2
 
 
 def get_analysis_run_command(job, trf_name):
