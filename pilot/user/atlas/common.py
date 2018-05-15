@@ -121,29 +121,35 @@ def get_payload_command(job):
     return cmd
 
 
-def add_makeflags(jobCoreCount, cmd2):
-    """ Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make) """
+def add_makeflags(job_core_count, cmd):
+    """
+    Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make).
+
+    :param job_core_count: core count from the job definition (int).
+    :param cmd: payload execution command (string).
+    :return: updated payload execution command (string).
+    """
 
     # ATHENA_PROC_NUMBER is set in Node.py using the schedconfig value
     try:
-        coreCount = int(os.environ['ATHENA_PROC_NUMBER'])
+        core_count = int(os.environ.get('ATHENA_PROC_NUMBER'))
     except:
-        coreCount = -1
-    if coreCount == -1:
+        core_count = -1
+    if core_count == -1:
         try:
-            coreCount = int(jobCoreCount)
+            core_count = int(job_core_count)
         except:
             pass
         else:
-            if coreCount >= 1:
+            if core_count >= 1:
                 # Note: the original request (AF) was to use j%d and not -j%d, now using the latter
-                cmd2 += 'export MAKEFLAGS="-j%d QUICK=1 -l1";' % (coreCount)
-                tolog("Added multi-core support to cmd2: %s" % (cmd2))
-    # make sure that MAKEFLAGS is always set
-    if not "MAKEFLAGS=" in cmd2:
-        cmd2 += 'export MAKEFLAGS="-j1 QUICK=1 -l1";'
+                cmd += 'export MAKEFLAGS="-j%d QUICK=1 -l1";' % (core_count)
 
-    return cmd2
+    # make sure that MAKEFLAGS is always set
+    if "MAKEFLAGS=" not in cmd:
+        cmd += 'export MAKEFLAGS="-j1 QUICK=1 -l1";'
+
+    return cmd
 
 
 def get_analysis_run_command(job, trf_name):
