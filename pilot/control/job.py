@@ -197,9 +197,6 @@ def validate(queues, traces, args):
             job = queues.jobs.get(block=True, timeout=1)
         except Queue.Empty:
             continue
-        except Exception as e:
-            logger.warning('unexpected exception: %s' % e)
-            continue
 
         log = logger.getChild(job.jobid)
         traces.pilot['nr_jobs'] += 1

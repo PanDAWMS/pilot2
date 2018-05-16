@@ -7,6 +7,7 @@
 # Authors:
 # - Pavlo Svirin, pavlo.svirin@cern.ch, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 import os
 import logging
@@ -26,10 +27,10 @@ allowed_schemas = ['srm', 'gsiftp', 'root']  # prioritized list of supported sch
 
 def is_valid_for_copy_in(files):
     return True  ## FIX ME LATER
-    for f in files:
-        if not all(key in f for key in ('name', 'source', 'destination')):
-            return False
-    return True
+    #for f in files:
+    #    if not all(key in f for key in ('name', 'source', 'destination')):
+    #        return False
+    #return True
 
 
 def is_valid_for_copy_out(files):
