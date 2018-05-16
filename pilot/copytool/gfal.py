@@ -7,6 +7,7 @@
 # Authors:
 # - Pavlo Svirin, pavlo.svirin@cern.ch, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 import os
 import logging
@@ -24,17 +25,18 @@ allowed_schemas = ['srm', 'gsiftp', 'https', 'davs']  # prioritized list of supp
 
 def is_valid_for_copy_in(files):
     return True  ## FIX ME LATER
-    for f in files:
-        if not all(key in f for key in ('name', 'source', 'destination')):
-            return False
-    return True
+    #for f in files:
+    #    if not all(key in f for key in ('name', 'source', 'destination')):
+    #        return False
+    #return True
 
 
 def is_valid_for_copy_out(files):
-    for f in files:
-        if not all(key in f for key in ('name', 'source', 'destination')):
-            return False
-    return True
+    return True  ## FIX ME LATER
+    #for f in files:
+    #    if not all(key in f for key in ('name', 'source', 'destination')):
+    #        return False
+    #return True
 
 
 def get_timeout(filesize):   ## ISOLATE ME LATER
@@ -106,7 +108,7 @@ def resolve_transfer_error(output, is_stagein):
     if "timeout" in output:
         ret['rcode'] = ErrorCodes.STAGEINTIMEOUT if is_stagein else ErrorCodes.STAGEOUTTIMEOUT
         ret['state'] = 'CP_TIMEOUT'
-        ret['error'] = 'Copy command timed out: %s' % output
+        ret['error'] = 'copy command timed out: %s' % output
     elif "does not match the checksum" in output:
         if 'adler32' in output:
             state = 'AD_MISMATCH'
@@ -129,7 +131,7 @@ def copy_out(files):
     """
 
     if not check_for_gfal():
-        raise StageOutFailure("No GFAL2 tools found")
+        raise StageOutFailure("no GFAL2 tools found")
 
     exit_code, stdout, stderr = move_all_files_out(files)
     if exit_code != 0:
