@@ -700,7 +700,12 @@ def get_fake_job():
                u'transferType': u'NULL',
                u'destinationDblock': job_name,
                u'dispatchDBlockToken': u'NULL',
-               u'jobPars': u'-a sources.20115461.derivation.tgz -r ./ -j "Reco_tf.py --inputAODFile AOD.07709524._000050.pool.root.1 --outputDAODFile test.pool.root --reductionConf HIGG3D1" -i "[\'AOD.07709524._000050.pool.root.1\']" -m "[]" -n "[]" --trf --useLocalIO --accessmode=copy -o "{\'IROOT\': [(\'DAOD_HIGG3D1.test.pool.root\', \'%s.root\')]}"  --sourceURL https://aipanda012.cern.ch:25443' % (job_name),
+               u'jobPars': u'-a sources.20115461.derivation.tgz -r ./ -j "Reco_tf.py '
+                           u'--inputAODFile AOD.07709524._000050.pool.root.1 --outputDAODFile test.pool.root '
+                           u'--reductionConf HIGG3D1" -i "[\'AOD.07709524._000050.pool.root.1\']" -m "[]" -n "[]" --trf'
+                           u' --useLocalIO --accessmode=copy -o '
+                           u'"{\'IROOT\': [(\'DAOD_HIGG3D1.test.pool.root\', \'%s.root\')]}" '
+                           u'--sourceURL https://aipanda012.cern.ch:25443' % (job_name),
                u'attemptNr': u'0',
                u'swRelease': u'Atlas-20.7.6',
                u'nucleus': u'NULL',
