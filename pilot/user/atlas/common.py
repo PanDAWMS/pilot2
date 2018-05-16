@@ -133,12 +133,12 @@ def add_makeflags(job_core_count, cmd):
     # ATHENA_PROC_NUMBER is set in Node.py using the schedconfig value
     try:
         core_count = int(os.environ.get('ATHENA_PROC_NUMBER'))
-    except:
+    except Exception:
         core_count = -1
     if core_count == -1:
         try:
             core_count = int(job_core_count)
-        except:
+        except Exception:
             pass
         else:
             if core_count >= 1:
@@ -186,10 +186,10 @@ def get_analysis_run_command(job, trf_name):
     if use_direct_access and '--directIn' not in cmd:
         cmd += ' --directIn'
     if "accessmode" in cmd and job.transfertype != 'direct':
-        accessmode_usect = None
-        accessmode_directin = None
-        _accessmode_dic = { "--accessmode=copy": ["copy-to-scratch mode", ""],
-                            "--accessmode=direct": ["direct access mode", " --directIn"]}
+        #accessmode_usect = None
+        #accessmode_directin = None
+        _accessmode_dic = {"--accessmode=copy": ["copy-to-scratch mode", ""],
+                           "--accessmode=direct": ["direct access mode", " --directIn"]}
 
         # update run_command according to jobPars
         for _mode in _accessmode_dic.keys():
@@ -199,17 +199,17 @@ def get_analysis_run_command(job, trf_name):
                 if _mode == "--accessmode=copy":
                     # make sure direct access is turned off
                     use_pfc_turl = False
-                    accessmode_usect = True
-                    accessmode_directin = False
+                    #accessmode_usect = True
+                    #accessmode_directin = False
                 elif _mode == "--accessmode=direct":
                     # make sure copy-to-scratch and file stager get turned off
                     use_pfc_turl = True
-                    accessmode_usect = False
-                    accessmode_directin = True
+                    #accessmode_usect = False
+                    #accessmode_directin = True
                 else:
                     use_pfc_turl = False
-                    accessmode_usect = False
-                    accessmode_directin = False
+                    #accessmode_usect = False
+                    #accessmode_directin = False
 
                 # update run_command (do not send the accessmode switch to runAthena)
                 cmd += _accessmode_dic[_mode][1]
@@ -218,12 +218,12 @@ def get_analysis_run_command(job, trf_name):
 
         if "directIn" in cmd:
             if not use_pfc_turl:
-                use_pfc_turl = True
-            if not "usePFCTurl" in cmd:
+                use_pfc_turl = True  # not used
+            if "usePFCTurl" not in cmd:
                 cmd += ' --usePFCTurl'
 
         # need to add proxy if not there already
-        if "--directIn" in cmd and not "export X509_USER_PROXY" in cmd:
+        if "--directIn" in cmd and "export X509_USER_PROXY" not in cmd:
             if 'X509_USER_PROXY' in os.environ:
                 cmd = cmd.replace("./%s" % trf_name, "export X509_USER_PROXY=%s;./%s" %
                                   (os.environ.get('X509_USER_PROXY'), trf_name))
@@ -256,8 +256,8 @@ def get_guids_from_jobparams(jobparams, infiles, infilesguids):
     """
 
     guidlist = []
-    jobparams = jobparams.replace("'","")
-    jobparams = jobparams.replace(", ",",")
+    jobparams = jobparams.replace("'", "")
+    jobparams = jobparams.replace(", ", ",")
 
     pattern = re.compile(r'\-i \"\[([A-Za-z0-9.,_-]+)\]\"')
     directreadinginputfiles = re.findall(pattern, jobparams)
@@ -266,10 +266,10 @@ def get_guids_from_jobparams(jobparams, infiles, infilesguids):
         _infiles = directreadinginputfiles[0].split(",")
     else:
         match = re.search("-i ([A-Za-z0-9.\[\],_-]+) ", jobparams)
-        if match != None:
+        if match is not None:
             compactinfiles = match.group(1)
             match = re.search('(.*)\[(.+)\](.*)\[(.+)\]', compactinfiles)
-            if match != None:
+            if match is not None:
                 infiles = []
                 head = match.group(1)
                 tail = match.group(3)
@@ -287,7 +287,7 @@ def get_guids_from_jobparams(jobparams, infiles, infilesguids):
             try:
                 index = infiles.index(infile)
             except Exception as e:
-                tolog("!!WARNING!!2999!! Exception caught: %s (direct reading will fail)" % e)
+                logger.warning("exception caught: %s (direct reading will fail)" % e)
             else:
                 # add the corresponding guid to the list
                 guidlist.append(infilesguids[index])
@@ -329,7 +329,7 @@ def get_file_transfer_info(transfertype, is_a_build_job, queuedata):
     use_pfc_turl = False
 
     # check with schedconfig
-    if queuedata.direct_access_lan == True or transfertype == 'direct':
+    if queuedata.direct_access_lan or transfertype == 'direct':
         use_copy_tool = False
         use_direct_access = True
         use_pfc_turl = True

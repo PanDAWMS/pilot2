@@ -86,7 +86,7 @@ def copy_in(files, **kwargs):
     for fspec in files:
 
         dst = fspec.workdir or kwargs.get('workdir') or '.'
-        timeout = get_timeout(fspec.filesize)
+        #timeout = get_timeout(fspec.filesize)
         source = fspec.turl
         destination = os.path.join(dst, fspec.lfn)
 
@@ -221,9 +221,10 @@ def move(source, destination, dst_in=True, copysetup=""):
         cmd += "which lsm-get;lsm-get %s %s" % (source, destination)
     else:
         cmd += "lsm-put %s %s" % (source, destination)
+
     logger.info("Using copy command: %s" % cmd)
     exit_code, stdout, stderr = execute(cmd)
-    logger.info('stdout=%s'%stdout)
+
     return exit_code, stdout, stderr
 
 
