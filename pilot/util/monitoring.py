@@ -14,6 +14,7 @@ import time
 from subprocess import PIPE
 
 from pilot.common.errorcodes import ErrorCodes
+from pilot.util.auxiliary import set_time_consumed
 from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.parameters import convert_to_int
@@ -41,6 +42,13 @@ def job_monitor_tasks(job, mt, verify_proxy):
     log = logger.getChild(job.jobid)
     current_time = int(time.time())
 
+    # update timing info
+    job.t1 = os.times()
+    t = map(lambda x, y: x - y, job.t1, job.t0)
+    job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconversionfactor = set_time_consumed(t)
+    log.info('current CPU consumption time: %s' % job.cpuconsumptiontime)
+
+    set_time_consumed
     # should the proxy be verified?
     if verify_proxy:
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
