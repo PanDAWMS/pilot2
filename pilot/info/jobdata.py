@@ -81,6 +81,10 @@ class JobData(BaseData):
     utilities = {}  # utility processes { <name>: [<process handle>, number of launches, command string], .. }
     pid = -1  # payload pid
 
+    # time variables used for on-the-fly cpu consumption time measurements done by job monitoring
+    t0 = None  # payload startup time
+    t1 = None  # payload time at the time of measurement (once per ten minutes)
+
     overwrite_queuedata = {}  # Custom settings extracted from job parameters (--overwriteQueueData) to be used as master values for `QueueData`
     zipmap = ""               # ZIP MAP values extracted from jobparameters
     imagename = ""            # user defined container image name extracted from job parameters
