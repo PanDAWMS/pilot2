@@ -37,3 +37,21 @@ def merge_destinations(files):
             dst['lfns'].add(lfn)
             dst['files'].append(f)
     return destinations
+
+
+def get_copysetup(copytools, copytool_name):
+    """
+    Return the copysetup for the given copytool.
+
+    :param copytools: copytools list from infosys.
+    :param copytool name: name of copytool (string).
+    :return: copysetup (string).
+    """
+    copysetup = ""
+
+    for ct in copytools.keys():
+        if copytool_name == ct:
+            copysetup = copytools[ct].get('setup')
+            break
+
+    return copysetup

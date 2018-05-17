@@ -13,6 +13,8 @@ import Queue
 import os
 import sys
 import time
+import hashlib
+
 from json import dumps
 
 from pilot.info import infosys, JobData
@@ -163,10 +165,14 @@ def send_state(job, args, state, xml=None):
         # cmd = args.url + ':' + str(args.port) + 'server/panda/updateJob'
         # if https.request(cmd, data=data) is not None:
 
-        if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=config.Pilot.pandaserver),
-                         data=data) is not None:
+        if config.Pilot.pandajob == 'real':
+            if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=config.Pilot.pandaserver),
+                             data=data) is not None:
 
-            log.info('server updateJob request completed for job %s' % job.jobid)
+                log.info('server updateJob request completed for job %s' % job.jobid)
+                return True
+        else:
+            log.info('skipping job update for fake test job')
             return True
     except Exception as e:
         log.warning('while setting job state, Exception caught: %s' % str(e.message))
@@ -572,7 +578,12 @@ def get_job_definition(args):
     res = {}
 
     path = os.path.join(os.environ['PILOT_HOME'], config.Pilot.pandajobdata)
-    if os.path.exists(path):
+
+    # should we run a norma 'real' job or with a 'fake' job?
+    if config.Pilot.pandajob == 'fake':
+        logger.info('will use a fake PanDA job')
+        res = get_fake_job()
+    elif os.path.exists(path):
         logger.info('will read job definition from file %s' % path)
         res = get_job_definition_from_file(path)
     else:
@@ -582,6 +593,149 @@ def get_job_definition(args):
             logger.info('will download job definition from server')
             res = get_job_definition_from_server(args)
 
+    return res
+
+
+def get_fake_job():
+    """
+    Return a job definition for internal pilot testing.
+    Note: this function is only used for testing purposes. The job definitions below are ATLAS specific.
+
+    :return: job definition (dictionary).
+    """
+
+    res = None
+
+    # create hashes
+    hash = hashlib.md5()
+    hash.update(str(time.time()))
+    log_guid = hash.hexdigest()
+    hash.update(str(time.time()))
+    guid = hash.hexdigest()
+    hash.update(str(time.time()))
+    job_name = hash.hexdigest()
+
+    if config.Pilot.testjobtype == 'production':
+        logger.info('creating fake test production job definition')
+        res = {u'jobsetID': u'NULL',
+               u'logGUID': log_guid,
+               u'cmtConfig': u'x86_64-slc6-gcc48-opt',
+               u'prodDBlocks': u'user.mlassnig:user.mlassnig.pilot.test.single.hits',
+               u'dispatchDBlockTokenForOut': u'NULL,NULL',
+               u'destinationDBlockToken': u'NULL,NULL',
+               u'destinationSE': u'AGLT2_TEST',
+               u'realDatasets': job_name,
+               u'prodUserID': u'no_one',
+               u'GUID': guid,
+               u'realDatasetsIn': u'user.mlassnig:user.mlassnig.pilot.test.single.hits',
+               u'nSent': 0,
+               u'cloud': u'US',
+               u'StatusCode': 0,
+               u'homepackage': u'AtlasProduction/20.1.4.14',
+               u'inFiles': u'HITS.06828093._000096.pool.root.1',
+               u'processingType': u'pilot-ptest',
+               u'ddmEndPointOut': u'UTA_SWT2_DATADISK,UTA_SWT2_DATADISK',
+               u'fsize': u'94834717',
+               u'fileDestinationSE': u'AGLT2_TEST,AGLT2_TEST',
+               u'scopeOut': u'panda',
+               u'minRamCount': 0,
+               u'jobDefinitionID': 7932,
+               u'maxWalltime': u'NULL',
+               u'scopeLog': u'panda',
+               u'transformation': u'Reco_tf.py',
+               u'maxDiskCount': 0,
+               u'coreCount': 1,
+               u'prodDBlockToken': u'NULL',
+               u'transferType': u'NULL',
+               u'destinationDblock': job_name,
+               u'dispatchDBlockToken': u'NULL',
+               u'jobPars': u'--maxEvents=1 --inputHITSFile HITS.06828093._000096.pool.root.1 --outputRDOFile RDO_%s.root' % job_name,
+               u'attemptNr': 0,
+               u'swRelease': u'Atlas-20.1.4',
+               u'nucleus': u'NULL',
+               u'maxCpuCount': 0,
+               u'outFiles': u'RDO_%s.root,%s.job.log.tgz' % (job_name, job_name),
+               u'currentPriority': 1000,
+               u'scopeIn': u'mc15_13TeV',
+               u'PandaID': '0',
+               u'sourceSite': u'NULL',
+               u'dispatchDblock': u'NULL',
+               u'prodSourceLabel': u'ptest',
+               u'checksum': u'ad:5d000974',
+               u'jobName': job_name,
+               u'ddmEndPointIn': u'UTA_SWT2_DATADISK',
+               u'taskID': u'NULL',
+               u'logFile': u'%s.job.log.tgz' % job_name}
+    elif config.Pilot.testjobtype == 'user':
+        logger.info('creating fake test user job definition')
+        res = {u'jobsetID': u'NULL',
+               u'logGUID': log_guid,
+               u'cmtConfig': u'x86_64-slc6-gcc49-opt',
+               u'prodDBlocks': u'data15_13TeV:data15_13TeV.00276336.physics_Main.merge.AOD.r7562_p2521_tid07709524_00',
+               u'dispatchDBlockTokenForOut': u'NULL,NULL',
+               u'destinationDBlockToken': u'NULL,NULL',
+               u'destinationSE': u'ANALY_SWT2_CPB',
+               u'realDatasets': job_name,
+               u'prodUserID': u'noone',
+               u'GUID': guid,
+               u'realDatasetsIn': u'data15_13TeV:data15_13TeV.00276336.physics_Main.merge.AOD.r7562_p2521_tid07709524_00',
+               u'nSent': u'0',
+               u'cloud': u'US',
+               u'StatusCode': 0,
+               u'homepackage': u'AnalysisTransforms-AtlasDerivation_20.7.6.4',
+               u'inFiles': u'AOD.07709524._000050.pool.root.1',
+               u'processingType': u'pilot-ptest',
+               u'ddmEndPointOut': u'SWT2_CPB_SCRATCHDISK,SWT2_CPB_SCRATCHDISK',
+               u'fsize': u'1564780952',
+               u'fileDestinationSE': u'ANALY_SWT2_CPB,ANALY_SWT2_CPB',
+               u'scopeOut': u'user.gangarbt',
+               u'minRamCount': u'0',
+               u'jobDefinitionID': u'9445',
+               u'maxWalltime': u'NULL',
+               u'scopeLog': u'user.gangarbt',
+               u'transformation': u'http://pandaserver.cern.ch:25080/trf/user/runAthena-00-00-11',
+               u'maxDiskCount': u'0',
+               u'coreCount': u'1',
+               u'prodDBlockToken': u'NULL',
+               u'transferType': u'NULL',
+               u'destinationDblock': job_name,
+               u'dispatchDBlockToken': u'NULL',
+               u'jobPars': u'-a sources.20115461.derivation.tgz -r ./ -j "Reco_tf.py '
+                           u'--inputAODFile AOD.07709524._000050.pool.root.1 --outputDAODFile test.pool.root '
+                           u'--reductionConf HIGG3D1" -i "[\'AOD.07709524._000050.pool.root.1\']" -m "[]" -n "[]" --trf'
+                           u' --useLocalIO --accessmode=copy -o '
+                           u'"{\'IROOT\': [(\'DAOD_HIGG3D1.test.pool.root\', \'%s.root\')]}" '
+                           u'--sourceURL https://aipanda012.cern.ch:25443' % (job_name),
+               u'attemptNr': u'0',
+               u'swRelease': u'Atlas-20.7.6',
+               u'nucleus': u'NULL',
+               u'maxCpuCount': u'0',
+               u'outFiles': u'%s.root,%s.job.log.tgz' % (job_name, job_name),
+               u'currentPriority': u'1000',
+               u'scopeIn': u'data15_13TeV',
+               u'PandaID': u'0',
+               u'sourceSite': u'NULL',
+               u'dispatchDblock': u'data15_13TeV:data15_13TeV.00276336.physics_Main.merge.AOD.r7562_p2521_tid07709524_00',
+               u'prodSourceLabel': u'ptest',
+               u'checksum': u'ad:b11f45a7',
+               u'jobName': job_name,
+               u'ddmEndPointIn': u'SWT2_CPB_SCRATCHDISK',
+               u'taskID': u'NULL',
+               u'logFile': u'%s.job.log.tgz' % job_name}
+    else:
+        logger.warning('unknown test job type: %s' % config.Pilot.testjobtype)
+
+    if res:
+        if config.Pilot.testtransfertype == "NULL" or config.Pilot.testtransfertype == 'direct':
+            res['transferType'] = config.Pilot.testtransfertype
+        else:
+            logger.warning('unknown test transfer type: %s (ignored)' % config.Pilot.testtransfertype)
+
+        if config.Pilot.testjobcommand == 'sleep':
+            res['transformation'] = 'sleep'
+            res['jobPars'] = '1'
+            res['inFiles'] = ''
+            res['outFiles'] = ''
     return res
 
 
@@ -637,6 +791,7 @@ def retrieve(queues, traces, args):
 
         # get a job definition from a source (file or server)
         res = get_job_definition(args)
+        logger.info('res = %s' % str(res))
 
         if res is None:
             logger.fatal('fatal error in job download loop - cannot continue')
@@ -669,13 +824,9 @@ def retrieve(queues, traces, args):
                 queues.jobs.put(job)
 
                 jobnumber += 1
-                if args.graceful_stop.is_set():
-                    logger.info('graceful stop is currently set')
-                else:
-                    logger.info('graceful stop is currently not set')
                 while not args.graceful_stop.is_set():
                     if job_has_finished(queues):
-                        logger.info('graceful stop has been set')
+                        logger.info('ready for new job')
                         break
                     time.sleep(0.5)
 
@@ -728,21 +879,32 @@ def job_has_finished(queues):
     :return: True is the payload has finished or failed
     """
 
-    jobid = os.environ.get('PandaID')
+    # check if the job has finished
+    try:
+        job = queues.completed_jobs.get(block=True, timeout=1)
+    except Queue.Empty:
+        # logger.info("(job still running)")
+        pass
+    else:
+        log = logger.getChild(job.jobid)
+        log.info("job %s has completed" % job.jobid)
+        return True
+
+    #jobid = os.environ.get('PandaID')
 
     # is there anything in the finished_jobs queue?
-    finished_queue_snapshot = list(queues.finished_jobs.queue)
-    peek = [obj for obj in finished_queue_snapshot if jobid == obj.jobid]
-    if peek:
-        logger.info("job %s has completed (finished)" % jobid)
-        return True
+    #finished_queue_snapshot = list(queues.finished_jobs.queue)
+    #peek = [obj for obj in finished_queue_snapshot if jobid == obj.jobid]
+    #if peek:
+    #    logger.info("job %s has completed (finished)" % jobid)
+    #    return True
 
     # is there anything in the failed_jobs queue?
-    failed_queue_snapshot = list(queues.failed_jobs.queue)
-    peek = [obj for obj in failed_queue_snapshot if jobid == obj.jobid]
-    if peek:
-        logger.info("job %s has completed (failed)" % jobid)
-        return True
+    #failed_queue_snapshot = list(queues.failed_jobs.queue)
+    #peek = [obj for obj in failed_queue_snapshot if jobid == obj.jobid]
+    #if peek:
+    #    logger.info("job %s has completed (failed)" % jobid)
+    #    return True
 
     return False
 
@@ -795,15 +957,16 @@ def queue_monitor(queues, traces, args):
             else:
                 send_state(job, args, job.state)
 
-            # we can now stop monitoring this job, so remove it from the monitored_payloads queue
+            # we can now stop monitoring this job, so remove it from the monitored_payloads queue and add it to the
+            # completed_jobs queue which will tell retrieve() that it can download another job
             try:
                 _job = queues.monitored_payloads.get(block=True, timeout=1)
             except Queue.Empty:
                 logger.warning('failed to dequeue job: queue is empty (did job fail before job monitor started?)')
             else:
                 logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
-
-            # now ready for the next job (or quit)
+                # now ready for the next job (or quit)
+                queues.completed_jobs.put(_job)
 
 
 def job_monitor(queues, traces, args):

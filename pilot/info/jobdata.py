@@ -57,6 +57,8 @@ class JobData(BaseData):
 
     is_eventservice = False        # True for event service jobs
 
+    transfertype = ""  # direct access
+
     # set by the pilot (not from job definition)
     fileinfo = {}
     piloterrorcode = 0
@@ -79,16 +81,20 @@ class JobData(BaseData):
     utilities = {}  # utility processes { <name>: [<process handle>, number of launches, command string], .. }
     pid = -1  # payload pid
 
-    overwrite_queuedata = {}  # Custom settings extracted from JobParams (--overwriteQueueData) to be used as master values for `QueueData`
-    zipmap = ""               # ZIP MAP values extracted from JobParams
+    overwrite_queuedata = {}  # Custom settings extracted from job parameters (--overwriteQueueData) to be used as master values for `QueueData`
+    zipmap = ""               # ZIP MAP values extracted from jobparameters
+    imagename = ""            # user defined container image name extracted from job parameters
 
     # from job definition
     attemptnr = 0  # job attempt number
     ddmendpointin = ""  # comma-separated list (string) of ddm endpoints for input    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
     ddmendpointout = ""  # comma-separated list (string) of ddm endpoints for output  ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
     destinationdblock = ""  ## to be moved to FileSpec (job.outdata)
+    datasetin = []
+    datasetout = []
 
     infiles = ""  # comma-separated list (string) of input files  ## TO BE DEPRECATED: moved to FileSpec (use job.indata instead)
+    infilesguids = []
 
     indata = []   # list of `FileSpec` objects for input files (aggregated inFiles, ddmEndPointIn, scopeIn, filesizeIn, etc)
     outdata = []  # list of `FileSpec` objects for output files
@@ -118,11 +124,11 @@ class JobData(BaseData):
                    'state', 'status', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg',
                    'infiles', 'scopein', 'ddmendpointin',       ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-                   'outfiles', 'scopeout', 'ddmendpointout',     ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
+                   'outfiles', 'scopeout', 'ddmendpointout',    ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
                    'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload',
-                   'swrelease', 'zipmap'],
-             list: ['piloterrorcodes', 'piloterrordiags'],
+                   'swrelease', 'zipmap', 'imagename', 'transfertype'],
+             list: ['piloterrorcodes', 'piloterrordiags', 'datasetin', 'datasetout', 'infilesguids'],
              dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
              bool: ['is_eventservice', 'noexecstrcnv']
              }
@@ -161,6 +167,7 @@ class JobData(BaseData):
             ##'??define_internal_key': 'prodDBlocks',
             ##'storage_token': 'prodDBlockToken',
             'ddmendpoint': 'ddmEndPointIn',
+            # 'transfertype': 'transferType',  # if transfertype was defined per file (it currently is not)
         }
 
         ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())
@@ -297,9 +304,12 @@ class JobData(BaseData):
             'infiles': 'inFiles',                        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
             'outfiles': 'outFiles',                      ## TO BE DEPRECATED: moved to FileSpec
             'logguid': 'logGUID',                        ## TO BE DEPRECATED: moved to FileSpec
+            'infilesguids': 'GUID',                      ## TO BE DEPRECATED: moved to FileSpec
             'attemptnr': 'attemptNr',
             'ddmendpointin': 'ddmEndPointIn',            ## TO BE DEPRECATED: moved to FileSpec (job.indata)
             'ddmendpointout': 'ddmEndPointOut',          ## TO BE DEPRECATED: moved to FileSpec
+            'datasetin': 'realDatasetsIn',               ## TO BE DEPRECATED: moved to FileSpec
+            'datasetout': 'realDatasets',                ## TO BE DEPRECATED: moved to FileSpec
             'destinationdblock': 'destinationDblock',
             'noexecstrcnv': 'noExecStrCnv',
             'swrelease': 'swRelease',
@@ -371,12 +381,21 @@ class JobData(BaseData):
 
     def clean__jobparams(self, raw, value):
         """
-            Verify and validate value for the jobparams key
-            Extract from jobparams non related to Job options
+        Verify and validate value for the jobparams key
+        Extract value from jobparams not related to job options.
+        The function will in particular extract and remove --overwriteQueueData, ZIP_MAP and --containerimage.
+        It will remove the old Pilot 1 option --overwriteQueuedata which should be replaced with --overwriteQueueData.
+
+        :param raw: (unused).
+        :param value: job parameters (string).
+        :return: updated job parameers (string).
         """
 
+        ## clean job params from Pilot1 old-formatted options
+        ret = re.sub(r"--overwriteQueuedata={.*?}", "", value)
+
         ## extract overwrite options
-        options, ret = self.parse_args(value, {'--overwriteQueueData': lambda x: ast.literal_eval(x) if x else {}}, remove=True)
+        options, ret = self.parse_args(ret, {'--overwriteQueueData': lambda x: ast.literal_eval(x) if x else {}}, remove=True)
         self.overwrite_queuedata = options.get('--overwriteQueueData', {})
 
         # extract zip map  ## TO BE FIXED? better to pass it via dedicated sub-option in jobParams from PanDA side: e.g. using --zipmap "content"
@@ -394,7 +413,47 @@ class JobData(BaseData):
         logger.debug('Extracted data from jobparams: zipmap=%s' % self.zipmap)
         logger.debug('Extracted data from jobparams: overwrite_queuedata=%s' % self.overwrite_queuedata)
 
+        # extract and remove any present --containerimage XYZ options
+        ret, imagename = self.extract_container_image(ret)
+        if imagename != "":
+            self.imagename = imagename
+
         return ret
+
+    def extract_container_image(self, jobparams):
+        """
+        Extract the container image from the job parameters if present, and remove it.
+
+        :param jobparams: job parameters (string).
+        :return: updated job parameters (string), extracted image name (string).
+        """
+
+        imagename = ""
+
+        # define regexp pattern for the full container image option
+        _pattern = r'(\ \-\-containerimage\=?\s?[\S]+)'
+        pattern = re.compile(_pattern)
+        image_option = re.findall(pattern, jobparams)
+
+        if image_option and image_option[0] != "":
+
+            imagepattern = re.compile(r'(\ \-\-containerimage\=?\s?([\S]+))')
+            image = re.findall(imagepattern, jobparams)
+            if image and image[0] != "":
+                try:
+                    imagename = image[0][1]
+                except Exception as e:
+                    logger.warning('failed to extract image name: %s' % e)
+                else:
+                    logger.info("extracted image from jobparams: %s" % imagename)
+            else:
+                logger.warning("image could not be extract from %s" % jobparams)
+
+            # remove the option from the job parameters
+            jobparams = re.sub(_pattern, "", jobparams)
+            logger.info("removed the %s option from job parameters: %s" % (image_option[0], jobparams))
+
+        return jobparams, imagename
 
     @classmethod  # noqa: C901
     def parse_args(self, data, options, remove=False):

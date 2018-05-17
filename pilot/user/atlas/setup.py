@@ -234,11 +234,11 @@ def get_analysis_trf(transform):
         # return self.__error.ERR_TRFDOWNLOAD, diagnostics, ""
 
     logger.info("successfully downloaded transform")
-    logger.debug("changing permission of %s to 0755" % (transform))
+    logger.debug("changing permission of %s to 0755" % (transform_name))
     try:
-        os.chmod(transform, 0755)
+        os.chmod(transform_name, 0755)
     except Exception, e:
-        diagnostics = "failed to chmod %s: %s" % (transform, e)
+        diagnostics = "failed to chmod %s: %s" % (transform_name, e)
         # return self.__error.ERR_CHMODTRF, diagnostics, ""
 
     return ec, diagnostics, transform_name

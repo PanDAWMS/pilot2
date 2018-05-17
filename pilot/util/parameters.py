@@ -37,14 +37,14 @@ def get_maximum_input_sizes(queuedata):
     return _maxinputsizes
 
 
-def convert_to_int(parameter, force_value=None):
+def convert_to_int(parameter, default=None):
     """
     Try to convert a given parameter to an integer value.
-    The force_value parameter can be used to force the function to always return a given value in case the integer
+    The default parameter can be used to force the function to always return a given value in case the integer
     conversion, int(parameter), fails.
 
     :param parameter: parameter (any type).
-    :param force_value: None by default (if set, always return an integer; the given value will be returned if
+    :param default: None by default (if set, always return an integer; the given value will be returned if
     conversion to integer fails).
     :return: converted integer.
     """
@@ -52,6 +52,6 @@ def convert_to_int(parameter, force_value=None):
     try:
         value = int(parameter)
     except Exception:  # can be ValueError or TypeValue (for None)
-        value = force_value
+        value = default
 
     return value

@@ -42,6 +42,7 @@ def looping_job(job, mt):
     log.info('checking for looping job')
 
     looping_limit = get_looping_job_limit(job.is_analysis())
+    log.info('looping_limit=%d' % looping_limit)
 
     if job.state == 'stagein':
         # set job.state to stagein during stage-in before implementing this algorithm
@@ -55,6 +56,8 @@ def looping_job(job, mt):
         # get the time when the files in the workdir were last touched. in case no file was touched since the last
         # check, the returned value will be the same as the previous time
         time_last_touched = get_time_for_last_touch(job, mt, looping_limit)
+
+        log.info('time_last_touched=%d' % time_last_touched)
 
         # the payload process is considered to be looping if it's files have not been touched within looping_limit time
         if time_last_touched:
@@ -95,12 +98,14 @@ def get_time_for_last_touch(job, mt, looping_limit):
     exit_code, stdout, stderr = execute(cmd)
     if exit_code == 0:
         if stdout != "":
-            files = stdout.split("\n")  # find will always add an \n even for single entries
+            files = stdout.split("\n")  # find might add a \n even for single entries
 
             # remove unwanted list items (*.py, *.pyc, workdir, ...)
             files = loopingjob_definitions.remove_unwanted_files(job.workdir, files)
             if files != []:
-                log.info("found %d files that were recently updated (e.g. file %s)" % (len(files), files[0]))
+                log.info('found %d files that were recently updated (e.g. file \"%s\"' % (len(files), files[0]))
+                log.info(str(files))
+
                 # update the current system time
                 mt.update('ct_looping_last_touched')
             else:
@@ -168,8 +173,8 @@ def get_looping_job_limit(is_analysis):
     :return: looping job time limit (int).
     """
 
-    looping_limit = convert_to_int(config.Pilot.looping_limit_default_prod, force_value=12 * 3600)
+    looping_limit = convert_to_int(config.Pilot.looping_limit_default_prod, default=12 * 3600)
     if is_analysis:
-        looping_limit = convert_to_int(config.Pilot.looping_limit_default_user, force_value=3 * 3600)
+        looping_limit = convert_to_int(config.Pilot.looping_limit_default_user, default=3 * 3600)
 
     return looping_limit

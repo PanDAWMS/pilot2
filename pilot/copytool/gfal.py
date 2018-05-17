@@ -7,45 +7,119 @@
 # Authors:
 # - Pavlo Svirin, pavlo.svirin@cern.ch, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 import os
 import logging
 import errno
 
-from pilot.common.exception import StageInFailure, StageOutFailure
+from pilot.common.exception import PilotException, ErrorCodes, StageInFailure, StageOutFailure
 from pilot.util.container import execute
 
 logger = logging.getLogger(__name__)
 
+require_replicas = True  ## indicate if given copytool requires input replicas to be resolved
+
+allowed_schemas = ['srm', 'gsiftp', 'https', 'davs']  # prioritized list of supported schemas for transfers by given copytool
+
 
 def is_valid_for_copy_in(files):
-    for f in files:
-        if not all(key in f for key in ('name', 'source', 'destination')):
-            return False
-    return True
+    return True  ## FIX ME LATER
+    #for f in files:
+    #    if not all(key in f for key in ('name', 'source', 'destination')):
+    #        return False
+    #return True
 
 
 def is_valid_for_copy_out(files):
-    for f in files:
-        if not all(key in f for key in ('name', 'source', 'destination')):
-            return False
-    return True
+    return True  ## FIX ME LATER
+    #for f in files:
+    #    if not all(key in f for key in ('name', 'source', 'destination')):
+    #        return False
+    #return True
 
 
-def copy_in(files):
+def get_timeout(filesize):   ## ISOLATE ME LATER
+    """ Get a proper time-out limit based on the file size """
+
+    timeout_max = 3 * 3600  # 3 hours
+    timeout_min = 300  # self.timeout
+
+    timeout = timeout_min + int(filesize / 0.5e6)  # approx < 0.5 Mb/sec
+
+    return min(timeout, timeout_max)
+
+
+def copy_in(files, **kwargs):
     """
-    Tries to download the given files using mv directly.
+        Download given files using gfal-copy command.
 
-    :param files: Files to download
-    :raises PilotException: StageInFailure
+        :param files: list of `FileSpec` objects
+        :raise: PilotException in case of controlled error
     """
 
     if not check_for_gfal():
         raise StageInFailure("No GFAL2 tools found")
-    exit_code, stdout, stderr = move_all_files_in(files)
-    if exit_code != 0:
-        # raise failure
-        raise StageInFailure(stdout)
+
+    for fspec in files:
+
+        dst = fspec.workdir or kwargs.get('workdir') or '.'
+
+        timeout = get_timeout(fspec.filesize)
+        source = fspec.turl
+        destination = "file://%s" % os.path.abspath(os.path.join(dst, fspec.lfn))
+
+        cmd = ['gfal-copy --verbose -f', ' -t %s' % timeout]
+
+        if fspec.checksum:
+            cmd += ['-K', '%s:%s' % fspec.checksum.items()[0]]
+
+        cmd += [source, destination]
+
+        rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
+
+        if rcode:  ## error occurred
+            if rcode in [errno.ETIMEDOUT, errno.ETIME]:
+                error = {'rcode': ErrorCodes.STAGEINTIMEOUT,
+                         'state': 'CP_TIMEOUT',
+                         'error': 'Copy command timed out: %s' % stderr}
+            else:
+                error = resolve_transfer_error(stdout + stderr, is_stagein=True)
+            fspec.status = 'failed'
+            fspec.status_code = error.get('rcode')
+            raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
+
+        fspec.status_code = 0
+        fspec.status = 'transferred'
+
+    return files
+
+
+def resolve_transfer_error(output, is_stagein):
+    """
+        Resolve error code, client state and defined error mesage from the output of transfer command
+        :return: dict {'rcode', 'state, 'error'}
+    """
+
+    ret = {'rcode': ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
+           'state': 'COPY_ERROR', 'error': 'Copy operation failed [is_stagein=%s]: %s' % (is_stagein, output)}
+
+    ## VERIFY ME LATER
+    if "timeout" in output:
+        ret['rcode'] = ErrorCodes.STAGEINTIMEOUT if is_stagein else ErrorCodes.STAGEOUTTIMEOUT
+        ret['state'] = 'CP_TIMEOUT'
+        ret['error'] = 'copy command timed out: %s' % output
+    elif "does not match the checksum" in output:
+        if 'adler32' in output:
+            state = 'AD_MISMATCH'
+            rcode = ErrorCodes.GETADMISMATCH if is_stagein else ErrorCodes.PUTADMISMATCH
+        else:
+            state = 'MD5_MISMATCH'
+            rcode = ErrorCodes.GETMD5MISMATCH if is_stagein else ErrorCodes.PUTMD5MISMATCH
+        ret['rcode'] = rcode
+        ret['state'] = state
+
+    return ret
 
 
 def copy_out(files):
@@ -57,7 +131,7 @@ def copy_out(files):
     """
 
     if not check_for_gfal():
-        raise StageOutFailure("No GFAL2 tools found")
+        raise StageOutFailure("no GFAL2 tools found")
 
     exit_code, stdout, stderr = move_all_files_out(files)
     if exit_code != 0:
@@ -65,7 +139,7 @@ def copy_out(files):
         raise StageOutFailure(stdout)
 
 
-def move_all_files_in(files, nretries=1):
+def move_all_files_in(files, nretries=1):   ### NOT USED -- TO BE DEPRECATED
     """
     Move all files.
 

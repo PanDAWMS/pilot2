@@ -50,19 +50,21 @@ class FileSpec(BaseData):
     ## storage_token = "" # prodDBlockToken = ""      # moved from Pilot1: suggest proper internal name (storage token?)
 
     ## local keys
-    type = ''         # type of File: input, output of log
-    replicas = []     # list of resolved input replicas
-    surl = ''         # source url
-    turl = ''         # transfer url
-    mtime = 0         # file modification time
-    status = None     # file transfer status value
-    status_code = 0   # file trsansfer status code
+    type = ''          # type of File: input, output of log
+    replicas = None    # list of resolved input replicas
+    surl = ''          # source url
+    turl = ''          # transfer url
+    mtime = 0          # file modification time
+    status = None      # file transfer status value
+    status_code = 0    # file transfer status code
+    inputddms = []     # list of DDMEndpoint names which will be considered by default (if set) as allowed storage for input replicas
+    workdir = None     # used to declare file-specific work dir (location of given local file when it's used for transfer by copytool)
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['filesize', 'mtime', 'status_code'],
              str: ['lfn', 'guid', 'checksum', 'scope', 'dataset', 'ddmendpoint',
-                   'type', 'surl', 'turl', 'status'],
-             list: ['replicas'],
+                   'type', 'surl', 'turl', 'status', 'workdir'],
+             list: ['replicas', 'inputddms'],
              bool: []
              }
 

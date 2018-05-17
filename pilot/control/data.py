@@ -18,6 +18,7 @@ import subprocess
 import tarfile
 import time
 
+from pilot.api.data import StageInClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
@@ -152,26 +153,29 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
 
 
 def _stage_in(args, job):
+    """
+        :return: True in case of success
+    """
+
     log = logger.getChild(job.jobid)
 
-    os.environ['RUCIO_LOGGING_FORMAT'] = '{0}%(asctime)s %(levelname)s [%(message)s]'
+    try:
+        client = StageInClient(job.infosys, logger=log)
+        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
+        client.transfer(job.indata, activity='pr', **kwargs)
+    except Exception, error:
+        log.error('Failed to stage-in: error=%s' % error)
+        #return False
 
-    for fspec in job.indata:
+    log.info('Summary of transferred files:')
+    for e in job.indata:
+        log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
 
-        executable = ['/usr/bin/env',
-                      'rucio', '-v', 'download',
-                      '--no-subdir',
-                      '--rse', fspec.ddmendpoint,
-                      '%s:%s' % (fspec.scope, fspec.lfn)]
+    log.info("stage-in finished")
 
-        if not _call(args,
-                     executable,
-                     job,
-                     cwd=job.workdir,
-                     logger=log):
-            return False
+    remain_files = [e for e in job.indata if e.status not in ['remote_io', 'transferred', 'no_transfer']]
 
-    return True
+    return not remain_files
 
 
 def stage_in_auto(site, files):
@@ -327,6 +331,7 @@ def copytool_in(queues, traces, args):
             send_state(job, args, 'running')
 
             logger.info('Test job.infosys: queuedata.copytools=%s' % job.infosys.queuedata.copytools)
+            logger.info('Test job.infosys: queuedata.acopytools=%s' % job.infosys.queuedata.acopytools)
 
             if _stage_in(args, job):
                 queues.finished_data_in.put(job)
@@ -491,8 +496,9 @@ def _stage_out_all(job, args):
     else:
         log.info('will stage-out all output files and log file')
         if job.metadata:
+            scopes = dict([e.lfn, e.scope] for e in job.outdata)  # quick hack: to be properly implemented later
             for f in job.metadata['files']['output']:
-                outputs[f['subFiles'][0]['name']] = {'scope': job.scopeout,
+                outputs[f['subFiles'][0]['name']] = {'scope': scopes.get(f['subFiles'][0]['name'], job.scopeout.split(',')[0]),
                                                      'name': f['subFiles'][0]['name'],
                                                      'guid': f['subFiles'][0]['file_guid'],
                                                      'bytes': f['subFiles'][0]['file_size']}
@@ -511,14 +517,15 @@ def _stage_out_all(job, args):
 
     # proceed with log transfer
     # consider only 1st available log file
-    logfile = job.logdata[0]
-    key = '%s:%s' % (logfile.scope, logfile.lfn)
-    outputs[key] = prepare_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, args.queue))
+    if job.logdata:
+        logfile = job.logdata[0]
+        key = '%s:%s' % (logfile.scope, logfile.lfn)
+        outputs[key] = prepare_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, args.queue))
 
-    status = single_stage_out(args, job, outputs[key], fileinfodict)
-    if not status:
-        failed = True
-        log.warning('log transfer failed')
+        status = single_stage_out(args, job, outputs[key], fileinfodict)
+        if not status:
+            failed = True
+            log.warning('log transfer failed')
 
     job.fileinfo = fileinfodict
     if failed:
