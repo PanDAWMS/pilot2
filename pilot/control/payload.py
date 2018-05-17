@@ -165,10 +165,10 @@ def execute_payloads(queues, traces, args):
                 payload_executor = generic.Executor(args, job, out, err)
 
             # run the payload and measure the execution time
-            t0 = os.times()
+            job.t0 = os.times()
             exit_code = payload_executor.run()
-            t1 = os.times()
-            t = map(lambda x, y: x - y, t1, t0)
+            job.t1 = os.times()
+            t = map(lambda x, y: x - y, job.t1, job.t0)
             job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconversionfactor = set_time_consumed(t)
             log.info('CPU consumption time: %s' % job.cpuconsumptiontime)
 
