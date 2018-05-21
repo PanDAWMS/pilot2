@@ -94,11 +94,11 @@ class JobData(BaseData):
     ddmendpointin = ""  # comma-separated list (string) of ddm endpoints for input    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
     ddmendpointout = ""  # comma-separated list (string) of ddm endpoints for output  ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
     destinationdblock = ""  ## to be moved to FileSpec (job.outdata)
-    datasetin = []
-    datasetout = []
+    datasetin = ""
+    datasetout = ""
 
     infiles = ""  # comma-separated list (string) of input files  ## TO BE DEPRECATED: moved to FileSpec (use job.indata instead)
-    infilesguids = []
+    infilesguids = ""
 
     indata = []   # list of `FileSpec` objects for input files (aggregated inFiles, ddmEndPointIn, scopeIn, filesizeIn, etc)
     outdata = []  # list of `FileSpec` objects for output files
@@ -131,8 +131,8 @@ class JobData(BaseData):
                    'outfiles', 'scopeout', 'ddmendpointout',    ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
                    'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload',
-                   'swrelease', 'zipmap', 'imagename', 'transfertype'],
-             list: ['piloterrorcodes', 'piloterrordiags', 'datasetin', 'datasetout', 'infilesguids'],
+                   'swrelease', 'zipmap', 'imagename', 'transfertype', 'datasetin', 'datasetout', 'infilesguids'],
+             list: ['piloterrorcodes', 'piloterrordiags'],
              dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
              bool: ['is_eventservice', 'noexecstrcnv']
              }
