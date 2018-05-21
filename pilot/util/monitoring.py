@@ -44,7 +44,7 @@ def job_monitor_tasks(job, mt, verify_proxy):
 
     # update timing info
     job.t1 = os.times()
-    log.debug('t0=%s t1=%s' % (str(job.t0, job.t1)))
+    log.debug('t0=%s t1=%s' % (str(job.t0), str(job.t1)))
     t = map(lambda x, y: x - y, job.t1, job.t0)
     job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconversionfactor = set_time_consumed(t)
     log.info('current CPU consumption time: %s' % job.cpuconsumptiontime)
