@@ -177,6 +177,7 @@ def set_inds(dataset):
     """
 
     inds = ""
+    logger.debug('dataset=%s' % dataset)
     for ds in dataset:
         if "DBRelease" not in ds and ".lib." not in ds:
             inds = ds
