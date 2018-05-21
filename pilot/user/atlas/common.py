@@ -181,52 +181,14 @@ def get_analysis_run_command(job, trf_name):
     # set up analysis trf
     cmd += './%s %s' % (trf_name, job.jobparams)
 
+    # add control options for PFC turl and direct access
     if use_pfc_turl and '--usePFCTurl' not in cmd:
         cmd += ' --usePFCTurl'
     if use_direct_access and '--directIn' not in cmd:
         cmd += ' --directIn'
-    if "accessmode" in cmd and job.transfertype != 'direct':
-        #accessmode_usect = None
-        #accessmode_directin = None
-        _accessmode_dic = {"--accessmode=copy": ["copy-to-scratch mode", ""],
-                           "--accessmode=direct": ["direct access mode", " --directIn"]}
 
-        # update run_command according to jobPars
-        for _mode in _accessmode_dic.keys():
-            if _mode in job.jobparams:
-                # any accessmode set in jobPars should overrule schedconfig
-                log.info("enforcing %s" % _accessmode_dic[_mode][0])
-                if _mode == "--accessmode=copy":
-                    # make sure direct access is turned off
-                    use_pfc_turl = False
-                    #accessmode_usect = True
-                    #accessmode_directin = False
-                elif _mode == "--accessmode=direct":
-                    # make sure copy-to-scratch and file stager get turned off
-                    use_pfc_turl = True
-                    #accessmode_usect = False
-                    #accessmode_directin = True
-                else:
-                    use_pfc_turl = False
-                    #accessmode_usect = False
-                    #accessmode_directin = False
-
-                # update run_command (do not send the accessmode switch to runAthena)
-                cmd += _accessmode_dic[_mode][1]
-                if _mode in cmd:
-                    cmd = cmd.replace(_mode, "")
-
-        if "directIn" in cmd:
-            if not use_pfc_turl:
-                use_pfc_turl = True  # not used
-            if "usePFCTurl" not in cmd:
-                cmd += ' --usePFCTurl'
-
-        # need to add proxy if not there already
-        if "--directIn" in cmd and "export X509_USER_PROXY" not in cmd:
-            if 'X509_USER_PROXY' in os.environ:
-                cmd = cmd.replace("./%s" % trf_name, "export X509_USER_PROXY=%s;./%s" %
-                                  (os.environ.get('X509_USER_PROXY'), trf_name))
+    # update the payload command for forced accessmode
+    cmd = update_forced_accessmode(log, cmd, job.transfertype, job.jobparams, trf_name, use_direct_access, use_pfc_turl)
 
     # add guids when needed
     # get the correct guids list (with only the direct access files)
@@ -234,11 +196,83 @@ def get_analysis_run_command(job, trf_name):
         _guids = get_guids_from_jobparams(job.jobparams, job.infiles, job.infilesguids)
         cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
 
+    return exit_code, diagnostics, cmd
+
+
+def update_forced_accessmode(log, cmd, transfertype, jobparams, trf_name, use_direct_access, use_pfc_turl):
+    """
+    Update the payload command for forced accessmode.
+    accessmode is an option that comes from HammerCloud and is used to force a certain input file access mode; i.e.
+    copy-to-scratch or direct access.
+
+    :param log: logging object.
+    :param cmd: payload command.
+    :param transfertype: transfer type (.e.g 'direct') from the job definition with priority over accessmode (string).
+    :param jobparams: job parameters (string).
+    :param trf_name: transformation name (string).
+    :param use_direct_access:
+    :param use_pfc_turl:
+    :return:
+    """
+
+    if "accessmode" in cmd and transfertype != 'direct':
+        accessmode_usect = None
+        accessmode_directin = None
+        _accessmode_dic = {"--accessmode=copy": ["copy-to-scratch mode", ""],
+                           "--accessmode=direct": ["direct access mode", " --directIn"]}
+
+        # update run_command according to jobPars
+        for _mode in _accessmode_dic.keys():
+            if _mode in jobparams:
+                # any accessmode set in jobPars should overrule schedconfig
+                log.info("enforcing %s" % _accessmode_dic[_mode][0])
+                if _mode == "--accessmode=copy":
+                    # make sure direct access is turned off
+                    use_pfc_turl = False
+                    accessmode_usect = True
+                    accessmode_directin = False
+                elif _mode == "--accessmode=direct":
+                    # make sure copy-to-scratch gets turned off
+                    use_pfc_turl = True
+                    accessmode_usect = False
+                    accessmode_directin = True
+                else:
+                    use_pfc_turl = False
+                    accessmode_usect = False
+                    accessmode_directin = False
+
+                # update run_command (do not send the accessmode switch to runAthena)
+                cmd += _accessmode_dic[_mode][1]
+                if _mode in cmd:
+                    cmd = cmd.replace(_mode, "")
+
+        # force usage of copy tool for stage-in or direct access
+        if accessmode_usect:
+            log.info('forced copy tool usage selected')
+            # remove again the "--directIn"
+            if "directIn" in cmd:
+                cmd = cmd.replace(' --directIn', ' ')
+        elif accessmode_directin:
+            log.info('forced direct access usage selected')
+            if "directIn" not in cmd:
+                cmd += ' --directIn'
+        else:
+            log.warning('neither forced copy tool usage nor direct access was selected')
+
+        if "directIn" in cmd and "usePFCTurl" not in cmd:
+            cmd += ' --usePFCTurl'
+
+        # need to add proxy if not there already
+        if "--directIn" in cmd and "export X509_USER_PROXY" not in cmd:
+            if 'X509_USER_PROXY' in os.environ:
+                cmd = cmd.replace("./%s" % trf_name, "export X509_USER_PROXY=%s;./%s" %
+                                  (os.environ.get('X509_USER_PROXY'), trf_name))
+
     # if both direct access and the accessmode loop added a directIn switch, remove the first one from the string
     if cmd.count("directIn") > 1:
-        cmd = cmd.replace("--directIn", "", 1)
+        cmd = cmd.replace(' --directIn', ' ', 1)
 
-    return exit_code, diagnostics, cmd
+    return cmd
 
 
 def get_guids_from_jobparams(jobparams, infiles, infilesguids):
@@ -329,7 +363,7 @@ def get_file_transfer_info(transfertype, is_a_build_job, queuedata):
     use_pfc_turl = False
 
     # check with schedconfig
-    if queuedata.direct_access_lan or transfertype == 'direct':
+    if (queuedata.direct_access_lan or queuedata.direct_access_wan or transfertype == 'direct') and not is_a_build_job:
         use_copy_tool = False
         use_direct_access = True
         use_pfc_turl = True
