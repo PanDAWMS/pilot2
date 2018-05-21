@@ -188,7 +188,7 @@ def get_analysis_run_command(job, trf_name):
         cmd += ' --directIn'
 
     # update the payload command for forced accessmode
-    cmd = update_forced_accessmode(log, cmd, job.transfertype, job.jobparams, trf_name, use_direct_access, use_pfc_turl)
+    cmd = update_forced_accessmode(log, cmd, job.transfertype, job.jobparams, trf_name)
 
     # add guids when needed
     # get the correct guids list (with only the direct access files)
@@ -199,7 +199,7 @@ def get_analysis_run_command(job, trf_name):
     return exit_code, diagnostics, cmd
 
 
-def update_forced_accessmode(log, cmd, transfertype, jobparams, trf_name, use_direct_access, use_pfc_turl):
+def update_forced_accessmode(log, cmd, transfertype, jobparams, trf_name):
     """
     Update the payload command for forced accessmode.
     accessmode is an option that comes from HammerCloud and is used to force a certain input file access mode; i.e.
@@ -210,9 +210,7 @@ def update_forced_accessmode(log, cmd, transfertype, jobparams, trf_name, use_di
     :param transfertype: transfer type (.e.g 'direct') from the job definition with priority over accessmode (string).
     :param jobparams: job parameters (string).
     :param trf_name: transformation name (string).
-    :param use_direct_access:
-    :param use_pfc_turl:
-    :return:
+    :return: updated payload command string.
     """
 
     if "accessmode" in cmd and transfertype != 'direct':
@@ -228,16 +226,13 @@ def update_forced_accessmode(log, cmd, transfertype, jobparams, trf_name, use_di
                 log.info("enforcing %s" % _accessmode_dic[_mode][0])
                 if _mode == "--accessmode=copy":
                     # make sure direct access is turned off
-                    use_pfc_turl = False
                     accessmode_usect = True
                     accessmode_directin = False
                 elif _mode == "--accessmode=direct":
                     # make sure copy-to-scratch gets turned off
-                    use_pfc_turl = True
                     accessmode_usect = False
                     accessmode_directin = True
                 else:
-                    use_pfc_turl = False
                     accessmode_usect = False
                     accessmode_directin = False
 
