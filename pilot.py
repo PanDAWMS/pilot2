@@ -26,7 +26,7 @@ from pilot.util.config import config
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.node import is_virtual_machine
 
-VERSION = '2018-05-16.001'
+VERSION = '2018-05-21.001'
 
 
 def pilot_version_banner():
