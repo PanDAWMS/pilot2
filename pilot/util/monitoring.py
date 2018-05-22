@@ -46,12 +46,8 @@ def job_monitor_tasks(job, mt, verify_proxy):
     job.cpuconsumptiontime = get_instant_cpu_consumption_time(job.pid)
     job.cpuconsumptionunit = "s"
     job.cpuconversionfactor = 1.0
-    log.info('CPU consumption time: %s' % job.cpuconsumptiontime)
-
-    job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconversionfactor = set_time_consumed(t)
     log.info('current CPU consumption time: %s' % job.cpuconsumptiontime)
 
-    set_time_consumed
     # should the proxy be verified?
     if verify_proxy:
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
