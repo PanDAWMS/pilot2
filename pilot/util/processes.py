@@ -361,3 +361,49 @@ def get_cgroups_base_path():
     exit_code, base_path, stderr = execute(cmd, mute=True)
 
     return base_path
+
+
+def get_cpu_consumption_time(t0):
+    """
+    Return the CPU consumption time for child processes measured by system+user time from os.times().
+    Note: the os.times() tuple is user time, system time, s user time, s system time, and elapsed real time since a
+    fixed point in the past.
+
+    :param t0: initial os.times() tuple prior to measurement.
+    :return: system+user time for child processes (float).
+    """
+
+    t1 = os.times()
+    user_time = t1[2] - t0[2]
+    system_time = t1[3] - t0[3]
+
+    return user_time + system_time
+
+
+def get_instant_cpu_consumption_time(pid):
+    """
+    Return the CPU consumption time (system+user time) for a given process, by parsing /prod/pid/stat.
+    Note: the function returns 0.0 if the pid is not set.
+
+    :param pid: process id (int).
+    :return:  system+user time for a given pid (float).
+    """
+
+    utime = None
+    stime = None
+
+    hz = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
+
+    if pid and hz and hz > 0:
+        path = "/proc/%d/stat" % pid
+        if os.path.exists(path):
+            with open(path) as fp:
+                fields = fp.read().split(' ')[13:17]
+                utime, stime, cutime, cstime = [(float(f) / hz) for f in fields]
+
+    if utime and stime:
+        cpu_consumption_time = utime + stime
+    else:
+        cpu_consumption_time = 0.0
+
+    return cpu_consumption_time
