@@ -151,7 +151,6 @@ def execute_payloads(queues, traces, args):
             job.cpuconsumptiontime = get_cpu_consumption_time(job.t0)
             job.cpuconsumptionunit = "s"
             job.cpuconversionfactor = 1.0
-
             log.info('CPU consumption time: %s' % job.cpuconsumptiontime)
 
             out.close()

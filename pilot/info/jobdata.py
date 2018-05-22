@@ -79,7 +79,7 @@ class JobData(BaseData):
     nevents = 0  # number of events
     payload = ""  # payload name
     utilities = {}  # utility processes { <name>: [<process handle>, number of launches, command string], .. }
-    pid = -1  # payload pid
+    pid = None  # payload pid
 
     # time variable used for on-the-fly cpu consumption time measurements done by job monitoring
     t0 = None  # payload startup time

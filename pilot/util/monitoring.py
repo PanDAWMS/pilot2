@@ -14,7 +14,7 @@ import time
 from subprocess import PIPE
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.util.auxiliary import set_time_consumed
+from pilot.util.processes import get_instant_cpu_consumption_time
 from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.parameters import convert_to_int
@@ -43,9 +43,11 @@ def job_monitor_tasks(job, mt, verify_proxy):
     current_time = int(time.time())
 
     # update timing info
-    job.t1 = os.times()
-    log.debug('t0=%s t1=%s' % (str(job.t0), str(job.t1)))
-    t = map(lambda x, y: x - y, job.t1, job.t0)
+    job.cpuconsumptiontime = get_instant_cpu_consumption_time(job.pid)
+    job.cpuconsumptionunit = "s"
+    job.cpuconversionfactor = 1.0
+    log.info('CPU consumption time: %s' % job.cpuconsumptiontime)
+
     job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconversionfactor = set_time_consumed(t)
     log.info('current CPU consumption time: %s' % job.cpuconsumptiontime)
 
