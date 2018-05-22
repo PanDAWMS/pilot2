@@ -402,7 +402,7 @@ def get_instant_cpu_consumption_time(pid):
             with open(path) as fp:
                 fields = fp.read().split(' ')[13:17]
                 utime, stime, cutime, cstime = [(float(f) / hz) for f in fields]
-
+                logger.info("cpu times %f %f %f %f" % (utime, stime, cutime, cstime))
     if utime and stime:
         cpu_consumption_time = utime + stime
     else:
