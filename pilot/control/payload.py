@@ -146,14 +146,14 @@ def execute_payloads(queues, traces, args):
 
             # run the payload and measure the execution time
             job.t0 = os.times()
-            logger.info('t0=%s' % str(job.t0))
-
             exit_code = payload_executor.run()
 
-            job.cpuconsumptiontime = get_cpu_consumption_time(job.t0)
+            cpuconsumptiontime = get_cpu_consumption_time(job.t0)
+            job.cpuconsumptiontime = int(cpuconsumptiontime)
             job.cpuconsumptionunit = "s"
             job.cpuconversionfactor = 1.0
-            log.info('CPU consumption time: %s' % job.cpuconsumptiontime)
+            log.info('CPU consumption time: %f %s (rounded to %d %s)' %
+                     (cpuconsumptiontime, cpuconsumptionunit, job.cpuconsumptiontime,cpuconsumptionunit))
 
             out.close()
             err.close()
