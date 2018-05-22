@@ -18,7 +18,7 @@ import time
 
 from pilot.control.payloads import generic, eventservice
 from pilot.control.job import send_state
-from pilot.util.auxiliary import set_time_consumed
+from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
 from pilot.util.filehandling import read_file
 from pilot.common.errorcodes import ErrorCodes
@@ -147,10 +147,11 @@ def execute_payloads(queues, traces, args):
             # run the payload and measure the execution time
             job.t0 = os.times()
             exit_code = payload_executor.run()
-            job.t1 = os.times()
-            log.debug('xx t0=%s t1=%s' % (str(job.t0), str(job.t1)))
-            t = map(lambda x, y: x - y, job.t1, job.t0)
-            job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconversionfactor = set_time_consumed(t)
+
+            job.cpuconsumptiontime = get_cpu_consumption_time(job.t0)
+            job.cpuconsumptionunit = "s"
+            job.cpuconversionfactor = 1.0
+
             log.info('CPU consumption time: %s' % job.cpuconsumptiontime)
 
             out.close()
