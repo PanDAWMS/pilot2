@@ -385,7 +385,9 @@ def get_cpu_consumption_time(t0):
 def get_instant_cpu_consumption_time(pid):
     """
     Return the CPU consumption time (system+user time) for a given process, by parsing /prod/pid/stat.
-    Note: the function returns 0.0 if the pid is not set.
+    Note 1: the function returns 0.0 if the pid is not set.
+    Note 2: the function must sum up all the user+system times for both the main process (pid) and the child
+    processes, since the main process is most likely spawning new processes.
 
     :param pid: process id (int).
     :return:  system+user time for a given pid (float).
@@ -393,6 +395,8 @@ def get_instant_cpu_consumption_time(pid):
 
     utime = None
     stime = None
+    cutime = None
+    cstime = None
 
     hz = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
 
@@ -402,9 +406,10 @@ def get_instant_cpu_consumption_time(pid):
             with open(path) as fp:
                 fields = fp.read().split(' ')[13:17]
                 utime, stime, cutime, cstime = [(float(f) / hz) for f in fields]
-                logger.info("cpu times %f %f %f %f" % (utime, stime, cutime, cstime))
-    if utime and stime:
-        cpu_consumption_time = utime + stime
+
+    if utime and stime and cutime and cstime:
+        # sum up all the user+system times for both the main process (pid) and the child processes
+        cpu_consumption_time = utime + stime + cutime + cstime
     else:
         cpu_consumption_time = 0.0
 
