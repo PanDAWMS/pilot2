@@ -34,27 +34,6 @@ def time_stamp():
                                  int(tmptz / 60 - tmptz_hours * 60)))
 
 
-def set_time_consumed(t_tuple):
-    """
-    Set the system+user time spent by the payload.
-    The cpuConsumptionTime is the system+user time while wall time is encoded in pilotTiming (third number).
-    Previously the cpuConsumptionTime was "corrected" with a scaling factor but this was deemed outdated and is now set
-    to 1.
-    The t_tuple is defined as map(lambda x, y:x-y, t1, t0), here t0 and t1 are os.times() measured before and after
-    the payload execution command.
-
-    :param t_tuple: map(lambda x, y:x-y, t1, t0)
-    :return: cpu_consumption_unit, cpu_consumption_time, cpu_conversion_factor
-    """
-
-    t_tot = reduce(lambda x, y: x + y, t_tuple[2:3])
-    cpu_conversion_factor = 1.0
-    cpu_consumption_unit = "s"  # used to be "kSI2kseconds"
-    cpu_consumption_time = int(t_tot * cpu_conversion_factor)
-
-    return cpu_consumption_unit, cpu_consumption_time, cpu_conversion_factor
-
-
 def get_batchsystem_jobid():
     """
     Identify and return the batch system job id (will be reported to the server)
