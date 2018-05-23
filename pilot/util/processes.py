@@ -274,6 +274,9 @@ def kill_orphans():
         logger.info("Do not look for orphan processes in BOINC jobs")
         return
 
+    if 'PILOT_NOKILL' in os.environ:
+        return
+
     logger.info("searching for orphan processes")
 
     cmd = "ps -o pid,ppid,args -u %s" % whoami()
