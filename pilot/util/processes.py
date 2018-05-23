@@ -377,8 +377,6 @@ def get_cpu_consumption_time(t0):
     """
 
     t1 = os.times()
-    logger.info('t0=%s' % str(t0))
-    logger.info('t1=%s' % str(t1))
     user_time = t1[2] - t0[2]
     system_time = t1[3] - t0[3]
 
