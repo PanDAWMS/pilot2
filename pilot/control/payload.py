@@ -153,7 +153,7 @@ def execute_payloads(queues, traces, args):
             job.cpuconsumptionunit = "s"
             job.cpuconversionfactor = 1.0
             log.info('CPU consumption time: %f %s (rounded to %d %s)' %
-                     (cpuconsumptiontime, cpuconsumptionunit, job.cpuconsumptiontime,cpuconsumptionunit))
+                     (cpuconsumptiontime, job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconsumptionunit))
 
             out.close()
             err.close()

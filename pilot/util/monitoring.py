@@ -75,7 +75,7 @@ def job_monitor_tasks(job, mt, verify_proxy):
         try:
             exit_code, diagnostics = looping_job(job, mt)
         except Exception as e:
-            exit_code = -1
+            exit_code = errors.UNKNOWNEXCEPTION
             diagnostics = 'exception caught in looping job algorithm: %s' % e
             log.warning(diagnostics)
             return exit_code, diagnostics
