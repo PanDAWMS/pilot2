@@ -1,6 +1,8 @@
 MiniPilot
 =========
 
+(See NERSC specific notes at the bottom)
+
 Basics
 ------
 
@@ -85,3 +87,27 @@ Even moar usage
 ---------------
 
 Ask me.
+
+
+NERSC Specific Notes
+--------------------
+
+require the following:
+
+pycurl
+curl -s -o pycurl.zip -L https://github.com/pycurl/pycurl/archive/REL_7_43_0_1.zip
+unzip pycurl.zip
+cd pycurl-REL_7_43_0_1/
+python setup.py docstrings 
+python setup.py install —prefix=..
+
+cpuinfo
+git clone https://github.com/workhorsy/py-cpuinfo.git
+cd py-cpuinfo
+copy directory cpuinfo to miniplot working dir
+
+psutil
+git clone https://github.com/giampaolo/psutil.git
+export PYTHONPATH=`pwd`/lib64/python2.6/site-packages
+cd psutil
+python setup.py install --prefix=$PYTHONPATH
