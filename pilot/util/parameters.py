@@ -17,12 +17,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_maximum_input_sizes(queuedata):
+def get_maximum_input_sizes():
     """
     This function returns the maximum allowed size for all input files. The sum of all input file sizes should not
     exceed this value.
 
-    :param queuedata: the queuedata dictionary from schedconfig.
     :return: maxinputsizes (integer value in GB).
     """
 
