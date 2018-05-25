@@ -110,6 +110,11 @@ def send_state(job, args, state, xml=None):
     else:
         log.debug('set job state=%s' % state)
 
+    # should in fact the pilot make any server udpates?
+    if not args.update_server:
+        log.info('pilot will not update the server')
+        return True
+
     # report the batch system job id, if available
     batchsystem_type, batchsystem_id = get_batchsystem_jobid()
 
