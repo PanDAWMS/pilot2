@@ -10,7 +10,7 @@
 
 import os
 
-from pilot.common.exception import StageInFailure, StageOutFailure
+from pilot.common.exception import StageInFailure, StageOutFailure, ErrorCodes
 from pilot.util.container import execute
 
 import logging
@@ -37,7 +37,7 @@ def copy_in(files, copy_type="mv"):
     """
     Tries to download the given files using mv directly.
 
-    :param files: Files to download
+    :param files: list of `FileSpec` objects
     :raises PilotException: StageInFailure
     """
 
@@ -53,7 +53,7 @@ def copy_out(files, copy_type="mv"):
     """
     Tries to upload the given files using mv directly.
 
-    :param files: Files to upload
+    :param files: list of `FileSpec` objects
     :raises PilotException: StageOutFailure
     """
 
@@ -70,7 +70,7 @@ def move_all_files(files, copy_type):
     """
     Move all files.
 
-    :param files:
+    :param files: list of `FileSpec` objects
     :return: exit_code, stdout, stderr
     """
 
@@ -88,15 +88,27 @@ def move_all_files(files, copy_type):
     else:
         return -1, "", "Incorrect copy method"
 
-    for entry in files:  # entry = {'name':<filename>, 'source':<dir>, 'destination':<dir>}
-        logger.info("transferring file %s from %s to %s" % (entry['name'], entry['source'], entry['destination']))
+    for fspec in files:  # entry = {'name':<filename>, 'source':<dir>, 'destination':<dir>}
 
-        source = os.path.join(entry['source'], entry['name'])
-        destination = os.path.join(entry['destination'], entry['name'])
+        dst = fspec.workdir or kwargs.get('workdir') or '.'
+        #timeout = get_timeout(fspec.filesize)
+        source = fspec.turl
+        name = fspec.lfn
+        destination = os.path.join(dst, name)
+
+        logger.info("transferring file %s from %s to %s" % (name, source, destination))
+
+        source = os.path.join(source, name)
+        destination = os.path.join(destination, name)
         exit_code, stdout, stderr = copy_method(source, destination)
         if exit_code != 0:
             logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
+            fspec.status = 'failed'
+            fspec.status_code = ErrorCodes.STAGEOUTFAILED  # to fix, what about stage-in?
             break
+        else:
+        fspec.status_code = 0
+        fspec.status = 'transferred'
 
     return exit_code, stdout, stderr
 
