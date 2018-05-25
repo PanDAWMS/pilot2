@@ -107,8 +107,8 @@ def move_all_files(files, copy_type):
             fspec.status_code = ErrorCodes.STAGEOUTFAILED  # to fix, what about stage-in?
             break
         else:
-        fspec.status_code = 0
-        fspec.status = 'transferred'
+            fspec.status_code = 0
+            fspec.status = 'transferred'
 
     return exit_code, stdout, stderr
 
