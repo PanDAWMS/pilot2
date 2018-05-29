@@ -7,6 +7,9 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
+# Note: The Pilot 2 modules that need to record timing measurements, can do so using the add_to_pilot_timing() function.
+# When the timing measurements need to be recorded, the high-level functions, e.g. get_getjob_time(), can be used.
+
 import os
 
 from pilot.util.config import config
