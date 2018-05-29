@@ -199,7 +199,7 @@ def get_time_difference(job_id, timing_constant_1, timing_constant_2):
                             (timing_constant_2, time_measurement_dictionary))
             if time_measurement_1 and time_measurement_2:
                 diff = time_measurement_2 - time_measurement_1
-        else
+        else:
             log.warning('failed to extract time measurement dictionary from %s' % str(timing_dictionary))
     else:
         log.warning('job id %s not found in timing dictionary' % job_id)
