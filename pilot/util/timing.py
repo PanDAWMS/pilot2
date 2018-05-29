@@ -19,6 +19,19 @@ def write_pilot_timing():
     pass
 
 
+def add_to_pilot_timing(job_id, timing_constant, time_measurement):
+    """
+    Add the given timing contant and measurement got job_id to the pilot timing dictionary.
+
+    :param job_id: PanDA job id (string).
+    :param timing_constant: timing constant (int).
+    :param time_measurement: time measurement (int).
+    :return:
+    """
+
+    pass
+
+
 def get_time_difference(job_id, timing_constant_1, timing_constant_2):
     """
     Return the positive time difference between the given constants.
