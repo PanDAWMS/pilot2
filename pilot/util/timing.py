@@ -7,6 +7,11 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
+from pilot.util.constants import PILOT_T0, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_PRE_SETUP, PILOT_POST_SETUP, \
+    PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, PILOT_PRE_STAGEOUT, \
+    PILOT_POST_STAGEOUT, PILOT_PRE_FINAL_UPDATE, PILOT_POST_FINAL_UPDATE, PILOT_END_TIME
+
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -39,6 +44,14 @@ def get_getjob_time(job_id):
     :param job_id: PanDA job id (string).
     :return: time in seconds (int).
     """
+
+    try:
+        log = logger.getChild(job_id)
+    except Exception:
+        log = logger
+
+    # first read the current pilot timing dictionary
+    timing_dictionary = read_pilot_timing()
 
     return 0
 
