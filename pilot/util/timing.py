@@ -45,7 +45,11 @@ def write_pilot_timing(pilot_timing_dictionary):
     :return:
     """
 
-    pass
+    path = os.path.join(os.environ.get('PILOT_WORK_DIR', ''), config.Pilot.timing_file)
+    if write_json(path, pilot_timing_dictionary):
+        log.info('wrote %s = %d to %s' % (timing_constant, time_measurement, path))
+    else:
+        log.warning('failed to write timing measurement %s = %d to file' % (timing_constant, time_measurement))
 
 
 def add_to_pilot_timing(job_id, timing_constant, time_measurement):
@@ -58,11 +62,21 @@ def add_to_pilot_timing(job_id, timing_constant, time_measurement):
     :return:
     """
 
+    try:
+        log = logger.getChild(job_id)
+    except Exception:
+        log = logger
+
+    # get the timing dictionary from file
     pilot_timing_dictionary = read_pilot_timing()
 
     if pilot_timing_dictionary == {}:
         pilot_timing_dictionary[job_id] = {timing_constant: time_measurement}
-    else
+    else:
+        pilot_timing_dictionary[job_id][timing_constant] = time_measurement
+
+    # update the file
+    write_pilot_timing(pilot_timing_dictionary)
 
 
 def get_getjob_time(job_id):
@@ -177,11 +191,11 @@ def get_time_difference(job_id, timing_constant_1, timing_constant_2):
         if time_measurement_dictionary:
             time_measurement_1 = time_measurement_dictionary.get(timing_constant_1, None)
             if not time_measurement_1:
-                log.warning('failed to extract time measurement %d from %s' %
+                log.warning('failed to extract time measurement %d from %s (no such key)' %
                             (timing_constant_1, time_measurement_dictionary))
             time_measurement_2 = time_measurement_dictionary.get(timing_constant_2, None)
             if not time_measurement_2:
-                log.warning('failed to extract time measurement %d from %s' %
+                log.warning('failed to extract time measurement %d from %s (no such key)' %
                             (timing_constant_2, time_measurement_dictionary))
             if time_measurement_1 and time_measurement_2:
                 diff = time_measurement_2 - time_measurement_1
