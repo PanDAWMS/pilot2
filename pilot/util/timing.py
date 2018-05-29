@@ -68,11 +68,6 @@ def add_to_pilot_timing(job_id, timing_constant, time_measurement):
     :return:
     """
 
-    try:
-        log = logger.getChild(job_id)
-    except Exception:
-        log = logger
-
     # get the timing dictionary from file
     pilot_timing_dictionary = read_pilot_timing()
 
