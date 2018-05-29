@@ -584,7 +584,10 @@ def get_job_definition(args):
 
     res = {}
 
-    path = os.path.join(os.environ['PILOT_HOME'], config.Pilot.pandajobdata)
+    path = os.path.join(os.environ['PILOT_WORK_DIR'], config.Pilot.pandajobdata)
+
+    if not os.path.exists(path):
+        logger.warning('Job definition file does not exist: %s' % path)
 
     # should we run a norma 'real' job or with a 'fake' job?
     if config.Pilot.pandajob == 'fake':
