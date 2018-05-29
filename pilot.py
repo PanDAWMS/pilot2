@@ -26,7 +26,7 @@ from pilot.util.config import config
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.node import is_virtual_machine
 
-VERSION = '2018-05-29.001'
+VERSION = '2018-05-29.002'
 
 
 def pilot_version_banner():
@@ -331,6 +331,7 @@ if __name__ == '__main__':
     else:
         mainworkdir = getcwd()
 
+    environ['PILOT_WORK_DIR'] = args.workdir  # TODO: replace with singleton
     environ['PILOT_HOME'] = mainworkdir  # TODO: replace with singleton
     args.mainworkdir = mainworkdir
     chdir(mainworkdir)
