@@ -31,6 +31,7 @@ util components
     parameters
     processes
     proxy
+    timing
     workernode
 
 
