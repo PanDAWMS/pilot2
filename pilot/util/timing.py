@@ -45,15 +45,7 @@ def get_getjob_time(job_id):
     :return: time in seconds (int).
     """
 
-    try:
-        log = logger.getChild(job_id)
-    except Exception:
-        log = logger
-
-    # first read the current pilot timing dictionary
-    timing_dictionary = read_pilot_timing()
-
-    return 0
+    return get_time_difference(job_id, PILOT_PRE_GETJOB, PILOT_POST_GETJOB)
 
 
 def get_setup_time(job_id):
@@ -64,7 +56,7 @@ def get_setup_time(job_id):
     :return: time in seconds (int).
     """
 
-    return 0
+    return get_time_difference(job_id, PILOT_PRE_SETUP, PILOT_POST_SETUP)
 
 
 def get_stagein_time(job_id):
@@ -75,7 +67,7 @@ def get_stagein_time(job_id):
     :return: time in seconds (int).
     """
 
-    return 0
+    return get_time_difference(job_id, PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN)
 
 
 def get_stageout_time(job_id):
@@ -86,7 +78,7 @@ def get_stageout_time(job_id):
     :return: time in seconds (int).
     """
 
-    return 0
+    return get_time_difference(job_id, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT)
 
 
 def get_payload_execution_time(job_id):
@@ -97,7 +89,18 @@ def get_payload_execution_time(job_id):
     :return: time in seconds (int).
     """
 
-    return 0
+    return get_time_difference(job_id, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD)
+
+
+def get_final_update_time(job_id):
+    """
+    High level function that returns the time for execution the final update for the given job_id.
+
+    :param job_id: PanDA job id (string).
+    :return: time in seconds (int).
+    """
+
+    return get_time_difference(job_id, PILOT_PRE_FINAL_UPDATE, PILOT_POST_FINAL_UPDATE)
 
 
 def get_total_pilot_time(job_id):
@@ -109,7 +112,7 @@ def get_total_pilot_time(job_id):
     :return: time in seconds (int).
     """
 
-    return 0
+    return get_time_difference(job_id, PILOT_T0, PILOT_END_TIME)
 
 
 def get_time_difference(job_id, timing_constant_1, timing_constant_2):
