@@ -53,9 +53,9 @@ def write_pilot_timing(job_id, pilot_timing_dictionary):
 
     path = os.path.join(os.environ.get('PILOT_WORK_DIR', ''), config.Pilot.timing_file)
     if write_json(path, pilot_timing_dictionary):
-        log.info('wrote %s = %d to %s' % (timing_constant, time_measurement, path))
+        log.info('updated pilot timing dictionary: %s' % (path))
     else:
-        log.warning('failed to write timing measurement %s = %d to file' % (timing_constant, time_measurement))
+        log.info('failed to update pilot timing dictionary: %s' % (path))
 
 
 def add_to_pilot_timing(job_id, timing_constant, time_measurement):
