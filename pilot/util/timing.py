@@ -37,13 +37,19 @@ def read_pilot_timing():
     return pilot_timing_dictionary
 
 
-def write_pilot_timing(pilot_timing_dictionary):
+def write_pilot_timing(job_id, pilot_timing_dictionary):
     """
     Write the given pilot timing dictionary to file.
 
+    :param job_id: PanDA job id (string).
     :param pilot_timing_dictionary:
     :return:
     """
+
+    try:
+        log = logger.getChild(job_id)
+    except Exception:
+        log = logger
 
     path = os.path.join(os.environ.get('PILOT_WORK_DIR', ''), config.Pilot.timing_file)
     if write_json(path, pilot_timing_dictionary):
