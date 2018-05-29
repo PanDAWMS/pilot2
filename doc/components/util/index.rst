@@ -16,6 +16,7 @@ util components
 .. toctree::
     :maxdepth: 2
 
+    auxiliary
     config
     constants
     container
