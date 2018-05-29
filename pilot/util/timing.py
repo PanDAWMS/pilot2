@@ -32,6 +32,73 @@ def add_to_pilot_timing(job_id, timing_constant, time_measurement):
     pass
 
 
+def get_getjob_time(job_id):
+    """
+    High level function that returns the time for the getjob operation for the given job_id.
+
+    :param job_id: PanDA job id (string).
+    :return: time in seconds (int).
+    """
+
+    return 0
+
+
+def get_setup_time(job_id):
+    """
+    High level function that returns the time for the setup operation for the given job_id.
+
+    :param job_id: PanDA job id (string).
+    :return: time in seconds (int).
+    """
+
+    return 0
+
+
+def get_stagein_time(job_id):
+    """
+    High level function that returns the time for the stage-in operation for the given job_id.
+
+    :param job_id: PanDA job id (string).
+    :return: time in seconds (int).
+    """
+
+    return 0
+
+
+def get_stageout_time(job_id):
+    """
+    High level function that returns the time for the stage-out operation for the given job_id.
+
+    :param job_id: PanDA job id (string).
+    :return: time in seconds (int).
+    """
+
+    return 0
+
+
+def get_payload_execution_time(job_id):
+    """
+    High level function that returns the time for the payload execution for the given job_id.
+
+    :param job_id: PanDA job id (string).
+    :return: time in seconds (int).
+    """
+
+    return 0
+
+
+def get_total_pilot_time(job_id):
+    """
+    High level function that returns the end time for the given job_id.
+    This means the wall time that has passed from the start of the pilot until after the last job update.
+
+    :param job_id: PanDA job id (string).
+    :return: time in seconds (int).
+    """
+
+    return 0
+
+
 def get_time_difference(job_id, timing_constant_1, timing_constant_2):
     """
     Return the positive time difference between the given constants.
