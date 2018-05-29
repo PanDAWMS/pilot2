@@ -82,7 +82,7 @@ def add_to_pilot_timing(job_id, timing_constant, time_measurement):
         pilot_timing_dictionary[job_id][timing_constant] = time_measurement
 
     # update the file
-    write_pilot_timing(pilot_timing_dictionary)
+    write_pilot_timing(job_id, pilot_timing_dictionary)
 
 
 def get_getjob_time(job_id):
