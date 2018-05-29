@@ -77,7 +77,7 @@ def move_all_files(files, copy_type):
     exit_code = 0
     stdout = ""
     stderr = ""
-    copy_method = None
+    # copy_method = None
 
     if copy_type == "mv":
         copy_method = move
@@ -90,7 +90,8 @@ def move_all_files(files, copy_type):
 
     for fspec in files:  # entry = {'name':<filename>, 'source':<dir>, 'destination':<dir>}
 
-        dst = fspec.workdir or kwargs.get('workdir') or '.'
+        # dst = fspec.workdir or kwargs.get('workdir') or '.'
+        dst = fspec.workdir or '.'
         #timeout = get_timeout(fspec.filesize)
         source = fspec.turl
         name = fspec.lfn
