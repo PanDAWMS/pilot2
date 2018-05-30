@@ -64,8 +64,8 @@ def add_to_pilot_timing(job_id, timing_constant, time_measurement):
     Add the given timing contant and measurement got job_id to the pilot timing dictionary.
 
     :param job_id: PanDA job id (string).
-    :param timing_constant: timing constant (int).
-    :param time_measurement: time measurement (int).
+    :param timing_constant: timing constant (string).
+    :param time_measurement: time measurement (float).
     :return:
     """
 
@@ -169,7 +169,7 @@ def get_time_difference(job_id, timing_constant_1, timing_constant_2):
     Structure of pilot timing dictionary:
         { job_id: { <timing_constant_1>: <time measurement in seconds since epoch>, .. }
     job_id = 0 means timing information from wrapper. Timing constants are defined in pilot.util.constants.
-    Time measurement are time.time() values.
+    Time measurement are time.time() values. The float value will be converted to an int as a last step.
 
     :param job_id: PanDA job id (string).
     :param timing_constant_1:
@@ -206,5 +206,12 @@ def get_time_difference(job_id, timing_constant_1, timing_constant_2):
     # always return a positive number
     if diff < 0:
         diff = -diff
+
+    # convert to int as a last step
+    try:
+        diff = int(diff)
+    except Exception as e:
+        log.warning('failed to convert %s to int: %s (will reset to 0)' % (diff, e))
+        diff = 0
 
     return diff
