@@ -12,6 +12,7 @@
 
 import os
 
+from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 from pilot.util.constants import PILOT_T0, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_PRE_SETUP, PILOT_POST_SETUP, \
     PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, PILOT_PRE_STAGEOUT, \
@@ -49,10 +50,7 @@ def write_pilot_timing(job_id, pilot_timing_dictionary):
     :return:
     """
 
-    try:
-        log = logger.getChild(job_id)
-    except Exception:
-        log = logger
+    log = get_logger(job_id)
 
     path = os.path.join(os.environ.get('PILOT_WORK_DIR', ''), config.Pilot.timing_file)
     if write_json(path, pilot_timing_dictionary):
@@ -181,10 +179,7 @@ def get_time_difference(job_id, timing_constant_1, timing_constant_2):
 
     diff = 0
 
-    try:
-        log = logger.getChild(job_id)
-    except Exception:
-        log = logger
+    log = get_logger(job_id)
 
     # first read the current pilot timing dictionary
     timing_dictionary = read_pilot_timing()
