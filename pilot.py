@@ -18,15 +18,16 @@ from os import getcwd, chdir, environ
 from shutil import rmtree
 
 from pilot.info import set_info
-from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
+from pilot.util.config import config
+from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_T0, PILOT_END_TIME
+from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
+from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
 from pilot.util.information import set_location
-from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
-from pilot.util.config import config
-from pilot.util.harvester import is_harvester_mode
 from pilot.util.node import is_virtual_machine
+from pilot.util.timing import add_to_pilot_timing
 
-VERSION = '2018-05-30.001'
+VERSION = '2018-05-30.002'
 
 
 def pilot_version_banner():
@@ -52,6 +53,9 @@ def main():
     """ Main function of PanDA Pilot 2 """
 
     logger = logging.getLogger(__name__)
+
+    # store T0 time stamp
+    add_to_pilot_timing('0', PILOT_T0, time.time())
 
     # print the pilot version
     pilot_version_banner()
@@ -397,4 +401,8 @@ if __name__ == '__main__':
         exit_code = SUCCESS
 
     logging.shutdown()
+
+    # store final time stamp
+    add_to_pilot_timing('0', PILOT_END_TIME, time.time())
+
     sys.exit(exit_code)

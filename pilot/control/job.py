@@ -20,12 +20,14 @@ from json import dumps
 from pilot.info import infosys, JobData
 from pilot.util import https
 from pilot.util.config import config, human2bytes
+from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.util.monitoring import job_monitor_tasks
 from pilot.util.monitoringtime import MonitoringTime
+from pilot.util.timing import add_to_pilot_timing
 from pilot.util.node import is_virtual_machine, get_diskspace
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
@@ -799,6 +801,9 @@ def retrieve(queues, traces, args):
             args.graceful_stop.set()
             break
 
+        # store time stamp
+        time_pre_getjob = time.time()
+
         # get a job definition from a source (file or server)
         res = get_job_definition(args)
         logger.info('res = %s' % str(res))
@@ -828,6 +833,10 @@ def retrieve(queues, traces, args):
 
                 # create the job object out of the raw dispatcher job dictionary
                 job = create_job(res, args.queue)
+
+                # write time stamps to pilot timing file
+                add_to_pilot_timing(job.jobid, PILOT_PRE_GETJOB, time_pre_getjob)
+                add_to_pilot_timing(job.jobid, PILOT_POST_GETJOB, time.time())
 
                 # add the job definition to the jobs queue and increase the job counter,
                 # and wait until the job has finished
