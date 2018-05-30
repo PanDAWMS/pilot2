@@ -841,7 +841,8 @@ def retrieve(queues, traces, args):
                     break
                 time.sleep(1)
         else:
-            if res['StatusCode'] != '0':
+            # it seems the PanDA server returns StatusCode as an int, but the aCT returns it as a string
+            if res['StatusCode'] != '0' and res['StatusCode'] != 0:
                 logger.warning('did not get a job -- sleep 60s and repeat -- status: %s' % res['StatusCode'])
                 for i in xrange(60):
                     if args.graceful_stop.is_set():
