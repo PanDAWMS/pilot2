@@ -75,6 +75,8 @@ def add_to_pilot_timing(job_id, timing_constant, time_measurement):
     if pilot_timing_dictionary == {}:
         pilot_timing_dictionary[job_id] = {timing_constant: time_measurement}
     else:
+        if job_id not in pilot_timing_dictionary:
+            pilot_timing_dictionary[job_id] = {}
         pilot_timing_dictionary[job_id][timing_constant] = time_measurement
 
     # update the file
