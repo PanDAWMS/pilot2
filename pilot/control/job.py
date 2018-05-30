@@ -522,17 +522,19 @@ def update_es_dispatcher_data(data):
     return data
 
 
-def get_job_definition_from_file(path):
+def get_job_definition_from_file(path, harvester):
     """
     Get a job definition from a pre-placed file.
     In Harvester mode, also remove any existing job request files since it is no longer needed/wanted.
 
     :param path: path to job definition file.
+    :param harvester: True if Harvester is being used (determined from args.harvester), otherwise False
     :return: job definition dictionary.
     """
 
     # remove any existing Harvester job request files (silent in non-Harvester mode)
-    remove_job_request_file()
+    if harvester:
+        remove_job_request_file()
 
     res = {}
     with open(path, 'r') as jobdatafile:
@@ -582,7 +584,10 @@ def get_job_definition(args):
 
     res = {}
 
-    path = os.path.join(os.environ['PILOT_HOME'], config.Pilot.pandajobdata)
+    path = os.path.join(os.environ['PILOT_WORK_DIR'], config.Pilot.pandajobdata)
+
+    if not os.path.exists(path):
+        logger.warning('Job definition file does not exist: %s' % path)
 
     # should we run a norma 'real' job or with a 'fake' job?
     if config.Pilot.pandajob == 'fake':
@@ -590,7 +595,7 @@ def get_job_definition(args):
         res = get_fake_job()
     elif os.path.exists(path):
         logger.info('will read job definition from file %s' % path)
-        res = get_job_definition_from_file(path)
+        res = get_job_definition_from_file(path, args.harvester)
     else:
         if args.harvester:
             pass  # local job definition file not found (go to sleep)
@@ -811,7 +816,7 @@ def retrieve(queues, traces, args):
                     break
                 time.sleep(1)
         else:
-            if res['StatusCode'] != 0:
+            if res['StatusCode'] != '0':
                 logger.warning('did not get a job -- sleep 60s and repeat -- status: %s' % res['StatusCode'])
                 for i in xrange(60):
                     if args.graceful_stop.is_set():
