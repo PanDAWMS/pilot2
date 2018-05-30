@@ -92,3 +92,20 @@ def whoami():
     exit_code, who_am_i, stderr = execute('whoami', mute=True)
 
     return who_am_i
+
+
+def get_logger(jod_id):
+    """
+    Return the logger object.
+    Use this function to get the proper logger object. It relies on a pythno 2.7 function, getChild(), but if the queue
+    is only using Python 2.6, the standard logger object will be returned instead.
+
+    :param jod_id: PanDA job id (string).
+    :return: logger object.
+    """
+
+    try:
+        log = logger.getChild(job_id)
+    except Exception:
+        log = logger
+    return log
