@@ -94,7 +94,7 @@ def whoami():
     return who_am_i
 
 
-def get_logger(jod_id):
+def get_logger(job_id):
     """
     Return the logger object.
     Use this function to get the proper logger object. It relies on a pythno 2.7 function, getChild(), but if the queue
