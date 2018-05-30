@@ -18,6 +18,8 @@ import subprocess
 import tarfile
 import time
 
+from contextlib import closing  # for Python 2.6 compatibility - to fix a problem with tarfile
+
 from pilot.api.data import StageInClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
@@ -379,9 +381,9 @@ def prepare_log(job, logfile, tarball_name):
     user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
     user.remove_redundant_files(job.workdir)
 
-    with tarfile.open(name=os.path.join(job.workdir, logfile.lfn),
+    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn),
                       mode='w:gz',
-                      dereference=True) as log_tar:
+                      dereference=True)) as log_tar:
         for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files) - set(force_exclude)):
             if os.path.exists(os.path.join(job.workdir, _file)):
                 logging.debug('adding to log: %s' % _file)
