@@ -12,6 +12,7 @@ import time
 
 # from pilot.info import infosys
 from pilot.user.atlas.setup import get_asetup
+from pilot.util.auxiliary import get_logger
 from pilot.util.filehandling import read_json, copy
 
 import logging
@@ -376,7 +377,7 @@ def post_memory_monitor_action(job):
     :return:
     """
 
-    log = logger.getChild(str(job.jobid))
+    log = get_logger(job.jobid)
 
     nap = 3
     path1 = os.path.join(job.workdir, get_memory_monitor_summary_filename())

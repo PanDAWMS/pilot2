@@ -8,7 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 from pilot.util.container import execute
-from pilot.util.auxiliary import time_stamp, whoami
+from pilot.util.auxiliary import time_stamp, whoami, get_logger
 from pilot.util.parameters import convert_to_int
 from pilot.util.processes import kill_processes
 from pilot.util.filehandling import remove_files
@@ -38,7 +38,7 @@ def looping_job(job, mt):
     exit_code = 0
     diagnostics = ""
 
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
     log.info('checking for looping job')
 
     looping_limit = get_looping_job_limit(job.is_analysis())
@@ -87,7 +87,7 @@ def get_time_for_last_touch(job, mt, looping_limit):
     :return: time in seconds since epoch (int).
     """
 
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     loopingjob_definitions = __import__('pilot.user.%s.loopingjob_definitions' % pilot_user,
@@ -127,7 +127,7 @@ def kill_looping_job(job):
     :return: (updated job object.)
     """
 
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
 
     # the child process is looping, kill it
     diagnostics = "pilot has decided to kill looping job %s at %s" % (job.jobid, time_stamp())

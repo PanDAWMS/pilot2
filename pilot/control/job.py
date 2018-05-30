@@ -22,7 +22,7 @@ from pilot.util import https
 from pilot.util.config import config, human2bytes
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name
 from pilot.util.proxy import get_distinguished_name
-from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id
+from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.util.monitoring import job_monitor_tasks
 from pilot.util.monitoringtime import MonitoringTime
@@ -104,7 +104,7 @@ def send_state(job, args, state, xml=None):
     :return:
     """
 
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
     if state == 'finished':
         log.info('job %s has finished - sending final server update' % job.jobid)
     else:
@@ -203,7 +203,7 @@ def validate(queues, traces, args):
         except Queue.Empty:
             continue
 
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid)
         traces.pilot['nr_jobs'] += 1
 
         # set the environmental variable for the task id
@@ -891,7 +891,7 @@ def job_has_finished(queues):
         # logger.info("(job still running)")
         pass
     else:
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid)
         log.info("job %s has completed" % job.jobid)
         return True
 
@@ -1006,7 +1006,7 @@ def job_monitor(queues, traces, args):
             if jobs:
                 peeking_time = time.time()
                 for i in range(len(jobs)):
-                    log = logger.getChild(jobs[i].jobid)
+                    log = get_logger(jobs[i].jobid)
                     log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
                     if jobs[i].state == 'finished' or jobs[i].state == 'failed':
                         log.info('aborting job monitoring since job state=%s' % jobs[i].state)

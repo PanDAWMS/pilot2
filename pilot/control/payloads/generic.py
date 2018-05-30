@@ -17,6 +17,7 @@ import signal
 from subprocess import PIPE
 
 from pilot.control.job import send_state
+from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD
 from pilot.common.exception import PilotException
@@ -49,7 +50,7 @@ class Executor(object):
         :param err:
         :return:
         """
-        # log = logger.getChild(job.jobid)
+        # log = get_logger(job.jobid)
 
         # try:
         # create symbolic link for sqlite200 and geomDB in job dir
@@ -73,7 +74,7 @@ class Executor(object):
         :return: proc (subprocess returned by Popen())
         """
 
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid)
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -147,7 +148,7 @@ class Executor(object):
         :return:
         """
 
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid)
 
         breaker = False
         exit_code = None
@@ -186,7 +187,7 @@ class Executor(object):
 
         :return:
         """
-        log = logger.getChild(str(self.__job.jobid))
+        log = get_logger(str(self.__job.jobid))
 
         exit_code = 1
         if self.setup_payload(self.__job, self.__out, self.__err):

@@ -22,6 +22,7 @@ from pilot.api.data import StageInClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
+from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.filehandling import find_executable
@@ -157,7 +158,7 @@ def _stage_in(args, job):
         :return: True in case of success
     """
 
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
 
     try:
         client = StageInClient(job.infosys, logger=log)
@@ -366,7 +367,7 @@ def copytool_out(queues, traces, args):
 
 
 def prepare_log(job, logfile, tarball_name):
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
     log.info('preparing log file')
 
     input_files = [e.lfn for e in job.indata]
@@ -394,7 +395,7 @@ def prepare_log(job, logfile, tarball_name):
 
 
 def _stage_out(args, outfile, job):
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
 
     log.info('will stage-out: %s' % outfile)
 
@@ -488,7 +489,7 @@ def _stage_out_all(job, args):
     :return:
     """
 
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
     outputs = {}
 
     if job.stageout == 'log':
@@ -560,7 +561,7 @@ def single_stage_out(args, job, outputs_outfile, fileinfodict):
     """
 
     status = True
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
 
     # this doesn't work since scope is added above, but scope is not present in outFiles
     # if outfile not in job['outFiles']:

@@ -18,6 +18,7 @@ import time
 
 from pilot.control.payloads import generic, eventservice
 from pilot.control.job import send_state
+from pilot.util.auxiliary import get_logger
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
 from pilot.util.filehandling import read_file
@@ -131,7 +132,7 @@ def execute_payloads(queues, traces, args):
             # this job is now to be monitored, so add it to the monitored_payloads queue
             queues.monitored_payloads.put(job)
 
-            log = logger.getChild(job.jobid)
+            log = get_logger(job.jobid)
             log.info('job %s added to monitored payloads queue' % job.jobid)
 
             out = open(os.path.join(job.workdir, config.Payload.payloadstdout), 'wb')
@@ -197,7 +198,7 @@ def process_job_report(job):
     :return:
     """
 
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
     path = os.path.join(job.workdir, config.Payload.jobreport)
     if not os.path.exists(path):
         log.warning('job report does not exist: %s' % path)
@@ -246,7 +247,7 @@ def validate_post(queues, traces, args):
             job = queues.finished_payloads.get(block=True, timeout=1)
         except Queue.Empty:
             continue
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid)
 
         # process the job report if it exists and set multiple fields
         process_job_report(job)

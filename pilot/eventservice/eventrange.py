@@ -10,6 +10,7 @@
 import json
 
 from pilot.util import https
+from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 
 import logging
@@ -26,7 +27,7 @@ def download_event_ranges(job, num_ranges=None):
     :return: List of event ranges.
     """
 
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
 
     try:
         if not num_ranges:
@@ -57,7 +58,7 @@ def update_event_ranges(job, event_ranges, version=1):
 
     :param event_ranges:
     """
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
 
     log.info("Updating event ranges: %s" % event_ranges)
 

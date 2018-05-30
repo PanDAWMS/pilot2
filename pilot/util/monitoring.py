@@ -14,6 +14,7 @@ import time
 from subprocess import PIPE
 
 from pilot.common.errorcodes import ErrorCodes
+from pilot.util.auxiliary import get_logger
 from pilot.util.processes import get_instant_cpu_consumption_time
 from pilot.util.config import config
 from pilot.util.container import execute
@@ -39,7 +40,7 @@ def job_monitor_tasks(job, mt, verify_proxy):
     exit_code = 0
     diagnostics = ""
 
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
     current_time = int(time.time())
 
     # update timing info
@@ -114,7 +115,7 @@ def utility_monitor(job):
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     usercommon = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
 
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
 
     # loop over all utilities
     for utcmd in job.utilities.keys():

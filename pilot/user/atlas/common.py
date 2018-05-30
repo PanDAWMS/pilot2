@@ -20,6 +20,7 @@ from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, U
 from pilot.util.container import execute
 from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
     set_inds, get_analysis_trf
+from pilot.util.auxiliary import get_logger
 from pilot.util.filehandling import remove
 from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
     get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
@@ -39,7 +40,7 @@ def get_payload_command(job):
     :return: command (string).
     """
 
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
 
     # Should the pilot do the asetup or do the jobPars already contain the information?
     prepareasetup = should_pilot_prepare_asetup(job.noexecstrcnv, job.jobparams)
@@ -165,7 +166,7 @@ def get_analysis_run_command(job, trf_name):
     diagnostics = ""
     cmd = ""
 
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
 
     # get relevant file transfer info
     use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype,

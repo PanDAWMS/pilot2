@@ -19,6 +19,7 @@ from pilot.eventservice.eshook import ESHook
 from pilot.eventservice.esprocess import ESProcess
 from pilot.eventservice.eventrange import download_event_ranges, update_event_ranges
 from pilot.info import infosys
+from pilot.util.auxiliary import get_logger
 
 import logging
 logger = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ class Executor(generic.Executor, ESHook):
                   None if no available events.
         """
         job = self.get_job()
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid)
         log.info("Getting event ranges: (num_ranges: %s)" % num_ranges)
         if len(self.__event_ranges) < num_ranges:
             ret = download_event_ranges(job, num_ranges=infosys.queuedata.corecount)
@@ -108,7 +109,7 @@ class Executor(generic.Executor, ESHook):
                         Fro 'failed' event ranges, it's {'id': <id>, 'status': 'failed', 'message': <full message>}.
         """
         job = self.get_job()
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid)
         log.info("Handling out message: %s" % message)
 
         self.__all_out_messages.append(message)
@@ -125,7 +126,7 @@ class Executor(generic.Executor, ESHook):
         :return: out_messages, output_file, fsize, adler32
         """
         job = self.get_job()
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid)
 
         out_messages = []
         while len(self.__queued_out_messages) > 0:
@@ -178,7 +179,7 @@ class Executor(generic.Executor, ESHook):
         if len(self.__queued_out_messages):
             if force or self.__last_stageout_time is None or (time.time() > self.__last_stageout_time + infosys.queuedata.es_stageout_gap):
                 job = self.get_job()
-                log = logger.getChild(job.jobid)
+                log = get_logger(job.jobid)
 
                 out_messagess, output_file, fsize, adler32 = self.tarzip_output_es()
                 log.info("tar/zip event ranges: %s, output_file: %s, fsize: %s, adler32: %s" % (out_messagess, output_file, fsize, adler32))
@@ -203,7 +204,7 @@ class Executor(generic.Executor, ESHook):
         Clean temp produced files
         """
         job = self.get_job()
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid)
 
         for msg in self.__all_out_messages:
             if msg['status'] in ['failed', 'fatal']:
@@ -228,7 +229,7 @@ class Executor(generic.Executor, ESHook):
         :param err:
         :return:
         """
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid)
 
         # get the payload command from the user specific code
         # cmd = get_payload_command(job, queuedata)
@@ -271,7 +272,7 @@ class Executor(generic.Executor, ESHook):
         :return:
         """
 
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid)
 
         breaker = False
         exit_code = None
