@@ -8,7 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-8
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 import time
@@ -19,7 +19,9 @@ from subprocess import PIPE
 from pilot.control.job import send_state
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
-from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD
+from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD, \
+    PILOT_PRE_SETUP, PILOT_POST_SETUP
+from pilot.util.timing import add_to_pilot_timing
 from pilot.common.exception import PilotException
 
 import logging
@@ -76,18 +78,24 @@ class Executor(object):
 
         log = get_logger(job.jobid)
 
+        # write time stamps to pilot timing file
+        add_to_pilot_timing(job.jobid, PILOT_PRE_SETUP, time.time())
+
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
         # for testing looping job:    cmd = user.get_payload_command(job) + ';sleep 240'
         try:
-            #cmd = user.get_payload_command(job)
-            cmd = user.get_payload_command(job) + ';sleep 240'
+            cmd = user.get_payload_command(job)
+            #cmd = user.get_payload_command(job) + ';sleep 240'
         except PilotException as e:
             log.fatal('could not define payload command')
             return None
 
         log.info("payload execution command: %s" % cmd)
+
+        # write time stamps to pilot timing file
+        add_to_pilot_timing(job.jobid, PILOT_POST_SETUP, time.time())
 
         # should we run any additional commands? (e.g. special monitoring commands)
         cmds = user.get_utility_commands_list(order=UTILITY_BEFORE_PAYLOAD)

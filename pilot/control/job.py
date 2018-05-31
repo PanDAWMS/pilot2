@@ -27,7 +27,7 @@ from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_sche
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.util.monitoring import job_monitor_tasks
 from pilot.util.monitoringtime import MonitoringTime
-from pilot.util.timing import add_to_pilot_timing, get_getjob_time #, get_setup_time, get_stagein_time, get_stageout_time, get_payload_execution_time
+from pilot.util.timing import add_to_pilot_timing, get_getjob_time, get_setup_time  #, get_stagein_time, get_stageout_time, get_payload_execution_time
 
 from pilot.util.node import is_virtual_machine, get_diskspace
 from pilot.common.errorcodes import ErrorCodes
@@ -173,18 +173,18 @@ def send_state(job, args, state, xml=None):
     if state == 'finished' or state == 'failed':
         # collect pilot timing data
         time_getjob = get_getjob_time(job.jobid)
-        #time_setup = get_setup_time(job.jobid)
+        time_setup = get_setup_time(job.jobid)
         #time_stagein = get_stagein_time(job.jobid)
         #time_payload = get_payload_execution_time(job.jobid)
         #time_stageout = get_stageout_time(job.jobid)
-        log.info('*' * 60)
+        log.info('*' * 30)
         log.info('Timing measurements:')
         log.info('get job = %d s' % time_getjob)
-        #log.info('setup = %d s' % time_setup)
+        log.info('setup = %d s' % time_setup)
         #log.info('stage-in = %d s' % time_stagein)
         #log.info('payload execution = %d s' % time_payload)
         #log.info('stage-out = %d s' % time_stageout)
-        log.info('*' * 60)
+        log.info('*' * 30)
 
         # data['pilotTiming'] = "%s|%s|%s|%s|%s" % (time_getjob, time_stagein, time_payload, time_stageout, time_setup)
 
