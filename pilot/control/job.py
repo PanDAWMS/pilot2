@@ -180,7 +180,7 @@ def send_state(job, args, state, xml=None):
         time_payload = get_payload_execution_time(job.jobid)
         time_stageout = get_stageout_time(job.jobid)
         log.info('.' * 30)
-        log.info('Timing measurements:')
+        log.info('. Timing measurements:')
         log.info('. initial setup = %d s' % time_initial_setup)
         log.info('. get job = %d s' % time_getjob)
         log.info('. setup = %d s' % time_setup)
