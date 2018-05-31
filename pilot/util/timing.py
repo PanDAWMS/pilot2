@@ -35,8 +35,6 @@ def read_pilot_timing():
     path = os.path.join(os.environ.get('PILOT_HOME', ''), config.Pilot.timing_file)
     if os.path.exists(path):
         pilot_timing_dictionary = read_json(path)
-    else:
-        logger.warning('pilot timing dictionary does not exist: %s' % path)
 
     return pilot_timing_dictionary
 

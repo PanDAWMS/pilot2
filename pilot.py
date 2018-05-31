@@ -54,9 +54,6 @@ def main():
 
     logger = logging.getLogger(__name__)
 
-    # store T0 time stamp
-    add_to_pilot_timing('0', PILOT_T0, time.time())
-
     # print the pilot version
     pilot_version_banner()
 
@@ -340,6 +337,9 @@ if __name__ == '__main__':
     args.mainworkdir = mainworkdir
     chdir(mainworkdir)
 
+    # store T0 time stamp
+    add_to_pilot_timing('0', PILOT_T0, time.time())
+
     environ['PILOT_SITENAME'] = args.site  # TODO: replace with singleton
 
     # Set the pilot user
@@ -400,9 +400,9 @@ if __name__ == '__main__':
         logging.info('pilot has finished')
         exit_code = SUCCESS
 
-    logging.shutdown()
-
     # store final time stamp
     add_to_pilot_timing('0', PILOT_END_TIME, time.time())
+
+    logging.shutdown()
 
     sys.exit(exit_code)
