@@ -20,7 +20,7 @@ from pilot.control.job import send_state
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD, \
-    PILOT_PRE_SETUP, PILOT_POST_SETUP
+    PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD
 from pilot.util.timing import add_to_pilot_timing
 from pilot.common.exception import PilotException
 
@@ -113,6 +113,9 @@ class Executor(object):
                 log.info('utility command to be executed with the payload: %s' % utcmd)
                 # add execution code here
 
+        # write time stamps to pilot timing file
+        add_to_pilot_timing(job.jobid, PILOT_PRE_PAYLOAD, time.time())
+
         # replace platform and workdir with new function get_payload_options() or someting from experiment specific code
         try:
             proc = execute(cmd, workdir=job.workdir, returnproc=True,
@@ -123,6 +126,8 @@ class Executor(object):
 
         log.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
         job.pid = proc.pid
+
+        # WRONG PLACE FOR THE FOLLOWING? MAIN PAYLOAD IS STILL RUNNING!!!
 
         # should any additional commands be executed after the payload?
         cmds = user.get_utility_commands_list(order=UTILITY_AFTER_PAYLOAD)
@@ -208,6 +213,9 @@ class Executor(object):
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
                 log.info('finished pid=%s exit_code=%s' % (proc.pid, exit_code))
                 self.__job.state = 'finished' if exit_code == 0 else 'failed'
+
+                # write time stamps to pilot timing file
+                add_to_pilot_timing(self.__job.jobid, PILOT_POST_PAYLOAD, time.time())
 
                 # stop any running utilities
                 if self.__job.utilities != {}:
