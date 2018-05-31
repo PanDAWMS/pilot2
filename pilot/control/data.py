@@ -26,8 +26,10 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
+from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT
 from pilot.util.container import execute
 from pilot.util.filehandling import find_executable
+from pilot.util.timing import add_to_pilot_timing
 
 import logging
 
@@ -162,6 +164,9 @@ def _stage_in(args, job):
 
     log = get_logger(job.jobid)
 
+    # write time stamps to pilot timing file
+    add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN, time.time())
+
     try:
         client = StageInClient(job.infosys, logger=log)
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
@@ -175,6 +180,9 @@ def _stage_in(args, job):
         log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
 
     log.info("stage-in finished")
+
+    # write time stamps to pilot timing file
+    add_to_pilot_timing(job.jobid, PILOT_POST_STAGEIN, time.time())
 
     remain_files = [e for e in job.indata if e.status not in ['remote_io', 'transferred', 'no_transfer']]
 
@@ -399,6 +407,9 @@ def prepare_log(job, logfile, tarball_name):
 def _stage_out(args, outfile, job):
     log = get_logger(job.jobid)
 
+    # write time stamps to pilot timing file
+    add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEOUT, time.time())
+
     log.info('will stage-out: %s' % outfile)
 
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
@@ -459,6 +470,9 @@ def _stage_out(args, outfile, job):
     out, err = process.communicate()
     log.debug('stdout:\n%s' % out)
     log.debug('stderr:\n%s' % err)
+
+    # write time stamps to pilot timing file
+    add_to_pilot_timing(job.jobid, PILOT_POST_STAGEOUT, time.time())
 
     # in case of problems, try to identify the error (and set it in the job object)
     if err != "":
