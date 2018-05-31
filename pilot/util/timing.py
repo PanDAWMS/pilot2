@@ -82,12 +82,13 @@ def add_to_pilot_timing(job_id, timing_constant, time_measurement):
 def get_initial_setup_time(job_id):
     """
     High level function that returns the time for the initial setup.
+    The initial setup time is measured from PILOT_T0 to PILOT_PRE_GETJOB.
 
-    :param job_id: PanDA job id (string).
+    :param job_id: PanDA job id (string). Likely set to 0 since job has not been downloaded at PILOT_PRE_INITIAL_SETUP.
     :return: time in seconds (int).
     """
 
-    return get_time_difference(job_id, PILOT_PRE_INITIAL_SETUP, PILOT_POST_INITIAL_SETUP)
+    return get_time_difference(job_id, PILOT_T0, PILOT_PRE_GETJOB)
 
 
 def get_getjob_time(job_id):
