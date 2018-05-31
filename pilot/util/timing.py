@@ -32,7 +32,7 @@ def read_pilot_timing():
 
     pilot_timing_dictionary = {}
 
-    path = os.path.join(os.environ.get('PILOT_WORK_DIR', ''), config.Pilot.timing_file)
+    path = os.path.join(os.environ.get('PILOT_HOME', ''), config.Pilot.timing_file)
     if os.path.exists(path):
         pilot_timing_dictionary = read_json(path)
     else:
@@ -41,22 +41,19 @@ def read_pilot_timing():
     return pilot_timing_dictionary
 
 
-def write_pilot_timing(job_id, pilot_timing_dictionary):
+def write_pilot_timing(pilot_timing_dictionary):
     """
     Write the given pilot timing dictionary to file.
 
-    :param job_id: PanDA job id (string).
     :param pilot_timing_dictionary:
     :return:
     """
 
-    log = get_logger(job_id)
-
-    path = os.path.join(os.environ.get('PILOT_WORK_DIR', ''), config.Pilot.timing_file)
+    path = os.path.join(os.environ.get('PILOT_HOME', ''), config.Pilot.timing_file)
     if write_json(path, pilot_timing_dictionary):
-        log.info('updated pilot timing dictionary: %s' % (path))
+        logger.debug('updated pilot timing dictionary: %s' % (path))
     else:
-        log.info('failed to update pilot timing dictionary: %s' % (path))
+        logger.info('failed to update pilot timing dictionary: %s' % (path))
 
 
 def add_to_pilot_timing(job_id, timing_constant, time_measurement):
@@ -80,7 +77,7 @@ def add_to_pilot_timing(job_id, timing_constant, time_measurement):
         pilot_timing_dictionary[job_id][timing_constant] = time_measurement
 
     # update the file
-    write_pilot_timing(job_id, pilot_timing_dictionary)
+    write_pilot_timing(pilot_timing_dictionary)
 
 
 def get_getjob_time(job_id):
