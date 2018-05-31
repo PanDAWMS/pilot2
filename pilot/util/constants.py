@@ -22,6 +22,8 @@ UTILITY_WITH_STAGEIN = 3
 # Timing constants that allow for additional constants to be defined for values before the pilot is started, ie for
 # wrapper timing purposes.
 PILOT_T0 = 'PILOT_T0'
+PILOT_PRE_INITIAL_SETUP = 'PILOT_PRE_INITIAL_SETUP'
+PILOT_POST_INITIAL_SETUP = 'PILOT_POST_INITIAL_SETUP'
 PILOT_PRE_GETJOB = 'PILOT_PRE_GETJOB'
 PILOT_POST_GETJOB = 'PILOT_POST_GETJOB'
 PILOT_PRE_SETUP = 'PILOT_PRE_SETUP'
