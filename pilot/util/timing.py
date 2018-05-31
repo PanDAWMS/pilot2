@@ -84,7 +84,7 @@ def get_initial_setup_time(job_id):
     High level function that returns the time for the initial setup.
     The initial setup time is measured from PILOT_T0 to PILOT_PRE_GETJOB.
 
-    :param job_id: PanDA job id (string). Likely set to 0 since job has not been downloaded at PILOT_PRE_INITIAL_SETUP.
+    :param job_id: PanDA job id (string).
     :return: time in seconds (int).
     """
 
@@ -169,6 +169,29 @@ def get_total_pilot_time(job_id):
     return get_time_difference(job_id, PILOT_T0, PILOT_END_TIME)
 
 
+def get_time_measurement(timing_constant, time_measurement_dictionary, timing_dictionary):
+    """
+    Return a requested time measurement from the time measurement dictionary, read from the pilot timing file.
+
+    :param timing_constant: timing constant (e.g. PILOT_T0)
+    :param time_measurement_dictionary: time measurement dictionary, extracted from pilot timing dictionary.
+    :param timing_dictionary: full timing dictionary from pilot timing file.
+    :return: time measurement (float).
+    """
+
+    time_measurement = time_measurement_dictionary.get(timing_constant, None)
+    if not time_measurement:
+        # try to get the measurement for the PILOT_T0 dictionary
+        time_measurement_dictionary_0 = timing_dictionary.get('0', None)
+        if time_measurement_dictionary_0:
+            time_measurement = time_measurement_dictionary_0.get(timing_constant, None)
+        else:
+            log.warning('failed to extract time measurement %d from %s (no such key)' %
+                        (timing_constant, time_measurement_dictionary))
+
+    return time_measurement
+
+
 def get_time_difference(job_id, timing_constant_1, timing_constant_2):
     """
     Return the positive time difference between the given constants.
@@ -195,17 +218,14 @@ def get_time_difference(job_id, timing_constant_1, timing_constant_2):
     timing_dictionary = read_pilot_timing()
 
     if job_id in timing_dictionary:
+
         # extract time measurements
         time_measurement_dictionary = timing_dictionary.get(job_id, None)
         if time_measurement_dictionary:
-            time_measurement_1 = time_measurement_dictionary.get(timing_constant_1, None)
-            if not time_measurement_1:
-                log.warning('failed to extract time measurement %d from %s (no such key)' %
-                            (timing_constant_1, time_measurement_dictionary))
-            time_measurement_2 = time_measurement_dictionary.get(timing_constant_2, None)
-            if not time_measurement_2:
-                log.warning('failed to extract time measurement %d from %s (no such key)' %
-                            (timing_constant_2, time_measurement_dictionary))
+
+            time_measurement_1 = get_time_measurement(timing_constant_1, time_measurement_dictionary, timing_dictionary)
+            time_measurement_2 = get_time_measurement(timing_constant_2, time_measurement_dictionary, timing_dictionary)
+
             if time_measurement_1 and time_measurement_2:
                 diff = time_measurement_2 - time_measurement_1
         else:
