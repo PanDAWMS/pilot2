@@ -16,7 +16,8 @@ from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 from pilot.util.constants import PILOT_T0, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_PRE_SETUP, PILOT_POST_SETUP, \
     PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, PILOT_PRE_STAGEOUT, \
-    PILOT_POST_STAGEOUT, PILOT_PRE_FINAL_UPDATE, PILOT_POST_FINAL_UPDATE, PILOT_END_TIME
+    PILOT_POST_STAGEOUT, PILOT_PRE_FINAL_UPDATE, PILOT_POST_FINAL_UPDATE, PILOT_END_TIME, PILOT_PRE_INITIAL_SETUP, \
+    PILOT_POST_INITIAL_SETUP
 from pilot.util.filehandling import read_json, write_json
 
 import logging
@@ -76,6 +77,17 @@ def add_to_pilot_timing(job_id, timing_constant, time_measurement):
 
     # update the file
     write_pilot_timing(pilot_timing_dictionary)
+
+
+def get_initial_setup_time(job_id):
+    """
+    High level function that returns the time for the initial setup.
+
+    :param job_id: PanDA job id (string).
+    :return: time in seconds (int).
+    """
+
+    return get_time_difference(job_id, PILOT_PRE_INITIAL_SETUP, PILOT_POST_INITIAL_SETUP)
 
 
 def get_getjob_time(job_id):
