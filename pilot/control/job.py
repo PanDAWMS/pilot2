@@ -189,7 +189,7 @@ def send_state(job, args, state, xml=None):
         log.info('. stage-out = %d s' % time_stageout)
         log.info('.' * 30)
 
-        # data['pilotTiming'] = "%s|%s|%s|%s|%s" % (time_getjob, time_stagein, time_payload, time_stageout, time_setup)
+        data['pilotTiming'] = "%s|%s|%s|%s|%s" % (time_getjob, time_stagein, time_payload, time_stageout, time_setup)
 
     try:
         # cmd = args.url + ':' + str(args.port) + 'server/panda/updateJob'
