@@ -96,10 +96,10 @@ def job_monitor_tasks(job, mt, verify_proxy):
         # check the size of the payload stdout
         # check_payload_stdout()
 
-        # update the worker node info (i.e. get the remaining disk space)
-        # self.__env['workerNode'].collectWNInfo(self.__env['thisSite'].workdir)
-        # self.__skip = self.__checkLocalSpace(self.__env['workerNode'].disk)
-        # check_local_space()
+        # check the local space, if it's enough left to keep running the job
+        exit_code, diagnostics = check_local_space()
+        if exit_code != 0:
+            return exit_code, diagnostics
 
         # check the size of the workdir
         exit_code, diagnostics = check_work_dir(job)
@@ -183,6 +183,7 @@ def check_local_space():
     """
 
     ec = 0
+    diagnostics = ""
 
     # is there enough local space to run a job?
     spaceleft = int(get_local_disk_space(os.getcwd())) * 1024 ** 2  # B (diskspace is in MB)
@@ -195,7 +196,7 @@ def check_local_space():
     else:
         logger.info('remaining disk space (%d B) is sufficient to download a job' % spaceleft)
 
-    return ec
+    return ec, diagnostics
 
 
 def check_work_dir(job):
