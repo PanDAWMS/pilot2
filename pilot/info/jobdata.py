@@ -28,6 +28,7 @@ import pipes
 
 from .basedata import BaseData
 from .filespec import FileSpec
+from pilot.util.filehandling import add_to_total_size
 
 import logging
 logger = logging.getLogger(__name__)
@@ -523,15 +524,50 @@ class JobData(BaseData):
 
         return ret, rawdata
 
-    def add_workdir_size(self, size):
+    def add_workdir_size(self, workdir_size):
         """
         Add a measured workdir size to the workdirsizes field.
+        The function will deduce any input and output file sizes from the workdir size.
 
-        :param size: workdir size (int).
+        :param workdir_size: workdir size (int).
         :return:
         """
 
-        self.workdirsizes.append(size)
+        # Convert to long if necessary
+        if type(size) != long:
+            try:
+                size = long(size)
+            except Exception as e:
+                logger.warning('failed to convert %s to long: %s' % (str(size), e))
+
+        total_size = 0L  # B
+
+        if os.path.exists(self.workdir):
+            # Find out which input and output files have been transferred and add their sizes to the total size
+            # (Note: output files should also be removed from the total size since outputfilesize is added in the
+            # task def)
+
+            # First remove the log file from the output file list
+            out_files = []
+            for f in self.outfiles:
+                if not self.logfile in f:
+                    out_files.append(f)
+
+            # Then update the file list in case additional output files were produced
+            # Note: don't do this deduction since it is not known by the task definition
+            # out_files, dummy, dummy = discoverAdditionalOutputFiles(outFiles, job.workdir, job.destinationDblock,
+            # job.scopeOut)
+
+            file_list = self.infiles + out_files
+            for f in file_list:
+                if f != "":
+                    total_size = add_to_total_size(os.path.join(self.workdir, f), total_size)
+
+            logger.info("total size of present input+output files: %d B (workdir size: %d B)" %
+                        (total_size, workdir_size))
+            workdir_size -= total_size
+
+        self.workdirsizes.append(workdir_size)
 
     def get_max_workdir_size(self):
         """
@@ -540,7 +576,7 @@ class JobData(BaseData):
         :return: workdir size (int).
         """
 
-        maxdirsize = 0
+        maxdirsize = 0L
 
         if self.workdirsizes != []:
             # Get the maximum value from the list

@@ -376,9 +376,9 @@ def add_to_total_size(path, total_size):
 
     if os.path.exists(path):
         # Get the file size
-        fsize = sitemover.getLocalFileSize(path)
-        logger.info("size of file %s: %s B" % (path, fsize))
-        if fsize != "":
+        fsize = get_local_file_size(path)
+        if fsize:
+            logger.info("size of file %s: %d B" % (path, fsize))
             total_size += long(fsize)
     else:
         logger.warning("skipping file %s since it is not present" % path)
@@ -394,7 +394,7 @@ def get_local_file_size(filename):
     :return: file size (int).
     """
 
-    file_size = 0
+    file_size = None
 
     if os.path.exists(filename):
         try:
