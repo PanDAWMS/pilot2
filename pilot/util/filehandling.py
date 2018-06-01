@@ -363,3 +363,45 @@ def get_directory_size(directory="."):
             logger.warning('exception caught while trying convert dirsize: %s' % e)
 
     return size
+
+
+def add_to_total_size(path, total_size):
+    """
+    Add the size of file in the given path to the total size of all in/output files.
+
+    :param path: path to file (string).
+    :param total_size: prior total size of all input/output files (long).
+    :return: total size of all input/output files (long).
+    """
+
+    if os.path.exists(path):
+        # Get the file size
+        fsize = sitemover.getLocalFileSize(path)
+        logger.info("size of file %s: %s B" % (path, fsize))
+        if fsize != "":
+            total_size += long(fsize)
+    else:
+        logger.warning("skipping file %s since it is not present" % path)
+
+    return total_size
+
+
+def get_local_file_size(filename):
+    """
+    Get the file size of a local file.
+
+    :param filename: file name (string).
+    :return: file size (int).
+    """
+
+    file_size = 0
+
+    if os.path.exists(filename):
+        try:
+            file_size = os.path.getsize(filename)
+        except Exception as e:
+            logger.warning("failed to get file size: %s" % e)
+    else:
+        logger.warning("local file does not exist: %s" % filename)
+
+    return file_size
