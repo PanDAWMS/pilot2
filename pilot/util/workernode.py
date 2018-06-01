@@ -8,6 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import os
+from string import find
 
 from pilot.util.disk import disk_usage
 from pilot.info import infosys
@@ -30,7 +31,7 @@ def get_local_disk_space(path):
 
     disk = 0.0
     # -mP = blocks of 1024*1024 (MB) and POSIX format
-    diskpipe = popen("df -mP %s" % (path))
+    diskpipe = os.popen("df -mP %s" % (path))
     disks = diskpipe.read()
     if not diskpipe.close():
         try:
@@ -95,7 +96,7 @@ def collect_workernode_info(path=None):
 
     mem = get_meminfo()
     cpu = get_cpuinfo()
-    disk = get_diskspace(path)
+    disk = get_local_disk_space(path)
 
     return mem, cpu, disk
 
