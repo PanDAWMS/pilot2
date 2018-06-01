@@ -27,6 +27,7 @@ class MonitoringTime(object):
         self.ct_proxy = ct
         self.ct_looping = ct
         self.ct_looping_last_touched = None
+        self.ct_diskspace = ct
         # add more here
 
     def update(self, key):
