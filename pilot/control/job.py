@@ -198,8 +198,13 @@ def send_state(job, args, state, xml=None):
         # cmd = args.url + ':' + str(args.port) + 'server/panda/updateJob'
         # if https.request(cmd, data=data) is not None:
 
+        if args.url != '' and args.port != 0:
+            pandaserver = args.url + ':' + str(args.port)
+        else:
+            pandaserver = config.Pilot.pandaserver
+
         if config.Pilot.pandajob == 'real':
-            if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=config.Pilot.pandaserver),
+            if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver),
                              data=data) is not None:
 
                 log.info('server updateJob request completed for job %s' % job.jobid)
