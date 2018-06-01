@@ -83,11 +83,30 @@ def job_monitor_tasks(job, mt, verify_proxy):
         else:
             if exit_code != 0:
                 return exit_code, diagnostics
-            else:
-                # update the ct_proxy with the current time
-                mt.update('ct_looping')
+
+        # update the ct_proxy with the current time
+        mt.update('ct_looping')
 
     # is the job using too much space?
+    disk_space_verification_time = convert_to_int(config.Pilot.disk_space_verification_time)
+    if current_time - mt.get('ct_diskspace') > disk_space_verification_time:
+        # time to check the disk space
+
+        # check the size of the payload stdout
+        # check_payload_stdout()
+
+        # update the worker node info (i.e. get the remaining disk space)
+        # self.__env['workerNode'].collectWNInfo(self.__env['thisSite'].workdir)
+        # self.__skip = self.__checkLocalSpace(self.__env['workerNode'].disk)
+        # check_local_space()
+
+        # check the size of the workdir
+        exit_code, diagnostics = check_work_dir(job)
+        if exit_code != 0:
+            return exit_code, diagnostics
+
+        # update the ct_diskspace with the current time
+        mt.update('ct_diskspace')
 
     # Is the payload stdout within allowed limits?
 
@@ -153,3 +172,28 @@ def utility_monitor(job):
             else:
                 log.warning('file: %s does not exist' % path)
     return job
+
+
+def check_work_dir(job):
+    """
+    Check the size of the work directory.
+    The function also updates the workdirsizes list in the job object.
+
+    :param job: job object.
+    :return: exit code (int), error diagnostics (string)
+    """
+
+    exit_code = 0
+    diagnostics = ""
+
+    log = get_logger(job.jobid)
+
+    if os.path.exists(job.workdir):
+        # get the limit of the workdir
+        # maxwdirsize = self.__getMaxAllowedWorkDirSize()
+
+        pass
+    else:
+        log.warning('skipping size check of workdir since it has not been created yet')
+
+    return exit_code, diagnostics
