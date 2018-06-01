@@ -24,7 +24,7 @@ from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
 from pilot.util.information import set_location
-from pilot.util.node import is_virtual_machine
+from pilot.util.workernode import is_virtual_machine
 from pilot.util.timing import add_to_pilot_timing
 
 VERSION = '2018-06-01.001'

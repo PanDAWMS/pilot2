@@ -30,7 +30,7 @@ from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.timing import add_to_pilot_timing, get_getjob_time, get_setup_time, get_stagein_time, get_stageout_time,\
     get_payload_execution_time, get_initial_setup_time
 
-from pilot.util.node import is_virtual_machine, get_diskspace
+from pilot.util.workernode import is_virtual_machine, get_diskspace
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
 
@@ -332,7 +332,7 @@ def get_dispatcher_dictionary(args):
     ## kept for a while as "wrong" example .. to be cleaned soon
     _diskspace = get_disk_space(args.info.infoservice.queuedata)
 
-    _mem, _cpu = collect_workernode_info()
+    _mem, _cpu, _disk = collect_workernode_info()
     _nodename = get_node_name()
 
     data = {

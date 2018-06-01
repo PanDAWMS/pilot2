@@ -16,38 +16,88 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def collect_workernode_info():
+def get_diskspace(path):
     """
-    Collect worker node information (cpu and memory).
+    Return remaning disk space for the disk in the given path.
+    Unit is MB.
 
-    :return: mem (float), cpu (float)
+    :param path: path to disk (string). Can be None, if call to collect_workernode_info() doesn't specify it.
+    :return: disk space (float).
+    """
+
+    if not path:
+        return None
+
+    disk = 0.0
+    # -mP = blocks of 1024*1024 (MB) and POSIX format
+    diskpipe = popen("df -mP %s" % (path))
+    disks = diskpipe.read()
+    if not diskpipe.close():
+        try:
+            disk = float(disks.splitlines()[1].split()[3])
+        except ValueError as e:
+            logger.warning('exception caught while trying to convert disk info: %s' % e)
+
+    return disk
+
+
+def get_meminfo():
+    """
+    Return the total memory (in MB).
+
+    :return: memory (float).
     """
 
     mem = 0.0
-    cpu = 0.0
-
-    try:
-        with open("/proc/meminfo", "r") as fd:
+    with open("/proc/meminfo", "r") as fd:
+        mems = fd.readline()
+        while mems:
+            if mems.upper().find("MEMTOTAL") != -1:
+                try:
+                    mem = float(mems.split()[1]) / 1024  # value listed by command as kB, convert to MB
+                except ValueError as e:
+                    logger.warning('exception caught while trying to convert meminfo: %s' % e)
+                break
             mems = fd.readline()
-            while mems:
-                if "MEMTOTAL" in mems.upper():
-                    mem = float(mems.split()[1]) / 1024
-                    break
-                mems = fd.readline()
-    except IOError as e:
-        logger.warning("failed to read /proc/meminfo: %s" % e)
 
-    try:
-        with open("/proc/cpuinfo", "r") as fd:
-            lines = fd.readlines()
-            for line in lines:
-                if "cpu MHz" in line:
+    return mem
+
+
+def get_cpuinfo():
+    """
+    Return the CPU frequency (in MHz).
+
+    :return: cpu (float).
+    """
+
+    cpu = 0.0
+    with open("/proc/cpuinfo", "r") as fd:
+        lines = fd.readlines()
+        for line in lines:
+            if not find(line, "cpu MHz"):
+                try:
                     cpu = float(line.split(":")[1])
-                    break
-    except IOError as e:
-        logger.warning("failed to read /proc/cpuinfo: %s" % e)
+                except ValueError as e:
+                    logger.warning('exception caught while trying to convert cpuinfo: %s' % e)
+                break  # command info is the same for all cores, so break here
 
-    return mem, cpu
+    return cpu
+
+
+def collect_workernode_info(path=None):
+    """
+    Collect node information (cpu, memory and disk space).
+    The disk space (in MB) is return for the disk in the given path.
+
+    :param path: path to disk (string).
+    :return: memory (float), cpu (float), disk space (float).
+    """
+
+    mem = get_meminfo()
+    cpu = get_cpuinfo()
+    disk = get_diskspace(path)
+
+    return mem, cpu, disk
 
 
 def get_disk_space(queuedata):
@@ -110,3 +160,25 @@ def get_condor_node_name(nodename):
         nodename = "%s@%s" % (os.environ["_CONDOR_SLOT"], nodename)
 
     return nodename
+
+
+def is_virtual_machine():
+    """
+    Are we running in a virtual machine?
+    If we are running inside a VM, then linux will put 'hypervisor' in cpuinfo. This function looks for the presence
+    of that.
+
+    :return: boolean.
+    """
+
+    status = False
+
+    # look for 'hypervisor' in cpuinfo
+    with open("/proc/cpuinfo", "r") as fd:
+        lines = fd.readlines()
+        for line in lines:
+            if "hypervisor" in line:
+                status = True
+                break
+
+    return status
