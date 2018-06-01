@@ -534,11 +534,12 @@ class JobData(BaseData):
         """
 
         # Convert to long if necessary
-        if type(size) != long:
+        if type(workdir_size) != long:
             try:
-                size = long(size)
+                workdir_size = long(workdir_size)
             except Exception as e:
-                logger.warning('failed to convert %s to long: %s' % (str(size), e))
+                logger.warning('failed to convert %s to long: %s' % (str(workdir_size), e))
+                return
 
         total_size = 0L  # B
 
@@ -550,7 +551,7 @@ class JobData(BaseData):
             # First remove the log file from the output file list
             out_files = []
             for f in self.outfiles:
-                if not self.logfile in f:
+                if self.logfile not in f:
                     out_files.append(f)
 
             # Then update the file list in case additional output files were produced
