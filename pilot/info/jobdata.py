@@ -59,7 +59,10 @@ class JobData(BaseData):
 
     transfertype = ""  # direct access
 
+    timefloor = 0
+
     # set by the pilot (not from job definition)
+    workdirsizes = []
     fileinfo = {}
     piloterrorcode = 0
     piloterrorcodes = []
@@ -122,7 +125,7 @@ class JobData(BaseData):
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['corecount', 'piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
-                   'attemptnr', 'nevents', 'pid'],
+                   'attemptnr', 'nevents', 'pid', 'timefloor'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
                    'state', 'status', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg',
@@ -131,7 +134,7 @@ class JobData(BaseData):
                    'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
                    'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload',
                    'swrelease', 'zipmap', 'imagename', 'transfertype', 'datasetin', 'datasetout', 'infilesguids'],
-             list: ['piloterrorcodes', 'piloterrordiags'],
+             list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
              dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
              bool: ['is_eventservice', 'noexecstrcnv']
              }
@@ -521,3 +524,14 @@ class JobData(BaseData):
             rawdata = " ".join(pipes.quote(e) for e in final_args)
 
         return ret, rawdata
+
+
+    def add_workdir_size(self, size):
+        """
+        Add a measured workdir size to the workdirsizes field.
+
+        :param size: workdir size (int).
+        :return:
+        """
+
+        pass
