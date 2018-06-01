@@ -551,4 +551,3 @@ class JobData(BaseData):
             logger.warning("found no stored workdir sizes")
 
         return maxdirsize
-

@@ -363,4 +363,3 @@ def get_directory_size(directory="."):
             logger.warning('exception caught while trying convert dirsize: %s' % e)
 
     return size
-

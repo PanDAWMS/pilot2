@@ -389,9 +389,7 @@ def prepare_log(job, logfile, tarball_name):
     user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
     user.remove_redundant_files(job.workdir)
 
-    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn),
-                      mode='w:gz',
-                      dereference=True)) as log_tar:
+    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as log_tar:
         for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files) - set(force_exclude)):
             if os.path.exists(os.path.join(job.workdir, _file)):
                 logging.debug('adding to log: %s' % _file)

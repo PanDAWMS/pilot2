@@ -168,13 +168,14 @@ def get_total_pilot_time(job_id):
     return get_time_difference(job_id, PILOT_T0, PILOT_END_TIME)
 
 
-def get_time_measurement(timing_constant, time_measurement_dictionary, timing_dictionary):
+def get_time_measurement(timing_constant, time_measurement_dictionary, timing_dictionary, job_id):
     """
     Return a requested time measurement from the time measurement dictionary, read from the pilot timing file.
 
     :param timing_constant: timing constant (e.g. PILOT_T0)
     :param time_measurement_dictionary: time measurement dictionary, extracted from pilot timing dictionary.
     :param timing_dictionary: full timing dictionary from pilot timing file.
+    :param job_id: PanDA job id (string).
     :return: time measurement (float).
     """
 
@@ -185,6 +186,7 @@ def get_time_measurement(timing_constant, time_measurement_dictionary, timing_di
         if time_measurement_dictionary_0:
             time_measurement = time_measurement_dictionary_0.get(timing_constant, None)
         else:
+            log = get_logger(job_id)
             log.warning('failed to extract time measurement %d from %s (no such key)' %
                         (timing_constant, time_measurement_dictionary))
 
@@ -222,8 +224,10 @@ def get_time_difference(job_id, timing_constant_1, timing_constant_2):
         time_measurement_dictionary = timing_dictionary.get(job_id, None)
         if time_measurement_dictionary:
 
-            time_measurement_1 = get_time_measurement(timing_constant_1, time_measurement_dictionary, timing_dictionary)
-            time_measurement_2 = get_time_measurement(timing_constant_2, time_measurement_dictionary, timing_dictionary)
+            time_measurement_1 = get_time_measurement(timing_constant_1, time_measurement_dictionary,
+                                                      timing_dictionary, job_id)
+            time_measurement_2 = get_time_measurement(timing_constant_2, time_measurement_dictionary,
+                                                      timing_dictionary, job_id)
 
             if time_measurement_1 and time_measurement_2:
                 diff = time_measurement_2 - time_measurement_1
