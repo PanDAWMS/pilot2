@@ -111,7 +111,7 @@ class StagingClient(object):
         ## do apply either simple query list_replicas() without geoip sort to resolve LAN replicas in case of directaccesstype=[None, LAN]
         # otherwise in case of directaccesstype=WAN mode do query geo sorted list_replicas() with location data passed
 
-        bquery = {'schemes': ['srm', 'root', 'davs', 'gsiftp'],
+        bquery = {'schemes': ['srm', 'root', 'davs', 'gsiftp', 'https'],
                   'dids': [dict(scope=e.scope, name=e.lfn) for e in xfiles]}
 
         allow_remoteinput = True in set(e.allowRemoteInputs for e in xfiles)  ## implement direct access later
