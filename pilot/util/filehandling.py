@@ -364,22 +364,3 @@ def get_directory_size(directory="."):
 
     return size
 
-
-def get_max_workdir_size(job):
-    """
-    Return the maximum disk space used by the payload.
-
-    :param job: job object.
-    :return: workdir size (int).
-    """
-
-    maxdirsize = 0
-
-    if job.workdirsizes != []:
-        # Get the maximum value from the list
-        maxdirsize = max(job.workdirsizes)
-    else:
-        logger.warning("found no stored workdir sizes")
-
-    return maxdirsize
-

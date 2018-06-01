@@ -525,7 +525,6 @@ class JobData(BaseData):
 
         return ret, rawdata
 
-
     def add_workdir_size(self, size):
         """
         Add a measured workdir size to the workdirsizes field.
@@ -534,4 +533,22 @@ class JobData(BaseData):
         :return:
         """
 
-        pass
+        self.workdirsizes.append(size)
+
+    def get_max_workdir_size(self):
+        """
+        Return the maximum disk space used by the payload.
+
+        :return: workdir size (int).
+        """
+
+        maxdirsize = 0
+
+        if self.workdirsizes != []:
+            # Get the maximum value from the list
+            maxdirsize = max(self.workdirsizes)
+        else:
+            logger.warning("found no stored workdir sizes")
+
+        return maxdirsize
+
