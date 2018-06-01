@@ -19,18 +19,18 @@ from json import dumps
 
 from pilot.info import infosys, JobData
 from pilot.util import https
-from pilot.util.config import config, human2bytes
+from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB
-from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name
+from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, is_virtual_machine, \
+    get_local_disk_space
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
-from pilot.util.monitoring import job_monitor_tasks
+from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.timing import add_to_pilot_timing, get_getjob_time, get_setup_time, get_stagein_time, get_stageout_time,\
     get_payload_execution_time, get_initial_setup_time
 
-from pilot.util.workernode import is_virtual_machine, get_diskspace
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
 
@@ -401,15 +401,9 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
             return False
 
     # is there enough local space to run a job?
-    spaceleft = int(get_diskspace(os.getcwd())) * 1024 ** 2  # B (diskspace is in MB)
-    free_space_limit = human2bytes(config.Pilot.free_space_limit)
-    if spaceleft <= free_space_limit:
-        diagnostics = 'too little space left on local disk to run job: %d B (need > %d B)' %\
-                      (spaceleft, free_space_limit)
-        logger.warning(diagnostics)
+    ec = check_local_space()
+    if ec != 0:
         return False
-    else:
-        logger.info('remaining disk space (%d B) is sufficient to download a job' % spaceleft)
 
     if harvester:
         maximum_getjob_requests = 60  # 1 s apart

@@ -16,7 +16,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_diskspace(path):
+def get_local_disk_space(path):
     """
     Return remaning disk space for the disk in the given path.
     Unit is MB.
@@ -102,13 +102,12 @@ def collect_workernode_info(path=None):
 
 def get_disk_space(queuedata):
     """
+    Get the disk space from the queuedata that should be available for running the job;
+    either what is actually locally available or the allowed size determined by the site (value from queuedata). This
+    value is only to be used internally by the job dispatcher.
 
-    Return the amound of disk space that should be available for running the job, either what is actually locally
-    available or the allowed size determined by the site (value from queuedata). This value is only to be used
-    internally by the job dispatcher.
-
-    :param queuedata: (better to have a file based queuedata a la pilot 1 or some singleton memory resident object?)
-    :return: disk space that should be available for running the job
+    :param queuedata: infosys object.
+    :return: disk space that should be available for running the job (int).
     """
 
     # --- non Job related queue data
@@ -122,13 +121,13 @@ def get_disk_space(queuedata):
         du = disk_usage(os.path.abspath("."))
         _diskspace = int(du[2] / (1024 * 1024))  # need to convert from B to MB
     except ValueError, e:
-        logger.warning("Failed to extract disk space: %s (will use schedconfig default)" % e)
+        logger.warning("failed to extract disk space: %s (will use schedconfig default)" % e)
         _diskspace = _maxinputsize
     else:
-        logger.info("Available WN disk space: %d MB" % (_diskspace))
+        logger.info("available WN disk space: %d MB" % (_diskspace))
 
     _diskspace = min(_diskspace, _maxinputsize)
-    logger.info("Sending disk space %d MB to dispatcher" % (_diskspace))
+    logger.info("sending disk space %d MB to dispatcher" % (_diskspace))
 
     return _diskspace
 

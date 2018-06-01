@@ -15,11 +15,12 @@ from subprocess import PIPE
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import get_logger
-from pilot.util.processes import get_instant_cpu_consumption_time
-from pilot.util.config import config
+from pilot.util.config import config, human2bytes
 from pilot.util.container import execute
+from pilot.util.loopingjob import looping_job
 from pilot.util.parameters import convert_to_int
-from loopingjob import looping_job
+from pilot.util.processes import get_instant_cpu_consumption_time
+from pilot.util.workernode import get_local_disk_space
 
 import logging
 logger = logging.getLogger(__name__)
@@ -172,6 +173,29 @@ def utility_monitor(job):
             else:
                 log.warning('file: %s does not exist' % path)
     return job
+
+
+def check_local_space():
+    """
+    Do we have enough local disk space left to run the job?
+
+    :return: pilot error code (0 if success, NOLOCALSPACE if failure)
+    """
+
+    ec = 0
+
+    # is there enough local space to run a job?
+    spaceleft = int(get_local_disk_space(os.getcwd())) * 1024 ** 2  # B (diskspace is in MB)
+    free_space_limit = human2bytes(config.Pilot.free_space_limit)
+    if spaceleft <= free_space_limit:
+        diagnostics = 'too little space left on local disk to run job: %d B (need > %d B)' %\
+                      (spaceleft, free_space_limit)
+        ec = errors.NOLOCALSPACE
+        logger.warning(diagnostics)
+    else:
+        logger.info('remaining disk space (%d B) is sufficient to download a job' % spaceleft)
+
+    return ec
 
 
 def check_work_dir(job):
