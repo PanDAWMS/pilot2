@@ -27,7 +27,7 @@ from pilot.util.information import set_location
 from pilot.util.node import is_virtual_machine
 from pilot.util.timing import add_to_pilot_timing
 
-VERSION = '2018-05-31.001'
+VERSION = '2018-06-01.001'
 
 
 def pilot_version_banner():
