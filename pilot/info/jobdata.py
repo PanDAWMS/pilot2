@@ -59,8 +59,6 @@ class JobData(BaseData):
 
     transfertype = ""  # direct access
 
-    timefloor = 0
-
     # set by the pilot (not from job definition)
     workdirsizes = []
     fileinfo = {}
@@ -125,7 +123,7 @@ class JobData(BaseData):
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['corecount', 'piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
-                   'attemptnr', 'nevents', 'pid', 'timefloor'],
+                   'attemptnr', 'nevents', 'pid'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
                    'state', 'status', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg',
