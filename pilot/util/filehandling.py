@@ -365,45 +365,21 @@ def get_directory_size(directory="."):
     return size
 
 
-def get_workdir_size_filename(job_id):
+def get_max_workdir_size(job):
     """
-    Return the name of the workdir_size-<job_id>.json file.
+    Return the maximum disk space used by the payload.
 
-    :param job_id: PanDA job id (string).
-    :return: filename (string).
-    """
-
-    return "workdir_size-%s.json" % (job_id)
-
-
-def get_max_workdir_size(path, job_id):
-    """
-    Return the maximum disk space used by a payload corresponding to job_id.
-
-    :param path: path to workdir_size json file (string).
-    :param job_id: PanDA job id (string).
+    :param job: job object.
     :return: workdir size (int).
     """
 
-    filename = os.path.join(path, get_workdir_size_filename(job_id))
     maxdirsize = 0
 
-    if os.path.exists(filename):
-        # Read back the workdir space dictionary
-        dictionary = read_json(filename)
-        if dictionary != {}:
-            # Get the workdir space list
-            try:
-                workdir_size_list = dictionary['workdir_size']
-            except Exception as e:
-                logger.warning("failed to read back workdir space list: %s" % e)
-            else:
-                # Get the maximum value from the list
-                maxdirsize = max(workdir_size_list)
-        else:
-            logger.warning("failed to read back work dir space from file: %s" % filename)
+    if job.workdirsizes != []:
+        # Get the maximum value from the list
+        maxdirsize = max(job.workdirsizes)
     else:
-        logger.warning("no such file: %s" % filename)
+        logger.warning("found no stored workdir sizes")
 
     return maxdirsize
 
