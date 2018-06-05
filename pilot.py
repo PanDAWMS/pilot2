@@ -190,7 +190,7 @@ if __name__ == '__main__':
     # graciously stop pilot process after hard limit
     arg_parser.add_argument('-j',
                             dest='job_label',
-                            default='ptest',
+                            default='user',
                             help='Job prod/source label (default: ptest)')
 
     # pilot version tag; PR or RC
