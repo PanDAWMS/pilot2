@@ -284,7 +284,6 @@ def create_data_payload(queues, traces, args):
         except Queue.Empty:
             continue
 
-        logger.info('job.infiles=%s' % str(job.infiles))
         if job.infiles and job.infiles != []:
             queues.data_in.put(job)
         queues.payloads.put(job)

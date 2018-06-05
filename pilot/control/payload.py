@@ -120,7 +120,6 @@ def execute_payloads(queues, traces, args):
             job = queues.validated_payloads.get(block=True, timeout=1)
             log = get_logger(job.jobid)
 
-            log.info('. job.infiles=%s' % str(job.infiles))
             if job.infiles and job.infiles != []:
                 q_snapshot = list(queues.finished_data_in.queue)
                 peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
@@ -132,8 +131,11 @@ def execute_payloads(queues, traces, args):
                         time.sleep(0.1)
                     continue
             else:
-                log.info('this job does not have any input files - proceed with adding job to validated_payloads queue')
-                queues.validated_payloads.put(job)
+                if job in queues.validated_payloads:
+                    pass
+                else:
+                    log.info('this job does not have any input files - proceed with adding job to validated_payloads queue')
+                    queues.validated_payloads.put(job)
 
             # this job is now to be monitored, so add it to the monitored_payloads queue
             queues.monitored_payloads.put(job)
