@@ -7,7 +7,9 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
-from pilot.util.auxiliary import get_logger
+# from pilot.util.auxiliary import get_logger
+
+from os import environ
 
 import logging
 logger = logging.getLogger(__name__)
