@@ -33,8 +33,12 @@ def get_job_metrics_entry(name, value):
 def get_job_metrics(job):
     """
     Return a properly formatted job metrics string.
+    Job metrics are highly user specific, so this function merely calls a corresponding get_job_metrics() in the
+    user code. The format of the job metrics string is defined by the server. It will be reported to the server during
+    updateJob.
 
-    Style: Number of events read | Number of events written | vmPeak maximum | vmPeak average | RSS average | ..
+    Example of job metrics:
+    Number of events read | Number of events written | vmPeak maximum | vmPeak average | RSS average | ..
     Format: nEvents=<int> nEventsW=<int> vmPeakMax=<int> vmPeakMean=<int> RSSMean=<int> hs06=<float> shutdownTime=<int>
             cpuFactor=<float> cpuLimit=<float> diskLimit=<float> jobStart=<int> memLimit=<int> runLimit=<float>
 
@@ -42,4 +46,7 @@ def get_job_metrics(job):
     :return: job metrics (string).
     """
 
-    pass
+    user = environ.get('PILOT_USER', 'generic').lower()  # TODO: replace with singleton
+    job_metrics = __import__('pilot.user.%s.jobmetrics' % user, globals(), locals(), [user], -1)
+
+    return job_metrics.get_job_metrics(job)
