@@ -79,6 +79,7 @@ class JobData(BaseData):
     cpuconsumptiontime = ""
     cpuconversionfactor = 1
     nevents = 0  # number of events
+    neventsw = 0  # number of events written
     payload = ""  # payload name
     utilities = {}  # utility processes { <name>: [<process handle>, number of launches, command string], .. }
     pid = None  # payload pid
@@ -124,7 +125,7 @@ class JobData(BaseData):
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['corecount', 'piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
-                   'attemptnr', 'nevents', 'pid'],
+                   'attemptnr', 'nevents', 'neventsw', 'pid'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
                    'state', 'status', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg',

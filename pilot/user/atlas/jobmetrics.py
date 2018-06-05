@@ -35,7 +35,6 @@ def get_job_metrics(job):
     job_metrics = ""
 
     corecount = get_core_count(job)
-
     if corecount is not None and corecount != "NULL" and corecount != 'null':
         job_metrics += get_job_metrics_entry(key="coreCount", value=corecount)
 
