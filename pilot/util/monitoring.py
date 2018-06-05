@@ -44,13 +44,14 @@ def job_monitor_tasks(job, mt, verify_proxy):
     log = get_logger(job.jobid)
     current_time = int(time.time())
 
-    # update timing info
-    cpuconsumptiontime = get_instant_cpu_consumption_time(job.pid)
-    job.cpuconsumptiontime = int(cpuconsumptiontime)
-    job.cpuconsumptionunit = "s"
-    job.cpuconversionfactor = 1.0
-    log.info('CPU consumption time for pid=%d: %f (rounded to %d)' %
-             (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
+    # update timing info for running jobs
+    if job.state == 'running':
+        cpuconsumptiontime = get_instant_cpu_consumption_time(job.pid)
+        job.cpuconsumptiontime = int(cpuconsumptiontime)
+        job.cpuconsumptionunit = "s"
+        job.cpuconversionfactor = 1.0
+        log.info('CPU consumption time for pid=%d: %f (rounded to %d)' %
+                 (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
 
     # should the proxy be verified?
     if verify_proxy:
