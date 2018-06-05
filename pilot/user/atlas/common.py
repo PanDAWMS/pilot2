@@ -341,6 +341,7 @@ def is_build_job(outfiles):
         if '.lib.' in outfiles[0]:
             is_a_build_job = True
 
+    logger.info('is build job=%s' % str(is_a_build_job))
     return is_a_build_job
 
 
