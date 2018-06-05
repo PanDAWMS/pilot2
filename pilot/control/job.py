@@ -286,6 +286,8 @@ def create_data_payload(queues, traces, args):
 
         if job.infiles and job.infiles != []:
             queues.data_in.put(job)
+        else:
+            queues.finished_data_in.put(job)
         queues.payloads.put(job)
 
 
