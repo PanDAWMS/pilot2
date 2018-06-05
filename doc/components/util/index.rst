@@ -25,6 +25,7 @@ util components
     harvester
     https
     information
+    jobmetrics
     loopingjob
     monitoring
     monitoringtime
