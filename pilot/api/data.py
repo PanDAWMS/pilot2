@@ -286,6 +286,7 @@ class StagingClient(object):
                 result = self.transfer_files(copytool, files, **kwargs)
             except PilotException, e:
                 errors.append(e)
+                self.logger.debug('Error: %s' % e)
             except Exception, e:
                 self.logger.warning('Failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
 
