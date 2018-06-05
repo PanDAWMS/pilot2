@@ -283,6 +283,8 @@ def download_transform(url, transform_name):
             break
         trial += 1
 
+    logger.info('current dir=%s' % os.getcwd())
+
     return status, diagnostics
 
 
