@@ -189,12 +189,13 @@ def set_inds(dataset):
         logger.warning("INDS unknown")
 
 
-def get_analysis_trf(transform):
+def get_analysis_trf(transform, workdir):
     """
     Prepare to download the user analysis transform with curl.
     The function will verify the download location from a known list of hosts.
 
     :param transform: full trf path (url) (string).
+    :param workdir: work directory (string).
     :return: exit code (int), diagnostics (string), transform_name (string)
     """
 
@@ -226,7 +227,7 @@ def get_analysis_trf(transform):
     for base_url in get_valid_base_urls(order=original_base_url):
         trf = re.sub(original_base_url, base_url, transform)
         logger.debug("attempting to download trf: %s" % (trf))
-        status, diagnostics = download_transform(trf, transform_name)
+        status, diagnostics = download_transform(trf, transform_name, workdir)
         if status:
             break
 
@@ -235,9 +236,10 @@ def get_analysis_trf(transform):
         # return self.__error.ERR_TRFDOWNLOAD, diagnostics, ""
 
     logger.info("successfully downloaded transform")
-    logger.debug("changing permission of %s to 0755" % (transform_name))
+    path = os.path.join(workdir, transform_name)
+    logger.debug("changing permission of %s to 0755" % path)
     try:
-        os.chmod(transform_name, 0755)
+        os.chmod(path, 0755)
     except Exception, e:
         diagnostics = "failed to chmod %s: %s" % (transform_name, e)
         # return self.__error.ERR_CHMODTRF, diagnostics, ""
@@ -245,17 +247,19 @@ def get_analysis_trf(transform):
     return ec, diagnostics, transform_name
 
 
-def download_transform(url, transform_name):
+def download_transform(url, transform_name, workdir):
     """
     Download the transform from the given url
     :param url: download URL with path to transform (string).
     :param transform_name: trf name (string).
+    :param workdir: work directory (string).
     :return:
     """
 
     status = False
     diagnostics = ""
-    cmd = 'curl -sS \"%s\" > %s' % (url, transform_name)
+    path = os.path.join(workdir, transform_name)
+    cmd = 'curl -sS \"%s\" > %s' % (url, path)
     trial = 1
     max_trials = 3
 
@@ -282,8 +286,6 @@ def download_transform(url, transform_name):
             status = True
             break
         trial += 1
-
-    logger.info('current dir=%s' % os.getcwd())
 
     return status, diagnostics
 

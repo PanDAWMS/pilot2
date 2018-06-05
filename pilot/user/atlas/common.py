@@ -85,7 +85,7 @@ def get_payload_command(job):
             set_inds(job.datasetin)  # realDatasetsIn
 
             # Try to download the trf
-            ec, diagnostics, trf_name = get_analysis_trf(job.transformation)
+            ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
             if ec != 0:
                 raise TrfDownloadFailure(diagnostics)
             else:
