@@ -267,6 +267,7 @@ class StagingClient(object):
 
         result, errors = None, []
 
+        self.logger('files=%s' % str(files))
         for name in copytools:
 
             try:
