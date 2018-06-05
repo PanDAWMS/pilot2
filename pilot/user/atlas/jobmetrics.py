@@ -8,6 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 from pilot.util.auxiliary import get_logger
+from pilot.util.jobmetrics import get_job_metrics_entry
 
 import logging
 logger = logging.getLogger(__name__)
@@ -27,4 +28,25 @@ def get_job_metrics(job):
     :return: job metrics (string).
     """
 
-    return ""
+    if "HPC_HPC" in readpar('catchall'):
+        if job.coreCount is None:
+            job.coreCount = 0
+    else:
+        if job.coreCount:
+            # Always use the ATHENA_PROC_NUMBER first, if set
+            if os.environ.has_key('ATHENA_PROC_NUMBER'):
+                try:
+                    job.coreCount = int(os.environ['ATHENA_PROC_NUMBER'])
+                except Exception, e:
+                    tolog("ATHENA_PROC_NUMBER is not properly set: %s (will use existing job.coreCount value)" % (e))
+        else:
+            try:
+                job.coreCount = int(os.environ['ATHENA_PROC_NUMBER'])
+            except:
+                tolog("env ATHENA_PROC_NUMBER is not set. corecount is not set")
+    coreCount = job.coreCount
+    jobMetrics = ""
+    if coreCount is not None and coreCount != "NULL" and coreCount != 'null':
+        jobMetrics += self.jobMetric(key="coreCount", value=coreCount)
+
+    return job_metrics

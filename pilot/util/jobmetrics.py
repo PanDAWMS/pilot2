@@ -47,6 +47,6 @@ def get_job_metrics(job):
     """
 
     user = environ.get('PILOT_USER', 'generic').lower()  # TODO: replace with singleton
-    job_metrics = __import__('pilot.user.%s.jobmetrics' % user, globals(), locals(), [user], -1)
+    job_metrics_module = __import__('pilot.user.%s.jobmetrics' % user, globals(), locals(), [user], -1)
 
-    return job_metrics.get_job_metrics(job)
+    return job_metrics_module.get_job_metrics(job)
