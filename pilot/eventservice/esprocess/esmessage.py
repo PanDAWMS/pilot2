@@ -120,4 +120,5 @@ class MessageThread(threading.Thread):
             self.terminate()
             logger.error("Message thread got an exception, will finish: %s" % str(e))
             # raise MessageFailure(e)
+        self.terminate()
         logger.info('Message thread finished.')

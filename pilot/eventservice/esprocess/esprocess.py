@@ -22,7 +22,7 @@ except Exception:
     import queue  # python 3
 
 from pilot.common.exception import PilotException, MessageFailure, SetupFailure, RunPayloadFailure, UnknownException
-from pilot.eventservice.esmessage import MessageThread
+from pilot.eventservice.esprocess.esmessage import MessageThread
 
 
 logger = logging.getLogger(__name__)
@@ -58,11 +58,14 @@ class ESProcess(threading.Thread):
         self.__monitor_log_time = None
         self.__no_more_event_time = None
         self.__waiting_time = 30 * 60
-        self.__stop = False
+        self.__stop = threading.Event()
 
         self.pid = None
 
         self.__ret_code = None
+
+    def stop(self):
+        self.__stop.set()
 
     def init_message_thread(self, socketname='EventService_EventRanges', context='local'):
         """
@@ -169,7 +172,7 @@ class ESProcess(threading.Thread):
         except Exception as e:
             # TODO: raise exceptions
             self.__ret_code = -1
-            self.__stop = True
+            self.__stop.set()
             raise e
 
     def monitor(self):
@@ -370,11 +373,11 @@ class ESProcess(threading.Thread):
                     logger.info('send SIGTERM to process: %s' % self.__process.pid)
                     os.kill(self.__process.pid, signal.SIGTERM)
             self.__ret_code = self.__process.poll()
-            self.__stop = True
+            self.__stop.set()
         except Exception as e:
             logger.error('Exception caught when terminating ESProcess: %s' % e)
             self.__ret_code = -1
-            self.__stop = True
+            self.__stop.set()
             raise UnknownException(e)
 
     def kill(self):
@@ -402,10 +405,10 @@ class ESProcess(threading.Thread):
                     logger.info('got process group id for pid %s: %s' % (self.__process.pid, pgid))
                     logger.info('send SIGKILL to process group: %s' % pgid)
                     os.killpg(pgid, signal.SIGKILL)
-            self.__stop = True
+            self.__stop.set()
         except Exception as e:
             logger.error('Exception caught when terminating ESProcess: %s' % e)
-            self.__stop = True
+            self.__stop.set()
             raise UnknownException(e)
 
     def clean(self):
@@ -429,7 +432,7 @@ class ESProcess(threading.Thread):
         logger.debug('initialization finished.')
 
         logger.debug('starts to main loop')
-        while not self.__stop:
+        while not self.__stop.isSet():
             try:
                 self.monitor()
                 self.handle_messages()
@@ -437,7 +440,7 @@ class ESProcess(threading.Thread):
             except PilotException as e:
                 logger.error('Exception caught in the main loop: %s' % e.get_detail())
                 # TODO: define output message exception. If caught 3 output message exception, terminate
-                self.__stop = True
+                self.__stop.set()
             except Exception as e:
                 logger.error('Exception caught in the main loop: %s' % e)
                 # TODO: catch and raise exceptions
