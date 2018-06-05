@@ -44,7 +44,7 @@ def job_monitor_tasks(job, mt, verify_proxy):
     log = get_logger(job.jobid)
     current_time = int(time.time())
 
-    # update timing info for running jobs
+    # update timing info for running jobs (to avoid an update after the job has finished)
     if job.state == 'running':
         cpuconsumptiontime = get_instant_cpu_consumption_time(job.pid)
         job.cpuconsumptiontime = int(cpuconsumptiontime)
