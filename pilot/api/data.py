@@ -278,6 +278,7 @@ class StagingClient(object):
                 copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], -1)
             except PilotException, e:
                 errors.append(e)
+                self.logger.debug('Error: %s' % e)
                 continue
             except Exception, e:
                 self.logger.warning('Failed to import copytool module=%s, error=%s' % (module, e))
