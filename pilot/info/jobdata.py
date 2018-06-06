@@ -340,7 +340,7 @@ class JobData(BaseData):
     def is_build_job(self):
         """
         Check if the job is a build job.
-        (i.e. check if the job only has an output file that is a lib file).
+        (i.e. check if the job has an output file that is a lib file).
 
         :param outfiles: list of output files.
         :return: boolean
@@ -351,12 +351,12 @@ class JobData(BaseData):
             outfiles = self.outfiles.split(',')
         else:
             outfiles = self.outfiles
-        logger.info('.outfiles=%s' % str(outfiles))
+
         for f in outfiles:
-            if '.lib.' in f:
+            if '.lib.' in f and '.log.' not in f:
                 is_a_build_job = True
                 break
-        logger.info('.is build job=%s' % str(is_a_build_job))
+
         return is_a_build_job
 
     def clean(self):
