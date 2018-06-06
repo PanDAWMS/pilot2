@@ -336,11 +336,10 @@ def is_build_job(outfiles):
 
     is_a_build_job = False
 
-    # outfiles only contains a single file for build jobs, the lib file
-    if len(outfiles) == 1:
-        if '.lib.' in outfiles[0]:
+    for f in outfiles:
+        if '.lib.' in f:
             is_a_build_job = True
-
+            break
     logger.info('is build job=%s' % str(is_a_build_job))
     return is_a_build_job
 
