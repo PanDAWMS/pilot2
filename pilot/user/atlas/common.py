@@ -170,7 +170,7 @@ def get_analysis_run_command(job, trf_name):
 
     # get relevant file transfer info
     use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype,
-                                                                            is_build_job(job.outfiles),
+                                                                            job.is_build_job(),
                                                                             job.infosys.queuedata)
 
     # add the user proxy
@@ -193,7 +193,7 @@ def get_analysis_run_command(job, trf_name):
 
     # add guids when needed
     # get the correct guids list (with only the direct access files)
-    if not is_build_job(job.outfiles):
+    if not job.is_build_job():
         _guids = get_guids_from_jobparams(job.jobparams, job.infiles, job.infilesguids)
         cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
 
@@ -323,25 +323,6 @@ def get_guids_from_jobparams(jobparams, infiles, infilesguids):
                 guidlist.append(infilesguids[index])
 
     return guidlist
-
-
-def is_build_job(outfiles):
-    """
-    Check if the job is a build job.
-    (i.e. check if the job only has one output file that is a lib file).
-
-    :param outfiles: list of output files.
-    :return: boolean
-    """
-
-    is_a_build_job = False
-
-    for f in outfiles:
-        if '.lib.' in f:
-            is_a_build_job = True
-            break
-    logger.info('is build job=%s' % str(is_a_build_job))
-    return is_a_build_job
 
 
 def get_file_transfer_info(transfertype, is_a_build_job, queuedata):

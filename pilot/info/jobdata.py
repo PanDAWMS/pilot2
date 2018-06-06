@@ -337,14 +337,23 @@ class JobData(BaseData):
 
         return is_analysis
 
-    def is_build(self):
+    def is_build_job(self):
         """
-            Determine whether the job is a build job or not.
-            (i.e. check if the job only has one output file that is a lib file)
-            :return: True for a build job
+        Check if the job is a build job.
+        (i.e. check if the job only has an output file that is a lib file).
+
+        :param outfiles: list of output files.
+        :return: boolean
         """
 
-        return False  ## TO BE IMPLEMENTED
+        is_a_build_job = False
+        logger.info('outfiles=%s' % str(self.outfiles))
+        for f in self.outfiles:
+            if '.lib.' in f:
+                is_a_build_job = True
+                break
+        logger.info('is build job=%s' % str(is_a_build_job))
+        return is_a_build_job
 
     def clean(self):
         """
