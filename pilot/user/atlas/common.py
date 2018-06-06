@@ -14,17 +14,16 @@ from collections import defaultdict
 from glob import glob
 from signal import SIGTERM, SIGUSR1
 
-# from pilot.common.exception import PilotException
+from pilot.common.exception import TrfDownloadFailure
+from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
+    set_inds, get_analysis_trf, get_payload_environment_variables
+from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
+    get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
+from pilot.util.auxiliary import get_logger
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD,\
     UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
-from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
-    set_inds, get_analysis_trf
-from pilot.util.auxiliary import get_logger
 from pilot.util.filehandling import remove
-from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
-    get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
-from pilot.common.exception import TrfDownloadFailure
 
 import logging
 logger = logging.getLogger(__name__)
@@ -118,6 +117,10 @@ def get_payload_command(job):
         log.info("generic job (non-ATLAS specific or with undefined swRelease)")
 
         cmd = ""
+
+    site = os.environ.get('PILOT_SITENAME', '')
+    variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
+    cmd = ''.join(variables) + cmd
 
     return cmd
 
