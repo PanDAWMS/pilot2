@@ -171,7 +171,7 @@ def request(url, data=None, plain=False):
                                pipes.quote('User-Agent: %s' % _ctx.user_agent),
                                "-H " + pipes.quote('Accept: application/json') if not plain else '',
                                pipes.quote(url + '?' + urllib.urlencode(data) if data else ''))
-        logger.debug('request: %s' % req)
+        logger.info('request: %s' % req)
         status, output = commands.getstatusoutput(req)
         if status != 0:
             logger.warn('request failed (%s): %s' % (status, output))
