@@ -352,7 +352,7 @@ class JobData(BaseData):
         else:
             outfiles = self.outfiles
         logger.info('.outfiles=%s' % str(outfiles))
-        for f in self.outfiles:
+        for f in outfiles:
             if '.lib.' in f:
                 is_a_build_job = True
                 break
