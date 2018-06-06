@@ -59,6 +59,7 @@ class JobData(BaseData):
     is_eventservice = False        # True for event service jobs
 
     transfertype = ""  # direct access
+    processingtype = ""  # e.g. nightlies
 
     # set by the pilot (not from job definition)
     workdirsizes = []
@@ -132,7 +133,7 @@ class JobData(BaseData):
                    'infiles', 'scopein', 'ddmendpointin',       ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    'outfiles', 'scopeout', 'ddmendpointout',    ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
-                   'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload',
+                   'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload', 'processingtype',
                    'swrelease', 'zipmap', 'imagename', 'transfertype', 'datasetin', 'datasetout', 'infilesguids'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
              dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
@@ -316,6 +317,7 @@ class JobData(BaseData):
             'ddmendpointout': 'ddmEndPointOut',          ## TO BE DEPRECATED: moved to FileSpec
             'datasetin': 'realDatasetsIn',               ## TO BE DEPRECATED: moved to FileSpec
             'datasetout': 'realDatasets',                ## TO BE DEPRECATED: moved to FileSpec
+            'processingtype': 'processingType',
             'destinationdblock': 'destinationDblock',
             'noexecstrcnv': 'noExecStrCnv',
             'swrelease': 'swRelease',
