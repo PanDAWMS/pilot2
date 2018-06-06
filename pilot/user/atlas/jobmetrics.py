@@ -75,11 +75,11 @@ def get_job_metrics(job):
     #             job_metrics += get_job_metrics_entry(key=key, value=job.yoda_job_metrics[key])
 
     # get the max disk space used by the payload (at the end of a job)
-    if job.state == "finished" or job.state == "failed" or job.state == "holding":
-            max_space = getMaxWorkDirSize(path, jobId)
-            if max_space > 0L:
-                jobMetrics += self.addFieldToJobMetrics("workDirSize", max_space)
-            else:
-                tolog("Will not add max space = %d to job metrics" % (max_space))
+    #if job.state == "finished" or job.state == "failed" or job.state == "holding":
+    #        max_space = getMaxWorkDirSize(path, jobId)
+    #        if max_space > 0L:
+    #            jobMetrics += self.addFieldToJobMetrics("workDirSize", max_space)
+    #        else:
+    #            tolog("Will not add max space = %d to job metrics" % (max_space))
 
     return job_metrics
