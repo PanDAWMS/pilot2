@@ -218,6 +218,7 @@ def check_work_dir(job):
         # get the limit of the workdir
         maxwdirsize = get_max_allowed_work_dir_size(job.infosys.queuedata)
 
+        # see __checkWorkDir in Monitor
         pass
     else:
         log.warning('skipping size check of workdir since it has not been created yet')
