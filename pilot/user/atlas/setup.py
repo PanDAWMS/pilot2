@@ -12,6 +12,7 @@ import re
 from time import sleep
 
 from pilot.info import infosys
+from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 
 import logging
@@ -369,3 +370,46 @@ def is_greater_or_equal(a, b):
     """
 
     return split_version(a) >= split_version(b)
+
+
+def get_payload_environment_variables(cmd, job_id, task_id, processing_type, site_name, analysis_job):
+    """
+    Return an array with enviroment variables needed by the payload.
+
+    :param cmd: payload execution command (string).
+    :param job_id: PanDA job id (string).
+    :param task_id: PanDA task id (string).
+    :param processing_type: processing type (string).
+    :param site_name: site name (string).
+    :param analysis_job: True for user analysis jobs, False otherwise (boolean).
+    :return: list of environment variables needed by the payload.
+    """
+
+    log = get_logger(job_id)
+
+    variables = []
+    variables.append('export PANDA_RESOURCE=\"%s\";' % site_name)
+    variables.append('export FRONTIER_ID=\"[%s_%s]\";' % (task_id, job_id))
+    variables.append('export CMSSW_VERSION=$FRONTIER_ID;')
+
+    # Unset ATHENA_PROC_NUMBER if set for event service Merge jobs
+    if "Merge_tf" in cmd and 'ATHENA_PROC_NUMBER' in os.environ:
+        variables.append('unset ATHENA_PROC_NUMBER;')
+
+    if analysis_job:
+        variables.append('export ROOT_TTREECACHE_SIZE=1;')
+        try:
+            core_count = int(os.environ.get('ATHENA_PROC_NUMBER'))
+        except Exception:
+            _core_count = 'export ROOTCORE_NCPUS=1;'
+        else:
+            _core_count = 'export ROOTCORE_NCPUS=%d;' % core_count
+        variables.append(_core_count)
+
+    if processing_type == "":
+        log.warning("RUCIO_APPID needs job.processingType but it is not set!")
+    else:
+        variables.append('export RUCIO_APPID=\"%s\";' % processing_type)
+    variables.append('export RUCIO_ACCOUNT=\"%s\";' % os.environ.get('RUCIO_ACCOUNT', 'pilot'))
+
+    return variables
