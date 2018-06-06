@@ -347,12 +347,16 @@ class JobData(BaseData):
         """
 
         is_a_build_job = False
-        logger.info('outfiles=%s' % str(self.outfiles))
+        if type(self.outfiles) == str:
+            outfiles = self.outfiles.split(',')
+        else:
+            outfiles = self.outfiles
+        logger.info('.outfiles=%s' % str(outfiles))
         for f in self.outfiles:
             if '.lib.' in f:
                 is_a_build_job = True
                 break
-        logger.info('is build job=%s' % str(is_a_build_job))
+        logger.info('.is build job=%s' % str(is_a_build_job))
         return is_a_build_job
 
     def clean(self):
