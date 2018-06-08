@@ -510,15 +510,15 @@ def _stage_out_all(job, args):
         log.info('will stage-out log file')
     else:
         log.info('will stage-out all output files and log file')
-        if job.metadata:
-            scopes = dict([e.lfn, e.scope] for e in job.outdata)  # quick hack: to be properly implemented later
-            for f in job.metadata['files']['output']:
-                outputs[f['subFiles'][0]['name']] = {'scope': scopes.get(f['subFiles'][0]['name'], job.scopeout.split(',')[0]),
-                                                     'name': f['subFiles'][0]['name'],
-                                                     'guid': f['subFiles'][0]['file_guid'],
-                                                     'bytes': f['subFiles'][0]['file_size']}
-        else:
-            log.warning('Job object does not contain a job report (payload failed?) - will only stage-out log file')
+        # if job.metadata:  # is this check necessary? won't work for build jobs e.g.
+        scopes = dict([e.lfn, e.scope] for e in job.outdata)  # quick hack: to be properly implemented later
+        for f in job.metadata['files']['output']:
+            outputs[f['subFiles'][0]['name']] = {'scope': scopes.get(f['subFiles'][0]['name'], job.scopeout.split(',')[0]),
+                                                 'name': f['subFiles'][0]['name'],
+                                                 'guid': f['subFiles'][0]['file_guid'],
+                                                 'bytes': f['subFiles'][0]['file_size']}
+        # else:
+        #     log.warning('job object does not contain a job report (payload failed?) - will only stage-out log file')
 
     fileinfodict = {}
     failed = False
