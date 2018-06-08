@@ -28,7 +28,7 @@ from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT
 from pilot.util.container import execute
-from pilot.util.filehandling import find_executable
+from pilot.util.filehandling import find_executable, get_guid, get_local_file_size
 from pilot.util.timing import add_to_pilot_timing
 
 import logging
@@ -522,7 +522,16 @@ def _stage_out_all(job, args):
         elif job.is_build_job():
             # scopes = dict([e.lfn, e.scope] for e in job.outdata)  # quick hack: to be properly implemented later
             log.info('job.outdata=%s' % job.outdata)
-            for f in job.outdata:
+            for f in job.outdata:  # should be only one output file
+                # is the metadata set?
+                if f.guid == '':
+                    # ok to generate GUID for .lib. file
+                    f.guid = get_guid()
+                    log.info('generated guid for lib file: %s' % f.guid)
+                # is the file size set?
+                if f.filesize == 0:
+                    f.filesize = get_local_file_size(f.lfn)
+                    log.info('set file size for %s to %d B' % (f.lfn, f.filesize))
                 outputs[f.lfn] = {'scope': f.scope, 'name': f.lfn, 'guid': f.guid, 'bytes': f.filesize}
             log.info('outputs=%s' % str(outputs))
         else:
