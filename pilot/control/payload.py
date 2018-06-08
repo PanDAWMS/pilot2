@@ -204,7 +204,7 @@ def process_job_report(job):
         log.warning('job report does not exist: %s' % path)
     else:
         with open(path) as data_file:
-            # compulsory field; the payload must procude a job report (see config file for file name)
+            # compulsory field; the payload must produce a job report (see config file for file name)
             job.metadata = json.load(data_file)
 
             # extract user specific info from job report

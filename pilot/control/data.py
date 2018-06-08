@@ -510,15 +510,24 @@ def _stage_out_all(job, args):
         log.info('will stage-out log file')
     else:
         log.info('will stage-out all output files and log file')
-        # if job.metadata:  # is this check necessary? won't work for build jobs e.g.
-        scopes = dict([e.lfn, e.scope] for e in job.outdata)  # quick hack: to be properly implemented later
-        for f in job.metadata['files']['output']:
-            outputs[f['subFiles'][0]['name']] = {'scope': scopes.get(f['subFiles'][0]['name'], job.scopeout.split(',')[0]),
-                                                 'name': f['subFiles'][0]['name'],
-                                                 'guid': f['subFiles'][0]['file_guid'],
-                                                 'bytes': f['subFiles'][0]['file_size']}
-        # else:
-        #     log.warning('job object does not contain a job report (payload failed?) - will only stage-out log file')
+        if job.metadata:
+            scopes = dict([e.lfn, e.scope] for e in job.outdata)  # quick hack: to be properly implemented later
+            # extract output files from the job report, in case the trf has created additional (overflow) files
+            for f in job.metadata['files']['output']:
+                outputs[f['subFiles'][0]['name']] = {'scope': scopes.get(f['subFiles'][0]['name'],
+                                                                         job.scopeout.split(',')[0]),  # [0]? a bug?
+                                                     'name': f['subFiles'][0]['name'],
+                                                     'guid': f['subFiles'][0]['file_guid'],
+                                                     'bytes': f['subFiles'][0]['file_size']}
+        elif job.is_build_job():
+            # scopes = dict([e.lfn, e.scope] for e in job.outdata)  # quick hack: to be properly implemented later
+            log.info('job.outdata=%s' % job.outdata)
+            for f in job.outdata:
+                outputs[f.lfn] = {'scope': f.scope, 'name': f.lfn, 'guid': f.guid, 'bytes': f.filesize}
+            log.info('outputs=%s' % str(outputs))
+        else:
+            log.warning('job object does not contain a job report (payload failed?) and is not a build job '
+                        '- will only stage-out log file')
 
     fileinfodict = {}
     failed = False
