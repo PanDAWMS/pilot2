@@ -521,7 +521,6 @@ def _stage_out_all(job, args):
                                                      'bytes': f['subFiles'][0]['file_size']}
         elif job.is_build_job():
             # scopes = dict([e.lfn, e.scope] for e in job.outdata)  # quick hack: to be properly implemented later
-            log.info('job.outdata=%s' % job.outdata)
             for f in job.outdata:  # should be only one output file
                 # is the metadata set?
                 if f.guid == '':
@@ -531,7 +530,8 @@ def _stage_out_all(job, args):
                 # is the file size set?
                 if f.filesize == 0:
                     f.filesize = get_local_file_size(f.lfn)
-                    log.info('set file size for %s to %d B' % (f.lfn, f.filesize))
+                    if f.filesize:
+                        log.info('set file size for %s to %d B' % (f.lfn, f.filesize))
                 outputs[f.lfn] = {'scope': f.scope, 'name': f.lfn, 'guid': f.guid, 'bytes': f.filesize}
             log.info('outputs=%s' % str(outputs))
         else:

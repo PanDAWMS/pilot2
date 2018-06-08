@@ -9,6 +9,7 @@
 
 import os
 import time
+import uuid
 import tarfile
 from collections import deque
 from shutil import copy2
