@@ -62,18 +62,18 @@ class JobData(BaseData):
     processingtype = ""  # e.g. nightlies
 
     # set by the pilot (not from job definition)
-    workdirsizes = []
+    workdirsizes = []  # time ordered list of work dir sizes
     fileinfo = {}
-    piloterrorcode = 0
-    piloterrorcodes = []
-    piloterrordiag = ""
-    piloterrordiags = []
+    piloterrorcode = 0  # current pilot error code
+    piloterrorcodes = []  # ordered list of stored pilot error codes
+    piloterrordiag = ""  # current pilot error diagnostics
+    piloterrordiags = []  # ordered list of stored pilot error diagnostics
     transexitcode = 0
     exeerrorcode = 0
     exeerrordiag = ""
     exitcode = 0
     exitmsg = ""
-    state = ""
+    state = ""  # internal pilot state; running, failed, finished, holding
     stageout = ""  # stage-out identifier, e.g. log
     metadata = {}  # payload metadata (job report)
     cpuconsumptionunit = ""
@@ -84,6 +84,7 @@ class JobData(BaseData):
     payload = ""  # payload name
     utilities = {}  # utility processes { <name>: [<process handle>, number of launches, command string], .. }
     pid = None  # payload pid
+    pgrp = None  # process group
 
     # time variable used for on-the-fly cpu consumption time measurements done by job monitoring
     t0 = None  # payload startup time
