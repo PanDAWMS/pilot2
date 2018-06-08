@@ -529,7 +529,7 @@ def _stage_out_all(job, args):
                     log.info('generated guid for lib file: %s' % f.guid)
                 # is the file size set?
                 if f.filesize == 0:
-                    f.filesize = get_local_file_size(f.lfn)
+                    f.filesize = get_local_file_size(os.path.join(job.workdir, f.lfn))
                     if f.filesize:
                         log.info('set file size for %s to %d B' % (f.lfn, f.filesize))
                 outputs[f.lfn] = {'scope': f.scope, 'name': f.lfn, 'guid': f.guid, 'bytes': f.filesize}
