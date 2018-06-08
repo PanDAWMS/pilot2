@@ -20,7 +20,7 @@ from pilot.util.container import execute
 from pilot.util.filehandling import get_directory_size, remove_files
 from pilot.util.loopingjob import looping_job
 from pilot.util.parameters import convert_to_int
-from pilot.util.processes import get_instant_cpu_consumption_time
+from pilot.util.processes import get_instant_cpu_consumption_time, kill_processes
 from pilot.util.workernode import get_local_disk_space
 
 import logging
@@ -235,7 +235,7 @@ def check_work_dir(job):
 
                 # kill the job
                 # pUtil.createLockFile(True, self.__env['jobDic'][k][1].workdir, lockfile="JOBWILLBEKILLED")
-                kill_processes(job.pid, job.pgrp)
+                kill_processes(job.pid)
                 job.state = 'failed'
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.USERDIRTOOLARGE)
 

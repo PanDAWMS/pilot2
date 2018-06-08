@@ -122,17 +122,17 @@ def dump_stack_trace(pid):
         logger.info("skipping pstack dump for zombie process")
 
 
-def kill_processes(pid, pgrp):
+def kill_processes(pid):
     """
     Kill process beloging to given process group.
 
     :param pid: process id (int).
-    :param pgrp: process group (int).
     :return:
     """
 
     # if there is a known subprocess pgrp, then it should be enough to kill the group in one go
     status = False
+    pgrp = os.getpgid(pid)
     if pgrp != 0:
         status = kill_process_group(pgrp)
 
