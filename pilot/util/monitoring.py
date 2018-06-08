@@ -17,7 +17,7 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config, human2bytes
 from pilot.util.container import execute
-from pilot.util.filehandling import get_directory_size
+from pilot.util.filehandling import get_directory_size, remove_files
 from pilot.util.loopingjob import looping_job
 from pilot.util.parameters import convert_to_int
 from pilot.util.processes import get_instant_cpu_consumption_time
@@ -236,15 +236,24 @@ def check_work_dir(job):
                 # kill the job
                 # pUtil.createLockFile(True, self.__env['jobDic'][k][1].workdir, lockfile="JOBWILLBEKILLED")
                 kill_processes(job.pid, job.pgrp)
-                #killProcesses(self.__env['jobDic'][k][0], self.__env['jobDic'][k][1].pgrp)
-                #self.__env['jobDic'][k][1].result[0] = "failed"
-                #self.__env['jobDic'][k][1].currentState = self.__env['jobDic'][k][1].result[0]
-                #self.__env['jobDic'][k][1].result[2] = self.__error.ERR_USERDIRTOOLARGE
-                #elf.__env['jobDic'][k][1].pilotErrorDiag = pilotErrorDiag
+                job.state = 'failed'
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.USERDIRTOOLARGE)
+
+                # remove any lingering input files from the work dir
+                if job.infiles != []:
+                    exit_code = remove_files(job.workdir, job.infiles)
+
+                    # remeasure the size of the workdir at this point since the value is stored below
+                    workdirsize = get_directory_size(directory=job.workdir)
             else:
-                pass
-        # see __checkWorkDir in Monitor
-        pass
+                log.info("size of work directory %s: %d B (within %d B limit)" %
+                         (job.workdir, workdirsize, maxwdirsize))
+
+            # Store the measured disk space (the max value will later be sent with the job metrics)
+            if workdirsize > 0:
+                job.add_workdir_size(workdirsize)
+        else:
+            log.warning('job work dir does not exist: %s' % job.workdir)
     else:
         log.warning('skipping size check of workdir since it has not been created yet')
 

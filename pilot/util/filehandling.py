@@ -255,10 +255,14 @@ def remove_files(workdir, files):
     """
 
     ec = 0
-    for f in files:
-        _ec = remove(os.path.join(workdir, f))
-        if _ec != 0 and ec == 0:
-            ec = _ec
+    if type(files) != list:
+        logger.warning('files parameter not a list: %s' % str(type(list)))
+        ec = -1
+    else:
+        for f in files:
+            _ec = remove(os.path.join(workdir, f))
+            if _ec != 0 and ec == 0:
+                ec = _ec
 
     return ec
 
