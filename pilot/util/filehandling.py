@@ -409,3 +409,15 @@ def get_local_file_size(filename):
         logger.warning("local file does not exist: %s" % filename)
 
     return file_size
+
+
+def get_guid():
+    """
+    Generate a GUID using the uuid library.
+    E.g. guid = '92008FAF-BE4C-49CF-9C5C-E12BC74ACD19'
+
+    :return: a random GUID (string)
+    """
+
+    _guid = uuid.uuid4()
+    return str(_guid).upper()
