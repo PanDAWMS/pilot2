@@ -7,7 +7,7 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
-from pilot.util.auxiliary import get_logger
+# from pilot.util.auxiliary import get_logger
 from pilot.util.jobmetrics import get_job_metrics_entry
 from pilot.util.processes import get_core_count
 
