@@ -30,7 +30,7 @@ def get_job_metrics(job):
     :return: job metrics (string).
     """
 
-    log = get_logger(job.jobid)
+    # log = get_logger(job.jobid)
 
     job_metrics = ""
 
