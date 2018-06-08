@@ -44,13 +44,14 @@ def job_monitor_tasks(job, mt, verify_proxy):
     log = get_logger(job.jobid)
     current_time = int(time.time())
 
-    # update timing info
-    cpuconsumptiontime = get_instant_cpu_consumption_time(job.pid)
-    job.cpuconsumptiontime = int(cpuconsumptiontime)
-    job.cpuconsumptionunit = "s"
-    job.cpuconversionfactor = 1.0
-    log.info('CPU consumption time for pid=%d: %f (rounded to %d)' %
-             (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
+    # update timing info for running jobs (to avoid an update after the job has finished)
+    if job.state == 'running':
+        cpuconsumptiontime = get_instant_cpu_consumption_time(job.pid)
+        job.cpuconsumptiontime = int(cpuconsumptiontime)
+        job.cpuconsumptionunit = "s"
+        job.cpuconversionfactor = 1.0
+        log.info('CPU consumption time for pid=%d: %f (rounded to %d)' %
+                 (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
 
     # should the proxy be verified?
     if verify_proxy:
@@ -215,10 +216,70 @@ def check_work_dir(job):
 
     if os.path.exists(job.workdir):
         # get the limit of the workdir
-        # maxwdirsize = self.__getMaxAllowedWorkDirSize()
+        maxwdirsize = get_max_allowed_work_dir_size(job.infosys.queuedata)
 
+        # see __checkWorkDir in Monitor
         pass
     else:
         log.warning('skipping size check of workdir since it has not been created yet')
 
     return exit_code, diagnostics
+
+
+def get_max_allowed_work_dir_size(queuedata):
+    """
+    Return the maximum allowed size of the work directory.
+
+    :param queuedata: job.infosys.queuedata object.
+    :return: max allowed work dir size in Bytes (int).
+    """
+
+    try:
+        maxwdirsize = int(queuedata.maxwdir) * 1024 ** 2  # from MB to B, e.g. 16336 MB -> 17,129,537,536 B
+    except Exception:
+        max_input_size = get_max_input_size()
+        maxwdirsize = max_input_size + config.Pilot.local_size_limit_stdout * 1024
+        logger.info("work directory size check will use %d B as a max limit (maxinputsize [%d B] + local size limit for"
+                    " stdout [%d B])" % (maxwdirsize, max_input_size, config.Pilot.local_size_limit_stdout * 1024))
+    else:
+        logger.info("work directory size check will use %d B as a max limit" % maxwdirsize)
+
+    return maxwdirsize
+
+
+def get_max_input_size(queuedata, megabyte=False):
+    """
+    Return a proper maxinputsize value.
+
+    :param queuedata: job.infosys.queuedata object.
+    :param megabyte: return results in MB (Boolean).
+    :return: max input size (int).
+    """
+
+    _maxinputsize = queuedata.maxwdir  # normally 14336+2000 MB
+    max_input_file_sizes = 14 * 1024 * 1024 * 1024  # 14 GB, 14336 MB (pilot default)
+    max_input_file_sizes_mb = 14 * 1024  # 14336 MB (pilot default)
+    if _maxinputsize != "":
+        try:
+            if megabyte:  # convert to MB int
+                _maxinputsize = int(_maxinputsize)  # MB
+            else:  # convert to B int
+                _maxinputsize = int(_maxinputsize) * 1024 * 1024  # MB -> B
+        except Exception as e:
+            logger.warning("schedconfig.maxinputsize: %s" % e)
+            if megabyte:
+                _maxinputsize = max_input_file_sizes_mb
+            else:
+                _maxinputsize = max_input_file_sizes
+    else:
+        if megabyte:
+            _maxinputsize = max_input_file_sizes_mb
+        else:
+            _maxinputsize = max_input_file_sizes
+
+    if megabyte:
+        logger.info("max input size = %d MB (pilot default)" % _maxinputsize)
+    else:
+        logger.info("Max input size = %d B (pilot default)" % _maxinputsize)
+
+    return _maxinputsize

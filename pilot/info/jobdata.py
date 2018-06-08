@@ -59,6 +59,7 @@ class JobData(BaseData):
     is_eventservice = False        # True for event service jobs
 
     transfertype = ""  # direct access
+    processingtype = ""  # e.g. nightlies
 
     # set by the pilot (not from job definition)
     workdirsizes = []
@@ -79,6 +80,7 @@ class JobData(BaseData):
     cpuconsumptiontime = ""
     cpuconversionfactor = 1
     nevents = 0  # number of events
+    neventsw = 0  # number of events written
     payload = ""  # payload name
     utilities = {}  # utility processes { <name>: [<process handle>, number of launches, command string], .. }
     pid = None  # payload pid
@@ -124,14 +126,14 @@ class JobData(BaseData):
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['corecount', 'piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
-                   'attemptnr', 'nevents', 'pid'],
+                   'attemptnr', 'nevents', 'neventsw', 'pid'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
                    'state', 'status', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg',
                    'infiles', 'scopein', 'ddmendpointin',       ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    'outfiles', 'scopeout', 'ddmendpointout',    ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
-                   'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload',
+                   'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload', 'processingtype',
                    'swrelease', 'zipmap', 'imagename', 'transfertype', 'datasetin', 'datasetout', 'infilesguids'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
              dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
@@ -315,6 +317,7 @@ class JobData(BaseData):
             'ddmendpointout': 'ddmEndPointOut',          ## TO BE DEPRECATED: moved to FileSpec
             'datasetin': 'realDatasetsIn',               ## TO BE DEPRECATED: moved to FileSpec
             'datasetout': 'realDatasets',                ## TO BE DEPRECATED: moved to FileSpec
+            'processingtype': 'processingType',
             'destinationdblock': 'destinationDblock',
             'noexecstrcnv': 'noExecStrCnv',
             'swrelease': 'swRelease',
@@ -336,14 +339,27 @@ class JobData(BaseData):
 
         return is_analysis
 
-    def is_build(self):
+    def is_build_job(self):
         """
-            Determine whether the job is a build job or not.
-            (i.e. check if the job only has one output file that is a lib file)
-            :return: True for a build job
+        Check if the job is a build job.
+        (i.e. check if the job has an output file that is a lib file).
+
+        :param outfiles: list of output files.
+        :return: boolean
         """
 
-        return False  ## TO BE IMPLEMENTED
+        is_a_build_job = False
+        if type(self.outfiles) == str:
+            outfiles = self.outfiles.split(',')
+        else:
+            outfiles = self.outfiles
+
+        for f in outfiles:
+            if '.lib.' in f and '.log.' not in f:
+                is_a_build_job = True
+                break
+
+        return is_a_build_job
 
     def clean(self):
         """

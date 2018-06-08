@@ -25,7 +25,9 @@ util components
     harvester
     https
     information
+    jobmetrics
     loopingjob
+    math
     monitoring
     monitoringtime
     node

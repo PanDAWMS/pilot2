@@ -27,7 +27,7 @@ from pilot.util.information import set_location
 from pilot.util.workernode import is_virtual_machine
 from pilot.util.timing import add_to_pilot_timing
 
-VERSION = '2018-06-04.001'
+VERSION = '2018-06-08.001'
 
 
 def pilot_version_banner():
@@ -190,7 +190,7 @@ if __name__ == '__main__':
     # graciously stop pilot process after hard limit
     arg_parser.add_argument('-j',
                             dest='job_label',
-                            default='ptest',
+                            default='user',
                             help='Job prod/source label (default: ptest)')
 
     # pilot version tag; PR or RC

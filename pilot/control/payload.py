@@ -118,6 +118,7 @@ def execute_payloads(queues, traces, args):
     while not args.graceful_stop.is_set():
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
+            log = get_logger(job.jobid)
 
             q_snapshot = list(queues.finished_data_in.queue)
             peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
@@ -132,7 +133,6 @@ def execute_payloads(queues, traces, args):
             # this job is now to be monitored, so add it to the monitored_payloads queue
             queues.monitored_payloads.put(job)
 
-            log = get_logger(job.jobid)
             log.info('job %s added to monitored payloads queue' % job.jobid)
 
             out = open(os.path.join(job.workdir, config.Payload.payloadstdout), 'wb')

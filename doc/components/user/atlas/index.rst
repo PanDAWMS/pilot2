@@ -17,6 +17,7 @@ atlas components
 
     common
     container
+    jobmetrics
     loopingjob_definitions
     nordugrid
     proxy

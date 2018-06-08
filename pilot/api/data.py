@@ -267,6 +267,7 @@ class StagingClient(object):
 
         result, errors = None, []
 
+        self.logger.info('files=%s' % str(files))
         for name in copytools:
 
             try:
@@ -277,6 +278,7 @@ class StagingClient(object):
                 copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], -1)
             except PilotException, e:
                 errors.append(e)
+                self.logger.debug('Error: %s' % e)
                 continue
             except Exception, e:
                 self.logger.warning('Failed to import copytool module=%s, error=%s' % (module, e))
@@ -286,6 +288,7 @@ class StagingClient(object):
                 result = self.transfer_files(copytool, files, **kwargs)
             except PilotException, e:
                 errors.append(e)
+                self.logger.debug('Error: %s' % e)
             except Exception, e:
                 self.logger.warning('Failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
 

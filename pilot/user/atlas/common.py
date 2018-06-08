@@ -14,17 +14,16 @@ from collections import defaultdict
 from glob import glob
 from signal import SIGTERM, SIGUSR1
 
-# from pilot.common.exception import PilotException
+from pilot.common.exception import TrfDownloadFailure
+from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
+    set_inds, get_analysis_trf, get_payload_environment_variables
+from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
+    get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
+from pilot.util.auxiliary import get_logger
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD,\
     UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
-from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
-    set_inds, get_analysis_trf
-from pilot.util.auxiliary import get_logger
 from pilot.util.filehandling import remove
-from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
-    get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
-from pilot.common.exception import TrfDownloadFailure
 
 import logging
 logger = logging.getLogger(__name__)
@@ -85,7 +84,7 @@ def get_payload_command(job):
             set_inds(job.datasetin)  # realDatasetsIn
 
             # Try to download the trf
-            ec, diagnostics, trf_name = get_analysis_trf(job.transformation)
+            ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
             if ec != 0:
                 raise TrfDownloadFailure(diagnostics)
             else:
@@ -118,6 +117,10 @@ def get_payload_command(job):
         log.info("generic job (non-ATLAS specific or with undefined swRelease)")
 
         cmd = ""
+
+    site = os.environ.get('PILOT_SITENAME', '')
+    variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
+    cmd = ''.join(variables) + cmd
 
     return cmd
 
@@ -170,7 +173,7 @@ def get_analysis_run_command(job, trf_name):
 
     # get relevant file transfer info
     use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype,
-                                                                            is_build_job(job.outfiles),
+                                                                            job.is_build_job(),
                                                                             job.infosys.queuedata)
 
     # add the user proxy
@@ -193,7 +196,7 @@ def get_analysis_run_command(job, trf_name):
 
     # add guids when needed
     # get the correct guids list (with only the direct access files)
-    if not is_build_job(job.outfiles):
+    if not job.is_build_job():
         _guids = get_guids_from_jobparams(job.jobparams, job.infiles, job.infilesguids)
         cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
 
@@ -323,25 +326,6 @@ def get_guids_from_jobparams(jobparams, infiles, infilesguids):
                 guidlist.append(infilesguids[index])
 
     return guidlist
-
-
-def is_build_job(outfiles):
-    """
-    Check if the job is a build job.
-    (i.e. check if the job only has one output file that is a lib file).
-
-    :param outfiles: list of output files.
-    :return: boolean
-    """
-
-    is_a_build_job = False
-
-    # outfiles only contains a single file for build jobs, the lib file
-    if len(outfiles) == 1:
-        if '.lib.' in outfiles[0]:
-            is_a_build_job = True
-
-    return is_a_build_job
 
 
 def get_file_transfer_info(transfertype, is_a_build_job, queuedata):

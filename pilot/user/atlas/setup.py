@@ -12,6 +12,7 @@ import re
 from time import sleep
 
 from pilot.info import infosys
+from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 
 import logging
@@ -189,12 +190,13 @@ def set_inds(dataset):
         logger.warning("INDS unknown")
 
 
-def get_analysis_trf(transform):
+def get_analysis_trf(transform, workdir):
     """
     Prepare to download the user analysis transform with curl.
     The function will verify the download location from a known list of hosts.
 
     :param transform: full trf path (url) (string).
+    :param workdir: work directory (string).
     :return: exit code (int), diagnostics (string), transform_name (string)
     """
 
@@ -226,7 +228,7 @@ def get_analysis_trf(transform):
     for base_url in get_valid_base_urls(order=original_base_url):
         trf = re.sub(original_base_url, base_url, transform)
         logger.debug("attempting to download trf: %s" % (trf))
-        status, diagnostics = download_transform(trf, transform_name)
+        status, diagnostics = download_transform(trf, transform_name, workdir)
         if status:
             break
 
@@ -235,9 +237,10 @@ def get_analysis_trf(transform):
         # return self.__error.ERR_TRFDOWNLOAD, diagnostics, ""
 
     logger.info("successfully downloaded transform")
-    logger.debug("changing permission of %s to 0755" % (transform_name))
+    path = os.path.join(workdir, transform_name)
+    logger.debug("changing permission of %s to 0755" % path)
     try:
-        os.chmod(transform_name, 0755)
+        os.chmod(path, 0755)
     except Exception, e:
         diagnostics = "failed to chmod %s: %s" % (transform_name, e)
         # return self.__error.ERR_CHMODTRF, diagnostics, ""
@@ -245,17 +248,19 @@ def get_analysis_trf(transform):
     return ec, diagnostics, transform_name
 
 
-def download_transform(url, transform_name):
+def download_transform(url, transform_name, workdir):
     """
     Download the transform from the given url
     :param url: download URL with path to transform (string).
     :param transform_name: trf name (string).
+    :param workdir: work directory (string).
     :return:
     """
 
     status = False
     diagnostics = ""
-    cmd = 'curl -sS \"%s\" > %s' % (url, transform_name)
+    path = os.path.join(workdir, transform_name)
+    cmd = 'curl -sS \"%s\" > %s' % (url, path)
     trial = 1
     max_trials = 3
 
@@ -365,3 +370,46 @@ def is_greater_or_equal(a, b):
     """
 
     return split_version(a) >= split_version(b)
+
+
+def get_payload_environment_variables(cmd, job_id, task_id, processing_type, site_name, analysis_job):
+    """
+    Return an array with enviroment variables needed by the payload.
+
+    :param cmd: payload execution command (string).
+    :param job_id: PanDA job id (string).
+    :param task_id: PanDA task id (string).
+    :param processing_type: processing type (string).
+    :param site_name: site name (string).
+    :param analysis_job: True for user analysis jobs, False otherwise (boolean).
+    :return: list of environment variables needed by the payload.
+    """
+
+    log = get_logger(job_id)
+
+    variables = []
+    variables.append('export PANDA_RESOURCE=\"%s\";' % site_name)
+    variables.append('export FRONTIER_ID=\"[%s_%s]\";' % (task_id, job_id))
+    variables.append('export CMSSW_VERSION=$FRONTIER_ID;')
+
+    # Unset ATHENA_PROC_NUMBER if set for event service Merge jobs
+    if "Merge_tf" in cmd and 'ATHENA_PROC_NUMBER' in os.environ:
+        variables.append('unset ATHENA_PROC_NUMBER;')
+
+    if analysis_job:
+        variables.append('export ROOT_TTREECACHE_SIZE=1;')
+        try:
+            core_count = int(os.environ.get('ATHENA_PROC_NUMBER'))
+        except Exception:
+            _core_count = 'export ROOTCORE_NCPUS=1;'
+        else:
+            _core_count = 'export ROOTCORE_NCPUS=%d;' % core_count
+        variables.append(_core_count)
+
+    if processing_type == "":
+        log.warning("RUCIO_APPID needs job.processingType but it is not set!")
+    else:
+        variables.append('export RUCIO_APPID=\"%s\";' % processing_type)
+    variables.append('export RUCIO_ACCOUNT=\"%s\";' % os.environ.get('RUCIO_ACCOUNT', 'pilot'))
+
+    return variables
