@@ -93,7 +93,7 @@ def job_monitor_tasks(job, mt, verify_proxy):
     if current_time - mt.get('ct_diskspace') > disk_space_verification_time:
         # time to check the disk space
 
-        # check the size of the payload stdout
+        # check the size of the payload stdout - __checkPayloadStdout in Monitor
         # check_payload_stdout()
 
         # check the local space, if it's enough left to keep running the job
