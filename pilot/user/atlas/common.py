@@ -547,8 +547,8 @@ def get_db_info(jobreport_dictionary):
     Note: this function adds up the different dbData and dbTime's in the different executor steps. In modern job
     reports this might have been done already by the transform and stored in dbDataTotal and dbTimeTotal.
 
-    :param jobreport_dictionary:
-    :return: db_time, db_data
+    :param jobreport_dictionary: job report dictionary.
+    :return: db_time (int), db_data (long)
     """
 
     db_time = 0

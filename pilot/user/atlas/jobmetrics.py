@@ -7,6 +7,7 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
+from pilot.user.atlas.common import get_db_info
 # from pilot.util.auxiliary import get_logger
 from pilot.util.jobmetrics import get_job_metrics_entry
 from pilot.util.processes import get_core_count
@@ -45,10 +46,13 @@ def get_job_metrics(job):
     if job.neventsw > 0:
         job_metrics += get_job_metrics_entry(key="nEventsW", value=job.neventsw)
 
-    # if job.db_time != "":
-    #     job_metrics += get_job_metrics_entry(key="dbTime", value=job.db_time)
-    # if job.db_data != "":
-    #     job_metrics += get_job_metrics_entry(key="dbData", value=job.db_data)
+    # add metadata from job report
+    if job.metadata:
+        db_time, db_data = get_db_info(job.metadata)
+    if job.db_time != "":
+        job_metrics += get_job_metrics_entry(key="dbTime", value=job.db_time)
+    if job.db_data != "":
+        job_metrics += get_job_metrics_entry(key="dbData", value=job.db_data)
 
     # event service
     # if job.external_stageout_time:
