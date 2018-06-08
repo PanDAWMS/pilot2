@@ -8,7 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 from pilot.user.atlas.common import get_db_info
-# from pilot.util.auxiliary import get_logger
+from pilot.util.auxiliary import get_logger
 from pilot.util.jobmetrics import get_job_metrics_entry
 from pilot.util.processes import get_core_count
 
@@ -31,7 +31,7 @@ def get_job_metrics(job):
     :return: job metrics (string).
     """
 
-    # log = get_logger(job.jobid)
+    log = get_logger(job.jobid)
 
     job_metrics = ""
 
@@ -79,11 +79,11 @@ def get_job_metrics(job):
     #             job_metrics += get_job_metrics_entry(key=key, value=job.yoda_job_metrics[key])
 
     # get the max disk space used by the payload (at the end of a job)
-    #if job.state == "finished" or job.state == "failed" or job.state == "holding":
-    #        max_space = getMaxWorkDirSize(path, jobId)
-    #        if max_space > 0L:
-    #            jobMetrics += self.addFieldToJobMetrics("workDirSize", max_space)
-    #        else:
-    #            tolog("Will not add max space = %d to job metrics" % (max_space))
+    if job.state == "finished" or job.state == "failed" or job.state == "holding":
+        max_space = job.get_max_workdir_size()
+        if max_space > 0L:
+            job_metrics += get_job_metrics_entry(key="workDirSize", value=max_space)
+        else:
+            log.info("will not add max space = %d B to job metrics" % (max_space))
 
     return job_metrics
