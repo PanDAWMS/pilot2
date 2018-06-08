@@ -17,6 +17,7 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config, human2bytes
 from pilot.util.container import execute
+from pilot.util.filehandling import get_directory_size
 from pilot.util.loopingjob import looping_job
 from pilot.util.parameters import convert_to_int
 from pilot.util.processes import get_instant_cpu_consumption_time
@@ -218,6 +219,30 @@ def check_work_dir(job):
         # get the limit of the workdir
         maxwdirsize = get_max_allowed_work_dir_size(job.infosys.queuedata)
 
+        if os.path.exists(job.workdir):
+            workdirsize = get_directory_size(directory=job.workdir)
+
+            # is user dir within allowed size limit?
+            if workdirsize > maxwdirsize:
+
+                diagnostics = "work directory (%s) is too large: %d B (must be < %d B)" % \
+                              (job.workdir, workdirsize, maxwdirsize)
+                log.fatal("%s" % diagnostics)
+
+                cmd = 'ls -altrR %s' % job.workdir
+                exit_code, stdout, stderr = execute(cmd, mute=True)
+                log.info("%s: %s" % (cmd + '\n', stdout))
+
+                # kill the job
+                # pUtil.createLockFile(True, self.__env['jobDic'][k][1].workdir, lockfile="JOBWILLBEKILLED")
+                kill_processes(job.pid, job.pgrp)
+                #killProcesses(self.__env['jobDic'][k][0], self.__env['jobDic'][k][1].pgrp)
+                #self.__env['jobDic'][k][1].result[0] = "failed"
+                #self.__env['jobDic'][k][1].currentState = self.__env['jobDic'][k][1].result[0]
+                #self.__env['jobDic'][k][1].result[2] = self.__error.ERR_USERDIRTOOLARGE
+                #elf.__env['jobDic'][k][1].pilotErrorDiag = pilotErrorDiag
+            else:
+                pass
         # see __checkWorkDir in Monitor
         pass
     else:
