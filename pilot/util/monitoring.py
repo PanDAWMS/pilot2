@@ -12,6 +12,7 @@
 import os
 import time
 from subprocess import PIPE
+from glob import glob
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import get_logger
@@ -95,8 +96,10 @@ def job_monitor_tasks(job, mt, verify_proxy):
     if current_time - mt.get('ct_diskspace') > disk_space_verification_time:
         # time to check the disk space
 
-        # check the size of the payload stdout - __checkPayloadStdout in Monitor
-        # check_payload_stdout()
+        # check the size of the payload stdout
+        exit_code, diagnostics = check_payload_stdout(job)
+        if exit_code != 0:
+            return exit_code, diagnostics
 
         # check the local space, if it's enough left to keep running the job
         exit_code, diagnostics = check_local_space()
@@ -175,6 +178,95 @@ def utility_monitor(job):
             else:
                 log.warning('file: %s does not exist' % path)
     return job
+
+
+def get_local_size_limit_stdout(bytes=True):
+    """
+    Return a proper value for the local size limit for payload stdout (from config file).
+
+    :param bytes: boolean (if True, convert kB to Bytes).
+    :return: size limit (int).
+    """
+
+    try:
+        localsizelimit_stdout = int(config.Pilot.local_size_limit_stdout)
+    except Exception as e:
+        localsizelimit_stdout = 2097152
+        logger.warning('bad value in config for local_size_limit_stdout: %s (will use value: %d kB)' %
+                       (e, localsizelimit_stdout))
+
+    # convert from kB to B
+    if bytes:
+        localsizelimit_stdout *= 1024
+
+    return localsizelimit_stdout
+
+
+def check_payload_stdout(job):
+    """
+    Check the size of the payload stdout.
+
+    :param job: job object.
+    :return: exit code (int), diagnostics (string).
+    """
+
+    exit_code = 0
+    diagnostics = ""
+
+    log = get_logger(job.jobid)
+
+    # get list of log files
+    file_list = glob(os.path.join(job.workdir, 'log.*'))
+
+    # is this a multi-trf job?
+    n_jobs = job.jobparams.count("\n") + 1
+    for _i in range(n_jobs):
+        # get name of payload stdout file created by the pilot
+        _stdout = job.stdout
+        if n_jobs > 1:
+            _stdout = _stdout.replace(".txt", "_%d.txt" % (_i + 1))
+
+        # add the primary stdout file to the fileList
+        file_list.append(os.path.join(job.workdir, _stdout))
+
+    # now loop over all files and check each individually (any large enough file will fail the job)
+    for filename in file_list:
+
+        if "job.log.tgz" in filename:
+            log.info("skipping file size check of file (%s) since it is a special log file" % (filename))
+            continue
+
+        if os.path.exists(filename):
+            try:
+                # get file size in bytes
+                fsize = os.path.getsize(filename)
+            except Exception as e:
+                log.warning("could not read file size of %s: %s" % (filename, e))
+            else:
+                # is the file too big?
+                localsizelimit_stdout = get_local_size_limit_stdout()
+                if fsize > localsizelimit_stdout:
+                    diagnostics = "Payload stdout file too big: %d B (larger than limit %d B)" % \
+                                  (fsize, localsizelimit_stdout)
+                    log.warning(diagnostics)
+                    # kill the job
+                    kill_processes(job.pid)
+                    job.state = "failed"
+                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STDOUTTOOBIG)
+
+                    # remove the payload stdout file after the log extracts have been created
+
+                    # remove any lingering input files from the work dir
+                    if job.infiles:
+                        # remove any lingering input files from the work dir
+                        exit_code = remove_files(job.workdir, job.infiles)
+                else:
+                    log.info("payload stdout (%s) within allowed size limit (%d B): %d B" %
+                             (_stdout, localsizelimit_stdout, fsize))
+        else:
+            log.info("skipping file size check of payload stdout file (%s) since it has not been created yet" % _stdout)
+
+    return exit_code, diagnostics
 
 
 def check_local_space():
