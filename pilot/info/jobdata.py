@@ -557,6 +557,10 @@ class JobData(BaseData):
             except Exception as e:
                 logger.warning('failed to convert %s to long: %s' % (str(workdir_size), e))
                 return
+        if type(self.infiles) == str:
+            in_files = self.infiles.split(',')
+        else:
+            in_files = self.infiles
 
         total_size = 0L  # B
 
@@ -576,7 +580,7 @@ class JobData(BaseData):
             # out_files, dummy, dummy = discoverAdditionalOutputFiles(outFiles, job.workdir, job.destinationDblock,
             # job.scopeOut)
 
-            file_list = self.infiles + out_files
+            file_list = in_files + out_files
             for f in file_list:
                 if f != "":
                     total_size = add_to_total_size(os.path.join(self.workdir, f), total_size)
