@@ -196,7 +196,7 @@ def check_local_space():
         ec = errors.NOLOCALSPACE
         logger.warning(diagnostics)
     else:
-        logger.info('remaining disk space (%d B) is sufficient to download a job' % spaceleft)
+        logger.info('sufficient remaining disk space (%d B)' % spaceleft)
 
     return ec, diagnostics
 
