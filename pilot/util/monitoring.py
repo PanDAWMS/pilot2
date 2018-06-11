@@ -222,7 +222,7 @@ def check_payload_stdout(job):
     n_jobs = job.jobparams.count("\n") + 1
     for _i in range(n_jobs):
         # get name of payload stdout file created by the pilot
-        _stdout = job.stdout
+        _stdout = config.Payload.payloadstdout
         if n_jobs > 1:
             _stdout = _stdout.replace(".txt", "_%d.txt" % (_i + 1))
 
