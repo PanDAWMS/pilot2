@@ -26,6 +26,7 @@ class ErrorCodes:
     REPLICANOTFOUND = 1100
     NOSUCHFILE = 1103
     USERDIRTOOLARGE = 1104
+    STDOUTTOOBIG = 1106
     SETUPFAILURE = 1110
     MKDIR = 1134
     STAGEOUTFAILED = 1137
@@ -60,6 +61,7 @@ class ErrorCodes:
         REPLICANOTFOUND: "Replica not found",
         NOSUCHFILE: "No such file or directory",
         USERDIRTOOLARGE: "User work directory too large",
+        STDOUTTOOBIG: "Payload log or stdout file too big",
         SETUPFAILURE: "Failed during payload setup",
         MKDIR: "Failed to create local directory",
         STAGEOUTFAILED: "Failed to stage-out file",
