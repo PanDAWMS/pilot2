@@ -403,9 +403,9 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
             return False
 
     # is there enough local space to run a job?
-    ec, diagnostics = check_local_space()
-    if ec != 0:
-        return False
+    #ec, diagnostics = check_local_space()
+    #if ec != 0:
+    #    return False
 
     if harvester:
         maximum_getjob_requests = 60  # 1 s apart
