@@ -116,9 +116,6 @@ class Executor(object):
         # write time stamps to pilot timing file
         add_to_pilot_timing(job.jobid, PILOT_PRE_PAYLOAD, time.time())
 
-        log.info('. current dir=%s' % os.getcwd())
-        log.info('. job.workdir=%s' % job.workdir)
-
         # replace platform and workdir with new function get_payload_options() or someting from experiment specific code
         try:
             proc = execute(cmd, workdir=job.workdir, returnproc=True,
