@@ -40,7 +40,7 @@ class TestCopytoolMv(unittest.TestCase):
         #self.filelist = []
 
         # need a job data object, but we will overwrite some of its info
-        res = get_fake_job()
+        res = get_fake_job(input=False)
         jdata = JobData(res)
 
         infiles = ""
