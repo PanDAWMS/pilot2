@@ -635,11 +635,12 @@ def get_job_definition(args):
     return res
 
 
-def get_fake_job():
+def get_fake_job(input=True):
     """
     Return a job definition for internal pilot testing.
     Note: this function is only used for testing purposes. The job definitions below are ATLAS specific.
 
+    :param input: Boolean, set to False if no input files are wanted
     :return: job definition (dictionary).
     """
 
@@ -765,6 +766,14 @@ def get_fake_job():
         logger.warning('unknown test job type: %s' % config.Pilot.testjobtype)
 
     if res:
+        if not input:
+            res['inFiles'] = u'NULL'
+            res['GUID'] = u'NULL'
+            res['scopeIn'] = u'NULL'
+            res['fsize'] = u'NULL'
+            res['realDatasetsIn'] = u'NULL'
+            res['checksum'] = u'NULL'
+
         if config.Pilot.testtransfertype == "NULL" or config.Pilot.testtransfertype == 'direct':
             res['transferType'] = config.Pilot.testtransfertype
         else:
