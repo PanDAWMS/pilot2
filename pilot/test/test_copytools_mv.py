@@ -43,36 +43,36 @@ class TestCopytoolMv(unittest.TestCase):
         res = get_fake_job()
         jdata = JobData(res)
 
-        inFiles = ""
+        infiles = ""
         fsize = ""
-        realDatasetsIn = ""
-        GUID = ""
+        realdatasetsin = ""
+        guid = ""
         checksum = ""
         scope = ""
-        ddmEndPointIn = ""
+        ddmendpointin = ""
         turl = ""
         """ Create temp files in source dir """
         for i in range(0, self.numFiles):
                 # generate random name
                 fname = ''.join(random.choice(string.lowercase) for x in range(20))
-                if inFiles == "":
-                    inFiles = fname
+                if infiles == "":
+                    infiles = fname
                 else:
-                    inFiles += "," + fname
+                    infiles += "," + fname
                 # generate random data and write
                 filesize = random.randint(1, self.maxFileSize)
                 if fsize == "":
                     fsize = str(filesize)
                 else:
                     fsize += "," + str(filesize)
-                if realDatasetsIn == "":
-                    realDatasetsIn = "dataset1"
+                if realdatasetsin == "":
+                    realdatasetsin = "dataset1"
                 else:
-                    realDatasetsIn += ",dataset1"
-                if GUID == "":
-                    GUID = "abcdefaaaaaa"
+                    realdatasetsin += ",dataset1"
+                if guid == "":
+                    guid = "abcdefaaaaaa"
                 else:
-                    GUID += ",abcdefaaaaaa"
+                    guid += ",abcdefaaaaaa"
                 if checksum == "":
                     checksum = "abcdef"
                 else:
@@ -81,10 +81,10 @@ class TestCopytoolMv(unittest.TestCase):
                     scope = "scope1"
                 else:
                     scope += ",scope1"
-                if ddmEndPointIn == "":
-                    ddmEndPointIn = "ep1"
+                if ddmendpointin == "":
+                    ddmendpointin = "ep1"
                 else:
-                    ddmEndPointIn = ",ep1"
+                    ddmendpointin = ",ep1"
                 _data = [random.randint(0, 255) for x in range(0, filesize)]
                 fname = os.path.join(self.tmp_src_dir, fname)
                 if turl == "":
@@ -98,9 +98,9 @@ class TestCopytoolMv(unittest.TestCase):
                 #self.filelist.append({'name': fname, 'source': self.tmp_src_dir, 'destination': self.tmp_dst_dir})
 
         # overwrite
-        data = {'inFiles': inFiles, 'realDatasetsIn': realDatasetsIn, 'GUID': GUID,
+        data = {'inFiles': infiles, 'realDatasetsIn': realdatasetsin, 'GUID': guid,
                 'fsize': fsize, 'checksum': checksum, 'scopeIn': scope,
-                'ddmEndPointIn': ddmEndPointIn, 'workdir': self.tmp_src_dir}
+                'ddmEndPointIn': ddmendpointin, 'workdir': self.tmp_src_dir, 'turl': turl}
         self.fspec = jdata.prepare_infiles(data)
 
     def test_copy_in_mv(self):
