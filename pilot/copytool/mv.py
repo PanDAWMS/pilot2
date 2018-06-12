@@ -33,7 +33,7 @@ def is_valid_for_copy_out(files):
     return True
 
 
-def copy_in(files, copy_type="mv"):
+def copy_in(files, copy_type="mv", **kwargs):
     """
     Tries to download the given files using mv directly.
 
@@ -43,13 +43,13 @@ def copy_in(files, copy_type="mv"):
 
     if copy_type not in ["cp", "mv", "symlink"]:
         raise StageInFailure("Incorrect method for copy in")
-    exit_code, stdout, stderr = move_all_files(files, copy_type)
+    exit_code, stdout, stderr = move_all_files(files, copy_type, kwargs)
     if exit_code != 0:
         # raise failure
         raise StageInFailure(stdout)
 
 
-def copy_out(files, copy_type="mv"):
+def copy_out(files, copy_type="mv", **kwargs):
     """
     Tries to upload the given files using mv directly.
 
@@ -60,13 +60,13 @@ def copy_out(files, copy_type="mv"):
     if copy_type not in ["cp", "mv"]:
         raise StageOutFailure("Incorrect method for copy out")
 
-    exit_code, stdout, stderr = move_all_files(files, copy_type)
+    exit_code, stdout, stderr = move_all_files(files, copy_type, kwargs)
     if exit_code != 0:
         # raise failure
         raise StageOutFailure(stdout)
 
 
-def move_all_files(files, copy_type):
+def move_all_files(files, copy_type, **kwargs):
     """
     Move all files.
 
@@ -90,8 +90,8 @@ def move_all_files(files, copy_type):
 
     for fspec in files:  # entry = {'name':<filename>, 'source':<dir>, 'destination':<dir>}
 
-        # dst = fspec.workdir or kwargs.get('workdir') or '.'
-        dst = fspec.workdir or '.'
+        dst = fspec.workdir or kwargs.get('workdir') or '.'
+        #dst = fspec.workdir or '.'
         #timeout = get_timeout(fspec.filesize)
         source = fspec.turl
         name = fspec.lfn
