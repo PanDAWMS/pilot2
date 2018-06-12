@@ -106,7 +106,7 @@ class TestCopytoolMv(unittest.TestCase):
                 'ddmEndPointIn': ddmendpointin}
         self.indata = jdata.prepare_infiles(data)
         for f in self.indata:
-            f.workdir = self.tmp_src_dir
+            f.workdir = self.tmp_dst_dir
             f.turl = os.path.join(self.tmp_src_dir, f.lfn)
 
         self.outdata = []  # jdata.prepare_outfiles(data)
