@@ -54,6 +54,7 @@ class TestCopytoolMv(unittest.TestCase):
         for i in range(0, self.numFiles):
                 # generate random name
                 fname = ''.join(random.choice(string.lowercase) for x in range(20))
+                fname = os.path.join(tmp_src_dir, fname)
                 if inFiles == "":
                     inFiles = fname
                 else:
@@ -85,7 +86,7 @@ class TestCopytoolMv(unittest.TestCase):
                 else:
                     ddmEndPointIn = ",ep1"
                 _data = [random.randint(0, 255) for x in range(0, filesize)]
-                new_file = open(os.path.join(self.tmp_src_dir, fname), "wb")
+                new_file = open(fname, "wb")
                 new_file.write(str(_data))
                 new_file.close()
                 # add to list
