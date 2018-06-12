@@ -16,6 +16,7 @@ util components
 .. toctree::
     :maxdepth: 2
 
+    auxiliary
     config
     constants
     container
@@ -24,12 +25,17 @@ util components
     harvester
     https
     information
+    jobmetrics
     loopingjob
+    math
     monitoring
     monitoringtime
     node
     parameters
+    processes
     proxy
+    timer
+    timing
     workernode
 
 

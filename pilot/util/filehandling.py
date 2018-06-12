@@ -9,6 +9,7 @@
 
 import os
 import time
+import uuid
 import tarfile
 from collections import deque
 from shutil import copy2
@@ -240,9 +241,31 @@ def remove(path):
     try:
         os.remove(path)
     except OSError as e:
-        logger.warning("failed to delete file: %s : %s" % (e.errno, e.strerror))
+        logger.warning("failed to remove file: %s, %s" % (e.errno, e.strerror))
         return -1
     return 0
+
+
+def remove_files(workdir, files):
+    """
+    Remove all given files from workdir.
+
+    :param workdir: working directory (string).
+    :param files: file list.
+    :return: exit code (0 if all went well, -1 otherwise)
+    """
+
+    ec = 0
+    if type(files) != list:
+        logger.warning('files parameter not a list: %s' % str(type(list)))
+        ec = -1
+    else:
+        for f in files:
+            _ec = remove(os.path.join(workdir, f))
+            if _ec != 0 and ec == 0:
+                ec = _ec
+
+    return ec
 
 
 def tar_files(wkdir, excludedfiles, logfile_name, attempt=0):
@@ -345,3 +368,57 @@ def get_directory_size(directory="."):
             logger.warning('exception caught while trying convert dirsize: %s' % e)
 
     return size
+
+
+def add_to_total_size(path, total_size):
+    """
+    Add the size of file in the given path to the total size of all in/output files.
+
+    :param path: path to file (string).
+    :param total_size: prior total size of all input/output files (long).
+    :return: total size of all input/output files (long).
+    """
+
+    if os.path.exists(path):
+        # Get the file size
+        fsize = get_local_file_size(path)
+        if fsize:
+            logger.info("size of file %s: %d B" % (path, fsize))
+            total_size += long(fsize)
+    else:
+        logger.warning("skipping file %s since it is not present" % path)
+
+    return total_size
+
+
+def get_local_file_size(filename):
+    """
+    Get the file size of a local file.
+
+    :param filename: file name (string).
+    :return: file size (int).
+    """
+
+    file_size = None
+
+    if os.path.exists(filename):
+        try:
+            file_size = os.path.getsize(filename)
+        except Exception as e:
+            logger.warning("failed to get file size: %s" % e)
+    else:
+        logger.warning("local file does not exist: %s" % filename)
+
+    return file_size
+
+
+def get_guid():
+    """
+    Generate a GUID using the uuid library.
+    E.g. guid = '92008FAF-BE4C-49CF-9C5C-E12BC74ACD19'
+
+    :return: a random GUID (string)
+    """
+
+    _guid = uuid.uuid4()
+    return str(_guid).upper()

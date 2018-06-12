@@ -9,8 +9,11 @@
 
 import os
 import re
+from time import sleep
 
 from pilot.info import infosys
+from pilot.util.auxiliary import get_logger
+from pilot.util.container import execute
 
 import logging
 logger = logging.getLogger(__name__)
@@ -166,6 +169,159 @@ def is_standard_atlas_job(release):
     return release.startswith('Atlas-')
 
 
+def set_inds(dataset):
+    """
+    Set the INDS environmental variable used by runAthena.
+
+    :param dataset: dataset for input files (realDatasetsIn) (string).
+    :return:
+    """
+
+    inds = ""
+    _dataset = dataset.split(',')
+    for ds in _dataset:
+        if "DBRelease" not in ds and ".lib." not in ds:
+            inds = ds
+            break
+    if inds != "":
+        logger.info("setting INDS environmental variable to: %s" % (inds))
+        os.environ['INDS'] = inds
+    else:
+        logger.warning("INDS unknown")
+
+
+def get_analysis_trf(transform, workdir):
+    """
+    Prepare to download the user analysis transform with curl.
+    The function will verify the download location from a known list of hosts.
+
+    :param transform: full trf path (url) (string).
+    :param workdir: work directory (string).
+    :return: exit code (int), diagnostics (string), transform_name (string)
+    """
+
+    ec = 0
+    diagnostics = ""
+
+    #pilot_initdir = os.environ.get('PILOT_HOME', '')
+    if '/' in transform:
+        transform_name = transform.split('/')[-1]
+    else:
+        logger.warning('did not detect any / in %s (using full transform name)' % (transform))
+        transform_name = transform
+    logger.debug("transform_name = %s" % (transform_name))
+    original_base_url = ""
+
+    # verify the base URL
+    for base_url in get_valid_base_urls():
+        if transform.startswith(base_url):
+            original_base_url = base_url
+            break
+
+    if original_base_url == "":
+        diagnostics = "invalid base URL: %s" % (transform)
+        # return self.__error.ERR_TRFDOWNLOAD, pilotErrorDiag, ""
+    else:
+        logger.debug("verified the trf base url: %s" % (original_base_url))
+
+    # try to download from the required location, if not - switch to backup
+    for base_url in get_valid_base_urls(order=original_base_url):
+        trf = re.sub(original_base_url, base_url, transform)
+        logger.debug("attempting to download trf: %s" % (trf))
+        status, diagnostics = download_transform(trf, transform_name, workdir)
+        if status:
+            break
+
+    if not status:
+        pass
+        # return self.__error.ERR_TRFDOWNLOAD, diagnostics, ""
+
+    logger.info("successfully downloaded transform")
+    path = os.path.join(workdir, transform_name)
+    logger.debug("changing permission of %s to 0755" % path)
+    try:
+        os.chmod(path, 0755)
+    except Exception, e:
+        diagnostics = "failed to chmod %s: %s" % (transform_name, e)
+        # return self.__error.ERR_CHMODTRF, diagnostics, ""
+
+    return ec, diagnostics, transform_name
+
+
+def download_transform(url, transform_name, workdir):
+    """
+    Download the transform from the given url
+    :param url: download URL with path to transform (string).
+    :param transform_name: trf name (string).
+    :param workdir: work directory (string).
+    :return:
+    """
+
+    status = False
+    diagnostics = ""
+    path = os.path.join(workdir, transform_name)
+    cmd = 'curl -sS \"%s\" > %s' % (url, path)
+    trial = 1
+    max_trials = 3
+
+    # try to download the trf a maximum of 3 times
+    while trial <= max_trials:
+        logger.info("executing command [trial %d/%d]: %s" % (trial, max_trials, cmd))
+
+        exit_code, stdout, stderr = execute(cmd, mute=True)
+        if not stdout:
+            stdout = "(None)"
+        if exit_code != 0:
+            # Analyze exit code / output
+            diagnostics = "curl command failed: %d, %s, %s" % (exit_code, stdout, stderr)
+            logger.warning(diagnostics)
+            if trial == max_trials:
+                logger.fatal('could not download transform: %s' % stdout)
+                status = False
+                break
+            else:
+                logger.info("will try again after 60 s")
+                sleep(60)
+        else:
+            logger.info("curl command returned: %s" % (stdout))
+            status = True
+            break
+        trial += 1
+
+    return status, diagnostics
+
+
+def get_valid_base_urls(order=None):
+    """
+    Return a list of valid base URLs from where the user analysis transform may be downloaded from.
+    If order is defined, return given item first.
+    E.g. order=http://atlpan.web.cern.ch/atlpan -> ['http://atlpan.web.cern.ch/atlpan', ...]
+    NOTE: the URL list may be out of date.
+
+    :param order: order (string).
+    :return: valid base URLs (list).
+    """
+
+    valid_base_urls = []
+    _valid_base_urls = ["http://www.usatlas.bnl.gov",
+                        "https://www.usatlas.bnl.gov",
+                        "http://pandaserver.cern.ch",
+                        "http://atlpan.web.cern.ch/atlpan",
+                        "https://atlpan.web.cern.ch/atlpan",
+                        "http://classis01.roma1.infn.it",
+                        "http://atlas-install.roma1.infn.it"]
+
+    if order:
+        valid_base_urls.append(order)
+        for url in _valid_base_urls:
+            if url != order:
+                valid_base_urls.append(url)
+    else:
+        valid_base_urls = _valid_base_urls
+
+    return valid_base_urls
+
+
 def tryint(x):
     """
     Used by numbered string comparison (to protect against unexpected letters in version number).
@@ -214,3 +370,46 @@ def is_greater_or_equal(a, b):
     """
 
     return split_version(a) >= split_version(b)
+
+
+def get_payload_environment_variables(cmd, job_id, task_id, processing_type, site_name, analysis_job):
+    """
+    Return an array with enviroment variables needed by the payload.
+
+    :param cmd: payload execution command (string).
+    :param job_id: PanDA job id (string).
+    :param task_id: PanDA task id (string).
+    :param processing_type: processing type (string).
+    :param site_name: site name (string).
+    :param analysis_job: True for user analysis jobs, False otherwise (boolean).
+    :return: list of environment variables needed by the payload.
+    """
+
+    log = get_logger(job_id)
+
+    variables = []
+    variables.append('export PANDA_RESOURCE=\"%s\";' % site_name)
+    variables.append('export FRONTIER_ID=\"[%s_%s]\";' % (task_id, job_id))
+    variables.append('export CMSSW_VERSION=$FRONTIER_ID;')
+
+    # Unset ATHENA_PROC_NUMBER if set for event service Merge jobs
+    if "Merge_tf" in cmd and 'ATHENA_PROC_NUMBER' in os.environ:
+        variables.append('unset ATHENA_PROC_NUMBER;')
+
+    if analysis_job:
+        variables.append('export ROOT_TTREECACHE_SIZE=1;')
+        try:
+            core_count = int(os.environ.get('ATHENA_PROC_NUMBER'))
+        except Exception:
+            _core_count = 'export ROOTCORE_NCPUS=1;'
+        else:
+            _core_count = 'export ROOTCORE_NCPUS=%d;' % core_count
+        variables.append(_core_count)
+
+    if processing_type == "":
+        log.warning("RUCIO_APPID needs job.processingType but it is not set!")
+    else:
+        variables.append('export RUCIO_APPID=\"%s\";' % processing_type)
+    variables.append('export RUCIO_ACCOUNT=\"%s\";' % os.environ.get('RUCIO_ACCOUNT', 'pilot'))
+
+    return variables

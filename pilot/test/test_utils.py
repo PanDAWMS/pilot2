@@ -29,7 +29,7 @@ class TestUtils(unittest.TestCase):
 
     def test_collect_workernode_info(self):
         """
-        Make sure that collect_workernode_info() returns the proper types (float, float).
+        Make sure that collect_workernode_info() returns the proper types (float, float, float).
 
         :return: (assertion)
         """
@@ -37,13 +37,15 @@ class TestUtils(unittest.TestCase):
         if self.mac:
             return True
 
-        mem, cpu = collect_workernode_info()
+        mem, cpu, disk = collect_workernode_info(path=os.getcwd())
 
         self.assertEqual(type(mem), float)
         self.assertEqual(type(cpu), float)
+        self.assertEqual(type(disk), float)
 
         self.assertNotEqual(mem, 0.0)
         self.assertNotEqual(cpu, 0.0)
+        self.assertNotEqual(disk, 0.0)
 
     def test_get_disk_space(self):
         """

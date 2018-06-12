@@ -31,6 +31,7 @@ def execute(executable, **kwargs):
     timeout = kwargs.get('timeout', 120)
     usecontainer = kwargs.get('usecontainer', False)
     returnproc = kwargs.get('returnproc', False)
+    mute = kwargs.get('mute', False)
     job = kwargs.get('job')
 
     # convert executable to string if it is a list
@@ -51,7 +52,8 @@ def execute(executable, **kwargs):
         # logger.info("will not use container")
         pass
 
-    logger.info('executing command: %s' % executable)
+    if not mute:
+        logger.info('executing command: %s' % executable)
     exe = ['/bin/bash', '-c', executable]
     process = subprocess.Popen(exe,
                                bufsize=-1,

@@ -8,6 +8,8 @@
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
+# Note: stage-out not implemented; replica resolution donein copy_in - but is now done at an earlier stage
+
 import re
 
 from pilot.copytool.common import merge_destinations
@@ -16,21 +18,23 @@ from pilot.util.container import execute
 import logging
 logger = logging.getLogger(__name__)
 
+require_replicas = True  ## indicate if given copytool requires input replicas to be resolved
+
 
 def is_valid_for_copy_in(files):
-    for f in files:
-        if not all(key in f for key in ('scope', 'name', 'destination')):
-            return False
-    return True
+    return True  ## FIX ME LATER
+    #for f in files:
+    #    if not all(key in f for key in ('scope', 'name', 'destination')):
+    #        return False
+    #return True
 
 
 def is_valid_for_copy_out(files):
     return False  # NOT IMPLEMENTED YET
-
-    for f in files:
-        if not all(key in f for key in ('name', 'source', 'destination')):
-            return False
-    return True
+    #for f in files:
+    #    if not all(key in f for key in ('name', 'source', 'destination')):
+    #        return False
+    #return True
 
 
 def copy_in(files):
@@ -43,30 +47,25 @@ def copy_in(files):
     """
     destinations = merge_destinations(files)
     if len(destinations) == 0:
-        raise Exception('No lfn with existing destination path given!')
+        raise Exception('no lfn with existing destination path given!')
 
     lfns = set()
     for dst in destinations:
         lfns.update(destinations[dst]['lfns'])
+
+    # this part should no longer be necessary - replicas are resolved at an earlier stage
 
     executable = ['/usr/bin/env',
                   'rucio', '-R', 'list-file-replicas',
                   '--protocols', 'root']
     executable.extend(lfns)
 
-    logger.info('Querying file replicas from rucio...')
-
-    # process = subprocess.Popen(executable,
-    #                            bufsize=-1,
-    #                            stdout=subprocess.PIPE,
-    #                            stderr=subprocess.PIPE)
-    # stdout, stderr = process.communicate()
-    # exit_code = process.poll()
+    logger.info('querying file replicas from rucio...')
 
     exit_code, stdout, stderr = execute(executable)
 
     if exit_code != 0:
-        raise Exception('Could not query file replicas from rucio!')
+        raise Exception('could not query file replicas from rucio!')
 
     # | scope | name | size | hash | RSE: pfn |\n
     pattern = ur'^\s*\|\s*(\S*)\s*\|\s*(\S*)\s*\|\s*[0-9]*\s*\|\s*[0-9a-zA-Z]{8}\s*\|\s*(\S*):\s*(root://\S*).*$'
@@ -77,10 +76,10 @@ def copy_in(files):
         grps = match.groups()
 
         if len(grps) != 4:
-            logger.warning('Regex returned unexpected amount of matches! Ignoring match...')
+            logger.warning('regex returned unexpected amount of matches! ignoring match...')
             continue
         if None in grps:
-            logger.warning('Match contained None! Ignoring match...')
+            logger.warning('match contained None! ignoring match...')
             continue
 
         lfn = '%s:%s' % (grps[0], grps[1])
@@ -91,17 +90,10 @@ def copy_in(files):
                       'xrdcp', '-f']
         for lfn in destinations[dst]['lfns']:
             if lfn not in lfns_with_pfns:
-                raise Exception('The given LFNs %s were not returned by Rucio!' % lfn)
+                raise Exception('the given LFNs %s were not returned by Rucio!' % lfn)
             executable.append(lfns_with_pfns[lfn][0])
 
         executable.append(dst)
-
-        # process = subprocess.Popen(executable,
-        #                            bufsize=-1,
-        #                            stdout=subprocess.PIPE,
-        #                            stderr=subprocess.PIPE)
-        # stdout, stderr = process.communicate()
-        # exit_code = process.poll()
 
         exit_code, stdout, stderr = execute(executable)
 
@@ -109,7 +101,7 @@ def copy_in(files):
         if exit_code == 0:
             stats['status'] = 'done'
             stats['errno'] = 0
-            stats['errmsg'] = 'File successfully downloaded.'
+            stats['errmsg'] = 'file successfully downloaded.'
         else:
             stats['status'] = 'failed'
             stats['errno'] = 3

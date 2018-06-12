@@ -18,6 +18,8 @@ import time
 
 from pilot.control.payloads import generic, eventservice
 from pilot.control.job import send_state
+from pilot.util.auxiliary import get_logger
+from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
 from pilot.util.filehandling import read_file
 from pilot.common.errorcodes import ErrorCodes
@@ -102,27 +104,6 @@ def _validate_payload(job):
     return True
 
 
-def set_time_consumed(t_tuple):
-    """
-    Set the system+user time spent by the payload.
-    The cpuConsumptionTime is the system+user time while wall time is encoded in pilotTiming (third number).
-    Previously the cpuConsumptionTime was "corrected" with a scaling factor but this was deemed outdated and is now set
-    to 1.
-    The t_tuple is defined as map(lambda x, y:x-y, t1, t0), here t0 and t1 are os.times() measured before and after
-    the payload execution command.
-
-    :param t_tuple: map(lambda x, y:x-y, t1, t0)
-    :return: cpu_consumption_unit, cpu_consumption_time, cpu_conversion_factor
-    """
-
-    t_tot = reduce(lambda x, y: x + y, t_tuple[2:3])
-    cpu_conversion_factor = 1.0
-    cpu_consumption_unit = "s"  # used to be "kSI2kseconds"
-    cpu_consumption_time = int(t_tot * cpu_conversion_factor)
-
-    return cpu_consumption_unit, cpu_consumption_time, cpu_conversion_factor
-
-
 def execute_payloads(queues, traces, args):
     """
     Execute queued payloads.
@@ -137,6 +118,7 @@ def execute_payloads(queues, traces, args):
     while not args.graceful_stop.is_set():
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
+            log = get_logger(job.jobid)
 
             q_snapshot = list(queues.finished_data_in.queue)
             peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
@@ -151,7 +133,6 @@ def execute_payloads(queues, traces, args):
             # this job is now to be monitored, so add it to the monitored_payloads queue
             queues.monitored_payloads.put(job)
 
-            log = logger.getChild(job.jobid)
             log.info('job %s added to monitored payloads queue' % job.jobid)
 
             out = open(os.path.join(job.workdir, config.Payload.payloadstdout), 'wb')
@@ -165,12 +146,15 @@ def execute_payloads(queues, traces, args):
                 payload_executor = generic.Executor(args, job, out, err)
 
             # run the payload and measure the execution time
-            t0 = os.times()
+            job.t0 = os.times()
             exit_code = payload_executor.run()
-            t1 = os.times()
-            t = map(lambda x, y: x - y, t1, t0)
-            job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconversionfactor = set_time_consumed(t)
-            log.info('CPU consumption time: %s' % job.cpuconsumptiontime)
+
+            cpuconsumptiontime = get_cpu_consumption_time(job.t0)
+            job.cpuconsumptiontime = int(cpuconsumptiontime)
+            job.cpuconsumptionunit = "s"
+            job.cpuconversionfactor = 1.0
+            log.info('CPU consumption time: %f %s (rounded to %d %s)' %
+                     (cpuconsumptiontime, job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconsumptionunit))
 
             out.close()
             err.close()
@@ -214,13 +198,13 @@ def process_job_report(job):
     :return:
     """
 
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
     path = os.path.join(job.workdir, config.Payload.jobreport)
     if not os.path.exists(path):
         log.warning('job report does not exist: %s' % path)
     else:
         with open(path) as data_file:
-            # compulsory field; the payload must procude a job report (see config file for file name)
+            # compulsory field; the payload must produce a job report (see config file for file name)
             job.metadata = json.load(data_file)
 
             # extract user specific info from job report
@@ -263,7 +247,7 @@ def validate_post(queues, traces, args):
             job = queues.finished_payloads.get(block=True, timeout=1)
         except Queue.Empty:
             continue
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid)
 
         # process the job report if it exists and set multiple fields
         process_job_report(job)
@@ -288,7 +272,7 @@ def failed_post(queues, traces, args):
             job = queues.failed_payloads.get(block=True, timeout=1)
         except Queue.Empty:
             continue
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid)
 
         log.debug('adding log for log stageout')
 

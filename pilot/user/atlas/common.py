@@ -8,19 +8,22 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import os
+import re
 import fnmatch
 from collections import defaultdict
 from glob import glob
 from signal import SIGTERM, SIGUSR1
 
-# from pilot.common.exception import PilotException
+from pilot.common.exception import TrfDownloadFailure
+from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
+    set_inds, get_analysis_trf, get_payload_environment_variables
+from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
+    get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
+from pilot.util.auxiliary import get_logger
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD,\
     UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
-from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job
 from pilot.util.filehandling import remove
-from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
-    get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
 
 import logging
 logger = logging.getLogger(__name__)
@@ -31,9 +34,12 @@ def get_payload_command(job):
     Return the full command for execuring the payload, including the sourcing of all setup files and setting of
     environment variables.
 
-    :param job: job object
-    :return: command (string)
+    :param job: job object.
+    :raises PilotException: TrfDownloadFailure.
+    :return: command (string).
     """
+
+    log = get_logger(job.jobid)
 
     # Should the pilot do the asetup or do the jobPars already contain the information?
     prepareasetup = should_pilot_prepare_asetup(job.noexecstrcnv, job.jobparams)
@@ -51,7 +57,7 @@ def get_payload_command(job):
     if is_standard_atlas_job(job.swrelease):
 
         # Normal setup (production and user jobs)
-        logger.info("preparing normal production/analysis job setup command")
+        log.info("preparing normal production/analysis job setup command")
 
         cmd = asetuppath
         if prepareasetup:
@@ -73,26 +79,276 @@ def get_payload_command(job):
 
             cmd += asetupoptions
 
-            if userjob:
-                pass
-            else:
-                # Add Database commands if they are set by the local site
-                cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
-                # Add the transform and the job parameters (production jobs)
-                if prepareasetup:
-                    cmd += ";%s %s" % (job.transformation, job.jobparams)
-                else:
-                    cmd += "; " + job.jobparams
+        if userjob:
+            # set the INDS env variable (used by runAthena)
+            set_inds(job.datasetin)  # realDatasetsIn
 
-            cmd = cmd.replace(';;', ';')
+            # Try to download the trf
+            ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
+            if ec != 0:
+                raise TrfDownloadFailure(diagnostics)
+            else:
+                log.info('user analysis trf: %s' % trf_name)
+
+            if prepareasetup:
+                ec, diagnostics, _cmd = get_analysis_run_command(job, trf_name)
+                if ec != 0:
+                    pass
+                else:
+                    log.info('user analysis run command: %s' % _cmd)
+            else:
+                _cmd = job.jobparams
+
+            # Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
+            cmd += "; " + add_makeflags(job.corecount, "") + _cmd
+        else:
+            # Add Database commands if they are set by the local site
+            cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
+            # Add the transform and the job parameters (production jobs)
+            if prepareasetup:
+                cmd += ";%s %s" % (job.transformation, job.jobparams)
+            else:
+                cmd += "; " + job.jobparams
+
+        cmd = cmd.replace(';;', ';')
 
     else:  # Generic, non-ATLAS specific jobs, or at least a job with undefined swRelease
 
-        logger.info("generic job (non-ATLAS specific or with undefined swRelease)")
+        log.info("generic job (non-ATLAS specific or with undefined swRelease)")
 
         cmd = ""
 
+    site = os.environ.get('PILOT_SITENAME', '')
+    variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
+    cmd = ''.join(variables) + cmd
+
     return cmd
+
+
+def add_makeflags(job_core_count, cmd):
+    """
+    Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make).
+
+    :param job_core_count: core count from the job definition (int).
+    :param cmd: payload execution command (string).
+    :return: updated payload execution command (string).
+    """
+
+    # ATHENA_PROC_NUMBER is set in Node.py using the schedconfig value
+    try:
+        core_count = int(os.environ.get('ATHENA_PROC_NUMBER'))
+    except Exception:
+        core_count = -1
+    if core_count == -1:
+        try:
+            core_count = int(job_core_count)
+        except Exception:
+            pass
+        else:
+            if core_count >= 1:
+                # Note: the original request (AF) was to use j%d and not -j%d, now using the latter
+                cmd += 'export MAKEFLAGS="-j%d QUICK=1 -l1";' % (core_count)
+
+    # make sure that MAKEFLAGS is always set
+    if "MAKEFLAGS=" not in cmd:
+        cmd += 'export MAKEFLAGS="-j1 QUICK=1 -l1";'
+
+    return cmd
+
+
+def get_analysis_run_command(job, trf_name):
+    """
+    Return the proper run command for the user job.
+
+    :param job: job object.
+    :param trf_name: name of the transform that will run the job (string).
+    :return: exit code (int), diagnostics (string), command (string).
+    """
+
+    exit_code = 0
+    diagnostics = ""
+    cmd = ""
+
+    log = get_logger(job.jobid)
+
+    # get relevant file transfer info
+    use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype,
+                                                                            job.is_build_job(),
+                                                                            job.infosys.queuedata)
+
+    # add the user proxy
+    if 'X509_USER_PROXY' in os.environ:
+        cmd += 'export X509_USER_PROXY=%s;' % os.environ.get('X509_USER_PROXY')
+    else:
+        log.warning("could not add user proxy to the run command (proxy does not exist)")
+
+    # set up analysis trf
+    cmd += './%s %s' % (trf_name, job.jobparams)
+
+    # add control options for PFC turl and direct access
+    if use_pfc_turl and '--usePFCTurl' not in cmd:
+        cmd += ' --usePFCTurl'
+    if use_direct_access and '--directIn' not in cmd:
+        cmd += ' --directIn'
+
+    # update the payload command for forced accessmode
+    cmd = update_forced_accessmode(log, cmd, job.transfertype, job.jobparams, trf_name)
+
+    # add guids when needed
+    # get the correct guids list (with only the direct access files)
+    if not job.is_build_job():
+        _guids = get_guids_from_jobparams(job.jobparams, job.infiles, job.infilesguids)
+        cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
+
+    return exit_code, diagnostics, cmd
+
+
+def update_forced_accessmode(log, cmd, transfertype, jobparams, trf_name):
+    """
+    Update the payload command for forced accessmode.
+    accessmode is an option that comes from HammerCloud and is used to force a certain input file access mode; i.e.
+    copy-to-scratch or direct access.
+
+    :param log: logging object.
+    :param cmd: payload command.
+    :param transfertype: transfer type (.e.g 'direct') from the job definition with priority over accessmode (string).
+    :param jobparams: job parameters (string).
+    :param trf_name: transformation name (string).
+    :return: updated payload command string.
+    """
+
+    if "accessmode" in cmd and transfertype != 'direct':
+        accessmode_usect = None
+        accessmode_directin = None
+        _accessmode_dic = {"--accessmode=copy": ["copy-to-scratch mode", ""],
+                           "--accessmode=direct": ["direct access mode", " --directIn"]}
+
+        # update run_command according to jobPars
+        for _mode in _accessmode_dic.keys():
+            if _mode in jobparams:
+                # any accessmode set in jobPars should overrule schedconfig
+                log.info("enforcing %s" % _accessmode_dic[_mode][0])
+                if _mode == "--accessmode=copy":
+                    # make sure direct access is turned off
+                    accessmode_usect = True
+                    accessmode_directin = False
+                elif _mode == "--accessmode=direct":
+                    # make sure copy-to-scratch gets turned off
+                    accessmode_usect = False
+                    accessmode_directin = True
+                else:
+                    accessmode_usect = False
+                    accessmode_directin = False
+
+                # update run_command (do not send the accessmode switch to runAthena)
+                cmd += _accessmode_dic[_mode][1]
+                if _mode in cmd:
+                    cmd = cmd.replace(_mode, "")
+
+        # force usage of copy tool for stage-in or direct access
+        if accessmode_usect:
+            log.info('forced copy tool usage selected')
+            # remove again the "--directIn"
+            if "directIn" in cmd:
+                cmd = cmd.replace(' --directIn', ' ')
+        elif accessmode_directin:
+            log.info('forced direct access usage selected')
+            if "directIn" not in cmd:
+                cmd += ' --directIn'
+        else:
+            log.warning('neither forced copy tool usage nor direct access was selected')
+
+        if "directIn" in cmd and "usePFCTurl" not in cmd:
+            cmd += ' --usePFCTurl'
+
+        # need to add proxy if not there already
+        if "--directIn" in cmd and "export X509_USER_PROXY" not in cmd:
+            if 'X509_USER_PROXY' in os.environ:
+                cmd = cmd.replace("./%s" % trf_name, "export X509_USER_PROXY=%s;./%s" %
+                                  (os.environ.get('X509_USER_PROXY'), trf_name))
+
+    # if both direct access and the accessmode loop added a directIn switch, remove the first one from the string
+    if cmd.count("directIn") > 1:
+        cmd = cmd.replace(' --directIn', ' ', 1)
+
+    return cmd
+
+
+def get_guids_from_jobparams(jobparams, infiles, infilesguids):
+    """
+    Extract the correct guid from the input file list.
+    The guids list is used for direct reading.
+    1. extract input file list for direct reading from job parameters
+    2. for each input file in this list, find the corresponding guid from the input file guid list
+    Since the job parameters string is entered by a human, the order of the input files might not be the same.
+
+    :param jobparams: job parameters.
+    :param infiles: input file list.
+    :param infilesguids: input file guids list.
+    :return: guids list.
+    """
+
+    guidlist = []
+    jobparams = jobparams.replace("'", "")
+    jobparams = jobparams.replace(", ", ",")
+
+    pattern = re.compile(r'\-i \"\[([A-Za-z0-9.,_-]+)\]\"')
+    directreadinginputfiles = re.findall(pattern, jobparams)
+    _infiles = []
+    if directreadinginputfiles != []:
+        _infiles = directreadinginputfiles[0].split(",")
+    else:
+        match = re.search("-i ([A-Za-z0-9.\[\],_-]+) ", jobparams)
+        if match is not None:
+            compactinfiles = match.group(1)
+            match = re.search('(.*)\[(.+)\](.*)\[(.+)\]', compactinfiles)
+            if match is not None:
+                infiles = []
+                head = match.group(1)
+                tail = match.group(3)
+                body = match.group(2).split(',')
+                attr = match.group(4).split(',')
+                for idx in range(len(body)):
+                    lfn = '%s%s%s%s' % (head, body[idx], tail, attr[idx])
+                    infiles.append(lfn)
+            else:
+                infiles = [compactinfiles]
+
+    if _infiles != []:
+        for infile in _infiles:
+            # get the corresponding index from the inputFiles list, which has the same order as infilesguids
+            try:
+                index = infiles.index(infile)
+            except Exception as e:
+                logger.warning("exception caught: %s (direct reading will fail)" % e)
+            else:
+                # add the corresponding guid to the list
+                guidlist.append(infilesguids[index])
+
+    return guidlist
+
+
+def get_file_transfer_info(transfertype, is_a_build_job, queuedata):
+    """
+    Return information about desired file transfer.
+
+    :param transfertype:
+    :param is_a_build_job: boolean.
+    :param queuedata: infosys queuedata object from job object.
+    :return: use copy tool (boolean), use direct access (boolean), use PFC Turl (boolean).
+    """
+
+    use_copy_tool = True
+    use_direct_access = False
+    use_pfc_turl = False
+
+    # check with schedconfig
+    if (queuedata.direct_access_lan or queuedata.direct_access_wan or transfertype == 'direct') and not is_a_build_job:
+        use_copy_tool = False
+        use_direct_access = True
+        use_pfc_turl = True
+
+    return use_copy_tool, use_direct_access, use_pfc_turl
 
 
 def update_job_data(job):
@@ -291,8 +547,8 @@ def get_db_info(jobreport_dictionary):
     Note: this function adds up the different dbData and dbTime's in the different executor steps. In modern job
     reports this might have been done already by the transform and stored in dbDataTotal and dbTimeTotal.
 
-    :param jobreport_dictionary:
-    :return: db_time, db_data
+    :param jobreport_dictionary: job report dictionary.
+    :return: db_time (int), db_data (long)
     """
 
     db_time = 0

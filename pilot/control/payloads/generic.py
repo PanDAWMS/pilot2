@@ -8,7 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-8
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 import time
@@ -17,8 +17,12 @@ import signal
 from subprocess import PIPE
 
 from pilot.control.job import send_state
+from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
-from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD
+from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD, \
+    PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD
+from pilot.util.timing import add_to_pilot_timing
+from pilot.common.exception import PilotException
 
 import logging
 logger = logging.getLogger(__name__)
@@ -48,7 +52,7 @@ class Executor(object):
         :param err:
         :return:
         """
-        # log = logger.getChild(job.jobid)
+        # log = get_logger(job.jobid)
 
         # try:
         # create symbolic link for sqlite200 and geomDB in job dir
@@ -72,13 +76,26 @@ class Executor(object):
         :return: proc (subprocess returned by Popen())
         """
 
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid)
+
+        # write time stamps to pilot timing file
+        add_to_pilot_timing(job.jobid, PILOT_PRE_SETUP, time.time())
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
-        cmd = user.get_payload_command(job)
+        # for testing looping job:    cmd = user.get_payload_command(job) + ';sleep 240'
+        try:
+            cmd = user.get_payload_command(job)
+            #cmd = user.get_payload_command(job) + ';sleep 240'
+        except PilotException as e:
+            log.fatal('could not define payload command')
+            return None
+
         log.info("payload execution command: %s" % cmd)
+
+        # write time stamps to pilot timing file
+        add_to_pilot_timing(job.jobid, PILOT_POST_SETUP, time.time())
 
         # should we run any additional commands? (e.g. special monitoring commands)
         cmds = user.get_utility_commands_list(order=UTILITY_BEFORE_PAYLOAD)
@@ -96,16 +113,21 @@ class Executor(object):
                 log.info('utility command to be executed with the payload: %s' % utcmd)
                 # add execution code here
 
+        # write time stamps to pilot timing file
+        add_to_pilot_timing(job.jobid, PILOT_PRE_PAYLOAD, time.time())
+
         # replace platform and workdir with new function get_payload_options() or someting from experiment specific code
         try:
             proc = execute(cmd, workdir=job.workdir, returnproc=True,
-                           usecontainer=True, stdout=out, stderr=err, cwd=job.workdir, job=job)
+                           usecontainer=False, stdout=out, stderr=err, cwd=job.workdir, job=job)
         except Exception as e:
             log.error('could not execute: %s' % str(e))
             return None
 
         log.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
         job.pid = proc.pid
+
+        # WRONG PLACE FOR THE FOLLOWING? MAIN PAYLOAD IS STILL RUNNING!!!
 
         # should any additional commands be executed after the payload?
         cmds = user.get_utility_commands_list(order=UTILITY_AFTER_PAYLOAD)
@@ -139,7 +161,7 @@ class Executor(object):
         :return:
         """
 
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid)
 
         breaker = False
         exit_code = None
@@ -178,7 +200,7 @@ class Executor(object):
 
         :return:
         """
-        log = logger.getChild(str(self.__job.jobid))
+        log = get_logger(str(self.__job.jobid))
 
         exit_code = 1
         if self.setup_payload(self.__job, self.__out, self.__err):
@@ -191,6 +213,9 @@ class Executor(object):
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
                 log.info('finished pid=%s exit_code=%s' % (proc.pid, exit_code))
                 self.__job.state = 'finished' if exit_code == 0 else 'failed'
+
+                # write time stamps to pilot timing file
+                add_to_pilot_timing(self.__job.jobid, PILOT_POST_PAYLOAD, time.time())
 
                 # stop any running utilities
                 if self.__job.utilities != {}:

@@ -28,6 +28,7 @@ import pipes
 
 from .basedata import BaseData
 from .filespec import FileSpec
+from pilot.util.filehandling import add_to_total_size
 
 import logging
 logger = logging.getLogger(__name__)
@@ -57,38 +58,51 @@ class JobData(BaseData):
 
     is_eventservice = False        # True for event service jobs
 
+    transfertype = ""  # direct access
+    processingtype = ""  # e.g. nightlies
+
     # set by the pilot (not from job definition)
+    workdirsizes = []  # time ordered list of work dir sizes
     fileinfo = {}
-    piloterrorcode = 0
-    piloterrorcodes = []
-    piloterrordiag = ""
-    piloterrordiags = []
+    piloterrorcode = 0  # current pilot error code
+    piloterrorcodes = []  # ordered list of stored pilot error codes
+    piloterrordiag = ""  # current pilot error diagnostics
+    piloterrordiags = []  # ordered list of stored pilot error diagnostics
     transexitcode = 0
     exeerrorcode = 0
     exeerrordiag = ""
     exitcode = 0
     exitmsg = ""
-    state = ""
+    state = ""  # internal pilot state; running, failed, finished, holding
     stageout = ""  # stage-out identifier, e.g. log
     metadata = {}  # payload metadata (job report)
     cpuconsumptionunit = ""
     cpuconsumptiontime = ""
     cpuconversionfactor = 1
     nevents = 0  # number of events
+    neventsw = 0  # number of events written
     payload = ""  # payload name
     utilities = {}  # utility processes { <name>: [<process handle>, number of launches, command string], .. }
-    pid = -1  # payload pid
+    pid = None  # payload pid
+    pgrp = None  # process group
 
-    overwrite_queuedata = {}  # Custom settings extracted from JobParams (--overwriteQueueData) to be used as master values for `QueueData`
-    zipmap = ""               # ZIP MAP values extracted from JobParams
+    # time variable used for on-the-fly cpu consumption time measurements done by job monitoring
+    t0 = None  # payload startup time
+
+    overwrite_queuedata = {}  # Custom settings extracted from job parameters (--overwriteQueueData) to be used as master values for `QueueData`
+    zipmap = ""               # ZIP MAP values extracted from jobparameters
+    imagename = ""            # user defined container image name extracted from job parameters
 
     # from job definition
     attemptnr = 0  # job attempt number
     ddmendpointin = ""  # comma-separated list (string) of ddm endpoints for input    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
     ddmendpointout = ""  # comma-separated list (string) of ddm endpoints for output  ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
     destinationdblock = ""  ## to be moved to FileSpec (job.outdata)
+    datasetin = ""
+    datasetout = ""
 
     infiles = ""  # comma-separated list (string) of input files  ## TO BE DEPRECATED: moved to FileSpec (use job.indata instead)
+    infilesguids = ""
 
     indata = []   # list of `FileSpec` objects for input files (aggregated inFiles, ddmEndPointIn, scopeIn, filesizeIn, etc)
     outdata = []  # list of `FileSpec` objects for output files
@@ -113,16 +127,16 @@ class JobData(BaseData):
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['corecount', 'piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
-                   'attemptnr', 'nevents', 'pid'],
+                   'attemptnr', 'nevents', 'neventsw', 'pid'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
                    'state', 'status', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg',
                    'infiles', 'scopein', 'ddmendpointin',       ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-                   'outfiles', 'scopeout', 'ddmendpointout',     ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
+                   'outfiles', 'scopeout', 'ddmendpointout',    ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
-                   'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload',
-                   'swrelease', 'zipmap'],
-             list: ['piloterrorcodes', 'piloterrordiags'],
+                   'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload', 'processingtype',
+                   'swrelease', 'zipmap', 'imagename', 'transfertype', 'datasetin', 'datasetout', 'infilesguids'],
+             list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
              dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
              bool: ['is_eventservice', 'noexecstrcnv']
              }
@@ -161,10 +175,11 @@ class JobData(BaseData):
             ##'??define_internal_key': 'prodDBlocks',
             ##'storage_token': 'prodDBlockToken',
             'ddmendpoint': 'ddmEndPointIn',
+            # 'transfertype': 'transferType',  # if transfertype was defined per file (it currently is not)
         }
 
         ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())
-
+        logger.info('ksources=%s' % str(ksources))
         ret, lfns = [], set()
         for ind, lfn in enumerate(ksources.get('inFiles', [])):
             if lfn in ['', 'NULL'] or lfn in lfns:  # exclude null data and duplicates
@@ -174,6 +189,7 @@ class JobData(BaseData):
             for attrname, k in kmap.iteritems():
                 idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
             finfo = FileSpec(type='input', **idat)
+            logger.info('added file %s' % lfn)
             ret.append(finfo)
 
         return ret
@@ -297,9 +313,13 @@ class JobData(BaseData):
             'infiles': 'inFiles',                        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
             'outfiles': 'outFiles',                      ## TO BE DEPRECATED: moved to FileSpec
             'logguid': 'logGUID',                        ## TO BE DEPRECATED: moved to FileSpec
+            'infilesguids': 'GUID',                      ## TO BE DEPRECATED: moved to FileSpec
             'attemptnr': 'attemptNr',
             'ddmendpointin': 'ddmEndPointIn',            ## TO BE DEPRECATED: moved to FileSpec (job.indata)
             'ddmendpointout': 'ddmEndPointOut',          ## TO BE DEPRECATED: moved to FileSpec
+            'datasetin': 'realDatasetsIn',               ## TO BE DEPRECATED: moved to FileSpec
+            'datasetout': 'realDatasets',                ## TO BE DEPRECATED: moved to FileSpec
+            'processingtype': 'processingType',
             'destinationdblock': 'destinationDblock',
             'noexecstrcnv': 'noExecStrCnv',
             'swrelease': 'swRelease',
@@ -321,14 +341,27 @@ class JobData(BaseData):
 
         return is_analysis
 
-    def is_build(self):
+    def is_build_job(self):
         """
-            Determine whether the job is a build job or not.
-            (i.e. check if the job only has one output file that is a lib file)
-            :return: True for a build job
+        Check if the job is a build job.
+        (i.e. check if the job has an output file that is a lib file).
+
+        :param outfiles: list of output files.
+        :return: boolean
         """
 
-        return False  ## TO BE IMPLEMENTED
+        is_a_build_job = False
+        if type(self.outfiles) == str:
+            outfiles = self.outfiles.split(',')
+        else:
+            outfiles = self.outfiles
+
+        for f in outfiles:
+            if '.lib.' in f and '.log.' not in f:
+                is_a_build_job = True
+                break
+
+        return is_a_build_job
 
     def clean(self):
         """
@@ -371,8 +404,14 @@ class JobData(BaseData):
 
     def clean__jobparams(self, raw, value):
         """
-            Verify and validate value for the jobparams key
-            Extract from jobparams non related to Job options
+        Verify and validate value for the jobparams key
+        Extract value from jobparams not related to job options.
+        The function will in particular extract and remove --overwriteQueueData, ZIP_MAP and --containerimage.
+        It will remove the old Pilot 1 option --overwriteQueuedata which should be replaced with --overwriteQueueData.
+
+        :param raw: (unused).
+        :param value: job parameters (string).
+        :return: updated job parameers (string).
         """
 
         ## clean job params from Pilot1 old-formatted options
@@ -397,7 +436,47 @@ class JobData(BaseData):
         logger.debug('Extracted data from jobparams: zipmap=%s' % self.zipmap)
         logger.debug('Extracted data from jobparams: overwrite_queuedata=%s' % self.overwrite_queuedata)
 
+        # extract and remove any present --containerimage XYZ options
+        ret, imagename = self.extract_container_image(ret)
+        if imagename != "":
+            self.imagename = imagename
+
         return ret
+
+    def extract_container_image(self, jobparams):
+        """
+        Extract the container image from the job parameters if present, and remove it.
+
+        :param jobparams: job parameters (string).
+        :return: updated job parameters (string), extracted image name (string).
+        """
+
+        imagename = ""
+
+        # define regexp pattern for the full container image option
+        _pattern = r'(\ \-\-containerimage\=?\s?[\S]+)'
+        pattern = re.compile(_pattern)
+        image_option = re.findall(pattern, jobparams)
+
+        if image_option and image_option[0] != "":
+
+            imagepattern = re.compile(r'(\ \-\-containerimage\=?\s?([\S]+))')
+            image = re.findall(imagepattern, jobparams)
+            if image and image[0] != "":
+                try:
+                    imagename = image[0][1]
+                except Exception as e:
+                    logger.warning('failed to extract image name: %s' % e)
+                else:
+                    logger.info("extracted image from jobparams: %s" % imagename)
+            else:
+                logger.warning("image could not be extract from %s" % jobparams)
+
+            # remove the option from the job parameters
+            jobparams = re.sub(_pattern, "", jobparams)
+            logger.info("removed the %s option from job parameters: %s" % (image_option[0], jobparams))
+
+        return jobparams, imagename
 
     @classmethod  # noqa: C901
     def parse_args(self, data, options, remove=False):
@@ -462,3 +541,74 @@ class JobData(BaseData):
             rawdata = " ".join(pipes.quote(e) for e in final_args)
 
         return ret, rawdata
+
+    def add_workdir_size(self, workdir_size):
+        """
+        Add a measured workdir size to the workdirsizes field.
+        The function will deduce any input and output file sizes from the workdir size.
+
+        :param workdir_size: workdir size (int).
+        :return:
+        """
+
+        # Convert to long if necessary
+        if type(workdir_size) != long:
+            try:
+                workdir_size = long(workdir_size)
+            except Exception as e:
+                logger.warning('failed to convert %s to long: %s' % (str(workdir_size), e))
+                return
+        if type(self.infiles) == str:
+            in_files = self.infiles.split(',')
+        else:
+            in_files = self.infiles
+
+        total_size = 0L  # B
+
+        if os.path.exists(self.workdir):
+            # Find out which input and output files have been transferred and add their sizes to the total size
+            # (Note: output files should also be removed from the total size since outputfilesize is added in the
+            # task def)
+
+            # First remove the log file from the output file list
+            out_files = []
+            if type(self.outfiles) == str:
+                outfiles = self.outfiles.split(',')
+            else:
+                outfiles = self.outfiles
+            for f in outfiles:
+                if self.logfile not in f:
+                    out_files.append(f)
+
+            # Then update the file list in case additional output files were produced
+            # Note: don't do this deduction since it is not known by the task definition
+            # out_files, dummy, dummy = discoverAdditionalOutputFiles(outFiles, job.workdir, job.destinationDblock,
+            # job.scopeOut)
+
+            file_list = in_files + out_files
+            for f in file_list:
+                if f != "":
+                    total_size = add_to_total_size(os.path.join(self.workdir, f), total_size)
+
+            logger.info("total size of present input+output files: %d B (workdir size: %d B)" %
+                        (total_size, workdir_size))
+            workdir_size -= total_size
+
+        self.workdirsizes.append(workdir_size)
+
+    def get_max_workdir_size(self):
+        """
+        Return the maximum disk space used by the payload.
+
+        :return: workdir size (int).
+        """
+
+        maxdirsize = 0L
+
+        if self.workdirsizes != []:
+            # Get the maximum value from the list
+            maxdirsize = max(self.workdirsizes)
+        else:
+            logger.warning("found no stored workdir sizes")
+
+        return maxdirsize

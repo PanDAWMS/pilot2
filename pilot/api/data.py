@@ -111,7 +111,7 @@ class StagingClient(object):
         ## do apply either simple query list_replicas() without geoip sort to resolve LAN replicas in case of directaccesstype=[None, LAN]
         # otherwise in case of directaccesstype=WAN mode do query geo sorted list_replicas() with location data passed
 
-        bquery = {'schemes': ['srm', 'root', 'davs', 'gsiftp'],
+        bquery = {'schemes': ['srm', 'root', 'davs', 'gsiftp', 'https'],
                   'dids': [dict(scope=e.scope, name=e.lfn) for e in xfiles]}
 
         allow_remoteinput = True in set(e.allowRemoteInputs for e in xfiles)  ## implement direct access later
@@ -267,16 +267,18 @@ class StagingClient(object):
 
         result, errors = None, []
 
+        self.logger.info('files=%s' % str(files))
         for name in copytools:
 
             try:
                 if name not in self.copytool_modules:
-                    raise PilotException('passed unknow copytool with name=%s .. skipped' % name)
+                    raise PilotException('passed unknown copytool with name=%s .. skipped' % name)
                 module = self.copytool_modules[name]['module_name']
                 self.logger.info('Trying to use copytool=%s for activity=%s' % (name, activity))
                 copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], -1)
             except PilotException, e:
                 errors.append(e)
+                self.logger.debug('Error: %s' % e)
                 continue
             except Exception, e:
                 self.logger.warning('Failed to import copytool module=%s, error=%s' % (module, e))
@@ -286,6 +288,7 @@ class StagingClient(object):
                 result = self.transfer_files(copytool, files, **kwargs)
             except PilotException, e:
                 errors.append(e)
+                self.logger.debug('Error: %s' % e)
             except Exception, e:
                 self.logger.warning('Failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
 
@@ -293,7 +296,7 @@ class StagingClient(object):
                 break
 
         if not result:
-            raise PilotException('Failed to transfer files using copytools=%s, erros=%s' % (copytools, errors))
+            raise PilotException('Failed to transfer files using copytools=%s, error=%s' % (copytools, errors))
 
         return result
 
@@ -367,6 +370,9 @@ class StageInClient(StagingClient):
             self.logger.warning('Input is not valid for transfers using copytool=%s' % copytool)
             self.logger.debug('Input: %s' % files)
             raise PilotException('Invalid input data for transfer operation')
+
+        if self.infosys:
+            kwargs['copytools'] = self.infosys.queuedata.copytools
 
         return copytool.copy_in(files, **kwargs)
 

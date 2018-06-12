@@ -17,12 +17,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_maximum_input_sizes(queuedata):
+def get_maximum_input_sizes():
     """
     This function returns the maximum allowed size for all input files. The sum of all input file sizes should not
     exceed this value.
 
-    :param queuedata: the queuedata dictionary from schedconfig.
     :return: maxinputsizes (integer value in GB).
     """
 
@@ -35,3 +34,23 @@ def get_maximum_input_sizes(queuedata):
                        (e, _maxinputsizes))
 
     return _maxinputsizes
+
+
+def convert_to_int(parameter, default=None):
+    """
+    Try to convert a given parameter to an integer value.
+    The default parameter can be used to force the function to always return a given value in case the integer
+    conversion, int(parameter), fails.
+
+    :param parameter: parameter (any type).
+    :param default: None by default (if set, always return an integer; the given value will be returned if
+    conversion to integer fails).
+    :return: converted integer.
+    """
+
+    try:
+        value = int(parameter)
+    except Exception:  # can be ValueError or TypeValue (for None)
+        value = default
+
+    return value
