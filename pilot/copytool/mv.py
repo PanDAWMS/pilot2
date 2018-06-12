@@ -95,12 +95,12 @@ def move_all_files(files, copy_type, **kwargs):
         #timeout = get_timeout(fspec.filesize)
         source = fspec.turl
         name = fspec.lfn
-        destination = dst  # os.path.join(dst, name)
+        destination = os.path.join(dst, name)
 
         logger.info("transferring file %s from %s to %s" % (name, source, destination))
 
-        source = os.path.join(source, name)
-        destination = os.path.join(destination, name)
+        #source = os.path.join(source, name)
+        #destination = os.path.join(destination, name)
         exit_code, stdout, stderr = copy_method(source, destination)
         if exit_code != 0:
             logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
