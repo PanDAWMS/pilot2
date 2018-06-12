@@ -54,7 +54,7 @@ class TestCopytoolMv(unittest.TestCase):
         for i in range(0, self.numFiles):
                 # generate random name
                 fname = ''.join(random.choice(string.lowercase) for x in range(20))
-                fname = os.path.join(tmp_src_dir, fname)
+                fname = os.path.join(self.tmp_src_dir, fname)
                 if inFiles == "":
                     inFiles = fname
                 else:
