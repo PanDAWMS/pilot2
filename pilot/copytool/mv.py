@@ -43,7 +43,7 @@ def copy_in(files, copy_type="mv", **kwargs):
 
     if copy_type not in ["cp", "mv", "symlink"]:
         raise StageInFailure("Incorrect method for copy in")
-    exit_code, stdout, stderr = move_all_files(files, copy_type, kwargs)
+    exit_code, stdout, stderr = move_all_files(files, copy_type, kwargs=kwargs)
     if exit_code != 0:
         # raise failure
         raise StageInFailure(stdout)
@@ -60,7 +60,7 @@ def copy_out(files, copy_type="mv", **kwargs):
     if copy_type not in ["cp", "mv"]:
         raise StageOutFailure("Incorrect method for copy out")
 
-    exit_code, stdout, stderr = move_all_files(files, copy_type, kwargs)
+    exit_code, stdout, stderr = move_all_files(files, copy_type, kwargs=kwargs)
     if exit_code != 0:
         # raise failure
         raise StageOutFailure(stdout)
