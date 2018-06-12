@@ -1,4 +1,4 @@
-# PanDA Pilot - Architecture 2
+# PanDA Pilot 2
 
 ## Contributions
 
