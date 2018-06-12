@@ -571,7 +571,11 @@ class JobData(BaseData):
 
             # First remove the log file from the output file list
             out_files = []
-            for f in self.outfiles:
+            if type(self.outfiles) == str:
+                outfiles = self.outfiles.split(',')
+            else:
+                outfiles = self.outfiles
+            for f in outfiles:
                 if self.logfile not in f:
                     out_files.append(f)
 
