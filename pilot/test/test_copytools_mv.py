@@ -21,6 +21,7 @@ from pilot.util.container import execute
 from pilot.control.job import get_fake_job
 from pilot.info import JobData
 
+
 class TestCopytoolMv(unittest.TestCase):
     """
     Unit tests for mv copytool.
