@@ -104,7 +104,7 @@ class TestCopytoolMv(unittest.TestCase):
         self.fspec = jdata.prepare_infiles(data)
         for f in self.fspec:
             f.workdir = self.tmp_src_dir
-            #f.turl = os.path.join(self.tmp_src_dir, f.lfn)
+            f.turl = os.path.join(self.tmp_src_dir, f.lfn)
 
     def test_copy_in_mv(self):
         _, stdout1, stderr1 = execute(' '.join(['ls', self.tmp_src_dir]))
