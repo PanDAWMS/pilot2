@@ -19,6 +19,7 @@ info components
     configinfo
     dataloader
     extinfo
+    filespec
     infoservice
     jobdata
     jobinfo

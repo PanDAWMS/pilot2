@@ -13,18 +13,23 @@ import Queue
 import os
 import sys
 import time
+import hashlib
+
 from json import dumps
 
 from pilot.info import infosys, JobData
 from pilot.util import https
-from pilot.util.config import config, human2bytes
-from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name
+from pilot.util.config import config
+from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB
+from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, is_virtual_machine
 from pilot.util.proxy import get_distinguished_name
-from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id
+from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
-from pilot.util.monitoring import job_monitor_tasks
+from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
-from pilot.util.node import is_virtual_machine, get_diskspace
+from pilot.util.timing import add_to_pilot_timing, get_getjob_time, get_setup_time, get_stagein_time, get_stageout_time,\
+    get_payload_execution_time, get_initial_setup_time
+
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
 
@@ -102,11 +107,17 @@ def send_state(job, args, state, xml=None):
     :return:
     """
 
-    log = logger.getChild(job.jobid)
-    if state == 'finished':
-        log.info('job %s has finished - sending final server update' % job.jobid)
+    log = get_logger(job.jobid)
+
+    # should in fact the pilot make any server udpates?
+    if not args.update_server:
+        log.info('pilot will not update the server')
+        return True
+
+    if state == 'finished' or state == 'failed':
+        log.info('job %s has %s - sending final server update' % (job.jobid, state))
     else:
-        log.debug('set job state=%s' % state)
+        log.info('job %s has state \'%s\' - sending heartbeat' % (job.jobid, state))
 
     # report the batch system job id, if available
     batchsystem_type, batchsystem_id = get_batchsystem_jobid()
@@ -159,14 +170,46 @@ def send_state(job, args, state, xml=None):
     if xml is not None:
         data['xml'] = xml
 
+    if state == 'finished' or state == 'failed':
+        # collect pilot timing data
+        time_getjob = get_getjob_time(job.jobid)
+        time_initial_setup = get_initial_setup_time(job.jobid)
+        time_setup = get_setup_time(job.jobid)
+        time_total_setup = time_initial_setup + time_setup
+        time_stagein = get_stagein_time(job.jobid)
+        time_payload = get_payload_execution_time(job.jobid)
+        time_stageout = get_stageout_time(job.jobid)
+        log.info('.' * 30)
+        log.info('. Timing measurements:')
+        log.info('. get job = %d s' % time_getjob)
+        log.info('. initial setup = %d s' % time_initial_setup)
+        log.info('. payload setup = %d s' % time_setup)
+        log.info('. total setup = %d s' % time_total_setup)
+        log.info('. stage-in = %d s' % time_stagein)
+        log.info('. payload execution = %d s' % time_payload)
+        log.info('. stage-out = %d s' % time_stageout)
+        log.info('.' * 30)
+
+        data['pilotTiming'] = "%s|%s|%s|%s|%s" % \
+                              (time_getjob, time_stagein, time_payload, time_stageout, time_total_setup)
+
     try:
         # cmd = args.url + ':' + str(args.port) + 'server/panda/updateJob'
         # if https.request(cmd, data=data) is not None:
 
-        if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=config.Pilot.pandaserver),
-                         data=data) is not None:
+        if args.url != '' and args.port != 0:
+            pandaserver = args.url + ':' + str(args.port)
+        else:
+            pandaserver = config.Pilot.pandaserver
 
-            log.info('server updateJob request completed for job %s' % job.jobid)
+        if config.Pilot.pandajob == 'real':
+            if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver),
+                             data=data) is not None:
+
+                log.info('server updateJob request completed for job %s' % job.jobid)
+                return True
+        else:
+            log.info('skipping job update for fake test job')
             return True
     except Exception as e:
         log.warning('while setting job state, Exception caught: %s' % str(e.message))
@@ -192,7 +235,7 @@ def validate(queues, traces, args):
         except Queue.Empty:
             continue
 
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid)
         traces.pilot['nr_jobs'] += 1
 
         # set the environmental variable for the task id
@@ -241,7 +284,10 @@ def create_data_payload(queues, traces, args):
         except Queue.Empty:
             continue
 
-        queues.data_in.put(job)
+        if job.infiles and job.infiles != []:
+            queues.data_in.put(job)
+        else:
+            queues.finished_data_in.put(job)
         queues.payloads.put(job)
 
 
@@ -288,7 +334,7 @@ def get_dispatcher_dictionary(args):
     ## kept for a while as "wrong" example .. to be cleaned soon
     _diskspace = get_disk_space(args.info.infoservice.queuedata)
 
-    _mem, _cpu = collect_workernode_info()
+    _mem, _cpu, _disk = collect_workernode_info()
     _nodename = get_node_name()
 
     data = {
@@ -357,15 +403,9 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
             return False
 
     # is there enough local space to run a job?
-    spaceleft = int(get_diskspace(os.getcwd())) * 1024 ** 2  # B (diskspace is in MB)
-    free_space_limit = human2bytes(config.Pilot.free_space_limit)
-    if spaceleft <= free_space_limit:
-        diagnostics = 'too little space left on local disk to run job: %d B (need > %d B)' %\
-                      (spaceleft, free_space_limit)
-        logger.warning(diagnostics)
+    ec, diagnostics = check_local_space()
+    if ec != 0:
         return False
-    else:
-        logger.info('remaining disk space (%d B) is sufficient to download a job' % spaceleft)
 
     if harvester:
         maximum_getjob_requests = 60  # 1 s apart
@@ -511,17 +551,19 @@ def update_es_dispatcher_data(data):
     return data
 
 
-def get_job_definition_from_file(path):
+def get_job_definition_from_file(path, harvester):
     """
     Get a job definition from a pre-placed file.
     In Harvester mode, also remove any existing job request files since it is no longer needed/wanted.
 
     :param path: path to job definition file.
+    :param harvester: True if Harvester is being used (determined from args.harvester), otherwise False
     :return: job definition dictionary.
     """
 
     # remove any existing Harvester job request files (silent in non-Harvester mode)
-    remove_job_request_file()
+    if harvester:
+        remove_job_request_file()
 
     res = {}
     with open(path, 'r') as jobdatafile:
@@ -571,10 +613,18 @@ def get_job_definition(args):
 
     res = {}
 
-    path = os.path.join(os.environ['PILOT_HOME'], config.Pilot.pandajobdata)
-    if os.path.exists(path):
+    path = os.path.join(os.environ['PILOT_WORK_DIR'], config.Pilot.pandajobdata)
+
+    if not os.path.exists(path):
+        logger.warning('Job definition file does not exist: %s' % path)
+
+    # should we run a norma 'real' job or with a 'fake' job?
+    if config.Pilot.pandajob == 'fake':
+        logger.info('will use a fake PanDA job')
+        res = get_fake_job()
+    elif os.path.exists(path):
         logger.info('will read job definition from file %s' % path)
-        res = get_job_definition_from_file(path)
+        res = get_job_definition_from_file(path, args.harvester)
     else:
         if args.harvester:
             pass  # local job definition file not found (go to sleep)
@@ -582,6 +632,158 @@ def get_job_definition(args):
             logger.info('will download job definition from server')
             res = get_job_definition_from_server(args)
 
+    return res
+
+
+def get_fake_job(input=True):
+    """
+    Return a job definition for internal pilot testing.
+    Note: this function is only used for testing purposes. The job definitions below are ATLAS specific.
+
+    :param input: Boolean, set to False if no input files are wanted
+    :return: job definition (dictionary).
+    """
+
+    res = None
+
+    # create hashes
+    hash = hashlib.md5()
+    hash.update(str(time.time()))
+    log_guid = hash.hexdigest()
+    hash.update(str(time.time()))
+    guid = hash.hexdigest()
+    hash.update(str(time.time()))
+    job_name = hash.hexdigest()
+
+    if config.Pilot.testjobtype == 'production':
+        logger.info('creating fake test production job definition')
+        res = {u'jobsetID': u'NULL',
+               u'logGUID': log_guid,
+               u'cmtConfig': u'x86_64-slc6-gcc48-opt',
+               u'prodDBlocks': u'user.mlassnig:user.mlassnig.pilot.test.single.hits',
+               u'dispatchDBlockTokenForOut': u'NULL,NULL',
+               u'destinationDBlockToken': u'NULL,NULL',
+               u'destinationSE': u'AGLT2_TEST',
+               u'realDatasets': job_name,
+               u'prodUserID': u'no_one',
+               u'GUID': guid,
+               u'realDatasetsIn': u'user.mlassnig:user.mlassnig.pilot.test.single.hits',
+               u'nSent': 0,
+               u'cloud': u'US',
+               u'StatusCode': 0,
+               u'homepackage': u'AtlasProduction/20.1.4.14',
+               u'inFiles': u'HITS.06828093._000096.pool.root.1',
+               u'processingType': u'pilot-ptest',
+               u'ddmEndPointOut': u'UTA_SWT2_DATADISK,UTA_SWT2_DATADISK',
+               u'fsize': u'94834717',
+               u'fileDestinationSE': u'AGLT2_TEST,AGLT2_TEST',
+               u'scopeOut': u'panda',
+               u'minRamCount': 0,
+               u'jobDefinitionID': 7932,
+               u'maxWalltime': u'NULL',
+               u'scopeLog': u'panda',
+               u'transformation': u'Reco_tf.py',
+               u'maxDiskCount': 0,
+               u'coreCount': 1,
+               u'prodDBlockToken': u'NULL',
+               u'transferType': u'NULL',
+               u'destinationDblock': job_name,
+               u'dispatchDBlockToken': u'NULL',
+               u'jobPars': u'--maxEvents=1 --inputHITSFile HITS.06828093._000096.pool.root.1 --outputRDOFile RDO_%s.root' % job_name,
+               u'attemptNr': 0,
+               u'swRelease': u'Atlas-20.1.4',
+               u'nucleus': u'NULL',
+               u'maxCpuCount': 0,
+               u'outFiles': u'RDO_%s.root,%s.job.log.tgz' % (job_name, job_name),
+               u'currentPriority': 1000,
+               u'scopeIn': u'mc15_13TeV',
+               u'PandaID': '0',
+               u'sourceSite': u'NULL',
+               u'dispatchDblock': u'NULL',
+               u'prodSourceLabel': u'ptest',
+               u'checksum': u'ad:5d000974',
+               u'jobName': job_name,
+               u'ddmEndPointIn': u'UTA_SWT2_DATADISK',
+               u'taskID': u'NULL',
+               u'logFile': u'%s.job.log.tgz' % job_name}
+    elif config.Pilot.testjobtype == 'user':
+        logger.info('creating fake test user job definition')
+        res = {u'jobsetID': u'NULL',
+               u'logGUID': log_guid,
+               u'cmtConfig': u'x86_64-slc6-gcc49-opt',
+               u'prodDBlocks': u'data15_13TeV:data15_13TeV.00276336.physics_Main.merge.AOD.r7562_p2521_tid07709524_00',
+               u'dispatchDBlockTokenForOut': u'NULL,NULL',
+               u'destinationDBlockToken': u'NULL,NULL',
+               u'destinationSE': u'ANALY_SWT2_CPB',
+               u'realDatasets': job_name,
+               u'prodUserID': u'noone',
+               u'GUID': guid,
+               u'realDatasetsIn': u'data15_13TeV:data15_13TeV.00276336.physics_Main.merge.AOD.r7562_p2521_tid07709524_00',
+               u'nSent': u'0',
+               u'cloud': u'US',
+               u'StatusCode': 0,
+               u'homepackage': u'AnalysisTransforms-AtlasDerivation_20.7.6.4',
+               u'inFiles': u'AOD.07709524._000050.pool.root.1',
+               u'processingType': u'pilot-ptest',
+               u'ddmEndPointOut': u'SWT2_CPB_SCRATCHDISK,SWT2_CPB_SCRATCHDISK',
+               u'fsize': u'1564780952',
+               u'fileDestinationSE': u'ANALY_SWT2_CPB,ANALY_SWT2_CPB',
+               u'scopeOut': u'user.gangarbt',
+               u'minRamCount': u'0',
+               u'jobDefinitionID': u'9445',
+               u'maxWalltime': u'NULL',
+               u'scopeLog': u'user.gangarbt',
+               u'transformation': u'http://pandaserver.cern.ch:25080/trf/user/runAthena-00-00-11',
+               u'maxDiskCount': u'0',
+               u'coreCount': u'1',
+               u'prodDBlockToken': u'NULL',
+               u'transferType': u'NULL',
+               u'destinationDblock': job_name,
+               u'dispatchDBlockToken': u'NULL',
+               u'jobPars': u'-a sources.20115461.derivation.tgz -r ./ -j "Reco_tf.py '
+                           u'--inputAODFile AOD.07709524._000050.pool.root.1 --outputDAODFile test.pool.root '
+                           u'--reductionConf HIGG3D1" -i "[\'AOD.07709524._000050.pool.root.1\']" -m "[]" -n "[]" --trf'
+                           u' --useLocalIO --accessmode=copy -o '
+                           u'"{\'IROOT\': [(\'DAOD_HIGG3D1.test.pool.root\', \'%s.root\')]}" '
+                           u'--sourceURL https://aipanda012.cern.ch:25443' % (job_name),
+               u'attemptNr': u'0',
+               u'swRelease': u'Atlas-20.7.6',
+               u'nucleus': u'NULL',
+               u'maxCpuCount': u'0',
+               u'outFiles': u'%s.root,%s.job.log.tgz' % (job_name, job_name),
+               u'currentPriority': u'1000',
+               u'scopeIn': u'data15_13TeV',
+               u'PandaID': u'0',
+               u'sourceSite': u'NULL',
+               u'dispatchDblock': u'data15_13TeV:data15_13TeV.00276336.physics_Main.merge.AOD.r7562_p2521_tid07709524_00',
+               u'prodSourceLabel': u'ptest',
+               u'checksum': u'ad:b11f45a7',
+               u'jobName': job_name,
+               u'ddmEndPointIn': u'SWT2_CPB_SCRATCHDISK',
+               u'taskID': u'NULL',
+               u'logFile': u'%s.job.log.tgz' % job_name}
+    else:
+        logger.warning('unknown test job type: %s' % config.Pilot.testjobtype)
+
+    if res:
+        if not input:
+            res['inFiles'] = u'NULL'
+            res['GUID'] = u'NULL'
+            res['scopeIn'] = u'NULL'
+            res['fsize'] = u'NULL'
+            res['realDatasetsIn'] = u'NULL'
+            res['checksum'] = u'NULL'
+
+        if config.Pilot.testtransfertype == "NULL" or config.Pilot.testtransfertype == 'direct':
+            res['transferType'] = config.Pilot.testtransfertype
+        else:
+            logger.warning('unknown test transfer type: %s (ignored)' % config.Pilot.testtransfertype)
+
+        if config.Pilot.testjobcommand == 'sleep':
+            res['transformation'] = 'sleep'
+            res['jobPars'] = '1'
+            res['inFiles'] = ''
+            res['outFiles'] = ''
     return res
 
 
@@ -635,8 +837,12 @@ def retrieve(queues, traces, args):
             args.graceful_stop.set()
             break
 
+        # store time stamp
+        time_pre_getjob = time.time()
+
         # get a job definition from a source (file or server)
         res = get_job_definition(args)
+        logger.info('res = %s' % str(res))
 
         if res is None:
             logger.fatal('fatal error in job download loop - cannot continue')
@@ -651,7 +857,8 @@ def retrieve(queues, traces, args):
                     break
                 time.sleep(1)
         else:
-            if res['StatusCode'] != 0:
+            # it seems the PanDA server returns StatusCode as an int, but the aCT returns it as a string
+            if res['StatusCode'] != '0' and res['StatusCode'] != 0:
                 logger.warning('did not get a job -- sleep 60s and repeat -- status: %s' % res['StatusCode'])
                 for i in xrange(60):
                     if args.graceful_stop.is_set():
@@ -664,18 +871,18 @@ def retrieve(queues, traces, args):
                 # create the job object out of the raw dispatcher job dictionary
                 job = create_job(res, args.queue)
 
+                # write time stamps to pilot timing file
+                add_to_pilot_timing(job.jobid, PILOT_PRE_GETJOB, time_pre_getjob)
+                add_to_pilot_timing(job.jobid, PILOT_POST_GETJOB, time.time())
+
                 # add the job definition to the jobs queue and increase the job counter,
                 # and wait until the job has finished
                 queues.jobs.put(job)
 
                 jobnumber += 1
-                if args.graceful_stop.is_set():
-                    logger.info('graceful stop is currently set')
-                else:
-                    logger.info('graceful stop is currently not set')
                 while not args.graceful_stop.is_set():
                     if job_has_finished(queues):
-                        logger.info('graceful stop has been set')
+                        logger.info('ready for new job')
                         break
                     time.sleep(0.5)
 
@@ -728,21 +935,32 @@ def job_has_finished(queues):
     :return: True is the payload has finished or failed
     """
 
-    jobid = os.environ.get('PandaID')
+    # check if the job has finished
+    try:
+        job = queues.completed_jobs.get(block=True, timeout=1)
+    except Queue.Empty:
+        # logger.info("(job still running)")
+        pass
+    else:
+        log = get_logger(job.jobid)
+        log.info("job %s has completed" % job.jobid)
+        return True
+
+    #jobid = os.environ.get('PandaID')
 
     # is there anything in the finished_jobs queue?
-    finished_queue_snapshot = list(queues.finished_jobs.queue)
-    peek = [obj for obj in finished_queue_snapshot if jobid == obj.jobid]
-    if peek:
-        logger.info("job %s has completed (finished)" % jobid)
-        return True
+    #finished_queue_snapshot = list(queues.finished_jobs.queue)
+    #peek = [obj for obj in finished_queue_snapshot if jobid == obj.jobid]
+    #if peek:
+    #    logger.info("job %s has completed (finished)" % jobid)
+    #    return True
 
     # is there anything in the failed_jobs queue?
-    failed_queue_snapshot = list(queues.failed_jobs.queue)
-    peek = [obj for obj in failed_queue_snapshot if jobid == obj.jobid]
-    if peek:
-        logger.info("job %s has completed (failed)" % jobid)
-        return True
+    #failed_queue_snapshot = list(queues.failed_jobs.queue)
+    #peek = [obj for obj in failed_queue_snapshot if jobid == obj.jobid]
+    #if peek:
+    #    logger.info("job %s has completed (failed)" % jobid)
+    #    return True
 
     return False
 
@@ -795,15 +1013,16 @@ def queue_monitor(queues, traces, args):
             else:
                 send_state(job, args, job.state)
 
-            # we can now stop monitoring this job, so remove it from the monitored_payloads queue
+            # we can now stop monitoring this job, so remove it from the monitored_payloads queue and add it to the
+            # completed_jobs queue which will tell retrieve() that it can download another job
             try:
                 _job = queues.monitored_payloads.get(block=True, timeout=1)
             except Queue.Empty:
                 logger.warning('failed to dequeue job: queue is empty (did job fail before job monitor started?)')
             else:
                 logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
-
-            # now ready for the next job (or quit)
+                # now ready for the next job (or quit)
+                queues.completed_jobs.put(_job)
 
 
 def job_monitor(queues, traces, args):
@@ -820,6 +1039,9 @@ def job_monitor(queues, traces, args):
     # initialize the monitoring time object
     mt = MonitoringTime()
 
+    # peeking time
+    peeking_time = time.time()
+
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
     while not args.graceful_stop.is_set():
@@ -833,8 +1055,9 @@ def job_monitor(queues, traces, args):
             jobs = queues.monitored_payloads.queue
 
             if jobs:
+                peeking_time = time.time()
                 for i in range(len(jobs)):
-                    log = logger.getChild(jobs[i].jobid)
+                    log = get_logger(jobs[i].jobid)
                     log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
                     if jobs[i].state == 'finished' or jobs[i].state == 'failed':
                         log.info('aborting job monitoring since job state=%s' % jobs[i].state)
@@ -847,11 +1070,19 @@ def job_monitor(queues, traces, args):
                         jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
                         queues.failed_payloads.put(jobs[i])
             else:
-                msg = 'no jobs in validated_payloads queue'
+                waiting_time = time.time() - peeking_time
+                msg = 'no jobs in monitored_payloads queue (waiting for %d s)' % waiting_time
+                if waiting_time > 120:
+                    abort = True
+                    msg += ' - aborting'
+                else:
+                    abort = False
                 if logger:
                     logger.warning(msg)
                 else:
                     print msg
+                if abort:
+                    args.graceful_stop.set()
         except PilotException as e:
             msg = 'exception caught: %s' % e
             if logger:

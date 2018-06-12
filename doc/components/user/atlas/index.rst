@@ -7,7 +7,7 @@
     http://www.apache.org/licenses/LICENSE-2.0
 
     Authors:
-     - Paul Nilsson, paul.nilsson@cern.ch, 2017
+     - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 atlas components
 ================
@@ -17,6 +17,8 @@ atlas components
 
     common
     container
+    jobmetrics
+    loopingjob_definitions
     nordugrid
     proxy
     setup

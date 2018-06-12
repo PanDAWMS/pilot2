@@ -18,12 +18,18 @@ import subprocess
 import tarfile
 import time
 
+from contextlib import closing  # for Python 2.6 compatibility - to fix a problem with tarfile
+
 from pilot.api.data import StageInClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
+from pilot.util.auxiliary import get_logger
+from pilot.util.config import config
+from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT
 from pilot.util.container import execute
-from pilot.util.filehandling import find_executable
+from pilot.util.filehandling import find_executable, get_guid, get_local_file_size
+from pilot.util.timing import add_to_pilot_timing
 
 import logging
 
@@ -72,22 +78,34 @@ def prepare_for_container(workdir):
     return get_asetup(asetup=False) + 'lsetup rucio;'
 
 
+def use_container(cmd):
+    """
+    Should the pilot use a container for the stage-in/out?
+
+    :param cmd: middleware command, used to determine if the container should be used or not (string).
+    :return: Boolean.
+    """
+
+    usecontainer = False
+    if config.Container.allow_container == "False":
+        logger.info('container usage is not allowed by pilot config')
+    else:
+        # if the middleware is available locally, do not use container
+        if find_executable(cmd) == "":
+            usecontainer = True
+            logger.info('command %s is not available locally, will attempt to use container' % cmd)
+        else:
+            logger.info('command %s is available locally, no need to use container' % cmd)
+
+    return usecontainer
+
+
 def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
     try:
-        # if the middleware is available locally, do not use container
-        if find_executable(executable[1]) == "":
-            usecontainer = True
-            logger.info('command %s is not available locally, will attempt to use container' % executable[1])
-        else:
-            usecontainer = False
-            logger.info('command %s is available locally, no need to use container' % executable[1])
-
         # for containers, we can not use a list
-        executable = ' '.join(executable)
-
-        # uncomment the following for container testing
-        usecontainer = False
+        usecontainer = use_container(executable[1])
         if usecontainer:
+            executable = ' '.join(executable)
             executable = prepare_for_container(job.workdir) + executable
 
         process = execute(executable, workdir=job.workdir, returnproc=True,
@@ -144,7 +162,10 @@ def _stage_in(args, job):
         :return: True in case of success
     """
 
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
+
+    # write time stamps to pilot timing file
+    add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN, time.time())
 
     try:
         client = StageInClient(job.infosys, logger=log)
@@ -158,7 +179,10 @@ def _stage_in(args, job):
     for e in job.indata:
         log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
 
-    log.info("stagein finished")
+    log.info("stage-in finished")
+
+    # write time stamps to pilot timing file
+    add_to_pilot_timing(job.jobid, PILOT_POST_STAGEIN, time.time())
 
     remain_files = [e for e in job.indata if e.status not in ['remote_io', 'transferred', 'no_transfer']]
 
@@ -353,7 +377,7 @@ def copytool_out(queues, traces, args):
 
 
 def prepare_log(job, logfile, tarball_name):
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
     log.info('preparing log file')
 
     input_files = [e.lfn for e in job.indata]
@@ -365,9 +389,7 @@ def prepare_log(job, logfile, tarball_name):
     user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
     user.remove_redundant_files(job.workdir)
 
-    with tarfile.open(name=os.path.join(job.workdir, logfile.lfn),
-                      mode='w:gz',
-                      dereference=True) as log_tar:
+    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as log_tar:
         for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files) - set(force_exclude)):
             if os.path.exists(os.path.join(job.workdir, _file)):
                 logging.debug('adding to log: %s' % _file)
@@ -381,7 +403,10 @@ def prepare_log(job, logfile, tarball_name):
 
 
 def _stage_out(args, outfile, job):
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
+
+    # write time stamps to pilot timing file
+    add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEOUT, time.time())
 
     log.info('will stage-out: %s' % outfile)
 
@@ -395,14 +420,10 @@ def _stage_out(args, outfile, job):
                   outfile['name']]
 
     try:
-        # if the middleware is available locally, do not use container
-        if find_executable(executable[1]) == "":
-            usecontainer = True
-            logger.info('command %s is not available locally, will attempt to use container' % executable[1])
-        else:
-            usecontainer = False
-            logger.info('command %s is available locally, no need to use container' % executable[1])
-
+        usecontainer = use_container(executable[1])
+        if usecontainer:
+            executable = ' '.join(executable)
+            executable = prepare_for_container(job.workdir) + executable
         process = execute(executable, workdir=job.workdir, returnproc=True, job=job,
                           usecontainer=usecontainer, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=job.workdir)
 
@@ -448,6 +469,9 @@ def _stage_out(args, outfile, job):
     log.debug('stdout:\n%s' % out)
     log.debug('stderr:\n%s' % err)
 
+    # write time stamps to pilot timing file
+    add_to_pilot_timing(job.jobid, PILOT_POST_STAGEOUT, time.time())
+
     # in case of problems, try to identify the error (and set it in the job object)
     if err != "":
         # rucio stage-out error
@@ -479,7 +503,7 @@ def _stage_out_all(job, args):
     :return:
     """
 
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
     outputs = {}
 
     if job.stageout == 'log':
@@ -488,13 +512,31 @@ def _stage_out_all(job, args):
         log.info('will stage-out all output files and log file')
         if job.metadata:
             scopes = dict([e.lfn, e.scope] for e in job.outdata)  # quick hack: to be properly implemented later
+            # extract output files from the job report, in case the trf has created additional (overflow) files
             for f in job.metadata['files']['output']:
-                outputs[f['subFiles'][0]['name']] = {'scope': scopes.get(f['subFiles'][0]['name'], job.scopeout.split(',')[0]),
+                outputs[f['subFiles'][0]['name']] = {'scope': scopes.get(f['subFiles'][0]['name'],
+                                                                         job.scopeout.split(',')[0]),  # [0]? a bug?
                                                      'name': f['subFiles'][0]['name'],
                                                      'guid': f['subFiles'][0]['file_guid'],
                                                      'bytes': f['subFiles'][0]['file_size']}
+        elif job.is_build_job():
+            # scopes = dict([e.lfn, e.scope] for e in job.outdata)  # quick hack: to be properly implemented later
+            for f in job.outdata:  # should be only one output file
+                # is the metadata set?
+                if f.guid == '':
+                    # ok to generate GUID for .lib. file
+                    f.guid = get_guid()
+                    log.info('generated guid for lib file: %s' % f.guid)
+                # is the file size set?
+                if f.filesize == 0:
+                    f.filesize = get_local_file_size(os.path.join(job.workdir, f.lfn))
+                    if f.filesize:
+                        log.info('set file size for %s to %d B' % (f.lfn, f.filesize))
+                outputs[f.lfn] = {'scope': f.scope, 'name': f.lfn, 'guid': f.guid, 'bytes': f.filesize}
+            log.info('outputs=%s' % str(outputs))
         else:
-            log.warning('Job object does not contain a job report (payload failed?) - will only stage-out log file')
+            log.warning('job object does not contain a job report (payload failed?) and is not a build job '
+                        '- will only stage-out log file')
 
     fileinfodict = {}
     failed = False
@@ -508,14 +550,15 @@ def _stage_out_all(job, args):
 
     # proceed with log transfer
     # consider only 1st available log file
-    logfile = job.logdata[0]
-    key = '%s:%s' % (logfile.scope, logfile.lfn)
-    outputs[key] = prepare_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, args.queue))
+    if job.logdata:
+        logfile = job.logdata[0]
+        key = '%s:%s' % (logfile.scope, logfile.lfn)
+        outputs[key] = prepare_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, args.queue))
 
-    status = single_stage_out(args, job, outputs[key], fileinfodict)
-    if not status:
-        failed = True
-        log.warning('log transfer failed')
+        status = single_stage_out(args, job, outputs[key], fileinfodict)
+        if not status:
+            failed = True
+            log.warning('log transfer failed')
 
     job.fileinfo = fileinfodict
     if failed:
@@ -550,7 +593,7 @@ def single_stage_out(args, job, outputs_outfile, fileinfodict):
     """
 
     status = True
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid)
 
     # this doesn't work since scope is added above, but scope is not present in outFiles
     # if outfile not in job['outFiles']:

@@ -30,7 +30,7 @@ class TestUtils(unittest.TestCase):
 
     def test_failed_jobreport(self):
         """
-        Make sure that collect_workernode_info() returns the proper types (float, float).
+        ..
 
         :return: (assertion)
         """
@@ -145,7 +145,7 @@ class TestUtils(unittest.TestCase):
 
     def test_successful_jobreport(self):
         """
-        Make sure that collect_workernode_info() returns the proper types (float, float).
+        ..
 
         :return: (assertion)
         """

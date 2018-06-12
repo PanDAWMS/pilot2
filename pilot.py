@@ -17,15 +17,17 @@ import time
 from os import getcwd, chdir, environ
 from shutil import rmtree
 
-from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS
+from pilot.info import set_info
+from pilot.util.config import config
+from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_T0, PILOT_END_TIME
+from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
+from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
 from pilot.util.information import set_location
-from pilot.info import set_info
-from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
-from pilot.util.config import config
-from pilot.util.harvester import is_harvester_mode
+from pilot.util.workernode import is_virtual_machine
+from pilot.util.timing import add_to_pilot_timing
 
-VERSION = '2018-04-19.001'
+VERSION = '2018-06-12.001'
 
 
 def pilot_version_banner():
@@ -42,6 +44,9 @@ def pilot_version_banner():
     logger.info(version)
     logger.info('*' * len(version))
     logger.info('')
+
+    if is_virtual_machine():
+        logger.info('pilot is running in a VM')
 
 
 def main():
@@ -185,7 +190,7 @@ if __name__ == '__main__':
     # graciously stop pilot process after hard limit
     arg_parser.add_argument('-j',
                             dest='job_label',
-                            default='ptest',
+                            default='user',
                             help='Job prod/source label (default: ptest)')
 
     # pilot version tag; PR or RC
@@ -327,9 +332,15 @@ if __name__ == '__main__':
     else:
         mainworkdir = getcwd()
 
+    environ['PILOT_WORK_DIR'] = args.workdir  # TODO: replace with singleton
     environ['PILOT_HOME'] = mainworkdir  # TODO: replace with singleton
     args.mainworkdir = mainworkdir
     chdir(mainworkdir)
+
+    # store T0 time stamp
+    add_to_pilot_timing('0', PILOT_T0, time.time())
+
+    environ['PILOT_SITENAME'] = args.site  # TODO: replace with singleton
 
     # Set the pilot user
     environ['PILOT_USER'] = args.pilot_user  # TODO: replace with singleton
@@ -354,6 +365,9 @@ if __name__ == '__main__':
     logging.getLogger('').addHandler(console)
 
     trace = main()
+
+    # store final time stamp (cannot be placed later since the mainworkdir is about to be purged)
+    add_to_pilot_timing('0', PILOT_END_TIME, time.time())
 
     # cleanup pilot workdir if created
     if initdir != mainworkdir:
@@ -390,4 +404,5 @@ if __name__ == '__main__':
         exit_code = SUCCESS
 
     logging.shutdown()
+
     sys.exit(exit_code)
