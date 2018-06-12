@@ -95,7 +95,7 @@ def move_all_files(files, copy_type, **kwargs):
         #timeout = get_timeout(fspec.filesize)
         source = fspec.turl
         name = fspec.lfn
-        destination = os.path.join(dst, name)
+        destination = dst  # os.path.join(dst, name)
 
         logger.info("transferring file %s from %s to %s" % (name, source, destination))
 
