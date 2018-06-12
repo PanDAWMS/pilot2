@@ -100,8 +100,11 @@ class TestCopytoolMv(unittest.TestCase):
         # overwrite
         data = {'inFiles': infiles, 'realDatasetsIn': realdatasetsin, 'GUID': guid,
                 'fsize': fsize, 'checksum': checksum, 'scopeIn': scope,
-                'ddmEndPointIn': ddmendpointin, 'workdir': self.tmp_src_dir, 'turl': turl}
+                'ddmEndPointIn': ddmendpointin}
         self.fspec = jdata.prepare_infiles(data)
+        for f in self.fspec:
+            f.workdir = self.tmp_src_dir
+            #f.turl = os.path.join(self.tmp_src_dir, f.lfn)
 
     def test_copy_in_mv(self):
         _, stdout1, stderr1 = execute(' '.join(['ls', self.tmp_src_dir]))
