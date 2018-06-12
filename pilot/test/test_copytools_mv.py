@@ -57,7 +57,7 @@ class TestCopytoolMv(unittest.TestCase):
                 if inFiles == "":
                     inFiles = fname
                 else:
-                    infiles += "," + fname
+                    inFiles += "," + fname
                 # generate random data and write
                 filesize = random.randint(1, self.maxFileSize)
                 if fsize == "":
