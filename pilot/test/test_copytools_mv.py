@@ -98,26 +98,31 @@ class TestCopytoolMv(unittest.TestCase):
                 #self.filelist.append({'name': fname, 'source': self.tmp_src_dir, 'destination': self.tmp_dst_dir})
 
         # overwrite
+        #data = {'inFiles': infiles, 'realDatasetsIn': realdatasetsin, 'GUID': guid,
+        #        'fsize': fsize, 'checksum': checksum, 'scopeIn': scope,
+        #        'ddmEndPointIn': ddmendpointin}
         data = {'inFiles': infiles, 'realDatasetsIn': realdatasetsin, 'GUID': guid,
                 'fsize': fsize, 'checksum': checksum, 'scopeIn': scope,
                 'ddmEndPointIn': ddmendpointin}
-        self.fspec = jdata.prepare_infiles(data)
-        for f in self.fspec:
+        self.indata = jdata.prepare_infiles(data)
+        for f in self.indata:
             f.workdir = self.tmp_src_dir
             f.turl = os.path.join(self.tmp_src_dir, f.lfn)
 
+        self.outdata = []  # jdata.prepare_outfiles(data)
+
     def test_copy_in_mv(self):
         _, stdout1, stderr1 = execute(' '.join(['ls', self.tmp_src_dir]))
-        copy_in(self.fspec)
+        copy_in(self.indata)
         # here check files copied
         self.assertEqual(self.__dirs_content_valid(self.tmp_src_dir, self.tmp_dst_dir, dir1_expected_content='', dir2_expected_content=stdout1), 0)
 
     def test_copy_in_cp(self):
-        copy_in(self.fspec, copy_type='cp')
+        copy_in(self.indata, copy_type='cp')
         self.assertEqual(self.__dirs_content_equal(self.tmp_src_dir, self.tmp_dst_dir), 0)
 
     def test_copy_in_symlink(self):
-        copy_in(self.fspec, copy_type='symlink')
+        copy_in(self.indata, copy_type='symlink')
         # here check files linked
         self.assertEqual(self.__dirs_content_equal(self.tmp_src_dir, self.tmp_dst_dir), 0)
         # check dst files are links
@@ -131,12 +136,12 @@ class TestCopytoolMv(unittest.TestCase):
 
     def test_copy_out_mv(self):
         _, stdout1, stderr1 = execute(' '.join(['ls', self.tmp_src_dir]))
-        copy_out(self.fspec)
+        copy_out(self.outdata)
         # here check files linked
         self.assertEqual(self.__dirs_content_valid(self.tmp_src_dir, self.tmp_dst_dir, dir1_expected_content='', dir2_expected_content=stdout1), 0)
 
     def test_copy_out_cp(self):
-        copy_out(self.fspec, copy_type='cp')
+        copy_out(self.outdata, copy_type='cp')
         self.assertEqual(self.__dirs_content_equal(self.tmp_src_dir, self.tmp_dst_dir), 0)
 
     def test_copy_out_invalid(self):
