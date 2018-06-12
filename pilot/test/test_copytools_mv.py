@@ -130,8 +130,8 @@ class TestCopytoolMv(unittest.TestCase):
         self.assertEqual(stdout, ''.join('l' for i in range(self.numFiles)))
 
     def test_copy_in_invalid(self):
-        self.assertRaises(StageInFailure, copy_in, self.filelist, **{'copy_type': ''})
-        self.assertRaises(StageInFailure, copy_in, self.filelist, **{'copy_type': None})
+        self.assertRaises(StageInFailure, copy_in, self.indata, **{'copy_type': ''})
+        self.assertRaises(StageInFailure, copy_in, self.indata, **{'copy_type': None})
 
     def test_copy_out_mv(self):
         _, stdout1, stderr1 = execute(' '.join(['ls', self.tmp_src_dir]))
@@ -144,9 +144,9 @@ class TestCopytoolMv(unittest.TestCase):
         self.assertEqual(self.__dirs_content_equal(self.tmp_src_dir, self.tmp_dst_dir), 0)
 
     def test_copy_out_invalid(self):
-        self.assertRaises(StageOutFailure, copy_out, self.filelist, **{'copy_type': ''})
-        self.assertRaises(StageOutFailure, copy_out, self.filelist, **{'copy_type': 'symlink'})
-        self.assertRaises(StageOutFailure, copy_out, self.filelist, **{'copy_type': None})
+        self.assertRaises(StageOutFailure, copy_out, self.outdata, **{'copy_type': ''})
+        self.assertRaises(StageOutFailure, copy_out, self.outdata, **{'copy_type': 'symlink'})
+        self.assertRaises(StageOutFailure, copy_out, self.outdata, **{'copy_type': None})
 
     def tearDown(self):
         """ Drop temp directories """
