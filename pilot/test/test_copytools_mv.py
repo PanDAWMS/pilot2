@@ -15,7 +15,7 @@ import os
 import os.path
 
 from pilot.copytool.mv import copy_in, copy_out
-# from pilot.common.exception import StageInFailure, StageOutFailure
+from pilot.common.exception import StageInFailure, StageOutFailure
 from pilot.util.container import execute
 
 from pilot.control.job import get_fake_job
