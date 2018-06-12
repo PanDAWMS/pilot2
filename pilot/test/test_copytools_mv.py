@@ -50,6 +50,7 @@ class TestCopytoolMv(unittest.TestCase):
         checksum = ""
         scope = ""
         ddmEndPointIn = ""
+        turl = ""
         """ Create temp files in source dir """
         for i in range(0, self.numFiles):
                 # generate random name
@@ -86,6 +87,10 @@ class TestCopytoolMv(unittest.TestCase):
                     ddmEndPointIn = ",ep1"
                 _data = [random.randint(0, 255) for x in range(0, filesize)]
                 fname = os.path.join(self.tmp_src_dir, fname)
+                if turl == "":
+                    turl = fname
+                else:
+                    turl = "," + fname
                 new_file = open(fname, "wb")
                 new_file.write(str(_data))
                 new_file.close()
