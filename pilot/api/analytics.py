@@ -8,6 +8,8 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 from .services import Services
+from pilot.common.exception import NotImplemented
+from pilot.util.math import mean, sum_square_dev, sum_dev
 
 import logging
 logger = logging.getLogger(__name__)
@@ -20,11 +22,11 @@ class Analytics(Services):
 
     _fit = None
 
-    def __init__(self, *args):
+    def __init__(self, **kwargs):
         """
         Init function.
 
-        :param args:
+        :param kwargs:
         """
 
         self._fit = None
@@ -41,7 +43,7 @@ class Analytics(Services):
         :return:
         """
 
-        self._fit = Fit()
+        self._fit = Fit(x, y, model)
 
         return self._fit
 
@@ -84,11 +86,72 @@ class Fit(object):
     Low-level fitting class.
     """
 
-    def __init__(self, *args):
+    _model = 'linear'  # fitting model
+    _x = None  # x values
+    _y = None  # y values
+    _xm = None  # x mean
+    _ym = None  # y mean
+    _ss = None  # sum of square deviations
+    _ss2 = None  # sum of deviations
+    _slope = None  # slope
+    _intersect = None  # intersect
+
+    def __init__(self, **kwargs):
         """
         Init function.
 
-        :param args:
+        :param kwargs:
+        :raises PilotException: NotImplemented for unknown fitting model
         """
 
-        pass
+        # extract parameters
+        self._model = kwargs.get('model', 'linear')
+        self._x = kwargs.get('x', None)
+        self._y = kwargs.get('y', None)
+
+        # base calculations
+        if self._model == 'linear':
+            _ss = sum_square_dev(self._x)
+            _ss2 = sum_dev(x, self._y)
+
+            self._slope = self.slope()
+            self._xm = mean(self._x)
+            self._ym = mean(self._y)
+            self._intersect = intersect()
+        else:
+            raise NotImplemented("\'%s\' model is not implemented" % self._model)
+
+    def fit(self):
+        """
+        Return fitting object.
+
+        :return: fitting object.
+        """
+
+        return self
+
+    def slope(self):
+        """
+
+        :return:
+        """
+
+        if self._ss2 and self._ss and self._ss != 0:
+            slope = self._ss2 / float(self._ss)
+        else:
+            slope = None
+
+        return slope
+
+    def intersect(self):
+        """
+
+        :return:
+        """
+
+        if self._ym and self._slope and self._xm:
+            intersect = self._ym - self._slope * self._xm
+        else:
+            intersect = None
+
+        return intersect
