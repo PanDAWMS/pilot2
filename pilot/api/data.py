@@ -8,8 +8,8 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
+# - Alexey Anisenkov, anisyonk@cern.ch, 2018
 
-# refactored by Alexey Anisenkov
 import logging
 
 from pilot.info import infosys
