@@ -150,7 +150,7 @@ class Fit(object):
             print 'ss2=', self._ss2
 
             self.set_slope()
-            print 'slope=', self._fit.slope()
+            print 'slope=', self.slope()
 
             self._xm = mean(self._x)
             print 'xm=', self._xm
