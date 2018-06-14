@@ -94,7 +94,7 @@ class Analytics(Services):
         :return: chi2 (float).
         """
 
-        intersect = None
+        x2 = None
 
         if self._fit:
             x2 = self._fit.chi2()
