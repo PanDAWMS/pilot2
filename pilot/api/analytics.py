@@ -101,7 +101,7 @@ class Analytics(Services):
         else:
             raise NotDefined('Fit has not been defined')
 
-        return intersect
+        return x2
 
 
 class Fit(object):
