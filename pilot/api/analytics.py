@@ -64,7 +64,7 @@ class Analytics(Services):
         # ..
         if self._fit:
             pass
-        else
+        else:
             raise NotDefined('Fit has not been defined')
 
         return chi2
@@ -81,7 +81,7 @@ class Analytics(Services):
 
         if self._fit:
             slope = self._fit.slope
-        else
+        else:
             raise NotDefined('Fit has not been defined')
 
         return slope
@@ -98,7 +98,7 @@ class Analytics(Services):
 
         if self._fit:
             slope = self._fit.intersect
-        else
+        else:
             raise NotDefined('Fit has not been defined')
 
         return intersect
