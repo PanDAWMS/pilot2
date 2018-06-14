@@ -8,7 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 from .services import Services
-from pilot.common.exception import NotImplemented
+from pilot.common.exception import NotImplemented, NotDefined
 from pilot.util.math import mean, sum_square_dev, sum_dev
 
 import logging
@@ -43,7 +43,10 @@ class Analytics(Services):
         :return:
         """
 
-        self._fit = Fit(x, y, model)
+        try:
+            self._fit = Fit(x=x, y=y, model=model)
+        except Exception as e:
+            raise e
 
         return self._fit
 
@@ -51,34 +54,54 @@ class Analytics(Services):
         """
         Return the Chi2 of the fit.
 
+        :raises NotDefined: exception thrown if fit is not defined.
         :return: chi2 (float).
         """
 
+        chi2 = None
+
         # calculate Chi2
         # ..
-        return 0.0
+        if self._fit:
+            pass
+        else
+            raise NotDefined('Fit has not been defined')
+
+        return chi2
 
     def slope(self):
         """
-        Calculate the slope of a linear fit.
+        Return the slope of a linear fit.
 
+        :raises NotDefined: exception thrown if fit is not defined.
         :return: slope (float).
         """
 
-        # calculate slope
-        # ..
-        return 0.0
+        slope = None
+
+        if self._fit:
+            slope = self._fit.slope
+        else
+            raise NotDefined('Fit has not been defined')
+
+        return slope
 
     def intersect(self):
         """
-        Calculate the intersect of a linear fit.
+        Return the intersect of a linear fit.
 
+        :raises NotDefined: exception thrown if fit is not defined.
         :return: intersect (float).
         """
 
-        # calculate slope
-        # ..
-        return 0.0
+        intersect = None
+
+        if self._fit:
+            slope = self._fit.intersect
+        else
+            raise NotDefined('Fit has not been defined')
+
+        return intersect
 
 
 class Fit(object):
@@ -132,8 +155,9 @@ class Fit(object):
 
     def slope(self):
         """
+        Calculate the slope of the linear fit.
 
-        :return:
+        :return: slope (float).
         """
 
         if self._ss2 and self._ss and self._ss != 0:
@@ -145,8 +169,9 @@ class Fit(object):
 
     def intersect(self):
         """
+        Calculate the intersect of the linear fit.
 
-        :return:
+        :return: intersect (float).
         """
 
         if self._ym and self._slope and self._xm:
