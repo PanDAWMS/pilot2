@@ -9,7 +9,7 @@
 
 from .services import Services
 from pilot.common.exception import NotImplemented, NotDefined, NotSameLength
-from pilot.util.math import mean, sum_square_dev, sum_dev
+from pilot.util.math import mean, sum_square_dev, sum_dev, chi2
 
 import logging
 logger = logging.getLogger(__name__)
@@ -36,6 +36,7 @@ class Analytics(Services):
     def fit(self, x, y, model='linear'):
         """
         Fitting function.
+        For a linear model: y(x) = slope * x + intersect
 
         :param x: list of input data (list of floats or ints).
         :param y: list of input data (list of floats or ints).
@@ -61,12 +62,12 @@ class Analytics(Services):
 
         chi2 = None
 
-        raise NotImplemented('Chi2 function has not been implemented yet')
-
-        # calculate Chi2
-        # ..
+        # calculate chi2
         if self._fit:
-            pass
+            x_observed = self._fit.x
+            y_observed = self._fit.y
+            for x in self._fit.x:
+                pass
         else:
             raise NotDefined('Fit has not been defined')
 
@@ -74,7 +75,7 @@ class Analytics(Services):
 
     def slope(self):
         """
-        Return the slope of a linear fit.
+        Return the slope of a linear fit, y(x) = slope * x + intersect.
 
         :raises NotDefined: exception thrown if fit is not defined.
         :return: slope (float).
@@ -91,7 +92,7 @@ class Analytics(Services):
 
     def intersect(self):
         """
-        Return the intersect of a linear fit.
+        Return the intersect of a linear fit, y(x) = slope * x + intersect.
 
         :raises NotDefined: exception thrown if fit is not defined.
         :return: intersect (float).
@@ -158,6 +159,36 @@ class Fit(object):
         """
 
         return self
+
+    def chi2(self):
+        """
+        Calculate the chi2 value.
+
+        :return: chi2 (float).
+        """
+
+        x2 = None
+
+        y_observed = self._y
+        y_expected = []
+        for x in self._x:
+            y_expected.append(self.value(x))
+
+        if y_observed and y_observed != [] and y_expected and y_expected != []:
+            x2 = chi2(y_observed, y_expected)
+        else:
+            raise NotDefined('could not calculate chi2 sum')
+
+        return x2
+
+    def value(self, t):
+        """
+        Return the value y(x=t) of a linear fit y(x) = slope * x + intersect.
+
+        :return: intersect (float).
+        """
+
+        return self._slope * t + self._intersect
 
     def slope(self):
         """
