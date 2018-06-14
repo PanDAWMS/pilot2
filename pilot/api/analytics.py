@@ -139,29 +139,15 @@ class Fit(object):
         if len(self._x) != len(self._y):
             raise NotSameLength('input data (lists) have different lengths')
 
-        print 'x=', self._x
-        print 'y=', self._y
         # base calculations
         if self._model == 'linear':
             self._ss = sum_square_dev(self._x)
-            print 'ss=', self._ss
-
             self._ss2 = sum_dev(self._x, self._y)
-            print 'ss2=', self._ss2
-
             self.set_slope()
-            print 'slope=', self.slope()
-
             self._xm = mean(self._x)
-            print 'xm=', self._xm
-
             self._ym = mean(self._y)
-            print 'ym=', self._ym
             self.set_intersect()
-            print 'intersect=', self.intersect()
-
             self.set_chi2()
-            print 'chi2=', self.chi2()
         else:
             raise NotImplemented("\'%s\' model is not implemented" % self._model)
 
