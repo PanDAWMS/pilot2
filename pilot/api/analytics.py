@@ -125,13 +125,16 @@ class Fit(object):
         Init function.
 
         :param kwargs:
-        :raises PilotException: NotImplemented for unknown fitting model
+        :raises PilotException: NotImplemented for unknown fitting model, NotDefined if input data not defined.
         """
 
         # extract parameters
         self._model = kwargs.get('model', 'linear')
         self._x = kwargs.get('x', None)
         self._y = kwargs.get('y', None)
+
+        if not self._x or not self._y:
+            raise NotDefined('input data not defined')
 
         if len(self._x) != len(self._y):
             raise NotSameLength('input data (lists) have different lengths')
