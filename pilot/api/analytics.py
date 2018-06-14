@@ -8,7 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 from .services import Services
-from pilot.common.exception import NotImplemented, NotDefined, NotSameLength
+from pilot.common.exception import NotImplemented, NotDefined, NotSameLength, UnknownException
 from pilot.util.math import mean, sum_square_dev, sum_dev, chi2
 
 import logging
@@ -41,14 +41,14 @@ class Analytics(Services):
         :param x: list of input data (list of floats or ints).
         :param y: list of input data (list of floats or ints).
         :param model: model name (string).
+        :raises UnknownException: in case Fit() fails.
         :return:
         """
 
         try:
             self._fit = Fit(x=x, y=y, model=model)
         except Exception as e:
-            self._fit = None
-            raise e
+            raise UnknownException(e)
 
         return self._fit
 
@@ -164,6 +164,8 @@ class Fit(object):
             print 'chi2=', self.chi2()
         else:
             raise NotImplemented("\'%s\' model is not implemented" % self._model)
+
+        print 'OK'
 
     def fit(self):
         """
