@@ -27,7 +27,7 @@ def mean(data):
         raise ValueError('mean requires at least one data point')
 
     # return sum(data)/n # in Python 2 use sum(data)/float(n)
-    return sum(data)/float(n)
+    return sum(data) / float(n)
 
 
 def sum_square_dev(data):

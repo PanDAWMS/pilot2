@@ -97,7 +97,7 @@ class Analytics(Services):
         intersect = None
 
         if self._fit:
-            slope = self._fit.intersect
+            intersect = self._fit.intersect
         else:
             raise NotDefined('Fit has not been defined')
 
@@ -134,13 +134,13 @@ class Fit(object):
 
         # base calculations
         if self._model == 'linear':
-            _ss = sum_square_dev(self._x)
-            _ss2 = sum_dev(x, self._y)
+            self._ss = sum_square_dev(self._x)
+            self._ss2 = sum_dev(self._x, self._y)
 
             self._slope = self.slope()
             self._xm = mean(self._x)
             self._ym = mean(self._y)
-            self._intersect = intersect()
+            self._intersect = self.intersect()
         else:
             raise NotImplemented("\'%s\' model is not implemented" % self._model)
 
