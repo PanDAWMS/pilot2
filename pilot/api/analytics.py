@@ -158,7 +158,10 @@ class Fit(object):
             self._ym = mean(self._y)
             print 'ym=', self._ym
             self.set_intersect()
+            print 'intersect=', self.intersect()
+
             self.set_chi2()
+            print 'chi2=', self.chi2()
         else:
             raise NotImplemented("\'%s\' model is not implemented" % self._model)
 
