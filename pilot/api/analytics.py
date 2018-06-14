@@ -139,10 +139,15 @@ class Fit(object):
         if len(self._x) != len(self._y):
             raise NotSameLength('input data (lists) have different lengths')
 
+        print 'x=', self._x
+        print 'y=', self._y
         # base calculations
         if self._model == 'linear':
             self._ss = sum_square_dev(self._x)
+            print 'ss=', self._ss
+
             self._ss2 = sum_dev(self._x, self._y)
+            print 'ss=2', self._ss2
 
             self.set_slope()
             self._xm = mean(self._x)
