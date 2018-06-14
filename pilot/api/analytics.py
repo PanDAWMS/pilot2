@@ -147,11 +147,16 @@ class Fit(object):
             print 'ss=', self._ss
 
             self._ss2 = sum_dev(self._x, self._y)
-            print 'ss=2', self._ss2
+            print 'ss2=', self._ss2
 
             self.set_slope()
+            print 'slope=', self._fit.slope()
+
             self._xm = mean(self._x)
+            print 'xm=', self._xm
+
             self._ym = mean(self._y)
+            print 'ym=', self._ym
             self.set_intersect()
             self.set_chi2()
         else:
