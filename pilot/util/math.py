@@ -58,3 +58,15 @@ def sum_dev(x, y):
     c2 = mean(y)
 
     return sum((_x - c1) * (_y - c2) for _x, _y in zip(x, y))
+
+
+def chi2(observed, expected):
+    """
+    Return the chi2 sum of the provided observed and expected values.
+
+    :param observed: list of floats.
+    :param expected: list of floats.
+    :return: chi2 (float).
+    """
+
+    return sum((_o - _e) ** 2 / _e for _o, _e in zip(observed, expected))
