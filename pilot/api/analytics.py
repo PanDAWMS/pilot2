@@ -63,7 +63,7 @@ class Analytics(Services):
         slope = None
 
         if self._fit:
-            slope = self._fit._slope
+            slope = self._fit.slope()
         else:
             raise NotDefined('Fit has not been defined')
 
@@ -80,7 +80,7 @@ class Analytics(Services):
         intersect = None
 
         if self._fit:
-            intersect = self._fit._intersect
+            intersect = self._fit.intersect()
         else:
             raise NotDefined('Fit has not been defined')
 
@@ -97,7 +97,7 @@ class Analytics(Services):
         x2 = None
 
         if self._fit:
-            x2 = self._fit._chi2
+            x2 = self._fit.chi2()
         else:
             raise NotDefined('Fit has not been defined')
 
@@ -144,11 +144,11 @@ class Fit(object):
             self._ss = sum_square_dev(self._x)
             self._ss2 = sum_dev(self._x, self._y)
 
-            self._slope = self.slope()
+            self.set_slope()
             self._xm = mean(self._x)
             self._ym = mean(self._y)
-            self._intersect = self.intersect()
-            self._chi2 = self.chi2()
+            self.set_intersect()
+            self.set_chi2()
         else:
             raise NotImplemented("\'%s\' model is not implemented" % self._model)
 
@@ -161,11 +161,20 @@ class Fit(object):
 
         return self
 
-    def chi2(self):
+    def value(self, t):
         """
-        Calculate the chi2 value.
+        Return the value y(x=t) of a linear fit y(x) = slope * x + intersect.
 
-        :return: chi2 (float).
+        :return: intersect (float).
+        """
+
+        return self._slope * t + self._intersect
+
+    def set_chi2(self):
+        """
+        Calculate and set the chi2 value.
+
+        :return:
         """
 
         _chi2 = None
@@ -176,45 +185,57 @@ class Fit(object):
             y_expected.append(self.value(x))
 
         if y_observed and y_observed != [] and y_expected and y_expected != []:
-            _chi2 = chi2(y_observed, y_expected)
+            self._chi2 = chi2(y_observed, y_expected)
         else:
-            _chi2 = None
+            self._chi2 = None
 
-        return _chi2
-
-    def value(self, t):
+    def chi2(self):
         """
-        Return the value y(x=t) of a linear fit y(x) = slope * x + intersect.
+        Return the chi2 value.
 
-        :return: intersect (float).
+        :return: chi2 (float).
         """
 
-        return self._slope * t + self._intersect
+        return self._chi2
+
+    def set_slope(self):
+        """
+        Calculate and set the slope of the linear fit.
+
+        :return:
+        """
+
+        if self._ss2 and self._ss and self._ss != 0:
+            self._slope = self._ss2 / float(self._ss)
+        else:
+            self._slope = None
 
     def slope(self):
         """
-        Calculate the slope of the linear fit.
+        Return the slope value.
 
         :return: slope (float).
         """
 
-        if self._ss2 and self._ss and self._ss != 0:
-            _slope = self._ss2 / float(self._ss)
-        else:
-            _slope = None
+        return self._slope
 
-        return _slope
+    def set_intersect(self):
+        """
+        Calculate and set the intersect of the linear fit.
+
+        :return:
+        """
+
+        if self._ym and self._slope and self._xm:
+            self._intersect = self._ym - self._slope * self._xm
+        else:
+            self._intersect = None
 
     def intersect(self):
         """
-        Calculate the intersect of the linear fit.
+        Return the intersect value.
 
         :return: intersect (float).
         """
 
-        if self._ym and self._slope and self._xm:
-            _intersect = self._ym - self._slope * self._xm
-        else:
-            _intersect = None
-
-        return _intersect
+        return self._intersect
