@@ -165,7 +165,7 @@ class Fit(object):
         :return: chi2 (float).
         """
 
-        x2 = None
+        _chi2 = None
 
         y_observed = self._y
         y_expected = []
@@ -173,11 +173,11 @@ class Fit(object):
             y_expected.append(self.value(x))
 
         if y_observed and y_observed != [] and y_expected and y_expected != []:
-            x2 = chi2(y_observed, y_expected)
+            _chi2 = chi2(y_observed, y_expected)
         else:
-            raise NotDefined('could not calculate chi2 sum')
+            _chi2 = None
 
-        return x2
+        return _chi2
 
     def value(self, t):
         """
@@ -196,11 +196,11 @@ class Fit(object):
         """
 
         if self._ss2 and self._ss and self._ss != 0:
-            slope = self._ss2 / float(self._ss)
+            _slope = self._ss2 / float(self._ss)
         else:
-            slope = None
+            _slope = None
 
-        return slope
+        return _slope
 
     def intersect(self):
         """
@@ -210,8 +210,8 @@ class Fit(object):
         """
 
         if self._ym and self._slope and self._xm:
-            intersect = self._ym - self._slope * self._xm
+            _intersect = self._ym - self._slope * self._xm
         else:
-            intersect = None
+            _intersect = None
 
-        return intersect
+        return _intersect
