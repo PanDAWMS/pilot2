@@ -69,4 +69,6 @@ def chi2(observed, expected):
     :return: chi2 (float).
     """
 
+    print observed
+    print expected
     return sum((_o - _e) ** 2 / _e for _o, _e in zip(observed, expected))
