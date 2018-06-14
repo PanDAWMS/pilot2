@@ -68,7 +68,7 @@ class PilotException(Exception):
 
 class NotImplemented(PilotException):
     """
-    NotImplemented
+    Not implemented exception.
     """
     def __init__(self, *args, **kwargs):
         super(NotImplemented, self).__init__(args, kwargs)
@@ -213,6 +213,16 @@ class TrfDownloadFailure(PilotException):
     def __init__(self, *args, **kwargs):
         super(TrfDownloadFailure, self).__init__(args, kwargs)
         self._errorCode = errors.TRFDOWNLOADFAILURE
+        self._message = errors.get_error_message(self._errorCode)
+
+
+class NotDefined(PilotException):
+    """
+    Not defined exception.
+    """
+    def __init__(self, *args, **kwargs):
+        super(NotImplemented, self).__init__(args, kwargs)
+        self._errorCode = errors.NOTDEFINED
         self._message = errors.get_error_message(self._errorCode)
 
 
