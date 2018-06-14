@@ -52,27 +52,6 @@ class Analytics(Services):
 
         return self._fit
 
-    def chi2(self):
-        """
-        Return the Chi2 of the fit.
-
-        :raises NotDefined: exception thrown if fit is not defined.
-        :return: chi2 (float).
-        """
-
-        chi2 = None
-
-        # calculate chi2
-        if self._fit:
-            x_observed = self._fit.x
-            y_observed = self._fit.y
-            for x in self._fit.x:
-                pass
-        else:
-            raise NotDefined('Fit has not been defined')
-
-        return chi2
-
     def slope(self):
         """
         Return the slope of a linear fit, y(x) = slope * x + intersect.
@@ -107,6 +86,23 @@ class Analytics(Services):
 
         return intersect
 
+    def chi2(self):
+        """
+        Return the chi2 of the fit.
+
+        :raises NotDefined: exception thrown if fit is not defined.
+        :return: chi2 (float).
+        """
+
+        intersect = None
+
+        if self._fit:
+            x2 = self._fit.chi2()
+        else:
+            raise NotDefined('Fit has not been defined')
+
+        return intersect
+
 
 class Fit(object):
     """
@@ -122,6 +118,7 @@ class Fit(object):
     _ss2 = None  # sum of deviations
     _slope = None  # slope
     _intersect = None  # intersect
+    _chi2 = None  # chi2
 
     def __init__(self, **kwargs):
         """
@@ -148,6 +145,7 @@ class Fit(object):
             self._xm = mean(self._x)
             self._ym = mean(self._y)
             self._intersect = self.intersect()
+            self._chi2 = self.chi2()
         else:
             raise NotImplemented("\'%s\' model is not implemented" % self._model)
 
