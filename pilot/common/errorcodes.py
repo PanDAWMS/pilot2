@@ -53,6 +53,7 @@ class ErrorCodes:
     SINGULARITYBINDPOINTFAILURE = 1308
     SINGULARITYIMAGEMOUNTFAILURE = 1309
     PAYLOADEXECUTIONEXCEPTION = 1310
+    NOTDEFINED = 1311
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -85,7 +86,8 @@ class ErrorCodes:
         SINGULARITYNOLOOPDEVICES: "Singularity: No more available loop devices",
         SINGULARITYBINDPOINTFAILURE: "Singularity: Not mounting requested bind point",
         SINGULARITYIMAGEMOUNTFAILURE: "Singularity: Failed to mount image",
-        PAYLOADEXECUTIONEXCEPTION: "Exception caught during payload execution"
+        PAYLOADEXECUTIONEXCEPTION: "Exception caught during payload execution",
+        NOTDEFINED: "Not defined"
     }
 
     def get_error_message(self, errorcode):
