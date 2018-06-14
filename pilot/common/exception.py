@@ -225,6 +225,7 @@ class NotDefined(PilotException):
         self._errorCode = errors.NOTDEFINED
         self._message = errors.get_error_message(self._errorCode)
 
+
 class NotSameLength(PilotException):
     """
     Not same length exception.
