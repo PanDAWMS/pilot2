@@ -97,7 +97,7 @@ class Analytics(Services):
         x2 = None
 
         if self._fit:
-            x2 = self._fit.chi2()
+            x2 = self._fit.chi2
         else:
             raise NotDefined('Fit has not been defined')
 
