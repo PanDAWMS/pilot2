@@ -221,8 +221,17 @@ class NotDefined(PilotException):
     Not defined exception.
     """
     def __init__(self, *args, **kwargs):
-        super(NotImplemented, self).__init__(args, kwargs)
+        super(NotDefined, self).__init__(args, kwargs)
         self._errorCode = errors.NOTDEFINED
+        self._message = errors.get_error_message(self._errorCode)
+
+class NotSameLength(PilotException):
+    """
+    Not same length exception.
+    """
+    def __init__(self, *args, **kwargs):
+        super(NotSameLength, self).__init__(args, kwargs)
+        self._errorCode = errors.NOTSAMELENGTH
         self._message = errors.get_error_message(self._errorCode)
 
 

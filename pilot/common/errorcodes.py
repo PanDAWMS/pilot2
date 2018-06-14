@@ -54,6 +54,7 @@ class ErrorCodes:
     SINGULARITYIMAGEMOUNTFAILURE = 1309
     PAYLOADEXECUTIONEXCEPTION = 1310
     NOTDEFINED = 1311
+    NOTSAMELENGTH = 1312
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -87,7 +88,8 @@ class ErrorCodes:
         SINGULARITYBINDPOINTFAILURE: "Singularity: Not mounting requested bind point",
         SINGULARITYIMAGEMOUNTFAILURE: "Singularity: Failed to mount image",
         PAYLOADEXECUTIONEXCEPTION: "Exception caught during payload execution",
-        NOTDEFINED: "Not defined"
+        NOTDEFINED: "Not defined",
+        NOTSAMELENGTH: "Not same length"
     }
 
     def get_error_message(self, errorcode):

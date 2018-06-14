@@ -8,7 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 from .services import Services
-from pilot.common.exception import NotImplemented, NotDefined
+from pilot.common.exception import NotImplemented, NotDefined, NotSameLength
 from pilot.util.math import mean, sum_square_dev, sum_dev
 
 import logging
@@ -134,6 +134,9 @@ class Fit(object):
         self._model = kwargs.get('model', 'linear')
         self._x = kwargs.get('x', None)
         self._y = kwargs.get('y', None)
+
+        if len(self._x) != len(self._y):
+            raise NotSameLength('input data (lists) have different lengths')
 
         # base calculations
         if self._model == 'linear':
