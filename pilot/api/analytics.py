@@ -46,6 +46,7 @@ class Analytics(Services):
         try:
             self._fit = Fit(x=x, y=y, model=model)
         except Exception as e:
+            self._fit = None
             raise e
 
         return self._fit
@@ -59,6 +60,8 @@ class Analytics(Services):
         """
 
         chi2 = None
+
+        raise NotImplemented('Chi2 function has not been implemented yet')
 
         # calculate Chi2
         # ..
