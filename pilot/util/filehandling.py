@@ -490,6 +490,9 @@ def _define_tabledict_keys(header, fields, separator):
     :return: tabledict (dictionary), keylist (ordered list with dictionary key names).
     """
 
+    tabledict = {}
+    keylist = []
+
     if not header:
         # get the dictionary keys from the header of the file
         for key in fields:
