@@ -8,6 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 import unittest
+import os
 
 from pilot.api import analytics
 
@@ -57,6 +58,8 @@ class TestAnalytics(unittest.TestCase):
         """
 
         filename = 'pilot/test/resource/memory_monitor_output.txt'
+        self.assertEqual(os.path.exists(filename), True)
+
         table = self.client.get_table(filename)
 
         self.assertEqual(type(table), dict)
