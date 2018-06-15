@@ -12,7 +12,7 @@ import unittest
 from pilot.api import analytics
 
 
-class TestAnaytics(unittest.TestCase):
+class TestAnalytics(unittest.TestCase):
     """
     Unit tests for the Analytics package.
     """
@@ -27,6 +27,8 @@ class TestAnaytics(unittest.TestCase):
 
         :return: (assertion).
         """
+
+        #self.assertIsInstance(self.client, analytics.Analytics())
 
         x = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         y = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
