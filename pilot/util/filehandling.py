@@ -458,7 +458,7 @@ def get_table_from_file(filename, header=None, separator="\t", convert_to_float=
             if firstline:
                 firstline = False
                 tabledict, keylist = _define_tabledict_keys(header, fields, separator)
-                if header:
+                if not header:
                     continue
 
             # from now on, fill the dictionary fields with the input data
