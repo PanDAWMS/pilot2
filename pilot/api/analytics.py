@@ -104,6 +104,18 @@ class Analytics(Services):
 
         return x2
 
+    def get_table(self, filename, header=None, separator="\t", convert_to_float=True):
+        """
+
+        :param filename: full path to input file (string).
+        :param header: header string.
+        :param separator: separator character (char).
+        :param convert_to_float: boolean, if True, all values will be converted to floats.
+        :return: dictionary.
+        """
+
+        return get_table_from_file(filename, header=header, separator=separator, convert_to_float=convert_to_float)
+
 
 class Fit(object):
     """
