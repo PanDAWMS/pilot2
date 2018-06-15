@@ -176,8 +176,6 @@ class Fit(object):
         :return:
         """
 
-        _chi2 = None
-
         y_observed = self._y
         y_expected = []
         i = 0
