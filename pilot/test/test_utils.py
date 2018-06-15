@@ -63,3 +63,7 @@ class TestUtils(unittest.TestCase):
         diskspace = get_disk_space(infosys.queuedata)  ## FIX ME LATER
 
         self.assertEqual(type(diskspace), int)
+
+
+if __name__ == '__main__':
+    unittest.main()
