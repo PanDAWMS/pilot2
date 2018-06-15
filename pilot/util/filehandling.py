@@ -445,6 +445,7 @@ def parse_table_from_file(filename, header=None, separator="\t", convert_to_floa
     """
 
     tabledict = {}
+    keylist = []  # ordered list of dictionary key names
 
     try:
         f = open_file(filename, 'r')
@@ -452,28 +453,12 @@ def parse_table_from_file(filename, header=None, separator="\t", convert_to_floa
         logger.warning("failed to open file: %s, %s" % (filename, e))
     else:
         firstline = True
-        keylist = []  # ordered list of key names
         for line in f:
             fields = line.split(separator)
             if firstline:
                 firstline = False
-                if not header:
-                    # get the dictionary keys from the header of the file
-                    for key in fields:
-                        # first line defines the header, whose elements will be used as dictionary keys
-                        if key == '': continue
-                        if key.endswith('\n'): key = key[:-1]
-                        tabledict[key] = []
-                        keylist.append(key)
-                    continue
-                else:
-                    # get the dictionary keys from the provided header
-                    keys = header.split(separator)
-                    for key in keys:
-                        if key == '': continue
-                        if key.endswith('\n'): key = key[:-1]
-                        tabledict[key] = []
-                        keylist.append(key)
+                tabledict, keylist = _define_tabledict_keys(header, fields, separator)
+
             # from now on, fill the dictionary fields with the input data
             i = 0
             print fields
@@ -492,3 +477,39 @@ def parse_table_from_file(filename, header=None, separator="\t", convert_to_floa
         f.close()
 
     return tabledict
+
+
+def _define_tabledict_keys(header, fields, separator):
+    """
+    Define the keys for the tabledict dictionary.
+    Note: this function is only used by parse_table_from_file().
+
+    :param header: header string.
+    :param fields: header content string.
+    :param separator: separator character (char).
+    :return: tabledict (dictionary), keylist (ordered list with dictionary key names).
+    """
+
+    if not header:
+        # get the dictionary keys from the header of the file
+        for key in fields:
+            # first line defines the header, whose elements will be used as dictionary keys
+            if key == '':
+                continue
+            if key.endswith('\n'):
+                key = key[:-1]
+            tabledict[key] = []
+            keylist.append(key)
+        continue
+    else:
+        # get the dictionary keys from the provided header
+        keys = header.split(separator)
+        for key in keys:
+            if key == '':
+                continue
+            if key.endswith('\n'):
+                key = key[:-1]
+            tabledict[key] = []
+            keylist.append(key)
+
+    return tabledict, keylist
