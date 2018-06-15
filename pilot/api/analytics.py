@@ -151,8 +151,6 @@ class Fit(object):
         else:
             raise NotImplemented("\'%s\' model is not implemented" % self._model)
 
-        print 'OK'
-
     def fit(self):
         """
         Return fitting object.
