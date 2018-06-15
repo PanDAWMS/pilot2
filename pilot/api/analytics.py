@@ -9,6 +9,7 @@
 
 from .services import Services
 from pilot.common.exception import NotImplemented, NotDefined, NotSameLength, UnknownException
+from pilot.util.filehandling import get_table_from_file
 from pilot.util.math import mean, sum_square_dev, sum_dev, chi2
 
 import logging

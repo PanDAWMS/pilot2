@@ -424,7 +424,7 @@ def get_guid():
     return str(_guid).upper()
 
 
-def parse_table_from_file(filename, header=None, separator="\t", convert_to_float=True):
+def get_table_from_file(filename, header=None, separator="\t", convert_to_float=True):
     """
     Extract a table of data from a txt file.
     E.g.
