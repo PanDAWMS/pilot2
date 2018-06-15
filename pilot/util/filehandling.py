@@ -463,7 +463,6 @@ def parse_table_from_file(filename, header=None, separator="\t", convert_to_floa
 
             # from now on, fill the dictionary fields with the input data
             i = 0
-            print fields
             for field in fields:
                 # get the corresponding dictionary key from the keylist
                 key = keylist[i]
