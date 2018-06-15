@@ -422,3 +422,73 @@ def get_guid():
 
     _guid = uuid.uuid4()
     return str(_guid).upper()
+
+
+def parse_table_from_file(filename, header=None, separator="\t", convert_to_float=True):
+    """
+    Extract a table of data from a txt file.
+    E.g.
+    header="Time VMEM PSS RSS Swap rchar wchar rbytes wbytes"
+    or the first line in the file is
+    Time VMEM PSS RSS Swap rchar wchar rbytes wbytes
+    each of which will become keys in the dictionary, whose corresponding values are stored in lists, with the entries
+    corresponding to the values in the rows of the input file.
+
+    The output dictionary will have the format
+    {'Time': [ .. data from first row .. ], 'VMEM': [.. data from second row], ..}
+
+    :param filename: name of input text file, full path (string).
+    :param header: header string.
+    :param separator: separator character (char).
+    :param convert_to_float: boolean, if True, all values will be converted to floats.
+    :return: dictionary.
+    """
+
+    tabledict = {}
+
+    try:
+        f = open_file(filename, 'r')
+    except Exception as e:
+        logger.warning("failed to open file: %s, %s" % (filename, e))
+    else:
+        firstline = True
+        keylist = []  # ordered list of key names
+        for line in f:
+            fields = line.split(separator)
+            if firstline:
+                firstline = False
+                if not header:
+                    # get the dictionary keys from the header of the file
+                    for key in fields:
+                        # first line defines the header, whose elements will be used as dictionary keys
+                        if key == '': continue
+                        if key.endswith('\n'): key = key[:-1]
+                        tabledict[key] = []
+                        keylist.append(key)
+                    continue
+                else:
+                    # get the dictionary keys from the provided header
+                    keys = header.split(separator)
+                    for key in keys:
+                        if key == '': continue
+                        if key.endswith('\n'): key = key[:-1]
+                        tabledict[key] = []
+                        keylist.append(key)
+            # from now on, fill the dictionary fields with the input data
+            i = 0
+            print fields
+            for field in fields:
+                # get the corresponding dictionary key from the keylist
+                key = keylist[i]
+                # store the field value in the correct list
+                if convert_to_float:
+                    try:
+                        field = float(field)
+                    except Exception as e:
+                        logger.warning("failed to convert %s to float: %s (aborting)" % (field, e))
+                        return None
+                tabledict[key].append(field)
+                i += 1
+        f.close()
+
+    return tabledict
