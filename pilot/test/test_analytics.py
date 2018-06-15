@@ -31,7 +31,7 @@ class TestAnaytics(unittest.TestCase):
         x = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         y = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
-        fit = client.fit(x, y)
+        fit = self.client.fit(x, y)
         slope = fit.slope()
         intersect = fit.intersect()
 
@@ -42,7 +42,7 @@ class TestAnaytics(unittest.TestCase):
 
         y = [0, -1, -2, -3, -4, -5, -6, -7, -8, -9]
 
-        fit = client.fit(x, y)
+        fit = self.client.fit(x, y)
         slope = fit.slope()
 
         self.assertEqual(slope, -1.0)
