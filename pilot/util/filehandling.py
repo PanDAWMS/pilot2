@@ -458,6 +458,8 @@ def parse_table_from_file(filename, header=None, separator="\t", convert_to_floa
             if firstline:
                 firstline = False
                 tabledict, keylist = _define_tabledict_keys(header, fields, separator)
+                if header:
+                    continue
 
             # from now on, fill the dictionary fields with the input data
             i = 0
@@ -503,7 +505,6 @@ def _define_tabledict_keys(header, fields, separator):
                 key = key[:-1]
             tabledict[key] = []
             keylist.append(key)
-        continue
     else:
         # get the dictionary keys from the provided header
         keys = header.split(separator)
