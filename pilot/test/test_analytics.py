@@ -25,7 +25,7 @@ class TestAnaytics(unittest.TestCase):
         """
         Make sure that a linear fit works.
 
-        :return: (assertion)
+        :return: (assertion).
         """
 
         x = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -46,6 +46,26 @@ class TestAnaytics(unittest.TestCase):
         slope = fit.slope()
 
         self.assertEqual(slope, -1.0)
+
+    def test_parsing_memory_monitor_data(self):
+        """
+        Read and fit PSS vs Time from memory monitor output file.
+
+        :return: (assertion).
+        """
+
+        filename = 'pilot/test/resource/memory_monitor_out.txt'
+        table = self.client.get_table(filename)
+
+        self.assertEqual(type(table), dict)
+
+        x = table['Time']
+        y = table['PSS']
+        fit = self.client.fit(x, y)
+
+        slope = fit.slope()
+
+        self.assertEqual(type(slope), float)
 
 
 if __name__ == '__main__':
