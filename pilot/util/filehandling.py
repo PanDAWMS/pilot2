@@ -450,7 +450,11 @@ def get_table_from_file(filename, header=None, separator="\t", convert_to_float=
     try:
         f = open_file(filename, 'r')
     except Exception as e:
-        logger.warning("failed to open file: %s, %s" % (filename, e))
+        warning = "failed to open file: %s, %s" % (filename, e)
+        try:
+            logger.warning(warning)
+        except Exception:
+            print warning
     else:
         firstline = True
         for line in f:
@@ -471,7 +475,11 @@ def get_table_from_file(filename, header=None, separator="\t", convert_to_float=
                     try:
                         field = float(field)
                     except Exception as e:
-                        logger.warning("failed to convert %s to float: %s (aborting)" % (field, e))
+                        warning = "failed to convert %s to float: %s (aborting)" % (field, e)
+                        try:
+                            logger.warning(warning)
+                        except Exception:
+                            print warning
                         return None
                 tabledict[key].append(field)
                 i += 1
