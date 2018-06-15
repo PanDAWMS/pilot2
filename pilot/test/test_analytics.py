@@ -46,3 +46,7 @@ class TestAnaytics(unittest.TestCase):
         slope = fit.slope()
 
         self.assertEqual(slope, -1.0)
+
+
+if __name__ == '__main__':
+    unittest.main()
