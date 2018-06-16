@@ -91,7 +91,7 @@ def float_to_rounded_string(num, precision=3):
     try:
         _precision = Decimal(10) ** -precision
     except Exception as e:
-        raise NotDefined('failed to define precision=%s: %e' % (precision, e))
+        raise NotDefined('failed to define precision=%s: %e' % (str(precision), e))
 
     try:
         s = Decimal(str(num)).quantize(_precision)
