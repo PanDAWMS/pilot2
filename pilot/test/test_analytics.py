@@ -71,6 +71,7 @@ class TestAnalytics(unittest.TestCase):
         slope = fit.slope()
 
         self.assertEqual(type(slope), float)
+        self.assertGreater(slope, 0)
 
 
 if __name__ == '__main__':
