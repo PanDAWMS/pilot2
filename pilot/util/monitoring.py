@@ -72,8 +72,6 @@ def job_monitor_tasks(job, mt, verify_proxy):
                 mt.update('ct_proxy')
 
     # is it time to check for looping jobs?
-    log.info('current_time - mt.get(ct_looping) = %d' % (current_time - mt.get('ct_looping')))
-    log.info('config.Pilot.looping_verifiction_time = %s' % config.Pilot.looping_verifiction_time)
     looping_verifiction_time = convert_to_int(config.Pilot.looping_verifiction_time)
     if current_time - mt.get('ct_looping') > looping_verifiction_time:
         # is the job looping?
