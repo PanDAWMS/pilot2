@@ -57,21 +57,70 @@ def job_monitor_tasks(job, mt, verify_proxy):
 
     # should the proxy be verified?
     if verify_proxy:
-        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-        userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
-
-        # is it time to verify the proxy?
-        proxy_verification_time = convert_to_int(config.Pilot.proxy_verification_time)
-        if current_time - mt.get('ct_proxy') > proxy_verification_time:
-            # is the proxy still valid?
-            exit_code, diagnostics = userproxy.verify_proxy()
-            if exit_code != 0:
-                return exit_code, diagnostics
-            else:
-                # update the ct_proxy with the current time
-                mt.update('ct_proxy')
+        exit_code, diagnostics = verify_user_proxy(current_time, mt)
+        if exit_code != 0:
+            return exit_code, diagnostics
 
     # is it time to check for looping jobs?
+    exit_code, diagnostics = verify_looping_job(current_time, mt, job)
+    if exit_code != 0:
+        return exit_code, diagnostics
+
+    # is the job using too much space?
+    exit_code, diagnostics = verify_disk_usage(current_time, mt, job)
+    if exit_code != 0:
+        return exit_code, diagnostics
+
+    # Is the payload stdout within allowed limits?
+
+    # Are the output files within allowed limits?
+
+    # make sure that any utility commands are still running
+    if job.utilities != {}:
+        job = utility_monitor(job)
+
+    # send heartbeat
+
+    return exit_code, diagnostics
+
+
+def verify_user_proxy(current_time, mt):
+    """
+    Verify the user proxy.
+    This function is called by the job_monitor_tasks() function.
+
+    :param current_time: current time at the start of the monitoring loop (int).
+    :param mt: measured time object.
+    :return: exit code (int), error diagnostics (string).
+    """
+
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
+
+    # is it time to verify the proxy?
+    proxy_verification_time = convert_to_int(config.Pilot.proxy_verification_time)
+    if current_time - mt.get('ct_proxy') > proxy_verification_time:
+        # is the proxy still valid?
+        exit_code, diagnostics = userproxy.verify_proxy()
+        if exit_code != 0:
+            return exit_code, diagnostics
+        else:
+            # update the ct_proxy with the current time
+            mt.update('ct_proxy')
+
+    return 0, ""
+
+
+def verify_looping_job(current_time, mt, job):
+    """
+    Verify that the job is not looping.
+
+    :param current_time: current time at the start of the monitoring loop (int).
+    :param mt: measured time object.
+    :param job: job object.
+    :return: exit code (int), error diagnostics (string).
+    """
+
     looping_verifiction_time = convert_to_int(config.Pilot.looping_verifiction_time)
     if current_time - mt.get('ct_looping') > looping_verifiction_time:
         # is the job looping?
@@ -89,7 +138,20 @@ def job_monitor_tasks(job, mt, verify_proxy):
         # update the ct_proxy with the current time
         mt.update('ct_looping')
 
-    # is the job using too much space?
+    return 0, ""
+
+
+def verify_disk_usage(current_time, mt, job):
+    """
+    Verify the disk usage.
+    The function checks 1) payload stdout size, 2) local space, 3) work directory size.
+
+    :param current_time: current time at the start of the monitoring loop (int).
+    :param mt: measured time object.
+    :param job: job object.
+    :return: exit code (int), error diagnostics (string).
+    """
+
     disk_space_verification_time = convert_to_int(config.Pilot.disk_space_verification_time)
     if current_time - mt.get('ct_diskspace') > disk_space_verification_time:
         # time to check the disk space
@@ -112,17 +174,7 @@ def job_monitor_tasks(job, mt, verify_proxy):
         # update the ct_diskspace with the current time
         mt.update('ct_diskspace')
 
-    # Is the payload stdout within allowed limits?
-
-    # Are the output files within allowed limits?
-
-    # make sure that any utility commands are still running
-    if job.utilities != {}:
-        job = utility_monitor(job)
-
-    # send heartbeat
-
-    return exit_code, diagnostics
+    return 0, ""
 
 
 def utility_monitor(job):
