@@ -71,8 +71,6 @@ def job_monitor_tasks(job, mt, verify_proxy):
     if exit_code != 0:
         return exit_code, diagnostics
 
-    # Is the payload stdout within allowed limits?
-
     # Are the output files within allowed limits?
 
     # make sure that any utility commands are still running
