@@ -8,7 +8,9 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 # from pilot.util.auxiliary import get_logger
+from pilot.common.exception import NotDefined
 
+from decimal import Decimal
 import logging
 
 logger = logging.getLogger(__name__)
@@ -73,3 +75,27 @@ def chi2(observed, expected):
         return 0.0
 
     return sum((_o - _e) ** 2 / _e for _o, _e in zip(observed, expected))
+
+
+def float_to_rounded_string(num, precision=3):
+    """
+    Convert float to a string with a desired number of digits (the precision).
+    E.g. num=3.1415, precision=2 -> '3.14'.
+
+    :param num: number to be converted (float).
+    :param precision: number of desired digits (int)
+    :raises NotDefined: for undefined precisions and float conversions to Decimal.
+    :return: rounded string.
+    """
+
+    try:
+        _precision = Decimal(10) ** -precision
+    except Exception as e:
+        raise NotDefined('failed to define precision=%s: %e' % (precision, e))
+
+    try:
+        s = Decimal(str(num)).quantize(_precision)
+    except Exception as e:
+        raise NotDefined('failed to convert %s to Decimal: %s' % (str(num), e))
+
+    return str(s)
