@@ -892,6 +892,7 @@ def retrieve(queues, traces, args):
                 job = create_job(res, args.queue)
 
                 # write time stamps to pilot timing file
+                # note: PILOT_POST_GETJOB corresponds to START_TIME in Pilot 1
                 add_to_pilot_timing(job.jobid, PILOT_PRE_GETJOB, time_pre_getjob)
                 add_to_pilot_timing(job.jobid, PILOT_POST_GETJOB, time.time())
 
