@@ -28,7 +28,7 @@ from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.timing import add_to_pilot_timing, get_getjob_time, get_setup_time, get_stagein_time, get_stageout_time,\
-    get_payload_execution_time, get_initial_setup_time
+    get_payload_execution_time, get_initial_setup_time, get_postgetjob_time
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
@@ -209,6 +209,10 @@ def get_data_structure(job, state, sitename, versiontag, xml=None):
             data['batchID'] = batchsystem_id,
         else:
             data['pilotID'] = "%s|%s|%s|%s" % (pilotid, use_newmover_tag, versiontag, pilotversion)
+
+    starttime = get_postgetjob_time(job.jobid)
+    if starttime:
+        data['startTime'] = starttime
 
     if xml is not None:
         data['xml'] = xml
