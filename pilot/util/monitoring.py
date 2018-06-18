@@ -51,7 +51,7 @@ def job_monitor_tasks(job, mt, args):
     # update timing info for running jobs (to avoid an update after the job has finished)
     if job.state == 'running':
         cpuconsumptiontime = get_instant_cpu_consumption_time(job.pid)
-        job.cpuconsumptiontime = int(cpuconsumptiontime)
+        job.cpuconsumptiontime = int(round(cpuconsumptiontime))
         job.cpuconsumptionunit = "s"
         job.cpuconversionfactor = 1.0
         log.info('CPU consumption time for pid=%d: %f (rounded to %d)' %
