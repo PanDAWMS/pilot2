@@ -215,9 +215,9 @@ def get_data_structure(job, state, sitename, versiontag, xml=None):
     if starttime:
         data['startTime'] = starttime
 
-    jobmetrics = get_job_metrics(job)
-    if jobmetrics:
-        data['jobMetrics'] = jobmetrics
+    job_metrics = get_job_metrics(job)
+    if job_metrics:
+        data['jobMetrics'] = job_metrics
 
     if xml is not None:
         data['xml'] = xml
