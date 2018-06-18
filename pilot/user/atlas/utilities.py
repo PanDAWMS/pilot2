@@ -121,8 +121,11 @@ def get_memory_monitor_info_path(workdir, allowtxtfile=False):
     """
 
     pilot_initdir = os.environ.get('PILOT_HOME', '')
-    path = os.path.join(workdir, get_memory_monitor_summary_filename())
-    init_path = os.path.join(pilot_initdir, get_memory_monitor_summary_filename())
+    filename = get_memory_monitor_summary_filename()
+    logger.info('filename=%s' % filename)
+    path = os.path.join(workdir, filename)
+    logger.info('path=%s' % path)
+    init_path = os.path.join(pilot_initdir, filename)
 
     if not os.path.exists(path):
         logger.info("file does not exist: %s" % (path))
