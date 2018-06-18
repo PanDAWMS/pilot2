@@ -81,6 +81,8 @@ class JobData(BaseData):
     cpuconversionfactor = 1
     nevents = 0  # number of events
     neventsw = 0  # number of events written
+    dbtime = None
+    dbdata = None
     payload = ""  # payload name
     utilities = {}  # utility processes { <name>: [<process handle>, number of launches, command string], .. }
     pid = None  # payload pid

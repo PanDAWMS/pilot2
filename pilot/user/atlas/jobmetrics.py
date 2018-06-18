@@ -49,10 +49,10 @@ def get_job_metrics(job):
     # add metadata from job report
     if job.metadata:
         db_time, db_data = get_db_info(job.metadata)
-    if job.db_time != "":
-        job_metrics += get_job_metrics_entry("dbTime", job.db_time)
-    if job.db_data != "":
-        job_metrics += get_job_metrics_entry("dbData", job.db_data)
+    if job.dbtime != "":
+        job_metrics += get_job_metrics_entry("dbTime", job.dbtime)
+    if job.dbdata != "":
+        job_metrics += get_job_metrics_entry("dbData", job.dbdata)
 
     # event service
     # if job.external_stageout_time:
