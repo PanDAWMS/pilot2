@@ -11,6 +11,8 @@
 from pilot.common.exception import NotDefined
 
 from decimal import Decimal
+from re import split
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -132,7 +134,7 @@ def split_version(s):
     :return: converted release tuple.
     """
 
-    return tuple(tryint(x) for x in re.split('([^.]+)', s))
+    return tuple(tryint(x) for x in split('([^.]+)', s))
 
 
 def is_greater_or_equal(a, b):
