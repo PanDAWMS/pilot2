@@ -79,6 +79,7 @@ def job_monitor_tasks(job, mt, args):
         job = utility_monitor(job)
 
     # send heartbeat
+    send_state(job, args, 'running')
 
     return exit_code, diagnostics
 
