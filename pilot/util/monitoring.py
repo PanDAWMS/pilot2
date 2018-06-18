@@ -15,7 +15,6 @@ from subprocess import PIPE
 from glob import glob
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.control.job import send_state
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config, human2bytes
 from pilot.util.container import execute
@@ -33,7 +32,7 @@ errors = ErrorCodes()
 
 def job_monitor_tasks(job, mt, args):
     """
-    Perform the tasks for the job monitoring, ending with sending the heartbeat.
+    Perform the tasks for the job monitoring.
     The function is called once a minute. Individual checks will be performed at any desired time interval (>= 1
     minute).
 
@@ -79,14 +78,15 @@ def job_monitor_tasks(job, mt, args):
     if exit_code != 0:
         return exit_code, diagnostics
 
+    # verify the number of running processes
+
     # are the output files within allowed limits?
 
     # make sure that any utility commands are still running
     if job.utilities != {}:
         job = utility_monitor(job)
 
-    # send heartbeat
-    send_state(job, args, 'running')
+    # verify the pilot running time
 
     return exit_code, diagnostics
 
