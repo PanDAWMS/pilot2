@@ -86,4 +86,21 @@ def get_job_metrics(job):
         else:
             log.info("will not add max space = %d B to job metrics" % (max_space))
 
+    # correct for potential initial and trailing space
+    job_metrics = job_metrics.lstrip().rstrip()
+
+    if job_metrics != "":
+        log.debug('job metrics=\"%s\"' % (job_metrics))
+    else:
+        log.debug("no job metrics (all values are zero)")
+
+    # is job_metrics within allowed size?
+    if len(job_metrics) > 500:
+        log.warning("job_metrics out of size (%d)" % (len(job_metrics)))
+
+        # try to reduce the field size and remove the last entry which might be cut
+        job_metrics = job_metrics[:500]
+        job_metrics = " ".join(job_metrics.split(" ")[:-1])
+        log.warning("job_metrics has been reduced to: %s" % (job_metrics))
+
     return job_metrics
