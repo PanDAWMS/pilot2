@@ -40,6 +40,7 @@ class ErrorCodes:
     GETADMISMATCH = 1171
     PUTADMISMATCH = 1172
     NOVOMSPROXY = 1177
+    PAYLOADEXCEEDMAXMEM = 1235
 
     # Error code constants (new since Pilot 2)
     NOTIMPLEMENTED = 1300
@@ -77,6 +78,7 @@ class ErrorCodes:
         GETADMISMATCH: "adler32 mismatch on input file",
         PUTADMISMATCH: "adler32 mismatch on output file",
         NOVOMSPROXY: "Voms proxy not valid",
+        PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
         NOTIMPLEMENTED: "The class or function is not implemented",
         UNKNOWNEXCEPTION: "An unknown pilot exception has occurred",
         CONVERSIONFAILURE: "Failed to convert object data",

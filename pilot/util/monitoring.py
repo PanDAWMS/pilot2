@@ -105,11 +105,14 @@ def verify_memory_usage(current_time, mt, job):
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     memory = __import__('pilot.user.%s.memory' % pilot_user, globals(), locals(), [pilot_user], -1)
 
+    if not memory.allow_memory_usage_verifications():
+        return 0, ""
+
     # is it time to verify the memory usage?
     memory_verification_time = convert_to_int(config.Pilot.memory_usage_verification_time, default=60)
     if current_time - mt.get('ct_memory') > memory_verification_time:
         # is the used memory within the allowed limit?
-        exit_code, diagnostics = memory.memory_usage()
+        exit_code, diagnostics = memory.memory_usage(job)
         if exit_code != 0:
             return exit_code, diagnostics
         else:
