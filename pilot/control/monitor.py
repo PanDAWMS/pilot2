@@ -47,8 +47,6 @@ def control(queues, traces, args):
             # proceed with running the checks
             # run_checks(args)
 
-            # send_heartbeat(job) - all job monitoring should be removed from here
-
             n += 1
     except Exception as e:
         print "monitor: exception caught: %s" % e
@@ -61,10 +59,6 @@ def run_checks(args):
 
     if not check_output_file_sizes():
         return args.graceful_stop.set()
-
-
-def send_heartbeat(job):
-    pass
 
 
 def check_local_space_limit():  # move to Job component?
