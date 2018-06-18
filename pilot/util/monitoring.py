@@ -62,6 +62,8 @@ def job_monitor_tasks(job, mt, args):
         if exit_code != 0:
             return exit_code, diagnostics
 
+    # verify the pilot running time
+
     # should the proxy be verified?
     if args.verify_proxy:
         exit_code, diagnostics = verify_user_proxy(current_time, mt)
@@ -85,8 +87,6 @@ def job_monitor_tasks(job, mt, args):
     # make sure that any utility commands are still running
     if job.utilities != {}:
         job = utility_monitor(job)
-
-    # verify the pilot running time
 
     return exit_code, diagnostics
 
