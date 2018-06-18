@@ -119,13 +119,53 @@ def send_state(job, args, state, xml=None):
     else:
         log.info('job %s has state \'%s\' - sending heartbeat' % (job.jobid, state))
 
-    # report the batch system job id, if available
-    batchsystem_type, batchsystem_id = get_batchsystem_jobid()
+    # build the data structure needed for getJob, updateJob
+    data = get_data_structure(job, state, args.site, args.version_tag, xml=xml)
+
+    try:
+        # cmd = args.url + ':' + str(args.port) + 'server/panda/updateJob'
+        # if https.request(cmd, data=data) is not None:
+
+        if args.url != '' and args.port != 0:
+            pandaserver = args.url + ':' + str(args.port)
+        else:
+            pandaserver = config.Pilot.pandaserver
+
+        if config.Pilot.pandajob == 'real':
+            if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver),
+                             data=data) is not None:
+
+                log.info('server updateJob request completed for job %s' % job.jobid)
+                return True
+        else:
+            log.info('skipping job update for fake test job')
+            return True
+    except Exception as e:
+        log.warning('while setting job state, Exception caught: %s' % str(e.message))
+        pass
+
+    log.warning('set job state=%s failed' % state)
+    return False
+
+
+def get_data_structure(job, state, sitename, versiontag, xml=None):
+    """
+    Build the data structure needed for getJob, updateJob.
+
+    :param job: job object.
+    :param state: state of the job (string).
+    :param sitename: site name (string).
+    :param versiontag: versio tag (string).
+    :param xml: optional XML string.
+    :return: data structure (dictionary).
+    """
+
+    log = get_logger(job.jobid)
 
     data = {'jobId': job.jobid,
             'state': state,
             'timestamp': time_stamp(),
-            'siteName': args.site,
+            'siteName': sitename,
             'node': get_node_name()}
 
     # error codes
@@ -158,14 +198,17 @@ def send_state(job, args, state, xml=None):
     pilotid = get_pilot_id()
     if pilotid:
         use_newmover_tag = 'DEPRECATED'
-        version_tag = args.version_tag
-        pilot_version = os.environ.get('PILOT_VERSION')
+        pilotversion = os.environ.get('PILOT_VERSION')
+
+        # report the batch system job id, if available
+        batchsystem_type, batchsystem_id = get_batchsystem_jobid()
 
         if batchsystem_type:
-            data['pilotID'] = "%s|%s|%s|%s|%s" % (pilotid, use_newmover_tag, batchsystem_type, version_tag, pilot_version)
+            data['pilotID'] = "%s|%s|%s|%s|%s" % \
+                              (pilotid, use_newmover_tag, batchsystem_type, versiontag, pilotversion)
             data['batchID'] = batchsystem_id,
         else:
-            data['pilotID'] = "%s|%s|%s|%s" % (pilotid, use_newmover_tag, version_tag, pilot_version)
+            data['pilotID'] = "%s|%s|%s|%s" % (pilotid, use_newmover_tag, versiontag, pilotversion)
 
     if xml is not None:
         data['xml'] = xml
@@ -193,30 +236,7 @@ def send_state(job, args, state, xml=None):
         data['pilotTiming'] = "%s|%s|%s|%s|%s" % \
                               (time_getjob, time_stagein, time_payload, time_stageout, time_total_setup)
 
-    try:
-        # cmd = args.url + ':' + str(args.port) + 'server/panda/updateJob'
-        # if https.request(cmd, data=data) is not None:
-
-        if args.url != '' and args.port != 0:
-            pandaserver = args.url + ':' + str(args.port)
-        else:
-            pandaserver = config.Pilot.pandaserver
-
-        if config.Pilot.pandajob == 'real':
-            if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver),
-                             data=data) is not None:
-
-                log.info('server updateJob request completed for job %s' % job.jobid)
-                return True
-        else:
-            log.info('skipping job update for fake test job')
-            return True
-    except Exception as e:
-        log.warning('while setting job state, Exception caught: %s' % str(e.message))
-        pass
-
-    log.warning('set job state=%s failed' % state)
-    return False
+    return data
 
 
 def validate(queues, traces, args):
