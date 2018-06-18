@@ -25,6 +25,7 @@ from pilot.util.workernode import get_disk_space, collect_workernode_info, get_n
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
+from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.timing import add_to_pilot_timing, get_getjob_time, get_setup_time, get_stagein_time, get_stageout_time,\
@@ -213,6 +214,10 @@ def get_data_structure(job, state, sitename, versiontag, xml=None):
     starttime = get_postgetjob_time(job.jobid)
     if starttime:
         data['startTime'] = starttime
+
+    jobmetrics = get_job_metrics(job)
+    if jobmetrics:
+        data['jobMetrics'] = jobmetrics
 
     if xml is not None:
         data['xml'] = xml
