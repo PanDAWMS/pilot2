@@ -1058,7 +1058,10 @@ def queue_monitor(queues, traces, args):
 def job_monitor(queues, traces, args):
     """
     Monitoring of job parameters.
-    This function monitors certain job parameters, such as job looping.
+    This function monitors certain job parameters, such as job looping, at various time intervals. The main loop
+    is executed once a minute, while individual verifications may be executed at any time interval (>= 1 minute). E.g.
+    looping jobs are checked once per ten minutes (default) and the heartbeat is send once per 30 minutes. Memory
+    usage is checked once a minute.
 
     :param queues: internal queues for job handling.
     :param traces: tuple containing internal pilot states.

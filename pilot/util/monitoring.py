@@ -33,7 +33,9 @@ errors = ErrorCodes()
 
 def job_monitor_tasks(job, mt, args):
     """
-    Perform the tasks for the job monitoring.
+    Perform the tasks for the job monitoring, ending with sending the heartbeat.
+    The function is called once a minute. Individual checks will be performed at any desired time interval (>= 1
+    minute).
 
     :param job: job object.
     :param mt: `MonitoringTime` object.
@@ -55,6 +57,11 @@ def job_monitor_tasks(job, mt, args):
         job.cpuconversionfactor = 1.0
         log.info('CPU consumption time for pid=%d: %f (rounded to %d)' %
                  (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
+
+        # check memory usage (optional) for jobs in running state
+        exit_code, diagnostics = verify_memory_usage(current_time, mt, job)
+        if exit_code != 0:
+            return exit_code, diagnostics
 
     # should the proxy be verified?
     if args.verify_proxy:
@@ -84,6 +91,20 @@ def job_monitor_tasks(job, mt, args):
     return exit_code, diagnostics
 
 
+def verify_memory_usage(current_time, mt, job):
+    """
+    Verify the memory usage (optional).
+    Note: this function relies on a stand-alone memory monitor tool that may be executed by the Pilot.
+
+    :param current_time: current time at the start of the monitoring loop (int).
+    :param mt: measured time object.
+    :param job: job object.
+    :return: exit code (int), error diagnostics (string).
+    """
+
+    return 0, ""
+
+
 def verify_user_proxy(current_time, mt):
     """
     Verify the user proxy.
@@ -98,7 +119,7 @@ def verify_user_proxy(current_time, mt):
     userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
 
     # is it time to verify the proxy?
-    proxy_verification_time = convert_to_int(config.Pilot.proxy_verification_time)
+    proxy_verification_time = convert_to_int(config.Pilot.proxy_verification_time, default=600)
     if current_time - mt.get('ct_proxy') > proxy_verification_time:
         # is the proxy still valid?
         exit_code, diagnostics = userproxy.verify_proxy()
@@ -123,7 +144,7 @@ def verify_looping_job(current_time, mt, job):
 
     log = get_logger(job.jobid)
 
-    looping_verifiction_time = convert_to_int(config.Pilot.looping_verifiction_time)
+    looping_verifiction_time = convert_to_int(config.Pilot.looping_verifiction_time, default=600)
     if current_time - mt.get('ct_looping') > looping_verifiction_time:
         # is the job looping?
         try:
@@ -154,7 +175,7 @@ def verify_disk_usage(current_time, mt, job):
     :return: exit code (int), error diagnostics (string).
     """
 
-    disk_space_verification_time = convert_to_int(config.Pilot.disk_space_verification_time)
+    disk_space_verification_time = convert_to_int(config.Pilot.disk_space_verification_time, default=300)
     if current_time - mt.get('ct_diskspace') > disk_space_verification_time:
         # time to check the disk space
 
