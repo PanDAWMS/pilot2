@@ -121,7 +121,6 @@ def get_memory_monitor_info_path(workdir, allowtxtfile=False):
     """
 
     pilot_initdir = os.environ.get('PILOT_HOME', '')
-    filename = get_memory_monitor_summary_filename()
     path = os.path.join(workdir, get_memory_monitor_summary_filename())
     init_path = os.path.join(pilot_initdir, get_memory_monitor_summary_filename())
 
