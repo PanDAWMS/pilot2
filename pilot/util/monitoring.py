@@ -119,6 +119,8 @@ def verify_looping_job(current_time, mt, job):
     :return: exit code (int), error diagnostics (string).
     """
 
+    log = get_logger(job.jobid)
+
     looping_verifiction_time = convert_to_int(config.Pilot.looping_verifiction_time)
     if current_time - mt.get('ct_looping') > looping_verifiction_time:
         # is the job looping?
