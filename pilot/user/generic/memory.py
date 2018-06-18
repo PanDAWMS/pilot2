@@ -16,3 +16,17 @@ def allow_memory_usage_verifications():
     """
 
     return False
+
+
+def memory_usage(job):
+    """
+    Perform memory usage verification.
+
+    :param job: job object
+    :return: exit code (int), diagnostics (string).
+    """
+
+    exit_code = 0
+    diagnostics = ""
+
+    return exit_code, diagnostics
