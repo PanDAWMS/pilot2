@@ -44,9 +44,9 @@ def control(queues, traces, args):
     """
     (add description)
 
-    :param queues:
-    :param traces:
-    :param args:
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return:
     """
 
@@ -85,7 +85,7 @@ def _validate_job(job):
     """
     (add description)
 
-    :param job:
+    :param job: job object.
     :return:
     """
     # valid = random.uniform(0, 100)
@@ -101,11 +101,11 @@ def send_state(job, args, state, xml=None):
     """
     Update the server (heartbeat message).
 
-    :param job:
-    :param args:
-    :param state:
-    :param xml:
-    :return:
+    :param job: job object.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
+    :param state: job state (string).
+    :param xml: optional metadata xml (string).
+    :return: boolean (True if successful, False otherwise).
     """
 
     log = get_logger(job.jobid)
@@ -616,7 +616,7 @@ def get_job_definition_from_server(args):
     """
     Get a job definition from a server.
 
-    :param args:
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return: job definition dictionary.
     """
 
@@ -636,7 +636,7 @@ def get_job_definition_from_server(args):
 def get_job_definition(args):
     """
     Get a job definition from a source (server or pre-placed local file).
-    :param args:
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return: job definition dictionary.
     """
 
@@ -847,7 +847,7 @@ def retrieve(queues, traces, args):
 
     :param queues: internal queues for job handling.
     :param traces: tuple containing internal pilot states.
-    :param args: arguments (e.g. containing queue name, queuedata dictionary, etc).
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     """
 
     timefloor = infosys.queuedata.timefloor
@@ -961,7 +961,7 @@ def job_has_finished(queues):
     """
     Has the current payload finished?
 
-    :param queues:
+    :param queues: Pilot queues object.
     :return: True is the payload has finished or failed
     """
 
@@ -1000,9 +1000,9 @@ def queue_monitor(queues, traces, args):
     Monitoring of queues.
     This function monitors queue activity, specifically if a job has finished or failed and then reports to the server.
 
-    :param queues:
-    :param traces:
-    :param args:
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return:
     """
 
@@ -1060,9 +1060,9 @@ def job_monitor(queues, traces, args):
     Monitoring of job parameters.
     This function monitors certain job parameters, such as job looping.
 
-    :param queues:
-    :param traces:
-    :param args:
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return:
     """
 
@@ -1094,7 +1094,7 @@ def job_monitor(queues, traces, args):
                         break
 
                     # perform the monitoring tasks
-                    exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args.verify_proxy)
+                    exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
                     if exit_code != 0:
                         jobs[i].state = 'failed'
                         jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)

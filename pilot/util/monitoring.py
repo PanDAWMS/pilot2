@@ -15,6 +15,7 @@ from subprocess import PIPE
 from glob import glob
 
 from pilot.common.errorcodes import ErrorCodes
+from pilot.control.job import send_state
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config, human2bytes
 from pilot.util.container import execute
@@ -30,13 +31,13 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def job_monitor_tasks(job, mt, verify_proxy):
+def job_monitor_tasks(job, mt, args):
     """
     Perform the tasks for the job monitoring.
 
     :param job: job object.
     :param mt: `MonitoringTime` object.
-    :param verify_proxy: True if the proxy should be verified. False otherwise.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return: exit code (int), diagnostics (string).
     """
 
@@ -56,7 +57,7 @@ def job_monitor_tasks(job, mt, verify_proxy):
                  (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
 
     # should the proxy be verified?
-    if verify_proxy:
+    if args.verify_proxy:
         exit_code, diagnostics = verify_user_proxy(current_time, mt)
         if exit_code != 0:
             return exit_code, diagnostics
