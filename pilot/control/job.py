@@ -1104,7 +1104,7 @@ def job_monitor(queues, traces, args):
                         queues.failed_payloads.put(jobs[i])
 
                     # send heartbeat
-                    send_state(job, args, 'running')
+                    send_state(jobs[i], args, 'running')
             else:
                 waiting_time = time.time() - peeking_time
                 msg = 'no jobs in monitored_payloads queue (waiting for %d s)' % waiting_time
