@@ -21,7 +21,7 @@ from pilot.util.container import execute
 from pilot.util.filehandling import get_directory_size, remove_files
 from pilot.util.loopingjob import looping_job
 from pilot.util.parameters import convert_to_int
-from pilot.util.processes import get_instant_cpu_consumption_time, kill_processes
+from pilot.util.processes import get_instant_cpu_consumption_time, kill_processes, get_number_of_child_processes
 from pilot.util.workernode import get_local_disk_space
 
 import logging
@@ -62,7 +62,10 @@ def job_monitor_tasks(job, mt, args):
         if exit_code != 0:
             return exit_code, diagnostics
 
-    # verify the pilot running time
+    # is it time to verify the pilot running time?
+#    exit_code, diagnostics = verify_pilot_running_time(current_time, mt, job)
+#    if exit_code != 0:
+#        return exit_code, diagnostics
 
     # should the proxy be verified?
     if args.verify_proxy:
@@ -80,7 +83,10 @@ def job_monitor_tasks(job, mt, args):
     if exit_code != 0:
         return exit_code, diagnostics
 
-    # verify the number of running processes
+    # is it time to verify the number of running processes?
+    exit_code, diagnostics = verify_running_processes(current_time, mt, job.pid)
+    if exit_code != 0:
+        return exit_code, diagnostics
 
     # are the output files within allowed limits?
 
@@ -213,6 +219,26 @@ def verify_disk_usage(current_time, mt, job):
 
         # update the ct_diskspace with the current time
         mt.update('ct_diskspace')
+
+    return 0, ""
+
+
+def verify_running_processes(current_time, mt, pid):
+    """
+    Verify the number of running processes.
+
+    :param current_time: current time at the start of the monitoring loop (int).
+    :param mt: measured time object.
+    :param pid: payload process id (int).
+    :return: exit code (int), error diagnostics (string).
+    """
+
+    process_verification_time = convert_to_int(config.Pilot.process_verification_time, default=300)
+    if current_time - mt.get('ct_process') > process_verification_time:
+        # time to check the number of processes
+        nproc = get_number_of_child_processes(pid)
+        if nproc > os.environ.get('PILOT_MAXNPROC', 0):
+            os.environ['PILOT_MAXNPROC'] = nproc
 
     return 0, ""
 

@@ -29,6 +29,7 @@ class MonitoringTime(object):
         self.ct_looping_last_touched = None
         self.ct_diskspace = ct
         self.ct_memory = ct
+        self.ct_process = ct
         # add more here
 
     def update(self, key):
