@@ -71,7 +71,7 @@ def memory_usage(job):
                             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADEXCEEDMAXMEM)
                         else:
                             log.info("max memory (maxPSS) used by the payload is within the allowed limit: "
-                                "%d B (2 * maxRSS = %d B)" % (maxpss_int, maxrss_int))
+                                     "%d B (2 * maxRSS = %d B)" % (maxpss_int, maxrss_int))
                     else:
                         log.warning("unpected MemoryMonitor maxPSS value: %d" % (maxpss_int))
         else:
