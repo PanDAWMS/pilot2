@@ -423,9 +423,9 @@ def update_job_data(job):  # noqa: C901
 
     ## validate output data (to be moved into the JobData)
     for dat in job.outdata:
-        if not dat.giud:
+        if not dat.guid:
             dat.guid = get_guid()
-            logger.info('Generated giud=%s for lfn=%s' % (dat.guid, dat.lfn))
+            logger.info('Generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
         if not dat.filesize:
             dat.filesize = get_local_file_size() or 0
 
