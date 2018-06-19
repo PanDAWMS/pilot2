@@ -49,9 +49,9 @@ def get_job_metrics(job):
     # add metadata from job report
     if job.metadata:
         db_time, db_data = get_db_info(job.metadata)
-    if job.dbtime != "":
+    if job.dbtime and job.dbtime != "":
         job_metrics += get_job_metrics_entry("dbTime", job.dbtime)
-    if job.dbdata != "":
+    if job.dbdata and job.dbdata != "":
         job_metrics += get_job_metrics_entry("dbData", job.dbdata)
 
     # event service
@@ -85,6 +85,10 @@ def get_job_metrics(job):
             job_metrics += get_job_metrics_entry("workDirSize", max_space)
         else:
             log.info("will not add max space = %d B to job metrics" % (max_space))
+
+    # get analytics data
+
+    # done with job metrics, now verify the string
 
     # correct for potential initial and trailing space
     job_metrics = job_metrics.lstrip().rstrip()
