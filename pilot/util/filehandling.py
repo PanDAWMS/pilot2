@@ -352,7 +352,7 @@ def find_executable(name):
 
 def get_directory_size(directory="."):
     """
-    Return the size of the given directory.
+    Return the size of the given directory in B.
 
     :param directory: directory name (string).
     :return: size of directory (int).
@@ -363,7 +363,8 @@ def get_directory_size(directory="."):
     exit_code, stdout, stderr = execute('du -sk %s' % directory, shell=True)
     if stdout is not None:
         try:
-            size = int(stdout.split()[0])
+            # convert to int and B
+            size = int(stdout.split()[0]) * 1024
         except Exception as e:
             logger.warning('exception caught while trying convert dirsize: %s' % e)
 
