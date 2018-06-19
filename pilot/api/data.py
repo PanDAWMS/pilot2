@@ -303,6 +303,9 @@ class StagingClient(object):
                 self.logger.debug('Error: %s' % e)
             except Exception, e:
                 self.logger.warning('Failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
+                import traceback
+                self.logger.error(traceback.format_exc())
+                errors.append(e)
 
             if result:
                 break
@@ -412,7 +415,7 @@ class StageOutClient(StagingClient):
 
             protocols = []
             for aname in activity:
-                protocols = ddm.get('arprotocols', {}).get(aname)
+                protocols = ddm.arprotocols.get(aname)
                 if protocols:
                     break
 
@@ -474,7 +477,7 @@ class StageOutClient(StagingClient):
         if not ddm:
             raise PilotException('Failed to resolve ddmendpoint by name=%s' % fspec.ddmendpoint)
 
-        if not ddm.get('is_deterministic'):
+        if not ddm.is_deterministic:
             raise PilotException('resolve_surl(): Failed to construct SURL for non deterministic ddm=%s: NOT IMPLEMENTED', fspec.ddmendpoint)
 
         surl = protocol.get('endpoint', '') + os.path.join(protocol.get('path', ''), self.get_path(fspec.scope, fspec.lfn))
@@ -512,13 +515,13 @@ class StageOutClient(StagingClient):
                 # take first available protocol for copytool: FIX ME LATER if need (do iterate over all allowed protocols?)
                 protocol = protocols[0]
 
-                self.logger.info("Resolved protocol to be used to transfers: data=%s" % protocol)
+                self.logger.info("Resolved protocol to be used for transfer: data=%s" % protocol)
 
                 resolve_surl = getattr(copytool, 'resolve_surl', None)
                 if not callable(resolve_surl):
                     resolve_surl = self.resolve_surl
 
-                r = resolve_surl(fspec, protocol, ddmconf, activity)  ## pass ddmconf & activity for possible custom look up at the level of copytool
+                r = resolve_surl(fspec, protocol, ddmconf, activity=activity)  ## pass ddmconf & activity for possible custom look up at the level of copytool
                 if r.get('surl'):
                     fspec.turl = r['surl']
                 if r.get('ddmendpoint'):

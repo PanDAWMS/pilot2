@@ -117,9 +117,9 @@ class JobData(BaseData):
     logguid = ""  # unique guid for log file                             ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
     noexecstrcnv = None  # server instruction to the pilot if it should take payload setup from job parameters
     outfiles = ""  # comma-separated list (string) of output files       ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
-    scopein = ""  # comma-separated list (string) of input file scopes   ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-    scopelog = ""  # scope for log file                                  ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
-    scopeout = ""  # comma-separated list (string) of output file scopes ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
+    #scopein = ""  # comma-separated list (string) of input file scopes   ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+    #scopelog = ""  # scope for log file                                  ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
+    #scopeout = ""  # comma-separated list (string) of output file scopes ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
     swrelease = ""  # software release string
 
     # RAW data to keep backward compatible behavior for a while ## TO BE REMOVED once all job attributes will be covered
@@ -179,7 +179,7 @@ class JobData(BaseData):
         }
 
         ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())
-        logger.info('ksources=%s' % str(ksources))
+        logger.debug('ksources=%s' % str(ksources))
         ret, lfns = [], set()
         for ind, lfn in enumerate(ksources.get('inFiles', [])):
             if lfn in ['', 'NULL'] or lfn in lfns:  # exclude null data and duplicates

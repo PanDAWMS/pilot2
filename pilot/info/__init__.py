@@ -82,8 +82,8 @@ def set_info(args):
 
     logger.info('queue: %s' % args.info.queue)
     #logger.info('site: %s' % args.info.site)
-    logger.info('storages: %s' % args.info.storages)
-    logger.info('queuedata: %s' % args.info.infoservice.queuedata)
+    #logger.info('storages: %s' % args.info.storages)
+    #logger.info('queuedata: %s' % args.info.infoservice.queuedata)
 
 
 # global InfoService Instance without Job specific settings applied (singleton shared object)

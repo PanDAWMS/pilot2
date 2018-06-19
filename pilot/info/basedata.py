@@ -120,7 +120,8 @@ class BaseData(object):
         try:
             return ktype(raw)
         except Exception:
-            logger.warning('failed to convert data for key=%s, raw=%s to type=%s' % (kname, raw, ktype))
+            if raw is not None:
+                logger.warning('failed to convert data for key=%s, raw=%s to type=%s, defval=%s' % (kname, raw, ktype, defval))
             return defval
 
     def clean_string(self, raw, ktype, kname=None, defval=""):
