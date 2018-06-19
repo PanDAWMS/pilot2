@@ -512,7 +512,7 @@ def _do_stageout(job, xdata, activity, title):
 
     try:
         # check if file exists before actual processing
-        # populate filesize if need
+        # populate filesize if need, calc checksum
         for fspec in xdata:
             pfn = getattr(fspec, 'pfn', None) or os.path.join(job.workdir, fspec.lfn)
             if not os.path.isfile(pfn) or not os.access(pfn, os.R_OK):
@@ -523,6 +523,8 @@ def _do_stageout(job, xdata, activity, title):
                 fspec.filesize = os.path.getsize(pfn)
             fspec.surl = pfn
             fspec.activity = activity
+            if not fspec.checksum.get('adler32'):
+                fspec.checksum['adler32'] = client.calc_adler32_checksum(pfn)
 
         client.transfer(xdata, activity, **kwargs)
 
