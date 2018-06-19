@@ -101,7 +101,7 @@ def use_container(cmd):
     return usecontainer
 
 
-def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
+def _call(args, executable, job, cwd=os.getcwd(), logger=logger):  ### TO BE DEPRECATED
     try:
         # for containers, we can not use a list
         usecontainer = use_container(executable[1])
@@ -593,6 +593,7 @@ def _stage_out_new(job, args):
                                'surl': e.turl}
 
     job.fileinfo = fileinfo
+    log.info('prepared job.fileinfo=%s' % job.fileinfo)
 
     if not is_success:
         # set error code + message (a more precise error code might have been set already)
