@@ -52,6 +52,7 @@ class FileSpec(BaseData):
     ## local keys
     type = ''          # type of File: input, output of log
     replicas = None    # list of resolved input replicas
+    protocols = None   # list of preferred protocols for requested activity
     surl = ''          # source url
     turl = ''          # transfer url
     mtime = 0          # file modification time

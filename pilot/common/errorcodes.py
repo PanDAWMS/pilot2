@@ -37,6 +37,8 @@ class ErrorCodes:
     STAGEINTIMEOUT = 1151  # called GETTIMEOUT in Pilot 1
     STAGEOUTTIMEOUT = 1152  # called PUTTIMEOUT in Pilot 1
     NOPROXY = 1163
+    MISSINGOUTPUTFILE = 1165
+
     GETADMISMATCH = 1171
     PUTADMISMATCH = 1172
     NOVOMSPROXY = 1177
@@ -53,6 +55,7 @@ class ErrorCodes:
     SINGULARITYBINDPOINTFAILURE = 1308
     SINGULARITYIMAGEMOUNTFAILURE = 1309
     PAYLOADEXECUTIONEXCEPTION = 1310
+    NOSTORAGEPROTOCOL = 1311
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -67,6 +70,7 @@ class ErrorCodes:
         STAGEOUTFAILED: "Failed to stage-out file",
         PUTMD5MISMATCH: "md5sum mismatch on output file",
         GETMD5MISMATCH: "md5sum mismatch on input file",
+        MISSINGOUTPUTFILE: "Local output file is missing",
         TRFDOWNLOADFAILURE: "Transform could not be downloaded",
         LOOPINGJOB: "Looping job killed by pilot",
         STAGEINTIMEOUT: "File transfer timed out during stage-in",
@@ -85,7 +89,8 @@ class ErrorCodes:
         SINGULARITYNOLOOPDEVICES: "Singularity: No more available loop devices",
         SINGULARITYBINDPOINTFAILURE: "Singularity: Not mounting requested bind point",
         SINGULARITYIMAGEMOUNTFAILURE: "Singularity: Failed to mount image",
-        PAYLOADEXECUTIONEXCEPTION: "Exception caught during payload execution"
+        PAYLOADEXECUTIONEXCEPTION: "Exception caught during payload execution",
+        NOSTORAGEPROTOCOL: "No protocol defined for storage endpoint"
     }
 
     def get_error_message(self, errorcode):

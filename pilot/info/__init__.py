@@ -22,6 +22,7 @@ in a unified structured way to all Pilot modules by providing high-level API
 from .infoservice import InfoService
 from .jobinfo import JobInfoProvider  # noqa
 from .jobdata import JobData          # noqa
+from .filespec import FileSpec        # noqa
 
 #from .queuedata import QueueData
 
