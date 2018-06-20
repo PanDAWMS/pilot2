@@ -7,11 +7,15 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
-from pilot.user.atlas.common import get_db_info
+from pilot.api import analytics
 from pilot.util.auxiliary import get_logger
 from pilot.util.jobmetrics import get_job_metrics_entry
 from pilot.util.processes import get_core_count
 
+from .common import get_db_info
+from .utilities import get_memory_monitor_output_filename
+
+import os
 import logging
 
 logger = logging.getLogger(__name__)
@@ -87,6 +91,19 @@ def get_job_metrics(job):
             log.info("will not add max space = %d B to job metrics" % (max_space))
 
     # get analytics data
+    path = os.path.join(job.workdir, get_memory_monitor_output_filename())
+    if os.path.exists(path):
+        client = analytics.Analytics()
+        table = client.get_table(path)
+
+        if table:
+            x = table['Time']
+            y = table['PSS']
+
+            if len(x) >= 2 and len(y) >= 2:
+                fit = client.fit(x, y)
+
+                log.info('current memory leak: %f B/s' % fit.slope())
 
     # done with job metrics, now verify the string
 
