@@ -94,7 +94,7 @@ def get_job_metrics(job):
     path = os.path.join(job.workdir, get_memory_monitor_output_filename())
     if os.path.exists(path):
         client = analytics.Analytics()
-        slope = client.get_fitted_data(filename)
+        slope = client.get_fitted_data(path)
         if slope != "":
             job_metrics += slope
 
