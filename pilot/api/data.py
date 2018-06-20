@@ -306,7 +306,7 @@ class StagingClient(object):
                 self.logger.error(traceback.format_exc())
                 errors.append(e)
 
-            if errors and isinstance(errors[-1], PilotException) and errors[-1].code == ErrorCodes.MISSINGOUTPUTFILE:
+            if errors and isinstance(errors[-1], PilotException) and errors[-1].get_error_code() == ErrorCodes.MISSINGOUTPUTFILE:
                 raise errors[-1]
             if result:
                 break
