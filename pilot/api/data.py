@@ -307,6 +307,8 @@ class StagingClient(object):
                 self.logger.error(traceback.format_exc())
                 errors.append(e)
 
+            if errors and isinstance(errors[-1], PilotException) and errors[-1].code == ErrorCodes.MISSINGOUTPUTFILE:
+                raise errors[-1]
             if result:
                 break
 
@@ -363,7 +365,7 @@ class StageInClient(StagingClient):
             :return: the output of the copytool transfer operation
             :raise: PilotException in case of controlled error
         """
-
+        return True
         if getattr(copytool, 'require_replicas', False) and files and files[0].replicas is None:
             files = self.resolve_replicas(files)
             allowed_schemas = getattr(copytool, 'allowed_schemas', None)

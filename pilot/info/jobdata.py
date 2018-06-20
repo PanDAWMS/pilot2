@@ -133,7 +133,7 @@ class JobData(BaseData):
                    'platform', 'piloterrordiag', 'exitmsg',
                    'infiles', 'scopein', 'ddmendpointin',       ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    'outfiles', 'scopeout', 'ddmendpointout',    ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
-                   'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
+                   #'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
                    'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload', 'processingtype',
                    'swrelease', 'zipmap', 'imagename', 'transfertype', 'datasetin', 'datasetout', 'infilesguids'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
@@ -156,7 +156,7 @@ class JobData(BaseData):
 
         # DEBUG
         import pprint
-        logger.debug('Initialize Job from raw:\n%s' % pprint.pformat(data))
+        #logger.debug('Initialize Job from raw:\n%s' % pprint.pformat(data))
         #logger.debug('Final parsed Job content:\n%s' % self)
 
     def prepare_infiles(self, data):
@@ -308,11 +308,11 @@ class JobData(BaseData):
             'platform': 'cmtConfig',
             'scopein': 'scopeIn',                        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
             'scopeout': 'scopeOut',                      ## TO BE DEPRECATED: moved to FileSpec
-            'scopelog': 'scopeLog',                      ## TO BE DEPRECATED: moved to FileSpec
-            'logfile': 'logFile',                        ## TO BE DEPRECATED: moved to FileSpec
+            #'scopelog': 'scopeLog',                      ## TO BE DEPRECATED: moved to FileSpec
+            #'logfile': 'logFile',                        ## TO BE DEPRECATED: moved to FileSpec
             'infiles': 'inFiles',                        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
             'outfiles': 'outFiles',                      ## TO BE DEPRECATED: moved to FileSpec
-            'logguid': 'logGUID',                        ## TO BE DEPRECATED: moved to FileSpec
+            #'logguid': 'logGUID',                        ## TO BE DEPRECATED: moved to FileSpec
             'infilesguids': 'GUID',                      ## TO BE DEPRECATED: moved to FileSpec
             'attemptnr': 'attemptNr',
             'ddmendpointin': 'ddmEndPointIn',            ## TO BE DEPRECATED: moved to FileSpec (job.indata)
