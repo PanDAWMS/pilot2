@@ -10,7 +10,7 @@
 from .services import Services
 from pilot.common.exception import NotImplemented, NotDefined, NotSameLength, UnknownException
 from pilot.util.filehandling import get_table_from_file
-from pilot.util.math import mean, sum_square_dev, sum_dev, chi2
+from pilot.util.math import mean, sum_square_dev, sum_dev, chi2, float_to_rounded_string
 
 import logging
 logger = logging.getLogger(__name__)
@@ -115,6 +115,43 @@ class Analytics(Services):
         """
 
         return get_table_from_file(filename, header=header, separator=separator, convert_to_float=convert_to_float)
+
+    def get_fitted_data(self, filename, x_value='Time', y_value='PSS', precision=2):
+        """
+        Return a properly formatted job metrics string with analytics data.
+        Currently the function returns a fit for PSS vs time, whose slope measures memory leaks.
+
+        :param filename: full path to memory monitor output (string).
+        :param x_value: optional string, name selector for table column.
+        :param y_value: optional string, name selector for table column.
+        :param precision: optional precision for fitted slope parameter, default 2.
+        :return: slope (float string with desired precision).
+        """
+
+        slope = ""
+        table = self.get_table(filename)
+
+        if table:
+            # extract data to be fitted
+            x = table.get('Time', [])
+            y = table.get('PSS', [])
+
+            if len(x) >= 2 and len(y) >= 2:
+                try:
+                    fit = self.fit(x, y)
+                    _slope = self.slope()
+                except Exception as e:
+                    logger.warning('failed to fit data, x=%s, y=%s' % (str(x), str(y)))
+                else:
+                    if _slope:
+                        slope = float_to_rounded_string(fit.slope(), precision=precision)
+                        if slope != "":
+                            logger.info('current memory leak: %s B/s (using %d data points, chi2=%f)' %
+                                        (slope, len(x), fit.chi2()))
+            else:
+                logger.warning('wrong length of table data, x=%s, y=%s (must be same)' % (str(x), str(y)))
+
+        return slope
 
 
 class Fit(object):

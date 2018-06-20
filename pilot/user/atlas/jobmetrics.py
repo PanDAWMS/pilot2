@@ -94,16 +94,9 @@ def get_job_metrics(job):
     path = os.path.join(job.workdir, get_memory_monitor_output_filename())
     if os.path.exists(path):
         client = analytics.Analytics()
-        table = client.get_table(path)
-
-        if table:
-            x = table['Time']
-            y = table['PSS']
-
-            if len(x) >= 2 and len(y) >= 2:
-                fit = client.fit(x, y)
-
-                log.info('current memory leak: %f B/s' % fit.slope())
+        slope = client.get_fitted_data(filename)
+        if slope != "":
+            job_metrics += slope
 
     # done with job metrics, now verify the string
 
