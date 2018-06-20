@@ -555,8 +555,7 @@ def _stage_out_new(job, args):
         # prepare log file
         # consider only 1st available log file
         logfile = job.logdata[0]
-        r = prepare_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
-        logfile.filesize = r['bytes']  ## FIX ME LATER: do simplify prepare_log function
+        prepare_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
 
         if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], 'log'):
             is_success = False
