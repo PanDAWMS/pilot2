@@ -96,7 +96,7 @@ def get_job_metrics(job):
         client = analytics.Analytics()
         slope = client.get_fitted_data(path)
         if slope != "":
-            job_metrics += slope
+            job_metrics += get_job_metrics_entry("leak", slope)
 
     # done with job metrics, now verify the string
 
