@@ -88,6 +88,7 @@ def job_monitor_tasks(job, mt, args):
     if exit_code != 0:
         return exit_code, diagnostics
 
+    # note: this is useless to have here = should executed after the paylpad finishes - move
     # are the output files within allowed limits?
     exit_code, diagnostics = verify_output_sizes(current_time, mt, job)
     if exit_code != 0:
