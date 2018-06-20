@@ -84,7 +84,7 @@ class QueueData(BaseData):
         self.load(data)
 
         # DEBUG
-        import pprint
+        #import pprint
         #logger.debug('initialize QueueData from raw:\n%s' % pprint.pformat(data))
         logger.debug('Final parsed QueueData content:\n%s' % self)
 

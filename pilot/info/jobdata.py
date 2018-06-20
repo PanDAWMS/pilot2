@@ -155,7 +155,7 @@ class JobData(BaseData):
         self.outdata, self.logdata = self.prepare_outfiles(data)
 
         # DEBUG
-        import pprint
+        #import pprint
         #logger.debug('Initialize Job from raw:\n%s' % pprint.pformat(data))
         logger.debug('Final parsed Job content:\n%s' % self)
 
