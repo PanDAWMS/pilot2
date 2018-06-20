@@ -23,7 +23,7 @@ from pilot.util.auxiliary import get_logger
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD,\
     UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
-from pilot.util.filehandling import remove, get_guid, get_local_file_size
+from pilot.util.filehandling import remove, get_guid
 
 from pilot.info import FileSpec
 
