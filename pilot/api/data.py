@@ -279,7 +279,6 @@ class StagingClient(object):
 
         result, errors = None, []
 
-        self.logger.info('files=%s' % files)
         for name in copytools:
 
             try:
@@ -365,7 +364,7 @@ class StageInClient(StagingClient):
             :return: the output of the copytool transfer operation
             :raise: PilotException in case of controlled error
         """
-        return True
+
         if getattr(copytool, 'require_replicas', False) and files and files[0].replicas is None:
             files = self.resolve_replicas(files)
             allowed_schemas = getattr(copytool, 'allowed_schemas', None)
@@ -390,6 +389,8 @@ class StageInClient(StagingClient):
 
         if self.infosys:
             kwargs['copytools'] = self.infosys.queuedata.copytools
+
+        self.logger.info('Ready to transfer (stage-in) files: %s' % files)
 
         return copytool.copy_in(files, **kwargs)
 
@@ -571,6 +572,8 @@ class StageOutClient(StagingClient):
             self.logger.warning('Input is not valid for transfers using copytool=%s' % copytool)
             self.logger.debug('Input: %s' % files)
             raise PilotException('Invalid input for transfer operation')
+
+        self.logger.info('Ready to transfer (stage-out) files: %s' % files)
 
         if self.infosys:
             kwargs['copytools'] = self.infosys.queuedata.copytools
