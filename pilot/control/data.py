@@ -502,32 +502,13 @@ def _do_stageout(job, xdata, activity, title):
     """
 
     log = get_logger(job.jobid)
-
     log.info('prepare to stage-out %s files' % title)
 
     error = None
-
-    client = StageOutClient(job.infosys, logger=log)
-    kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
-
     try:
-        # check if file exists before actual processing
-        # populate filesize if need, calc checksum
-        for fspec in xdata:
-            pfn = getattr(fspec, 'pfn', None) or os.path.join(job.workdir, fspec.lfn)
-            if not os.path.isfile(pfn) or not os.access(pfn, os.R_OK):
-                msg = "Error: output pfn file does not exist: %s" % pfn
-                log.error(msg)
-                raise PilotException(msg, code=ErrorCodes.MISSINGOUTPUTFILE, state="FILE_INFO_FAIL")
-            if not fspec.filesize:
-                fspec.filesize = os.path.getsize(pfn)
-            fspec.surl = pfn
-            fspec.activity = activity
-            if not fspec.checksum.get('adler32'):
-                fspec.checksum['adler32'] = client.calc_adler32_checksum(pfn)
-
+        client = StageOutClient(job.infosys, logger=log)
+        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
         client.transfer(xdata, activity, **kwargs)
-
     except PilotException, error:
         import traceback
         log.error(traceback.format_exc())

@@ -520,6 +520,21 @@ class StageOutClient(StagingClient):
             :raise: PilotException in case of controlled error
         """
 
+        # check if files exist before actual processing
+        # populate filesize if need, calc checksum
+        for fspec in files:
+            pfn = fspec.surl or getattr(fspec, 'pfn', None) or os.path.join(kwargs.get('workdir', ''), fspec.lfn)
+            if not os.path.isfile(pfn) or not os.access(pfn, os.R_OK):
+                msg = "Error: output pfn file does not exist: %s" % pfn
+                self.logger.error(msg)
+                raise PilotException(msg, code=ErrorCodes.MISSINGOUTPUTFILE, state="FILE_INFO_FAIL")
+            if not fspec.filesize:
+                fspec.filesize = os.path.getsize(pfn)
+            fspec.surl = pfn
+            fspec.activity = activity
+            if not fspec.checksum.get('adler32'):
+                fspec.checksum['adler32'] = self.calc_adler32_checksum(pfn)
+
         # prepare files (resolve protocol/transfer url)
         if getattr(copytool, 'require_protocols', True) and files:
 
