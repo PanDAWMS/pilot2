@@ -85,14 +85,13 @@ def _resolve_checksum_option(setup, **kwargs):
     return coption
 
 
-def _stagefile(source, destination, filesize, is_stagein, setup=None, **kwargs):
+def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, **kwargs):
     """
         Stage the file (stagein or stageout)
         :return: destination file details (checksum, checksum_type) in case of success, throw exception in case of failure
         :raise: PilotException in case of controlled error
     """
 
-    coption = _resolve_checksum_option(setup, **kwargs)
     cmd = '%s -np -f %s %s %s' % (copy_command, coption, source, destination)
     if setup:
         cmd = "%s; %s" % (setup, cmd)
@@ -134,13 +133,15 @@ def copy_in(files, **kwargs):
         :raise: PilotException in case of controlled error
     """
 
+    setup = kwargs.pop('copytools', {}).get('xrdcp', {}).get('setup')
+    coption = _resolve_checksum_option(setup, **kwargs)
+
     for fspec in files:
 
         dst = fspec.workdir or kwargs.get('workdir') or '.'
         destination = os.path.join(dst, fspec.lfn)
-        setup = kwargs.pop('copytools', {}).get('xrdcp', {}).get('setup')
         try:
-            _stagefile(fspec.turl, destination, fspec.filesize, is_stagein=True, setup=setup, **kwargs)
+            _stagefile(coption, fspec.turl, destination, fspec.filesize, is_stagein=True, setup=setup, **kwargs)
             fspec.status_code = 0
             fspec.status = 'transferred'
         except Exception, error:
@@ -159,11 +160,13 @@ def copy_out(files, **kwargs):
         :raise: PilotException in case of controlled error
     """
 
+    setup = kwargs.pop('copytools', {}).get('xrdcp', {}).get('setup')
+    coption = _resolve_checksum_option(setup, **kwargs)
+
     for fspec in files:
 
-        setup = kwargs.pop('copytools', {}).get('xrdcp', {}).get('setup')
         try:
-            _stagefile(fspec.surl, fspec.turl, fspec.filesize, is_stagein=False, setup=setup, **kwargs)
+            _stagefile(coption, fspec.surl, fspec.turl, fspec.filesize, is_stagein=False, setup=setup, **kwargs)
             fspec.status_code = 0
             fspec.status = 'transferred'
         except Exception, error:
