@@ -8,116 +8,198 @@
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
-# Note: stage-out not implemented; replica resolution donein copy_in - but is now done at an earlier stage
+# Reimplemented by Alexey Anisenkov
 
-import re
-
-from pilot.copytool.common import merge_destinations
-from pilot.util.container import execute
-
+import os
 import logging
+
+from pilot.util.container import execute
+from pilot.common.exception import PilotException, ErrorCodes
+
 logger = logging.getLogger(__name__)
 
 require_replicas = True  ## indicate if given copytool requires input replicas to be resolved
+allowed_schemas = ['root']  # prioritized list of supported schemas for transfers by given copytool
+
+copy_command = 'xrdcp'
 
 
 def is_valid_for_copy_in(files):
     return True  ## FIX ME LATER
-    #for f in files:
-    #    if not all(key in f for key in ('scope', 'name', 'destination')):
-    #        return False
-    #return True
 
 
 def is_valid_for_copy_out(files):
-    return False  # NOT IMPLEMENTED YET
-    #for f in files:
-    #    if not all(key in f for key in ('name', 'source', 'destination')):
-    #        return False
-    #return True
+    return True  ## FIX ME LATER
 
 
-def copy_in(files):
+def get_timeout(filesize):   ## ISOLATE ME LATER
+    """ Get a proper time-out limit based on the file size """
+
+    timeout_max = 3 * 3600  # 3 hours
+    timeout_min = 300  # self.timeout
+
+    timeout = timeout_min + int(filesize / 0.5e6)  # approx < 0.5 Mb/sec
+
+    return min(timeout, timeout_max)
+
+
+def _resolve_checksum_option(setup, **kwargs):
+
+    cmd = "%s --version" % copy_command
+    if setup:
+        cmd = "%s; %s" % (setup, cmd)
+
+    logger.info("Execute command (%s) to check xrdcp client version" % cmd)
+
+    rcode, stdout, stderr = execute(cmd, **kwargs)
+    logger.info("return code: %s" % rcode)
+    logger.info("return output: %s" % (stdout + stderr))
+
+    cmd = "%s -h" % copy_command
+    if setup:
+        cmd = "%s; %s" % (setup, cmd)
+
+    logger.info("Execute command (%s) to decide which option should be used to calc/verify file checksum.." % cmd)
+
+    rcode, stdout, stderr = execute(cmd, **kwargs)
+    output = stdout + stderr
+    logger.info("return code: %s" % rcode)
+    logger.debug("return output: %s" % output)
+
+    coption = ""
+    checksum_type = 'adler32'  ## consider only adler32 for now
+
+    if rcode:
+        logger.error('FAILED to execute command=%s: %s' % (cmd, output))
+    else:
+        if "--cksum" in output:
+            coption = "--cksum %s:print" % checksum_type
+        elif "-adler" in output and checksum_type == 'adler32':
+            coption = "-adler"
+        elif "-md5" in output and checksum_type == 'md5':
+            coption = "-md5"
+
+    if coption:
+        logger.info("Use %s option to get the checksum for %s command" % (coption, copy_command))
+
+    return coption
+
+
+def _stagefile(source, destination, filesize, is_stagein, setup=None, **kwargs):
     """
-    Tries to download the given files using xrdcp directly.
-
-    :param files: Files to download
-
-    :raises Exception
+        Stage the file (stagein or stageout)
+        :return: destination file details (checksum, checksum_type) in case of success, throw exception in case of failure
+        :raise: PilotException in case of controlled error
     """
-    destinations = merge_destinations(files)
-    if len(destinations) == 0:
-        raise Exception('no lfn with existing destination path given!')
 
-    lfns = set()
-    for dst in destinations:
-        lfns.update(destinations[dst]['lfns'])
+    coption = _resolve_checksum_option(setup, **kwargs)
+    cmd = '%s -np -f %s %s %s' % (copy_command, coption, source, destination)
+    if setup:
+        cmd = "%s; %s" % (setup, cmd)
 
-    # this part should no longer be necessary - replicas are resolved at an earlier stage
+    #timeout = get_timeout(filesize)
+    #logger.info("Executing command: %s, timeout=%s" % (cmd, timeout))
 
-    executable = ['/usr/bin/env',
-                  'rucio', '-R', 'list-file-replicas',
-                  '--protocols', 'root']
-    executable.extend(lfns)
+    rcode, stdout, stderr = execute(cmd, **kwargs)
 
-    logger.info('querying file replicas from rucio...')
+    if rcode:  ## error occurred
+        error = resolve_transfer_error(stdout + stderr, is_stagein=is_stagein)
 
-    exit_code, stdout, stderr = execute(executable)
+        #rcode = error.get('rcode')  ## TO BE IMPLEMENTED
+        #if not is_stagein and rcode == PilotErrors.ERR_CHKSUMNOTSUP: ## stage-out, on fly checksum verification is not supported .. ignore
+        #    logger.info('stage-out: ignore ERR_CHKSUMNOTSUP error .. will explicitly verify uploaded file')
+        #    return None, None
 
-    if exit_code != 0:
-        raise Exception('could not query file replicas from rucio!')
+        raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
-    # | scope | name | size | hash | RSE: pfn |\n
-    pattern = ur'^\s*\|\s*(\S*)\s*\|\s*(\S*)\s*\|\s*[0-9]*\s*\|\s*[0-9a-zA-Z]{8}\s*\|\s*(\S*):\s*(root://\S*).*$'
-    regex = re.compile(pattern, re.MULTILINE)
-    lfns_with_pfns = {}
-    for match in regex.finditer(stdout):
-        # [1] = scope, [2] = name, [3] = rse, [4] = pfn
-        grps = match.groups()
+    # extract filesize and checksum values from output
+    #checksum, checksum_type = self.getRemoteFileChecksumFromOutput(output)
+    #return checksum, checksum_type
 
-        if len(grps) != 4:
-            logger.warning('regex returned unexpected amount of matches! ignoring match...')
-            continue
-        if None in grps:
-            logger.warning('match contained None! ignoring match...')
-            continue
+    ## verify transfer by returned checksum or call remote checksum calculation
+    ## to be moved at the base level
 
-        lfn = '%s:%s' % (grps[0], grps[1])
-        lfns_with_pfns.setdefault(lfn, []).append(grps[3])
+    is_verified = True   ## TO BE IMPLEMENTED LATER
 
-    for dst in destinations:
-        executable = ['/usr/bin/env',
-                      'xrdcp', '-f']
-        for lfn in destinations[dst]['lfns']:
-            if lfn not in lfns_with_pfns:
-                raise Exception('the given LFNs %s were not returned by Rucio!' % lfn)
-            executable.append(lfns_with_pfns[lfn][0])
+    if not is_verified:
+        rcode = ErrorCodes.GETADMISMATCH if is_stagein else ErrorCodes.PUTADMISMATCH
+        raise PilotException("Copy command failed", code=rcode, state='AD_MISMATCH')
 
-        executable.append(dst)
 
-        exit_code, stdout, stderr = execute(executable)
+def copy_in(files, **kwargs):
+    """
+        Download given files using xrdcp command.
 
-        stats = {}
-        if exit_code == 0:
-            stats['status'] = 'done'
-            stats['errno'] = 0
-            stats['errmsg'] = 'file successfully downloaded.'
-        else:
-            stats['status'] = 'failed'
-            stats['errno'] = 3
-            stats['errmsg'] = stderr
+        :param files: list of `FileSpec` objects
+        :raise: PilotException in case of controlled error
+    """
 
-        for f in destinations[dst]['files']:
-            f.update(stats)
+    for fspec in files:
+
+        dst = fspec.workdir or kwargs.get('workdir') or '.'
+        destination = os.path.join(dst, fspec.lfn)
+        setup = kwargs.pop('copytools', {}).get('xrdcp', {}).get('setup')
+        try:
+            _stagefile(fspec.turl, destination, fspec.filesize, is_stagein=True, setup=setup, **kwargs)
+            fspec.status_code = 0
+            fspec.status = 'transferred'
+        except Exception, error:
+            fspec.status = 'failed'
+            fspec.status_code = error.get_error_code() if isinstance(error, PilotException) else ErrorCodes.STAGEINFAILED
+            raise
+
     return files
 
 
-def copy_out(files):
+def copy_out(files, **kwargs):
     """
-    Tries to upload the given files using xrdcp directly.
+        Upload given files using xrdcp command.
 
-    :param files Files to download
-
-    :raises Exception
+        :param files: list of `FileSpec` objects
+        :raise: PilotException in case of controlled error
     """
-    raise NotImplementedError()
+
+    for fspec in files:
+
+        setup = kwargs.pop('copytools', {}).get('xrdcp', {}).get('setup')
+        try:
+            _stagefile(fspec.surl, fspec.turl, fspec.filesize, is_stagein=False, setup=setup, **kwargs)
+            fspec.status_code = 0
+            fspec.status = 'transferred'
+        except Exception, error:
+            fspec.status = 'failed'
+            fspec.status_code = error.get_error_code() if isinstance(error, PilotException) else ErrorCodes.STAGEOUTFAILED
+            raise
+
+    return files
+
+
+def resolve_transfer_error(output, is_stagein):
+    """
+        Resolve error code, client state and defined error mesage from the output of transfer command
+        :return: dict {'rcode', 'state, 'error'}
+    """
+
+    ret = {'rcode': ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
+           'state': 'COPY_ERROR', 'error': 'Copy operation failed [is_stagein=%s]: %s' % (is_stagein, output)}
+
+    ## VERIFY ME LATER
+    if "timeout" in output:
+        ret['rcode'] = ErrorCodes.STAGEINTIMEOUT if is_stagein else ErrorCodes.STAGEOUTTIMEOUT
+        ret['state'] = 'CP_TIMEOUT'
+        ret['error'] = 'copy command timed out: %s' % output
+    elif "does not match the checksum" in output:
+        if 'adler32' in output:
+            state = 'AD_MISMATCH'
+            rcode = ErrorCodes.GETADMISMATCH if is_stagein else ErrorCodes.PUTADMISMATCH
+        else:
+            state = 'MD5_MISMATCH'
+            rcode = ErrorCodes.GETMD5MISMATCH if is_stagein else ErrorCodes.PUTMD5MISMATCH
+        ret['rcode'] = rcode
+        ret['state'] = state
+    elif "query chksum is not supported" in output or "Unable to checksum" in output:
+        ret['rcode'] = ErrorCodes.CHKSUMNOTSUP
+        ret['state'] = 'CHKSUM_NOTSUP'
+        ret['error'] = output
+
+    return ret

@@ -552,8 +552,7 @@ def _stage_out_new(job, args):
             log.warning('transfer of output file(s) failed')
 
     if job.stageout in ['log', 'all'] and job.logdata:  ## do stage-out log files
-        # prepare log file
-        # consider only 1st available log file
+        # prepare log file, consider only 1st available log file
         logfile = job.logdata[0]
         prepare_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
 

@@ -42,6 +42,7 @@ class ErrorCodes:
     GETADMISMATCH = 1171
     PUTADMISMATCH = 1172
     NOVOMSPROXY = 1177
+    CHKSUMNOTSUP = 1242
 
     # Error code constants (new since Pilot 2)
     NOTIMPLEMENTED = 1300
@@ -90,7 +91,9 @@ class ErrorCodes:
         SINGULARITYBINDPOINTFAILURE: "Singularity: Not mounting requested bind point",
         SINGULARITYIMAGEMOUNTFAILURE: "Singularity: Failed to mount image",
         PAYLOADEXECUTIONEXCEPTION: "Exception caught during payload execution",
-        NOSTORAGEPROTOCOL: "No protocol defined for storage endpoint"
+        NOSTORAGEPROTOCOL: "No protocol defined for storage endpoint",
+        CHKSUMNOTSUP: "Mover error: query checksum is not supported",
+
     }
 
     def get_error_message(self, errorcode):
