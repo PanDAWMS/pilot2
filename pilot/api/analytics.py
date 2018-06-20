@@ -141,7 +141,7 @@ class Analytics(Services):
                     fit = self.fit(x, y)
                     _slope = self.slope()
                 except Exception as e:
-                    logger.warning('failed to fit data, x=%s, y=%s' % (str(x), str(y)))
+                    logger.warning('failed to fit data, x=%s, y=%s: %s' % (str(x), str(y), e))
                 else:
                     if _slope:
                         slope = float_to_rounded_string(fit.slope(), precision=precision)
