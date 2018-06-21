@@ -1081,6 +1081,11 @@ def job_monitor(queues, traces, args):
         if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
             break
 
+        # sleep for a while if stage-in has not completed
+        if queues.finished_data_in.empty():
+            time.sleep(1)
+            continue
+
         # wait a minute
         time.sleep(60)
         try:
