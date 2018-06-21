@@ -415,6 +415,10 @@ def get_instant_cpu_consumption_time(pid):
     if utime and stime and cutime and cstime:
         # sum up all the user+system times for both the main process (pid) and the child processes
         cpu_consumption_time = utime + stime + cutime + cstime
+        logger.info('utime = %f' % utime)
+        logger.info('stime = %f' % stime)
+        logger.info('cutime = %f' % cutime)
+        logger.info('cstime = %f' % cstime)
     else:
         cpu_consumption_time = 0.0
 
