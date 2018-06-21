@@ -313,7 +313,7 @@ def create_data_payload(queues, traces, args):
         except Queue.Empty:
             continue
 
-        if job.infiles and job.infiles != []:
+        if job.indata:
             queues.data_in.put(job)
         else:
             queues.finished_data_in.put(job)

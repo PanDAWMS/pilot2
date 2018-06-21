@@ -28,7 +28,6 @@ import pipes
 
 from .basedata import BaseData
 from .filespec import FileSpec
-from pilot.util.filehandling import add_to_total_size
 
 import logging
 logger = logging.getLogger(__name__)
@@ -97,11 +96,11 @@ class JobData(BaseData):
 
     # from job definition
     attemptnr = 0  # job attempt number
-    ddmendpointin = ""  # comma-separated list (string) of ddm endpoints for input    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-    ddmendpointout = ""  # comma-separated list (string) of ddm endpoints for output  ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
+    #ddmendpointin = ""  # comma-separated list (string) of ddm endpoints for input    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+    #ddmendpointout = ""  # comma-separated list (string) of ddm endpoints for output  ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
     destinationdblock = ""  ## to be moved to FileSpec (job.outdata)
-    datasetin = ""
-    datasetout = ""
+    datasetin = ""  ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+    #datasetout = ""
 
     infiles = ""  # comma-separated list (string) of input files  ## TO BE DEPRECATED: moved to FileSpec (use job.indata instead)
     infilesguids = ""
@@ -115,10 +114,10 @@ class JobData(BaseData):
     homepackage = ""
 
     jobsetid = ""  # job set id
-    logfile = ""  #  file name for log                                   ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
-    logguid = ""  # unique guid for log file                             ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
+    #logfile = ""  #  file name for log                                   ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
+    #logguid = ""  # unique guid for log file                             ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
     noexecstrcnv = None  # server instruction to the pilot if it should take payload setup from job parameters
-    outfiles = ""  # comma-separated list (string) of output files       ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
+    #outfiles = ""  # comma-separated list (string) of output files       ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
     #scopein = ""  # comma-separated list (string) of input file scopes   ## TO BE DEPRECATED: moved to FileSpec (job.indata)
     #scopelog = ""  # scope for log file                                  ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
     #scopeout = ""  # comma-separated list (string) of output file scopes ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
@@ -133,11 +132,16 @@ class JobData(BaseData):
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
                    'state', 'status', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg',
-                   'infiles', 'scopein', 'ddmendpointin',       ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-                   'outfiles', 'scopeout', 'ddmendpointout',    ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
+                   'infiles',         ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+                   #'scopein',        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+                   #'outfiles', 'ddmendpointin',   ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+                   #'scopeout', 'ddmendpointout',    ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    #'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
                    'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload', 'processingtype',
-                   'swrelease', 'zipmap', 'imagename', 'transfertype', 'datasetin', 'datasetout', 'infilesguids'],
+                   'swrelease', 'zipmap', 'imagename', 'transfertype',
+                   'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+                   #'datasetout',  ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
+                   'infilesguids'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
              dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
              bool: ['is_eventservice', 'noexecstrcnv']
@@ -308,19 +312,19 @@ class JobData(BaseData):
             'jobparams': 'jobPars',
             'corecount': 'coreCount',
             'platform': 'cmtConfig',
-            'scopein': 'scopeIn',                        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-            'scopeout': 'scopeOut',                      ## TO BE DEPRECATED: moved to FileSpec
+            #'scopein': 'scopeIn',                        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+            #'scopeout': 'scopeOut',                      ## TO BE DEPRECATED: moved to FileSpec
             #'scopelog': 'scopeLog',                      ## TO BE DEPRECATED: moved to FileSpec
             #'logfile': 'logFile',                        ## TO BE DEPRECATED: moved to FileSpec
             'infiles': 'inFiles',                        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-            'outfiles': 'outFiles',                      ## TO BE DEPRECATED: moved to FileSpec
+            #'outfiles': 'outFiles',                      ## TO BE DEPRECATED: moved to FileSpec
             #'logguid': 'logGUID',                        ## TO BE DEPRECATED: moved to FileSpec
             'infilesguids': 'GUID',                      ## TO BE DEPRECATED: moved to FileSpec
             'attemptnr': 'attemptNr',
-            'ddmendpointin': 'ddmEndPointIn',            ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-            'ddmendpointout': 'ddmEndPointOut',          ## TO BE DEPRECATED: moved to FileSpec
+            #'ddmendpointin': 'ddmEndPointIn',            ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+            #'ddmendpointout': 'ddmEndPointOut',          ## TO BE DEPRECATED: moved to FileSpec
             'datasetin': 'realDatasetsIn',               ## TO BE DEPRECATED: moved to FileSpec
-            'datasetout': 'realDatasets',                ## TO BE DEPRECATED: moved to FileSpec
+            #'datasetout': 'realDatasets',                ## TO BE DEPRECATED: moved to FileSpec
             'processingtype': 'processingType',
             'destinationdblock': 'destinationDblock',
             'noexecstrcnv': 'noExecStrCnv',
@@ -348,22 +352,14 @@ class JobData(BaseData):
         Check if the job is a build job.
         (i.e. check if the job has an output file that is a lib file).
 
-        :param outfiles: list of output files.
         :return: boolean
         """
 
-        is_a_build_job = False
-        if type(self.outfiles) == str:
-            outfiles = self.outfiles.split(',')
-        else:
-            outfiles = self.outfiles
+        for fspec in self.outdata:
+            if '.lib.' in fspec.lfn and '.log.' not in fspec.lfn:
+                return True
 
-        for f in outfiles:
-            if '.lib.' in f and '.log.' not in f:
-                is_a_build_job = True
-                break
-
-        return is_a_build_job
+        return False
 
     def clean(self):
         """
@@ -554,16 +550,12 @@ class JobData(BaseData):
         """
 
         # Convert to long if necessary
-        if type(workdir_size) != long:
+        if not isinstance(workdir_size, (int, long)):
             try:
                 workdir_size = long(workdir_size)
             except Exception as e:
-                logger.warning('failed to convert %s to long: %s' % (str(workdir_size), e))
+                logger.warning('failed to convert %s to long: %s' % (workdir_size, e))
                 return
-        if type(self.infiles) == str:
-            in_files = self.infiles.split(',')
-        else:
-            in_files = self.infiles
 
         total_size = 0L  # B
 
@@ -572,25 +564,19 @@ class JobData(BaseData):
             # (Note: output files should also be removed from the total size since outputfilesize is added in the
             # task def)
 
-            # First remove the log file from the output file list
-            out_files = []
-            if type(self.outfiles) == str:
-                outfiles = self.outfiles.split(',')
-            else:
-                outfiles = self.outfiles
-            for f in outfiles:
-                if self.logfile not in f:
-                    out_files.append(f)
-
             # Then update the file list in case additional output files were produced
             # Note: don't do this deduction since it is not known by the task definition
             # out_files, dummy, dummy = discoverAdditionalOutputFiles(outFiles, job.workdir, job.destinationDblock,
             # job.scopeOut)
 
-            file_list = in_files + out_files
-            for f in file_list:
-                if f != "":
-                    total_size = add_to_total_size(os.path.join(self.workdir, f), total_size)
+            for fspec in self.indata + self.outdata:
+                if fspec.type == 'input' and fspec.status != 'transferred':
+                    continue
+                pfn = os.path.join(self.workdir, fspec.lfn)
+                if not os.path.isfile(pfn):
+                    msg = "Error: pfn file=%s does not exist .. skip from wordir size calculation: %s" % pfn
+                    logger.info(msg)
+                total_size += os.path.getsize(pfn)
 
             logger.info("total size of present input+output files: %d B (workdir size: %d B)" %
                         (total_size, workdir_size))
