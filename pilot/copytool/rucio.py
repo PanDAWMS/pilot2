@@ -11,10 +11,13 @@
 
 import os
 import re
+import json
+import logging
 
 from pilot.common.exception import PilotException, ErrorCodes
-
 from pilot.util.container import execute
+
+logger = logging.getLogger(__name__)
 
 # can be disable for Rucio if allowed to use all RSE for input
 require_replicas = True    ## indicates if given copytool requires input replicas to be resolved
@@ -73,7 +76,7 @@ def copy_out(files, **kwargs):
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
     no_register = kwargs.pop('no_register', False)
-    summary = kwargs.pop('summary', False)
+    summary = kwargs.pop('summary', True)
 
     for fspec in files:
         cmd = ['/usr/bin/env', 'rucio', '-v', 'upload']
@@ -102,6 +105,22 @@ def copy_out(files, **kwargs):
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
             raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
+
+        if summary:  # resolve final pfn (turl) from the summary JSON
+            cwd = fspec.workdir or kwargs.get('workdir') or '.'
+            path = os.path.join(cwd, 'rucio_upload.json')
+            if not os.path.exists(path):
+                logger.error('Failed to resolve Rucio summary JSON, wrong path? file=%s' % path)
+            else:
+                with open(path, 'rb') as f:
+                    summary = json.load(f)
+                    dat = summary.get("%s:%s" % (fspec.scope, fspec.lfn)) or {}
+                    fspec.turl = dat.get('pfn')
+                    # quick transfer verification:
+                    # the logic should be unified and moved to base layer shared for all the movers
+                    adler32 = dat.get('adler32')
+                    if fspec.checksum.get('adler32') and adler32 and fspec.checksum.get('adler32') != adler32:
+                        raise PilotException("Failed to stageout: CRC mismatched", code=ErrorCodes.PUTADMISMATCH, state='AD_MISMATCH')
 
         fspec.status_code = 0
         fspec.status = 'transferred'
