@@ -88,39 +88,11 @@ def job_monitor_tasks(job, mt, args):
     if exit_code != 0:
         return exit_code, diagnostics
 
-    # note: this is useless to have here = should executed after the paylpad finishes - move
-    # are the output files within allowed limits?
-    exit_code, diagnostics = verify_output_sizes(current_time, mt, job)
-    if exit_code != 0:
-        return exit_code, diagnostics
-
     # make sure that any utility commands are still running
     if job.utilities != {}:
         job = utility_monitor(job)
 
     return exit_code, diagnostics
-
-
-def verify_output_sizes(current_time, mt, job):
-    """
-    Verify that the sizes of the output files are not too big.
-
-    :param current_time: current time at the start of the monitoring loop (int).
-    :param mt: measured time object.
-    :param job: job object.
-    :return: exit code (int), error diagnostics (string).
-    """
-
-    if current_time - mt.get('ct_output') > config.Pilot.output_verification_time:
-        # is the used memory within the allowed limit?
-        exit_code, diagnostics = check_output_file_sizes(job)
-        if exit_code != 0:
-            return exit_code, diagnostics
-        else:
-            # update the ct_output with the current time
-            mt.update('ct_output')
-
-    return 0, ""
 
 
 def verify_memory_usage(current_time, mt, job):
