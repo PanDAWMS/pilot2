@@ -8,6 +8,7 @@
 # - Pavlo Svirin, pavlo.svirin@cern.ch, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2018
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Alexey Anisenkov, anisyonk@cern.ch, 2018
 
 import os
 import logging
@@ -122,21 +123,50 @@ def resolve_transfer_error(output, is_stagein):
     return ret
 
 
-def copy_out(files):
+def copy_out(files, **kwargs):
     """
-    Tries to upload the given files using mv directly.
+    Upload given files using gfal command.
 
     :param files: Files to upload
-    :raises PilotException: StageOutFailure
+    :raises: PilotException in case of errors
     """
 
     if not check_for_gfal():
-        raise StageOutFailure("no GFAL2 tools found")
+        raise StageOutFailure("No GFAL2 tools found")
 
-    exit_code, stdout, stderr = move_all_files_out(files)
-    if exit_code != 0:
-        # raise failure
-        raise StageOutFailure(stdout)
+    for fspec in files:
+
+        src = fspec.workdir or kwargs.get('workdir') or '.'
+
+        timeout = get_timeout(fspec.filesize)
+
+        source = "file://%s" % os.path.abspath(fspec.surl or os.path.join(src, fspec.lfn))
+        destination = fspec.turl
+
+        cmd = ['gfal-copy --verbose -f', ' -t %s' % timeout]
+
+        if fspec.checksum:
+            cmd += ['-K', '%s:%s' % fspec.checksum.items()[0]]
+
+        cmd += [source, destination]
+
+        rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
+
+        if rcode:  ## error occurred
+            if rcode in [errno.ETIMEDOUT, errno.ETIME]:
+                error = {'rcode': ErrorCodes.STAGEOUTTIMEOUT,
+                         'state': 'CP_TIMEOUT',
+                         'error': 'Copy command timed out: %s' % stderr}
+            else:
+                error = resolve_transfer_error(stdout + stderr, is_stagein=False)
+            fspec.status = 'failed'
+            fspec.status_code = error.get('rcode')
+            raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
+
+        fspec.status_code = 0
+        fspec.status = 'transferred'
+
+    return files
 
 
 def move_all_files_in(files, nretries=1):   ### NOT USED -- TO BE DEPRECATED
@@ -172,7 +202,7 @@ def move_all_files_in(files, nretries=1):   ### NOT USED -- TO BE DEPRECATED
     return exit_code, stdout, stderr
 
 
-def move_all_files_out(files, nretries=1):
+def move_all_files_out(files, nretries=1):  ### NOT USED -- TO BE DEPRECATED
     """
     Move all files.
 

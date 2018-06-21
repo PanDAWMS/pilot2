@@ -21,6 +21,7 @@ The main reasons for such incapsulation are to
 :date: January 2018
 """
 
+import copy
 import logging
 logger = logging.getLogger(__name__)
 
@@ -82,7 +83,7 @@ class BaseData(object):
                 ## cast to required type and apply default validation
                 hvalidator = validators.get(ktype, validators.get(None))
                 if callable(hvalidator):
-                    value = hvalidator(raw, ktype, kname, defval=getattr(self, kname, None))
+                    value = hvalidator(raw, ktype, kname, defval=copy.deepcopy(getattr(self, kname, None)))
                 ## apply custom validation if defined
                 hvalidator = getattr(self, 'clean__%s' % kname, None)
                 if callable(hvalidator):
@@ -120,7 +121,8 @@ class BaseData(object):
         try:
             return ktype(raw)
         except Exception:
-            logger.warning('failed to convert data for key=%s, raw=%s to type=%s' % (kname, raw, ktype))
+            if raw is not None:
+                logger.warning('failed to convert data for key=%s, raw=%s to type=%s, defval=%s' % (kname, raw, ktype, defval))
             return defval
 
     def clean_string(self, raw, ktype, kname=None, defval=""):

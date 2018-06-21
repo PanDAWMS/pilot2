@@ -38,15 +38,18 @@ class StorageData(BaseData):
     pk = 0        # unique identification number
     name = ""     # DDMEndpoint name
     type = ""     # type of Storage
+    is_deterministic = None
 
     state = None
     site = None   # ATLAS Site name
 
+    arprotocols = {}
+
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['pk'],
              str: ['name', 'state', 'site', 'type'],
-             dict: ['copytools', 'acopytools', 'astorages', 'aprotocols'],
-             bool: []
+             dict: ['copytools', 'acopytools', 'astorages', 'arprotocols'],
+             bool: ['is_deterministic']
              }
 
     def __init__(self, data):

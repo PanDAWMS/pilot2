@@ -14,7 +14,7 @@ from collections import defaultdict
 from glob import glob
 from signal import SIGTERM, SIGUSR1
 
-from pilot.common.exception import TrfDownloadFailure
+from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
     set_inds, get_analysis_trf, get_payload_environment_variables
 from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
@@ -23,7 +23,9 @@ from pilot.util.auxiliary import get_logger
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD,\
     UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
-from pilot.util.filehandling import remove
+from pilot.util.filehandling import remove, get_guid
+
+from pilot.info import FileSpec
 
 import logging
 logger = logging.getLogger(__name__)
@@ -351,7 +353,7 @@ def get_file_transfer_info(transfertype, is_a_build_job, queuedata):
     return use_copy_tool, use_direct_access, use_pfc_turl
 
 
-def update_job_data(job):
+def update_job_data(job):  # noqa: C901
     """
     This function can be used to update/add data to the job object.
     E.g. user specific information can be extracted from other job object fields. In the case of ATLAS, information
@@ -360,6 +362,11 @@ def update_job_data(job):
     :param job: job object
     :return:
     """
+
+    ## comment from Alexey:
+    ## it would be better to reallocate this logic (as well as parse metadata values)directly to Job object
+    ## since in general it's Job related part
+    ## later on once we introduce VO specific Job class (inherited from JobData) this can be easily customized
 
     stageout = "all"
 
@@ -373,7 +380,7 @@ def update_job_data(job):
             stageout = "log"
     if 'exeErrorDiag' in job.metadata:
         job.exeerrordiag = job.metadata['exeErrorDiag']
-        if job.exeerrordiag != "":
+        if job.exeerrordiag:
             logger.warning('payload failed: exeErrorDiag=%s' % job.exeerrordiag)
 
     # determine what should be staged out
@@ -382,12 +389,43 @@ def update_job_data(job):
     # extract the number of events
     job.nevents = get_number_of_events(job.metadata)
 
+    work_attributes = None
     try:
         work_attributes = parse_jobreport_data(job.metadata)
     except Exception as e:
         logger.warning('failed to parse job report: %s' % e)
-    else:
-        logger.info('work_attributes = %s' % str(work_attributes))
+
+    logger.info('work_attributes = %s' % work_attributes)
+
+    # extract output files from the job report, in case the trf has created additional (overflow) files
+    if job.metadata:
+        data = dict([e.lfn, e] for e in job.outdata)
+        extra = []
+
+        for dat in job.metadata.get('files', {}).get('output', []):
+            for fdat in dat.get('subFiles', []):
+                lfn = fdat['name']
+                if lfn not in data:  # found new entry, create filespec
+                    if not job.outdata:
+                        raise PilotException("Failed to grub data from job report: job.outdata is empty, will not be able to construct filespecs")
+                    kw = {'lfn': lfn,
+                          'scope': job.outdata[0].scope,  ## take value from 1st output file?
+                          'guid': fdat['file_guid'],
+                          'filesize': fdat['file_size'],
+                          'dataset': dat.get('dataset') or job.outdata[0].dataset  ## take value from 1st output file?
+                          }
+                    spec = FileSpec(type='output', **kw)
+                    extra.append(spec)
+
+        if extra:
+            logger.info('Found extra output files to be added for stage-out: extra=%s' % extra)
+            job.outdata.extend(extra)
+
+    ## validate output data (to be moved into the JobData)
+    for dat in job.outdata:
+        if not dat.guid:
+            dat.guid = get_guid()
+            logger.info('Generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
 
 
 def parse_jobreport_data(job_report):

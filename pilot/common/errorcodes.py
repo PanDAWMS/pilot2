@@ -37,10 +37,13 @@ class ErrorCodes:
     STAGEINTIMEOUT = 1151  # called GETTIMEOUT in Pilot 1
     STAGEOUTTIMEOUT = 1152  # called PUTTIMEOUT in Pilot 1
     NOPROXY = 1163
+    MISSINGOUTPUTFILE = 1165
+
     GETADMISMATCH = 1171
     PUTADMISMATCH = 1172
     NOVOMSPROXY = 1177
     PAYLOADEXCEEDMAXMEM = 1235
+    CHKSUMNOTSUP = 1242
 
     # Error code constants (new since Pilot 2)
     NOTIMPLEMENTED = 1300
@@ -56,6 +59,7 @@ class ErrorCodes:
     PAYLOADEXECUTIONEXCEPTION = 1310
     NOTDEFINED = 1311
     NOTSAMELENGTH = 1312
+    NOSTORAGEPROTOCOL = 1313
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -70,6 +74,7 @@ class ErrorCodes:
         STAGEOUTFAILED: "Failed to stage-out file",
         PUTMD5MISMATCH: "md5sum mismatch on output file",
         GETMD5MISMATCH: "md5sum mismatch on input file",
+        MISSINGOUTPUTFILE: "Local output file is missing",
         TRFDOWNLOADFAILURE: "Transform could not be downloaded",
         LOOPINGJOB: "Looping job killed by pilot",
         STAGEINTIMEOUT: "File transfer timed out during stage-in",
@@ -92,6 +97,8 @@ class ErrorCodes:
         PAYLOADEXECUTIONEXCEPTION: "Exception caught during payload execution",
         NOTDEFINED: "Not defined",
         NOTSAMELENGTH: "Not same length"
+        NOSTORAGEPROTOCOL: "No protocol defined for storage endpoint",
+        CHKSUMNOTSUP: "Mover error: query checksum is not supported",
     }
 
     def get_error_message(self, errorcode):

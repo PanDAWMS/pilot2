@@ -22,6 +22,7 @@ in a unified structured way to all Pilot modules by providing high-level API
 from .infoservice import InfoService
 from .jobinfo import JobInfoProvider  # noqa
 from .jobdata import JobData          # noqa
+from .filespec import FileSpec        # noqa
 
 #from .queuedata import QueueData
 
@@ -81,8 +82,8 @@ def set_info(args):
 
     logger.info('queue: %s' % args.info.queue)
     #logger.info('site: %s' % args.info.site)
-    logger.info('storages: %s' % args.info.storages)
-    logger.info('queuedata: %s' % args.info.infoservice.queuedata)
+    #logger.info('storages: %s' % args.info.storages)
+    #logger.info('queuedata: %s' % args.info.infoservice.queuedata)
 
 
 # global InfoService Instance without Job specific settings applied (singleton shared object)
