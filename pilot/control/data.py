@@ -9,6 +9,7 @@
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 # - Wen Guan, wen.guan@cern.ch, 2018
+# - Alexey Anisenkov, anisyonk@cern.ch, 2018
 
 import copy
 import Queue
@@ -20,10 +21,10 @@ import time
 
 from contextlib import closing  # for Python 2.6 compatibility - to fix a problem with tarfile
 
-from pilot.api.data import StageInClient
+from pilot.api.data import StageInClient, StageOutClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import ExcThread
+from pilot.common.exception import ExcThread, PilotException
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT
@@ -100,7 +101,7 @@ def use_container(cmd):
     return usecontainer
 
 
-def _call(args, executable, job, cwd=os.getcwd(), logger=logger):
+def _call(args, executable, job, cwd=os.getcwd(), logger=logger):  ### TO BE DEPRECATED
     try:
         # for containers, we can not use a list
         usecontainer = use_container(executable[1])
@@ -367,7 +368,7 @@ def copytool_out(queues, traces, args):
 
             # send_state(job, args, 'running')  # not necessary to send job update at this point?
 
-            if _stage_out_all(job, args):
+            if _stage_out_new(job, args):
                 queues.finished_data_out.put(job)
             else:
                 queues.failed_data_out.put(job)
@@ -402,7 +403,7 @@ def prepare_log(job, logfile, tarball_name):
             'bytes': os.stat(os.path.join(job.workdir, logfile.lfn)).st_size}
 
 
-def _stage_out(args, outfile, job):
+def _stage_out(args, outfile, job):  ### TO BE DEPRECATED
     log = get_logger(job.jobid)
 
     # write time stamps to pilot timing file
@@ -494,13 +495,113 @@ def _stage_out(args, outfile, job):
     return summary
 
 
-def _stage_out_all(job, args):
+def _do_stageout(job, xdata, activity, title):
+    """
+        :return: True in case of success transfers
+        :raise: PilotException in case of controlled error
+    """
+
+    log = get_logger(job.jobid)
+    log.info('prepare to stage-out %s files' % title)
+
+    error = None
+    try:
+        client = StageOutClient(job.infosys, logger=log)
+        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
+        client.transfer(xdata, activity, **kwargs)
+    except PilotException, error:
+        import traceback
+        log.error(traceback.format_exc())
+    except Exception, e:
+        import traceback
+        log.error(traceback.format_exc())
+        error = PilotException("stageOut failed with error=%s" % e, code=ErrorCodes.STAGEOUTFAILED)
+
+    log.info('Summary of transferred files:')
+    for e in xdata:
+        log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
+
+    if error:
+        log.error('Failed to stage-out %s file(s): error=%s' % (error, title))
+        raise error
+
+    remain_files = [e for e in xdata if e.status not in ['transferred']]
+
+    return not remain_files
+
+
+def _stage_out_new(job, args):
+    """
+    Stage-out of all output files.
+    If job.stageout=log then only log files will be transferred.
+
+    :param job: job object
+    :param args:
+    :return: True in case of success
+    """
+
+    log = get_logger(job.jobid)
+
+    # write time stamps to pilot timing file
+    add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEOUT, time.time())
+
+    is_success = True
+    if job.stageout != 'log':  ## do stage-out output files
+        if not _do_stageout(job, job.outdata, ['pw', 'w'], 'output'):
+            is_success = False
+            log.warning('transfer of output file(s) failed')
+
+    if job.stageout in ['log', 'all'] and job.logdata:  ## do stage-out log files
+        # prepare log file, consider only 1st available log file
+        logfile = job.logdata[0]
+        prepare_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
+
+        if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], 'log'):
+            is_success = False
+            log.warning('log transfer failed')
+
+    # write time stamps to pilot timing file
+    add_to_pilot_timing(job.jobid, PILOT_POST_STAGEOUT, time.time())
+
+    # generate fileinfo details to be send to Panda
+    fileinfo = {}
+    for e in job.outdata + job.logdata:
+        if e.status in ['transferred']:
+            fileinfo[e.lfn] = {'guid': e.guid, 'fsize': e.filesize,
+                               'adler32': e.checksum.get('adler32'),
+                               'surl': e.turl}
+
+    job.fileinfo = fileinfo
+    log.info('prepared job.fileinfo=%s' % job.fileinfo)
+
+    if not is_success:
+        # set error code + message (a more precise error code might have been set already)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEOUTFAILED)
+        job.state = "failed"
+        log.warning('stage-out failed')  # with error: %d, %s (setting job state to failed)' %
+        # log.warning('stage-out failed with error: %d, %s (setting job state to failed)' %
+        #  (job['pilotErrorCode'], job['pilotErrorDiag']))
+        # send_state(job, args, 'failed')
+        return False
+
+    log.info('stage-out finished correctly')
+
+    if not job.state:  # is the job state already set? if so, don't change the state
+        job.state = "finished"
+
+    # send final server update since all transfers have finished correctly
+    # send_state(job, args, 'finished', xml=dumps(fileinfodict))
+
+    return is_success
+
+
+def _stage_out_all(job, args):  ### TO BE DEPRECATED
     """
     Order stage-out of all output files and the log file, or only the log file.
 
     :param job:
     :param args:
-    :return:
+    :return: True in case of success
     """
 
     log = get_logger(job.jobid)
@@ -640,7 +741,7 @@ def queue_monitoring(queues, traces, args):
         else:
             # stage-out log file then add the job to the failed_jobs queue
             job.stageout = "log"
-            if not _stage_out_all(job, args):
+            if not _stage_out_new(job, args):
                 logger.info("job %s failed during stage-in and stage-out of log, adding job object to failed_data_outs "
                             "queue" % job.jobid)
                 queues.failed_data_out.put(job)

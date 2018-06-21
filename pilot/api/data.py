@@ -10,6 +10,9 @@
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
 
 # refactored by Alexey Anisenkov
+
+import os
+import hashlib
 import logging
 
 from pilot.info import infosys
@@ -250,24 +253,32 @@ class StagingClient(object):
 
         raise NotImplementedError
 
-    def transfer(self, files, activity='default', **kwargs):
+    def transfer(self, files, activity='default', **kwargs):  # noqa: C901
         """
             Automatically stage passed files using copy tools related to given `activity`
             :param files: list of `FileSpec` objects
-            :param activity: activity name used to determine appropriate copytool
+            :param activity: list of activity names used to determine appropriate copytool (prioritized list)
             :param kwargs: extra kwargs to be passed to copytool transfer handler
             :raise: PilotException in case of controlled error
             :return: output of copytool trasfers (to be clarified)
         """
 
-        copytools = self.acopytools.get(activity) or self.acopytools.get('default')
+        if isinstance(activity, basestring):
+            activity = [activity]
+        if 'default' not in activity:
+            activity.append('default')
+
+        copytools = None
+        for aname in activity:
+            copytools = self.acopytools.get(aname)
+            if copytools:
+                break
 
         if not copytools:
-            raise PilotException('Failed to resolve copytool by activity=%s, acopytools=%s' % (activity, self.acopytools))
+            raise PilotException('Failed to resolve copytool by preferred activities=%s, acopytools=%s' % (activity, self.acopytools))
 
         result, errors = None, []
 
-        self.logger.info('files=%s' % str(files))
         for name in copytools:
 
             try:
@@ -285,13 +296,18 @@ class StagingClient(object):
                 self.logger.debug('Error: %s' % e)
                 continue
             try:
-                result = self.transfer_files(copytool, files, **kwargs)
+                result = self.transfer_files(copytool, files, activity, **kwargs)
             except PilotException, e:
                 errors.append(e)
                 self.logger.debug('Error: %s' % e)
             except Exception, e:
                 self.logger.warning('Failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
+                import traceback
+                self.logger.error(traceback.format_exc())
+                errors.append(e)
 
+            if errors and isinstance(errors[-1], PilotException) and errors[-1].get_error_code() == ErrorCodes.MISSINGOUTPUTFILE:
+                raise errors[-1]
             if result:
                 break
 
@@ -337,7 +353,7 @@ class StageInClient(StagingClient):
 
         return {'surl': surl, 'ddmendpoint': ddmendpoint, 'pfn': replica}
 
-    def transfer_files(self, copytool, files, **kwargs):
+    def transfer_files(self, copytool, files, activity=None, **kwargs):
         """
             Automatically stage in files using the selected copy tool module.
 
@@ -374,28 +390,195 @@ class StageInClient(StagingClient):
         if self.infosys:
             kwargs['copytools'] = self.infosys.queuedata.copytools
 
+        self.logger.info('Ready to transfer (stage-in) files: %s' % files)
+
         return copytool.copy_in(files, **kwargs)
 
 
 class StageOutClient(StagingClient):
 
-    def transfer_files(self, copytool, files):
+    def resolve_protocols(self, files, activity):
+        """
+            Populates filespec.protocols for each entry from `files` according to requested `activity`
+            :param files: list of `FileSpec` objects
+            :param activity: ordered list of preferred activity names to resolve SE protocols
+            fdat.protocols = [dict(endpoint, path, flavour), ..]
+            :return: `files`
+        """
+
+        ddmconf = self.infosys.resolve_storage_data()
+
+        if isinstance(activity, basestring):
+            activity = [activity]
+
+        for fdat in files:
+            ddm = ddmconf.get(fdat.ddmendpoint)
+            if not ddm:
+                raise Exception("Failed to resolve output ddmendpoint by name=%s (from PanDA), please check configuration. fdat=%s" % (fdat.ddmendpoint, fdat))
+
+            protocols = []
+            for aname in activity:
+                protocols = ddm.arprotocols.get(aname)
+                if protocols:
+                    break
+
+            fdat.protocols = protocols
+
+        return files
+
+    def resolve_protocol(self, fspec, allowed_schemas=None):
+        """
+            Resolve protocols according to allowed schema
+            :param fspec: `FileSpec` instance
+            :param allowed_schemas: list of allowed schemas or any if None
+            :return: list of dict(endpoint, path, flavour)
+        """
+
+        if not fspec.protocols:
+            return []
+
+        protocols = []
+
+        allowed_schemas = allowed_schemas or [None]
+        for schema in allowed_schemas:
+            for pdat in fspec.protocols:
+                if schema is None or pdat.get('endpoint', '').startswith("%s://" % schema):
+                    protocols.append(pdat)
+
+        return protocols
+
+    @classmethod
+    def get_path(self, scope, lfn, prefix='rucio'):
+        """
+            Construct a partial Rucio PFN using the scope and the LFN
+        """
+
+        # <prefix=rucio>/<scope>/md5(<scope>:<lfn>)[0:2]/md5(<scope:lfn>)[2:4]/<lfn>
+
+        hash_hex = hashlib.md5('%s:%s' % (scope, lfn)).hexdigest()
+
+        #paths = [prefix] + scope.split('.') + [hash_hex[0:2], hash_hex[2:4], lfn]
+        # exclude prefix from the path: this should be properly considered in protocol/AGIS for today
+        paths = scope.split('.') + [hash_hex[0:2], hash_hex[2:4], lfn]
+        paths = filter(None, paths)  # remove empty parts to avoid double /-chars
+
+        return '/'.join(paths)
+
+    def resolve_surl(self, fspec, protocol, ddmconf, **kwargs):
+        """
+            Get final destination SURL for file to be transferred
+            Can be customized at the level of specific copytool
+            :param protocol: suggested protocol
+            :param ddmconf: full ddmconf data
+            :param activity: ordered list of preferred activity names to resolve SE protocols
+            :return: dict with keys ('pfn', 'ddmendpoint')
+        """
+
+        # consider only deterministic sites (output destination)
+
+        ddm = ddmconf.get(fspec.ddmendpoint)
+        if not ddm:
+            raise PilotException('Failed to resolve ddmendpoint by name=%s' % fspec.ddmendpoint)
+
+        if not ddm.is_deterministic:
+            raise PilotException('resolve_surl(): Failed to construct SURL for non deterministic ddm=%s: NOT IMPLEMENTED', fspec.ddmendpoint)
+
+        surl = protocol.get('endpoint', '') + os.path.join(protocol.get('path', ''), self.get_path(fspec.scope, fspec.lfn))
+
+        return {'surl': surl}
+
+    @classmethod
+    def calc_adler32_checksum(self, filename):
+        """
+            calculate the adler32 checksum for a file
+            raise an exception if input filename is not exist/readable
+        """
+
+        from zlib import adler32
+
+        asum = 1  # default adler32 starting value
+        blocksize = 64 * 1024 * 1024  # read buffer size, 64 Mb
+
+        with open(filename, 'rb') as f:
+            while True:
+                data = f.read(blocksize)
+                if not data:
+                    break
+                asum = adler32(data, asum)
+                if asum < 0:
+                    asum += 2**32
+
+        return "%08x" % asum  # convert to hex
+
+    def transfer_files(self, copytool, files, activity, **kwargs):
         """
             Automatically stage out files using the selected copy tool module.
 
             :param copytool: copytool module
             :param files: list of `FileSpec` objects
+            :param activity: ordered list of preferred activity names to resolve SE protocols
+            :param kwargs: extra kwargs to be passed to copytool transfer handler
 
             :return: the output of the copytool transfer operation
             :raise: PilotException in case of controlled error
         """
+
+        # check if files exist before actual processing
+        # populate filesize if need, calc checksum
+        for fspec in files:
+            pfn = fspec.surl or getattr(fspec, 'pfn', None) or os.path.join(kwargs.get('workdir', ''), fspec.lfn)
+            if not os.path.isfile(pfn) or not os.access(pfn, os.R_OK):
+                msg = "Error: output pfn file does not exist: %s" % pfn
+                self.logger.error(msg)
+                raise PilotException(msg, code=ErrorCodes.MISSINGOUTPUTFILE, state="FILE_INFO_FAIL")
+            if not fspec.filesize:
+                fspec.filesize = os.path.getsize(pfn)
+            fspec.surl = pfn
+            fspec.activity = activity
+            if not fspec.checksum.get('adler32'):
+                fspec.checksum['adler32'] = self.calc_adler32_checksum(pfn)
+
+        # prepare files (resolve protocol/transfer url)
+        if getattr(copytool, 'require_protocols', True) and files:
+
+            ddmconf = self.infosys.resolve_storage_data()
+            allowed_schemas = getattr(copytool, 'allowed_schemas', None)
+            files = self.resolve_protocols(files, activity)
+
+            for fspec in files:
+
+                protocols = self.resolve_protocol(fspec, allowed_schemas)
+                if not protocols:  #  no protocols found
+                    error = 'Failed to resolve protocol for file=%s, allowed_schemas=%s, fspec=%s' % (fspec.lfn, allowed_schemas, fspec)
+                    self.logger.error("resolve_protocol: %s" % error)
+                    raise PilotException(error, code=ErrorCodes.NOSTORAGEPROTOCOL)
+
+                # take first available protocol for copytool: FIX ME LATER if need (do iterate over all allowed protocols?)
+                protocol = protocols[0]
+
+                self.logger.info("Resolved protocol to be used for transfer: data=%s" % protocol)
+
+                resolve_surl = getattr(copytool, 'resolve_surl', None)
+                if not callable(resolve_surl):
+                    resolve_surl = self.resolve_surl
+
+                r = resolve_surl(fspec, protocol, ddmconf, activity=activity)  ## pass ddmconf & activity for possible custom look up at the level of copytool
+                if r.get('surl'):
+                    fspec.turl = r['surl']
+                if r.get('ddmendpoint'):
+                    fspec.ddmendpoint = r['ddmendpoint']
 
         if not copytool.is_valid_for_copy_out(files):
             self.logger.warning('Input is not valid for transfers using copytool=%s' % copytool)
             self.logger.debug('Input: %s' % files)
             raise PilotException('Invalid input for transfer operation')
 
-        return copytool.copy_out(files)
+        self.logger.info('Ready to transfer (stage-out) files: %s' % files)
+
+        if self.infosys:
+            kwargs['copytools'] = self.infosys.queuedata.copytools
+
+        return copytool.copy_out(files, **kwargs)
 
 #class StageInClientAsync(object):
 #
