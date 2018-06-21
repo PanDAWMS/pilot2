@@ -364,8 +364,6 @@ def copytool_out(queues, traces, args):
         try:
             job = queues.data_out.get(block=True, timeout=1)
 
-            logger.info('dataset=%s rse=%s' % (job.destinationdblock, job.ddmendpointout.split(',')[0]))
-
             # send_state(job, args, 'running')  # not necessary to send job update at this point?
 
             if _stage_out_new(job, args):
@@ -595,7 +593,7 @@ def _stage_out_new(job, args):
     return is_success
 
 
-def _stage_out_all(job, args):  ### TO BE DEPRECATED
+def _stage_out_all(job, args):  ### NOT USED - TO BE DEPRECATED
     """
     Order stage-out of all output files and the log file, or only the log file.
 
