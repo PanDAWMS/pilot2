@@ -96,7 +96,7 @@ class ErrorCodes:
         SINGULARITYIMAGEMOUNTFAILURE: "Singularity: Failed to mount image",
         PAYLOADEXECUTIONEXCEPTION: "Exception caught during payload execution",
         NOTDEFINED: "Not defined",
-        NOTSAMELENGTH: "Not same length"
+        NOTSAMELENGTH: "Not same length",
         NOSTORAGEPROTOCOL: "No protocol defined for storage endpoint",
         CHKSUMNOTSUP: "Mover error: query checksum is not supported",
     }

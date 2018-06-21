@@ -21,7 +21,7 @@ from pilot.util.container import execute
 from pilot.util.filehandling import get_directory_size, remove_files
 from pilot.util.loopingjob import looping_job
 from pilot.util.parameters import convert_to_int
-from pilot.util.processes import get_instant_cpu_consumption_time, kill_processes, get_number_of_child_processes
+from pilot.util.processes import get_current_cpu_consumption_time, kill_processes, get_number_of_child_processes
 from pilot.util.workernode import get_local_disk_space
 
 import logging
@@ -50,7 +50,7 @@ def job_monitor_tasks(job, mt, args):
 
     # update timing info for running jobs (to avoid an update after the job has finished)
     if job.state == 'running':
-        cpuconsumptiontime = get_instant_cpu_consumption_time(job.pid)
+        cpuconsumptiontime = get_current_cpu_consumption_time(job.pid)
         job.cpuconsumptiontime = int(round(cpuconsumptiontime))
         job.cpuconsumptionunit = "s"
         job.cpuconversionfactor = 1.0
@@ -121,6 +121,7 @@ def verify_output_sizes(current_time, mt, job):
             mt.update('ct_output')
 
     return 0, ""
+
 
 def verify_memory_usage(current_time, mt, job):
     """
