@@ -17,23 +17,16 @@ from pilot.common.exception import PilotException, ErrorCodes
 from pilot.util.container import execute
 
 # can be disable for Rucio if allowed to use all RSE for input
-require_replicas = True  ## indicate if given copytool requires input replicas to be resolved
+require_replicas = True    ## indicates if given copytool requires input replicas to be resolved
+require_protocols = False  ## indicates if given copytool requires protocols to be resolved first for stage-out
 
 
 def is_valid_for_copy_in(files):
     return True  ## FIX ME LATER
-    #for f in files:
-    #    if not all(key in f for key in ('scope', 'name', 'destination')):
-    #        return False
-    #return True
 
 
 def is_valid_for_copy_out(files):
     return True  ## FIX ME LATER
-    #for f in files:
-    #    if not all(key in f for key in ('file', 'rse')):
-    #        return False
-    #return True
 
 
 def copy_in(files, **kwargs):
@@ -68,6 +61,54 @@ def copy_in(files, **kwargs):
     return files
 
 
+def copy_out(files, **kwargs):
+    """
+        Upload given files using rucio copytool.
+
+        :param files: list of `FileSpec` objects
+        :raise: PilotException in case of controlled error
+    """
+
+    # don't spoil the output, we depend on stderr parsing
+    os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
+
+    no_register = kwargs.pop('no_register', False)
+    summary = kwargs.pop('summary', False)
+
+    for fspec in files:
+        cmd = ['/usr/bin/env', 'rucio', '-v', 'upload']
+        cmd += ['--rse', fspec.ddmendpoint]
+
+        if fspec.scope:
+            cmd.extend(['--scope', fspec.scope])
+        if fspec.guid:
+            cmd.extend(['--guid', fspec.guid])
+
+        if no_register:
+            cmd.append('--no-register')
+
+        if summary:
+            cmd.append('--summary')
+
+        if fspec.turl:
+            cmd.extend(['--pfn', fspec.turl])
+
+        cmd += [fspec.surl]
+
+        rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
+
+        if rcode:  ## error occurred
+            error = resolve_transfer_error(stderr, is_stagein=False)
+            fspec.status = 'failed'
+            fspec.status_code = error.get('rcode')
+            raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
+
+        fspec.status_code = 0
+        fspec.status = 'transferred'
+
+    return files
+
+
 def resolve_transfer_error(output, is_stagein):
     """
         Resolve error code, client state and defined error mesage from the output of transfer command
@@ -85,7 +126,7 @@ def resolve_transfer_error(output, is_stagein):
     return ret
 
 
-def copy_out(files):
+def copy_out_old(files):   ### NOT USED - TO BE DEPRECATED
     """
     Tries to upload the given files using rucio
 
