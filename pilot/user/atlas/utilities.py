@@ -429,9 +429,9 @@ def create_pool_file_catalog(file_dictionary, workdir, filename="PoolFileCatalog
         _file.set('ID', fileid)
         _physical = ET.SubElement(_file, 'physical')
         _pfn = ET.SubElement(_physical, 'pfn')
-        _pfn.set('filetype','ROOT_ALL')
+        _pfn.set('filetype', 'ROOT_ALL')
         _pfn.set('name', file_dictionary.get(fileid))
-        _logical = ET.SubElement(_file, 'logical')
+        _ = ET.SubElement(_file, 'logical')
 
     # create a new XML file with the results
     xml = ET.tostring(data, encoding='utf8')
