@@ -398,7 +398,7 @@ def post_memory_monitor_action(job):
     copy(path1, path2)
 
 
-def create_pool_file_catalog(file_dictionary, workdir, filename="PoolFileCatalog.xml"):
+def create_input_file_metadata(file_dictionary, workdir, filename="PoolFileCatalog.xml"):
     """
     Create a Pool File Catalog for the files listed in the input dictionary.
     The function creates properly formmatted XML (pretty printed) and writes the XML to file.
