@@ -102,6 +102,8 @@ def use_container(cmd):
 
 
 def _call(args, executable, job, cwd=os.getcwd(), logger=logger):  ### TO BE DEPRECATED
+
+    log = get_logger(job.jobid)
     try:
         # for containers, we can not use a list
         usecontainer = use_container(executable[1])
@@ -113,10 +115,10 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):  ### TO BE DEP
                           usecontainer=usecontainer, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, job=job)
 
     except Exception as e:
-        logger.error('could not execute: %s' % str(e))
+        log.error('could not execute: %s' % str(e))
         return False
 
-    logger.info('started -- pid=%s executable=%s' % (process.pid, executable))
+    log.info('started -- pid=%s executable=%s' % (process.pid, executable))
 
     breaker = False
     exit_code = None
@@ -124,12 +126,12 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):  ### TO BE DEP
         for i in xrange(10):
             if args.graceful_stop.is_set():
                 breaker = True
-                logger.debug('breaking: sending SIGTERM pid=%s' % process.pid)
+                log.debug('breaking: sending SIGTERM pid=%s' % process.pid)
                 process.terminate()
                 break
             time.sleep(0.1)
         if breaker:
-            logger.debug('breaking: sleep 3s before sending SIGKILL pid=%s' % process.pid)
+            log.debug('breaking: sleep 3s before sending SIGKILL pid=%s' % process.pid)
             time.sleep(3)
             process.kill()
             break
@@ -140,16 +142,16 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):  ### TO BE DEP
         else:
             continue
 
-    logger.info('finished -- pid=%s exit_code=%s' % (process.pid, exit_code))
+    log.info('finished -- pid=%s exit_code=%s' % (process.pid, exit_code))
     stdout, stderr = process.communicate()
-    logger.debug('stdout:\n%s' % stdout)
-    logger.debug('stderr:\n%s' % stderr)
+    log.debug('stdout:\n%s' % stdout)
+    log.debug('stderr:\n%s' % stderr)
 
     # in case of problems, try to identify the error (and set it in the job object)
     if stderr != "":
         # rucio stage-out error
         if "Operation timed out" in stderr:
-            logger.warning('rucio stage-in error identified - problem with local storage, stage-in timed out')
+            log.warning('rucio stage-in error identified - problem with local storage, stage-in timed out')
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINTIMEOUT)
 
     if exit_code == 0:
@@ -342,13 +344,21 @@ def copytool_in(queues, traces, args):
 
             send_state(job, args, 'running')
 
-            logger.info('Test job.infosys: queuedata.copytools=%s' % job.infosys.queuedata.copytools)
-            logger.info('Test job.infosys: queuedata.acopytools=%s' % job.infosys.queuedata.acopytools)
+            log = get_logger(job.jobid)
+
+            log.info('Test job.infosys: queuedata.copytools=%s' % job.infosys.queuedata.copytools)
+            log.info('Test job.infosys: queuedata.acopytools=%s' % job.infosys.queuedata.acopytools)
 
             if _stage_in(args, job):
                 queues.finished_data_in.put(job)
+
+                # now create input file metadata if required by the payload
+                pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+                user = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user], -1)
+                xml = user.create_input_file_metadata()
+                log.info('created input file metadata:\n%s' % xml)
             else:
-                logger.warning('stage-in failed, adding job object to failed_data_in queue')
+                log.warning('stage-in failed, adding job object to failed_data_in queue')
                 queues.failed_data_in.put(job)
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINFAILED)
                 job.state = "failed"
@@ -759,14 +769,16 @@ def queue_monitoring(queues, traces, args):
         except Queue.Empty:
             pass
         else:
+            log = get_logger(job.jobid)
+
             # stage-out log file then add the job to the failed_jobs queue
             job.stageout = "log"
             if not _stage_out_new(job, args):
-                logger.info("job %s failed during stage-in and stage-out of log, adding job object to failed_data_outs "
+                log.info("job %s failed during stage-in and stage-out of log, adding job object to failed_data_outs "
                             "queue" % job.jobid)
                 queues.failed_data_out.put(job)
             else:
-                logger.info("job %s failed during stage-in, adding job object to failed_jobs queue" % job.jobid)
+                log.info("job %s failed during stage-in, adding job object to failed_jobs queue" % job.jobid)
                 queues.failed_jobs.put(job)
 
         # monitor the finished_data_out queue
@@ -775,12 +787,14 @@ def queue_monitoring(queues, traces, args):
         except Queue.Empty:
             pass
         else:
+            log = get_logger(job.jobid)
+
             # use the payload/transform exitCode from the job report if it exists
             if job.transexitcode == 0 and job.exitcode == 0:
-                logger.info('finished stage-out for finished payload, adding job to finished_jobs queue')
+                log.info('finished stage-out for finished payload, adding job to finished_jobs queue')
                 queues.finished_jobs.put(job)
             else:
-                logger.info('finished stage-out (of log) for failed payload')
+                log.info('finished stage-out (of log) for failed payload')
                 queues.failed_jobs.put(job)
 
         # monitor the failed_data_out queue
@@ -789,5 +803,6 @@ def queue_monitoring(queues, traces, args):
         except Queue.Empty:
             pass
         else:
-            logger.info("job %s failed during stage-out, adding job object to failed_jobs queue" % job.jobid)
+            log = get_logger(job.jobid)
+            log.info("job %s failed during stage-out, adding job object to failed_jobs queue" % job.jobid)
             queues.failed_jobs.put(job)
