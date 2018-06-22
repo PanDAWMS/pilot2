@@ -375,6 +375,28 @@ def copytool_out(queues, traces, args):
             continue
 
 
+def get_input_file_dictionary(indata, use_turl=False):
+    """
+    Return an input file dictionary.
+    Format: {'guid': 'pfn', ..}
+
+    :param indata: FileSpec object.
+    :param use_turl: if True, the 'pfn' will be set to the turl value, otherwise the surl value will be used.
+    :return: file dictionary.
+    """
+
+    file_dictionary = {}
+
+    for e in indata:
+        if use_turl:
+            pfn = e.turl
+        else:
+            pfn = e.surl
+        file_dictionary[e.guid] = pfn
+
+    return file_dictionary
+
+
 def prepare_log(job, logfile, tarball_name):
     log = get_logger(job.jobid)
     log.info('preparing log file')
