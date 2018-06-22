@@ -37,7 +37,7 @@ def create_pilot_work_dir(workdir):
     """
     Create the main PanDA Pilot work directory.
     :param workdir: Full path to the directory to be created
-    :raises PilotException: MKDirFailure
+    :raises PilotException: MKDirFailure.
     :return:
     """
 
@@ -51,8 +51,8 @@ def create_pilot_work_dir(workdir):
 def read_file(filename):
     """
     Open, read and close a file.
-    :param filename: string
-    :return: file content (string)
+    :param filename: file name (string).
+    :return: file contents (string).
     """
 
     out = ""
@@ -64,15 +64,40 @@ def read_file(filename):
     return out
 
 
+def write_file(filename, contents):
+    """
+    Write the given contents to a file.
+
+    :param filename: file name (string).
+    :param contents: file contents (string).
+    :raises PilotException: FileHandlingFailure.
+    :return: True if successful, otherwise False.
+    """
+
+    status = False
+
+    f = open_file(filename, 'w')
+    if f:
+        try:
+            f.write(contents)
+        except IOError as e:
+            raise FileHandlingFailure(e)
+        else:
+            status = True
+        f.close()
+
+    return status
+
+
 def open_file(filename, mode):
     """
     Open and return a file pointer for the given mode.
     Note: the caller needs to close the file.
 
-    :param filename:
-    :param mode: file mode
-    :raises PilotException: FileHandlingFailure
-    :return: file pointer
+    :param filename: file name (string).
+    :param mode: file mode (character).
+    :raises PilotException: FileHandlingFailure.
+    :return: file pointer.
     """
 
     f = None
