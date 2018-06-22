@@ -404,7 +404,7 @@ def create_pool_file_catalog(file_dictionary, workdir, filename="PoolFileCatalog
     The function creates properly formmatted XML (pretty printed) and writes the XML to file.
 
     Format:
-    dictionary = {'guid': 'surl', ..}
+    dictionary = {'guid': 'pfn', ..}
     ->
     <POOLFILECATALOG>
     <File ID="guid">
