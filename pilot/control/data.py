@@ -775,7 +775,7 @@ def queue_monitoring(queues, traces, args):
             job.stageout = "log"
             if not _stage_out_new(job, args):
                 log.info("job %s failed during stage-in and stage-out of log, adding job object to failed_data_outs "
-                            "queue" % job.jobid)
+                         "queue" % job.jobid)
                 queues.failed_data_out.put(job)
             else:
                 log.info("job %s failed during stage-in, adding job object to failed_jobs queue" % job.jobid)
