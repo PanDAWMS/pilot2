@@ -10,10 +10,13 @@
 import os
 import time
 
+from xml.dom import minidom
+import xml.etree.ElementTree as ET
+
 # from pilot.info import infosys
 from pilot.user.atlas.setup import get_asetup
 from pilot.util.auxiliary import get_logger
-from pilot.util.filehandling import read_json, copy
+from pilot.util.filehandling import read_json, copy, write_file
 
 import logging
 logger = logging.getLogger(__name__)
@@ -393,3 +396,46 @@ def post_memory_monitor_action(job):
         i += 1
 
     copy(path1, path2)
+
+
+def create_pool_file_catalog(file_dictionary, workdir, filename="PoolFileCatalog.xml"):
+    """
+    Create a Pool File Catalog for the files listed in the input dictionary.
+    The function creates properly formmatted XML (pretty printed) and writes the XML to file.
+
+    Format:
+    dictionary = {'guid': 'surl', ..}
+    ->
+    <POOLFILECATALOG>
+    <File ID="guid">
+      <physical>
+        <pfn filetype="ROOT_All" name="surl"/>
+      </physical>
+      <logical/>
+    </File>
+    <POOLFILECATALOG>
+
+    :param file_dictionary: file dictionary.
+    :param workdir: job work directory (string).
+    :param filename: PFC file name (string).
+    :return: xml (string)
+    """
+
+    # create the file structure
+    data = ET.Element('POOLFILECATALOG')
+
+    for fileid in file_dictionary.keys():
+        _file = ET.SubElement(data, 'File')
+        _file.set('ID', fileid)
+        _physical = ET.SubElement(_file, 'physical')
+        _pfn = ET.SubElement(_physical, 'pfn')
+        _pfn.set('filetype','ROOT_ALL')
+        _pfn.set('name', file_dictionary.get(fileid))
+        _logical = ET.SubElement(_file, 'logical')
+
+    # create a new XML file with the results
+    xml = ET.tostring(data, encoding='utf8')
+    xml = minidom.parseString(xml).toprettyxml(indent="  ")
+    write_file(os.path.join(workdir, filename), xml)
+
+    return xml
