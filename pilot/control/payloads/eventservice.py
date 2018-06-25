@@ -15,8 +15,8 @@ import signal
 
 from pilot.common import exception
 from pilot.control.payloads import generic
-from pilot.eventservice.eshook import ESHook
-from pilot.eventservice.esprocess import ESProcess
+from pilot.eventservice.esprocess.eshook import ESHook
+from pilot.eventservice.esprocess.esprocess import ESProcess
 from pilot.eventservice.eventrange import download_event_ranges, update_event_ranges
 from pilot.info import infosys
 from pilot.util.auxiliary import get_logger
