@@ -12,10 +12,14 @@
 from __future__ import print_function
 
 import functools
-import Queue
 import signal
 import threading
 from sys import stderr
+
+try:
+    import Queue as queue
+except Exception:
+    import queue  # python 3
 
 from collections import namedtuple
 
@@ -53,26 +57,26 @@ def run(args):
                                    'failed_jobs', 'failed_payloads', 'failed_data_in', 'failed_data_out',
                                    'completed_jobs'])
 
-    queues.jobs = Queue.Queue()
-    queues.payloads = Queue.Queue()
-    queues.data_in = Queue.Queue()
-    queues.data_out = Queue.Queue()
+    queues.jobs = queue.Queue()
+    queues.payloads = queue.Queue()
+    queues.data_in = queue.Queue()
+    queues.data_out = queue.Queue()
 
-    queues.validated_jobs = Queue.Queue()
-    queues.validated_payloads = Queue.Queue()
-    queues.monitored_payloads = Queue.Queue()
+    queues.validated_jobs = queue.Queue()
+    queues.validated_payloads = queue.Queue()
+    queues.monitored_payloads = queue.Queue()
 
-    queues.finished_jobs = Queue.Queue()
-    queues.finished_payloads = Queue.Queue()
-    queues.finished_data_in = Queue.Queue()
-    queues.finished_data_out = Queue.Queue()
+    queues.finished_jobs = queue.Queue()
+    queues.finished_payloads = queue.Queue()
+    queues.finished_data_in = queue.Queue()
+    queues.finished_data_out = queue.Queue()
 
-    queues.failed_jobs = Queue.Queue()
-    queues.failed_payloads = Queue.Queue()
-    queues.failed_data_in = Queue.Queue()
-    queues.failed_data_out = Queue.Queue()
+    queues.failed_jobs = queue.Queue()
+    queues.failed_payloads = queue.Queue()
+    queues.failed_data_in = queue.Queue()
+    queues.failed_data_out = queue.Queue()
 
-    queues.completed_jobs = Queue.Queue()
+    queues.completed_jobs = queue.Queue()
 
     logger.info('setting up tracing')
     traces = namedtuple('traces', ['pilot'])
@@ -82,7 +86,7 @@ def run(args):
     # define the threads
     targets = {'job': job.control, 'payload': payload.control, 'data': data.control, 'lifetime': lifetime.control,
                'monitor': monitor.control}
-    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
+    threads = [ExcThread(bucket=queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
                          name=name) for name, target in targets.items()]
 
     logger.info('starting threads')
@@ -95,7 +99,7 @@ def run(args):
             bucket = thread.get_bucket()
             try:
                 exc = bucket.get(block=False)
-            except Queue.Empty:
+            except queue.Empty:
                 pass
             else:
                 exc_type, exc_obj, exc_trace = exc

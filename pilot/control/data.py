@@ -12,12 +12,16 @@
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
 
 import copy
-import Queue
 import json
 import os
 import subprocess
 import tarfile
 import time
+
+try:
+    import Queue as queue
+except Exception:
+    import queue  # python 3
 
 from contextlib import closing  # for Python 2.6 compatibility - to fix a problem with tarfile
 
@@ -41,7 +45,7 @@ errors = ErrorCodes()
 def control(queues, traces, args):
 
     targets = {'copytool_in': copytool_in, 'copytool_out': copytool_out, 'queue_monitoring': queue_monitoring}
-    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
+    threads = [ExcThread(bucket=queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
                          name=name) for name, target in targets.items()]
 
     [thread.start() for thread in threads]
@@ -52,7 +56,7 @@ def control(queues, traces, args):
             bucket = thread.get_bucket()
             try:
                 exc = bucket.get(block=False)
-            except Queue.Empty:
+            except queue.Empty:
                 pass
             else:
                 exc_type, exc_obj, exc_trace = exc
@@ -366,7 +370,7 @@ def copytool_in(queues, traces, args):
                 job.state = "failed"
                 # send_state(job, args, 'failed')
 
-        except Queue.Empty:
+        except queue.Empty:
             continue
 
 
@@ -383,7 +387,7 @@ def copytool_out(queues, traces, args):
             else:
                 queues.failed_data_out.put(job)
 
-        except Queue.Empty:
+        except queue.Empty:
             continue
 
 
@@ -765,7 +769,7 @@ def queue_monitoring(queues, traces, args):
         # monitor the failed_data_in queue
         try:
             job = queues.failed_data_in.get(block=True, timeout=1)
-        except Queue.Empty:
+        except queue.Empty:
             pass
         else:
             log = get_logger(job.jobid)
@@ -783,7 +787,7 @@ def queue_monitoring(queues, traces, args):
         # monitor the finished_data_out queue
         try:
             job = queues.finished_data_out.get(block=True, timeout=1)
-        except Queue.Empty:
+        except queue.Empty:
             pass
         else:
             log = get_logger(job.jobid)
@@ -799,7 +803,7 @@ def queue_monitoring(queues, traces, args):
         # monitor the failed_data_out queue
         try:
             job = queues.failed_data_out.get(block=True, timeout=1)
-        except Queue.Empty:
+        except queue.Empty:
             pass
         else:
             log = get_logger(job.jobid)

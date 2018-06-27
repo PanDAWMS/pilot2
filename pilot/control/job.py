@@ -11,11 +11,15 @@
 
 from __future__ import print_function
 
-import Queue
 import os
 import sys
 import time
 import hashlib
+
+try:
+    import Queue as queue
+except Exception:
+    import queue  # python 3
 
 from json import dumps
 
@@ -57,7 +61,7 @@ def control(queues, traces, args):
 
     targets = {'validate': validate, 'retrieve': retrieve, 'create_data_payload': create_data_payload,
                'queue_monitor': queue_monitor, 'job_monitor': job_monitor}
-    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
+    threads = [ExcThread(bucket=queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
                          name=name) for name, target in targets.items()]
 
     [thread.start() for thread in threads]
@@ -70,7 +74,7 @@ def control(queues, traces, args):
             bucket = thread.get_bucket()
             try:
                 exc = bucket.get(block=False)
-            except Queue.Empty:
+            except queue.Empty:
                 pass
             else:
                 exc_type, exc_obj, exc_trace = exc
@@ -263,7 +267,7 @@ def validate(queues, traces, args):
     while not args.graceful_stop.is_set():
         try:
             job = queues.jobs.get(block=True, timeout=1)
-        except Queue.Empty:
+        except queue.Empty:
             continue
 
         log = get_logger(job.jobid)
@@ -312,7 +316,7 @@ def create_data_payload(queues, traces, args):
     while not args.graceful_stop.is_set():
         try:
             job = queues.validated_jobs.get(block=True, timeout=1)
-        except Queue.Empty:
+        except queue.Empty:
             continue
 
         if job.indata:
@@ -970,7 +974,7 @@ def job_has_finished(queues):
     # check if the job has finished
     try:
         job = queues.completed_jobs.get(block=True, timeout=1)
-    except Queue.Empty:
+    except queue.Empty:
         # logger.info("(job still running)")
         pass
     else:
@@ -1018,7 +1022,7 @@ def queue_monitor(queues, traces, args):
         # check if the job has finished
         try:
             job = queues.finished_jobs.get(block=True, timeout=1)
-        except Queue.Empty:
+        except queue.Empty:
             # logger.info("(job still running)")
             pass
         else:
@@ -1029,7 +1033,7 @@ def queue_monitor(queues, traces, args):
         # check if the job has failed
         try:
             job = queues.failed_jobs.get(block=True, timeout=1)
-        except Queue.Empty:
+        except queue.Empty:
             # logger.info("(job still running)")
             pass
         else:
@@ -1049,7 +1053,7 @@ def queue_monitor(queues, traces, args):
             # completed_jobs queue which will tell retrieve() that it can download another job
             try:
                 _job = queues.monitored_payloads.get(block=True, timeout=1)
-            except Queue.Empty:
+            except queue.Empty:
                 logger.warning('failed to dequeue job: queue is empty (did job fail before job monitor started?)')
             else:
                 logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
