@@ -16,6 +16,7 @@ import threading
 import time
 from os import getcwd, chdir, environ
 from shutil import rmtree
+from __future__ import print_function
 
 from pilot.info import set_info
 from pilot.util.config import config
@@ -326,9 +327,7 @@ if __name__ == '__main__':
             create_pilot_work_dir(mainworkdir)
         except Exception as e:
             # print to stderr since logging has not been established yet
-            from sys import stderr
-            from __future__ import print_function
-            print('failed to create workdir at %s -- aborting: %s' % (mainworkdir, e), file=stderr)
+            print('failed to create workdir at %s -- aborting: %s' % (mainworkdir, e), file=sys.stderr)
             sys.exit(FAILURE)
     else:
         mainworkdir = getcwd()

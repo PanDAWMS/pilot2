@@ -14,6 +14,7 @@ import os
 import sys
 import time
 import hashlib
+from __future__ import print_function
 
 from json import dumps
 
@@ -1129,8 +1130,6 @@ def job_monitor(queues, traces, args):
             if logger:
                 logger.warning(msg)
             else:
-                from sys import stderr
-                from __future__ import print_function
-                print(msg, file=stderr)
+                print(msg, file=sys.stderr)
         else:
             n += 1

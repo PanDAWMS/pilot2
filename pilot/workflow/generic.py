@@ -13,6 +13,8 @@ import functools
 import Queue
 import signal
 import threading
+from sys import stderr
+from __future__ import print_function
 
 from collections import namedtuple
 
@@ -97,8 +99,6 @@ def run(args):
             else:
                 exc_type, exc_obj, exc_trace = exc
                 # deal with the exception
-                from sys import stderr
-                from __future__ import print_function
                 print('received exception from bucket queue in generic workflow: %s' % exc_obj, file=stderr)
                 # logger.fatal('caught exception: %s' % exc_obj)
 
