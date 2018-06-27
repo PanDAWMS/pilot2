@@ -17,7 +17,7 @@ import threading
 import traceback
 from sys import exc_info
 
-from errorcodes import ErrorCodes
+from .errorcodes import ErrorCodes
 errors = ErrorCodes()
 
 
