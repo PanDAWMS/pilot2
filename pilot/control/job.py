@@ -1121,7 +1121,7 @@ def job_monitor(queues, traces, args):
                 if logger:
                     logger.warning(msg)
                 else:
-                    print msg
+                    print(msg)
                 if abort:
                     args.graceful_stop.set()
         except PilotException as e:
@@ -1129,6 +1129,8 @@ def job_monitor(queues, traces, args):
             if logger:
                 logger.warning(msg)
             else:
-                print >> sys.stderr, msg
+                from sys import stderr
+                from __future__ import print_function
+                print(msg, file=stderr)
         else:
             n += 1

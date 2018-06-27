@@ -97,7 +97,9 @@ def run(args):
             else:
                 exc_type, exc_obj, exc_trace = exc
                 # deal with the exception
-                print 'received exception from bucket queue in generic workflow: %s' % exc_obj
+                from sys import stderr
+                from __future__ import print_function
+                print('received exception from bucket queue in generic workflow: %s' % exc_obj, file=stderr)
                 # logger.fatal('caught exception: %s' % exc_obj)
 
             thread.join(0.1)

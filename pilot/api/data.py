@@ -238,7 +238,7 @@ class StagingClient(object):
             ret = {'ip': ip, 'fqdn': socket.getfqdn(), 'site': site}
         except Exception, e:
             #self.log('socket() failed to lookup local IP')
-            print 'socket() failed to lookup local IP: %s' % e
+            print('socket() failed to lookup local IP: %s' % e)
 
         return ret
 

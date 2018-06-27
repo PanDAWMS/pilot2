@@ -557,7 +557,6 @@ def get_number_of_events(jobreport_dictionary):
         for format in executor_dictionary.keys():  # "RAWtoESD", ..
             if 'nevents' in executor_dictionary[format]:
                 if format in nevents:
-                    print executor_dictionary[format]['nevents']
                     nevents[format] += executor_dictionary[format]['nevents']
                 else:
                     nevents[format] = executor_dictionary[format]['nevents']
