@@ -9,12 +9,13 @@
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
+from __future__ import print_function
+
 import Queue
 import os
 import sys
 import time
 import hashlib
-from __future__ import print_function
 
 from json import dumps
 

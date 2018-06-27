@@ -7,14 +7,15 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+
+from __future__ import print_function
 
 import functools
 import Queue
 import signal
 import threading
 from sys import stderr
-from __future__ import print_function
 
 from collections import namedtuple
 

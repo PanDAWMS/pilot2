@@ -9,6 +9,8 @@
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
+from __future__ import print_function
+
 import argparse
 import logging
 import sys
@@ -16,7 +18,6 @@ import threading
 import time
 from os import getcwd, chdir, environ
 from shutil import rmtree
-from __future__ import print_function
 
 from pilot.info import set_info
 from pilot.util.config import config
