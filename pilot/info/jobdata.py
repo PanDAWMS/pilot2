@@ -400,6 +400,19 @@ class JobData(BaseData):
 
         return value if value.lower() not in ['null', 'none'] else ''
 
+    def clean__swrelease(self):
+        """
+        Verify and validate the software release string.
+        In case of Nordugrid, check for the ATLAS_RELEASE env variable.
+
+        :return: updated swrelease string.
+        """
+
+        if 'Nordugrid_pilot' in os.environ and 'ATLAS_RELEASE' in os.environ:
+            self.swrelease = os.environ.get('ATLAS_RELEASE', self.swrelease)
+        else:
+            pass
+
     def clean__jobparams(self, raw, value):
         """
         Verify and validate value for the jobparams key
@@ -409,7 +422,7 @@ class JobData(BaseData):
 
         :param raw: (unused).
         :param value: job parameters (string).
-        :return: updated job parameers (string).
+        :return: updated job parameters (string).
         """
 
         ## clean job params from Pilot1 old-formatted options
