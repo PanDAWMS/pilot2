@@ -567,7 +567,7 @@ def get_number_of_events(jobreport_dictionary):
     if nevents != {}:
         try:
             nmax = max(nevents.values())
-        except Exception, e:
+        except Exception as e:
             logger.warning("exception caught: %s" % (e))
             nmax = 0
     else:
@@ -821,7 +821,7 @@ def remove_redundant_files(workdir, outputfiles=[]):
     # remove core and pool.root files from AthenaMP sub directories
     try:
         cleanup_payload(workdir, outputfiles)
-    except Exception, e:
+    except Exception as e:
         logger.warning("failed to execute cleanup_payload(): %s" % e)
 
     # explicitly remove any soft linked archives (.a files) since they will be dereferenced by the tar command

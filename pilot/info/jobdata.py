@@ -493,7 +493,7 @@ class JobData(BaseData):
 
         try:
             args = shlex.split(data)
-        except ValueError, e:
+        except ValueError as e:
             logger.error('Failed to parse input arguments from data=%s, error=%s .. skipped.' % (data, e.message))
             return {}, data
 
@@ -519,7 +519,7 @@ class JobData(BaseData):
             val = opts.get(opt)
             try:
                 val = fcast(val) if callable(fcast) else val
-            except Exception, e:
+            except Exception as e:
                 logger.error('Failed to extract value for option=%s from data=%s: cast function=%s failed, exception=%s .. skipped' % (opt, val, fcast, e))
                 continue
             ret[opt] = val

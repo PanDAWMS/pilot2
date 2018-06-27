@@ -47,7 +47,7 @@ def download_event_ranges(job, num_ranges=None):
             return res['eventRanges']
 
         return []
-    except Exception, e:
+    except Exception as e:
         log.error("Failed to download event ranges: %s" % (e.get_detail()))
     return None
 
@@ -73,5 +73,5 @@ def update_event_ranges(job, event_ranges, version=1):
                             data=data)
 
         log.info("Updated event ranges status: %s" % res)
-    except Exception, e:
+    except Exception as e:
         log.error("Failed to update event ranges: %s" % (e.get_detail()))

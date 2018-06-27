@@ -131,13 +131,13 @@ class StagingClient(object):
             try:
                 logger.info('Call rucio.list_replicas() with query=%s' % query)
                 replicas = c.list_replicas(**query)
-            except TypeError, e:
+            except TypeError as e:
                 if query == bquery:
                     raise
                 logger.warning("Detected outdated Rucio list_replicas(), cannot do geoip-sorting: %s .. fallback to old list_replicas() call" % e)
                 replicas = c.list_replicas(**bquery)
 
-        except Exception, e:
+        except Exception as e:
             raise PilotException("Failed to get replicas from Rucio: %s" % e)  #, code=ErrorCodes.XX__FAILEDLFCGETREPS)
 
         replicas = list(replicas)
@@ -236,7 +236,7 @@ class StagingClient(object):
             s.connect(("8.8.8.8", 80))
             ip = s.getsockname()[0]
             ret = {'ip': ip, 'fqdn': socket.getfqdn(), 'site': site}
-        except Exception, e:
+        except Exception as e:
             #self.log('socket() failed to lookup local IP')
             print('socket() failed to lookup local IP: %s' % e)
 
@@ -288,20 +288,20 @@ class StagingClient(object):
                 module = self.copytool_modules[name]['module_name']
                 self.logger.info('Trying to use copytool=%s for activity=%s' % (name, activity))
                 copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], -1)
-            except PilotException, e:
+            except PilotException as e:
                 errors.append(e)
                 self.logger.debug('Error: %s' % e)
                 continue
-            except Exception, e:
+            except Exception as e:
                 self.logger.warning('Failed to import copytool module=%s, error=%s' % (module, e))
                 self.logger.debug('Error: %s' % e)
                 continue
             try:
                 result = self.transfer_files(copytool, files, activity, **kwargs)
-            except PilotException, e:
+            except PilotException as e:
                 errors.append(e)
                 self.logger.debug('Error: %s' % e)
-            except Exception, e:
+            except Exception as e:
                 self.logger.warning('Failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
                 import traceback
                 self.logger.error(traceback.format_exc())

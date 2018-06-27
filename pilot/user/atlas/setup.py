@@ -241,7 +241,7 @@ def get_analysis_trf(transform, workdir):
     logger.debug("changing permission of %s to 0755" % path)
     try:
         os.chmod(path, 0755)
-    except Exception, e:
+    except Exception as e:
         diagnostics = "failed to chmod %s: %s" % (transform_name, e)
         # return self.__error.ERR_CHMODTRF, diagnostics, ""
 

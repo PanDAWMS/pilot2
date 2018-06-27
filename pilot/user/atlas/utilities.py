@@ -171,7 +171,7 @@ def get_memory_monitor_info(workdir, allowtxtfile=False):
             node['avgVMEM'] = summary_dictionary['Avg']['avgVMEM']
             node['avgSWAP'] = summary_dictionary['Avg']['avgSwap']
             node['avgPSS'] = summary_dictionary['Avg']['avgPSS']
-        except Exception, e:
+        except Exception as e:
             logger.warning("exception caught while parsing memory monitor file: %s" % (e))
             logger.warning("will add -1 values for the memory info")
             node['maxRSS'] = -1
@@ -217,7 +217,7 @@ def get_max_memory_monitor_value(value, maxvalue, totalvalue):
     ec = 0
     try:
         value_int = int(value)
-    except Exception, e:
+    except Exception as e:
         logger.warning("exception caught: %s" % e)
         ec = 1
     else:

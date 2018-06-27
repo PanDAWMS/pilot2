@@ -119,7 +119,7 @@ class InfoService(object):
                     if not merge:
                         return r
                     ret = merge_dict_data(ret or {}, r or {})
-                except Exception, e:
+                except Exception as e:
                     logger.warning("failed to resolve data (%s) from provider=%s .. skipped, error=%s" % (fcall.__name__, provider, e))
                     import traceback
                     logger.warning(traceback.format_exc())

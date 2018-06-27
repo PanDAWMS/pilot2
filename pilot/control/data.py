@@ -174,7 +174,7 @@ def _stage_in(args, job):
         client = StageInClient(job.infosys, logger=log)
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
         client.transfer(job.indata, activity='pr', **kwargs)
-    except Exception, error:
+    except Exception as error:
         log.error('Failed to stage-in: error=%s' % error)
         #return False
 
@@ -538,10 +538,10 @@ def _do_stageout(job, xdata, activity, title):
         client = StageOutClient(job.infosys, logger=log)
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
         client.transfer(xdata, activity, **kwargs)
-    except PilotException, error:
+    except PilotException as error:
         import traceback
         log.error(traceback.format_exc())
-    except Exception, e:
+    except Exception as e:
         import traceback
         log.error(traceback.format_exc())
         error = PilotException("stageOut failed with error=%s" % e, code=ErrorCodes.STAGEOUTFAILED)

@@ -144,7 +144,7 @@ def copy_in(files, **kwargs):
             _stagefile(coption, fspec.turl, destination, fspec.filesize, is_stagein=True, setup=setup, **kwargs)
             fspec.status_code = 0
             fspec.status = 'transferred'
-        except Exception, error:
+        except Exception as error:
             fspec.status = 'failed'
             fspec.status_code = error.get_error_code() if isinstance(error, PilotException) else ErrorCodes.STAGEINFAILED
             raise
@@ -169,7 +169,7 @@ def copy_out(files, **kwargs):
             _stagefile(coption, fspec.surl, fspec.turl, fspec.filesize, is_stagein=False, setup=setup, **kwargs)
             fspec.status_code = 0
             fspec.status = 'transferred'
-        except Exception, error:
+        except Exception as error:
             fspec.status = 'failed'
             fspec.status_code = error.get_error_code() if isinstance(error, PilotException) else ErrorCodes.STAGEOUTFAILED
             raise
