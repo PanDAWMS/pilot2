@@ -130,7 +130,7 @@ def import_module(**kwargs):
     args = Args()
     parser = argparse.ArgumentParser()
     for key, value in argument_dictionary.iteritems():
-        print key, value
+        print(key, value)
         parser.add_argument(key)
         parser.parse_args(args=[key, value], namespace=args)  # convert back int and bool strings to int and bool??
 
@@ -327,7 +327,8 @@ if __name__ == '__main__':
         except Exception as e:
             # print to stderr since logging has not been established yet
             from sys import stderr
-            print >> stderr, 'failed to create workdir at %s -- aborting: %s' % (mainworkdir, e)
+            from __future__ import print_function
+            print('failed to create workdir at %s -- aborting: %s' % (mainworkdir, e), file=stderr)
             sys.exit(FAILURE)
     else:
         mainworkdir = getcwd()
