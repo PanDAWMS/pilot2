@@ -244,9 +244,9 @@ class ExcThread(threading.Thread):
     def __init__(self, bucket, target, kwargs, name):
         """
         Init function with a bucket that can be used to communicate exceptions to the caller.
-        The bucket is a Queue.Queue() object that can hold an exception thrown by a thread.
+        The bucket is a Queue.queue() or queue.Queue() object that can hold an exception thrown by a thread.
 
-        :param bucket: Queue based bucket.
+        :param bucket: queue based bucket.
         :param target: target function to execute.
         :param kwargs: target function options.
         """
