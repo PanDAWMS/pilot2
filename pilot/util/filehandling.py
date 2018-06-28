@@ -446,8 +446,7 @@ def get_guid():
     :return: a random GUID (string)
     """
 
-    _guid = uuid.uuid4()
-    return str(_guid).upper()
+    return str(uuid.uuid4()).upper()
 
 
 def get_table_from_file(filename, header=None, separator="\t", convert_to_float=True):
