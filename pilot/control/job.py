@@ -320,8 +320,11 @@ def create_data_payload(queues, traces, args):
             continue
 
         if job.indata:
+            # if the job has input data, put the job object in the data_in queue which will trigger stage-in
             queues.data_in.put(job)
         else:
+            # if the job does not have any input data, then pretend that stage-in has finished and put the job
+            # in the finished_data_in queue
             queues.finished_data_in.put(job)
         queues.payloads.put(job)
 
