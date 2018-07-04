@@ -201,9 +201,9 @@ if __name__ == '__main__':
 
     arg_parser.add_argument('-z',
                             dest='update_server',
+                            action='store_false',
                             default=True,
-                            type=bool,
-                            help='Update server (default: True)')
+                            help='Disable update server (default: True)')
 
     arg_parser.add_argument('-t',
                             dest='verify_proxy',
