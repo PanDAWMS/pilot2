@@ -203,13 +203,13 @@ if __name__ == '__main__':
                             dest='update_server',
                             action='store_false',
                             default=True,
-                            help='Disable update server (default: True)')
+                            help='Disable server updates')
 
     arg_parser.add_argument('-t',
                             dest='verify_proxy',
+                            action='store_false',
                             default=True,
-                            type=bool,
-                            help='Proxy verification (default: True)')
+                            help='Disable proxy verification')
 
     # SSL certificates
     arg_parser.add_argument('--cacert',
