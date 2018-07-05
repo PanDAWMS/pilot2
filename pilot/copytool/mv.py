@@ -9,6 +9,7 @@
 # - Tobias Wegner, tobias.wegner@cern.ch, 2018
 
 import os
+import re
 
 from pilot.common.exception import StageInFailure, StageOutFailure, ErrorCodes
 from pilot.util.container import execute
@@ -17,6 +18,33 @@ import logging
 logger = logging.getLogger(__name__)
 
 require_replicas = False  ## indicate if given copytool requires input replicas to be resolved
+
+def _createOutputList(files, init_dir):
+    """
+    Add files to the output list which tells ARC CE which files to upload
+    """
+
+    for fspec in files:
+        arcturl = fspec.turl
+        if arcturl.startswith('s3://'):
+            # Use Rucio proxy to upload to OS
+            arcturl = re.sub(r'^s3', 's3+rucio', arcturl)
+            # Add failureallowed option so failed upload does not fail job
+            rucio = 'rucio://rucio-lb-prod.cern.ch;failureallowed=yes/objectstores'
+            rse = fspec.ddmendpoint
+            activity = 'write'
+            arcturl = '/'.join([rucio, arcturl, rse, activity])
+        else:
+            checksumtype, checksum = fspec.checksum.items()[0]
+            # Add ARC options to TURL
+            # Spacetoken doesn't seem to be available in fspec yet
+            #arcturl = re.sub(r'((:\d+)/)', r'\2;autodir=no;spacetoken=%s/' % token, arcturl)
+            arcturl += ':checksumtype=%s:checksumvalue=%s' % (checksumtype, checksum)
+
+        logger.info('Adding to output.list: %s %s' % (fspec.lfn, arcturl))
+        # Write output.list
+        with open(os.path.join(init_dir, 'output.list'), 'a') as f:
+            f.write('%s %s\n' % (fspec.lfn, arcturl))
 
 
 def is_valid_for_copy_in(files):
@@ -35,7 +63,7 @@ def is_valid_for_copy_out(files):
     #return True
 
 
-def copy_in(files, copy_type="mv", **kwargs):
+def copy_in(files, copy_type="symlink", **kwargs):
     """
     Tries to download the given files using mv directly.
 
@@ -45,10 +73,16 @@ def copy_in(files, copy_type="mv", **kwargs):
 
     if copy_type not in ["cp", "mv", "symlink"]:
         raise StageInFailure("Incorrect method for copy in")
-    exit_code, stdout, stderr = move_all_files(files, copy_type, kwargs=kwargs)
+
+    if not kwargs.get('workdir'):
+        raise StageInFailure("Workdir is not specified")
+
+    exit_code, stdout, stderr = move_all_files(files, copy_type, kwargs.get('workdir'))
     if exit_code != 0:
         # raise failure
         raise StageInFailure(stdout)
+
+    return files
 
 
 def copy_out(files, copy_type="mv", **kwargs):
@@ -62,13 +96,21 @@ def copy_out(files, copy_type="mv", **kwargs):
     if copy_type not in ["cp", "mv"]:
         raise StageOutFailure("Incorrect method for copy out")
 
-    exit_code, stdout, stderr = move_all_files(files, copy_type, kwargs=kwargs)
+    if not kwargs.get('workdir'):
+        raise StageOutFailure("Workdir is not specified")
+
+    exit_code, stdout, stderr = move_all_files(files, copy_type, kwargs.get('workdir'))
     if exit_code != 0:
         # raise failure
         raise StageOutFailure(stdout)
 
+    # Create output list for ARC CE
+    _createOutputList(files, os.path.dirname(kwargs.get('workdir')))
 
-def move_all_files(files, copy_type, **kwargs):
+    return files
+
+
+def move_all_files(files, copy_type, workdir):
     """
     Move all files.
 
@@ -92,22 +134,25 @@ def move_all_files(files, copy_type, **kwargs):
 
     for fspec in files:  # entry = {'name':<filename>, 'source':<dir>, 'destination':<dir>}
 
-        dst = fspec.workdir or kwargs.get('workdir') or '.'
-        #dst = fspec.workdir or '.'
-        #timeout = get_timeout(fspec.filesize)
-        source = fspec.turl
         name = fspec.lfn
-        destination = os.path.join(dst, name)
+        if fspec.type == 'input':
+            # Assumes pilot runs in subdir one level down from working dir
+            source = os.path.join(os.path.dirname(workdir), name) 
+            destination = os.path.join(workdir, name)
+        else:
+            source = os.path.join(workdir, name)
+            destination = os.path.join(os.path.dirname(workdir), name) 
 
         logger.info("transferring file %s from %s to %s" % (name, source, destination))
 
-        #source = os.path.join(source, name)
-        #destination = os.path.join(destination, name)
         exit_code, stdout, stderr = copy_method(source, destination)
         if exit_code != 0:
             logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
             fspec.status = 'failed'
-            fspec.status_code = ErrorCodes.STAGEOUTFAILED  # to fix, what about stage-in?
+            if fspec.type == 'input':
+                fspec.status_code = ErrorCodes.STAGEINFAILED
+            else:
+                fspec.status_code = ErrorCodes.STAGEOUTFAILED
             break
         else:
             fspec.status_code = 0
