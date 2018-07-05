@@ -149,7 +149,7 @@ class Analytics(Services):
                             logger.info('current memory leak: %s B/s (using %d data points, chi2=%f)' %
                                         (slope, len(x), fit.chi2()))
             else:
-                logger.warning('wrong length of table data, x=%s, y=%s (must be same)' % (str(x), str(y)))
+                logger.warning('wrong length of table data, x=%s, y=%s (must be same and length>=2)' % (str(x), str(y)))
 
         return slope
 
