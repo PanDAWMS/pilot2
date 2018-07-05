@@ -107,6 +107,7 @@ def import_module(**kwargs):
                            '-j': kwargs.get('job_label', 'ptest'),  # change default later to 'managed'
                            '-i': kwargs.get('version_tag', 'PR'),
                            '-t': kwargs.get('verify_proxy', True),
+                           '-z': kwargs.get('update_server', True),
                            '--cacert': kwargs.get('cacert', None),
                            '--capath': kwargs.get('capath'),
                            '--url': kwargs.get('url', ''),
