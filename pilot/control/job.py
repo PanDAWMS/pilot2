@@ -140,10 +140,21 @@ def send_state(job, args, state, xml=None):
             res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver), data=data)
             if res is not None:
                 log.info('server updateJob request completed for job %s' % job.jobid)
-                logger.info('res = %s' % str(res))
+                log.info('res = %s' % str(res))
 
                 # does the server update contain any backchannel information? if so, update the job object
-                # ..
+                if 'command' in res and res['command'] is not 'NULL':
+                    # look for 'tobekilled', 'softkill', 'debug', 'debugoff'
+                    if res.get('command') == 'tobekilled':
+                        pass
+                    elif res.get('command') == 'softkill':
+                        pass
+                    elif res.get('command') == 'debug':
+                        pass
+                    elif res.get('command') == 'debugoff':
+                        pass
+                    else:
+                        log.warning('received unknown server command via backchannel: %s' % res.get('command'))
 
                 return True
         else:
