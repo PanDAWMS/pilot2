@@ -112,23 +112,37 @@ def open_file(filename, mode):
     return f
 
 
-def tail(filename, n=10):
+def get_files(pattern="*.log"):
+    """
+    Find all files whose names follow the given pattern.
+
+    :param pattern: file name pattern (string).
+    :return: list of files.
+    """
+
+    files = []
+    cmd = "find . -name %s" % pattern
+    exit_code, stdout, stderr = execute(cmd)
+    if stdout:
+        # remove last \n if present
+        if stdout.endswith('\n'):
+            stdout = stdout[:-1]
+        files = stdout.split('\n')
+
+    return files
+
+
+def tail(filename, nlines=10):
     """
     Return the last n lines of a file.
-    WARNING: the deque function goes through the entire file to get to the last few lines. REPLACE ME!
 
     :param filename: name of file to do the tail on (string).
-    :param n: number of lines (int).
+    :param nlines: number of lines (int).
     :return: file tail (list)
     """
 
-    f = open_file(filename, 'r')
-    if f:
-        tail = list(deque(f, n))
-    else:
-        tail = []
-
-    return tail
+    exit_code, stdout, stderr = execute('tail -%d %s' % (lines, filename))
+    return stdout
 
 
 def convert(data):
