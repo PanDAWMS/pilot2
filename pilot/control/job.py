@@ -1072,8 +1072,9 @@ def get_heartbeat_period(debug=False):
     :return: heartbeat period (int).
     """
 
-    if debug:
-        heartbeat =
+    return config.Pilot.heartbeat if not debug else config.Pilot.debug_heartbeat
+
+
 def job_monitor(queues, traces, args):
     """
     Monitoring of job parameters.
@@ -1091,10 +1092,10 @@ def job_monitor(queues, traces, args):
     # initialize the monitoring time object
     mt = MonitoringTime()
 
-    # peeking and current time; peeking time gets updated if jobs are being monitored, current time is not updated
-    # and is only used for the heartbeat
+    # peeking and current time; peeking_time gets updated if and when jobs are being monitored, update_time is only
+    # used for sending the heartbeat and is updated after a server update
     peeking_time = int(time.time())
-    current_time = peeking_time
+    update_time = peeking_time
 
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
@@ -1132,8 +1133,12 @@ def job_monitor(queues, traces, args):
                         log.info('aborting job monitoring since job state=%s' % jobs[i].state)
                         break
 
-                    # send heartbeat if it is time
-                    send_state(jobs[i], args, 'running')
+                    # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
+                    # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
+                    period = get_heartbeat_period(jobs[i].debug)
+                    if int(time.time()) - update_time >= period:
+                        send_state(jobs[i], args, 'running')
+                        update_time = int(time.time())
             else:
                 waiting_time = int(time.time()) - peeking_time
                 msg = 'no jobs in monitored_payloads queue (waiting for %d s)' % waiting_time
