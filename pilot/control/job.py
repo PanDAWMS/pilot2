@@ -1062,6 +1062,18 @@ def queue_monitor(queues, traces, args):
                 queues.completed_jobs.put(_job)
 
 
+def get_heartbeat_period(debug=False):
+    """
+    Return the proper heartbeat period, as determined by normal or debug mode.
+    In normal mode, the hearbeat period is 30*60 s, while in debug mode it is 5*60 s. Both values are defined in the
+    config file.
+
+    :param debug: Boolean, True for debug mode. False otherwise.
+    :return: heartbeat period (int).
+    """
+
+    if debug:
+        heartbeat =
 def job_monitor(queues, traces, args):
     """
     Monitoring of job parameters.
