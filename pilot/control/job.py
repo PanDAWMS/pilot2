@@ -105,7 +105,7 @@ def _validate_job(job):
 
 def send_state(job, args, state, xml=None):
     """
-    Update the server (heartbeat message).
+    Update the server (send heartbeat message).
 
     :param job: job object.
     :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
@@ -116,7 +116,7 @@ def send_state(job, args, state, xml=None):
 
     log = get_logger(job.jobid)
 
-    # should in fact the pilot make any server udpates?
+    # should the pilot make any server updates?
     if not args.update_server:
         log.info('pilot will not update the server')
         return True
@@ -130,9 +130,6 @@ def send_state(job, args, state, xml=None):
     data = get_data_structure(job, state, args.site, args.version_tag, xml=xml)
 
     try:
-        # cmd = args.url + ':' + str(args.port) + 'server/panda/updateJob'
-        # if https.request(cmd, data=data) is not None:
-
         if args.url != '' and args.port != 0:
             pandaserver = args.url + ':' + str(args.port)
         else:

@@ -135,13 +135,14 @@ def get_files(pattern="*.log"):
 def tail(filename, nlines=10):
     """
     Return the last n lines of a file.
+    Note: the function uses the posix tail function.
 
     :param filename: name of file to do the tail on (string).
     :param nlines: number of lines (int).
     :return: file tail (list)
     """
 
-    exit_code, stdout, stderr = execute('tail -%d %s' % (nlines, filename))
+    exit_code, stdout, stderr = execute('tail -n %d %s' % (nlines, filename))
     return stdout
 
 
