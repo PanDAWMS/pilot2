@@ -17,9 +17,10 @@ from pilot.util.container import execute
 import logging
 logger = logging.getLogger(__name__)
 
-require_replicas = False  ## indicate if given copytool requires input replicas to be resolved
+require_replicas = False  # indicate if given copytool requires input replicas to be resolved
 
-def _createOutputList(files, init_dir):
+
+def create_output_list(files, init_dir):
     """
     Add files to the output list which tells ARC CE which files to upload
     """
@@ -48,7 +49,7 @@ def _createOutputList(files, init_dir):
 
 
 def is_valid_for_copy_in(files):
-    return True  ## FIX ME LATER
+    return True  # FIX ME LATER
     #for f in files:
     #    if not all(key in f for key in ('name', 'source', 'destination')):
     #        return False
@@ -56,7 +57,7 @@ def is_valid_for_copy_in(files):
 
 
 def is_valid_for_copy_out(files):
-    return True ## FIX ME LATER
+    return True  # FIX ME LATER
     #for f in files:
     #    if not all(key in f for key in ('name', 'source', 'destination')):
     #        return False
@@ -105,7 +106,7 @@ def copy_out(files, copy_type="mv", **kwargs):
         raise StageOutFailure(stdout)
 
     # Create output list for ARC CE
-    _createOutputList(files, os.path.dirname(kwargs.get('workdir')))
+    create_output_list(files, os.path.dirname(kwargs.get('workdir')))
 
     return files
 
@@ -137,11 +138,11 @@ def move_all_files(files, copy_type, workdir):
         name = fspec.lfn
         if fspec.type == 'input':
             # Assumes pilot runs in subdir one level down from working dir
-            source = os.path.join(os.path.dirname(workdir), name) 
+            source = os.path.join(os.path.dirname(workdir), name)
             destination = os.path.join(workdir, name)
         else:
             source = os.path.join(workdir, name)
-            destination = os.path.join(os.path.dirname(workdir), name) 
+            destination = os.path.join(os.path.dirname(workdir), name)
 
         logger.info("transferring file %s from %s to %s" % (name, source, destination))
 
