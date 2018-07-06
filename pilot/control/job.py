@@ -137,10 +137,14 @@ def send_state(job, args, state, xml=None):
             pandaserver = config.Pilot.pandaserver
 
         if config.Pilot.pandajob == 'real':
-            if https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver),
-                             data=data) is not None:
-
+            res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver), data=data)
+            if res is not None:
                 log.info('server updateJob request completed for job %s' % job.jobid)
+                logger.info('res = %s' % str(res))
+
+                # does the server update contain any backchannel information? if so, update the job object
+                # ..
+
                 return True
         else:
             log.info('skipping job update for fake test job')
