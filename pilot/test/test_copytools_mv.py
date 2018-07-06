@@ -11,9 +11,7 @@ import string
 import tempfile
 import shutil
 import random
-import os
 import os.path
-import filecmp
 
 from pilot.copytool.mv import copy_in, copy_out
 from pilot.common.exception import StageInFailure, StageOutFailure
