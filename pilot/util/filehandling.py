@@ -141,7 +141,7 @@ def tail(filename, nlines=10):
     :return: file tail (list)
     """
 
-    exit_code, stdout, stderr = execute('tail -%d %s' % (lines, filename))
+    exit_code, stdout, stderr = execute('tail -%d %s' % (nlines, filename))
     return stdout
 
 
