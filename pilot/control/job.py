@@ -23,22 +23,22 @@ except Exception:
 
 from json import dumps
 
+from pilot.common.errorcodes import ErrorCodes
+from pilot.common.exception import ExcThread, PilotException
 from pilot.info import infosys, JobData
 from pilot.util import https
+from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB
-from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, is_virtual_machine
-from pilot.util.proxy import get_distinguished_name
-from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
+from pilot.util.filehandling import get_files, tail
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
+from pilot.util.proxy import get_distinguished_name
 from pilot.util.timing import add_to_pilot_timing, get_getjob_time, get_setup_time, get_stagein_time, get_stageout_time,\
     get_payload_execution_time, get_initial_setup_time, get_postgetjob_time
-
-from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import ExcThread, PilotException
+from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, is_virtual_machine
 
 import logging
 logger = logging.getLogger(__name__)
@@ -225,6 +225,18 @@ def get_data_structure(job, state, sitename, versiontag, xml=None):
 
     if xml is not None:
         data['xml'] = xml
+
+    # in debug mode, also send a tail of the latest log file touched by the payload
+    if job.debug:
+        # find the latest updated log file
+        list_of_files = get_files()
+        latest_file = max(list_of_files, key=os.path.getctime)
+        log.info('tail of file %s will be added to heartbeat' % latest_file)
+
+        # now get the tail of the found log file and protect against potentially large tails
+        stdout_tail = tail(latest_file)
+        stdout_tail = stdout_tail[-2048:]
+        data['stdout'] = stdout_tail
 
     if state == 'finished' or state == 'failed':
         # collect pilot timing data
