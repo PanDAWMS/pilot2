@@ -106,6 +106,7 @@ def _validate_job(job):
 def send_state(job, args, state, xml=None):
     """
     Update the server (send heartbeat message).
+    Interpret and handle any server instructions arriving with the updateJob backchannel.
 
     :param job: job object.
     :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
@@ -1078,8 +1079,10 @@ def job_monitor(queues, traces, args):
     # initialize the monitoring time object
     mt = MonitoringTime()
 
-    # peeking time
-    peeking_time = time.time()
+    # peeking and current time; peeking time gets updated if jobs are being monitored, current time is not updated
+    # and is only used for the heartbeat
+    peeking_time = int(time.time())
+    current_time = peeking_time
 
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
@@ -1099,7 +1102,8 @@ def job_monitor(queues, traces, args):
             jobs = queues.monitored_payloads.queue
 
             if jobs:
-                peeking_time = time.time()
+                # update the peeking time
+                peeking_time = int(time.time())
                 for i in range(len(jobs)):
                     log = get_logger(jobs[i].jobid)
                     log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
@@ -1113,11 +1117,13 @@ def job_monitor(queues, traces, args):
                         jobs[i].state = 'failed'
                         jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
                         queues.failed_payloads.put(jobs[i])
+                        log.info('aborting job monitoring since job state=%s' % jobs[i].state)
+                        break
 
-                    # send heartbeat
+                    # send heartbeat if it is time
                     send_state(jobs[i], args, 'running')
             else:
-                waiting_time = time.time() - peeking_time
+                waiting_time = int(time.time()) - peeking_time
                 msg = 'no jobs in monitored_payloads queue (waiting for %d s)' % waiting_time
                 if waiting_time > 120:
                     abort = True
