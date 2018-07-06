@@ -572,9 +572,10 @@ class JobData(BaseData):
                     continue
                 pfn = os.path.join(self.workdir, fspec.lfn)
                 if not os.path.isfile(pfn):
-                    msg = "Error: pfn file=%s does not exist .. skip from wordir size calculation: %s" % pfn
+                    msg = "Error: pfn file=%s does not exist .. skip from wordir size calculation" % pfn
                     logger.info(msg)
-                total_size += os.path.getsize(pfn)
+                else:
+                    total_size += os.path.getsize(pfn)
 
             logger.info("total size of present input+output files: %d B (workdir size: %d B)" %
                         (total_size, workdir_size))
