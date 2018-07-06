@@ -30,6 +30,7 @@ class MonitoringTime(object):
         self.ct_diskspace = ct
         self.ct_memory = ct
         self.ct_process = ct
+        self.ct_heartbeat = ct
         # add more here
 
     def update(self, key):
