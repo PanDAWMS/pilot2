@@ -61,11 +61,15 @@ def find_processes_in_group(cpids, pid):
     """
 
     cpids.append(pid)
+
+    import commands
+    psout = commands.getoutput("ps -eo pid,ppid -m | grep %d" % pid)
+    logger.info('psout1=%s' % psout)
     cmd = "ps -eo pid,ppid -m | grep %d" % pid
     exit_code, psout, stderr = execute(cmd, mute=True)
+    logger.info('psout2=%s' % psout)
 
     lines = psout.split("\n")
-    logger.info('lines=%s' % str(lines))
     if lines != ['']:
         for i in range(0, len(lines)):
             try:
