@@ -35,7 +35,9 @@ def find_processes_in_group(cpids, pid):
 
     cpids.append(pid)
     cmd = "ps -eo pid,ppid -m | grep %d" % pid
-    exit_code, psout, stderr = execute(cmd)
+    import commands
+    psout = commands.getoutput("ps -eo pid,ppid -m | grep %d" % pid)
+    #exit_code, psout, stderr = execute(cmd)
 
     lines = psout.split("\n")
     if lines != ['']:
