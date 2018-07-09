@@ -253,6 +253,9 @@ def validate_post(queues, traces, args):
             continue
         log = get_logger(job.jobid)
 
+        # by default, both output and log should be staged out
+        job.stageout = 'all'
+
         # process the job report if it exists and set multiple fields
         process_job_report(job)
 
