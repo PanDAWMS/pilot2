@@ -35,6 +35,31 @@ def find_processes_in_group(cpids, pid):
 
     cpids.append(pid)
     cmd = "ps -eo pid,ppid -m | grep %d" % pid
+    exit_code, psout, stderr = execute(cmd)
+
+    lines = psout.split("\n")
+    if lines != ['']:
+        for i in range(0, len(lines)):
+            thispid = int(lines[i].split()[0])
+            thisppid = int(lines[i].split()[1])
+            if thisppid == pid:
+                find_processes_in_group(cpids, thispid)
+
+
+def find_processes_in_group2(cpids, pid):
+    """
+    Find all processes that belong to the same group.
+    Recursively search for the children processes belonging to pid and return their pid's.
+    pid is the parent pid and cpids is a list that has to be initialized before calling this function and it contains
+    the pids of the children AND the parent.
+
+    :param cpids: list of pid's for all child processes to the parent pid, as well as the parent pid itself (int).
+    :param pid: parent process id (int).
+    :return: (updated cpids input parameter list).
+    """
+
+    cpids.append(pid)
+    cmd = "ps -eo pid,ppid -m | grep %d" % pid
     exit_code, psout, stderr = execute(cmd, mute=True)
 
     lines = psout.split("\n")
@@ -49,6 +74,21 @@ def find_processes_in_group(cpids, pid):
                 find_processes_in_group(cpids, thispid)
 
 
+#def findProcessesInGroup(cpids, pid):
+#    """ recursively search for the children processes belonging to pid and return their pids
+#    here pid is the parent pid for all the children to be found
+#    cpids is a list that has to be initialized before calling this function and it contains
+#    the pids of the children AND the parent as well """
+#
+#    cpids.append(pid)
+#    psout = commands.getoutput("ps -eo pid,ppid -m | grep %d" % pid)
+#    lines = psout.split("\n")
+#    if lines != ['']:
+#        for i in range(0, len(lines)):
+#            thispid = int(lines[i].split()[0])
+#            thisppid = int(lines[i].split()[1])
+#            if thisppid == pid:
+#                findProcessesInGroup(cpids, thispid)
 def is_zombie(pid):
     """
     Is the given process a zombie?
