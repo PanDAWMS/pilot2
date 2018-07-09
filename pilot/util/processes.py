@@ -436,7 +436,7 @@ def get_current_cpu_consumption_time(pid):
     # get all the child processes
     children = []
     find_processes_in_group(children, pid)
-
+    logger.info('CPU children=%s' % str(children))
     cpuconsumptiontime = 0
     for _pid in children:
         _cpuconsumptiontime = get_instant_cpu_consumption_time(_pid)
