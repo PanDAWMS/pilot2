@@ -11,7 +11,6 @@ import os
 import time
 import uuid
 import tarfile
-from collections import deque
 from shutil import copy2
 
 from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile
