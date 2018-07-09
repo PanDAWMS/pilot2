@@ -21,7 +21,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def find_processes_in_group(cpids, pid):
+def find_processes_in_group2(cpids, pid):
     """
     Find all processes that belong to the same group.
     Recursively search for the children processes belonging to pid and return their pid's.
@@ -70,8 +70,8 @@ def find_processes_in_group2(cpids, pid):
             try:
                 thispid = int(lines[i].split()[0])
                 thisppid = int(lines[i].split()[1])
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning('exception caught: %s' % e)
             if thisppid == pid:
                 find_processes_in_group(cpids, thispid)
 
