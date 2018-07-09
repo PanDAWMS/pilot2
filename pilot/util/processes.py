@@ -48,7 +48,7 @@ def find_processes_in_group2(cpids, pid):
                 find_processes_in_group(cpids, thispid)
 
 
-def find_processes_in_group2(cpids, pid):
+def find_processes_in_group(cpids, pid):
     """
     Find all processes that belong to the same group.
     Recursively search for the children processes belonging to pid and return their pid's.
@@ -65,6 +65,7 @@ def find_processes_in_group2(cpids, pid):
     exit_code, psout, stderr = execute(cmd, mute=True)
 
     lines = psout.split("\n")
+    logger.info('lines=%s' % str(lines))
     if lines != ['']:
         for i in range(0, len(lines)):
             try:
