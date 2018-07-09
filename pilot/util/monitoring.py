@@ -235,8 +235,13 @@ def verify_running_processes(current_time, mt, pid):
     if current_time - mt.get('ct_process') > process_verification_time:
         # time to check the number of processes
         nproc = get_number_of_child_processes(pid)
-        if nproc > os.environ.get('PILOT_MAXNPROC', 0):
-            os.environ['PILOT_MAXNPROC'] = nproc
+        try:
+            nproc_env = int(os.environ.get('PILOT_MAXNPROC', 0))
+        except Exception as e:
+            logger.warning('failed to convert PILOT_MAXNPROC to int: %s' % e)
+        else:
+            if nproc > nproc_env:
+                os.environ['PILOT_MAXNPROC'] = str(nproc)
 
     return 0, ""
 
