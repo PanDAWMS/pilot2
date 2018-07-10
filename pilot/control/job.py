@@ -143,7 +143,7 @@ def send_state(job, args, state, xml=None):
                 log.info('res = %s' % str(res))
 
                 # does the server update contain any backchannel information? if so, update the job object
-                if 'command' in res and res['command'] is not 'NULL':
+                if 'command' in res and res.get('command') != 'NULL':
                     # look for 'tobekilled', 'softkill', 'debug', 'debugoff'
                     if res.get('command') == 'tobekilled':
                         pass
