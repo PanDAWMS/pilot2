@@ -28,6 +28,7 @@ import pipes
 
 from .basedata import BaseData
 from .filespec import FileSpec
+from pilot.util.filehandling import get_guid
 
 import logging
 logger = logging.getLogger(__name__)
@@ -249,6 +250,8 @@ class JobData(BaseData):
                 ftype = 'log'
                 idat['guid'] = data.get('logGUID')
                 ret = ret_log
+            elif lfn.endswith('.lib.tgz'):  # build job case, generate a guid for the lib file
+                idat['guid'] = get_guid()
 
             finfo = FileSpec(type=ftype, **idat)
             ret.append(finfo)
