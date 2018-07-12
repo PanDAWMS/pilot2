@@ -140,12 +140,12 @@ def get_payload_command(job):
             cmd += add_makeflags(job.corecount, "")
 
             # should asetup be used? If so, sqeeze it into the run command (rather than moving the entire getAnalysisRunCommand() into this class)
-#            if prepareASetup:
-#                m_cacheDirVer = re.search('AnalysisTransforms-([^/]+)', job.homePackage)
-#                if m_cacheDirVer != None:
-#                    # homePackage="AnalysisTransforms-AthAnalysisBase_2.0.14"
+#            if prepareasetup:
+#                m_cachedirver = re.search('AnalysisTransforms-([^/]+)', job.homepackage)
+#                if m_cachedirver is not None:
+#                     # homePackage="AnalysisTransforms-AthAnalysisBase_2.0.14"
 #                    # -> cacheDir = AthAnalysisBase, cacheVer = 2.0.14
-#                    cacheDir, cacheVer = self.getCacheInfo(m_cacheDirVer, "dummy_atlasRelease")
+#                    cachedir, cachever = get_cache_info(m_cachedirver, "dummy_atlasRelease")
 #                    if cacheDir != "" and cacheVer != "":
 #                        asetup = self.getModernASetup()
 #                        asetup += " %s,%s --platform=%s;" % (cacheDir, cacheVer, cmtconfig)
