@@ -119,12 +119,80 @@ def get_payload_command(job):
         log.info("generic job (non-ATLAS specific or with undefined swRelease)")
 
         cmd = ""
+        if userjob:
+            # Try to download the trf
+            ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
+            if ec != 0:
+                raise TrfDownloadFailure(diagnostics)
+            else:
+                log.info('user analysis trf: %s' % trf_name)
+
+            if prepareasetup:
+                ec, diagnostics, cmd = get_analysis_run_command(job, trf_name)
+                if ec != 0:
+                    pass
+                else:
+                    log.info('user analysis run command: %s' % cmd)
+            else:
+                cmd = job.jobparams
+
+            # correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
+            cmd += add_makeflags(job.corecount, "")
+
+            # should asetup be used? If so, sqeeze it into the run command (rather than moving the entire getAnalysisRunCommand() into this class)
+#            if prepareASetup:
+#                m_cacheDirVer = re.search('AnalysisTransforms-([^/]+)', job.homePackage)
+#                if m_cacheDirVer != None:
+#                    # homePackage="AnalysisTransforms-AthAnalysisBase_2.0.14"
+#                    # -> cacheDir = AthAnalysisBase, cacheVer = 2.0.14
+#                    cacheDir, cacheVer = self.getCacheInfo(m_cacheDirVer, "dummy_atlasRelease")
+#                    if cacheDir != "" and cacheVer != "":
+#                        asetup = self.getModernASetup()
+#                        asetup += " %s,%s --platform=%s;" % (cacheDir, cacheVer, cmtconfig)
+#
+#                        # now squeeze it back in
+#                        cmd = cmd.replace('./' + trfName, asetup + './' + trfName)
+#                        tolog("Updated run command for special homePackage: %s" % (cmd))
+#                    else:
+#                        tolog("asetup not needed (mo special home package: %s)" % (job.homePackage))
+#                else:
+#                    tolog("asetup not needed (no special homePackage)")
+
+        elif verify_release_string(job.homepackage) != 'NULL' and job.homepackage != ' ':
+            if prepareasetup:
+                cmd = "python %s/%s %s" % (job.homepackage, job.transformation, job.jobparams)
+            else:
+                cmd = job.jobparams
+        else:
+            if prepareasetup:
+                cmd = "python %s %s" % (job.transformation, job.jobparams)
+            else:
+                cmd = job.jobparams
 
     site = os.environ.get('PILOT_SITENAME', '')
     variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
     cmd = ''.join(variables) + cmd
 
     return cmd
+
+
+def verify_release_string(release):
+    """
+    Verify that the release (or homepackage) string is set.
+
+    :param release: release or homepackage string that might or might not be set.
+    :return: release (set string).
+    """
+
+    if release == None:
+        release = ""
+    release = release.upper()
+    if release == "":
+        release = "NULL"
+    if release == "NULL":
+        logger.info("detected unset (NULL) release/homepackage string")
+
+    return release
 
 
 def add_makeflags(job_core_count, cmd):
