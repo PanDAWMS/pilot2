@@ -810,6 +810,7 @@ def queue_monitoring(queues, traces, args):
 
             # attempt to upload the log in case the previous stage-out failure was not an SE error
             job.stageout = "log"
+            job.state = "failed"
             if not _stage_out_new(job, args):
                 log.info("job %s failed during stage-out of data file(s) as well as during stage-out of log, "
                          "adding job object to failed_jobs queue" % job.jobid)
