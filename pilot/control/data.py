@@ -537,7 +537,6 @@ def _do_stageout(job, xdata, activity, title):
     log = get_logger(job.jobid)
     log.info('prepare to stage-out %s files' % title)
 
-    error = None
     try:
         client = StageOutClient(job.infosys, logger=log)
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
@@ -553,10 +552,6 @@ def _do_stageout(job, xdata, activity, title):
     log.info('Summary of transferred files:')
     for e in xdata:
         log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
-
-    if error:
-        log.error('Failed to stage-out %s file(s): error=%s' % (error, title))
-        raise error
 
     remain_files = [e for e in xdata if e.status not in ['transferred']]
 
@@ -807,5 +802,15 @@ def queue_monitoring(queues, traces, args):
             pass
         else:
             log = get_logger(job.jobid)
-            log.info("job %s failed during stage-out, adding job object to failed_jobs queue" % job.jobid)
+
+            # attempt to upload the log in case the previous stage-out failure was not an SE error
+            job.stageout = "log"
+            job.state = "failed"
+            if not _stage_out_new(job, args):
+                log.info("job %s failed during stage-out of data file(s) as well as during stage-out of log, "
+                         "adding job object to failed_jobs queue" % job.jobid)
+            else:
+                log.info("job %s failed during stage-out of data file(s) - stage-out of log succeeded, adding job "
+                         "object to failed_jobs queue" % job.jobid)
+
             queues.failed_jobs.put(job)
