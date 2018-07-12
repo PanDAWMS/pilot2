@@ -554,9 +554,9 @@ def _do_stageout(job, xdata, activity, title):
     for e in xdata:
         log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
 
-    if error:
-        log.error('Failed to stage-out %s file(s): error=%s' % (error, title))
-        raise error
+    #if error:
+    #    log.error('Failed to stage-out %s file(s): error=%s' % (error, title))
+    #    raise error
 
     remain_files = [e for e in xdata if e.status not in ['transferred']]
 
