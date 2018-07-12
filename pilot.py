@@ -29,7 +29,7 @@ from pilot.util.information import set_location
 from pilot.util.workernode import is_virtual_machine
 from pilot.util.timing import add_to_pilot_timing
 
-VERSION = '2018-07-11.002'
+VERSION = '2018-07-12.002'
 
 
 def pilot_version_banner():
@@ -209,8 +209,8 @@ if __name__ == '__main__':
 #                            help='Update server (default: True)')
 
     arg_parser.add_argument('-z',
-                           dest='update_server',
-                           action='store_false',
+                            dest='update_server',
+                            action='store_false',
                             default=True,
                             help='Disable server updates')
 
