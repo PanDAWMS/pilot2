@@ -52,34 +52,10 @@ def get_payload_command(job):
     # Get the platform value
     # platform = job.infosys.queuedata.platform
 
-    # Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
-    asetuppath = get_asetup(asetup=prepareasetup)
-    asetupoptions = " "
-
     if is_standard_atlas_job(job.swrelease):
 
         # Normal setup (production and user jobs)
         log.info("preparing normal production/analysis job setup command")
-
-        cmd = asetuppath
-        if prepareasetup:
-            options = get_asetup_options(job.swrelease, job.homepackage)
-            asetupoptions = " " + options + " --platform " + job.platform
-
-            # Always set the --makeflags option (to prevent asetup from overwriting it)
-            asetupoptions += ' --makeflags=\"$MAKEFLAGS\"'
-
-            # Verify that the setup works
-            # exitcode, output = timedCommand(cmd, timeout=5 * 60)
-            # if exitcode != 0:
-            #     if "No release candidates found" in output:
-            #         pilotErrorDiag = "No release candidates found"
-            #         logger.warning(pilotErrorDiag)
-            #         return self.__error.ERR_NORELEASEFOUND, pilotErrorDiag, "", special_setup_cmd, JEM, cmtconfig
-            # else:
-            #     logger.info("verified setup command")
-
-            cmd += asetupoptions
 
         if userjob:
             # set the INDS env variable (used by runAthena)
@@ -118,7 +94,8 @@ def get_payload_command(job):
 
         log.info("generic job (non-ATLAS specific or with undefined swRelease)")
 
-        cmd = ""
+        cmd = get_setup_command(job, prepareasetup)
+
         if userjob:
             # Try to download the trf
             ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
@@ -128,16 +105,16 @@ def get_payload_command(job):
                 log.info('user analysis trf: %s' % trf_name)
 
             if prepareasetup:
-                ec, diagnostics, cmd = get_analysis_run_command(job, trf_name)
+                ec, diagnostics, _cmd = get_analysis_run_command(job, trf_name)
                 if ec != 0:
                     pass
                 else:
-                    log.info('user analysis run command: %s' % cmd)
+                    log.info('user analysis run command: %s' % _cmd)
             else:
-                cmd = job.jobparams
+                _cmd = job.jobparams
 
             # correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
-            cmd += add_makeflags(job.corecount, "")
+            cmd += "; " + add_makeflags(job.corecount, "") + _cmd
 
             # should asetup be used? If so, sqeeze it into the run command (rather than moving the entire getAnalysisRunCommand() into this class)
 #            if prepareasetup:
@@ -172,6 +149,42 @@ def get_payload_command(job):
     site = os.environ.get('PILOT_SITENAME', '')
     variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
     cmd = ''.join(variables) + cmd
+
+    return cmd
+
+
+def get_setup_command(job, prepareasetup):
+    """
+    Return the path to asetup command, the asetup command itself and add the options (if desired).
+    If prepareasetup is False, the function will only return the path to the asetup script. It is then assumed
+    to be part of the job parameters.
+
+    :param job: job object.
+    :param prepareasetup: should the pilot prepare the asetup command itself? boolean.
+    :return:
+    """
+
+    # Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
+    cmd = get_asetup(asetup=prepareasetup)
+
+    if prepareasetup:
+        options = get_asetup_options(job.swrelease, job.homepackage)
+        asetupoptions = " " + options + " --platform " + job.platform
+
+        # Always set the --makeflags option (to prevent asetup from overwriting it)
+        asetupoptions += ' --makeflags=\"$MAKEFLAGS\"'
+
+        # Verify that the setup works
+        # exitcode, output = timedCommand(cmd, timeout=5 * 60)
+        # if exitcode != 0:
+        #     if "No release candidates found" in output:
+        #         pilotErrorDiag = "No release candidates found"
+        #         logger.warning(pilotErrorDiag)
+        #         return self.__error.ERR_NORELEASEFOUND, pilotErrorDiag, "", special_setup_cmd, JEM, cmtconfig
+        # else:
+        #     logger.info("verified setup command")
+
+        cmd += asetupoptions
 
     return cmd
 
