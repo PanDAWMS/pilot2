@@ -230,6 +230,7 @@ def get_analysis_run_command(job, trf_name):
     """
     Return the proper run command for the user job.
 
+    Example output: export X509_USER_PROXY=<..>;./runAthena <job parameters> --usePFCTurl --directIn --inputGUIDs "[]"
     :param job: job object.
     :param trf_name: name of the transform that will run the job (string).
     :return: exit code (int), diagnostics (string), command (string).
@@ -268,7 +269,8 @@ def get_analysis_run_command(job, trf_name):
     # get the correct guids list (with only the direct access files)
     if not job.is_build_job():
         _guids = get_guids_from_jobparams(job.jobparams, job.infiles, job.infilesguids)
-        cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
+        if _guids:
+            cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
 
     return exit_code, diagnostics, cmd
 
