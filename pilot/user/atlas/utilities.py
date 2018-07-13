@@ -400,6 +400,7 @@ def post_memory_monitor_action(job):
     except Exception as e:
         log.warning('failed to copy memory monitor output: %s' % e)
 
+
 def create_input_file_metadata(file_dictionary, workdir, filename="PoolFileCatalog.xml"):
     """
     Create a Pool File Catalog for the files listed in the input dictionary.

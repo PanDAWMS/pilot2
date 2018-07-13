@@ -52,6 +52,8 @@ def get_payload_command(job):
     # Get the platform value
     # platform = job.infosys.queuedata.platform
 
+    cmd = get_setup_command(job, prepareasetup)
+
     if is_standard_atlas_job(job.swrelease):
 
         # Normal setup (production and user jobs)
@@ -93,8 +95,6 @@ def get_payload_command(job):
     else:  # Generic, non-ATLAS specific jobs, or at least a job with undefined swRelease
 
         log.info("generic job (non-ATLAS specific or with undefined swRelease)")
-
-        cmd = get_setup_command(job, prepareasetup)
 
         if userjob:
             # Try to download the trf
