@@ -206,7 +206,6 @@ if __name__ == '__main__':
                             dest='update_server',
                             action='store_false',
                             default=True,
-                            type=bool,
                             help='Disable server updates')
 
     arg_parser.add_argument('-t',
