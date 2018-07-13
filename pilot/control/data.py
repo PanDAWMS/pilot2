@@ -547,7 +547,8 @@ def _do_stageout(job, xdata, activity, title):
     except Exception as e:
         import traceback
         log.error(traceback.format_exc())
-        error = PilotException("stageOut failed with error=%s" % e, code=ErrorCodes.STAGEOUTFAILED)
+        # do not raise the exception since that will prevent also the log from being staged out
+        # error = PilotException("stageOut failed with error=%s" % e, code=ErrorCodes.STAGEOUTFAILED)
 
     log.info('Summary of transferred files:')
     for e in xdata:

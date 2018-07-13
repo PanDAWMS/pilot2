@@ -184,7 +184,7 @@ def verify_release_string(release):
     :return: release (set string).
     """
 
-    if release == None:
+    if release is None:
         release = ""
     release = release.upper()
     if release == "":
