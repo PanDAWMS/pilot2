@@ -71,11 +71,8 @@ def get_payload_command(job):
                 log.info('user analysis trf: %s' % trf_name)
 
             if prepareasetup:
-                ec, diagnostics, _cmd = get_analysis_run_command(job, trf_name)
-                if ec != 0:
-                    pass
-                else:
-                    log.info('user analysis run command: %s' % _cmd)
+                _cmd = get_analysis_run_command(job, trf_name)
+                log.info('user analysis run command: %s' % _cmd)
             else:
                 _cmd = job.jobparams
 
@@ -105,11 +102,8 @@ def get_payload_command(job):
                 log.info('user analysis trf: %s' % trf_name)
 
             if prepareasetup:
-                ec, diagnostics, _cmd = get_analysis_run_command(job, trf_name)
-                if ec != 0:
-                    pass
-                else:
-                    log.info('user analysis run command: %s' % _cmd)
+                _cmd = get_analysis_run_command(job, trf_name)
+                log.info('user analysis run command: %s' % _cmd)
             else:
                 _cmd = job.jobparams
 
@@ -228,11 +222,9 @@ def get_analysis_run_command(job, trf_name):
 
     :param job: job object.
     :param trf_name: name of the transform that will run the job (string).
-    :return: exit code (int), diagnostics (string), command (string).
+    :return: command (string).
     """
 
-    exit_code = 0
-    diagnostics = ""
     cmd = ""
 
     log = get_logger(job.jobid)
@@ -241,7 +233,6 @@ def get_analysis_run_command(job, trf_name):
     use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype,
                                                                             job.is_build_job(),
                                                                             job.infosys.queuedata)
-
     # add the user proxy
     if 'X509_USER_PROXY' in os.environ:
         cmd += 'export X509_USER_PROXY=%s;' % os.environ.get('X509_USER_PROXY')
@@ -267,7 +258,7 @@ def get_analysis_run_command(job, trf_name):
         if _guids:
             cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
 
-    return exit_code, diagnostics, cmd
+    return cmd
 
 
 def update_forced_accessmode(log, cmd, transfertype, jobparams, trf_name):
