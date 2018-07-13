@@ -230,7 +230,8 @@ def get_analysis_run_command(job, trf_name):
     """
     Return the proper run command for the user job.
 
-    Example output: export X509_USER_PROXY=<..>;./runAthena <job parameters> --usePFCTurl --directIn --inputGUIDs "[]"
+    Example output: export X509_USER_PROXY=<..>;./runAthena <job parameters> --usePFCTurl --directIn
+
     :param job: job object.
     :param trf_name: name of the transform that will run the job (string).
     :return: exit code (int), diagnostics (string), command (string).

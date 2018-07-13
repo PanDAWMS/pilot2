@@ -395,8 +395,10 @@ def post_memory_monitor_action(job):
         time.sleep(nap)
         i += 1
 
-    copy(path1, path2)
-
+    try:
+        copy(path1, path2)
+    except Exception as e:
+        log.warning('failed to copy memory monitor output: %s' % e)
 
 def create_input_file_metadata(file_dictionary, workdir, filename="PoolFileCatalog.xml"):
     """
