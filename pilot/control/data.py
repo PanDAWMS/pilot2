@@ -541,7 +541,7 @@ def _do_stageout(job, xdata, activity, title):
         client = StageOutClient(job.infosys, logger=log)
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
         client.transfer(xdata, activity, **kwargs)
-    except PilotException as error:
+    except PilotException:
         import traceback
         log.error(traceback.format_exc())
     except Exception as e:
