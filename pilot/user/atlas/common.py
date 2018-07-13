@@ -68,11 +68,10 @@ def get_payload_command(job):
             if ec != 0:
                 raise TrfDownloadFailure(diagnostics)
             else:
-                log.info('user analysis trf: %s' % trf_name)
+                log.debug('user analysis trf: %s' % trf_name)
 
             if prepareasetup:
                 _cmd = get_analysis_run_command(job, trf_name)
-                log.info('user analysis run command: %s' % _cmd)
             else:
                 _cmd = job.jobparams
 
@@ -99,11 +98,10 @@ def get_payload_command(job):
             if ec != 0:
                 raise TrfDownloadFailure(diagnostics)
             else:
-                log.info('user analysis trf: %s' % trf_name)
+                log.debug('user analysis trf: %s' % trf_name)
 
             if prepareasetup:
                 _cmd = get_analysis_run_command(job, trf_name)
-                log.info('user analysis run command: %s' % _cmd)
             else:
                 _cmd = job.jobparams
 
@@ -124,6 +122,8 @@ def get_payload_command(job):
     site = os.environ.get('PILOT_SITENAME', '')
     variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
     cmd = ''.join(variables) + cmd
+
+    log.info('payload run command: %s' % cmd)
 
     return cmd
 
