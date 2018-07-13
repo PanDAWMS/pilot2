@@ -42,6 +42,7 @@ class ErrorCodes:
     GETADMISMATCH = 1171
     PUTADMISMATCH = 1172
     NOVOMSPROXY = 1177
+    PAYLOADEXCEEDMAXMEM = 1235
     CHKSUMNOTSUP = 1242
 
     # Error code constants (new since Pilot 2)
@@ -56,7 +57,9 @@ class ErrorCodes:
     SINGULARITYBINDPOINTFAILURE = 1308
     SINGULARITYIMAGEMOUNTFAILURE = 1309
     PAYLOADEXECUTIONEXCEPTION = 1310
-    NOSTORAGEPROTOCOL = 1311
+    NOTDEFINED = 1311
+    NOTSAMELENGTH = 1312
+    NOSTORAGEPROTOCOL = 1313
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -80,6 +83,7 @@ class ErrorCodes:
         GETADMISMATCH: "adler32 mismatch on input file",
         PUTADMISMATCH: "adler32 mismatch on output file",
         NOVOMSPROXY: "Voms proxy not valid",
+        PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
         NOTIMPLEMENTED: "The class or function is not implemented",
         UNKNOWNEXCEPTION: "An unknown pilot exception has occurred",
         CONVERSIONFAILURE: "Failed to convert object data",
@@ -91,9 +95,10 @@ class ErrorCodes:
         SINGULARITYBINDPOINTFAILURE: "Singularity: Not mounting requested bind point",
         SINGULARITYIMAGEMOUNTFAILURE: "Singularity: Failed to mount image",
         PAYLOADEXECUTIONEXCEPTION: "Exception caught during payload execution",
+        NOTDEFINED: "Not defined",
+        NOTSAMELENGTH: "Not same length",
         NOSTORAGEPROTOCOL: "No protocol defined for storage endpoint",
         CHKSUMNOTSUP: "Mover error: query checksum is not supported",
-
     }
 
     def get_error_message(self, errorcode):

@@ -10,10 +10,13 @@
 import os
 import time
 
+from xml.dom import minidom
+import xml.etree.ElementTree as ET
+
 # from pilot.info import infosys
 from pilot.user.atlas.setup import get_asetup
 from pilot.util.auxiliary import get_logger
-from pilot.util.filehandling import read_json, copy
+from pilot.util.filehandling import read_json, copy, write_file
 
 import logging
 logger = logging.getLogger(__name__)
@@ -133,7 +136,7 @@ def get_memory_monitor_info_path(workdir, allowtxtfile=False):
             path = ""
 
         if path == "" and allowtxtfile:
-            path = os.path.join(workdir, get_memory_monitor_output_filename)
+            path = os.path.join(workdir, get_memory_monitor_output_filename())
             if not os.path.exists(path):
                 logger.warning("File does not exist either: %s" % (path))
 
@@ -168,7 +171,7 @@ def get_memory_monitor_info(workdir, allowtxtfile=False):
             node['avgVMEM'] = summary_dictionary['Avg']['avgVMEM']
             node['avgSWAP'] = summary_dictionary['Avg']['avgSwap']
             node['avgPSS'] = summary_dictionary['Avg']['avgPSS']
-        except Exception, e:
+        except Exception as e:
             logger.warning("exception caught while parsing memory monitor file: %s" % (e))
             logger.warning("will add -1 values for the memory info")
             node['maxRSS'] = -1
@@ -214,7 +217,7 @@ def get_max_memory_monitor_value(value, maxvalue, totalvalue):
     ec = 0
     try:
         value_int = int(value)
-    except Exception, e:
+    except Exception as e:
         logger.warning("exception caught: %s" % e)
         ec = 1
     else:
@@ -392,4 +395,50 @@ def post_memory_monitor_action(job):
         time.sleep(nap)
         i += 1
 
-    copy(path1, path2)
+    try:
+        copy(path1, path2)
+    except Exception as e:
+        log.warning('failed to copy memory monitor output: %s' % e)
+
+
+def create_input_file_metadata(file_dictionary, workdir, filename="PoolFileCatalog.xml"):
+    """
+    Create a Pool File Catalog for the files listed in the input dictionary.
+    The function creates properly formmatted XML (pretty printed) and writes the XML to file.
+
+    Format:
+    dictionary = {'guid': 'pfn', ..}
+    ->
+    <POOLFILECATALOG>
+    <File ID="guid">
+      <physical>
+        <pfn filetype="ROOT_All" name="surl"/>
+      </physical>
+      <logical/>
+    </File>
+    <POOLFILECATALOG>
+
+    :param file_dictionary: file dictionary.
+    :param workdir: job work directory (string).
+    :param filename: PFC file name (string).
+    :return: xml (string)
+    """
+
+    # create the file structure
+    data = ET.Element('POOLFILECATALOG')
+
+    for fileid in file_dictionary.keys():
+        _file = ET.SubElement(data, 'File')
+        _file.set('ID', fileid)
+        _physical = ET.SubElement(_file, 'physical')
+        _pfn = ET.SubElement(_physical, 'pfn')
+        _pfn.set('filetype', 'ROOT_ALL')
+        _pfn.set('name', file_dictionary.get(fileid))
+        ET.SubElement(_file, 'logical')
+
+    # create a new XML file with the results
+    xml = ET.tostring(data, encoding='utf8')
+    xml = minidom.parseString(xml).toprettyxml(indent="  ")
+    write_file(os.path.join(workdir, filename), xml)
+
+    return xml

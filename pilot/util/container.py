@@ -67,4 +67,8 @@ def execute(executable, **kwargs):
         stdout, stderr = process.communicate()
         exit_code = process.poll()
 
+        # remove any added \n
+        if stdout.endswith('\n'):
+            stdout = stdout[:-1]
+
         return exit_code, stdout, stderr

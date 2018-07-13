@@ -21,7 +21,7 @@ from pilot.util.container import execute
 from pilot.util.filehandling import get_directory_size, remove_files
 from pilot.util.loopingjob import looping_job
 from pilot.util.parameters import convert_to_int
-from pilot.util.processes import get_instant_cpu_consumption_time, kill_processes
+from pilot.util.processes import get_current_cpu_consumption_time, kill_processes, get_number_of_child_processes
 from pilot.util.workernode import get_local_disk_space
 
 import logging
@@ -30,13 +30,15 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def job_monitor_tasks(job, mt, verify_proxy):
+def job_monitor_tasks(job, mt, args):
     """
     Perform the tasks for the job monitoring.
+    The function is called once a minute. Individual checks will be performed at any desired time interval (>= 1
+    minute).
 
     :param job: job object.
     :param mt: `MonitoringTime` object.
-    :param verify_proxy: True if the proxy should be verified. False otherwise.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return: exit code (int), diagnostics (string).
     """
 
@@ -48,33 +50,122 @@ def job_monitor_tasks(job, mt, verify_proxy):
 
     # update timing info for running jobs (to avoid an update after the job has finished)
     if job.state == 'running':
-        cpuconsumptiontime = get_instant_cpu_consumption_time(job.pid)
-        job.cpuconsumptiontime = int(cpuconsumptiontime)
+        cpuconsumptiontime = get_current_cpu_consumption_time(job.pid)
+        job.cpuconsumptiontime = int(round(cpuconsumptiontime))
         job.cpuconsumptionunit = "s"
         job.cpuconversionfactor = 1.0
         log.info('CPU consumption time for pid=%d: %f (rounded to %d)' %
                  (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
 
-    # should the proxy be verified?
-    if verify_proxy:
-        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-        userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
+        # check memory usage (optional) for jobs in running state
+        exit_code, diagnostics = verify_memory_usage(current_time, mt, job)
+        if exit_code != 0:
+            return exit_code, diagnostics
 
-        # is it time to verify the proxy?
-        proxy_verification_time = convert_to_int(config.Pilot.proxy_verification_time)
-        if current_time - mt.get('ct_proxy') > proxy_verification_time:
-            # is the proxy still valid?
-            exit_code, diagnostics = userproxy.verify_proxy()
-            if exit_code != 0:
-                return exit_code, diagnostics
-            else:
-                # update the ct_proxy with the current time
-                mt.update('ct_proxy')
+    # is it time to verify the pilot running time?
+#    exit_code, diagnostics = verify_pilot_running_time(current_time, mt, job)
+#    if exit_code != 0:
+#        return exit_code, diagnostics
+
+    # should the proxy be verified?
+    if args.verify_proxy:
+        exit_code, diagnostics = verify_user_proxy(current_time, mt)
+        if exit_code != 0:
+            return exit_code, diagnostics
 
     # is it time to check for looping jobs?
-    log.info('current_time - mt.get(ct_looping) = %d' % (current_time - mt.get('ct_looping')))
-    log.info('config.Pilot.looping_verifiction_time = %s' % config.Pilot.looping_verifiction_time)
-    looping_verifiction_time = convert_to_int(config.Pilot.looping_verifiction_time)
+    exit_code, diagnostics = verify_looping_job(current_time, mt, job)
+    if exit_code != 0:
+        return exit_code, diagnostics
+
+    # is the job using too much space?
+    exit_code, diagnostics = verify_disk_usage(current_time, mt, job)
+    if exit_code != 0:
+        return exit_code, diagnostics
+
+    # is it time to verify the number of running processes?
+    exit_code, diagnostics = verify_running_processes(current_time, mt, job.pid)
+    if exit_code != 0:
+        return exit_code, diagnostics
+
+    # make sure that any utility commands are still running
+    if job.utilities != {}:
+        job = utility_monitor(job)
+
+    return exit_code, diagnostics
+
+
+def verify_memory_usage(current_time, mt, job):
+    """
+    Verify the memory usage (optional).
+    Note: this function relies on a stand-alone memory monitor tool that may be executed by the Pilot.
+
+    :param current_time: current time at the start of the monitoring loop (int).
+    :param mt: measured time object.
+    :param job: job object.
+    :return: exit code (int), error diagnostics (string).
+    """
+
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    memory = __import__('pilot.user.%s.memory' % pilot_user, globals(), locals(), [pilot_user], -1)
+
+    if not memory.allow_memory_usage_verifications():
+        return 0, ""
+
+    # is it time to verify the memory usage?
+    memory_verification_time = convert_to_int(config.Pilot.memory_usage_verification_time, default=60)
+    if current_time - mt.get('ct_memory') > memory_verification_time:
+        # is the used memory within the allowed limit?
+        exit_code, diagnostics = memory.memory_usage(job)
+        if exit_code != 0:
+            return exit_code, diagnostics
+        else:
+            # update the ct_proxy with the current time
+            mt.update('ct_memory')
+
+    return 0, ""
+
+
+def verify_user_proxy(current_time, mt):
+    """
+    Verify the user proxy.
+    This function is called by the job_monitor_tasks() function.
+
+    :param current_time: current time at the start of the monitoring loop (int).
+    :param mt: measured time object.
+    :return: exit code (int), error diagnostics (string).
+    """
+
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
+
+    # is it time to verify the proxy?
+    proxy_verification_time = convert_to_int(config.Pilot.proxy_verification_time, default=600)
+    if current_time - mt.get('ct_proxy') > proxy_verification_time:
+        # is the proxy still valid?
+        exit_code, diagnostics = userproxy.verify_proxy()
+        if exit_code != 0:
+            return exit_code, diagnostics
+        else:
+            # update the ct_proxy with the current time
+            mt.update('ct_proxy')
+
+    return 0, ""
+
+
+def verify_looping_job(current_time, mt, job):
+    """
+    Verify that the job is not looping.
+
+    :param current_time: current time at the start of the monitoring loop (int).
+    :param mt: measured time object.
+    :param job: job object.
+    :return: exit code (int), error diagnostics (string).
+    """
+
+    log = get_logger(job.jobid)
+
+    looping_verifiction_time = convert_to_int(config.Pilot.looping_verifiction_time, default=600)
     if current_time - mt.get('ct_looping') > looping_verifiction_time:
         # is the job looping?
         try:
@@ -91,8 +182,21 @@ def job_monitor_tasks(job, mt, verify_proxy):
         # update the ct_proxy with the current time
         mt.update('ct_looping')
 
-    # is the job using too much space?
-    disk_space_verification_time = convert_to_int(config.Pilot.disk_space_verification_time)
+    return 0, ""
+
+
+def verify_disk_usage(current_time, mt, job):
+    """
+    Verify the disk usage.
+    The function checks 1) payload stdout size, 2) local space, 3) work directory size.
+
+    :param current_time: current time at the start of the monitoring loop (int).
+    :param mt: measured time object.
+    :param job: job object.
+    :return: exit code (int), error diagnostics (string).
+    """
+
+    disk_space_verification_time = convert_to_int(config.Pilot.disk_space_verification_time, default=300)
     if current_time - mt.get('ct_diskspace') > disk_space_verification_time:
         # time to check the disk space
 
@@ -114,17 +218,32 @@ def job_monitor_tasks(job, mt, verify_proxy):
         # update the ct_diskspace with the current time
         mt.update('ct_diskspace')
 
-    # Is the payload stdout within allowed limits?
+    return 0, ""
 
-    # Are the output files within allowed limits?
 
-    # make sure that any utility commands are still running
-    if job.utilities != {}:
-        job = utility_monitor(job)
+def verify_running_processes(current_time, mt, pid):
+    """
+    Verify the number of running processes.
 
-    # send heartbeat
+    :param current_time: current time at the start of the monitoring loop (int).
+    :param mt: measured time object.
+    :param pid: payload process id (int).
+    :return: exit code (int), error diagnostics (string).
+    """
 
-    return exit_code, diagnostics
+    process_verification_time = convert_to_int(config.Pilot.process_verification_time, default=300)
+    if current_time - mt.get('ct_process') > process_verification_time:
+        # time to check the number of processes
+        nproc = get_number_of_child_processes(pid)
+        try:
+            nproc_env = int(os.environ.get('PILOT_MAXNPROC', 0))
+        except Exception as e:
+            logger.warning('failed to convert PILOT_MAXNPROC to int: %s' % e)
+        else:
+            if nproc > nproc_env:
+                os.environ['PILOT_MAXNPROC'] = str(nproc)
+
+    return 0, ""
 
 
 def utility_monitor(job):
@@ -409,3 +528,14 @@ def get_max_input_size(queuedata, megabyte=False):
         logger.info("Max input size = %d B (pilot default)" % _maxinputsize)
 
     return _maxinputsize
+
+
+def check_output_file_sizes(job):
+    """
+    Are the output files within the allowed size limits?
+
+    :param job: job object.
+    :return: exit code (int), error diagnostics (string)
+    """
+
+    return 0, ""

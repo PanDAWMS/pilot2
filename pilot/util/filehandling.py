@@ -11,7 +11,6 @@ import os
 import time
 import uuid
 import tarfile
-from collections import deque
 from shutil import copy2
 
 from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile
@@ -37,7 +36,7 @@ def create_pilot_work_dir(workdir):
     """
     Create the main PanDA Pilot work directory.
     :param workdir: Full path to the directory to be created
-    :raises PilotException: MKDirFailure
+    :raises PilotException: MKDirFailure.
     :return:
     """
 
@@ -51,8 +50,8 @@ def create_pilot_work_dir(workdir):
 def read_file(filename):
     """
     Open, read and close a file.
-    :param filename: string
-    :return: file content (string)
+    :param filename: file name (string).
+    :return: file contents (string).
     """
 
     out = ""
@@ -64,46 +63,86 @@ def read_file(filename):
     return out
 
 
+def write_file(filename, contents):
+    """
+    Write the given contents to a file.
+
+    :param filename: file name (string).
+    :param contents: file contents (string).
+    :raises PilotException: FileHandlingFailure.
+    :return: True if successful, otherwise False.
+    """
+
+    status = False
+
+    f = open_file(filename, 'w')
+    if f:
+        try:
+            f.write(contents)
+        except IOError as e:
+            raise FileHandlingFailure(e)
+        else:
+            status = True
+        f.close()
+
+    return status
+
+
 def open_file(filename, mode):
     """
     Open and return a file pointer for the given mode.
     Note: the caller needs to close the file.
 
-    :param filename:
-    :param mode: file mode
-    :raises PilotException: FileHandlingFailure
-    :return: file pointer
+    :param filename: file name (string).
+    :param mode: file mode (character).
+    :raises PilotException: FileHandlingFailure.
+    :return: file pointer.
     """
 
     f = None
-    if os.path.exists(filename):
-        try:
-            f = open(filename, mode)
-        except IOError as e:
-            raise FileHandlingFailure(e)
-    else:
+    if not mode == 'w' and not os.path.exists(filename):
         raise NoSuchFile("File does not exist: %s" % filename)
+
+    try:
+        f = open(filename, mode)
+    except IOError as e:
+        raise FileHandlingFailure(e)
 
     return f
 
 
-def tail(filename, n=10):
+def get_files(pattern="*.log"):
+    """
+    Find all files whose names follow the given pattern.
+
+    :param pattern: file name pattern (string).
+    :return: list of files.
+    """
+
+    files = []
+    cmd = "find . -name %s" % pattern
+    exit_code, stdout, stderr = execute(cmd)
+    if stdout:
+        # remove last \n if present
+        if stdout.endswith('\n'):
+            stdout = stdout[:-1]
+        files = stdout.split('\n')
+
+    return files
+
+
+def tail(filename, nlines=10):
     """
     Return the last n lines of a file.
-    WARNING: the deque function goes through the entire file to get to the last few lines. REPLACE ME!
+    Note: the function uses the posix tail function.
 
     :param filename: name of file to do the tail on (string).
-    :param n: number of lines (int).
+    :param nlines: number of lines (int).
     :return: file tail (list)
     """
 
-    f = open_file(filename, 'r')
-    if f:
-        tail = list(deque(f, n))
-    else:
-        tail = []
-
-    return tail
+    exit_code, stdout, stderr = execute('tail -n %d %s' % (nlines, filename))
+    return stdout
 
 
 def convert(data):
@@ -352,7 +391,7 @@ def find_executable(name):
 
 def get_directory_size(directory="."):
     """
-    Return the size of the given directory.
+    Return the size of the given directory in B.
 
     :param directory: directory name (string).
     :return: size of directory (int).
@@ -363,7 +402,8 @@ def get_directory_size(directory="."):
     exit_code, stdout, stderr = execute('du -sk %s' % directory, shell=True)
     if stdout is not None:
         try:
-            size = int(stdout.split()[0])
+            # convert to int and B
+            size = int(stdout.split()[0]) * 1024
         except Exception as e:
             logger.warning('exception caught while trying convert dirsize: %s' % e)
 
@@ -420,5 +460,98 @@ def get_guid():
     :return: a random GUID (string)
     """
 
-    _guid = uuid.uuid4()
-    return str(_guid).upper()
+    return str(uuid.uuid4()).upper()
+
+
+def get_table_from_file(filename, header=None, separator="\t", convert_to_float=True):
+    """
+    Extract a table of data from a txt file.
+    E.g.
+    header="Time VMEM PSS RSS Swap rchar wchar rbytes wbytes"
+    or the first line in the file is
+    Time VMEM PSS RSS Swap rchar wchar rbytes wbytes
+    each of which will become keys in the dictionary, whose corresponding values are stored in lists, with the entries
+    corresponding to the values in the rows of the input file.
+
+    The output dictionary will have the format
+    {'Time': [ .. data from first row .. ], 'VMEM': [.. data from second row], ..}
+
+    :param filename: name of input text file, full path (string).
+    :param header: header string.
+    :param separator: separator character (char).
+    :param convert_to_float: boolean, if True, all values will be converted to floats.
+    :return: dictionary.
+    """
+
+    tabledict = {}
+    keylist = []  # ordered list of dictionary key names
+
+    try:
+        f = open_file(filename, 'r')
+    except Exception as e:
+        logger.warning("failed to open file: %s, %s" % (filename, e))
+    else:
+        firstline = True
+        for line in f:
+            fields = line.split(separator)
+            if firstline:
+                firstline = False
+                tabledict, keylist = _define_tabledict_keys(header, fields, separator)
+                if not header:
+                    continue
+
+            # from now on, fill the dictionary fields with the input data
+            i = 0
+            for field in fields:
+                # get the corresponding dictionary key from the keylist
+                key = keylist[i]
+                # store the field value in the correct list
+                if convert_to_float:
+                    try:
+                        field = float(field)
+                    except Exception as e:
+                        logger.warning("failed to convert %s to float: %s (aborting)" % (field, e))
+                        return None
+                tabledict[key].append(field)
+                i += 1
+        f.close()
+
+    return tabledict
+
+
+def _define_tabledict_keys(header, fields, separator):
+    """
+    Define the keys for the tabledict dictionary.
+    Note: this function is only used by parse_table_from_file().
+
+    :param header: header string.
+    :param fields: header content string.
+    :param separator: separator character (char).
+    :return: tabledict (dictionary), keylist (ordered list with dictionary key names).
+    """
+
+    tabledict = {}
+    keylist = []
+
+    if not header:
+        # get the dictionary keys from the header of the file
+        for key in fields:
+            # first line defines the header, whose elements will be used as dictionary keys
+            if key == '':
+                continue
+            if key.endswith('\n'):
+                key = key[:-1]
+            tabledict[key] = []
+            keylist.append(key)
+    else:
+        # get the dictionary keys from the provided header
+        keys = header.split(separator)
+        for key in keys:
+            if key == '':
+                continue
+            if key.endswith('\n'):
+                key = key[:-1]
+            tabledict[key] = []
+            keylist.append(key)
+
+    return tabledict, keylist

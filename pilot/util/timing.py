@@ -168,6 +168,34 @@ def get_total_pilot_time(job_id):
     return get_time_difference(job_id, PILOT_T0, PILOT_END_TIME)
 
 
+def get_postgetjob_time(job_id):
+    """
+    Return the post getjob time.
+
+    :param job_id: job object.
+    :return: post getjob time measurement (int). In case of failure, return None.
+    """
+
+    time_measurement = None
+    timing_constant = PILOT_POST_GETJOB
+
+    # first read the current pilot timing dictionary
+    timing_dictionary = read_pilot_timing()
+
+    if job_id in timing_dictionary:
+        # extract time measurements
+        time_measurement_dictionary = timing_dictionary.get(job_id, None)
+        if time_measurement_dictionary:
+            time_measurement = time_measurement_dictionary.get(timing_constant, None)
+
+    if not time_measurement:
+        log = get_logger(job_id)
+        log.warning('failed to extract time measurement %d from %s (no such key)' %
+                    (timing_constant, time_measurement_dictionary))
+
+    return time_measurement
+
+
 def get_time_measurement(timing_constant, time_measurement_dictionary, timing_dictionary, job_id):
     """
     Return a requested time measurement from the time measurement dictionary, read from the pilot timing file.

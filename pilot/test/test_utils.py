@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 import unittest
 import os
@@ -63,3 +63,7 @@ class TestUtils(unittest.TestCase):
         diskspace = get_disk_space(infosys.queuedata)  ## FIX ME LATER
 
         self.assertEqual(type(diskspace), int)
+
+
+if __name__ == '__main__':
+    unittest.main()

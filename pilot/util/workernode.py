@@ -121,7 +121,7 @@ def get_disk_space(queuedata):
     try:
         du = disk_usage(os.path.abspath("."))
         _diskspace = int(du[2] / (1024 * 1024))  # need to convert from B to MB
-    except ValueError, e:
+    except ValueError as e:
         logger.warning("failed to extract disk space: %s (will use schedconfig default)" % e)
         _diskspace = _maxinputsize
     else:

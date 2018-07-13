@@ -267,7 +267,7 @@ def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
                         logger.info('saved data from "%s" resource into file=%s, length=%.1fKb' %
                                     (url, fname, len(content) / 1024.))
                 return content
-            except Exception, e:  # ignore errors, try to use old cache if any
+            except Exception as e:  # ignore errors, try to use old cache if any
                 logger.warning('failed to load data from url=%s, error: %s .. trying to use data from cache=%s' %
                                (url, e, fname))
                 # will try to use old cache below
@@ -282,7 +282,7 @@ def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
     try:
         with open(fname, 'r') as f:
             content = f.read()
-    except Exception, e:
+    except Exception as e:
         logger.warning("%s (will try different source)" % e)
         return None
 
@@ -328,7 +328,7 @@ def load_ddm_conf_data(ddmendpoints=[], cache_time=60):
             continue
         try:
             data = json.loads(content)
-        except Exception, e:
+        except Exception as e:
             logger.fatal("failed to parse JSON content from source=%s .. skipped, error=%s" % (dat.get('url'), e))
             data = None
 
@@ -393,7 +393,7 @@ def load_schedconfig_data(pandaqueues=[], cache_time=60):
             continue
         try:
             data = json.loads(content)
-        except Exception, e:
+        except Exception as e:
             logger.fatal("failed to parse JSON content from source=%s .. skipped, error=%s" % (dat.get('url'), e))
             data = None
         if data:

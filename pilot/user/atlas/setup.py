@@ -241,7 +241,7 @@ def get_analysis_trf(transform, workdir):
     logger.debug("changing permission of %s to 0755" % path)
     try:
         os.chmod(path, 0755)
-    except Exception, e:
+    except Exception as e:
         diagnostics = "failed to chmod %s: %s" % (transform_name, e)
         # return self.__error.ERR_CHMODTRF, diagnostics, ""
 
@@ -320,56 +320,6 @@ def get_valid_base_urls(order=None):
         valid_base_urls = _valid_base_urls
 
     return valid_base_urls
-
-
-def tryint(x):
-    """
-    Used by numbered string comparison (to protect against unexpected letters in version number).
-
-    :param x: possible int.
-    :return: converted int or original value in case of ValueError.
-    """
-
-    try:
-        return int(x)
-    except ValueError:
-        return x
-
-
-def split_version(s):
-    """
-    Split version string into parts and convert the parts into integers when possible.
-    Any encountered strings are left as they are.
-    The function is used with release strings.
-    split_version("1.2.3") = (1,2,3)
-    split_version("1.2.Nightly") = (1,2,"Nightly")
-
-    The function can also be used for sorting:
-    > names = ['YT4.11', '4.3', 'YT4.2', '4.10', 'PT2.19', 'PT2.9']
-    > sorted(names, key=splittedname)
-    ['4.3', '4.10', 'PT2.9', 'PT2.19', 'YT4.2', 'YT4.11']
-
-    :param s: release string.
-    :return: converted release tuple.
-    """
-
-    return tuple(tryint(x) for x in re.split('([^.]+)', s))
-
-
-def is_greater_or_equal(a, b):
-    """
-    Is the numbered string a >= b?
-    "1.2.3" > "1.2"  -- more digits
-    "1.2.3" > "1.2.2"  -- rank based comparison
-    "1.3.2" > "1.2.3"  -- rank based comparison
-    "1.2.N" > "1.2.2"  -- nightlies checker, always greater
-
-    :param a: numbered string.
-    :param b: numbered string.
-    :return: boolean.
-    """
-
-    return split_version(a) >= split_version(b)
 
 
 def get_payload_environment_variables(cmd, job_id, task_id, processing_type, site_name, analysis_job):

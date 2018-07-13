@@ -60,6 +60,7 @@ class QueueData(BaseData):
     direct_access_wan = False
 
     maxwdir = 0    # in MB
+    maxrss = 0
 
     timefloor = 0  # The maximum time during which the pilot is allowed to start a new job, in seconds
     corecount = 1  #
@@ -69,7 +70,7 @@ class QueueData(BaseData):
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['timefloor', 'maxwdir', 'pledgedcpu', 'es_stageout_gap',
-                   'corecount'],
+                   'corecount', 'maxrss'],
              str: ['name', 'appdir', 'catchall', 'platform', 'container_options', 'container_type',
                    'state', 'site'],
              dict: ['copytools', 'acopytools', 'astorages', 'aprotocols'],

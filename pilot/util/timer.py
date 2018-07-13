@@ -56,7 +56,7 @@ class TimedThread(object):
 
         try:
             ret = (True, func(*args, **kwargs))
-        except Exception, e:
+        except Exception as e:
             ret = (False, e)
         self.result = ret
 
@@ -110,7 +110,7 @@ class TimedProcess(object):
             try:
                 ret = func(*args, **kwargs)
                 queue.put((True, ret))
-            except Exception, e:
+            except Exception as e:
                 queue.put((False, e))
 
         queue = multiprocessing.Queue(1)
