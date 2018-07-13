@@ -116,25 +116,6 @@ def get_payload_command(job):
             # correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
             cmd += "; " + add_makeflags(job.corecount, "") + _cmd
 
-            # should asetup be used? If so, sqeeze it into the run command (rather than moving the entire getAnalysisRunCommand() into this class)
-#            if prepareasetup:
-#                m_cachedirver = re.search('AnalysisTransforms-([^/]+)', job.homepackage)
-#                if m_cachedirver is not None:
-#                     # homePackage="AnalysisTransforms-AthAnalysisBase_2.0.14"
-#                    # -> cacheDir = AthAnalysisBase, cacheVer = 2.0.14
-#                    cachedir, cachever = get_cache_info(m_cachedirver, "dummy_atlasRelease")
-#                    if cacheDir != "" and cacheVer != "":
-#                        asetup = self.getModernASetup()
-#                        asetup += " %s,%s --platform=%s;" % (cacheDir, cacheVer, cmtconfig)
-#
-#                        # now squeeze it back in
-#                        cmd = cmd.replace('./' + trfName, asetup + './' + trfName)
-#                        tolog("Updated run command for special homePackage: %s" % (cmd))
-#                    else:
-#                        tolog("asetup not needed (mo special home package: %s)" % (job.homePackage))
-#                else:
-#                    tolog("asetup not needed (no special homePackage)")
-
         elif verify_release_string(job.homepackage) != 'NULL' and job.homepackage != ' ':
             if prepareasetup:
                 cmd = "python %s/%s %s" % (job.homepackage, job.transformation, job.jobparams)
