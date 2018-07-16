@@ -82,7 +82,7 @@ def get_payload_command(job):
             cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
             # Add the transform and the job parameters (production jobs)
             if prepareasetup:
-                cmd += ";%s %s" % (job.transformation, job.jobparams)
+                cmd += "; %s %s" % (job.transformation, job.jobparams)
             else:
                 cmd += "; " + job.jobparams
 
