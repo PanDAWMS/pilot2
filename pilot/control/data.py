@@ -789,7 +789,7 @@ def queue_monitoring(queues, traces, args):
             log = get_logger(job.jobid)
 
             # use the payload/transform exitCode from the job report if it exists
-            if job.transexitcode == 0 and job.exitcode == 0:
+            if job.transexitcode == 0 and job.exitcode == 0 and job.piloterrorcodes == []:
                 log.info('finished stage-out for finished payload, adding job to finished_jobs queue')
                 queues.finished_jobs.put(job)
             else:
