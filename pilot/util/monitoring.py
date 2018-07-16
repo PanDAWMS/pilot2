@@ -370,13 +370,13 @@ def check_payload_stdout(job):
                 # is the file too big?
                 localsizelimit_stdout = get_local_size_limit_stdout()
                 if fsize > localsizelimit_stdout:
+                    exit_code = errors.STDOUTTOOBIG
                     diagnostics = "Payload stdout file too big: %d B (larger than limit %d B)" % \
                                   (fsize, localsizelimit_stdout)
                     log.warning(diagnostics)
+
                     # kill the job
                     kill_processes(job.pid)
-                    job.state = "failed"
-                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STDOUTTOOBIG)
 
                     # remove the payload stdout file after the log extracts have been created
 
