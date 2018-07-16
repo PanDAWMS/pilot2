@@ -229,12 +229,17 @@ def verify_disk_usage(current_time, mt, job):
 def verify_running_processes(current_time, mt, pid):
     """
     Verify the number of running processes.
+    The function sets the environmental variable PILOT_MAXNPROC to the maximum number of found (child) processes
+    corresponding to the main payload process id.
+    The function does not return an error code (always returns exit code 0).
 
     :param current_time: current time at the start of the monitoring loop (int).
     :param mt: measured time object.
     :param pid: payload process id (int).
     :return: exit code (int), error diagnostics (string).
     """
+
+    nproc_env = 0
 
     process_verification_time = convert_to_int(config.Pilot.process_verification_time, default=300)
     if current_time - mt.get('ct_process') > process_verification_time:
@@ -246,7 +251,11 @@ def verify_running_processes(current_time, mt, pid):
             logger.warning('failed to convert PILOT_MAXNPROC to int: %s' % e)
         else:
             if nproc > nproc_env:
+                # set the maximum number of found processes
                 os.environ['PILOT_MAXNPROC'] = str(nproc)
+
+        if nproc_env > 0:
+            logger.info('maximum number of monitored processes: %d' % nproc_env)
 
     return 0, ""
 
