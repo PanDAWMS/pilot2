@@ -9,8 +9,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 # NOTE: this module should deal with non-job related monitoring, such as thread monitoring. Job monitoring is
-#       a task for the job_monitor thread in the Job component. Job related functions should be moved to the
-#       Job component.
+#       a task for the job_monitor thread in the Job component.
 
 import logging
 import os
@@ -57,14 +56,8 @@ def run_checks(args):
     if not check_local_space_limit():
         return args.graceful_stop.set()
 
-    if not check_output_file_sizes():
-        return args.graceful_stop.set()
-
 
 def check_local_space_limit():  # move to Job component?
     du = disk_usage(os.path.abspath("."))
     return du[2] < human2bytes(config.Pilot.free_space_limit)
 
-
-def check_output_file_sizes():  # move to Job component
-    return True
