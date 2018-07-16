@@ -12,7 +12,6 @@
 #       a task for the job_monitor thread in the Job component.
 
 import logging
-import os
 
 from pilot.common.exception import UnknownException
 
