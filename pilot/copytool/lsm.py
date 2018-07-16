@@ -69,17 +69,17 @@ def get_timeout(filesize):   ## ISOLATE ME LATER
 
 def copy_in(files, **kwargs):
     """
-        Download given files using the LSM command.
+    Download given files using the lsm-get command.
 
-        :param files: list of `FileSpec` objects
-        :raise: PilotException in case of controlled error
+    :param files: list of `FileSpec` objects.
+    :raise: PilotException in case of controlled error.
+    :return: files `FileSpec` object.
     """
 
     exit_code = 0
     stdout = ""
     stderr = ""
 
-    #nretries = kwargs.get('nretries') or 1
     copytools = kwargs.get('copytools') or []
     copysetup = get_copysetup(copytools, 'lsm')
 
@@ -108,10 +108,13 @@ def copy_in(files, **kwargs):
     return files
 
 
-def resolve_transfer_error(output, is_stagein):
+def resolve_transfer_error(output, is_stagein=True):
     """
-        Resolve error code, client state and defined error mesage from the output of transfer command
-        :return: dict {'rcode', 'state, 'error'}
+    Resolve error code, client state and defined error mesage from the output of transfer command
+
+    :param output: command output (string).
+    :param is_stagein: boolean, True for stage-in.
+    :return: dict {'rcode', 'state, 'error'}
     """
 
     ret = {'rcode': ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
@@ -125,7 +128,43 @@ def resolve_transfer_error(output, is_stagein):
     return ret
 
 
-def copy_out(files):
+def copy_out(files, **kwargs):
+    """
+    Upload given files using lsm copytool.
+
+    :param files: list of `FileSpec` objects.
+    :raise: PilotException in case of controlled error.
+    """
+
+    copytools = kwargs.get('copytools') or []
+    copysetup = get_copysetup(copytools, 'lsm')
+
+    for fspec in files:
+
+        src = fspec.workdir or kwargs.get('workdir') or '.'
+        #timeout = get_timeout(fspec.filesize)
+        source = os.path.join(src, fspec.lfn)
+        destination = fspec.surl
+
+        logger.info("transferring file %s from %s to %s" % (fspec.lfn, source, destination))
+
+        nretries = 1  # input parameter to function?
+        for retry in range(nretries):
+            exit_code, stdout, stderr = move(source, destination, dst_in=False, copysetup=copysetup)
+
+            if exit_code != 0:
+                error = resolve_transfer_error(stderr, is_stagein=False)
+                fspec.status = 'failed'
+                fspec.status_code = error.get('exit_code')
+                raise PilotException(error.get('error'), code=error.get('exit_code'), state=error.get('state'))
+            else:  # all successful
+                break
+
+        fspec.status_code = 0
+        fspec.status = 'transferred'
+
+
+def copy_out_old(files):
     """
     Tries to upload the given files using lsm-put directly.
 
@@ -206,6 +245,7 @@ def move_all_files_out(files, nretries=1):
 def move(source, destination, dst_in=True, copysetup=""):
     """
     Use lsm-get or lsm-put to transfer the file.
+
     :param source: path to source (string).
     :param destination: path to destination (string).
     :param dst_in: True for stage-in, False for stage-out (boolean).
@@ -218,7 +258,7 @@ def move(source, destination, dst_in=True, copysetup=""):
     else:
         cmd = ''
     if dst_in:
-        cmd += "which lsm-get;lsm-get %s %s" % (source, destination)
+        cmd += "lsm-get %s %s" % (source, destination)
     else:
         cmd += "lsm-put %s %s" % (source, destination)
 
