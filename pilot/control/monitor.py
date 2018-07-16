@@ -12,8 +12,11 @@
 #       a task for the job_monitor thread in the Job component.
 
 import logging
+import threading
+import time
 
 from pilot.common.exception import UnknownException
+from pilot.util.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +33,12 @@ def control(queues, traces, args):
     :return:
     """
 
+    traces.pilot['lifetime_start'] = time.time()
+    traces.pilot['lifetime_max'] = time.time()
+
+    threadchecktime = int(config.Pilot.thread_check)
+    runtime = 0
+
     try:
         # overall loop counter (ignoring the fact that more than one job may be running)
         n = 0
@@ -43,11 +52,33 @@ def control(queues, traces, args):
             # proceed with running the checks
             run_checks(args)
 
+            # thread monitoring
+            if int(time.time() - traces.pilot['lifetime_start']) % threadchecktime == 0:
+                # get all threads
+                for thread in threading.enumerate():
+                    # logger.info('thread name: %s' % thread.name)
+                    if not thread.is_alive():
+                        logger.fatal('thread \'%s\' is not alive' % thread.name)
+                        # args.graceful_stop.set()
+
+            # have we run out of time?
+            if runtime < args.lifetime:
+                time.sleep(1)
+                runtime += 1
+            else:
+                logger.debug('maximum lifetime reached: %s' % args.lifetime)
+                args.graceful_stop.set()
+
             n += 1
+
     except Exception as e:
         print("monitor: exception caught: %s" % e)
         raise UnknownException(e)
 
+
+#def log_lifetime(sig, frame, traces):
+#    logger.info('lifetime: %i used, %i maximum' % (int(time.time() - traces.pilot['lifetime_start']),
+#                                                   traces.pilot['lifetime_max']))
 
 def run_checks(args):
     """

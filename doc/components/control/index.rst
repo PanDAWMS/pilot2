@@ -7,7 +7,7 @@
     http://www.apache.org/licenses/LICENSE-2.0
 
     Authors:
-     - Paul Nilsson, paul.nilsson@cern.ch, 2017
+     - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 control components
 ==================
@@ -17,7 +17,6 @@ control components
 
     data
     job
-    lifetime
     monitor
     payload
     payloads/index
