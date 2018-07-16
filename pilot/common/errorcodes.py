@@ -28,6 +28,7 @@ class ErrorCodes:
     USERDIRTOOLARGE = 1104
     STDOUTTOOBIG = 1106
     SETUPFAILURE = 1110
+    OUTPUTFILETOOLARGE = 1124
     MKDIR = 1134
     STAGEOUTFAILED = 1137
     PUTMD5MISMATCH = 1141
@@ -70,6 +71,7 @@ class ErrorCodes:
         USERDIRTOOLARGE: "User work directory too large",
         STDOUTTOOBIG: "Payload log or stdout file too big",
         SETUPFAILURE: "Failed during payload setup",
+        OUTPUTFILETOOLARGE: "Output file too large",
         MKDIR: "Failed to create local directory",
         STAGEOUTFAILED: "Failed to stage-out file",
         PUTMD5MISMATCH: "md5sum mismatch on output file",
