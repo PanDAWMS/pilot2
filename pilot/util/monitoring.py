@@ -440,7 +440,7 @@ def check_work_dir(job):
 
             # is user dir within allowed size limit?
             if workdirsize > maxwdirsize:
-
+                exit_code = errors.USERDIRTOOLARGE
                 diagnostics = "work directory (%s) is too large: %d B (must be < %d B)" % \
                               (job.workdir, workdirsize, maxwdirsize)
                 log.fatal("%s" % diagnostics)
@@ -452,12 +452,10 @@ def check_work_dir(job):
                 # kill the job
                 # pUtil.createLockFile(True, self.__env['jobDic'][k][1].workdir, lockfile="JOBWILLBEKILLED")
                 kill_processes(job.pid)
-                job.state = 'failed'
-                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.USERDIRTOOLARGE)
 
                 # remove any lingering input files from the work dir
                 if job.infiles != []:
-                    exit_code = remove_files(job.workdir, job.infiles)
+                    _exit_code = remove_files(job.workdir, job.infiles)
 
                     # remeasure the size of the workdir at this point since the value is stored below
                     workdirsize = get_directory_size(directory=job.workdir)
