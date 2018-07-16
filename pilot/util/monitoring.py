@@ -455,7 +455,7 @@ def check_work_dir(job):
 
                 # remove any lingering input files from the work dir
                 if job.infiles != []:
-                    _exit_code = remove_files(job.workdir, job.infiles)
+                    remove_files(job.workdir, job.infiles)
 
                     # remeasure the size of the workdir at this point since the value is stored below
                     workdirsize = get_directory_size(directory=job.workdir)
