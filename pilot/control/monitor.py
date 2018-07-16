@@ -44,7 +44,7 @@ def control(queues, traces, args):
                 break
 
             # proceed with running the checks
-            # run_checks(args)
+            run_checks(args)
 
             n += 1
     except Exception as e:
@@ -53,11 +53,14 @@ def control(queues, traces, args):
 
 
 def run_checks(args):
-    if not check_local_space_limit():
-        return args.graceful_stop.set()
+    """
+    Perform all non-job related monitoring checks.
 
+    :param args:
+    :return:
+    """
 
-def check_local_space_limit():  # move to Job component?
-    du = disk_usage(os.path.abspath("."))
-    return du[2] < human2bytes(config.Pilot.free_space_limit)
+    pass
+#    if not some_check():
+#        return args.graceful_stop.set()
 
