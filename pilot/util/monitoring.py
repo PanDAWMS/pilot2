@@ -188,7 +188,7 @@ def verify_looping_job(current_time, mt, job):
 def verify_disk_usage(current_time, mt, job):
     """
     Verify the disk usage.
-    The function checks 1) payload stdout size, 2) local space, 3) work directory size.
+    The function checks 1) payload stdout size, 2) local space, 3) work directory size, 4) output file sizes.
 
     :param current_time: current time at the start of the monitoring loop (int).
     :param mt: measured time object.
@@ -212,6 +212,11 @@ def verify_disk_usage(current_time, mt, job):
 
         # check the size of the workdir
         exit_code, diagnostics = check_work_dir(job)
+        if exit_code != 0:
+            return exit_code, diagnostics
+
+        # check the output file sizes
+        exit_code, diagnostics = check_output_file_sizes(job)
         if exit_code != 0:
             return exit_code, diagnostics
 
