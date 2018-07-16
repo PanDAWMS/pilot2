@@ -18,7 +18,7 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config, human2bytes
 from pilot.util.container import execute
-from pilot.util.filehandling import get_directory_size, remove_files
+from pilot.util.filehandling import get_directory_size, remove_files, get_local_file_size
 from pilot.util.loopingjob import looping_job
 from pilot.util.parameters import convert_to_int
 from pilot.util.processes import get_current_cpu_consumption_time, kill_processes, get_number_of_child_processes
@@ -543,4 +543,25 @@ def check_output_file_sizes(job):
     :return: exit code (int), error diagnostics (string)
     """
 
-    return 0, ""
+    exit_code = 0
+    diagnostics = ""
+
+    log = get_logger(job.jobid)
+
+    # loop over all known output files
+    for fspec in job.outdata:
+        path = os.path.join(job.workdir, fspec.lfn)
+        if os.path.exists(path):
+            # get the current file size
+            fsize = get_local_file_size(path)
+            max_fsize = human2bytes(config.Pilot.maximum_output_file_size)
+            if fsize and fsize < max_fsize:
+                log.info('output file %s is within allowed size limit (%d B < %d B)' % (path, fsize, max_fsize))
+            else:
+                exit_code = errors.OUTPUTFILETOOLARGE
+                diagnostics = 'output file %s is not within allowed size limit (%d B > %d B)' % (path, fsize, max_fsize)
+                log.warning(diagnostics)
+        else:
+            log.info('output file size check: skipping output file %s since it does not exist' % path)
+
+    return exit_code, diagnostics
