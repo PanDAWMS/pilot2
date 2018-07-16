@@ -14,8 +14,6 @@
 import logging
 import os
 
-from pilot.util.disk import disk_usage
-from pilot.util.config import config, human2bytes
 from pilot.common.exception import UnknownException
 
 logger = logging.getLogger(__name__)
@@ -63,4 +61,3 @@ def run_checks(args):
     pass
 #    if not some_check():
 #        return args.graceful_stop.set()
-
