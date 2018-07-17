@@ -144,7 +144,7 @@ def copy_out(files, **kwargs):
         src = fspec.workdir or kwargs.get('workdir') or '.'
         #timeout = get_timeout(fspec.filesize)
         source = os.path.join(src, fspec.lfn)
-        destination = fspec.surl
+        destination = fspec.turl
 
         logger.info("transferring file %s from %s to %s" % (fspec.lfn, source, destination))
 
