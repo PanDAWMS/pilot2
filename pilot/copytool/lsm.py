@@ -34,9 +34,9 @@ def is_valid_for_copy_in(files):
 
 
 def is_valid_for_copy_out(files):
-    for f in files:
-        if not all(key in f for key in ('name', 'source', 'destination')):
-            return False
+    #for f in files:
+    #    if not all(key in f for key in ('name', 'source', 'destination')):
+    #        return False
     return True
 
 
