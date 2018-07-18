@@ -38,6 +38,8 @@ class StorageData(BaseData):
     pk = 0        # unique identification number
     name = ""     # DDMEndpoint name
     type = ""     # type of Storage
+    token = ""    # space token descriptor
+
     is_deterministic = None
 
     state = None
