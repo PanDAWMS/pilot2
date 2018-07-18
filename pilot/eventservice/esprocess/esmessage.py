@@ -35,6 +35,7 @@ class MessageThread(threading.Thread):
         """
 
         threading.Thread.__init__(self, **kwds)
+        self.setName("MessageThread")
         self.__message_queue = message_queue
         self._stop = threading.Event()
 
@@ -76,7 +77,7 @@ class MessageThread(threading.Thread):
         logger.debug('set stop event')
         self._stop.set()
 
-    def stopped(self):
+    def is_stopped(self):
         """
         Get status whether stop event is set.
 
@@ -101,7 +102,7 @@ class MessageThread(threading.Thread):
         logger.info('Message thread starts to run.')
         try:
             while True:
-                if self.stopped():
+                if self.is_stopped():
                     self.terminate()
                     break
                 if not self.__message_server:
@@ -114,7 +115,7 @@ class MessageThread(threading.Thread):
                     self.__message_queue.put(buf)
         except PilotException as e:
             self.terminate()
-            logger.error("Message thread got an exception, will finish: %s" % e.get_detail())
+            logger.error("Pilot Exception: Message thread got an exception, will finish: %s, %s" % (e.get_detail(), traceback.format_exc()))
             # raise e
         except Exception as e:
             self.terminate()
