@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Wen Guan, wen.guan, 2018
 
 import re
 
@@ -62,6 +63,7 @@ class ErrorCodes:
     NOTSAMELENGTH = 1312
     NOSTORAGEPROTOCOL = 1313
     UNKNOWNCHECKSUMTYPE = 1314
+    COMMUNICATIONFAILURE = 1315
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -103,6 +105,7 @@ class ErrorCodes:
         NOTSAMELENGTH: "Not same length",
         NOSTORAGEPROTOCOL: "No protocol defined for storage endpoint",
         UNKNOWNCHECKSUMTYPE: "Unknown checksum type",
+        COMMUNICATIONFAILURE: "Failed to communication to servers(such as Panda, Harvester, ACT, ...)",
     }
 
     def get_error_message(self, errorcode):
