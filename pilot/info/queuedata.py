@@ -5,6 +5,7 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Wen Guan, wen.guan@cern.ch, 2018
 
 """
 The implementation of data structure to host queuedata settings.
@@ -139,7 +140,11 @@ class QueueData(BaseData):
                 self.container_options = self.container_options.replace(" --contain", ",${workdir} --contain")
                 logger.info("Note: added missing ${workdir} to container_options/singularity_options: %s" % self.container_options)
 
-        pass
+        # set default copytools for es_events and es_events_read
+        if 'es_events' not in self.acopytools:
+            self.acopytools['es_events'] = ['objectstore']
+        if 'es_events_read' not in self.acopytools:
+            self.acopytools['es_events_read'] = ['objectstore']
 
     ## custom function pattern to apply extra validation to the key values
     ##def clean__keyname(self, raw, value):

@@ -9,6 +9,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Wen Guan, wen.guan@cern,ch, 2018
 
 # refactored by Alexey Anisenkov
 
@@ -33,7 +34,8 @@ class StagingClient(object):
                         'dccp': {'module_name': 'dccp'},
                         'xrdcp': {'module_name': 'xrdcp'},
                         'mv': {'module_name': 'mv'},
-                        'lsm': {'module_name': 'lsm'}
+                        'lsm': {'module_name': 'lsm'},
+                        'objectstore': {'module_name': 'objectstore'}
                         }
 
     direct_remoteinput_allowed_schemas = ['root']
@@ -51,7 +53,7 @@ class StagingClient(object):
 
         if not logger:
             logger = logging.getLogger('%s.%s' % (__name__, 'null'))
-            logger.disabled = True
+            # logger.disabled = True
 
         self.logger = logger
         self.infosys = infosys_instance or infosys
@@ -77,6 +79,9 @@ class StagingClient(object):
             self.acopytools['default'] = default_copytools
 
         logger.info('Configured copytools per activity: acopytools=%s' % self.acopytools)
+
+        self.astorages = (self.infosys.queuedata.astorages or {}).copy()
+        logger.info('Configured astorages per activity: astorages=%s' % self.astorages)
 
     def resolve_replicas(self, files):  # noqa: C901
         """
@@ -271,9 +276,11 @@ class StagingClient(object):
             activity.append('default')
 
         copytools = None
+        current_activity = None
         for aname in activity:
             copytools = self.acopytools.get(aname)
-            if copytools:
+            if copytools and aname in self.astorages.keys():
+                current_activity = aname
                 break
 
         if not copytools:
@@ -287,7 +294,7 @@ class StagingClient(object):
                 if name not in self.copytool_modules:
                     raise PilotException('passed unknown copytool with name=%s .. skipped' % name)
                 module = self.copytool_modules[name]['module_name']
-                self.logger.info('Trying to use copytool=%s for activity=%s' % (name, activity))
+                self.logger.info('Trying to use copytool=%s for activity=%s' % (name, current_activity))
                 copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], -1)
             except PilotException as e:
                 errors.append(e)
@@ -298,8 +305,8 @@ class StagingClient(object):
                 self.logger.debug('Error: %s' % e)
                 continue
             try:
-                result = self.transfer_files(copytool, files, activity, **kwargs)
-            except PilotException as e:
+                result = self.transfer_files(copytool, files, current_activity, **kwargs)
+            except PilotException, e:
                 errors.append(e)
                 self.logger.debug('Error: %s' % e)
             except Exception as e:
@@ -421,6 +428,10 @@ class StageOutClient(StagingClient):
 
             protocols = []
             for aname in activity:
+                if aname == 'es_events':
+                    aname = 'pw'
+                if aname == 'es_events_read':
+                    aname = 'pr'
                 protocols = ddm.arprotocols.get(aname)
                 if protocols:
                     break
@@ -467,6 +478,21 @@ class StageOutClient(StagingClient):
 
         return '/'.join(paths)
 
+    def resolve_surl_os(self, fspec, protocol, ddm, **kwargs):
+        """
+            Get final destination SURL for file to be transferred to Objectstore
+            Can be customized at the level of specific copytool
+            :param protocol: suggested protocol
+            :param ddm: ddm storage data
+            :param fspec: file spec data
+            :return: surl as a string.
+        """
+
+        # consider only deterministic sites (output destination)
+        surl = protocol.get('endpoint', '') + os.path.join(protocol.get('path', ''), fspec.lfn)
+        fspec.protocol_id = protocol.get('id', None)
+        return surl
+
     def resolve_surl(self, fspec, protocol, ddmconf, **kwargs):
         """
             Get final destination SURL for file to be transferred
@@ -484,11 +510,48 @@ class StageOutClient(StagingClient):
             raise PilotException('Failed to resolve ddmendpoint by name=%s' % fspec.ddmendpoint)
 
         if not ddm.is_deterministic:
-            raise PilotException('resolve_surl(): Failed to construct SURL for non deterministic ddm=%s: NOT IMPLEMENTED', fspec.ddmendpoint)
-
-        surl = protocol.get('endpoint', '') + os.path.join(protocol.get('path', ''), self.get_path(fspec.scope, fspec.lfn))
+            if ddm.type in ['OS_ES', 'OS_LOGS']:
+                surl = self.resolve_surl_os(fspec, protocol, ddm)
+            else:
+                raise PilotException('resolve_surl(): Failed to construct SURL for non deterministic ddm=%s: NOT IMPLEMENTED', fspec.ddmendpoint)
+        else:
+            surl = protocol.get('endpoint', '') + os.path.join(protocol.get('path', ''), self.get_path(fspec.scope, fspec.lfn))
 
         return {'surl': surl}
+
+    @classmethod
+    def calc_adler32_checksum(self, filename):
+        """
+            calculate the adler32 checksum for a file
+            raise an exception if input filename is not exist/readable
+        """
+
+        from zlib import adler32
+
+        asum = 1  # default adler32 starting value
+        blocksize = 64 * 1024 * 1024  # read buffer size, 64 Mb
+
+        with open(filename, 'rb') as f:
+            while True:
+                data = f.read(blocksize)
+                if not data:
+                    break
+                asum = adler32(data, asum)
+                if asum < 0:
+                    asum += 2**32
+
+        return "%08x" % asum  # convert to hex
+
+    def fill_storage_id(self, files):
+        """
+            Fill filespec storage_id for all files
+        """
+        ddmconf = self.infosys.resolve_storage_data()
+        for fspec in files:
+            if fspec.ddmendpoint:
+                ddm = ddmconf.get(fspec.ddmendpoint)
+                if ddm:
+                    fspec.storage_id = ddm.pk
 
     def transfer_files(self, copytool, files, activity, **kwargs):
         """
@@ -506,6 +569,11 @@ class StageOutClient(StagingClient):
         # check if files exist before actual processing
         # populate filesize if need, calc checksum
         for fspec in files:
+            self.logger.info("To transfer file(activity: %s): %s" % (activity, fspec))
+            if not fspec.is_user_defined_ddmendpoint:
+                if activity in self.astorages.keys():
+                    fspec.ddmendpoint = self.astorages[activity][0]
+                self.logger.info("Assign ddmendpoint to file: %s(%s)" % (fspec.ddmendpoint, activity))
             pfn = fspec.surl or getattr(fspec, 'pfn', None) or os.path.join(kwargs.get('workdir', ''), fspec.lfn)
             if not os.path.isfile(pfn) or not os.access(pfn, os.R_OK):
                 msg = "Error: output pfn file does not exist: %s" % pfn
@@ -553,10 +621,13 @@ class StageOutClient(StagingClient):
             self.logger.debug('Input: %s' % files)
             raise PilotException('Invalid input for transfer operation')
 
+        self.fill_storage_id(files)
+
         self.logger.info('Ready to transfer (stage-out) files: %s' % files)
 
         if self.infosys:
             kwargs['copytools'] = self.infosys.queuedata.copytools
+            kwargs['ddmconf'] = self.infosys.resolve_storage_data()
 
             # some copytools will need to know endpoint specifics (e.g. the space token) stored in ddmconf, add it
             kwargs['ddmconf'] = self.infosys.resolve_storage_data()

@@ -6,6 +6,7 @@
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Wen Guan, wen.guan@cern.ch, 2018
 
 """
 The implementation of data structure to host Job definition.
@@ -57,6 +58,7 @@ class JobData(BaseData):
     platform = ""   # cmtconfig value from the task definition
 
     is_eventservice = False        # True for event service jobs
+    is_eventservicemerge = False   # True for event service merge jobs
 
     transfertype = ""  # direct access
     processingtype = ""  # e.g. nightlies
@@ -149,6 +151,7 @@ class JobData(BaseData):
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
              dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
              bool: ['is_eventservice', 'noexecstrcnv', 'debug']
+             bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug']
              }
 
     def __init__(self, data):
@@ -183,7 +186,7 @@ class JobData(BaseData):
             'dataset': 'realDatasetsIn', 'guid': 'GUID',
             'filesize': 'fsize', 'checksum': 'checksum', 'scope': 'scopeIn',
             ##'??define_internal_key': 'prodDBlocks',
-            ##'storage_token': 'prodDBlockToken',
+            'storage_token': 'prodDBlockToken',
             'ddmendpoint': 'ddmEndPointIn',
             # 'transfertype': 'transferType',  # if transfertype was defined per file (it currently is not)
         }
@@ -343,7 +346,8 @@ class JobData(BaseData):
             'jobsetid': 'jobsetID',
             'produserid': 'prodUserID',
             'jobdefinitionid': 'jobDefinitionID',
-            'is_eventservice': 'eventService',  ## is it coming from Job def?? yes (PN)
+            'is_eventservice': 'eventService',
+            'is_eventservicemerge': 'eventServiceMerge',
         }
 
         self._load_data(data, kmap)

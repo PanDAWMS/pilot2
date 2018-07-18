@@ -5,6 +5,7 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Wen Guan, wen.guan@cern.ch, 2018
 
 """
 The implementation of data structure to host File related data description.
@@ -17,6 +18,7 @@ The main reasons for such incapsulation are to
 :date: April 2018
 """
 
+import traceback
 from .basedata import BaseData
 
 import logging
@@ -42,12 +44,13 @@ class FileSpec(BaseData):
 
     dataset = ""
     ddmendpoint = ""    ## DDMEndpoint name (input or output depending on FileSpec.type)
+    is_user_defined_ddmendpoint = False	  # if ddmendpoint is not set by user, it's True
 
     ## dispatchDblock =  ""       # moved from Pilot1: is it needed? suggest proper internal name?
     ## dispatchDBlockToken = ""   # moved from Pilot1: is it needed? suggest proper internal name?
 
     ## prodDBlock = ""           # moved from Pilot1: is it needed? suggest proper internal name?
-    ## storage_token = "" # prodDBlockToken = ""      # moved from Pilot1: suggest proper internal name (storage token?)
+    storage_token = ""  # prodDBlockToken = ""      # moved from Pilot1: suggest proper internal name (storage token?)
 
     ## local keys
     type = ''          # type of File: input, output of log
@@ -55,6 +58,9 @@ class FileSpec(BaseData):
     protocols = None   # list of preferred protocols for requested activity
     surl = ''          # source url
     turl = ''          # transfer url
+    protocol_id = None  # id of the protocol to be used to construct turl
+    storage_id = None  # id of the ddmendpoint
+    path_convention = None  # path convention for eventservice inputs/outputs
     mtime = 0          # file modification time
     status = None      # file transfer status value
     status_code = 0    # file transfer status code
@@ -62,11 +68,11 @@ class FileSpec(BaseData):
     workdir = None     # used to declare file-specific work dir (location of given local file when it's used for transfer by copytool)
 
     # specify the type of attributes for proper data validation and casting
-    _keys = {int: ['filesize', 'mtime', 'status_code'],
+    _keys = {int: ['filesize', 'mtime', 'status_code', 'protocol_id', 'storage_id', 'path_convention'],
              str: ['lfn', 'guid', 'checksum', 'scope', 'dataset', 'ddmendpoint',
-                   'type', 'surl', 'turl', 'status', 'workdir'],
+                   'type', 'surl', 'turl', 'status', 'workdir', 'storage_token'],
              list: ['replicas', 'inputddms'],
-             bool: []
+             bool: ['is_user_defined_ddmendpoint']
              }
 
     def __init__(self, type='input', **data):  ## FileSpec can be split into FileSpecInput + FileSpecOuput classes in case of significant logic changes
@@ -123,6 +129,29 @@ class FileSpec(BaseData):
             ctype = cmap.get(ctype) or 'adler32'
 
         return {ctype: checksum}
+
+    def clean(self):
+        """
+            Validate and finally clean up required data values (required object properties) if need
+            Executed once all fields have already passed field-specific validation checks
+            Could be customized by child object
+            :return: None
+        """
+        if self.ddmendpoint and len(self.ddmendpoint):
+            self.is_user_defined_ddmendpoint = True
+
+        # parse storage_token
+        # Expected format is '<normal storage token as string>', '<storage_id as int>', <storage_id as int/path_convention as int>
+        try:
+            if self.storage_token:
+                if self.storage_token.count('/') == 1:
+                    self.storage_id, self.path_convention = self.storage_token.split('/')
+                    self.storage_id = int(self.storage_id)
+                    self.path_convention = int(self.path_convention)
+                elif self.storage_token.isdigit():
+                    self.storage_id = int(self.storage_token)
+        except Exception as ex:
+            logger.warning("Failed to parse storage_token(%s): %s, %s" % (self.storage_token, ex, traceback.format_exc()))
 
     def is_directaccess(self, ensure_replica=True):
         """
