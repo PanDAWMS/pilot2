@@ -14,6 +14,7 @@
 import json
 import os
 import time
+import traceback
 
 try:
     import Queue as queue
@@ -181,7 +182,7 @@ def execute_payloads(queues, traces, args):
         except queue.Empty:
             continue
         except Exception as e:
-            logger.fatal('execute payloads caught an exception (cannot recover): %s' % e)
+            logger.fatal('execute payloads caught an exception (cannot recover): %s, %s' % (e, traceback.format_exc()))
             if job:
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADEXECUTIONEXCEPTION)
                 queues.failed_payloads.put(job)

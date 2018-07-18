@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Wen Guan, wen.guan, 2018
 
 import os
 import re
@@ -80,6 +81,11 @@ def get_payload_command(job):
         else:
             # Add Database commands if they are set by the local site
             cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
+            if job.corecount:
+                cmd += '; export ATHENA_PROC_NUMBER=%s' % job.corecount
+            else:
+                cmd += '; export ATHENA_PROC_NUMBER=1'
+
             # Add the transform and the job parameters (production jobs)
             if prepareasetup:
                 cmd += "; %s %s" % (job.transformation, job.jobparams)
