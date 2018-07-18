@@ -14,9 +14,11 @@ import logging
 import errno
 import re
 
+from pilot.api.data import StageOutClient
 from pilot.common.exception import StageInFailure, StageOutFailure, PilotException, ErrorCodes
-from pilot.util.container import execute
 from pilot.copytool.common import get_copysetup
+from pilot.util.container import execute
+
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +93,11 @@ def copy_in(files, **kwargs):
         destination = os.path.join(dst, fspec.lfn)
 
         logger.info("transferring file %s from %s to %s" % (fspec.lfn, source, destination))
-
+        try:
+            logger.info('xx filesize=%s' % str(fspec.filesize))
+            logger.info('xx checksum=%s' % str(fspec.checksum))
+        except Exception as e:
+            logger.warning('exception caught: %s' % e)
         exit_code, stdout, stderr = move(source, destination, dst_in=True, copysetup=copysetup)
 
         if exit_code != 0:
@@ -101,6 +107,13 @@ def copy_in(files, **kwargs):
             fspec.status = 'failed'
             fspec.status_code = error.get('exit_code')
             raise PilotException(error.get('error'), code=error.get('exit_code'), state=error.get('state'))
+
+        try:
+            data = StageOutClient()
+            fspec.checksum = data.calc_adler32_checksum(destination)
+        except Exception as e:
+            logger.warning('exception caught: %s' % e)
+        # verify checksum
 
         fspec.status_code = 0
         fspec.status = 'transferred'
@@ -140,8 +153,9 @@ def copy_out(files, **kwargs):
     copysetup = get_copysetup(copytools, 'lsm')
     ddmconf = kwargs.get('ddmconf', None)
     if not ddmconf:
-        raise PilotException("copy_out() failed to resolve ddmconf from function arguments", code=STAGEOUTFAILED,
-                             state=error.get('state'))
+        raise PilotException("copy_out() failed to resolve ddmconf from function arguments",
+                             code=ErrorCodes.STAGEOUTFAILED,
+                             state='COPY_ERROR')
 
     for fspec in files:
 
@@ -150,7 +164,7 @@ def copy_out(files, **kwargs):
         token = ddm.token
         if not token:
             raise PilotException("copy_out() failed to resolve token value for ddmendpoint=%s" % (fspec.ddmendpoint),
-                                 code=STAGEOUTFAILED, state=error.get('state'))
+                                 code=ErrorCodes.STAGEOUTFAILED, state='COPY_ERROR')
 
         src = fspec.workdir or kwargs.get('workdir') or '.'
         #timeout = get_timeout(fspec.filesize)
