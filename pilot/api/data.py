@@ -579,6 +579,9 @@ class StageOutClient(StagingClient):
         if self.infosys:
             kwargs['copytools'] = self.infosys.queuedata.copytools
 
+            # some copytools will need to know endpoint specifics (e.g. the space token) stored in ddmconf, add it
+            kwargs['ddmconf'] = self.infosys.resolve_storage_data()
+
         return copytool.copy_out(files, **kwargs)
 
 #class StageInClientAsync(object):
