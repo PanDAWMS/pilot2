@@ -35,6 +35,7 @@ from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PR
 from pilot.util.container import execute
 from pilot.util.filehandling import find_executable, get_guid, get_local_file_size
 from pilot.util.timing import add_to_pilot_timing
+from pilot.util.tracereport import TraceReport
 
 import logging
 
@@ -173,6 +174,17 @@ def _stage_in(args, job):
 
     # write time stamps to pilot timing file
     add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN, time.time())
+
+    eventType = "get_sm"
+    #if log_transfer:
+    #    eventType += '_logs'
+    #if special_log_transfer:
+    #    eventType += '_logs_os'
+    #if job.isAnalysisJob():
+    #    eventType += "_a"
+    #trace_report = TraceReport(pq=jobSite.sitename, localSite=jobSite.sitename, remoteSite=jobSite.sitename, dataset="", eventType=eventType)
+    trace_report = TraceReport(pq='', localSite='', remoteSite='', dataset="", eventType=eventType)
+    trace_report.init(job)
 
     try:
         client = StageInClient(job.infosys, logger=log)
