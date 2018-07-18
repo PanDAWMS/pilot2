@@ -1,0 +1,97 @@
+#!/usr/bin/env python
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Authors:
+# - Wen Guan, wen.guan@cern.ch, 2018
+
+from pilot.common import exception
+from pilot.common.pluginfactory import PluginFactory
+
+import logging
+logger = logging.getLogger(__name__)
+
+"""
+Main class to manage the event service work.
+"""
+
+
+class WorkExecutor(PluginFactory):
+
+    def __init__(self, args=None):
+        super(WorkExecutor, self).__init__()
+        self.payload = None
+        self.plugin = None
+        self.is_retrieve_payload = False
+        self.args = args
+        self.pid = None
+
+    def get_pid(self):
+        return self.plugin.get_pid() if self.plugin else None
+
+    def set_payload(self, payload):
+        self.payload = payload
+
+    def set_retrieve_paylaod(self):
+        self.is_retrieve_payload = True
+
+    def get_payload(self):
+        return self.payload
+
+    def get_plugin_confs(self):
+        plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.genericexecutor.GenericExecutor'}
+        if self.args and 'executor_type' in self.args.keys():
+            if self.args['executor_type'] == 'base':
+                plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.baseexecutor.BaseExecutor'}
+            if self.args['executor_type'] == 'nl':  # network-less
+                plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.nlexecutor.NLExecutor'}
+            if self.args['executor_type'] == 'boinc':
+                plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.boincexecutor.BOINCExecutor'}
+            if self.args['executor_type'] == 'hammercloud':  # hammercloud test: refine normal simul to ES
+                plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.hammercloudexecutor.HammerCloudExecutor'}
+        plugin_confs['args'] = self.args
+        return plugin_confs
+
+    def start(self):
+        plugin_confs = self.get_plugin_confs()
+        logger.info("Plugin confs: %s" % plugin_confs)
+        self.plugin = self.get_plugin(plugin_confs)
+        logger.info("WorkExecutor started with plugin: %s" % self.plugin)
+        if not self.plugin:
+            raise exception.SetupFailure("No available executor plugin.")
+
+        if self.is_retrieve_payload:
+            self.payload = self.plugin.set_retrieve_payload()
+        else:
+            if not self.get_payload():
+                raise exception.SetupFailure("Payload is not assigned.")
+            else:
+                self.plugin.set_payload(self.get_payload())
+        self.plugin.start()
+
+    def stop(self):
+        if not self.plugin:
+            raise exception.SetupFailure("No available executor plugin.")
+        return self.plugin.stop()
+
+    def isAlive(self):
+        if not self.plugin:
+            raise exception.SetupFailure("No available executor plugin.")
+        return self.plugin.isAlive()
+
+    def get_exit_code(self):
+        if not self.plugin:
+            raise exception.SetupFailure("No available executor plugin.")
+        return self.plugin.get_exit_code()
+
+    def get_event_ranges(self):
+        if not self.plugin:
+            raise exception.SetupFailure("No available executor plugin.")
+        return self.plugin.get_event_ranges()
+
+    def update_events(self, messages):
+        if not self.plugin:
+            raise exception.SetupFailure("No available executor plugin.")
+        return self.plugin.update_events(messages)
