@@ -424,6 +424,8 @@ def update_job_data(job):  # noqa: C901
     ## since in general it's Job related part
     ## later on once we introduce VO specific Job class (inherited from JobData) this can be easily customized
 
+    log = get_logger(job.jobid)
+
     stageout = "all"
 
     # handle any error codes
@@ -432,12 +434,12 @@ def update_job_data(job):  # noqa: C901
         if job.exeerrorcode == 0:
             stageout = "all"
         else:
-            logger.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
+            log.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
             stageout = "log"
     if 'exeErrorDiag' in job.metadata:
         job.exeerrordiag = job.metadata['exeErrorDiag']
         if job.exeerrordiag:
-            logger.warning('payload failed: exeErrorDiag=%s' % job.exeerrordiag)
+            log.warning('payload failed: exeErrorDiag=%s' % job.exeerrordiag)
 
     # determine what should be staged out
     job.stageout = stageout  # output and log file or only log file
@@ -449,9 +451,9 @@ def update_job_data(job):  # noqa: C901
     try:
         work_attributes = parse_jobreport_data(job.metadata)
     except Exception as e:
-        logger.warning('failed to parse job report: %s' % e)
+        log.warning('failed to parse job report: %s' % e)
 
-    logger.info('work_attributes = %s' % work_attributes)
+    log.info('work_attributes = %s' % work_attributes)
 
     # extract output files from the job report, in case the trf has created additional (overflow) files
     if job.metadata:
@@ -474,14 +476,18 @@ def update_job_data(job):  # noqa: C901
                     extra.append(spec)
 
         if extra:
-            logger.info('Found extra output files to be added for stage-out: extra=%s' % extra)
+            log.info('Found extra output files to be added for stage-out: extra=%s' % extra)
             job.outdata.extend(extra)
+    else:
+        log.warning('job.metadata not set')
 
     ## validate output data (to be moved into the JobData)
+    ## warning: do no execute this code unless guid lookup in job report has failed - pilot should only generate guids
+    ## if they are not present in job report
     for dat in job.outdata:
         if not dat.guid:
             dat.guid = get_guid()
-            logger.info('Generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
+            log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
 
 
 def parse_jobreport_data(job_report):
