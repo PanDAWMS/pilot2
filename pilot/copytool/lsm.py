@@ -138,19 +138,39 @@ def copy_out(files, **kwargs):
 
     copytools = kwargs.get('copytools') or []
     copysetup = get_copysetup(copytools, 'lsm')
+    ddmconf = kwargs.get('ddmconf', None)
+    if not ddmconf:
+        raise PilotException("copy_out() failed to resolve ddmconf from function arguments", code=STAGEOUTFAILED,
+                             state=error.get('state'))
 
     for fspec in files:
+
+        # resolve token value from fspec.ddmendpoint
+        token = ddmconf.get(fspec.ddmendpoint, {}).get('token')
+        if not token:
+            raise PilotException("copy_out() failed to resolve token value for ddmendpoint=%s" % (fspec.ddmendpoint),
+                                 code=STAGEOUTFAILED, state=error.get('state'))
 
         src = fspec.workdir or kwargs.get('workdir') or '.'
         #timeout = get_timeout(fspec.filesize)
         source = os.path.join(src, fspec.lfn)
         destination = fspec.turl
 
+        # checksum has been calculated in the previous step - transfer_files() in api/data
+        checksum = "ad:%s" % fspec.checksum.get('adler32')
+
+        # define the command options
+        opts = {'--size': fspec.filesize,
+                '-t': token,
+                '--checksum': checksum,
+                '--guid': fspec.guid}
+        opts = " ".join(["%s %s" % (k, v) for (k, v) in opts.iteritems()])
+
         logger.info("transferring file %s from %s to %s" % (fspec.lfn, source, destination))
 
         nretries = 1  # input parameter to function?
         for retry in range(nretries):
-            exit_code, stdout, stderr = move(source, destination, dst_in=False, copysetup=copysetup)
+            exit_code, stdout, stderr = move(source, destination, dst_in=False, copysetup=copysetup, options=opts)
 
             if exit_code != 0:
                 error = resolve_transfer_error(stderr, is_stagein=False)
@@ -242,7 +262,7 @@ def move_all_files_out(files, nretries=1):
     return exit_code, stdout, stderr
 
 
-def move(source, destination, dst_in=True, copysetup=""):
+def move(source, destination, dst_in=True, copysetup="", options=None):
     """
     Use lsm-get or lsm-put to transfer the file.
 
@@ -257,10 +277,15 @@ def move(source, destination, dst_in=True, copysetup=""):
         cmd = 'source %s;' % copysetup
     else:
         cmd = ''
+
+    args = "%s %s" % (source, destination)
+    if options:
+        args = "%s %s" % (options, args)
+
     if dst_in:
-        cmd += "lsm-get %s %s" % (source, destination)
+        cmd += "lsm-get %s" % args
     else:
-        cmd += "lsm-put %s %s" % (source, destination)
+        cmd += "lsm-put %s" % args
 
     logger.info("Using copy command: %s" % cmd)
     exit_code, stdout, stderr = execute(cmd)
