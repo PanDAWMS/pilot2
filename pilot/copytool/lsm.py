@@ -159,7 +159,7 @@ def copy_out(files, **kwargs):
 
         # checksum has been calculated in the previous step - transfer_files() in api/data
         # note: pilot is handing over checksum to the command - which will/should verify it after the transfer
-        checksum = "ad:%s" % fspec.checksum.get('adler32')
+        checksum = "adler32:%s" % fspec.checksum.get('adler32')
 
         # define the command options
         opts = {'--size': fspec.filesize,
