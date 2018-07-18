@@ -146,7 +146,8 @@ def copy_out(files, **kwargs):
     for fspec in files:
 
         # resolve token value from fspec.ddmendpoint
-        token = ddmconf.get(fspec.ddmendpoint, {}).get('token')
+        ddm = ddmconf.get(fspec.ddmendpoint)
+        token = ddm.token
         if not token:
             raise PilotException("copy_out() failed to resolve token value for ddmendpoint=%s" % (fspec.ddmendpoint),
                                  code=STAGEOUTFAILED, state=error.get('state'))
