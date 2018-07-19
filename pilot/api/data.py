@@ -299,10 +299,13 @@ class StagingClient(object):
                 continue
             try:
                 result = self.transfer_files(copytool, files, activity, **kwargs)
+                self.logger.info('cccc')
             except PilotException as e:
+                self.logger.info('dddd')
                 errors.append(e)
                 self.logger.debug('Error: %s' % e)
             except Exception as e:
+                self.logger.info('eeee')
                 self.logger.warning('Failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
                 import traceback
                 self.logger.error(traceback.format_exc())

@@ -550,7 +550,7 @@ def _do_stageout(job, xdata, activity, title):
         # do not raise the exception since that will prevent also the log from being staged out
         # error = PilotException("stageOut failed with error=%s" % e, code=ErrorCodes.STAGEOUTFAILED)
 
-    log.info('Summary of transferred files:')
+    log.info('summary of transferred files:')
     for e in xdata:
         log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
 

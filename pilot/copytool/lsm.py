@@ -205,10 +205,13 @@ def copy_out(files, **kwargs):
                 fspec.status_code = error.get('exit_code')
                 raise PilotException(error.get('error'), code=error.get('exit_code'), state=error.get('state'))
             else:  # all successful
+                logger.info('all successful')
                 break
 
+        logger.info('aaaa')
         fspec.status_code = 0
         fspec.status = 'transferred'
+        logger.info('bbbb')
 
 
 def copy_out_old(files):
@@ -325,6 +328,7 @@ def move(source, destination, dst_in=True, copysetup="", options=None):
         stderr = ''
         logger.warning(stdout)
 
+    logger.info('exit_code=%d, stdout=%s, stderr=%s' % (exit_code, stdout, stderr))
     return exit_code, stdout, stderr
 
 
