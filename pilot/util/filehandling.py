@@ -589,6 +589,7 @@ def calculate_checksum(filename, algorithm='adler32'):
 def calculate_adler32_checksum(filename):
     """
     Calculate the adler32 checksum for the given file.
+    The file is assumed to exist.
 
     :param filename: file name (string).
     :return: checksum value (string).
@@ -606,12 +607,13 @@ def calculate_adler32_checksum(filename):
             if asum < 0:
                 asum += 2**32
 
-    return "%08x" % asum  # convert to hex
+    return "{:08x}".format(asum)  # convert to hex
 
 
 def calculate_md5_checksum(filename):
     """
     Calculate the md5 checksum for the given file.
+    The file is assumed to exist.
 
     :param filename: file name (string).
     :return: checksum value (string).
@@ -630,15 +632,24 @@ def calculate_md5_checksum(filename):
 def get_checksum_type(checksum):
     """
     Return the checksum type (ad32 or md5).
+    The given checksum can be either be a standard ad32 or md5 value, or a dictionary with the format
+    { checksum_type: value } as defined in the `FileSpec` class.
     In case the checksum type cannot be identified, the function returns 'unknown'.
 
-    :param checksum: checksum string.
+    :param checksum: checksum string or dictionary.
     :return: checksum type (string).
     """
 
-    if len(checksum) == 8:
-        return 'ad32'
-    elif len(checksum) == 32:
-        return 'md5'
-    else:
-        return 'unknown'
+    checksum_type = 'unknown'
+    if type(checksum) == dict:
+        for key in checksum.keys():
+            # the dictionary is assumed to only contain one key-value pair
+            checksum_type = key
+            break
+    elif type(checksum) == str:
+        if len(checksum) == 8:
+            checksum_type = 'ad32'
+        elif len(checksum) == 32:
+            checksum_type = 'md5'
+
+    return checksum_type
