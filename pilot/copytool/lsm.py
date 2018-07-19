@@ -106,6 +106,7 @@ def copy_in(files, **kwargs):
 
         # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
         checksum_type = get_checksum_type(fspec.checksum)
+        logger.info('checksum(catalog)=%s (type: %s)' % (fspec.checksum, checksum_type))
         if checksum_type == 'unknown':
             msg = 'unknown checksum type for checksum(catalog): %s' % fspec.checksum
             logger.warning(msg)
@@ -114,7 +115,6 @@ def copy_in(files, **kwargs):
             raise PilotException(msg, code=fspec.status_code, state='UNKNOWN_CHECKSUM')
 
         local_checksum = calculate_checksum(destination, algorithm=checksum_type)
-        logger.info('checksum(catalog)=%s (type: %s)' % (fspec.checksum, checksum_type))
         logger.info('checksum(local)=%s' % fspec.checksum)
         if fspec.checksum and fspec.checksum != local_checksum:
             msg = 'checksum verification failed: checksum(catalog)=%s != checsum(local)=%s' % \
