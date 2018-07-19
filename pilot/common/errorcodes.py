@@ -61,6 +61,7 @@ class ErrorCodes:
     NOTDEFINED = 1311
     NOTSAMELENGTH = 1312
     NOSTORAGEPROTOCOL = 1313
+    UNKNOWNCHECKSUMTYPE = 1314
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -86,6 +87,7 @@ class ErrorCodes:
         PUTADMISMATCH: "adler32 mismatch on output file",
         NOVOMSPROXY: "Voms proxy not valid",
         PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
+        CHKSUMNOTSUP: "Mover error: query checksum is not supported",
         NOTIMPLEMENTED: "The class or function is not implemented",
         UNKNOWNEXCEPTION: "An unknown pilot exception has occurred",
         CONVERSIONFAILURE: "Failed to convert object data",
@@ -100,7 +102,7 @@ class ErrorCodes:
         NOTDEFINED: "Not defined",
         NOTSAMELENGTH: "Not same length",
         NOSTORAGEPROTOCOL: "No protocol defined for storage endpoint",
-        CHKSUMNOTSUP: "Mover error: query checksum is not supported",
+        UNKNOWNCHECKSUMTYPE: "Unknown checksum type",
     }
 
     def get_error_message(self, errorcode):
