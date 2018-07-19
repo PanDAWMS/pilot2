@@ -208,10 +208,8 @@ def copy_out(files, **kwargs):
                 logger.info('all successful')
                 break
 
-        logger.info('aaaa')
         fspec.status_code = 0
         fspec.status = 'transferred'
-        logger.info('bbbb')
 
     return files
 
