@@ -629,6 +629,29 @@ def calculate_md5_checksum(filename):
     return md5.hexdigest()
 
 
+def get_checksum_value(checksum):
+    """
+    Return the checksum value.
+    The given checksum might either be a standard ad32 or md5 string, or a dictionary with the format
+    { checksum_type: value } as defined in the `FileSpec` class. This function extracts the checksum value from this
+    dictionary (or immediately returns the checksum value if the given value is a string).
+
+    :param checksum: checksum object (string or dictionary).
+    :return: checksum. checksum string.
+    """
+
+    if type(checksum) == str:
+        return checksum
+
+    checksum_value = ''
+    checksum_type = get_checksum_type(checksum)
+
+    if type(checksum) == dict:
+        checksum_value = checksum.get(checksum_type)
+
+    return checksum_value
+
+
 def get_checksum_type(checksum):
     """
     Return the checksum type (ad32 or md5).

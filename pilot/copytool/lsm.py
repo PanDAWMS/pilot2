@@ -17,7 +17,7 @@ import re
 from pilot.common.exception import StageInFailure, StageOutFailure, PilotException, ErrorCodes
 from pilot.copytool.common import get_copysetup
 from pilot.util.container import execute
-from pilot.util.filehandling import calculate_checksum, get_checksum_type
+from pilot.util.filehandling import calculate_checksum, get_checksum_type, get_checksum_value
 
 
 logger = logging.getLogger(__name__)
@@ -106,7 +106,7 @@ def copy_in(files, **kwargs):
 
         # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
         checksum_type = get_checksum_type(fspec.checksum)
-        logger.info('checksum(catalog)=%s (type: %s)' % (fspec.checksum, checksum_type))
+        checksum_catalog = get_checksum_value(fspec.checksum)
         if checksum_type == 'unknown':
             msg = 'unknown checksum type for checksum(catalog): %s' % fspec.checksum
             logger.warning(msg)
@@ -114,11 +114,12 @@ def copy_in(files, **kwargs):
             fspec.status = 'failed'
             raise PilotException(msg, code=fspec.status_code, state='UNKNOWN_CHECKSUM')
 
-        local_checksum = calculate_checksum(destination, algorithm=checksum_type)
-        logger.info('checksum(local)=%s' % fspec.checksum)
-        if fspec.checksum and fspec.checksum != local_checksum:
+        checksum_local = calculate_checksum(destination, algorithm=checksum_type)
+        logger.info('checksum(catalog)=%s (type: %s)' % (checksum_catalog, checksum_type))
+        logger.info('checksum(local)=%s' % checksum_local)
+        if checksum_local and checksum_local != '' and checksum_local != checksum_catalog:
             msg = 'checksum verification failed: checksum(catalog)=%s != checsum(local)=%s' % \
-                  (fspec.checksum, local_checksum)
+                  (checksum_catalog, checksum_local)
             logger.warning(msg)
             fspec.status_code = ErrorCodes.GETADMISMATCH if checksum_type == 'ad32' else ErrorCodes.GETMD5MISMATCH
             fspec.status = 'failed'
