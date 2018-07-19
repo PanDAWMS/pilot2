@@ -110,10 +110,11 @@ def copy_in(files, **kwargs):
         if fspec.checksum and fspec.checksum != local_checksum:
             msg = 'checksum verification failed: checksum(catalog)=%s != checsum(local)=%s' % \
                   (fspec.checksum, local_checksum)
+            logger.warning(msg)
             fspec.status_code = ErrorCodes.GETADMISMATCH if checksum_type == 'ad32' else ErrorCodes.GETMD5MISMATCH
             fspec.status = 'failed'
             state = 'AD_MISMATCH' if checksum_type == 'ad32' else 'MD_MISMATCH'
-            raise PilotException("Copy command failed", code=fspec.status_code, state=state)
+            raise PilotException(msg, code=fspec.status_code, state=state)
 
         fspec.status_code = 0
         fspec.status = 'transferred'
