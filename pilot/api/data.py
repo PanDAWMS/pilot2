@@ -314,7 +314,6 @@ class StagingClient(object):
             if result:
                 break
 
-        # warning: this exception is not caught and leads to finished jobs
         if not result:
             raise PilotException('Failed to transfer files using copytools=%s, error=%s' % (copytools, errors))
 
