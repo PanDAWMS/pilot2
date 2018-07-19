@@ -16,7 +16,8 @@ import uuid
 from shutil import copy2
 from zlib import adler32
 
-from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile
+from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile, \
+    NotImplemented
 from pilot.util.container import execute
 
 import logging
