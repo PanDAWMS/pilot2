@@ -314,8 +314,16 @@ def move(source, destination, dst_in=True, copysetup="", options=None):
     else:
         cmd += "lsm-put %s" % args
 
-    logger.info("Using copy command: %s" % cmd)
-    exit_code, stdout, stderr = execute(cmd)
+    try:
+        exit_code, stdout, stderr = execute(cmd)
+    except Exception as e:
+        if dst_in:
+            exit_code = ErrorCodes.STAGEINFAILED
+        else:
+            exit_code = ErrorCodes.STAGEOUTFAILED
+        stdout = 'exception caught: e' % e
+        stderr = ''
+        logger.warning(stdout)
 
     return exit_code, stdout, stderr
 
