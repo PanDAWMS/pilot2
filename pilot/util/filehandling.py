@@ -7,11 +7,14 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
+import hashlib
+import io
 import os
+import tarfile
 import time
 import uuid
-import tarfile
 from shutil import copy2
+from zlib import adler32
 
 from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile
 from pilot.util.container import execute
@@ -555,3 +558,86 @@ def _define_tabledict_keys(header, fields, separator):
             keylist.append(key)
 
     return tabledict, keylist
+
+
+def calculate_checksum(filename, algorithm='adler32'):
+    """
+    Calculate the checksum value for the given file.
+    The default algorithm is adler32. Md5 is also be supported.
+    Valid algorithms are 1) adler32/adler/ad32/ad, 2) md5/md5sum/md.
+
+    :param filename: file name (string).
+    :param algorithm: optional algorithm string.
+    :raises FileHandlingFailure, NotImplemented: exception raised when file does not exist or for unknown algorithm.
+    :return: checksum value (string).
+    """
+
+    if not os.path.exists(filename):
+        raise FileHandlingFailure('file does not exist: %s' % filename)
+
+    if algorithm == 'adler32' or algorithm == 'adler' or algorithm == 'ad' or algorithm == 'ad32':
+        return calculate_adler32_checksum(filename)
+    elif algorithm == 'md5' or algorithm == 'md5sum' or algorithm == 'md':
+        return calculate_md5_checksum(filename)
+    else:
+        msg = 'unknown checksum algorithm: %s' % algorithm
+        logger.warning(msg)
+        raise NotImplemented(msg)
+
+
+def calculate_adler32_checksum(filename):
+    """
+    Calculate the adler32 checksum for the given file.
+
+    :param filename: file name (string).
+    :return: checksum value (string).
+    """
+
+    asum = 1  # default adler32 starting value
+    blocksize = 64 * 1024 * 1024  # read buffer size, 64 Mb
+
+    with open(filename, 'rb') as f:
+        while True:
+            data = f.read(blocksize)
+            if not data:
+                break
+            asum = adler32(data, asum)
+            if asum < 0:
+                asum += 2**32
+
+    return "%08x" % asum  # convert to hex
+
+
+def calculate_md5_checksum(filename):
+    """
+    Calculate the md5 checksum for the given file.
+
+    :param filename: file name (string).
+    :return: checksum value (string).
+    """
+
+    length = io.DEFAULT_BUFFER_SIZE
+    md5 = hashlib.md5()
+
+    with io.open(filename, mode="rb") as fd:
+        for chunk in iter(lambda: fd.read(length), b''):
+            md5.update(chunk)
+
+    return md5.hexdigest()
+
+
+def get_checksum_type(checksum):
+    """
+    Return the checksum type (ad32 or md5).
+    In case the checksum type cannot be identified, the function returns 'unknown'.
+
+    :param checksum: checksum string.
+    :return: checksum type (string).
+    """
+
+    if len(checksum) == 8:
+        return 'ad32'
+    elif len(checksum) == 32:
+        return 'md5'
+    else:
+        return 'unknown'
