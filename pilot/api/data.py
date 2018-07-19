@@ -321,6 +321,7 @@ class StagingClient(object):
             self.logger.info('hhhh')
 
         self.logger.info('iiii')
+        # warning: this exception is not caught and leads to finished jobs
         if not result:
             raise PilotException('Failed to transfer files using copytools=%s, error=%s' % (copytools, errors))
 
