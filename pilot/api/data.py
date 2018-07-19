@@ -18,6 +18,7 @@ import logging
 
 from pilot.info import infosys
 from pilot.common.exception import PilotException, ErrorCodes
+from pilot.util.filehandling import calculate_checksum
 
 
 class StagingClient(object):
@@ -488,29 +489,6 @@ class StageOutClient(StagingClient):
 
         return {'surl': surl}
 
-    @classmethod
-    def calc_adler32_checksum(self, filename):
-        """
-            calculate the adler32 checksum for a file
-            raise an exception if input filename is not exist/readable
-        """
-
-        from zlib import adler32
-
-        asum = 1  # default adler32 starting value
-        blocksize = 64 * 1024 * 1024  # read buffer size, 64 Mb
-
-        with open(filename, 'rb') as f:
-            while True:
-                data = f.read(blocksize)
-                if not data:
-                    break
-                asum = adler32(data, asum)
-                if asum < 0:
-                    asum += 2**32
-
-        return "%08x" % asum  # convert to hex
-
     def transfer_files(self, copytool, files, activity, **kwargs):
         """
             Automatically stage out files using the selected copy tool module.
@@ -537,7 +515,7 @@ class StageOutClient(StagingClient):
             fspec.surl = pfn
             fspec.activity = activity
             if not fspec.checksum.get('adler32'):
-                fspec.checksum['adler32'] = self.calc_adler32_checksum(pfn)
+                fspec.checksum['adler32'] = calculate_checksum(pfn)
 
         # prepare files (resolve protocol/transfer url)
         if getattr(copytool, 'require_protocols', True) and files:
