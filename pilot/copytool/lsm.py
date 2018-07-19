@@ -14,10 +14,10 @@ import logging
 import errno
 import re
 
-from pilot.api.data import StageOutClient
 from pilot.common.exception import StageInFailure, StageOutFailure, PilotException, ErrorCodes
 from pilot.copytool.common import get_copysetup
 from pilot.util.container import execute
+from pilot.util.filehandling import calculate_checksum, get_checksum_type
 
 
 logger = logging.getLogger(__name__)
@@ -93,11 +93,7 @@ def copy_in(files, **kwargs):
         destination = os.path.join(dst, fspec.lfn)
 
         logger.info("transferring file %s from %s to %s" % (fspec.lfn, source, destination))
-        try:
-            logger.info('xx filesize=%s' % str(fspec.filesize))
-            logger.info('xx checksum=%s' % str(fspec.checksum))
-        except Exception as e:
-            logger.warning('exception caught: %s' % e)
+
         exit_code, stdout, stderr = move(source, destination, dst_in=True, copysetup=copysetup)
 
         if exit_code != 0:
@@ -108,12 +104,16 @@ def copy_in(files, **kwargs):
             fspec.status_code = error.get('exit_code')
             raise PilotException(error.get('error'), code=error.get('exit_code'), state=error.get('state'))
 
-        try:
-            data = StageOutClient()
-            fspec.checksum = data.calc_adler32_checksum(destination)
-        except Exception as e:
-            logger.warning('exception caught: %s' % e)
-        # verify checksum
+        # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
+        checksum_type = get_checksum_type(fspec.checksum)
+        local_checksum = calculate_checksum(destination, algorithm=checksum_type)
+        if fspec.checksum and fspec.checksum != local_checksum:
+            msg = 'checksum verification failed: checksum(catalog)=%s != checsum(local)=%s' % \
+                  (fspec.checksum, local_checksum)
+            fspec.status_code = ErrorCodes.GETADMISMATCH if checksum_type == 'ad32' else ErrorCodes.GETMD5MISMATCH
+            fspec.status = 'failed'
+            state = 'AD_MISMATCH' if checksum_type == 'ad32' else 'MD_MISMATCH'
+            raise PilotException("Copy command failed", code=fspec.status_code, state=state)
 
         fspec.status_code = 0
         fspec.status = 'transferred'
