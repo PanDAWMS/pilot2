@@ -299,7 +299,7 @@ class StagingClient(object):
                 continue
             try:
                 result = self.transfer_files(copytool, files, activity, **kwargs)
-                self.logger.info('cccc')
+                self.logger.info('cccc, %s' % str(result))
             except PilotException as e:
                 self.logger.info('dddd')
                 errors.append(e)
@@ -311,13 +311,20 @@ class StagingClient(object):
                 self.logger.error(traceback.format_exc())
                 errors.append(e)
 
+            self.logger.info('ffff')
+
             if errors and isinstance(errors[-1], PilotException) and errors[-1].get_error_code() == ErrorCodes.MISSINGOUTPUTFILE:
                 raise errors[-1]
+            self.logger.info('gggg')
             if result:
                 break
+            self.logger.info('hhhh')
 
+        self.logger.info('iiii')
         if not result:
             raise PilotException('Failed to transfer files using copytools=%s, error=%s' % (copytools, errors))
+
+        self.logger.info('jjjj')
 
         return result
 

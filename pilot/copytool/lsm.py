@@ -213,6 +213,8 @@ def copy_out(files, **kwargs):
         fspec.status = 'transferred'
         logger.info('bbbb')
 
+    return files
+
 
 def copy_out_old(files):
     """
