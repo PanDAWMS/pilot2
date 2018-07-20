@@ -15,9 +15,8 @@ import errno
 import re
 
 from pilot.common.exception import StageInFailure, StageOutFailure, PilotException, ErrorCodes
-from pilot.copytool.common import get_copysetup
+from pilot.copytool.common import get_copysetup, verify_catalog_checksum
 from pilot.util.container import execute
-from pilot.util.filehandling import calculate_checksum, get_checksum_type, get_checksum_value
 
 
 logger = logging.getLogger(__name__)
@@ -105,26 +104,9 @@ def copy_in(files, **kwargs):
             raise PilotException(error.get('error'), code=error.get('exit_code'), state=error.get('state'))
 
         # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
-        checksum_type = get_checksum_type(fspec.checksum)
-        checksum_catalog = get_checksum_value(fspec.checksum)
-        if checksum_type == 'unknown':
-            msg = 'unknown checksum type for checksum(catalog): %s' % fspec.checksum
-            logger.warning(msg)
-            fspec.status_code = ErrorCodes.UNKNOWNCHECKSUMTYPE
-            fspec.status = 'failed'
-            raise PilotException(msg, code=fspec.status_code, state='UNKNOWN_CHECKSUM')
-
-        checksum_local = calculate_checksum(destination, algorithm=checksum_type)
-        logger.info('checksum(catalog)=%s (type: %s)' % (checksum_catalog, checksum_type))
-        logger.info('checksum(local)=%s' % checksum_local)
-        if checksum_local and checksum_local != '' and checksum_local != checksum_catalog:
-            msg = 'checksum verification failed: checksum(catalog)=%s != checsum(local)=%s' % \
-                  (checksum_catalog, checksum_local)
-            logger.warning(msg)
-            fspec.status_code = ErrorCodes.GETADMISMATCH if checksum_type == 'ad32' else ErrorCodes.GETMD5MISMATCH
-            fspec.status = 'failed'
-            state = 'AD_MISMATCH' if checksum_type == 'ad32' else 'MD_MISMATCH'
-            raise PilotException(msg, code=fspec.status_code, state=state)
+        state, diagnostics = verify_catalog_checksum(fspec, destination)
+        if diagnostics != "":
+            raise PilotException(diagnostics, code=fspec.status_code, state=state)
 
         fspec.status_code = 0
         fspec.status = 'transferred'
