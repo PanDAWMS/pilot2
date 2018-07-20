@@ -456,6 +456,7 @@ def update_job_data(job):  # noqa: C901
     log.info('work_attributes = %s' % work_attributes)
 
     # extract output files from the job report, in case the trf has created additional (overflow) files
+    # also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
     if job.metadata:
         data = dict([e.lfn, e] for e in job.outdata)
         extra = []
@@ -463,9 +464,14 @@ def update_job_data(job):  # noqa: C901
         for dat in job.metadata.get('files', {}).get('output', []):
             for fdat in dat.get('subFiles', []):
                 lfn = fdat['name']
-                if lfn not in data:  # found new entry, create filespec
+
+                # verify the guid if the lfn is known
+                if lfn in data:
+                    data[lfn].guid = fdat['file_guid']
+                    logger.info('set guid=%s for lfn=%s (value taken from job report)' % (data[lfn].guid, lfn))
+                else:  # found new entry, create filespec
                     if not job.outdata:
-                        raise PilotException("Failed to grub data from job report: job.outdata is empty, will not be able to construct filespecs")
+                        raise PilotException("job.outdata is empty, will not be able to construct filespecs")
                     kw = {'lfn': lfn,
                           'scope': job.outdata[0].scope,  ## take value from 1st output file?
                           'guid': fdat['file_guid'],
@@ -476,7 +482,7 @@ def update_job_data(job):  # noqa: C901
                     extra.append(spec)
 
         if extra:
-            log.info('Found extra output files to be added for stage-out: extra=%s' % extra)
+            log.info('found extra output files to be added for stage-out: extra=%s' % extra)
             job.outdata.extend(extra)
     else:
         log.warning('job.metadata not set')
