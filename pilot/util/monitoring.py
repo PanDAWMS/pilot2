@@ -18,7 +18,7 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config, human2bytes
 from pilot.util.container import execute
-from pilot.util.filehandling import get_directory_size, remove_files
+from pilot.util.filehandling import get_directory_size, remove_files, get_local_file_size
 from pilot.util.loopingjob import looping_job
 from pilot.util.parameters import convert_to_int
 from pilot.util.processes import get_current_cpu_consumption_time, kill_processes, get_number_of_child_processes
@@ -188,7 +188,7 @@ def verify_looping_job(current_time, mt, job):
 def verify_disk_usage(current_time, mt, job):
     """
     Verify the disk usage.
-    The function checks 1) payload stdout size, 2) local space, 3) work directory size.
+    The function checks 1) payload stdout size, 2) local space, 3) work directory size, 4) output file sizes.
 
     :param current_time: current time at the start of the monitoring loop (int).
     :param mt: measured time object.
@@ -215,6 +215,11 @@ def verify_disk_usage(current_time, mt, job):
         if exit_code != 0:
             return exit_code, diagnostics
 
+        # check the output file sizes
+        exit_code, diagnostics = check_output_file_sizes(job)
+        if exit_code != 0:
+            return exit_code, diagnostics
+
         # update the ct_diskspace with the current time
         mt.update('ct_diskspace')
 
@@ -224,12 +229,17 @@ def verify_disk_usage(current_time, mt, job):
 def verify_running_processes(current_time, mt, pid):
     """
     Verify the number of running processes.
+    The function sets the environmental variable PILOT_MAXNPROC to the maximum number of found (child) processes
+    corresponding to the main payload process id.
+    The function does not return an error code (always returns exit code 0).
 
     :param current_time: current time at the start of the monitoring loop (int).
     :param mt: measured time object.
     :param pid: payload process id (int).
     :return: exit code (int), error diagnostics (string).
     """
+
+    nproc_env = 0
 
     process_verification_time = convert_to_int(config.Pilot.process_verification_time, default=300)
     if current_time - mt.get('ct_process') > process_verification_time:
@@ -241,7 +251,11 @@ def verify_running_processes(current_time, mt, pid):
             logger.warning('failed to convert PILOT_MAXNPROC to int: %s' % e)
         else:
             if nproc > nproc_env:
+                # set the maximum number of found processes
                 os.environ['PILOT_MAXNPROC'] = str(nproc)
+
+        if nproc_env > 0:
+            logger.info('maximum number of monitored processes: %d' % nproc_env)
 
     return 0, ""
 
@@ -365,13 +379,13 @@ def check_payload_stdout(job):
                 # is the file too big?
                 localsizelimit_stdout = get_local_size_limit_stdout()
                 if fsize > localsizelimit_stdout:
+                    exit_code = errors.STDOUTTOOBIG
                     diagnostics = "Payload stdout file too big: %d B (larger than limit %d B)" % \
                                   (fsize, localsizelimit_stdout)
                     log.warning(diagnostics)
+
                     # kill the job
                     kill_processes(job.pid)
-                    job.state = "failed"
-                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STDOUTTOOBIG)
 
                     # remove the payload stdout file after the log extracts have been created
 
@@ -435,7 +449,7 @@ def check_work_dir(job):
 
             # is user dir within allowed size limit?
             if workdirsize > maxwdirsize:
-
+                exit_code = errors.USERDIRTOOLARGE
                 diagnostics = "work directory (%s) is too large: %d B (must be < %d B)" % \
                               (job.workdir, workdirsize, maxwdirsize)
                 log.fatal("%s" % diagnostics)
@@ -447,12 +461,10 @@ def check_work_dir(job):
                 # kill the job
                 # pUtil.createLockFile(True, self.__env['jobDic'][k][1].workdir, lockfile="JOBWILLBEKILLED")
                 kill_processes(job.pid)
-                job.state = 'failed'
-                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.USERDIRTOOLARGE)
 
                 # remove any lingering input files from the work dir
                 if job.infiles != []:
-                    exit_code = remove_files(job.workdir, job.infiles)
+                    remove_files(job.workdir, job.infiles)
 
                     # remeasure the size of the workdir at this point since the value is stored below
                     workdirsize = get_directory_size(directory=job.workdir)
@@ -538,4 +550,25 @@ def check_output_file_sizes(job):
     :return: exit code (int), error diagnostics (string)
     """
 
-    return 0, ""
+    exit_code = 0
+    diagnostics = ""
+
+    log = get_logger(job.jobid)
+
+    # loop over all known output files
+    for fspec in job.outdata:
+        path = os.path.join(job.workdir, fspec.lfn)
+        if os.path.exists(path):
+            # get the current file size
+            fsize = get_local_file_size(path)
+            max_fsize = human2bytes(config.Pilot.maximum_output_file_size)
+            if fsize and fsize < max_fsize:
+                log.info('output file %s is within allowed size limit (%d B < %d B)' % (path, fsize, max_fsize))
+            else:
+                exit_code = errors.OUTPUTFILETOOLARGE
+                diagnostics = 'output file %s is not within allowed size limit (%d B > %d B)' % (path, fsize, max_fsize)
+                log.warning(diagnostics)
+        else:
+            log.info('output file size check: skipping output file %s since it does not exist' % path)
+
+    return exit_code, diagnostics

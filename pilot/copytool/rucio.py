@@ -15,6 +15,7 @@ import json
 import logging
 
 from pilot.common.exception import PilotException, ErrorCodes
+from pilot.copytool.common import verify_catalog_checksum
 from pilot.util.container import execute
 
 logger = logging.getLogger(__name__)
@@ -57,6 +58,15 @@ def copy_in(files, **kwargs):
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
             raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
+
+        # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
+        destination = os.path.join(dst, fspec.lfn)
+        if os.path.exists(destination):
+            state, diagnostics = verify_catalog_checksum(fspec, destination)
+            if diagnostics != "":
+                raise PilotException(diagnostics, code=fspec.status_code, state=state)
+        else:
+            logger.warning('wrong path: %s' % destination)
 
         fspec.status_code = 0
         fspec.status = 'transferred'

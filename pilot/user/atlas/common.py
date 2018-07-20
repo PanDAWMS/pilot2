@@ -82,7 +82,7 @@ def get_payload_command(job):
             cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
             # Add the transform and the job parameters (production jobs)
             if prepareasetup:
-                cmd += ";%s %s" % (job.transformation, job.jobparams)
+                cmd += "; %s %s" % (job.transformation, job.jobparams)
             else:
                 cmd += "; " + job.jobparams
 
@@ -424,6 +424,8 @@ def update_job_data(job):  # noqa: C901
     ## since in general it's Job related part
     ## later on once we introduce VO specific Job class (inherited from JobData) this can be easily customized
 
+    log = get_logger(job.jobid)
+
     stageout = "all"
 
     # handle any error codes
@@ -432,12 +434,12 @@ def update_job_data(job):  # noqa: C901
         if job.exeerrorcode == 0:
             stageout = "all"
         else:
-            logger.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
+            log.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
             stageout = "log"
     if 'exeErrorDiag' in job.metadata:
         job.exeerrordiag = job.metadata['exeErrorDiag']
         if job.exeerrordiag:
-            logger.warning('payload failed: exeErrorDiag=%s' % job.exeerrordiag)
+            log.warning('payload failed: exeErrorDiag=%s' % job.exeerrordiag)
 
     # determine what should be staged out
     job.stageout = stageout  # output and log file or only log file
@@ -449,11 +451,12 @@ def update_job_data(job):  # noqa: C901
     try:
         work_attributes = parse_jobreport_data(job.metadata)
     except Exception as e:
-        logger.warning('failed to parse job report: %s' % e)
+        log.warning('failed to parse job report: %s' % e)
 
-    logger.info('work_attributes = %s' % work_attributes)
+    log.info('work_attributes = %s' % work_attributes)
 
     # extract output files from the job report, in case the trf has created additional (overflow) files
+    # also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
     if job.metadata:
         data = dict([e.lfn, e] for e in job.outdata)
         extra = []
@@ -461,9 +464,14 @@ def update_job_data(job):  # noqa: C901
         for dat in job.metadata.get('files', {}).get('output', []):
             for fdat in dat.get('subFiles', []):
                 lfn = fdat['name']
-                if lfn not in data:  # found new entry, create filespec
+
+                # verify the guid if the lfn is known
+                if lfn in data:
+                    data[lfn].guid = fdat['file_guid']
+                    logger.info('set guid=%s for lfn=%s (value taken from job report)' % (data[lfn].guid, lfn))
+                else:  # found new entry, create filespec
                     if not job.outdata:
-                        raise PilotException("Failed to grub data from job report: job.outdata is empty, will not be able to construct filespecs")
+                        raise PilotException("job.outdata is empty, will not be able to construct filespecs")
                     kw = {'lfn': lfn,
                           'scope': job.outdata[0].scope,  ## take value from 1st output file?
                           'guid': fdat['file_guid'],
@@ -474,14 +482,18 @@ def update_job_data(job):  # noqa: C901
                     extra.append(spec)
 
         if extra:
-            logger.info('Found extra output files to be added for stage-out: extra=%s' % extra)
+            log.info('found extra output files to be added for stage-out: extra=%s' % extra)
             job.outdata.extend(extra)
+    else:
+        log.warning('job.metadata not set')
 
     ## validate output data (to be moved into the JobData)
+    ## warning: do no execute this code unless guid lookup in job report has failed - pilot should only generate guids
+    ## if they are not present in job report
     for dat in job.outdata:
         if not dat.guid:
             dat.guid = get_guid()
-            logger.info('Generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
+            log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
 
 
 def parse_jobreport_data(job_report):

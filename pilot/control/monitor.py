@@ -9,15 +9,14 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 # NOTE: this module should deal with non-job related monitoring, such as thread monitoring. Job monitoring is
-#       a task for the job_monitor thread in the Job component. Job related functions should be moved to the
-#       Job component.
+#       a task for the job_monitor thread in the Job component.
 
 import logging
-import os
+import threading
+import time
 
-from pilot.util.disk import disk_usage
-from pilot.util.config import config, human2bytes
 from pilot.common.exception import UnknownException
+from pilot.util.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +33,12 @@ def control(queues, traces, args):
     :return:
     """
 
+    traces.pilot['lifetime_start'] = time.time()
+    traces.pilot['lifetime_max'] = time.time()
+
+    threadchecktime = int(config.Pilot.thread_check)
+    runtime = 0
+
     try:
         # overall loop counter (ignoring the fact that more than one job may be running)
         n = 0
@@ -45,26 +50,44 @@ def control(queues, traces, args):
                 break
 
             # proceed with running the checks
-            # run_checks(args)
+            run_checks(args)
+
+            # thread monitoring
+            if int(time.time() - traces.pilot['lifetime_start']) % threadchecktime == 0:
+                # get all threads
+                for thread in threading.enumerate():
+                    # logger.info('thread name: %s' % thread.name)
+                    if not thread.is_alive():
+                        logger.fatal('thread \'%s\' is not alive' % thread.name)
+                        # args.graceful_stop.set()
+
+            # have we run out of time?
+            if runtime < args.lifetime:
+                time.sleep(1)
+                runtime += 1
+            else:
+                logger.debug('maximum lifetime reached: %s' % args.lifetime)
+                args.graceful_stop.set()
 
             n += 1
+
     except Exception as e:
         print("monitor: exception caught: %s" % e)
         raise UnknownException(e)
 
 
+#def log_lifetime(sig, frame, traces):
+#    logger.info('lifetime: %i used, %i maximum' % (int(time.time() - traces.pilot['lifetime_start']),
+#                                                   traces.pilot['lifetime_max']))
+
 def run_checks(args):
-    if not check_local_space_limit():
-        return args.graceful_stop.set()
+    """
+    Perform all non-job related monitoring checks.
 
-    if not check_output_file_sizes():
-        return args.graceful_stop.set()
+    :param args:
+    :return:
+    """
 
-
-def check_local_space_limit():  # move to Job component?
-    du = disk_usage(os.path.abspath("."))
-    return du[2] < human2bytes(config.Pilot.free_space_limit)
-
-
-def check_output_file_sizes():  # move to Job component
-    return True
+    pass
+#    if not some_check():
+#        return args.graceful_stop.set()

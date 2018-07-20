@@ -25,7 +25,7 @@ from pilot.control.job import send_state
 from pilot.util.auxiliary import get_logger
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
-from pilot.util.filehandling import read_file
+from pilot.util.filehandling import read_file, get_guid
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
 
@@ -205,7 +205,14 @@ def process_job_report(job):
     log = get_logger(job.jobid)
     path = os.path.join(job.workdir, config.Payload.jobreport)
     if not os.path.exists(path):
-        log.warning('job report does not exist: %s' % path)
+        log.warning('job report does not exist: %s (any missing output file guids must be generated)' % path)
+
+        # add missing guids
+        for dat in job.outdata:
+            if not dat.guid:
+                dat.guid = get_guid()
+                log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
+
     else:
         with open(path) as data_file:
             # compulsory field; the payload must produce a job report (see config file for file name)

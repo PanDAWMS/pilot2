@@ -23,7 +23,7 @@ except Exception:
 
 from collections import namedtuple
 
-from pilot.control import job, payload, data, lifetime, monitor
+from pilot.control import job, payload, data, monitor
 from pilot.util.constants import SUCCESS
 from pilot.common.exception import ExcThread
 
@@ -84,8 +84,7 @@ def run(args):
                     'nr_jobs': 0}
 
     # define the threads
-    targets = {'job': job.control, 'payload': payload.control, 'data': data.control, 'lifetime': lifetime.control,
-               'monitor': monitor.control}
+    targets = {'job': job.control, 'payload': payload.control, 'data': data.control, 'monitor': monitor.control}
     threads = [ExcThread(bucket=queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
                          name=name) for name, target in targets.items()]
 
