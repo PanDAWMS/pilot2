@@ -103,6 +103,8 @@ class JobData(BaseData):
     datasetin = ""  ## TO BE DEPRECATED: moved to FileSpec (job.indata)
     #datasetout = ""
     debug = False
+    produserid = ""  # the user DN (added to trace report)
+    jobdefinitionid = ""  # the job definition id (added to trace report)
 
     infiles = ""  # comma-separated list (string) of input files  ## TO BE DEPRECATED: moved to FileSpec (use job.indata instead)
     infilesguids = ""
@@ -133,7 +135,7 @@ class JobData(BaseData):
                    'attemptnr', 'nevents', 'neventsw', 'pid'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
                    'state', 'status', 'workdir', 'stageout',
-                   'platform', 'piloterrordiag', 'exitmsg',
+                   'platform', 'piloterrordiag', 'exitmsg', 'produserid', 'jobdefinitionid',
                    'infiles',         ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'scopein',        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'outfiles', 'ddmendpointin',   ## TO BE DEPRECATED: moved to FileSpec (job.indata)
@@ -334,6 +336,8 @@ class JobData(BaseData):
             'noexecstrcnv': 'noExecStrCnv',
             'swrelease': 'swRelease',
             'jobsetid': 'jobsetID',
+            'produserid': 'prodUserID',
+            'jobdefinitionid': 'jobDefinitionID',
             'is_eventservice': 'eventService',  ## is it coming from Job def?? yes (PN)
         }
 

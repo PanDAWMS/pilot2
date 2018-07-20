@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 def get_distinguished_name():
     """
     Get the user DN.
+    Note: the DN is also sent by the server to the pilot in the job description (produserid).
 
     :return: User DN (string).
     """
