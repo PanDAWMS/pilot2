@@ -151,7 +151,6 @@ class JobData(BaseData):
                    'infilesguids'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
              dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
-             bool: ['is_eventservice', 'noexecstrcnv', 'debug']
              bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug']
              }
 
