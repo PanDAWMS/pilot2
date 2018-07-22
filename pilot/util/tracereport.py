@@ -65,9 +65,9 @@ class TraceReport(dict):
 
         data = {
             'clientState': 'INIT_REPORT',
-            'usr': hashlib.md5(job.prodUserID).hexdigest(),  # anonymise user and pilot id's
+            'usr': hashlib.md5(job.produserid).hexdigest(),  # anonymise user and pilot id's
             'appid': job.jobid,
-            'usrdn': job.prodUserID,
+            'usrdn': job.produserid,
             'taskid': job.taskid
         }
         self.update(data)
@@ -83,7 +83,7 @@ class TraceReport(dict):
         except Exception:
             logger.debug("Unable to detect host IP for trace report")
 
-        if job.jobDefinitionID:
+        if job.jobdefinitionid:
             self['uuid'] = hashlib.md5('ppilot_%s' % job.jobDefinitionID).hexdigest()  # hash_pilotid
         else:
             #self['uuid'] = commands.getoutput('uuidgen -t 2> /dev/null').replace('-', '')  # all LFNs of one request have the same uuid
@@ -93,7 +93,7 @@ class TraceReport(dict):
 
     def send(self):
         url = 'https://rucio-lb-prod.cern.ch/traces/'
-        logger.info("Tracing server: %s" % (url))
+        logger.info("Tracing server: %s" % url)
         logger.info("Sending tracing report: %s" % str(self))
         try:
             # take care of the encoding

@@ -175,7 +175,7 @@ def _stage_in(args, job):
     # write time stamps to pilot timing file
     add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN, time.time())
 
-    eventType = "get_sm"
+    event_type = "get_sm"
     #if log_transfer:
     #    eventType += '_logs'
     #if special_log_transfer:
@@ -183,7 +183,7 @@ def _stage_in(args, job):
     #if job.isAnalysisJob():
     #    eventType += "_a"
     #trace_report = TraceReport(pq=jobSite.sitename, localSite=jobSite.sitename, remoteSite=jobSite.sitename, dataset="", eventType=eventType)
-    trace_report = TraceReport(pq='', localSite='', remoteSite='', dataset="", eventType=eventType)
+    trace_report = TraceReport(pq='', localSite='', remoteSite='', dataset="", eventType=event_type)
     trace_report.init(job)
 
     try:
