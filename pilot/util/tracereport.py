@@ -84,7 +84,7 @@ class TraceReport(dict):
             logger.debug("Unable to detect host IP for trace report")
 
         if job.jobdefinitionid:
-            self['uuid'] = hashlib.md5('ppilot_%s' % job.jobDefinitionID).hexdigest()  # hash_pilotid
+            self['uuid'] = hashlib.md5('ppilot_%s' % job.jobdefinitionid).hexdigest()  # hash_pilotid
         else:
             #self['uuid'] = commands.getoutput('uuidgen -t 2> /dev/null').replace('-', '')  # all LFNs of one request have the same uuid
             cmd = 'uuidgen -t 2> /dev/null'
