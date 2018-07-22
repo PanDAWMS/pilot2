@@ -17,7 +17,6 @@ import signal
 from subprocess import PIPE
 
 from pilot.control.job import send_state
-from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD, \
     PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD
@@ -52,7 +51,7 @@ class Executor(object):
         :param err:
         :return:
         """
-        # log = get_logger(job.jobid)
+        # log = logger.getChild(job.jobid)
 
         # try:
         # create symbolic link for sqlite200 and geomDB in job dir
@@ -90,7 +89,7 @@ class Executor(object):
 
         :param job: job object
         """
-        log = get_logger(job.jobid)
+        log = logger.getChild(job.jobid)
 
         # write time stamps to pilot timing file
         add_to_pilot_timing(job.jobid, PILOT_PRE_PAYLOAD, time.time())
@@ -114,7 +113,7 @@ class Executor(object):
 
         :param job: job object
         """
-        log = get_logger(job.jobid)
+        log = logger.getChild(job.jobid)
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -133,7 +132,7 @@ class Executor(object):
 
         :param job: job object
         """
-        log = get_logger(job.jobid)
+        log = logger.getChild(job.jobid)
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -169,9 +168,15 @@ class Executor(object):
         :return: proc (subprocess returned by Popen())
         """
 
-        log = get_logger(job.jobid)
+        log = logger.getChild(job.jobid)
 
         self.pre_setup(job)
+
+        self.post_setup(job)
+
+        self.before_payload(job)
+
+        self.with_payload(job)
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -186,12 +191,6 @@ class Executor(object):
             return None
 
         log.info("payload execution command: %s" % cmd)
-
-        self.post_setup(job)
-
-        self.before_payload(job)
-
-        self.with_payload(job)
 
         # replace platform and workdir with new function get_payload_options() or someting from experiment specific code
         try:
@@ -216,7 +215,7 @@ class Executor(object):
         :return:
         """
 
-        log = get_logger(job.jobid)
+        log = logger.getChild(job.jobid)
 
         breaker = False
         exit_code = None
@@ -255,7 +254,7 @@ class Executor(object):
 
         :return:
         """
-        log = get_logger(str(self.__job.jobid))
+        log = logger.getChild(str(self.__job.jobid))
 
         exit_code = 1
         if self.setup_payload(self.__job, self.__out, self.__err):
