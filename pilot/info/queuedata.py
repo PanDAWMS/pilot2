@@ -145,6 +145,9 @@ class QueueData(BaseData):
             self.acopytools['es_events'] = ['objectstore']
         if 'es_events_read' not in self.acopytools:
             self.acopytools['es_events_read'] = ['objectstore']
+        # es_events_read should be able to read from all storages
+        if 'es_events_read' not in self.astorages:
+            self.astorages['es_events_read'] = []
 
     ## custom function pattern to apply extra validation to the key values
     ##def clean__keyname(self, raw, value):
