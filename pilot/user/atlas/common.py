@@ -81,10 +81,11 @@ def get_payload_command(job):
         else:
             # Add Database commands if they are set by the local site
             cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
-            if job.corecount:
-                cmd += '; export ATHENA_PROC_NUMBER=%s' % job.corecount
-            else:
-                cmd += '; export ATHENA_PROC_NUMBER=1'
+            if job.is_eventservice:
+                if job.corecount:
+                    cmd += '; export ATHENA_PROC_NUMBER=%s' % job.corecount
+                else:
+                    cmd += '; export ATHENA_PROC_NUMBER=1'
 
             # Add the transform and the job parameters (production jobs)
             if prepareasetup:
@@ -454,8 +455,9 @@ def update_job_data(job):  # noqa: C901
     # determine what should be staged out
     job.stageout = stageout  # output and log file or only log file
 
-    # extract the number of events
-    job.nevents = get_number_of_events(job.metadata)
+    if not job.is_eventservice:
+        # extract the number of events
+        job.nevents = get_number_of_events(job.metadata)
 
     work_attributes = None
     try:
