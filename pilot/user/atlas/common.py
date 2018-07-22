@@ -434,14 +434,18 @@ def update_job_data(job):  # noqa: C901
 
     stageout = "all"
 
-    # handle any error codes
-    if 'exeErrorCode' in job.metadata:
-        job.exeerrorcode = job.metadata['exeErrorCode']
-        if job.exeerrorcode == 0:
-            stageout = "all"
-        else:
-            log.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
-            stageout = "log"
+    if job.is_eventservice:
+        logger.info('payload is eventservice, will only stageout log')
+        stageout = "log"
+    else:
+        # handle any error codes
+        if 'exeErrorCode' in job.metadata:
+            job.exeerrorcode = job.metadata['exeErrorCode']
+            if job.exeerrorcode == 0:
+                stageout = "all"
+            else:
+                logger.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
+                stageout = "log"
     if 'exeErrorDiag' in job.metadata:
         job.exeerrordiag = job.metadata['exeErrorDiag']
         if job.exeerrordiag:
@@ -463,7 +467,7 @@ def update_job_data(job):  # noqa: C901
 
     # extract output files from the job report, in case the trf has created additional (overflow) files
     # also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
-    if job.metadata:
+    if job.metadata and not job.is_eventservice:
         data = dict([e.lfn, e] for e in job.outdata)
         extra = []
 
