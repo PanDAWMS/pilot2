@@ -307,8 +307,6 @@ class CommunicationManager(threading.Thread, PluginFactory):
         plugin = os.environ.get('COMMUNICATOR_PLUGIN', None)
         if not plugin:
             plugin_confs = {'class': 'pilot.eventservice.communicationmanager.plugins.pandacommunicator.PandaCommunicator'}
-        elif plugin == 'harvester':
-            plugin_confs = {'class': 'pilot.eventservice.communicationmanager.plugins.harvestersharefilecommunicator.HarvesterShareFileCommunicator'}
         elif plugin == 'act':
             plugin_confs = {'class': 'pilot.eventservice.communicationmanager.plugins.actcommunicator.ACTCommunicator'}
         else:

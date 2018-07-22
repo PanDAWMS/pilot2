@@ -72,6 +72,9 @@ class GenericExecutor(BaseExecutor):
         event_range_message = {'version': 1, 'eventRanges': json.dumps([event_range_status])}
         self.update_events(event_range_message)
 
+        job = self.get_job()
+        job.nevents += len(event_ranges)
+
     def update_failed_event_ranges(self, out_messagess):
         """
         Update failed event ranges
