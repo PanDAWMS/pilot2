@@ -66,6 +66,7 @@ class FileSpec(BaseData):
     status_code = 0    # file transfer status code
     inputddms = []     # list of DDMEndpoint names which will be considered by default (if set) as allowed storage for input replicas
     workdir = None     # used to declare file-specific work dir (location of given local file when it's used for transfer by copytool)
+    is_tar = False     # whether it's a tar file or not
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['filesize', 'mtime', 'status_code', 'protocol_id', 'storage_id', 'path_convention'],
@@ -140,6 +141,10 @@ class FileSpec(BaseData):
         if self.ddmendpoint and len(self.ddmendpoint):
             self.is_user_defined_ddmendpoint = True
 
+        if self.lfn.startswith("zip://"):
+            self.lfn = self.lfn.replace("zip://", "")
+            self.is_tar = True
+
         # parse storage_token
         # Expected format is '<normal storage token as string>', '<storage_id as int>', <storage_id as int/path_convention as int>
         try:
@@ -150,6 +155,11 @@ class FileSpec(BaseData):
                     self.path_convention = int(self.path_convention)
                 elif self.storage_token.isdigit():
                     self.storage_id = int(self.storage_token)
+                if self.path_convention == 1000:
+                    self.scope = 'transient'
+
+                # if self.storage_id:
+                #    self.ddmendpoint =  # to be done, to get the ddmendpoint from storage_id
         except Exception as ex:
             logger.warning("Failed to parse storage_token(%s): %s, %s" % (self.storage_token, ex, traceback.format_exc()))
 

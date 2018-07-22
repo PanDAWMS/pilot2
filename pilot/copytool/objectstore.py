@@ -43,11 +43,24 @@ def copy_in(files, **kwargs):
     # don't spoil the output, we depend on stderr parsing
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
+    ddmconf = kwargs.pop('ddmconf', {})
+
     for fspec in files:
+        cmd = []
+        ddm = ddmconf.get(fspec.ddmendpoint)
+        if ddm:
+            ddm_special_setup = ddm.get_special_setup(fspec.protocol_id)
+        if ddm_special_setup:
+            cmd += [ddm_special_setup]
+
         dst = fspec.workdir or kwargs.get('workdir') or '.'
-        cmd = ['/usr/bin/env', 'rucio', '-v', 'download', '--no-subdir', '--dir', dst]
+        cmd += ['/usr/bin/env', 'rucio', '-v', 'download', '--no-subdir', '--dir', dst]
         if require_replicas:
             cmd += ['--rse', fspec.replicas[0][0]]
+        if fspec.surl:
+            if fspec.ddmendpoint:
+                cmd.extend(['--rse', fspec.ddmendpoint])
+            cmd.extend(['--pfn', fspec.surl])
         cmd += ['%s:%s' % (fspec.scope, fspec.lfn)]
 
         rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
@@ -77,7 +90,7 @@ def copy_out(files, **kwargs):
 
     no_register = kwargs.pop('no_register', True)
     summary = kwargs.pop('summary', False)
-    ddmconf = kwargs.pop('ddmconf', None)
+    ddmconf = kwargs.pop('ddmconf', {})
 
     for fspec in files:
         cmd = []

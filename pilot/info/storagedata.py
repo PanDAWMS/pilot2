@@ -154,5 +154,6 @@ class StorageData(BaseData):
                                                                                                            key_pair["privateKey"],
                                                                                                            is_secure)
                     self.special_setup[protocol_id] = setup
+                    logger.info("Return key pair with public key: %s" % key_pair["publicKey"])
                     return self.special_setup[protocol_id]
         return None
