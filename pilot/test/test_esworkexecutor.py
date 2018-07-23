@@ -132,7 +132,7 @@ class TestESWorkExecutorGrid(unittest.TestCase):
 
             t_start = time.time()
             t1 = time.time()
-            while executor.isAlive():
+            while executor.is_alive():
                 if time.time() > t1 + 300:
                     logging.info("work executor is running")
                     t1 = time.time()
@@ -140,7 +140,7 @@ class TestESWorkExecutorGrid(unittest.TestCase):
                 if time.time() > t_start + 20 * 60:
                     executor.stop()
                     break
-            while executor.isAlive():
+            while executor.is_alive():
                 time.sleep(0.1)
             exit_code = executor.get_exit_code()
             self.assertEqual(exit_code, 0)
@@ -148,7 +148,7 @@ class TestESWorkExecutorGrid(unittest.TestCase):
             logger.debug("Exception: %s, %s" % (ex, traceback.format_exc()))
             if self.executor:
                 self.executor.stop()
-                while self.executor.isAlive():
+                while self.executor.is_alive():
                     time.sleep(0.1)
             raise ex
 

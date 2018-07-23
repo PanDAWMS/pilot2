@@ -66,7 +66,7 @@ class Executor(generic.Executor):
             log.info("EventService WorkExecutor started")
 
             t1 = time.time()
-            while executor.isAlive() and executor.get_pid() is None:
+            while executor.is_alive() and executor.get_pid() is None:
                 if time.time() > t1 + 60:  # 1 minutes
                     log.info("Waiting ESProcess to start")
                 time.sleep(0.1)
@@ -92,7 +92,7 @@ class Executor(generic.Executor):
         log = get_logger(job.jobid, logger)
 
         t1 = time.time()
-        while proc.isAlive():
+        while proc.is_alive():
             if args.graceful_stop.is_set():
                 log.debug("Graceful stop is set, stopping work executor")
                 proc.stop()
@@ -101,7 +101,7 @@ class Executor(generic.Executor):
                 log.info("Process is still running")
                 t1 = time.time()
 
-        while proc.isAlive():
+        while proc.is_alive():
             time.sleep(0.1)
         exit_code = proc.get_exit_code()
         return exit_code
