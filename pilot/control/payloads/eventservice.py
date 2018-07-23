@@ -37,6 +37,12 @@ class Executor(generic.Executor):
 
         self.pre_setup(job)
 
+        self.post_setup(job)
+
+        self.before_payload(job)
+
+        self.with_payload(job)
+
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'atlas').lower()
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
@@ -48,12 +54,6 @@ class Executor(generic.Executor):
             return None
 
         log.info("payload execution command: %s" % executable)
-
-        self.post_setup(job)
-
-        self.before_payload(job)
-
-        self.with_payload(job)
 
         try:
             payload = {'executable': executable, 'workdir': job.workdir, 'output_file': out, 'error_file': err, 'job': job}
