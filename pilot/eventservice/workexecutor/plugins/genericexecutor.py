@@ -7,7 +7,6 @@
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2018
 
-import commands
 import json
 import os
 import time
@@ -18,6 +17,7 @@ from pilot.common import exception
 from pilot.eventservice.esprocess.esprocess import ESProcess
 from pilot.info.filespec import FileSpec
 from pilot.util.auxiliary import get_logger
+from pilot.util.container import execute
 from .baseexecutor import BaseExecutor
 
 import logging
@@ -132,11 +132,14 @@ class GenericExecutor(BaseExecutor):
         try:
             for out_msg in out_messages:
                 command = "tar -rf " + output_file + " --directory=%s %s" % (os.path.dirname(out_msg['output']), os.path.basename(out_msg['output']))
-                status, output = commands.getstatusoutput(command)
-                if status == 0:
+                exit_code, stdout, stderr = execute(command)
+                if exit_code == 0:
                     ret_messages.append(out_msg)
                 else:
-                    log.error("Failed to add event output to tar/zip file: out_message: %s, error: %s" % (out_msg, output))
+                    log.error("Failed to add event output to tar/zip file: out_message: %s, exit_code: %s, stdout: %s, stderr: %s" % (out_msg,
+                                                                                                                                      exit_code,
+                                                                                                                                      stdout,
+                                                                                                                                      stderr))
                     if 'retries' in out_msg and out_msg['retries'] >= 3:
                         log.error("Discard out messages because it has been retried more than 3 times: %s" % out_msg)
                     else:

@@ -33,7 +33,7 @@ def execute(executable, **kwargs):
     usecontainer = kwargs.get('usecontainer', False)
     returnproc = kwargs.get('returnproc', False)
     mute = kwargs.get('mute', False)
-    job = kwargs.get('job')
+    # job = kwargs.get('job')
 
     # convert executable to string if it is a list
     if type(executable) is list:

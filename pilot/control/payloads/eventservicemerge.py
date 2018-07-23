@@ -8,11 +8,11 @@
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 
-import commands
 import os
 
 from pilot.control.payloads import generic
 from pilot.util.auxiliary import get_logger
+from pilot.util.container import execute
 
 import logging
 logger = logging.getLogger(__name__)
@@ -26,8 +26,8 @@ class Executor(generic.Executor):
         pfn = os.path.join(job.workdir, lfn)
         command = "tar -xf %s -C %s" % (pfn, job.workdir)
         logger.info("Untar file: %s" % command)
-        status, output = commands.getstatusoutput(command)
-        logger.info("status: %s, output: %s\n" % (status, output))
+        exit_code, stdout, stderr = execute(command)
+        logger.info("exit_code: %s, stdout: %s, stderr: %s\n" % (exit_code, stdout, stderr))
 
     def before_payload(self, job):
         """
