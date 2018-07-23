@@ -600,29 +600,6 @@ class StageOutClient(StagingClient):
 
         return {'surl': surl}
 
-    @classmethod
-    def calc_adler32_checksum(self, filename):
-        """
-            calculate the adler32 checksum for a file
-            raise an exception if input filename is not exist/readable
-        """
-
-        from zlib import adler32
-
-        asum = 1  # default adler32 starting value
-        blocksize = 64 * 1024 * 1024  # read buffer size, 64 Mb
-
-        with open(filename, 'rb') as f:
-            while True:
-                data = f.read(blocksize)
-                if not data:
-                    break
-                asum = adler32(data, asum)
-                if asum < 0:
-                    asum += 2**32
-
-        return "%08x" % asum  # convert to hex
-
     def fill_storage_id(self, files):
         """
             Fill filespec storage_id for all files
