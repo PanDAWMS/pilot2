@@ -65,14 +65,10 @@ class Executor(generic.Executor):
             executor.start()
             log.info("EventService WorkExecutor started")
 
-            t1 = time.time()
-            while executor.is_alive() and executor.get_pid() is None:
-                if time.time() > t1 + 60:  # 1 minutes
-                    log.info("Waiting ESProcess to start")
-                time.sleep(0.1)
             log.info("ESProcess started with pid: %s" % executor.get_pid())
             job.pid = executor.get_pid()
 
+            self.after_payload_started(job)
         except Exception as e:
             log.error('could not execute: %s' % str(e))
             return None

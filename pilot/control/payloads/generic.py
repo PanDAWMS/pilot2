@@ -19,8 +19,8 @@ from subprocess import PIPE
 from pilot.control.job import send_state
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
-from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD, \
-    PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD
+from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED, \
+    UTILITY_AFTER_PAYLOAD_FINISHED, PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD
 from pilot.util.timing import add_to_pilot_timing
 from pilot.common.exception import PilotException
 
@@ -127,9 +127,9 @@ class Executor(object):
                 log.info('utility command to be executed with the payload: %s' % utcmd)
                 # add execution code here
 
-    def after_payload(self, job):
+    def after_payload_started(self, job):
         """
-        Functions to run after payload
+        Functions to run after payload started
 
         :param job: job object
         """
@@ -140,7 +140,7 @@ class Executor(object):
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
 
         # should any additional commands be executed after the payload?
-        cmds = user.get_utility_commands_list(order=UTILITY_AFTER_PAYLOAD)
+        cmds = user.get_utility_commands_list(order=UTILITY_AFTER_PAYLOAD_STARTED)
         if cmds != []:
             for utcmd in cmds:
                 log.info('utility command to be executed after the payload: %s' % utcmd)
@@ -158,6 +158,25 @@ class Executor(object):
                     # store process handle in job object, and keep track on how many times the command has been launched
                     # also store the full command in case it needs to be restarted later (by the job_monitor() thread)
                     job.utilities[utcmd] = [proc1, 1, utilitycommand]
+
+    def after_payload_finished(self, job):
+        """
+        Functions to run after payload finished
+
+        :param job: job object
+        """
+        log = get_logger(job.jobid, logger)
+
+        # get the payload command from the user specific code
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+
+        # should any additional commands be prepended to the payload execution string?
+        cmds = user.get_utility_commands_list(order=UTILITY_AFTER_PAYLOAD_FINISHED)
+        if cmds != []:
+            for utcmd in cmds:
+                log.info('utility command to be executed with the payload: %s' % utcmd)
+                # add execution code here
 
     def run_payload(self, job, out, err):
         """
@@ -203,6 +222,8 @@ class Executor(object):
 
         log.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
         job.pid = proc.pid
+
+        self.after_payload_started(job)
 
         return proc
 
@@ -269,7 +290,7 @@ class Executor(object):
                 log.info('finished pid=%s exit_code=%s' % (proc.pid, exit_code))
                 self.__job.state = 'finished' if exit_code == 0 else 'failed'
 
-                self.after_payload(self.__job)
+                self.after_payload_finished(self.__job)
 
                 # write time stamps to pilot timing file
                 add_to_pilot_timing(self.__job.jobid, PILOT_POST_PAYLOAD, time.time())
