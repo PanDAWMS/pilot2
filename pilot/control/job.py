@@ -116,7 +116,7 @@ def send_state(job, args, state, xml=None):
     :return: boolean (True if successful, False otherwise).
     """
 
-    log = get_logger(job.jobid)
+    log = get_logger(job.jobid, logger)
 
     # should the pilot make any server updates?
     if not args.update_server:
@@ -181,7 +181,7 @@ def get_data_structure(job, state, sitename, versiontag, xml=None):
     :return: data structure (dictionary).
     """
 
-    log = get_logger(job.jobid)
+    log = get_logger(job.jobid, logger)
 
     data = {'jobId': job.jobid,
             'state': state,
@@ -296,7 +296,7 @@ def validate(queues, traces, args):
         except queue.Empty:
             continue
 
-        log = get_logger(job.jobid)
+        log = get_logger(job.jobid, logger)
         traces.pilot['nr_jobs'] += 1
 
         # set the environmental variable for the task id
@@ -915,7 +915,7 @@ def job_has_finished(queues):
         # logger.info("(job still running)")
         pass
     else:
-        log = get_logger(job.jobid)
+        log = get_logger(job.jobid, logger)
         log.info("job %s has completed" % job.jobid)
         return True
 
@@ -1054,7 +1054,7 @@ def job_monitor(queues, traces, args):
                 # update the peeking time
                 peeking_time = int(time.time())
                 for i in range(len(jobs)):
-                    log = get_logger(jobs[i].jobid)
+                    log = get_logger(jobs[i].jobid, logger)
                     log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
                     if jobs[i].state == 'finished' or jobs[i].state == 'failed':
                         log.info('aborting job monitoring since job state=%s' % jobs[i].state)
