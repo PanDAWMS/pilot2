@@ -17,6 +17,7 @@ from pilot.api.data import StageOutClient
 from pilot.common import exception
 from pilot.eventservice.esprocess.esprocess import ESProcess
 from pilot.info.filespec import FileSpec
+from pilot.util.auxiliary import get_logger
 from .baseexecutor import BaseExecutor
 
 import logging
@@ -102,7 +103,7 @@ class GenericExecutor(BaseExecutor):
                         Fro 'failed' event ranges, it's {'id': <id>, 'status': 'failed', 'message': <full message>}.
         """
         job = self.get_job()
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid, logger)
         log.info("Handling out message: %s" % message)
 
         self.__all_out_messages.append(message)
@@ -119,7 +120,7 @@ class GenericExecutor(BaseExecutor):
         :return: out_messages, output_file
         """
         job = self.get_job()
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid, logger)
 
         out_messages = []
         while len(self.__queued_out_messages) > 0:
@@ -158,7 +159,7 @@ class GenericExecutor(BaseExecutor):
         :param output_file: output file name.
         """
         job = self.get_job()
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid, logger)
         log.info('prepare to stage-out eventservice files')
 
         error = None
@@ -193,7 +194,7 @@ class GenericExecutor(BaseExecutor):
 
         """
         job = self.get_job()
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid, logger)
         if len(self.__queued_out_messages):
             if force or self.__last_stageout_time is None or (time.time() > self.__last_stageout_time + job.infosys.queuedata.es_stageout_gap):
 
@@ -222,7 +223,7 @@ class GenericExecutor(BaseExecutor):
         Clean temp produced files
         """
         job = self.get_job()
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid, logger)
 
         for msg in self.__all_out_messages:
             if msg['status'] in ['failed', 'fatal']:
@@ -257,7 +258,7 @@ class GenericExecutor(BaseExecutor):
                 logger.error("Payload is not set but is_retrieve_payload is also not set. No payloads.")
 
             job = self.get_job()
-            log = logger.getChild(job.jobid)
+            log = get_logger(job.jobid, logger)
             log.info("payload: %s" % payload)
 
             log.info("Starting ESProcess")

@@ -23,6 +23,7 @@ except Exception:
 
 from pilot.control.payloads import generic, eventservice, eventservicemerge
 from pilot.control.job import send_state
+from pilot.util.auxiliary import get_logger
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
 from pilot.util.filehandling import read_file, get_guid
@@ -141,7 +142,7 @@ def execute_payloads(queues, traces, args):
     while not args.graceful_stop.is_set():
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
-            log = logger.getChild(job.jobid)
+            log = get_logger(job.jobid, logger)
 
             q_snapshot = list(queues.finished_data_in.queue)
             peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
@@ -219,7 +220,7 @@ def process_job_report(job):
     :return:
     """
 
-    log = logger.getChild(job.jobid)
+    log = get_logger(job.jobid, logger)
     path = os.path.join(job.workdir, config.Payload.jobreport)
     if not os.path.exists(path):
         log.warning('job report does not exist: %s (any missing output file guids must be generated)' % path)
@@ -275,7 +276,7 @@ def validate_post(queues, traces, args):
             job = queues.finished_payloads.get(block=True, timeout=1)
         except queue.Empty:
             continue
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid, logger)
 
         # by default, both output and log should be staged out
         job.stageout = 'all'
@@ -303,7 +304,7 @@ def failed_post(queues, traces, args):
             job = queues.failed_payloads.get(block=True, timeout=1)
         except queue.Empty:
             continue
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid, logger)
 
         log.debug('adding log for log stageout')
 

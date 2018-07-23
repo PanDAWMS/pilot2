@@ -17,6 +17,7 @@ import signal
 from subprocess import PIPE
 
 from pilot.control.job import send_state
+from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD, \
     PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD
@@ -51,7 +52,7 @@ class Executor(object):
         :param err:
         :return:
         """
-        # log = logger.getChild(job.jobid)
+        # log = get_logger(job.jobid, logger)
 
         # try:
         # create symbolic link for sqlite200 and geomDB in job dir
@@ -89,7 +90,7 @@ class Executor(object):
 
         :param job: job object
         """
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid, logger)
 
         # write time stamps to pilot timing file
         add_to_pilot_timing(job.jobid, PILOT_PRE_PAYLOAD, time.time())
@@ -113,7 +114,7 @@ class Executor(object):
 
         :param job: job object
         """
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid, logger)
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -132,7 +133,7 @@ class Executor(object):
 
         :param job: job object
         """
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid, logger)
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -168,7 +169,7 @@ class Executor(object):
         :return: proc (subprocess returned by Popen())
         """
 
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid, logger)
 
         self.pre_setup(job)
 
@@ -215,7 +216,7 @@ class Executor(object):
         :return:
         """
 
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid, logger)
 
         breaker = False
         exit_code = None
@@ -254,7 +255,7 @@ class Executor(object):
 
         :return:
         """
-        log = logger.getChild(str(self.__job.jobid))
+        log = get_logger(self.__job.jobid, logger)
 
         exit_code = 1
         if self.setup_payload(self.__job, self.__out, self.__err):

@@ -12,6 +12,7 @@ import commands
 import os
 
 from pilot.control.payloads import generic
+from pilot.util.auxiliary import get_logger
 
 import logging
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ class Executor(generic.Executor):
 
         :param job: job object
         """
-        log = logger.getChild(job.jobid)
+        log = get_logger(job.jobid, logger)
 
         log.info("untar input tar files for eventservicemerge job")
         for fspec in job.indata:

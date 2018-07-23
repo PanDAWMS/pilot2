@@ -13,6 +13,7 @@ import traceback
 
 from pilot.common import exception
 from pilot.util import https
+from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 from ..communicationmanager import CommunicationResponse
 from .basecommunicator import BaseCommunicator
@@ -133,7 +134,7 @@ class PandaCommunicator(BaseCommunicator):
 
         resp = None
         try:
-            log = logger.getChild(str(req.jobid))
+            log = get_logger(str(req.jobid), logger)
 
             if not req.num_ranges:
                 # ToBeFix num_ranges with corecount
