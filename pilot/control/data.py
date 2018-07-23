@@ -189,8 +189,11 @@ def _stage_in(args, job):
     try:
         client = StageInClient(job.infosys, logger=log)
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
-        client.transfer(job.indata, activity='pr', **kwargs)
-    except Exception as error:
+        activity = 'pr'
+        if job.is_eventservicemerge:
+            activity = 'es_events_read'
+        client.transfer(job.indata, activity=activity, **kwargs)
+    except Exception, error:
         log.error('Failed to stage-in: error=%s' % error)
         #return False
 

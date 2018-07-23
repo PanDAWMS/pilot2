@@ -7,6 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Wen Guan, wen.guan@cern.ch, 2018
 
 SUCCESS = 0
 FAILURE = 1
@@ -16,8 +17,9 @@ ERRNO_NOJOBS = 20
 # Sorting order constants
 UTILITY_BEFORE_PAYLOAD = 0
 UTILITY_WITH_PAYLOAD = 1
-UTILITY_AFTER_PAYLOAD = 2
-UTILITY_WITH_STAGEIN = 3
+UTILITY_AFTER_PAYLOAD_STARTED = 2
+UTILITY_AFTER_PAYLOAD_FINISHED = 3
+UTILITY_WITH_STAGEIN = 4
 
 # Timing constants that allow for additional constants to be defined for values before the pilot is started, ie for
 # wrapper timing purposes.
