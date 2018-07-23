@@ -80,7 +80,9 @@ class StagingClient(object):
 
         logger.info('Configured copytools per activity: acopytools=%s' % self.acopytools)
 
-        self.astorages = (self.infosys.queuedata.astorages or {}).copy()
+        self.astorages = {}
+        if self.infosys and self.infosys.queuedata and self.infosys.queuedata.astorages:
+            self.astorages = (self.infosys.queuedata.astorages or {}).copy()
         logger.info('Configured astorages per activity: astorages=%s' % self.astorages)
 
     def resolve_replicas(self, files):  # noqa: C901
@@ -297,9 +299,11 @@ class StagingClient(object):
             if copytools and aname in self.astorages.keys():
                 current_activity = aname
                 break
+        if not current_activity:
+            current_activity = 'default'
 
         if not copytools or not current_activity:
-            raise PilotException('Failed to resolve copytool by preferred activities=%s, acopytools=%s' % (activity, self.acopytools))
+            raise PilotException('Failed to resolve copytool by preferred activities=%s, acopytools=%s' % (current_activity, self.acopytools))
 
         result, errors = None, []
 
