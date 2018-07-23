@@ -10,10 +10,13 @@
 import os
 import time
 
+from pilot.common.errorcodes import ErrorCodes
 from pilot.util.container import execute
 
 import logging
 logger = logging.getLogger(__name__)
+
+errors = ErrorCodes()
 
 
 def time_stamp():
@@ -109,3 +112,46 @@ def get_logger(job_id):
     except Exception:
         log = logger
     return log
+
+
+def shell_exit_code(exit_code):
+    """
+    Translate the pilot exit code to a proper exit code for the shell (wrapper).
+
+    :param exit_code: pilot error code (int).
+    :return: standard shell exit code (int).
+    """
+
+    # Error code translation dictionary
+    # FORMAT: { pilot_error_code : [ shell_error_code, meaning ], .. }
+
+    # Restricting user (pilot) exit codes to the range 64 - 113, as suggested by http://tldp.org/LDP/abs/html/exitcodes.html
+    # Using exit code 137 for kill signal error codes (this actually means a hard kill signal 9, (128+9), 128+2 would mean CTRL+C)
+
+    error_code_translation_dictionary = {
+        -1                       : [64, "Site offline"],
+        errors.GENERALERROR   : [65, "General pilot error, consult batch log"],
+#        errors.MKDIRWORKDIR   : [66, "Could not create directory"],
+        errors.NOSUCHFILE     : [67, "No such file or directory"],
+        errors.NOVOMSPROXY    : [68, "Voms proxy not valid"],
+        errors.NOLOCALSPACE   : [69, "No space left on local disk"],
+#        errors.PILOTEXC       : [70, "Exception caught by pilot"],
+#        errors.QUEUEDATA      : [71, "Pilot could not download queuedata"],
+#        errors.QUEUEDATANOTOK : [72, "Pilot found non-valid queuedata"],
+#        errors.NOSOFTWAREDIR  : [73, "Software directory does not exist"],
+#        errors.KILLSIGNAL     : [137, "General kill signal"], # Job terminated by unknown kill signal
+#        errors.SIGTERM        : [143, "Job killed by signal: SIGTERM"], # 128+15
+#        errors.SIGQUIT        : [131, "Job killed by signal: SIGQUIT"], # 128+3
+#        errors.SIGSEGV        : [139, "Job killed by signal: SIGSEGV"], # 128+11
+#        errors.SIGXCPU        : [158, "Job killed by signal: SIGXCPU"], # 128+30
+#        errors.SIGUSR1        : [144, "Job killed by signal: SIGUSR1"], # 128+16
+#        errors.SIGBUS         : [138, "Job killed by signal: SIGBUS"]   # 128+10
+        }
+
+    if exit_code in error_code_translation_dictionary:
+        return error_code_translation_dictionary.get(exit_code)[0] # Only return the shell exit code, not the error meaning
+    elif exit_code != 0:
+        logger.warning("no translation to shell exit code for error code %d" % (exit_code))
+        return 1
+    else:
+        return 0
