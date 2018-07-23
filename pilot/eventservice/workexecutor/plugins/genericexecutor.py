@@ -40,6 +40,9 @@ class GenericExecutor(BaseExecutor):
         self.proc = None
         self.exit_code = None
 
+    def is_payload_started(self):
+        return self.proc.is_payload_started() if self.proc else False
+
     def get_pid(self):
         return self.proc.pid if self.proc else None
 

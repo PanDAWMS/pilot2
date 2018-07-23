@@ -51,6 +51,9 @@ class BaseExecutor(threading.Thread, PluginFactory):
         if self.communication_manager:
             self.communication_manager.stop()
 
+    def is_payload_started(self):
+        return False
+
     def start(self):
         super(BaseExecutor, self).start()
         self.communication_manager = CommunicationManager()

@@ -7,6 +7,8 @@
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2018
 
+import time
+
 from pilot.common import exception
 from pilot.common.pluginfactory import PluginFactory
 
@@ -69,7 +71,15 @@ class WorkExecutor(PluginFactory):
                 raise exception.SetupFailure("Payload is not assigned.")
             else:
                 self.plugin.set_payload(self.get_payload())
+
+        logger.info("Starting plugin: %s" % self.plugin)
         self.plugin.start()
+        logger.info("Waiting payload to start")
+        while self.plugin.is_alive():
+            if self.plugin.is_payload_started():
+                logger.info("Payload started with pid: %s" % self.get_pid())
+                break
+            time.sleep(0.1)
 
     def stop(self):
         if not self.plugin:

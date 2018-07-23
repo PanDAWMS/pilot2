@@ -63,6 +63,7 @@ class ESProcess(threading.Thread):
         self.__stop = threading.Event()
         self.__stop_time = 180
         self.pid = None
+        self.__is_payload_started = False
 
         self.__ret_code = None
         self.setName("ESProcess")
@@ -70,6 +71,9 @@ class ESProcess(threading.Thread):
     def __del__(self):
         if self.__message_thread:
             self.__message_thread.stop()
+
+    def is_payload_started(self):
+        return self.__is_payload_started
 
     def stop(self, delay=60):
         if not self.__stop.is_set():
@@ -160,6 +164,7 @@ class ESProcess(threading.Thread):
 
             self.__process = subprocess.Popen(executable, stdout=output_file_fd, stderr=error_file_fd, shell=True)
             self.pid = self.__process.pid
+            self.__is_payload_started = True
             logger.debug("Started new processs(executable: %s, stdout: %s, stderr: %s, pid: %s)" % (executable,
                                                                                                     output_file_fd,
                                                                                                     error_file_fd,
