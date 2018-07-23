@@ -66,7 +66,7 @@ class BaseExecutor(threading.Thread, PluginFactory):
     def stop_communicator(self):
         logger.info("Stopping communication manager")
         if self.communication_manager:
-            while self.communication_manager.isAlive():
+            while self.communication_manager.is_alive():
                 if not self.communication_manager.is_stop():
                     self.communication_manager.stop()
         logger.info("Communication manager stopped")

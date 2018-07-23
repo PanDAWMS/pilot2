@@ -108,7 +108,7 @@ class ESProcess(threading.Thread):
         """
         logger.info("Stopping message thread")
         if self.__message_thread:
-            while self.__message_thread.isAlive():
+            while self.__message_thread.is_alive():
                 if not self.__message_thread.is_stopped():
                     self.__message_thread.stop()
         logger.info("Message thread stopped")

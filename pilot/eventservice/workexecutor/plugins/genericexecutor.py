@@ -243,7 +243,7 @@ class GenericExecutor(BaseExecutor):
 
         if self.proc:
             self.proc.stop(20)
-            while self.proc.isAlive():
+            while self.proc.is_alive():
                 time.sleep(0.1)
 
         self.stop_communicator()
@@ -278,7 +278,7 @@ class GenericExecutor(BaseExecutor):
 
             exit_code = None
             iteration = 0L
-            while proc.isAlive():
+            while proc.is_alive():
                 iteration += 1
                 if self.is_stop():
                     log.info('Stop is set. breaking -- stop process pid=%s' % proc.pid)
@@ -291,7 +291,7 @@ class GenericExecutor(BaseExecutor):
                     log.info('running: iteration=%d pid=%s exit_code=%s' % (iteration, proc.pid, exit_code))
                 time.sleep(1)
 
-            while proc.isAlive():
+            while proc.is_alive():
                 time.sleep(0.1)
             log.info("ESProcess finished")
 

@@ -76,10 +76,10 @@ class WorkExecutor(PluginFactory):
             raise exception.SetupFailure("No available executor plugin.")
         return self.plugin.stop()
 
-    def isAlive(self):
+    def is_alive(self):
         if not self.plugin:
             raise exception.SetupFailure("No available executor plugin.")
-        return self.plugin.isAlive()
+        return self.plugin.is_alive()
 
     def get_exit_code(self):
         if not self.plugin:
