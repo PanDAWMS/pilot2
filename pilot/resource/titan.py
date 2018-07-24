@@ -212,7 +212,7 @@ def postprocess_workdir(workdir):
     try:
         if os.path.exists(pseudo_dir):
             remove(os.path.join(workdir, pseudo_dir))
-    except:
+    except IOError:
         raise FileHandlingFailure("Post processing of working directory failed")
 
 
@@ -236,6 +236,6 @@ def command_fix(command, job_scratch_dir):
 
     fixed_command = ' '.join(subs_a)
     fixed_command = fixed_command.strip()
-    fixed_command = fixed_command.replace('--DBRelease="all:current"', '') # avoid Frontier reading
+    fixed_command = fixed_command.replace('--DBRelease="all:current"', '')  # avoid Frontier reading
 
     return fixed_command

@@ -160,7 +160,7 @@ def run(args):
         logger.info("Cleanup of working directory")
         protectedfiles.extend([worker_attributes_file, worker_stageout_declaration])
         user.remove_redundant_files(job_scratch_dir, protectedfiles)
-        res = tar_files(job_scratch_dir, protectedfiles,job.log_file)
+        res = tar_files(job_scratch_dir, protectedfiles, job.log_file)
         if res > 0:
             raise FileHandlingFailure("Log file tar failed")
 
