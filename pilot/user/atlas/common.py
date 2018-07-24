@@ -544,6 +544,16 @@ def parse_jobreport_data(job_report):
     dq.get("exitCode", work_attributes, "transExitCode")
     dq.get("exitMsg", work_attributes, "exeErrorDiag")
     dq.get("files/input/subfiles", work_attributes, "nInputFiles")
+    dq.get("files/output",work_attributes,"outputfiles")
+
+    outputfiles_dict = {}
+    if 'outputfiles' in work_attributes.keys():
+        for ofs in work_attributes['outputfiles']:
+            for of in ofs['subFiles']:
+                outputfiles_dict[of['name']] = {'guid': of['file_guid'],
+                                                'nentries': of['nentries'],
+                                                'size': of['file_size']}
+    work_attributes['outputfiles'] = outputfiles_dict
 
     if 'resource' in job_report and 'executor' in job_report['resource']:
         j = job_report['resource']['executor']

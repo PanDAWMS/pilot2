@@ -65,8 +65,9 @@ def main():
 
     https_setup(args, VERSION)
 
-    if not set_location(args):  # ## DEPRECATE ME LATER
-        return False
+    # Time to depricate. Does not work well with HPC workflow
+    #if not set_location(args):  # ## DEPRECATE ME LATER.
+    #    return False
 
     set_info(args)  # initialize InfoService and populate args.info structure
 

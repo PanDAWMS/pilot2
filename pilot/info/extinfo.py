@@ -23,6 +23,7 @@ from .dataloader import DataLoader, merge_dict_data
 
 import logging
 logger = logging.getLogger(__name__)
+from pilot.util.config import config
 
 
 class ExtInfoProvider(DataLoader):
@@ -53,7 +54,9 @@ class ExtInfoProvider(DataLoader):
 
         pandaqueues = set(pandaqueues)
 
-        cache_dir = os.environ.get('PILOT_HOME', '.')
+        cache_dir = config.Information.cache_dir
+        if not cache_dir:
+            cache_dir = os.environ.get('PILOT_HOME', '.')
 
         sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_schedconf.json',
                              'nretry': 1,
@@ -94,7 +97,9 @@ class ExtInfoProvider(DataLoader):
 
         pandaqueues = [pandaqueue]
 
-        cache_dir = os.environ.get('PILOT_HOME', '.')
+        cache_dir = config.Information.cache_dir
+        if not cache_dir:
+            cache_dir = os.environ.get('PILOT_HOME', '.')
 
         def jsonparser_panda(c):
             dat = json.loads(c)
@@ -144,7 +149,9 @@ class ExtInfoProvider(DataLoader):
 
         ddmendpoints = set(ddmendpoints)
 
-        cache_dir = os.environ.get('PILOT_HOME', '.')
+        cache_dir = config.Information.cache_dir
+        if not cache_dir:
+            cache_dir = os.environ.get('PILOT_HOME', '.')
 
         # list of sources to fetch ddmconf data from
         sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_ddmendpoints.json',
