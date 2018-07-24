@@ -926,7 +926,7 @@ def retrieve(queues, traces, args):
 
         # get a job definition from a source (file or server)
         res = get_job_definition(args)
-        logger.info('res = %s' % str(res))
+        logger.info('job definition = %s' % str(res))
 
         if res is None:
             logger.fatal('fatal error in job download loop - cannot continue')
