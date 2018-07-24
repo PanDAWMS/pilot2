@@ -424,7 +424,7 @@ def get_dispatcher_dictionary(args):
     data = {
         'siteName': args.resource,
         'computingElement': args.location.queue,
-        'prodSourceLabel': args.job_label,
+        'prodSourceLabel': job_label,
         'diskSpace': _diskspace,
         'workingGroup': args.working_group,
         'cpu': _cpu,
