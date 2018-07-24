@@ -371,6 +371,24 @@ def get_task_id():
     return taskid
 
 
+def get_job_label(args):
+    """
+    Return a proper job label.
+    The function returns a job label that corresponds to the actual pilot version, ie if the pilot is a development
+    version (ptest or rc_test2) or production version (managed or user).
+
+    :param args: pilot args object.
+    :return: job_label (string).
+    """
+
+    if args.version_tag.startswith('RC'):
+        job_label = 'rc_test2'
+    else:
+        job_label = args.job_label
+
+    return job_label
+
+
 def get_dispatcher_dictionary(args):
     """
     Return a dictionary with required fields for the dispatcher getJob operation.
@@ -399,6 +417,9 @@ def get_dispatcher_dictionary(args):
 
     _mem, _cpu, _disk = collect_workernode_info()
     _nodename = get_node_name()
+
+    # override for RC dev pilots
+    job_label = get_job_label(args)
 
     data = {
         'siteName': args.resource,
