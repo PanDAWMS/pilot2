@@ -18,12 +18,11 @@ which is mainly used to retrive Queue, Site, etc data required for Information S
 import os
 import json
 import random
-
+from pilot.util.config import config
 from .dataloader import DataLoader, merge_dict_data
 
 import logging
 logger = logging.getLogger(__name__)
-from pilot.util.config import config
 
 
 class ExtInfoProvider(DataLoader):

@@ -9,7 +9,8 @@
 # - Danila Oleynik danila.oleynik@cern.ch, 2018
 
 import logging
-import os, sys
+import os
+import sys
 import shutil
 
 from pilot.util.config import config
@@ -28,7 +29,7 @@ def get_rank():
         rank = comm.Get_rank()
         max_rank = comm.Get_size()
         logger.info("Got rank {0} from {1}".format(rank, max_rank))
-    except:
+    except ImportError:
         logger.info("No mpi4py found.")
     return rank
 
@@ -119,7 +120,7 @@ def set_scratch_workdir(job, work_dir):
 
     scratch_path = config.HPC.scratch
 
-    job_scratch_dir = os.path.join(scratch_path,str(job.jobid))
+    job_scratch_dir = os.path.join(scratch_path, str(job.jobid))
     for inp_file in job.input_files:
         job.input_files[inp_file]["scratch_path"] = job_scratch_dir
     logger.debug("Job scratch path: {0}".format(job_scratch_dir))
@@ -129,7 +130,7 @@ def set_scratch_workdir(job, work_dir):
     dst_db_path_2 = 'geomDB/'
     dst_db_filename_2 = 'geomDB_sqlite'
     tmp_path = 'tmp/'
-    src_file   = '/ccs/proj/csc108/AtlasReleases/21.0.15/DBRelease/current/sqlite200/ALLP200.db'
+    src_file = '/ccs/proj/csc108/AtlasReleases/21.0.15/DBRelease/current/sqlite200/ALLP200.db'
     src_file_2 = '/ccs/proj/csc108/AtlasReleases/21.0.15/DBRelease/current/geomDB/geomDB_sqlite'
 
     if os.path.exists(scratch_path):
@@ -150,8 +151,10 @@ def set_scratch_workdir(job, work_dir):
                 os.makedirs(job_scratch_dir)
             logger.debug("Copy input file")
             for inp_file in job.input_files:
-                logger.debug("Copy: {0} to {1}".format(os.path.join(work_dir, inp_file), job.input_files[inp_file]["scratch_path"]))
-                shutil.copyfile(os.path.join(work_dir, inp_file), os.path.join(job.input_files[inp_file]["scratch_path"],inp_file))
+                logger.debug("Copy: {0} to {1}".format(os.path.join(work_dir, inp_file),
+                                                       job.input_files[inp_file]["scratch_path"]))
+                shutil.copyfile(os.path.join(work_dir, inp_file),
+                                os.path.join(job.input_files[inp_file]["scratch_path"], inp_file))
         except IOError as e:
             logger.error("I/O error({0}): {1}".format(e.errno, e.strerror))
             logger.error("Copy to scratch failed, execution terminated':  \n %s " % (sys.exc_info()[1]))
@@ -178,7 +181,6 @@ def process_jobreport(payload_report_file, job_scratch_path, job_communication_p
     :param job_report_filename:
     :param src_dir:
     :param dst_dir:
-    :return:
     """
     src_file = os.path.join(job_scratch_path, payload_report_file)
     dst_file = os.path.join(job_communication_point, payload_report_file)
@@ -195,7 +197,7 @@ def process_jobreport(payload_report_file, job_scratch_path, job_communication_p
 
         write_json(dst_file, job_report)
 
-    except:
+    except IOError:
         logger.error("Job report copy failed, execution terminated':  \n %s " % (sys.exc_info()[1]))
         raise FileHandlingFailure("Job report copy from RAM failed")
 
@@ -227,7 +229,7 @@ def command_fix(command, job_scratch_dir):
     for i in range(len(subs_a)):
         if i > 0:
             if '(' in subs_a[i] and not subs_a[i][0] == '"':
-                subs_a[i] = '"'+subs_a[i]+'"'
+                subs_a[i] = '"' + subs_a[i] + '"'
             if subs_a[i].startswith("--inputEVNTFile"):
                 filename = subs_a[i].split("=")[1]
                 subs_a[i] = subs_a[i].replace(filename, os.path.join(job_scratch_dir, filename))

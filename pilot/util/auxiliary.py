@@ -27,10 +27,10 @@ def time_stamp():
     sign_str = '+'
     if tmptz > 0:
         sign_str = '-'
-    tmptz_hours = int(tmptz/3600)
+    tmptz_hours = int(tmptz / 3600)
 
     return str("%s%s%02d:%02d" % (time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime()), sign_str, abs(tmptz_hours),
-                                  int(tmptz/60-tmptz_hours*60)))
+                                  int(tmptz / 60 - tmptz_hours * 60)))
 
 
 def get_batchsystem_jobid():

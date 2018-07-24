@@ -160,7 +160,7 @@ def run(args):
         logger.info("Cleanup of working directory")
         protectedfiles.extend([worker_attributes_file, worker_stageout_declaration])
         user.remove_redundant_files(job_scratch_dir, protectedfiles)
-        res = tar_files(job_scratch_dir,protectedfiles,job.log_file)
+        res = tar_files(job_scratch_dir, protectedfiles,job.log_file)
         if res > 0:
             raise FileHandlingFailure("Log file tar failed")
 
@@ -169,7 +169,7 @@ def run(args):
             cp_start = time.time()
             for outfile in job.output_files.keys():
                 if os.path.exists(outfile):
-                    copy(os.path.join(job_scratch_dir,outfile),os.path.join(work_dir,outfile))
+                    copy(os.path.join(job_scratch_dir, outfile), os.path.join(work_dir, outfile))
             os.chdir(work_dir)
             cp_time = time.time() - cp_start
             logger.info("Copy of outputs took: {0} sec.".format(cp_time))

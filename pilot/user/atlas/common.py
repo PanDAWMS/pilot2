@@ -544,7 +544,7 @@ def parse_jobreport_data(job_report):
     dq.get("exitCode", work_attributes, "transExitCode")
     dq.get("exitMsg", work_attributes, "exeErrorDiag")
     dq.get("files/input/subfiles", work_attributes, "nInputFiles")
-    dq.get("files/output",work_attributes,"outputfiles")
+    dq.get("files/output", work_attributes, "outputfiles")
 
     outputfiles_dict = {}
     if 'outputfiles' in work_attributes.keys():
