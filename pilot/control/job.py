@@ -175,7 +175,7 @@ def get_data_structure(job, state, sitename, versiontag, xml=None):
     :param job: job object.
     :param state: state of the job (string).
     :param sitename: site name (string).
-    :param versiontag: versio tag (string).
+    :param versiontag: version tag (string).
     :param xml: optional XML string.
     :return: data structure (dictionary).
     """
