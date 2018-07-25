@@ -130,7 +130,10 @@ def copy_out(files, **kwargs):
                     # the logic should be unified and moved to base layer shared for all the movers
                     adler32 = dat.get('adler32')
                     if fspec.checksum.get('adler32') and adler32 and fspec.checksum.get('adler32') != adler32:
-                        raise PilotException("Failed to stageout: CRC mismatched", code=ErrorCodes.PUTADMISMATCH, state='AD_MISMATCH')
+                        logger.warning('checksum verification failed: local %s != remote %s' %
+                                       (fspec.checksum.get('adler32'), adler32))
+                        raise PilotException("Failed to stageout: CRC mismatched",
+                                             code=ErrorCodes.PUTADMISMATCH, state='AD_MISMATCH')
 
         fspec.status_code = 0
         fspec.status = 'transferred'
