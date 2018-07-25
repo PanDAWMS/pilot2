@@ -44,21 +44,18 @@ def execute(executable, **kwargs):
         user = environ.get('PILOT_USER', 'generic').lower()  # TODO: replace with singleton
         container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], -1)
         if container:
+            diagnostics = ""
             try:
                 executable = container.wrapper(executable, **kwargs)
             except Exception as e:
-                exit_code = -1
-                stdout = ""
-                stderr = 'failed to execute wrapper function: %s' % e
-                logger.fatal(stderr)
+                diagnostics = 'failed to execute wrapper function: %s' % e
+                logger.fatal(diagnostics)
             else:
                 if executable == "":
-                    exit_code = -1
-                    stdout = ""
-                    stderr = 'failed to prepare container command'
-                    logger.fatal(stderr)
-            if exit_code != 0:
-                return None if returnproc else exit_code, stdout, stderr
+                    diagnostics = 'failed to prepare container command'
+                    logger.fatal(diagnostics)
+            if diagnostics != "":
+                return None if returnproc else -1, "", diagnostics
     else:
         # logger.info("will not use container")
         pass
