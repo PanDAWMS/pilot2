@@ -120,15 +120,13 @@ class Executor(object):
         # code
         try:
             proc = execute(cmd, workdir=job.workdir, returnproc=True,
-                           usecontainer=False, stdout=out, stderr=err, cwd=job.workdir, job=job)
+                           usecontainer=True, stdout=out, stderr=err, cwd=job.workdir, job=job)
         except Exception as e:
             log.error('could not execute: %s' % str(e))
             return None
 
         log.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
         job.pid = proc.pid
-
-        # WRONG PLACE FOR THE FOLLOWING? MAIN PAYLOAD IS STILL RUNNING!!!
 
         # should any additional commands be executed after the payload?
         cmds = user.get_utility_commands_list(order=UTILITY_AFTER_PAYLOAD)
