@@ -505,10 +505,20 @@ def get_outfiles_records(subfiles):
     return res
 
 
-def get_inputfiles_len(subfiles):
-    l = 0
-
-    return l
+class DictQuery(dict):
+    def get(self, path, dst_dict, dst_key):
+        keys = path.split("/")
+        if len(keys) == 0:
+            return
+        last_key = keys.pop()
+        v = self
+        for key in keys:
+            if key in v and isinstance(v[key], dict):
+                v = v[key]
+            else:
+                return
+        if last_key in v:
+            dst_dict[dst_key] = v[last_key]
 
 
 def parse_jobreport_data(job_report):
@@ -529,21 +539,6 @@ def parse_jobreport_data(job_report):
     work_attributes["__db_data"] = "None"
     work_attributes["inputfiles"] = []
     work_attributes["outputfiles"] = []
-
-    class DictQuery(dict):
-        def get(self, path, dst_dict, dst_key):
-            keys = path.split("/")
-            if len(keys) == 0:
-                return
-            last_key = keys.pop()
-            v = self
-            for key in keys:
-                if key in v and isinstance(v[key], dict):
-                    v = v[key]
-                else:
-                    return
-            if last_key in v:
-                dst_dict[dst_key] = v[last_key]
 
     if 'ATHENA_PROC_NUMBER' in os.environ:
         work_attributes['core_count'] = os.environ['ATHENA_PROC_NUMBER']
@@ -582,9 +577,6 @@ def parse_jobreport_data(job_report):
         for x in exc_report:
             fin_report[x[0]] += x[1]
         work_attributes.update(fin_report)
-
-    if 'files' in job_report and 'input' in job_report['files'] and 'subfiles' in job_report['files']['input']:
-                work_attributes['nInputFiles'] = len(job_report['files']['input']['subfiles'])
 
     workdir_size = get_workdir_size()
     work_attributes['jobMetrics'] = 'coreCount=%s nEvents=%s dbTime=%s dbData=%s workDirSize=%s' % \
