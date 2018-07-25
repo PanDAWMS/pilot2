@@ -189,7 +189,7 @@ def alrb_wrapper(cmd, workdir, job):
             if container_path != "":
                 _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % container_path
             else:
-                logger.warning('failed to extract container path from %s' job.jobparams)
+                logger.warning('failed to extract container path from %s' % job.jobparams)
                 _cmd = ""
         else:
             _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c images+$thePlatform'
