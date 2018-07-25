@@ -603,6 +603,7 @@ def _stage_out_new(job, args):
     job.fileinfo = fileinfo
     log.info('prepared job.fileinfo=%s' % job.fileinfo)
 
+    # WARNING THE FOLLOWING RESETS ANY PREVIOUS STAGEOUT ERRORS
     if not is_success:
         # set error code + message (a more precise error code might have been set already)
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEOUTFAILED)

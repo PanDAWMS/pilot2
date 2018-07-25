@@ -177,7 +177,8 @@ def alrb_wrapper(cmd, workdir, job):
             "resolved singularity_options from queuedata.container_options: %s" % singularity_options)
 
         _cmd = asetup
-        _cmd += 'export thePlatform=\"%s\";' % job.platform
+        if job.platform:
+            _cmd += 'export thePlatform=\"%s\";' % job.platform
         #if '--containall' not in singularity_options:
         #    singularity_options += ' --containall'
         if singularity_options != "":
@@ -192,7 +193,9 @@ def alrb_wrapper(cmd, workdir, job):
                 logger.warning('failed to extract container path from %s' % job.jobparams)
                 _cmd = ""
         else:
-            _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c images+$thePlatform'
+            _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c images'
+            if job.platform:
+                _cmd += '+$thePlatform'
 
         _cmd = _cmd.replace('  ', ' ')
         cmd = _cmd
