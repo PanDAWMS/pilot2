@@ -204,7 +204,7 @@ def alrb_wrapper(cmd, workdir, job):
 def remove_container_string(job_params):
     """ Retrieve the container string from the job parameters """
 
-    pattern = r" \'?\-\-containerImage\ ([\S]+)\ ?\'?"
+    pattern = r" \'?\-\-containerImage\=?\ ?([\S]+)\ ?\'?"
     compiled_pattern = re.compile(pattern)
 
     # remove any present ' around the option as well
