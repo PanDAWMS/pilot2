@@ -496,6 +496,21 @@ def update_job_data(job):  # noqa: C901
             log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
 
 
+def get_outfiles_records(subfiles):
+    res = {}
+    for f in subfiles:
+        res[f['name']] = {'guid': f['file_guid'],
+                          'nentries': f['nentries'],
+                          'size': f['file_size']}
+    return res
+
+
+def get_inputfiles_len(subfiles):
+    l = 0
+
+    return l
+
+
 def parse_jobreport_data(job_report):
     """
     Parse a job report and extract relevant fields.
@@ -512,6 +527,8 @@ def parse_jobreport_data(job_report):
     work_attributes["n_events"] = "None"
     work_attributes["__db_time"] = "None"
     work_attributes["__db_data"] = "None"
+    work_attributes["inputfiles"] = []
+    work_attributes["outputfiles"] = []
 
     class DictQuery(dict):
         def get(self, path, dst_dict, dst_key):
@@ -527,8 +544,6 @@ def parse_jobreport_data(job_report):
                     return
             if last_key in v:
                 dst_dict[dst_key] = v[last_key]
-            else:
-                return
 
     if 'ATHENA_PROC_NUMBER' in os.environ:
         work_attributes['core_count'] = os.environ['ATHENA_PROC_NUMBER']
@@ -543,17 +558,17 @@ def parse_jobreport_data(job_report):
     dq.get("resource/dbDataTotal", work_attributes, "__db_data")
     dq.get("exitCode", work_attributes, "transExitCode")
     dq.get("exitMsg", work_attributes, "exeErrorDiag")
-    dq.get("files/input/subfiles", work_attributes, "nInputFiles")
+    dq.get("files/input", work_attributes, "inputfiles")
     dq.get("files/output", work_attributes, "outputfiles")
 
     outputfiles_dict = {}
-    if 'outputfiles' in work_attributes.keys():
-        for ofs in work_attributes['outputfiles']:
-            for of in ofs['subFiles']:
-                outputfiles_dict[of['name']] = {'guid': of['file_guid'],
-                                                'nentries': of['nentries'],
-                                                'size': of['file_size']}
+    for of in work_attributes['outputfiles']:
+        outputfiles_dict.update(get_outfiles_records(of['subFiles']))
     work_attributes['outputfiles'] = outputfiles_dict
+
+    if work_attributes['inputfiles']:
+        work_attributes['nInputFiles'] = reduce(lambda a, b: a + b, map(lambda inpfiles: len(inpfiles['subFiles']),
+                                                                        work_attributes['inputfiles']))
 
     if 'resource' in job_report and 'executor' in job_report['resource']:
         j = job_report['resource']['executor']
