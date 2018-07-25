@@ -47,7 +47,18 @@ def execute(executable, **kwargs):
             try:
                 executable = container.wrapper(executable, **kwargs)
             except Exception as e:
-                logger.fatal('failed to execute wrapper function: %s' % e)
+                exit_code = -1
+                stdout = ""
+                stderr = 'failed to execute wrapper function: %s' % e
+                logger.fatal(stderr)
+            else:
+                if executable == "":
+                    exit_code = -1
+                    stdout = ""
+                    stderr = 'failed to prepare container command'
+                    logger.fatal(stderr)
+            if exit_code != 0:
+                return None if returnproc else exit_code, stdout, stderr
     else:
         # logger.info("will not use container")
         pass

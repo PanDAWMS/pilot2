@@ -183,12 +183,41 @@ def alrb_wrapper(cmd, workdir, job):
         if singularity_options != "":
             _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % singularity_options
         _cmd += 'export ALRB_CONT_RUNPAYLOAD=\"%s\";' % cmd
-        _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c images+$thePlatform'
+
+        if '--containerImage' in job.jobparams:
+            job.jobparams, container_path = remove_container_string(job.jobparams)
+            if container_path != "":
+                _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % container_path
+            else:
+                logger.warning('failed to extract container path from %s' job.jobparams)
+                _cmd = ""
+        else:
+            _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c images+$thePlatform'
+
         _cmd = _cmd.replace('  ', ' ')
         cmd = _cmd
         logger.info("Updated command: %s" % cmd)
 
     return cmd
+
+
+def remove_container_string(job_params):
+    """ Retrieve the container string from the job parameters """
+
+    pattern = r" \'?\-\-containerImage\ ([\S]+)\ ?\'?"
+    compiled_pattern = re.compile(pattern)
+
+    # remove any present ' around the option as well
+    job_params = re.sub(r'\'\ \'', ' ', job_params)
+
+    # extract the container path
+    found = re.findall(compiled_pattern, job_params)
+    container_path = found[0] if len(found) > 0 else ""
+
+    # Remove the pattern and update the job parameters
+    job_params = re.sub(pattern, ' ', job_params)
+
+    return job_params, container_path
 
 
 def singularity_wrapper(cmd, workdir, job):
