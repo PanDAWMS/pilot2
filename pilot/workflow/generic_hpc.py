@@ -231,4 +231,3 @@ def declare_output(job, work_report, worker_stageout_declaration):
         write_json(worker_stageout_declaration, out_file_report)
         logger.debug('Stagout declared in: {0}'.format(worker_stageout_declaration))
         logger.debug('Report for stageout: {}'.format(out_file_report))
-
