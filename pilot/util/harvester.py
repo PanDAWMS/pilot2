@@ -126,5 +126,7 @@ def publish_work_report(work_report=None, worker_attributes_file="worker_attribu
 
     if work_report:
         work_report['timestamp'] = time_stamp()
+        if "outputfiles" in work_report:
+            del(work_report["outputfiles"])
         if write_json(worker_attributes_file, work_report):
             logger.info("work report published: {0}".format(work_report))

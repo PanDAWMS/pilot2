@@ -496,6 +496,31 @@ def update_job_data(job):  # noqa: C901
             log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
 
 
+def get_outfiles_records(subfiles):
+    res = {}
+    for f in subfiles:
+        res[f['name']] = {'guid': f['file_guid'],
+                          'nentries': f['nentries'],
+                          'size': f['file_size']}
+    return res
+
+
+class DictQuery(dict):
+    def get(self, path, dst_dict, dst_key):
+        keys = path.split("/")
+        if len(keys) == 0:
+            return
+        last_key = keys.pop()
+        v = self
+        for key in keys:
+            if key in v and isinstance(v[key], dict):
+                v = v[key]
+            else:
+                return
+        if last_key in v:
+            dst_dict[dst_key] = v[last_key]
+
+
 def parse_jobreport_data(job_report):
     """
     Parse a job report and extract relevant fields.
@@ -512,23 +537,8 @@ def parse_jobreport_data(job_report):
     work_attributes["n_events"] = "None"
     work_attributes["__db_time"] = "None"
     work_attributes["__db_data"] = "None"
-
-    class DictQuery(dict):
-        def get(self, path, dst_dict, dst_key):
-            keys = path.split("/")
-            if len(keys) == 0:
-                return
-            last_key = keys.pop()
-            v = self
-            for key in keys:
-                if key in v and isinstance(v[key], dict):
-                    v = v[key]
-                else:
-                    return
-            if last_key in v:
-                dst_dict[dst_key] = v[last_key]
-            else:
-                return
+    work_attributes["inputfiles"] = []
+    work_attributes["outputfiles"] = []
 
     if 'ATHENA_PROC_NUMBER' in os.environ:
         work_attributes['core_count'] = os.environ['ATHENA_PROC_NUMBER']
@@ -543,7 +553,17 @@ def parse_jobreport_data(job_report):
     dq.get("resource/dbDataTotal", work_attributes, "__db_data")
     dq.get("exitCode", work_attributes, "transExitCode")
     dq.get("exitMsg", work_attributes, "exeErrorDiag")
-    dq.get("files/input/subfiles", work_attributes, "nInputFiles")
+    dq.get("files/input", work_attributes, "inputfiles")
+    dq.get("files/output", work_attributes, "outputfiles")
+
+    outputfiles_dict = {}
+    for of in work_attributes['outputfiles']:
+        outputfiles_dict.update(get_outfiles_records(of['subFiles']))
+    work_attributes['outputfiles'] = outputfiles_dict
+
+    if work_attributes['inputfiles']:
+        work_attributes['nInputFiles'] = reduce(lambda a, b: a + b, map(lambda inpfiles: len(inpfiles['subFiles']),
+                                                                        work_attributes['inputfiles']))
 
     if 'resource' in job_report and 'executor' in job_report['resource']:
         j = job_report['resource']['executor']
@@ -557,9 +577,6 @@ def parse_jobreport_data(job_report):
         for x in exc_report:
             fin_report[x[0]] += x[1]
         work_attributes.update(fin_report)
-
-    if 'files' in job_report and 'input' in job_report['files'] and 'subfiles' in job_report['files']['input']:
-                work_attributes['nInputFiles'] = len(job_report['files']['input']['subfiles'])
 
     workdir_size = get_workdir_size()
     work_attributes['jobMetrics'] = 'coreCount=%s nEvents=%s dbTime=%s dbData=%s workDirSize=%s' % \
