@@ -51,6 +51,7 @@ def run(args):
     payload_report_file = config.Payload.jobreport
     payload_stdout_file = config.Payload.payloadstdout
     payload_stderr_file = config.Payload.payloadstderr
+
     try:
         logger.info('setting up signal handling')
         signal.signal(signal.SIGINT, functools.partial(interrupt, args))
@@ -132,13 +133,14 @@ def run(args):
         work_report["cpuConsumptionTime"] = t_tot
         work_report["transExitCode"] = job.exitcode
 
-        logger.info("Payload exit code: {0} JobID: {1}".format(exit_code, job.jobid))
-        logger.info("CPU comsumption time: {0}  JobID: {1}".format(t_tot, job.jobid))
-        logger.info("Start time: {0}  JobID: {1}".format(start_time, job.jobid))
-        logger.info("End time: {0}  JobID: {1}".format(end_time, job.jobid))
-        logger.info("Execution time: {0} sec.  JobID: {1}".format(exetime, job.jobid))
-        logger.debug("Job report start time: {0}".format(job.startTime))
-        logger.debug("Job report end time: {0}".format(job.endTime))
+        log_jobreport = "\nPayload exit code: {0} JobID: {1} \n".format(exit_code, job.jobid)
+        log_jobreport += "CPU comsumption time: {0}  JobID: {1} \n".format(t_tot, job.jobid)
+        log_jobreport += "Start time: {0}  JobID: {1} \n".format(start_time, job.jobid)
+        log_jobreport += "End time: {0}  JobID: {1} \n".format(end_time, job.jobid)
+        log_jobreport += "Execution time: {0} sec.  JobID: {1} \n".format(exetime, job.jobid)
+        logger.info(log_jobreport)
+        log_jobreport = "\nJob report start time: {0}\nJob report end time: {1}".format(job.startTime, job.endTime)
+        logger.debug(log_jobreport)
 
         # Parse job report file and update of work report
         if os.path.exists(payload_report_file):
@@ -151,13 +153,14 @@ def run(args):
         # output files should not be packed with logs
         protectedfiles = job.output_files.keys()
 
-        # log file not produced (yet), so should ne excluded
+        # log file not produced (yet), so should be excluded
         if job.log_file in protectedfiles:
             protectedfiles.remove(job.log_file)
         else:
             logger.info("Log files was not declared")
 
         logger.info("Cleanup of working directory")
+
         protectedfiles.extend([worker_attributes_file, worker_stageout_declaration])
         user.remove_redundant_files(job_scratch_dir, protectedfiles)
         res = tar_files(job_scratch_dir, protectedfiles, job.log_file)
@@ -166,41 +169,10 @@ def run(args):
 
         # Copy of output to shared FS for stageout
         if not job_scratch_dir == work_dir:
-            cp_start = time.time()
-            for outfile in job.output_files.keys():
-                if os.path.exists(outfile):
-                    copy(os.path.join(job_scratch_dir, outfile), os.path.join(work_dir, outfile))
-            os.chdir(work_dir)
-            cp_time = time.time() - cp_start
-            logger.info("Copy of outputs took: {0} sec.".format(cp_time))
+            copy_output(job, job_scratch_dir, work_dir)
 
         logger.info("Declare stage-out")
-        out_file_report = {}
-        out_file_report[job.jobid] = []
-
-        for outfile in job.output_files.keys():
-            logger.debug("File {} will be checked and declared for stage out".format(outfile))
-            if os.path.exists(outfile):
-                file_desc = {}
-                if outfile == job.log_file:
-                    file_desc['type'] = 'log'
-                else:
-                    file_desc['type'] = 'output'
-                file_desc['path'] = os.path.abspath(outfile)
-                file_desc['fsize'] = os.path.getsize(outfile)
-                if 'guid' in job.output_files[outfile].keys():
-                    file_desc['guid'] = job.output_files[outfile]['guid']
-                elif work_report['outputfiles'] and work_report['outputfiles'][outfile]:
-                    file_desc['guid'] = work_report['outputfiles'][outfile]['guid']
-                out_file_report[job.jobid].append(file_desc)
-            else:
-                logger.info("Expected output file {0} missed. Job {1} will be failed".format(outfile, job.jobid))
-                job.state = 'failed'
-
-        if out_file_report[job.jobid]:
-            write_json(worker_stageout_declaration, out_file_report)
-            logger.debug('Stagout declared in: {0}'.format(worker_stageout_declaration))
-            logger.debug('Report for stageout: {}'.format(out_file_report))
+        declare_output(job, work_report, worker_stageout_declaration)
 
         logger.info("All done")
         publish_work_report(work_report, worker_attributes_file)
@@ -215,3 +187,48 @@ def run(args):
         traces.pilot['state'] = FAILURE
 
     return traces
+
+
+def copy_output(job, job_scratch_dir, work_dir):
+    cp_start = time.time()
+    try:
+        for outfile in job.output_files.keys():
+            if os.path.exists(outfile):
+                copy(os.path.join(job_scratch_dir, outfile), os.path.join(job_scratch_dir, outfile))
+        os.chdir(work_dir)
+    except IOError:
+        raise FileHandlingFailure("Copy from scratch dir to access point failed")
+    finally:
+        cp_time = time.time() - cp_start
+        logger.info("Copy of outputs took: {0} sec.".format(cp_time))
+    return 0
+
+
+def declare_output(job, work_report, worker_stageout_declaration):
+
+    out_file_report = {}
+    out_file_report[job.jobid] = []
+    for outfile in job.output_files.keys():
+        logger.debug("File {} will be checked and declared for stage out".format(outfile))
+        if os.path.exists(outfile):
+            file_desc = {}
+            if outfile == job.log_file:
+                file_desc['type'] = 'log'
+            else:
+                file_desc['type'] = 'output'
+            file_desc['path'] = os.path.abspath(outfile)
+            file_desc['fsize'] = os.path.getsize(outfile)
+            if 'guid' in job.output_files[outfile].keys():
+                file_desc['guid'] = job.output_files[outfile]['guid']
+            elif work_report['outputfiles'] and work_report['outputfiles'][outfile]:
+                file_desc['guid'] = work_report['outputfiles'][outfile]['guid']
+            out_file_report[job.jobid].append(file_desc)
+        else:
+            logger.info("Expected output file {0} missed. Job {1} will be failed".format(outfile, job.jobid))
+            job.state = 'failed'
+
+    if out_file_report[job.jobid]:
+        write_json(worker_stageout_declaration, out_file_report)
+        logger.debug('Stagout declared in: {0}'.format(worker_stageout_declaration))
+        logger.debug('Report for stageout: {}'.format(out_file_report))
+
