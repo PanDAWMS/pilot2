@@ -186,6 +186,8 @@ def alrb_wrapper(cmd, workdir, job):
             _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % singularity_options
         _cmd += 'export ALRB_CONT_RUNPAYLOAD=\"%s\";' % cmd
 
+        # this should not be necessary after the extract_container_image() in JobData update
+        # containerImage should have been removed already
         if '--containerImage' in job.jobparams:
             job.jobparams, container_path = remove_container_string(job.jobparams)
             if container_path != "":
@@ -205,6 +207,7 @@ def alrb_wrapper(cmd, workdir, job):
     return cmd
 
 
+## DEPRECATED, remove after verification with user container job
 def remove_container_string(job_params):
     """ Retrieve the container string from the job parameters """
 
