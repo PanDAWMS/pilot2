@@ -62,6 +62,7 @@ class ErrorCodes:
     NOTSAMELENGTH = 1312
     NOSTORAGEPROTOCOL = 1313
     UNKNOWNCHECKSUMTYPE = 1314
+    UNKNOWNTRFFAILURE = 1315
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -103,6 +104,7 @@ class ErrorCodes:
         NOTSAMELENGTH: "Not same length",
         NOSTORAGEPROTOCOL: "No protocol defined for storage endpoint",
         UNKNOWNCHECKSUMTYPE: "Unknown checksum type",
+        UNKNOWNTRFFAILURE: "Unknown TRF failure",
     }
 
     def get_error_message(self, errorcode):
@@ -174,6 +176,8 @@ class ErrorCodes:
             ec = self.SINGULARITYNOLOOPDEVICES
         elif exit_code == 255 and "Failed to mount image" in stderr:
             ec = self.SINGULARITYIMAGEMOUNTFAILURE
+        elif exit_code == -1:
+            ec = self.UNKNOWNTRFFAILURE
         else:
             # do not assign a pilot error code for unidentified transform error, return 0
             ec = 0

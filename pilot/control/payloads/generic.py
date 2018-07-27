@@ -213,6 +213,10 @@ class Executor(object):
                 self.__job.state = 'finished' if exit_code == 0 else 'failed'
                 log.info('finished pid=%s exit_code=%s state=%s' % (proc.pid, exit_code, self.__job.state))
 
+                if exit_code == None:
+                    log.warning('detected unset exit_code from wait_graceful - reset to -1')
+                    exit_code = -1
+
                 # write time stamps to pilot timing file
                 add_to_pilot_timing(self.__job.jobid, PILOT_POST_PAYLOAD, time.time())
 
