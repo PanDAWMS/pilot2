@@ -471,7 +471,8 @@ class JobData(BaseData):
 
         if image_option and image_option[0] != "":
 
-            imagepattern = re.compile(r'(\ \-\-containerImage\=?\s?([\S]+))')
+            imagepattern = re.compile(r" \'?\-\-containerImage\=?\ ?([\S]+)\ ?\'?")
+            # imagepattern = re.compile(r'(\ \-\-containerImage\=?\s?([\S]+))')
             image = re.findall(imagepattern, jobparams)
             if image and image[0] != "":
                 try:
