@@ -37,7 +37,8 @@ def wrapper(executable, **kwargs):
     if workdir == '.' and pilot_home != '':
         workdir = pilot_home
 
-    if config.Container.setup_type == "ALRB":
+    # if job.imagename (from --containerimage <image>) is set, then always use raw singularity
+    if config.Container.setup_type == "ALRB" and not job.imagename:
         fctn = alrb_wrapper
     else:
         fctn = singularity_wrapper

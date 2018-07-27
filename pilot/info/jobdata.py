@@ -465,13 +465,13 @@ class JobData(BaseData):
         imagename = ""
 
         # define regexp pattern for the full container image option
-        _pattern = r'(\ \-\-containerimage\=?\s?[\S]+)'
+        _pattern = r'(\ \-\-containerImage\=?\s?[\S]+)'
         pattern = re.compile(_pattern)
         image_option = re.findall(pattern, jobparams)
 
         if image_option and image_option[0] != "":
 
-            imagepattern = re.compile(r'(\ \-\-containerimage\=?\s?([\S]+))')
+            imagepattern = re.compile(r'(\ \-\-containerImage\=?\s?([\S]+))')
             image = re.findall(imagepattern, jobparams)
             if image and image[0] != "":
                 try:
