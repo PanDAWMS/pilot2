@@ -210,8 +210,8 @@ class Executor(object):
             if proc is not None:
                 log.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
-                log.info('finished pid=%s exit_code=%s' % (proc.pid, exit_code))
                 self.__job.state = 'finished' if exit_code == 0 else 'failed'
+                log.info('finished pid=%s exit_code=%s state=%s' % (proc.pid, exit_code, self.__job.state))
 
                 # write time stamps to pilot timing file
                 add_to_pilot_timing(self.__job.jobid, PILOT_POST_PAYLOAD, time.time())
