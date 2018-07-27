@@ -256,7 +256,10 @@ def singularity_wrapper(cmd, workdir, job):
             logger.warning('singularity options not set')
 
         # Get the image path
-        image_path = get_grid_image_for_singularity(job.platform)
+        if job.imagename:
+            image_path = job.imagename
+        else:
+            image_path = get_grid_image_for_singularity(job.platform)
 
         # Does the image exist?
         if image_path != '':
