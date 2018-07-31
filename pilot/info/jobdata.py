@@ -444,9 +444,6 @@ class JobData(BaseData):
             # remove zip map from final jobparams
             ret = re.sub(pattern, '', ret)
 
-        logger.debug('Extracted data from jobparams: zipmap=%s' % self.zipmap)
-        logger.debug('Extracted data from jobparams: overwrite_queuedata=%s' % self.overwrite_queuedata)
-
         # extract and remove any present --containerimage XYZ options
         ret, imagename = self.extract_container_image(ret)
         if imagename != "":
@@ -476,7 +473,7 @@ class JobData(BaseData):
             image = re.findall(imagepattern, jobparams)
             if image and image[0] != "":
                 try:
-                    imagename = image[0][1]
+                    imagename = image[0]  # removed [1]
                 except Exception as e:
                     logger.warning('failed to extract image name: %s' % e)
                 else:
