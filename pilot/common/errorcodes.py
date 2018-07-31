@@ -63,6 +63,7 @@ class ErrorCodes:
     NOSTORAGEPROTOCOL = 1313
     UNKNOWNCHECKSUMTYPE = 1314
     UNKNOWNTRFFAILURE = 1315
+    RUCIOSERVICEUNAVAILABLE = 1316
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -105,6 +106,7 @@ class ErrorCodes:
         NOSTORAGEPROTOCOL: "No protocol defined for storage endpoint",
         UNKNOWNCHECKSUMTYPE: "Unknown checksum type",
         UNKNOWNTRFFAILURE: "Unknown TRF failure",
+        RUCIOSERVICEUNAVAILABLE: "Rucio: Service unavailable",
     }
 
     def get_error_message(self, errorcode):
