@@ -154,6 +154,9 @@ def resolve_transfer_error(output, is_stagein):
         m = re.search("Details\s*:\s*(?P<error>.*)", line)
         if m:
             ret['error'] = m.group('error')
+        elif 'service_unavailable' in line:
+            ret['error'] = 'service_unavailable'
+            ret['rcode'] = ErrorCodes.RUCIOSERVICEUNAVAILABLE
 
     return ret
 
