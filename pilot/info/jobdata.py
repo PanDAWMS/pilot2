@@ -425,12 +425,16 @@ class JobData(BaseData):
         :return: updated job parameters (string).
         """
 
+        logger.info('cleaning jobparams: %s' % value)
         ## clean job params from Pilot1 old-formatted options
         ret = re.sub(r"--overwriteQueuedata={.*?}", "", value)
+        logger.info('cleaning jobparams: %s' % ret)
 
         ## extract overwrite options
         options, ret = self.parse_args(ret, {'--overwriteQueueData': lambda x: ast.literal_eval(x) if x else {}}, remove=True)
         self.overwrite_queuedata = options.get('--overwriteQueueData', {})
+
+        logger.info('cleaning jobparams: %s' % ret)
 
         # extract zip map  ## TO BE FIXED? better to pass it via dedicated sub-option in jobParams from PanDA side: e.g. using --zipmap "content"
         # so that the zip_map can be handles more gracefully via parse_args
@@ -443,11 +447,13 @@ class JobData(BaseData):
             self.zipmap = result[0]
             # remove zip map from final jobparams
             ret = re.sub(pattern, '', ret)
+        logger.info('cleaning jobparams: %s' % ret)
 
         # extract and remove any present --containerimage XYZ options
         ret, imagename = self.extract_container_image(ret)
         if imagename != "":
             self.imagename = imagename
+        logger.info('cleaning jobparams: %s' % ret)
 
         return ret
 
