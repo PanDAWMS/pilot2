@@ -219,18 +219,17 @@ def get_data_structure(job, state, sitename, versiontag, xml=None):
 
     pilotid = get_pilot_id()
     if pilotid:
-        use_newmover_tag = 'DEPRECATED'
         pilotversion = os.environ.get('PILOT_VERSION')
 
         # report the batch system job id, if available
         batchsystem_type, batchsystem_id = get_batchsystem_jobid()
 
         if batchsystem_type:
-            data['pilotID'] = "%s|%s|%s|%s|%s" % \
-                              (pilotid, use_newmover_tag, batchsystem_type, versiontag, pilotversion)
+            data['pilotID'] = "%s|%s|%s|%s" % \
+                              (pilotid, batchsystem_type, versiontag, pilotversion)
             data['batchID'] = batchsystem_id,
         else:
-            data['pilotID'] = "%s|%s|%s|%s" % (pilotid, use_newmover_tag, versiontag, pilotversion)
+            data['pilotID'] = "%s|%s|%s" % (pilotid, versiontag, pilotversion)
 
     starttime = get_postgetjob_time(job.jobid)
     if starttime:
