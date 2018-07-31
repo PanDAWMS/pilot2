@@ -194,7 +194,7 @@ def copy_output(job, job_scratch_dir, work_dir):
     try:
         for outfile in job.output_files.keys():
             if os.path.exists(outfile):
-                copy(os.path.join(job_scratch_dir, outfile), os.path.join(job_scratch_dir, outfile))
+                copy(os.path.join(job_scratch_dir, outfile), os.path.join(work_dir, outfile))
         os.chdir(work_dir)
     except IOError:
         raise FileHandlingFailure("Copy from scratch dir to access point failed")
