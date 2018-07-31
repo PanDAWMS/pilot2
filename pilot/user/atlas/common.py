@@ -54,6 +54,8 @@ def get_payload_command(job):
 
     cmd = get_setup_command(job, prepareasetup)
 
+    log.info('job.imagename=%s' % job.imagename)
+
     if is_standard_atlas_job(job.swrelease):
 
         # Normal setup (production and user jobs)
