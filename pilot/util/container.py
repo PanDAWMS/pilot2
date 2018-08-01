@@ -9,6 +9,7 @@
 
 import subprocess
 from os import environ, getcwd, setsid
+from .auxiliary import get_logger
 
 import logging
 logger = logging.getLogger(__name__)
@@ -33,6 +34,7 @@ def execute(executable, **kwargs):
     returnproc = kwargs.get('returnproc', False)
     mute = kwargs.get('mute', False)
     job = kwargs.get('job')
+    log = get_logger(job.jobid)
 
     # convert executable to string if it is a list
     if type(executable) is list:
@@ -49,19 +51,19 @@ def execute(executable, **kwargs):
                 executable = container.wrapper(executable, **kwargs)
             except Exception as e:
                 diagnostics = 'failed to execute wrapper function: %s' % e
-                logger.fatal(diagnostics)
+                log.fatal(diagnostics)
             else:
                 if executable == "":
                     diagnostics = 'failed to prepare container command'
-                    logger.fatal(diagnostics)
+                    log.fatal(diagnostics)
             if diagnostics != "":
                 return None if returnproc else -1, "", diagnostics
     else:
-        # logger.info("will not use container")
+        # log.info("will not use container")
         pass
 
     if not mute:
-        logger.info('executing command: %s' % executable)
+        log.info('executing command: %s' % executable)
     exe = ['/bin/bash', '-c', executable]
     process = subprocess.Popen(exe,
                                bufsize=-1,
