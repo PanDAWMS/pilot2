@@ -14,6 +14,7 @@ import os
 
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
+from pilot.util.mpi import get_ranks_info
 from pilot.util.constants import PILOT_T0, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_PRE_SETUP, PILOT_POST_SETUP, \
     PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, PILOT_PRE_STAGEOUT, \
     PILOT_POST_STAGEOUT, PILOT_PRE_FINAL_UPDATE, PILOT_POST_FINAL_UPDATE, PILOT_END_TIME
@@ -31,8 +32,11 @@ def read_pilot_timing():
     """
 
     pilot_timing_dictionary = {}
-
-    path = os.path.join(os.environ.get('PILOT_HOME', ''), config.Pilot.timing_file)
+    timing_file = config.Pilot.timing_file
+    rank, max_ranks = get_ranks_info()
+    if rank is not None:
+        timing_file += '_{0}'.format(rank)
+    path = os.path.join(os.environ.get('PILOT_HOME', ''), timing_file)
     if os.path.exists(path):
         pilot_timing_dictionary = read_json(path)
 
@@ -47,7 +51,11 @@ def write_pilot_timing(pilot_timing_dictionary):
     :return:
     """
 
-    path = os.path.join(os.environ.get('PILOT_HOME', ''), config.Pilot.timing_file)
+    timing_file = config.Pilot.timing_file
+    rank, max_ranks = get_ranks_info()
+    if rank is not None:
+        timing_file += '_{0}'.format(rank)
+    path = os.path.join(os.environ.get('PILOT_HOME', ''), timing_file)
     if write_json(path, pilot_timing_dictionary):
         logger.debug('updated pilot timing dictionary: %s' % (path))
     else:

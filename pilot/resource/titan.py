@@ -14,24 +14,12 @@ import sys
 import shutil
 
 from pilot.util.config import config
+from pilot.util.mpi import get_ranks_info
 from pilot.util.filehandling import read_json, write_json, remove
 from pilot.common.exception import FileHandlingFailure
 from jobdescription import JobDescription
 
 logger = logging.getLogger(__name__)
-
-
-def get_rank():
-    rank = None
-    try:
-        from mpi4py import MPI
-        comm = MPI.COMM_WORLD
-        rank = comm.Get_rank()
-        max_rank = comm.Get_size()
-        logger.info("Got rank {0} from {1}".format(rank, max_rank))
-    except ImportError:
-        logger.info("No mpi4py found.")
-    return rank
 
 
 def get_job(harvesterpath):
@@ -48,7 +36,7 @@ def get_job(harvesterpath):
         logger.info("File with PanDA IDs is missed. Nothing to execute.")
         return job, rank
     harvesterpath = os.path.abspath(harvesterpath)
-    rank = get_rank()
+    rank, max_ranks = get_ranks_info()
     pandaids = read_json(pandaids_list_filename)
     logger.info('Got {0} job ids'.format(len(pandaids)))
     pandaid = pandaids[rank]
