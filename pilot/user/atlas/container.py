@@ -13,6 +13,7 @@ import re
 from pilot.user.atlas.setup import get_asetup
 from pilot.user.atlas.setup import get_file_system_root_path
 from pilot.info import infosys
+from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 # import pilot.info.infoservice as infosys
 
@@ -164,6 +165,7 @@ def alrb_wrapper(cmd, workdir, job):
     :return: prepended command with singularity execution command (string).
     """
 
+    log = get_logger(job.jobid)
     queuedata = job.infosys.queuedata
 
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
@@ -176,7 +178,7 @@ def alrb_wrapper(cmd, workdir, job):
 
         # Get the singularity options
         singularity_options = queuedata.container_options
-        logger.debug(
+        log.debug(
             "resolved singularity_options from queuedata.container_options: %s" % singularity_options)
 
         _cmd = asetup
@@ -195,7 +197,7 @@ def alrb_wrapper(cmd, workdir, job):
             if container_path != "":
                 _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % container_path
             else:
-                logger.warning('failed to extract container path from %s' % job.jobparams)
+                log.warning('failed to extract container path from %s' % job.jobparams)
                 _cmd = ""
         else:
             _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c images'
@@ -204,7 +206,7 @@ def alrb_wrapper(cmd, workdir, job):
 
         _cmd = _cmd.replace('  ', ' ')
         cmd = _cmd
-        logger.info("Updated command: %s" % cmd)
+        log.info("Updated command: %s" % cmd)
 
     return cmd
 
@@ -242,20 +244,21 @@ def singularity_wrapper(cmd, workdir, job):
     :return: prepended command with singularity execution command (string).
     """
 
+    log = get_logger(job.jobid)
     queuedata = job.infosys.queuedata
 
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
-    logger.debug("resolved container_name from queuedata.contaner_type: %s" % container_name)
+    log.debug("resolved container_name from queuedata.contaner_type: %s" % container_name)
 
     if container_name == 'singularity':
-        logger.info("singularity has been requested")
+        log.info("singularity has been requested")
 
         # Get the singularity options
         singularity_options = queuedata.container_options
-        logger.debug("resolved singularity_options from queuedata.container_options: %s" % singularity_options)
+        log.debug("resolved singularity_options from queuedata.container_options: %s" % singularity_options)
 
         if not singularity_options:
-            logger.warning('singularity options not set')
+            log.warning('singularity options not set')
 
         # Get the image path
         if job.imagename:
@@ -269,8 +272,8 @@ def singularity_wrapper(cmd, workdir, job):
             cmd = "export workdir=" + workdir + "; singularity exec " + singularity_options + " " + image_path + \
                   " /bin/bash -c \'cd $workdir;pwd;" + cmd.replace("\'", "\\'").replace('\"', '\\"') + "\'"
         else:
-            logger.warning("singularity options found but image does not exist")
+            log.warning("singularity options found but image does not exist")
 
-        logger.info("Updated command: %s" % cmd)
+        log.info("Updated command: %s" % cmd)
 
     return cmd
