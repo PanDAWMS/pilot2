@@ -43,7 +43,7 @@ def resolve_surl(fspec, protocol, ddmconf, **kwargs):
         :param protocol: suggested protocol
         :param ddmconf: full ddm storage data
         :param fspec: file spec data
-        :return: surl as a string.
+        :return: dictionary {'surl': surl}
     """
     ddm = ddmconf.get(fspec.ddmendpoint)
     if not ddm:
@@ -66,7 +66,7 @@ def resolve_protocol(fspec, activity, ddm):
 
         :param fspec: file spec data
         :param activity: actvitiy name as string
-        :param ddmconf: full ddm storage data
+        :param ddm: ddm storage data
         :return: protocol as dictionary
     """
 

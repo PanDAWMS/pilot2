@@ -126,35 +126,13 @@ class StagingESClient(StagingClient):
 
 class StageInESClient(StagingESClient, StageInClient):
 
-    def get_storage_id_and_path_convention(self, storage_token):
-        """
-        Parse storage_token to get storage_id and path_convention.
-
-        :param storage_token: string,Expected format is '<normal storage token as string>', '<storage_id as int>', <storage_id as int/path_convention as int>
-        :returns: storage_id, path_convention
-        """
-
-        storage_id = None
-        path_convention = None
-        try:
-            if storage_token:
-                if storage_token.count('/') == 1:
-                    storage_id, path_convention = storage_token.split('/')
-                    storage_id = int(storage_id)
-                    path_convention = int(path_convention)
-                elif storage_token.isdigit():
-                    storage_id = int(storage_token)
-        except Exception as ex:
-            logger.warning("Failed to parse storage_token(%s): %s, %s" % (storage_token, ex, traceback.format_exc()))
-        return storage_id, path_convention
-
     def process_storage_id(self, files):
         """
         If storage_id is specified, replace ddmendpoint by parsing storage_id
         """
         for fspec in files:
             if fspec.storage_token:
-                storage_id, path_convention = self.get_storage_id_and_path_convention(fspec.storage_token)
+                storage_id, path_convention = fspec.get_storage_id_and_path_convention()
                 if path_convention and path_convention == 1000:
                     fspec.scope = 'transient'
                 if storage_id:

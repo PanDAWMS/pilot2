@@ -171,3 +171,25 @@ class FileSpec(BaseData):
                 is_directaccess = False
 
         return is_directaccess
+
+    def get_storage_id_and_path_convention(self):
+        """
+        Parse storage_token to get storage_id and path_convention.
+
+        :param storage_token: string, expected format is '<normal storage token as string>', '<storage_id as int>', <storage_id as int/path_convention as int>
+        :returns: storage_id, path_convention
+        """
+
+        storage_id = None
+        path_convention = None
+        try:
+            if self.storage_token:
+                if self.storage_token.count('/') == 1:
+                    storage_id, path_convention = self.storage_token.split('/')
+                    storage_id = int(storage_id)
+                    path_convention = int(path_convention)
+                elif self.storage_token.isdigit():
+                    storage_id = int(self.storage_token)
+        except Exception as ex:
+            logger.warning("Failed to parse storage_token(%s): %s" % (self.storage_token, ex))
+        return storage_id, path_convention
