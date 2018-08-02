@@ -12,10 +12,11 @@ import os
 import time
 import traceback
 
-from pilot.api.data import StageOutClient
+from pilot.api.es_data import StageOutESClient
 from pilot.common import exception
 from pilot.eventservice.esprocess.esprocess import ESProcess
 from pilot.info.filespec import FileSpec
+from pilot.info.storagemaps import storage_maps
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 from .baseexecutor import BaseExecutor
@@ -175,9 +176,9 @@ class GenericExecutor(BaseExecutor):
                          }
             file_spec = FileSpec(type='output', **file_data)
             xdata = [file_spec]
-            client = StageOutClient(job.infosys, logger=log)
+            client = StageOutESClient(job.infosys, logger=log)
             kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
-            client.transfer(xdata, activity=['es_events', 'pw', 'es_failover'], **kwargs)
+            client.transfer(xdata, activity=['es_events', 'pw'], **kwargs)
         except exception.PilotException, error:
             log.error(error.get_detail())
         except Exception, e:
@@ -191,8 +192,9 @@ class GenericExecutor(BaseExecutor):
         if error or file_spec.status != 'transferred':
             log.error('Failed to stage-out eventservice file(%s): error=%s' % (output_file, error.get_detail()))
             raise error
+        storage_id = storage_maps.get_storage_id(file_spec.ddmendpoint)
 
-        return file_spec.ddmendpoint, file_spec.storage_id, file_spec.filesize, file_spec.checksum
+        return file_spec.ddmendpoint, storage_id, file_spec.filesize, file_spec.checksum
 
     def stageout_es(self, force=False):
         """

@@ -13,10 +13,11 @@ import socket
 import time
 import traceback
 
-from pilot.api.data import StageInClient
+from pilot.api.es_data import StageInESClient
 from pilot.eventservice.communicationmanager.communicationmanager import CommunicationManager
 from pilot.eventservice.workexecutor.workexecutor import WorkExecutor
 from pilot.control.job import create_job
+from pilot.util.https import https_setup
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -25,6 +26,8 @@ else:
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+https_setup(None, None)
 
 
 def check_env():
@@ -85,7 +88,7 @@ class TestESWorkExecutorGrid(unittest.TestCase):
             communicator_manager.stop()
 
             # download input files
-            client = StageInClient(job.infosys, logger=logger)
+            client = StageInESClient(job.infosys, logger=logger)
             kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
             client.transfer(job.indata, activity='pr', **kwargs)
 

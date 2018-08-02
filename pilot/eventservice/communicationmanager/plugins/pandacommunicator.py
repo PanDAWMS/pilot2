@@ -66,7 +66,7 @@ class PandaCommunicator(BaseCommunicator):
             resp_attrs = None
 
             data = {'getProxyKey': 'False'}
-            kmap = {'node': 'node', 'mem': 'mem', 'getProxyKey': 'getProxyKey', 'computingElement': 'queue', 'disk_space': 'disk_space',
+            kmap = {'node': 'node', 'mem': 'mem', 'getProxyKey': 'getProxyKey', 'computingElement': 'queue', 'diskSpace': 'disk_space',
                     'siteName': 'site', 'prodSourceLabel': 'job_label', 'workingGroup': 'working_group', 'cpu': 'cpu'}
             for key, value in kmap.items():
                 if hasattr(req, value):

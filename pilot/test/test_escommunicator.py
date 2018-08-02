@@ -14,6 +14,8 @@ import sys
 import time
 
 from pilot.eventservice.communicationmanager.communicationmanager import CommunicationRequest, CommunicationResponse, CommunicationManager
+from pilot.util.https import https_setup
+
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -22,6 +24,9 @@ else:
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+
+https_setup(None, None)
 
 
 def check_env():
