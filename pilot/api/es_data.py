@@ -196,7 +196,7 @@ class StageOutESClient(StagingESClient, StageOutClient):
         logger.info("To transfer files with activity: %s" % (activity))
         for fspec in files:
             if not fspec.ddmendpoint or fspec.ddmendpoint != ddmendpoint:
-                logger.info("Based activity %s, changing ddmendpoint from '%s' for file(%s) to '%s'" % (activity, fspec.ddmendpoint, fspec.lfn, ddmendpoint))
+                logger.info("Based on activity %s, changing ddmendpoint from '%s' for file(%s) to '%s'" % (activity, fspec.ddmendpoint, fspec.lfn, ddmendpoint))
                 fspec.ddmendpoint = ddmendpoint
 
         return super(StageOutESClient, self).transfer_files(copytool, files, activity, **kwargs)
