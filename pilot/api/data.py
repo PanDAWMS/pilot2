@@ -17,6 +17,7 @@ import hashlib
 import logging
 
 from pilot.info import infosys
+from pilot.info.storageactivitymaps import get_ddm_activity
 from pilot.common.exception import PilotException, ErrorCodes
 from pilot.util.filehandling import calculate_checksum
 
@@ -392,6 +393,8 @@ class StageInClient(StagingClient):
 
         if self.infosys:
             kwargs['copytools'] = self.infosys.queuedata.copytools
+            kwargs['ddmconf'] = self.infosys.resolve_storage_data()
+        kwargs['activity'] = activity
 
         self.logger.info('Ready to transfer (stage-in) files: %s' % files)
 
@@ -421,6 +424,7 @@ class StageOutClient(StagingClient):
 
             protocols = []
             for aname in activity:
+                aname = get_ddm_activity(aname)
                 protocols = ddm.arprotocols.get(aname)
                 if protocols:
                     break

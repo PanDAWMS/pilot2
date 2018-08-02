@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Wen Guan, wen.guan@cern.ch, 2017
+# - Wen Guan, wen.guan@cern.ch, 2017-2018
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 """
@@ -143,6 +143,16 @@ class MessageFailure(PilotException):
     def __init__(self, *args, **kwargs):
         super(MessageFailure, self).__init__(args, kwargs)
         self._errorCode = errors.MESSAGEHANDLINGFAILURE
+        self._message = errors.get_error_message(self._errorCode)
+
+
+class CommunicationFailure(PilotException):
+    """
+    Failed to communicate with servers such as Panda, Harvester, ACT and so on.
+    """
+    def __init__(self, *args, **kwargs):
+        super(CommunicationFailure, self).__init__(args, kwargs)
+        self._errorCode = errors.COMMUNICATIONFAILURE
         self._message = errors.get_error_message(self._errorCode)
 
 

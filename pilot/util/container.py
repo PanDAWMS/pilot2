@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch
+# - Wen Guan, wen.guan, 2018
 
 import subprocess
 from os import environ, getcwd, setsid
@@ -32,7 +33,7 @@ def execute(executable, **kwargs):
     usecontainer = kwargs.get('usecontainer', False)
     returnproc = kwargs.get('returnproc', False)
     mute = kwargs.get('mute', False)
-    job = kwargs.get('job')
+    # job = kwargs.get('job')
 
     # convert executable to string if it is a list
     if type(executable) is list:
@@ -53,7 +54,14 @@ def execute(executable, **kwargs):
         pass
 
     if not mute:
-        logger.info('executing command: %s' % executable)
+        executable_readable = executable
+        executables = executable_readable.split(";")
+        for sub_cmd in executables:
+            if 'S3_SECRET_KEY=' in sub_cmd:
+                secret_key = sub_cmd.split('S3_SECRET_KEY=')[1]
+                secret_key = 'S3_SECRET_KEY=' + secret_key
+                executable_readable = executable_readable.replace(secret_key, 'S3_SECRET_KEY=********')
+        logger.info('executing command: %s' % executable_readable)
     exe = ['/bin/bash', '-c', executable]
     process = subprocess.Popen(exe,
                                bufsize=-1,

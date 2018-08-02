@@ -50,7 +50,7 @@ class StorageData(BaseData):
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['pk'],
              str: ['name', 'state', 'site', 'type', 'token'],
-             dict: ['copytools', 'acopytools', 'astorages', 'arprotocols'],
+             dict: ['copytools', 'acopytools', 'astorages', 'arprotocols', 'rprotocols'],
              bool: ['is_deterministic']
              }
 

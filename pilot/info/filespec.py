@@ -47,7 +47,7 @@ class FileSpec(BaseData):
     ## dispatchDBlockToken = ""   # moved from Pilot1: is it needed? suggest proper internal name?
 
     ## prodDBlock = ""           # moved from Pilot1: is it needed? suggest proper internal name?
-    ## storage_token = "" # prodDBlockToken = ""      # moved from Pilot1: suggest proper internal name (storage token?)
+    storage_token = ""  # prodDBlockToken = ""      # moved from Pilot1: suggest proper internal name (storage token?)
 
     ## local keys
     type = ''          # type of File: input, output of log
@@ -61,10 +61,12 @@ class FileSpec(BaseData):
     inputddms = []     # list of DDMEndpoint names which will be considered by default (if set) as allowed storage for input replicas
     workdir = None     # used to declare file-specific work dir (location of given local file when it's used for transfer by copytool)
 
+    protocol_id = None  # id of the protocol to be used to construct turl
+    is_tar = False     # whether it's a tar file or not
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['filesize', 'mtime', 'status_code'],
              str: ['lfn', 'guid', 'checksum', 'scope', 'dataset', 'ddmendpoint',
-                   'type', 'surl', 'turl', 'status', 'workdir'],
+                   'type', 'surl', 'turl', 'status', 'workdir', 'storage_token'],
              list: ['replicas', 'inputddms'],
              bool: []
              }
@@ -124,6 +126,17 @@ class FileSpec(BaseData):
 
         return {ctype: checksum}
 
+    def clean(self):
+        """
+            Validate and finally clean up required data values (required object properties) if need
+            Executed once all fields have already passed field-specific validation checks
+            Could be customized by child object
+            :return: None
+        """
+        if self.lfn.startswith("zip://"):
+            self.lfn = self.lfn.replace("zip://", "")
+            self.is_tar = True
+
     def is_directaccess(self, ensure_replica=True):
         """
             Check if given (input) file can be used for direct access mode by Job transformation script
@@ -158,3 +171,25 @@ class FileSpec(BaseData):
                 is_directaccess = False
 
         return is_directaccess
+
+    def get_storage_id_and_path_convention(self):
+        """
+        Parse storage_token to get storage_id and path_convention.
+
+        :param storage_token: string, expected format is '<normal storage token as string>', '<storage_id as int>', <storage_id as int/path_convention as int>
+        :returns: storage_id, path_convention
+        """
+
+        storage_id = None
+        path_convention = None
+        try:
+            if self.storage_token:
+                if self.storage_token.count('/') == 1:
+                    storage_id, path_convention = self.storage_token.split('/')
+                    storage_id = int(storage_id)
+                    path_convention = int(path_convention)
+                elif self.storage_token.isdigit():
+                    storage_id = int(self.storage_token)
+        except Exception as ex:
+            logger.warning("Failed to parse storage_token(%s): %s" % (self.storage_token, ex))
+        return storage_id, path_convention
