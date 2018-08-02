@@ -26,6 +26,7 @@ except Exception:
 from contextlib import closing  # for Python 2.6 compatibility - to fix a problem with tarfile
 
 from pilot.api.data import StageInClient, StageOutClient
+from pilot.api.es_data import StageInESClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
@@ -187,11 +188,13 @@ def _stage_in(args, job):
     trace_report.init(job)
 
     try:
-        client = StageInClient(job.infosys, logger=log)
-        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
-        activity = 'pr'
         if job.is_eventservicemerge:
+            client = StageInESClient(job.infosys, logger=log)
             activity = 'es_events_read'
+        else:
+            client = StageInClient(job.infosys, logger=log)
+            activity = 'pr'
+        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
         client.transfer(job.indata, activity=activity, **kwargs)
     except Exception, error:
         log.error('Failed to stage-in: error=%s' % error)

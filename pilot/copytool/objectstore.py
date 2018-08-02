@@ -13,7 +13,10 @@ import json
 import logging
 
 from pilot.common.exception import PilotException, ErrorCodes
+from pilot.info.storagekeys import storage_keys
+from pilot.info.storageactivitymaps import get_ddm_activity
 from pilot.util.container import execute
+from pilot.util.ruciopath import get_rucio_path
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +35,59 @@ def is_valid_for_copy_out(files):
     return True  ## FIX ME LATER
 
 
+def resolve_surl(fspec, protocol, ddmconf, **kwargs):
+    """
+        Get final destination SURL for file to be transferred to Objectstore
+        Can be customized at the level of specific copytool
+
+        :param protocol: suggested protocol
+        :param ddmconf: full ddm storage data
+        :param fspec: file spec data
+        :return: surl as a string.
+    """
+    ddm = ddmconf.get(fspec.ddmendpoint)
+    if not ddm:
+        raise PilotException('Failed to resolve ddmendpoint by name=%s' % fspec.ddmendpoint)
+
+    if ddm.is_deterministic:
+        surl = protocol.get('endpoint', '') + os.path.join(protocol.get('path', ''), get_rucio_path(fspec.scope, fspec.lfn))
+    elif ddm.type in ['OS_ES', 'OS_LOGS']:
+        surl = protocol.get('endpoint', '') + os.path.join(protocol.get('path', ''), fspec.lfn)
+        fspec.protocol_id = protocol.get('id', None)
+    else:
+        raise PilotException('resolve_surl(): Failed to construct SURL for non deterministic ddm=%s: NOT IMPLEMENTED', fspec.ddmendpoint)
+
+    return {'surl': surl}
+
+
+def resolve_protocol(fspec, activity, ddm):
+    """
+        Rosolve protocols to be used to transfer the file with corressponding activity
+
+        :param fspec: file spec data
+        :param activity: actvitiy name as string
+        :param ddmconf: full ddm storage data
+        :return: protocol as dictionary
+    """
+
+    logger.info("Resolving protocol for file(lfn: %s, ddmendpoint: %s) with activity(%s)" % (fspec.lfn, fspec.ddmendpoint, activity))
+
+    activity = get_ddm_activity(activity)
+    protocols = ddm.arprotocols.get(activity)
+    protocols_allow = []
+    for schema in allowed_schemas:
+        for protocol in protocols:
+            if schema is None or protocol.get('endpoint', '').startswith("%s://" % schema):
+                protocols_allow.append(protocol)
+    if not protocols_allow:
+        err = "No available allowed protocols for file(lfn: %s, ddmendpoint: %s) with activity(%s)" % (fspec.lfn, fspec.ddmendpoint, activity)
+        logger.error(err)
+        raise PilotException(err)
+    protocol = protocols_allow[0]
+    logger.info("Resolved protocol for file(lfn: %s, ddmendpoint: %s) with activity(%s): %s" % (fspec.lfn, fspec.ddmendpoint, activity, protocol))
+    return protocol
+
+
 def copy_in(files, **kwargs):
     """
         Download given files using rucio copytool.
@@ -44,14 +100,20 @@ def copy_in(files, **kwargs):
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
     ddmconf = kwargs.pop('ddmconf', {})
+    activity = kwargs.pop('activity', None)
 
     for fspec in files:
         cmd = []
+        logger.info("To transfer file: %s" % fspec)
         ddm = ddmconf.get(fspec.ddmendpoint)
         if ddm:
-            ddm_special_setup = ddm.get_special_setup(fspec.protocol_id)
-        if ddm_special_setup:
-            cmd += [ddm_special_setup]
+            protocol = resolve_protocol(fspec, activity, ddm)
+            surls = resolve_surl(fspec, protocol, ddmconf)
+            if 'surl' in surls:
+                fspec.surl = surls['surl']
+            ddm_special_setup = storage_keys.get_special_setup(ddm, protocol.get('id', None))
+            if ddm_special_setup:
+                cmd += [ddm_special_setup]
 
         dst = fspec.workdir or kwargs.get('workdir') or '.'
         cmd += ['/usr/bin/env', 'rucio', '-v', 'download', '--no-subdir', '--dir', dst]
@@ -94,11 +156,12 @@ def copy_out(files, **kwargs):
 
     for fspec in files:
         cmd = []
-        ddm = ddmconf.get(fspec.ddmendpoint)
-        if ddm:
-            ddm_special_setup = ddm.get_special_setup(fspec.protocol_id)
-        if ddm_special_setup:
-            cmd = [ddm_special_setup]
+        if fspec.protocol_id:
+            ddm = ddmconf.get(fspec.ddmendpoint)
+            if ddm:
+                ddm_special_setup = storage_keys.get_special_setup(ddm, fspec.protocol_id)
+                if ddm_special_setup:
+                    cmd = [ddm_special_setup]
 
         cmd += ['/usr/bin/env', 'rucio', '-v', 'upload']
         cmd += ['--rse', fspec.ddmendpoint]

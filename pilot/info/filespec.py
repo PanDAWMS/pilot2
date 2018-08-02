@@ -5,7 +5,6 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
-# - Wen Guan, wen.guan@cern.ch, 2018
 
 """
 The implementation of data structure to host File related data description.
@@ -18,7 +17,6 @@ The main reasons for such incapsulation are to
 :date: April 2018
 """
 
-import traceback
 from .basedata import BaseData
 
 import logging
@@ -44,7 +42,6 @@ class FileSpec(BaseData):
 
     dataset = ""
     ddmendpoint = ""    ## DDMEndpoint name (input or output depending on FileSpec.type)
-    is_user_defined_ddmendpoint = False	  # if ddmendpoint is not set by user, it's True
 
     ## dispatchDblock =  ""       # moved from Pilot1: is it needed? suggest proper internal name?
     ## dispatchDBlockToken = ""   # moved from Pilot1: is it needed? suggest proper internal name?
@@ -58,22 +55,20 @@ class FileSpec(BaseData):
     protocols = None   # list of preferred protocols for requested activity
     surl = ''          # source url
     turl = ''          # transfer url
-    protocol_id = None  # id of the protocol to be used to construct turl
-    storage_id = None  # id of the ddmendpoint
-    path_convention = None  # path convention for eventservice inputs/outputs
     mtime = 0          # file modification time
     status = None      # file transfer status value
     status_code = 0    # file transfer status code
     inputddms = []     # list of DDMEndpoint names which will be considered by default (if set) as allowed storage for input replicas
     workdir = None     # used to declare file-specific work dir (location of given local file when it's used for transfer by copytool)
-    is_tar = False     # whether it's a tar file or not
 
+    protocol_id = None  # id of the protocol to be used to construct turl
+    is_tar = False     # whether it's a tar file or not
     # specify the type of attributes for proper data validation and casting
-    _keys = {int: ['filesize', 'mtime', 'status_code', 'protocol_id', 'storage_id', 'path_convention'],
+    _keys = {int: ['filesize', 'mtime', 'status_code'],
              str: ['lfn', 'guid', 'checksum', 'scope', 'dataset', 'ddmendpoint',
                    'type', 'surl', 'turl', 'status', 'workdir', 'storage_token'],
              list: ['replicas', 'inputddms'],
-             bool: ['is_user_defined_ddmendpoint']
+             bool: []
              }
 
     def __init__(self, type='input', **data):  ## FileSpec can be split into FileSpecInput + FileSpecOuput classes in case of significant logic changes
@@ -138,30 +133,9 @@ class FileSpec(BaseData):
             Could be customized by child object
             :return: None
         """
-        if self.ddmendpoint and len(self.ddmendpoint):
-            self.is_user_defined_ddmendpoint = True
-
         if self.lfn.startswith("zip://"):
             self.lfn = self.lfn.replace("zip://", "")
             self.is_tar = True
-
-        # parse storage_token
-        # Expected format is '<normal storage token as string>', '<storage_id as int>', <storage_id as int/path_convention as int>
-        try:
-            if self.storage_token:
-                if self.storage_token.count('/') == 1:
-                    self.storage_id, self.path_convention = self.storage_token.split('/')
-                    self.storage_id = int(self.storage_id)
-                    self.path_convention = int(self.path_convention)
-                elif self.storage_token.isdigit():
-                    self.storage_id = int(self.storage_token)
-                if self.path_convention == 1000:
-                    self.scope = 'transient'
-
-                # if self.storage_id:
-                #    self.ddmendpoint =  # to be done, to get the ddmendpoint from storage_id
-        except Exception as ex:
-            logger.warning("Failed to parse storage_token(%s): %s, %s" % (self.storage_token, ex, traceback.format_exc()))
 
     def is_directaccess(self, ensure_replica=True):
         """
