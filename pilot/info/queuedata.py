@@ -139,6 +139,8 @@ class QueueData(BaseData):
                 self.container_options = self.container_options.replace(" --contain", ",${workdir} --contain")
                 logger.info("Note: added missing ${workdir} to container_options/singularity_options: %s" % self.container_options)
 
+        pass
+
     ## custom function pattern to apply extra validation to the key values
     ##def clean__keyname(self, raw, value):
     ##  :param raw: raw value passed from ext source as input
