@@ -38,6 +38,9 @@ def execute(executable, **kwargs):
     if type(executable) is list:
         executable = ' '.join(executable)
 
+    logger.info('xx job.imagename=%s' % job.imagename)
+    logger.info('xx usecontainer=%s' % str(usecontainer))
+
     # Import user specific code if necessary (in case the command should be executed in a container)
     # Note: the container.wrapper() function must at least be declared
     if usecontainer:
@@ -56,9 +59,8 @@ def execute(executable, **kwargs):
                     logger.fatal(diagnostics)
             if diagnostics != "":
                 return None if returnproc else -1, "", diagnostics
-    else:
-        # logger.info("will not use container")
-        pass
+        else:
+            logger.warning('container module could not be imported')
 
     if not mute:
         logger.info('executing command: %s' % executable)
