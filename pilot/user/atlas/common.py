@@ -86,8 +86,6 @@ def get_payload_command(job):
             else:
                 cmd += "; " + job.jobparams
 
-        cmd = cmd.replace(';;', ';')
-
     else:  # Generic, non-ATLAS specific jobs, or at least a job with undefined swRelease
 
         log.info("generic job (non-ATLAS specific or with undefined swRelease)")
@@ -118,6 +116,8 @@ def get_payload_command(job):
                 cmd = "python %s %s" % (job.transformation, job.jobparams)
             else:
                 cmd = job.jobparams
+
+    cmd = cmd.replace(';;', ';')
 
     site = os.environ.get('PILOT_SITENAME', '')
     variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
