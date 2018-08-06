@@ -38,10 +38,6 @@ def execute(executable, **kwargs):
     if type(executable) is list:
         executable = ' '.join(executable)
 
-    if job:
-        logger.info('xx job.imagename=%s' % job.imagename)
-        logger.info('xx usecontainer=%s' % str(usecontainer))
-
     # Import user specific code if necessary (in case the command should be executed in a container)
     # Note: the container.wrapper() function must at least be declared
     if usecontainer:

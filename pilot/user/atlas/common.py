@@ -54,8 +54,6 @@ def get_payload_command(job):
 
     cmd = get_setup_command(job, prepareasetup)
 
-    log.info('job.imagename=%s' % job.imagename)
-
     if is_standard_atlas_job(job.swrelease):
 
         # Normal setup (production and user jobs)
@@ -140,6 +138,10 @@ def get_setup_command(job, prepareasetup):
     :param prepareasetup: should the pilot prepare the asetup command itself? boolean.
     :return:
     """
+
+    # return immediately if there is no release
+    if job.swrelease == 'NULL':
+        return ""
 
     # Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
     cmd = get_asetup(asetup=prepareasetup)
