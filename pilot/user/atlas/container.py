@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 import os
 import re
@@ -21,13 +21,32 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def do_use_container(**kwargs):
+    """
+    Decide whether to use a container or not.
+
+    :param kwargs: dictionary of key-word arguments.
+    :return: True is function has decided that a container should be used, False otherwise (boolean).
+    """
+
+    use_container = True
+
+    job = kwargs.get('job')
+    if job:
+        # for user jobs, TRF option --containerImage must have been used, ie imagename must be set
+        if not (job.is_analysis() and job.imagename):
+            use_container = False
+
+    return use_container
+
+
 def wrapper(executable, **kwargs):
     """
     Wrapper function for any container specific usage.
     This function will be called by pilot.util.container.execute() and prepends the executable with a container command.
 
     :param executable: command to be executed (string).
-    :param kwargs:
+    :param kwargs: dictionary of key-word arguments.
     :return: executable wrapped with container command (string).
     """
 
