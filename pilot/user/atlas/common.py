@@ -117,11 +117,11 @@ def get_payload_command(job):
             else:
                 cmd = job.jobparams
 
-    cmd = cmd.replace(';;', ';')
-
     site = os.environ.get('PILOT_SITENAME', '')
     variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
     cmd = ''.join(variables) + cmd
+
+    cmd = cmd.replace(';;', ';')
 
     log.info('payload run command: %s' % cmd)
 
