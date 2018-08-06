@@ -9,6 +9,8 @@
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
+from __future__ import print_function
+
 import argparse
 import logging
 import sys
@@ -27,7 +29,7 @@ from pilot.util.information import set_location
 from pilot.util.workernode import is_virtual_machine
 from pilot.util.timing import add_to_pilot_timing
 
-VERSION = '2018-06-12.001'
+VERSION = '2018-07-20.004'
 
 
 def pilot_version_banner():
@@ -107,6 +109,7 @@ def import_module(**kwargs):
                            '-j': kwargs.get('job_label', 'ptest'),  # change default later to 'managed'
                            '-i': kwargs.get('version_tag', 'PR'),
                            '-t': kwargs.get('verify_proxy', True),
+                           '-z': kwargs.get('update_server', True),
                            '--cacert': kwargs.get('cacert', None),
                            '--capath': kwargs.get('capath'),
                            '--url': kwargs.get('url', ''),
@@ -130,7 +133,7 @@ def import_module(**kwargs):
     args = Args()
     parser = argparse.ArgumentParser()
     for key, value in argument_dictionary.iteritems():
-        print key, value
+        print(key, value)
         parser.add_argument(key)
         parser.parse_args(args=[key, value], namespace=args)  # convert back int and bool strings to int and bool??
 
@@ -201,15 +204,15 @@ if __name__ == '__main__':
 
     arg_parser.add_argument('-z',
                             dest='update_server',
+                            action='store_false',
                             default=True,
-                            type=bool,
-                            help='Update server (default: True)')
+                            help='Disable server updates')
 
     arg_parser.add_argument('-t',
                             dest='verify_proxy',
+                            action='store_false',
                             default=True,
-                            type=bool,
-                            help='Proxy verification (default: True)')
+                            help='Disable proxy verification')
 
     # SSL certificates
     arg_parser.add_argument('--cacert',
@@ -326,8 +329,7 @@ if __name__ == '__main__':
             create_pilot_work_dir(mainworkdir)
         except Exception as e:
             # print to stderr since logging has not been established yet
-            from sys import stderr
-            print >> stderr, 'failed to create workdir at %s -- aborting: %s' % (mainworkdir, e)
+            print('failed to create workdir at %s -- aborting: %s' % (mainworkdir, e), file=sys.stderr)
             sys.exit(FAILURE)
     else:
         mainworkdir = getcwd()

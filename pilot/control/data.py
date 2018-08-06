@@ -12,12 +12,16 @@
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
 
 import copy
-import Queue
 import json
 import os
 import subprocess
 import tarfile
 import time
+
+try:
+    import Queue as queue
+except Exception:
+    import queue  # python 3
 
 from contextlib import closing  # for Python 2.6 compatibility - to fix a problem with tarfile
 
@@ -31,6 +35,7 @@ from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PR
 from pilot.util.container import execute
 from pilot.util.filehandling import find_executable, get_guid, get_local_file_size
 from pilot.util.timing import add_to_pilot_timing
+from pilot.util.tracereport import TraceReport
 
 import logging
 
@@ -41,7 +46,7 @@ errors = ErrorCodes()
 def control(queues, traces, args):
 
     targets = {'copytool_in': copytool_in, 'copytool_out': copytool_out, 'queue_monitoring': queue_monitoring}
-    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
+    threads = [ExcThread(bucket=queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
                          name=name) for name, target in targets.items()]
 
     [thread.start() for thread in threads]
@@ -52,7 +57,7 @@ def control(queues, traces, args):
             bucket = thread.get_bucket()
             try:
                 exc = bucket.get(block=False)
-            except Queue.Empty:
+            except queue.Empty:
                 pass
             else:
                 exc_type, exc_obj, exc_trace = exc
@@ -102,6 +107,8 @@ def use_container(cmd):
 
 
 def _call(args, executable, job, cwd=os.getcwd(), logger=logger):  ### TO BE DEPRECATED
+
+    log = get_logger(job.jobid)
     try:
         # for containers, we can not use a list
         usecontainer = use_container(executable[1])
@@ -113,10 +120,10 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):  ### TO BE DEP
                           usecontainer=usecontainer, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, job=job)
 
     except Exception as e:
-        logger.error('could not execute: %s' % str(e))
+        log.error('could not execute: %s' % str(e))
         return False
 
-    logger.info('started -- pid=%s executable=%s' % (process.pid, executable))
+    log.info('started -- pid=%s executable=%s' % (process.pid, executable))
 
     breaker = False
     exit_code = None
@@ -124,12 +131,12 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):  ### TO BE DEP
         for i in xrange(10):
             if args.graceful_stop.is_set():
                 breaker = True
-                logger.debug('breaking: sending SIGTERM pid=%s' % process.pid)
+                log.debug('breaking: sending SIGTERM pid=%s' % process.pid)
                 process.terminate()
                 break
             time.sleep(0.1)
         if breaker:
-            logger.debug('breaking: sleep 3s before sending SIGKILL pid=%s' % process.pid)
+            log.debug('breaking: sleep 3s before sending SIGKILL pid=%s' % process.pid)
             time.sleep(3)
             process.kill()
             break
@@ -140,16 +147,16 @@ def _call(args, executable, job, cwd=os.getcwd(), logger=logger):  ### TO BE DEP
         else:
             continue
 
-    logger.info('finished -- pid=%s exit_code=%s' % (process.pid, exit_code))
+    log.info('finished -- pid=%s exit_code=%s' % (process.pid, exit_code))
     stdout, stderr = process.communicate()
-    logger.debug('stdout:\n%s' % stdout)
-    logger.debug('stderr:\n%s' % stderr)
+    log.debug('stdout:\n%s' % stdout)
+    log.debug('stderr:\n%s' % stderr)
 
     # in case of problems, try to identify the error (and set it in the job object)
     if stderr != "":
         # rucio stage-out error
         if "Operation timed out" in stderr:
-            logger.warning('rucio stage-in error identified - problem with local storage, stage-in timed out')
+            log.warning('rucio stage-in error identified - problem with local storage, stage-in timed out')
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINTIMEOUT)
 
     if exit_code == 0:
@@ -168,11 +175,22 @@ def _stage_in(args, job):
     # write time stamps to pilot timing file
     add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN, time.time())
 
+    event_type = "get_sm"
+    #if log_transfer:
+    #    eventType += '_logs'
+    #if special_log_transfer:
+    #    eventType += '_logs_os'
+    #if job.isAnalysisJob():
+    #    eventType += "_a"
+    #trace_report = TraceReport(pq=jobSite.sitename, localSite=jobSite.sitename, remoteSite=jobSite.sitename, dataset="", eventType=eventType)
+    trace_report = TraceReport(pq='', localSite='', remoteSite='', dataset="", eventType=event_type)
+    trace_report.init(job)
+
     try:
         client = StageInClient(job.infosys, logger=log)
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
         client.transfer(job.indata, activity='pr', **kwargs)
-    except Exception, error:
+    except Exception as error:
         log.error('Failed to stage-in: error=%s' % error)
         #return False
 
@@ -342,19 +360,29 @@ def copytool_in(queues, traces, args):
 
             send_state(job, args, 'running')
 
-            logger.info('Test job.infosys: queuedata.copytools=%s' % job.infosys.queuedata.copytools)
-            logger.info('Test job.infosys: queuedata.acopytools=%s' % job.infosys.queuedata.acopytools)
+            log = get_logger(job.jobid)
+
+            log.info('Test job.infosys: queuedata.copytools=%s' % job.infosys.queuedata.copytools)
+            log.info('Test job.infosys: queuedata.acopytools=%s' % job.infosys.queuedata.acopytools)
 
             if _stage_in(args, job):
                 queues.finished_data_in.put(job)
+
+                # now create input file metadata if required by the payload
+                pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+                user = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user], -1)
+                file_dictionary = get_input_file_dictionary(job.indata)  # NOTE: add use_turl=True for direct access
+                log.debug('file_dictionary=%s' % str(file_dictionary))
+                xml = user.create_input_file_metadata(file_dictionary, job.workdir)
+                log.info('created input file metadata:\n%s' % xml)
             else:
-                logger.warning('stage-in failed, adding job object to failed_data_in queue')
+                log.warning('stage-in failed, adding job object to failed_data_in queue')
                 queues.failed_data_in.put(job)
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINFAILED)
                 job.state = "failed"
                 # send_state(job, args, 'failed')
 
-        except Queue.Empty:
+        except queue.Empty:
             continue
 
 
@@ -371,8 +399,27 @@ def copytool_out(queues, traces, args):
             else:
                 queues.failed_data_out.put(job)
 
-        except Queue.Empty:
+        except queue.Empty:
             continue
+
+
+def get_input_file_dictionary(indata, use_turl=False):
+    """
+    Return an input file dictionary.
+    Format: {'guid': 'pfn', ..}
+    Normally use_turl would be set to True if direct access is used.
+
+    :param indata: FileSpec object.
+    :param use_turl: if True, the 'pfn' will be set to the turl value, otherwise the surl value will be used.
+    :return: file dictionary.
+    """
+
+    file_dictionary = {}
+
+    for e in indata:
+        file_dictionary[e.guid] = e.turl if use_turl else e.surl
+
+    return file_dictionary
 
 
 def prepare_log(job, logfile, tarball_name):
@@ -502,26 +549,22 @@ def _do_stageout(job, xdata, activity, title):
     log = get_logger(job.jobid)
     log.info('prepare to stage-out %s files' % title)
 
-    error = None
     try:
         client = StageOutClient(job.infosys, logger=log)
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
         client.transfer(xdata, activity, **kwargs)
-    except PilotException, error:
+    except PilotException:
         import traceback
         log.error(traceback.format_exc())
-    except Exception, e:
+    except Exception as e:
         import traceback
         log.error(traceback.format_exc())
-        error = PilotException("stageOut failed with error=%s" % e, code=ErrorCodes.STAGEOUTFAILED)
+        # do not raise the exception since that will prevent also the log from being staged out
+        # error = PilotException("stageOut failed with error=%s" % e, code=ErrorCodes.STAGEOUTFAILED)
 
-    log.info('Summary of transferred files:')
+    log.info('summary of transferred files:')
     for e in xdata:
         log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
-
-    if error:
-        log.error('Failed to stage-out %s file(s): error=%s' % (error, title))
-        raise error
 
     remain_files = [e for e in xdata if e.status not in ['transferred']]
 
@@ -734,38 +777,53 @@ def queue_monitoring(queues, traces, args):
         # monitor the failed_data_in queue
         try:
             job = queues.failed_data_in.get(block=True, timeout=1)
-        except Queue.Empty:
+        except queue.Empty:
             pass
         else:
+            log = get_logger(job.jobid)
+
             # stage-out log file then add the job to the failed_jobs queue
             job.stageout = "log"
             if not _stage_out_new(job, args):
-                logger.info("job %s failed during stage-in and stage-out of log, adding job object to failed_data_outs "
-                            "queue" % job.jobid)
+                log.info("job %s failed during stage-in and stage-out of log, adding job object to failed_data_outs "
+                         "queue" % job.jobid)
                 queues.failed_data_out.put(job)
             else:
-                logger.info("job %s failed during stage-in, adding job object to failed_jobs queue" % job.jobid)
+                log.info("job %s failed during stage-in, adding job object to failed_jobs queue" % job.jobid)
                 queues.failed_jobs.put(job)
 
         # monitor the finished_data_out queue
         try:
             job = queues.finished_data_out.get(block=True, timeout=1)
-        except Queue.Empty:
+        except queue.Empty:
             pass
         else:
+            log = get_logger(job.jobid)
+
             # use the payload/transform exitCode from the job report if it exists
-            if job.transexitcode == 0 and job.exitcode == 0:
-                logger.info('finished stage-out for finished payload, adding job to finished_jobs queue')
+            if job.transexitcode == 0 and job.exitcode == 0 and job.piloterrorcodes == []:
+                log.info('finished stage-out for finished payload, adding job to finished_jobs queue')
                 queues.finished_jobs.put(job)
             else:
-                logger.info('finished stage-out (of log) for failed payload')
+                log.info('finished stage-out (of log) for failed payload')
                 queues.failed_jobs.put(job)
 
         # monitor the failed_data_out queue
         try:
             job = queues.failed_data_out.get(block=True, timeout=1)
-        except Queue.Empty:
+        except queue.Empty:
             pass
         else:
-            logger.info("job %s failed during stage-out, adding job object to failed_jobs queue" % job.jobid)
+            log = get_logger(job.jobid)
+
+            # attempt to upload the log in case the previous stage-out failure was not an SE error
+            job.stageout = "log"
+            job.state = "failed"
+            if not _stage_out_new(job, args):
+                log.info("job %s failed during stage-out of data file(s) as well as during stage-out of log, "
+                         "adding job object to failed_jobs queue" % job.jobid)
+            else:
+                log.info("job %s failed during stage-out of data file(s) - stage-out of log succeeded, adding job "
+                         "object to failed_jobs queue" % job.jobid)
+
             queues.failed_jobs.put(job)

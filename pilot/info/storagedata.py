@@ -38,6 +38,8 @@ class StorageData(BaseData):
     pk = 0        # unique identification number
     name = ""     # DDMEndpoint name
     type = ""     # type of Storage
+    token = ""    # space token descriptor
+
     is_deterministic = None
 
     state = None
@@ -47,7 +49,7 @@ class StorageData(BaseData):
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['pk'],
-             str: ['name', 'state', 'site', 'type'],
+             str: ['name', 'state', 'site', 'type', 'token'],
              dict: ['copytools', 'acopytools', 'astorages', 'arprotocols'],
              bool: ['is_deterministic']
              }

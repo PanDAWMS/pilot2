@@ -11,17 +11,21 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
 
-import Queue
 import json
 import os
 import time
+
+try:
+    import Queue as queue
+except Exception:
+    import queue  # python 3
 
 from pilot.control.payloads import generic, eventservice
 from pilot.control.job import send_state
 from pilot.util.auxiliary import get_logger
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
-from pilot.util.filehandling import read_file
+from pilot.util.filehandling import read_file, get_guid
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
 
@@ -43,7 +47,7 @@ def control(queues, traces, args):
 
     targets = {'validate_pre': validate_pre, 'execute_payloads': execute_payloads, 'validate_post': validate_post,
                'failed_post': failed_post}
-    threads = [ExcThread(bucket=Queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
+    threads = [ExcThread(bucket=queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
                          name=name) for name, target in targets.items()]
 
     [thread.start() for thread in threads]
@@ -54,7 +58,7 @@ def control(queues, traces, args):
             bucket = thread.get_bucket()
             try:
                 exc = bucket.get(block=False)
-            except Queue.Empty:
+            except queue.Empty:
                 pass
             else:
                 exc_type, exc_obj, exc_trace = exc
@@ -79,7 +83,7 @@ def validate_pre(queues, traces, args):
     while not args.graceful_stop.is_set():
         try:
             job = queues.payloads.get(block=True, timeout=1)
-        except Queue.Empty:
+        except queue.Empty:
             continue
 
         if _validate_payload(job):
@@ -150,7 +154,7 @@ def execute_payloads(queues, traces, args):
             exit_code = payload_executor.run()
 
             cpuconsumptiontime = get_cpu_consumption_time(job.t0)
-            job.cpuconsumptiontime = int(cpuconsumptiontime)
+            job.cpuconsumptiontime = int(round(cpuconsumptiontime))
             job.cpuconsumptionunit = "s"
             job.cpuconversionfactor = 1.0
             log.info('CPU consumption time: %f %s (rounded to %d %s)' %
@@ -174,7 +178,7 @@ def execute_payloads(queues, traces, args):
                 job.transexitcode = exit_code
                 queues.failed_payloads.put(job)
 
-        except Queue.Empty:
+        except queue.Empty:
             continue
         except Exception as e:
             logger.fatal('execute payloads caught an exception (cannot recover): %s' % e)
@@ -201,7 +205,14 @@ def process_job_report(job):
     log = get_logger(job.jobid)
     path = os.path.join(job.workdir, config.Payload.jobreport)
     if not os.path.exists(path):
-        log.warning('job report does not exist: %s' % path)
+        log.warning('job report does not exist: %s (any missing output file guids must be generated)' % path)
+
+        # add missing guids
+        for dat in job.outdata:
+            if not dat.guid:
+                dat.guid = get_guid()
+                log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
+
     else:
         with open(path) as data_file:
             # compulsory field; the payload must produce a job report (see config file for file name)
@@ -245,9 +256,12 @@ def validate_post(queues, traces, args):
         # finished payloads
         try:
             job = queues.finished_payloads.get(block=True, timeout=1)
-        except Queue.Empty:
+        except queue.Empty:
             continue
         log = get_logger(job.jobid)
+
+        # by default, both output and log should be staged out
+        job.stageout = 'all'
 
         # process the job report if it exists and set multiple fields
         process_job_report(job)
@@ -270,7 +284,7 @@ def failed_post(queues, traces, args):
         # finished payloads
         try:
             job = queues.failed_payloads.get(block=True, timeout=1)
-        except Queue.Empty:
+        except queue.Empty:
             continue
         log = get_logger(job.jobid)
 

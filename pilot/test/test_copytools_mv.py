@@ -11,7 +11,6 @@ import string
 import tempfile
 import shutil
 import random
-import os
 import os.path
 
 from pilot.copytool.mv import copy_in, copy_out
@@ -32,11 +31,12 @@ class TestCopytoolMv(unittest.TestCase):
     maxFileSize = 100 * 1024
 
     def setUp(self):
-        """ Create temp destination directory """
-        self.tmp_dst_dir = tempfile.mkdtemp()
 
         """ Create temp source directory """
         self.tmp_src_dir = tempfile.mkdtemp()
+        """ Create temp destination directory """
+        self.tmp_dst_dir = os.path.join(self.tmp_src_dir, 'dest')
+        os.mkdir(self.tmp_dst_dir)
 
         #self.filelist = []
 
@@ -113,17 +113,17 @@ class TestCopytoolMv(unittest.TestCase):
         self.outdata = []  # jdata.prepare_outfiles(data)
 
     def test_copy_in_mv(self):
-        _, stdout1, stderr1 = execute(' '.join(['ls', self.tmp_src_dir]))
-        copy_in(self.indata)
-        # here check files copied
-        self.assertEqual(self.__dirs_content_valid(self.tmp_src_dir, self.tmp_dst_dir, dir1_expected_content='', dir2_expected_content=stdout1), 0)
+        _, stdout1, stderr1 = execute(' '.join(['ls', self.tmp_src_dir, '|', 'grep', '-v', 'dest']))
+        copy_in(self.indata, copy_type='mv', workdir=self.tmp_dst_dir)
+        # here check files moved
+        self.assertEqual(self.__dirs_content_valid(self.tmp_src_dir, self.tmp_dst_dir, dir2_expected_content=stdout1), 0)
 
     def test_copy_in_cp(self):
-        copy_in(self.indata, copy_type='cp')
+        copy_in(self.indata, copy_type='cp', workdir=self.tmp_dst_dir)
         self.assertEqual(self.__dirs_content_equal(self.tmp_src_dir, self.tmp_dst_dir), 0)
 
     def test_copy_in_symlink(self):
-        copy_in(self.indata, copy_type='symlink')
+        copy_in(self.indata, copy_type='symlink', workdir=self.tmp_dst_dir)
         # here check files linked
         self.assertEqual(self.__dirs_content_equal(self.tmp_src_dir, self.tmp_dst_dir), 0)
         # check dst files are links
@@ -159,8 +159,8 @@ class TestCopytoolMv(unittest.TestCase):
     def __dirs_content_equal(self, dir1, dir2):
         if dir1 == '' or dir2 == '' or dir1 is None or dir2 is None:
             return -1
-        _, stdout1, stderr1 = execute(' '.join(['ls', dir1]))
-        _, stdout2, stderr2 = execute(' '.join(['ls', dir2]))
+        _, stdout1, stderr1 = execute(' '.join(['ls', dir1, '|', 'grep', '-v', 'dest']))
+        _, stdout2, stderr2 = execute(' '.join(['ls', dir2, '|', 'grep', '-v', 'dest']))
         if stdout1 != stdout2:
             return -2
         return 0
@@ -169,10 +169,10 @@ class TestCopytoolMv(unittest.TestCase):
         # currently this fails: need to fix
         if dir1 == '' or dir2 == '' or dir1 is None or dir2 is None:
             return -1
-        _, stdout1, stderr1 = execute(' '.join(['ls', dir1]))
+        _, stdout1, stderr1 = execute(' '.join(['ls', dir1, '|', 'grep', '-v', 'dest']))
         if dir1_expected_content is not None and stdout1 != dir1_expected_content:
             return -3
-        _, stdout2, stderr2 = execute(' '.join(['ls', dir2]))
+        _, stdout2, stderr2 = execute(' '.join(['ls', dir2, '|', 'grep', '-v', 'dest']))
         if dir2_expected_content is not None and stdout2 != dir2_expected_content:
             return -4
         return 0

@@ -1,5 +1,5 @@
 ..
-    Pilot 2 pilot.control.lifetime doc file
+    Pilot 2 pilot.api.services doc file
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -7,12 +7,12 @@
     http://www.apache.org/licenses/LICENSE-2.0
 
     Authors:
-     - Paul Nilsson, paul.nilsson@cern.ch, 2017
+     - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
-lifetime
+services
 ========
 
-.. automodule:: pilot.control.lifetime
+.. automodule:: pilot.api.services
     :members:
     :private-members:
     :special-members:

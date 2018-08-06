@@ -34,6 +34,7 @@ def find_processes_in_group(cpids, pid):
     """
 
     cpids.append(pid)
+
     cmd = "ps -eo pid,ppid -m | grep %d" % pid
     exit_code, psout, stderr = execute(cmd, mute=True)
 
@@ -43,8 +44,8 @@ def find_processes_in_group(cpids, pid):
             try:
                 thispid = int(lines[i].split()[0])
                 thisppid = int(lines[i].split()[1])
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning('exception caught: %s' % e)
             if thisppid == pid:
                 find_processes_in_group(cpids, thispid)
 
@@ -392,7 +393,7 @@ def get_instant_cpu_consumption_time(pid):
     processes, since the main process is most likely spawning new processes.
 
     :param pid: process id (int).
-    :return:  system+user time for a given pid (float).
+    :return: system+user time for a given pid (float).
     """
 
     utime = None
@@ -419,6 +420,27 @@ def get_instant_cpu_consumption_time(pid):
         cpu_consumption_time = 0.0
 
     return cpu_consumption_time
+
+
+def get_current_cpu_consumption_time(pid):
+    """
+    Get the current CPU consumption time (system+user time) for a given process, by looping over all child processes.
+
+    :param pid: process id (int).
+    :return: system+user time for a given pid (float).
+    """
+
+    # get all the child processes
+    children = []
+    find_processes_in_group(children, pid)
+
+    cpuconsumptiontime = 0
+    for _pid in children:
+        _cpuconsumptiontime = get_instant_cpu_consumption_time(_pid)
+        if _cpuconsumptiontime:
+            cpuconsumptiontime += _cpuconsumptiontime
+
+    return cpuconsumptiontime
 
 
 def get_core_count(job):

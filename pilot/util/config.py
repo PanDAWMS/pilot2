@@ -6,13 +6,16 @@
 #
 # Authors:
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
-
-import ConfigParser
 import os
 import re
 import collections
 
+try:
+    import ConfigParser
+except Exception:
+    import configparser as ConfigParser  # python 3
 
 _section_internal = collections.namedtuple('config', 'conf name')
 

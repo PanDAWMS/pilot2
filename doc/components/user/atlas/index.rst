@@ -19,6 +19,7 @@ atlas components
     container
     jobmetrics
     loopingjob_definitions
+    memory
     nordugrid
     proxy
     setup

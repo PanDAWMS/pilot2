@@ -19,5 +19,6 @@ generic components
     container
     jobmetrics
     loopingjob_definitions
+    memory
     proxy
     setup

@@ -52,34 +52,12 @@ def get_payload_command(job):
     # Get the platform value
     # platform = job.infosys.queuedata.platform
 
-    # Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
-    asetuppath = get_asetup(asetup=prepareasetup)
-    asetupoptions = " "
+    cmd = get_setup_command(job, prepareasetup)
 
     if is_standard_atlas_job(job.swrelease):
 
         # Normal setup (production and user jobs)
         log.info("preparing normal production/analysis job setup command")
-
-        cmd = asetuppath
-        if prepareasetup:
-            options = get_asetup_options(job.swrelease, job.homepackage)
-            asetupoptions = " " + options + " --platform " + job.platform
-
-            # Always set the --makeflags option (to prevent asetup from overwriting it)
-            asetupoptions += ' --makeflags=\"$MAKEFLAGS\"'
-
-            # Verify that the setup works
-            # exitcode, output = timedCommand(cmd, timeout=5 * 60)
-            # if exitcode != 0:
-            #     if "No release candidates found" in output:
-            #         pilotErrorDiag = "No release candidates found"
-            #         logger.warning(pilotErrorDiag)
-            #         return self.__error.ERR_NORELEASEFOUND, pilotErrorDiag, "", special_setup_cmd, JEM, cmtconfig
-            # else:
-            #     logger.info("verified setup command")
-
-            cmd += asetupoptions
 
         if userjob:
             # set the INDS env variable (used by runAthena)
@@ -90,14 +68,10 @@ def get_payload_command(job):
             if ec != 0:
                 raise TrfDownloadFailure(diagnostics)
             else:
-                log.info('user analysis trf: %s' % trf_name)
+                log.debug('user analysis trf: %s' % trf_name)
 
             if prepareasetup:
-                ec, diagnostics, _cmd = get_analysis_run_command(job, trf_name)
-                if ec != 0:
-                    pass
-                else:
-                    log.info('user analysis run command: %s' % _cmd)
+                _cmd = get_analysis_run_command(job, trf_name)
             else:
                 _cmd = job.jobparams
 
@@ -108,7 +82,7 @@ def get_payload_command(job):
             cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
             # Add the transform and the job parameters (production jobs)
             if prepareasetup:
-                cmd += ";%s %s" % (job.transformation, job.jobparams)
+                cmd += "; %s %s" % (job.transformation, job.jobparams)
             else:
                 cmd += "; " + job.jobparams
 
@@ -118,13 +92,95 @@ def get_payload_command(job):
 
         log.info("generic job (non-ATLAS specific or with undefined swRelease)")
 
-        cmd = ""
+        if userjob:
+            # Try to download the trf
+            ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
+            if ec != 0:
+                raise TrfDownloadFailure(diagnostics)
+            else:
+                log.debug('user analysis trf: %s' % trf_name)
+
+            if prepareasetup:
+                _cmd = get_analysis_run_command(job, trf_name)
+            else:
+                _cmd = job.jobparams
+
+            # correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
+            cmd += "; " + add_makeflags(job.corecount, "") + _cmd
+
+        elif verify_release_string(job.homepackage) != 'NULL' and job.homepackage != ' ':
+            if prepareasetup:
+                cmd = "python %s/%s %s" % (job.homepackage, job.transformation, job.jobparams)
+            else:
+                cmd = job.jobparams
+        else:
+            if prepareasetup:
+                cmd = "python %s %s" % (job.transformation, job.jobparams)
+            else:
+                cmd = job.jobparams
 
     site = os.environ.get('PILOT_SITENAME', '')
     variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
     cmd = ''.join(variables) + cmd
 
+    log.info('payload run command: %s' % cmd)
+
     return cmd
+
+
+def get_setup_command(job, prepareasetup):
+    """
+    Return the path to asetup command, the asetup command itself and add the options (if desired).
+    If prepareasetup is False, the function will only return the path to the asetup script. It is then assumed
+    to be part of the job parameters.
+
+    :param job: job object.
+    :param prepareasetup: should the pilot prepare the asetup command itself? boolean.
+    :return:
+    """
+
+    # Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
+    cmd = get_asetup(asetup=prepareasetup)
+
+    if prepareasetup:
+        options = get_asetup_options(job.swrelease, job.homepackage)
+        asetupoptions = " " + options + " --platform " + job.platform
+
+        # Always set the --makeflags option (to prevent asetup from overwriting it)
+        asetupoptions += ' --makeflags=\"$MAKEFLAGS\"'
+
+        # Verify that the setup works
+        # exitcode, output = timedCommand(cmd, timeout=5 * 60)
+        # if exitcode != 0:
+        #     if "No release candidates found" in output:
+        #         pilotErrorDiag = "No release candidates found"
+        #         logger.warning(pilotErrorDiag)
+        #         return self.__error.ERR_NORELEASEFOUND, pilotErrorDiag, "", special_setup_cmd, JEM, cmtconfig
+        # else:
+        #     logger.info("verified setup command")
+
+        cmd += asetupoptions
+
+    return cmd
+
+
+def verify_release_string(release):
+    """
+    Verify that the release (or homepackage) string is set.
+
+    :param release: release or homepackage string that might or might not be set.
+    :return: release (set string).
+    """
+
+    if release is None:
+        release = ""
+    release = release.upper()
+    if release == "":
+        release = "NULL"
+    if release == "NULL":
+        logger.info("detected unset (NULL) release/homepackage string")
+
+    return release
 
 
 def add_makeflags(job_core_count, cmd):
@@ -162,13 +218,13 @@ def get_analysis_run_command(job, trf_name):
     """
     Return the proper run command for the user job.
 
+    Example output: export X509_USER_PROXY=<..>;./runAthena <job parameters> --usePFCTurl --directIn
+
     :param job: job object.
     :param trf_name: name of the transform that will run the job (string).
-    :return: exit code (int), diagnostics (string), command (string).
+    :return: command (string).
     """
 
-    exit_code = 0
-    diagnostics = ""
     cmd = ""
 
     log = get_logger(job.jobid)
@@ -177,7 +233,6 @@ def get_analysis_run_command(job, trf_name):
     use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype,
                                                                             job.is_build_job(),
                                                                             job.infosys.queuedata)
-
     # add the user proxy
     if 'X509_USER_PROXY' in os.environ:
         cmd += 'export X509_USER_PROXY=%s;' % os.environ.get('X509_USER_PROXY')
@@ -200,9 +255,10 @@ def get_analysis_run_command(job, trf_name):
     # get the correct guids list (with only the direct access files)
     if not job.is_build_job():
         _guids = get_guids_from_jobparams(job.jobparams, job.infiles, job.infilesguids)
-        cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
+        if _guids:
+            cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
 
-    return exit_code, diagnostics, cmd
+    return cmd
 
 
 def update_forced_accessmode(log, cmd, transfertype, jobparams, trf_name):
@@ -368,6 +424,8 @@ def update_job_data(job):  # noqa: C901
     ## since in general it's Job related part
     ## later on once we introduce VO specific Job class (inherited from JobData) this can be easily customized
 
+    log = get_logger(job.jobid)
+
     stageout = "all"
 
     # handle any error codes
@@ -376,12 +434,12 @@ def update_job_data(job):  # noqa: C901
         if job.exeerrorcode == 0:
             stageout = "all"
         else:
-            logger.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
+            log.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
             stageout = "log"
     if 'exeErrorDiag' in job.metadata:
         job.exeerrordiag = job.metadata['exeErrorDiag']
         if job.exeerrordiag:
-            logger.warning('payload failed: exeErrorDiag=%s' % job.exeerrordiag)
+            log.warning('payload failed: exeErrorDiag=%s' % job.exeerrordiag)
 
     # determine what should be staged out
     job.stageout = stageout  # output and log file or only log file
@@ -393,11 +451,12 @@ def update_job_data(job):  # noqa: C901
     try:
         work_attributes = parse_jobreport_data(job.metadata)
     except Exception as e:
-        logger.warning('failed to parse job report: %s' % e)
+        log.warning('failed to parse job report: %s' % e)
 
-    logger.info('work_attributes = %s' % work_attributes)
+    log.info('work_attributes = %s' % work_attributes)
 
     # extract output files from the job report, in case the trf has created additional (overflow) files
+    # also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
     if job.metadata:
         data = dict([e.lfn, e] for e in job.outdata)
         extra = []
@@ -405,9 +464,14 @@ def update_job_data(job):  # noqa: C901
         for dat in job.metadata.get('files', {}).get('output', []):
             for fdat in dat.get('subFiles', []):
                 lfn = fdat['name']
-                if lfn not in data:  # found new entry, create filespec
+
+                # verify the guid if the lfn is known
+                if lfn in data:
+                    data[lfn].guid = fdat['file_guid']
+                    logger.info('set guid=%s for lfn=%s (value taken from job report)' % (data[lfn].guid, lfn))
+                else:  # found new entry, create filespec
                     if not job.outdata:
-                        raise PilotException("Failed to grub data from job report: job.outdata is empty, will not be able to construct filespecs")
+                        raise PilotException("job.outdata is empty, will not be able to construct filespecs")
                     kw = {'lfn': lfn,
                           'scope': job.outdata[0].scope,  ## take value from 1st output file?
                           'guid': fdat['file_guid'],
@@ -418,14 +482,18 @@ def update_job_data(job):  # noqa: C901
                     extra.append(spec)
 
         if extra:
-            logger.info('Found extra output files to be added for stage-out: extra=%s' % extra)
+            log.info('found extra output files to be added for stage-out: extra=%s' % extra)
             job.outdata.extend(extra)
+    else:
+        log.warning('job.metadata not set')
 
     ## validate output data (to be moved into the JobData)
+    ## warning: do no execute this code unless guid lookup in job report has failed - pilot should only generate guids
+    ## if they are not present in job report
     for dat in job.outdata:
         if not dat.guid:
             dat.guid = get_guid()
-            logger.info('Generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
+            log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
 
 
 def parse_jobreport_data(job_report):
@@ -557,7 +625,6 @@ def get_number_of_events(jobreport_dictionary):
         for format in executor_dictionary.keys():  # "RAWtoESD", ..
             if 'nevents' in executor_dictionary[format]:
                 if format in nevents:
-                    print executor_dictionary[format]['nevents']
                     nevents[format] += executor_dictionary[format]['nevents']
                 else:
                     nevents[format] = executor_dictionary[format]['nevents']
@@ -568,7 +635,7 @@ def get_number_of_events(jobreport_dictionary):
     if nevents != {}:
         try:
             nmax = max(nevents.values())
-        except Exception, e:
+        except Exception as e:
             logger.warning("exception caught: %s" % (e))
             nmax = 0
     else:
@@ -822,7 +889,7 @@ def remove_redundant_files(workdir, outputfiles=[]):
     # remove core and pool.root files from AthenaMP sub directories
     try:
         cleanup_payload(workdir, outputfiles)
-    except Exception, e:
+    except Exception as e:
         logger.warning("failed to execute cleanup_payload(): %s" % e)
 
     # explicitly remove any soft linked archives (.a files) since they will be dereferenced by the tar command

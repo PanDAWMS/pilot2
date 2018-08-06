@@ -28,6 +28,7 @@ class ErrorCodes:
     USERDIRTOOLARGE = 1104
     STDOUTTOOBIG = 1106
     SETUPFAILURE = 1110
+    OUTPUTFILETOOLARGE = 1124
     MKDIR = 1134
     STAGEOUTFAILED = 1137
     PUTMD5MISMATCH = 1141
@@ -42,6 +43,7 @@ class ErrorCodes:
     GETADMISMATCH = 1171
     PUTADMISMATCH = 1172
     NOVOMSPROXY = 1177
+    PAYLOADEXCEEDMAXMEM = 1235
     CHKSUMNOTSUP = 1242
 
     # Error code constants (new since Pilot 2)
@@ -56,7 +58,10 @@ class ErrorCodes:
     SINGULARITYBINDPOINTFAILURE = 1308
     SINGULARITYIMAGEMOUNTFAILURE = 1309
     PAYLOADEXECUTIONEXCEPTION = 1310
-    NOSTORAGEPROTOCOL = 1311
+    NOTDEFINED = 1311
+    NOTSAMELENGTH = 1312
+    NOSTORAGEPROTOCOL = 1313
+    UNKNOWNCHECKSUMTYPE = 1314
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -67,6 +72,7 @@ class ErrorCodes:
         USERDIRTOOLARGE: "User work directory too large",
         STDOUTTOOBIG: "Payload log or stdout file too big",
         SETUPFAILURE: "Failed during payload setup",
+        OUTPUTFILETOOLARGE: "Output file too large",
         MKDIR: "Failed to create local directory",
         STAGEOUTFAILED: "Failed to stage-out file",
         PUTMD5MISMATCH: "md5sum mismatch on output file",
@@ -80,6 +86,8 @@ class ErrorCodes:
         GETADMISMATCH: "adler32 mismatch on input file",
         PUTADMISMATCH: "adler32 mismatch on output file",
         NOVOMSPROXY: "Voms proxy not valid",
+        PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
+        CHKSUMNOTSUP: "Mover error: query checksum is not supported",
         NOTIMPLEMENTED: "The class or function is not implemented",
         UNKNOWNEXCEPTION: "An unknown pilot exception has occurred",
         CONVERSIONFAILURE: "Failed to convert object data",
@@ -91,9 +99,10 @@ class ErrorCodes:
         SINGULARITYBINDPOINTFAILURE: "Singularity: Not mounting requested bind point",
         SINGULARITYIMAGEMOUNTFAILURE: "Singularity: Failed to mount image",
         PAYLOADEXECUTIONEXCEPTION: "Exception caught during payload execution",
+        NOTDEFINED: "Not defined",
+        NOTSAMELENGTH: "Not same length",
         NOSTORAGEPROTOCOL: "No protocol defined for storage endpoint",
-        CHKSUMNOTSUP: "Mover error: query checksum is not supported",
-
+        UNKNOWNCHECKSUMTYPE: "Unknown checksum type",
     }
 
     def get_error_message(self, errorcode):

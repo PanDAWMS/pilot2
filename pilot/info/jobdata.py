@@ -28,6 +28,7 @@ import pipes
 
 from .basedata import BaseData
 from .filespec import FileSpec
+from pilot.util.filehandling import get_guid
 
 import logging
 logger = logging.getLogger(__name__)
@@ -80,6 +81,8 @@ class JobData(BaseData):
     cpuconversionfactor = 1
     nevents = 0  # number of events
     neventsw = 0  # number of events written
+    dbtime = None
+    dbdata = None
     payload = ""  # payload name
     utilities = {}  # utility processes { <name>: [<process handle>, number of launches, command string], .. }
     pid = None  # payload pid
@@ -99,6 +102,9 @@ class JobData(BaseData):
     destinationdblock = ""  ## to be moved to FileSpec (job.outdata)
     datasetin = ""  ## TO BE DEPRECATED: moved to FileSpec (job.indata)
     #datasetout = ""
+    debug = False
+    produserid = ""  # the user DN (added to trace report)
+    jobdefinitionid = ""  # the job definition id (added to trace report)
 
     infiles = ""  # comma-separated list (string) of input files  ## TO BE DEPRECATED: moved to FileSpec (use job.indata instead)
     infilesguids = ""
@@ -129,7 +135,7 @@ class JobData(BaseData):
                    'attemptnr', 'nevents', 'neventsw', 'pid'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
                    'state', 'status', 'workdir', 'stageout',
-                   'platform', 'piloterrordiag', 'exitmsg',
+                   'platform', 'piloterrordiag', 'exitmsg', 'produserid', 'jobdefinitionid',
                    'infiles',         ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'scopein',        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'outfiles', 'ddmendpointin',   ## TO BE DEPRECATED: moved to FileSpec (job.indata)
@@ -142,7 +148,7 @@ class JobData(BaseData):
                    'infilesguids'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
              dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
-             bool: ['is_eventservice', 'noexecstrcnv']
+             bool: ['is_eventservice', 'noexecstrcnv', 'debug']
              }
 
     def __init__(self, data):
@@ -200,8 +206,13 @@ class JobData(BaseData):
 
     def prepare_outfiles(self, data):
         """
-            Construct validated FileSpec objects for output and log files from raw dict `data`
-            :return: (list of `FileSpec` for output, list of `FileSpec` for log)
+        Construct validated FileSpec objects for output and log files from raw dict `data`
+        Note: final preparation for output files can only be done after the payload has finished in case the payload
+        has produced a job report with e.g. output file guids. This is verified in
+        pilot/control/payload/process_job_report().
+
+        :param data:
+        :return: (list of `FileSpec` for output, list of `FileSpec` for log)
         """
 
         # form raw list data from input comma-separated values for further validataion by FileSpec
@@ -246,6 +257,8 @@ class JobData(BaseData):
                 ftype = 'log'
                 idat['guid'] = data.get('logGUID')
                 ret = ret_log
+            elif lfn.endswith('.lib.tgz'):  # build job case, generate a guid for the lib file
+                idat['guid'] = get_guid()
 
             finfo = FileSpec(type=ftype, **idat)
             ret.append(finfo)
@@ -328,6 +341,8 @@ class JobData(BaseData):
             'noexecstrcnv': 'noExecStrCnv',
             'swrelease': 'swRelease',
             'jobsetid': 'jobsetID',
+            'produserid': 'prodUserID',
+            'jobdefinitionid': 'jobDefinitionID',
             'is_eventservice': 'eventService',  ## is it coming from Job def?? yes (PN)
         }
 
@@ -407,7 +422,7 @@ class JobData(BaseData):
 
         :param raw: (unused).
         :param value: job parameters (string).
-        :return: updated job parameers (string).
+        :return: updated job parameters (string).
         """
 
         ## clean job params from Pilot1 old-formatted options
@@ -491,7 +506,7 @@ class JobData(BaseData):
 
         try:
             args = shlex.split(data)
-        except ValueError, e:
+        except ValueError as e:
             logger.error('Failed to parse input arguments from data=%s, error=%s .. skipped.' % (data, e.message))
             return {}, data
 
@@ -517,7 +532,7 @@ class JobData(BaseData):
             val = opts.get(opt)
             try:
                 val = fcast(val) if callable(fcast) else val
-            except Exception, e:
+            except Exception as e:
                 logger.error('Failed to extract value for option=%s from data=%s: cast function=%s failed, exception=%s .. skipped' % (opt, val, fcast, e))
                 continue
             ret[opt] = val
@@ -572,9 +587,10 @@ class JobData(BaseData):
                     continue
                 pfn = os.path.join(self.workdir, fspec.lfn)
                 if not os.path.isfile(pfn):
-                    msg = "Error: pfn file=%s does not exist .. skip from wordir size calculation: %s" % pfn
+                    msg = "Error: pfn file=%s does not exist (skip from wordir size calculation)" % pfn
                     logger.info(msg)
-                total_size += os.path.getsize(pfn)
+                else:
+                    total_size += os.path.getsize(pfn)
 
             logger.info("total size of present input+output files: %d B (workdir size: %d B)" %
                         (total_size, workdir_size))

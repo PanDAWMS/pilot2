@@ -5,16 +5,21 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 import json
 import logging
 import os
-import Queue
 import re
 import signal
 import subprocess
 import time
 import threading
+
+try:
+    import Queue as queue
+except Exception:
+    import queue  # python 3
 
 from pilot.common.exception import PilotException, MessageFailure, SetupFailure, RunPayloadFailure, UnknownException
 from pilot.eventservice.esmessage import MessageThread
@@ -41,7 +46,7 @@ class ESProcess(threading.Thread):
         """
         threading.Thread.__init__(self)
 
-        self.__message_queue = Queue.Queue()
+        self.__message_queue = queue.Queue()
         self.__payload = payload
 
         self.__message_thread = None
@@ -314,7 +319,7 @@ class ESProcess(threading.Thread):
 
         try:
             message = self.__message_queue.get(False)
-        except Queue.Empty:
+        except queue.Empty:
             pass
         else:
             logger.debug('received message from payload: %s' % message)

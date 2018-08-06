@@ -108,7 +108,7 @@ class DataLoader(object):
                             logger.info('saved data from "%s" resource into file=%s, length=%.1fKb' %
                                         (url, fname, len(content) / 1024.))
                     return content
-                except Exception, e:  # ignore errors, try to use old cache if any
+                except Exception as e:  # ignore errors, try to use old cache if any
                     logger.warning('failed to load data from url=%s, error: %s .. trying to use data from cache=%s' %
                                    (url, e, fname))
                     # will try to use old cache below
@@ -124,7 +124,7 @@ class DataLoader(object):
         try:
             with open(fname, 'r') as f:
                 content = f.read()
-        except Exception, e:
+        except Exception as e:
             logger.warning("cache file=%s is not available: %s .. skipped" % (fname, e))
             return None
 
@@ -172,7 +172,7 @@ class DataLoader(object):
                 parser = jsonparser
             try:
                 data = parser(content)
-            except Exception, e:
+            except Exception as e:
                 logger.fatal("failed to parse data from source=%s .. skipped, error=%s" % (dat.get('url'), e))
                 data = None
             if data:

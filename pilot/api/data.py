@@ -8,6 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
+# - Alexey Anisenkov, anisyonk@cern.ch, 2018
 
 # refactored by Alexey Anisenkov
 
@@ -17,6 +18,7 @@ import logging
 
 from pilot.info import infosys
 from pilot.common.exception import PilotException, ErrorCodes
+from pilot.util.filehandling import calculate_checksum
 
 
 class StagingClient(object):
@@ -130,13 +132,13 @@ class StagingClient(object):
             try:
                 logger.info('Call rucio.list_replicas() with query=%s' % query)
                 replicas = c.list_replicas(**query)
-            except TypeError, e:
+            except TypeError as e:
                 if query == bquery:
                     raise
                 logger.warning("Detected outdated Rucio list_replicas(), cannot do geoip-sorting: %s .. fallback to old list_replicas() call" % e)
                 replicas = c.list_replicas(**bquery)
 
-        except Exception, e:
+        except Exception as e:
             raise PilotException("Failed to get replicas from Rucio: %s" % e)  #, code=ErrorCodes.XX__FAILEDLFCGETREPS)
 
         replicas = list(replicas)
@@ -235,9 +237,9 @@ class StagingClient(object):
             s.connect(("8.8.8.8", 80))
             ip = s.getsockname()[0]
             ret = {'ip': ip, 'fqdn': socket.getfqdn(), 'site': site}
-        except Exception, e:
+        except Exception as e:
             #self.log('socket() failed to lookup local IP')
-            print 'socket() failed to lookup local IP: %s' % e
+            print('socket() failed to lookup local IP: %s' % e)
 
         return ret
 
@@ -287,20 +289,20 @@ class StagingClient(object):
                 module = self.copytool_modules[name]['module_name']
                 self.logger.info('Trying to use copytool=%s for activity=%s' % (name, activity))
                 copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], -1)
-            except PilotException, e:
+            except PilotException as e:
                 errors.append(e)
                 self.logger.debug('Error: %s' % e)
                 continue
-            except Exception, e:
+            except Exception as e:
                 self.logger.warning('Failed to import copytool module=%s, error=%s' % (module, e))
                 self.logger.debug('Error: %s' % e)
                 continue
             try:
                 result = self.transfer_files(copytool, files, activity, **kwargs)
-            except PilotException, e:
+            except PilotException as e:
                 errors.append(e)
                 self.logger.debug('Error: %s' % e)
-            except Exception, e:
+            except Exception as e:
                 self.logger.warning('Failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
                 import traceback
                 self.logger.error(traceback.format_exc())
@@ -308,6 +310,7 @@ class StagingClient(object):
 
             if errors and isinstance(errors[-1], PilotException) and errors[-1].get_error_code() == ErrorCodes.MISSINGOUTPUTFILE:
                 raise errors[-1]
+
             if result:
                 break
 
@@ -487,29 +490,6 @@ class StageOutClient(StagingClient):
 
         return {'surl': surl}
 
-    @classmethod
-    def calc_adler32_checksum(self, filename):
-        """
-            calculate the adler32 checksum for a file
-            raise an exception if input filename is not exist/readable
-        """
-
-        from zlib import adler32
-
-        asum = 1  # default adler32 starting value
-        blocksize = 64 * 1024 * 1024  # read buffer size, 64 Mb
-
-        with open(filename, 'rb') as f:
-            while True:
-                data = f.read(blocksize)
-                if not data:
-                    break
-                asum = adler32(data, asum)
-                if asum < 0:
-                    asum += 2**32
-
-        return "%08x" % asum  # convert to hex
-
     def transfer_files(self, copytool, files, activity, **kwargs):
         """
             Automatically stage out files using the selected copy tool module.
@@ -536,7 +516,7 @@ class StageOutClient(StagingClient):
             fspec.surl = pfn
             fspec.activity = activity
             if not fspec.checksum.get('adler32'):
-                fspec.checksum['adler32'] = self.calc_adler32_checksum(pfn)
+                fspec.checksum['adler32'] = calculate_checksum(pfn)
 
         # prepare files (resolve protocol/transfer url)
         if getattr(copytool, 'require_protocols', True) and files:
@@ -577,6 +557,9 @@ class StageOutClient(StagingClient):
 
         if self.infosys:
             kwargs['copytools'] = self.infosys.queuedata.copytools
+
+            # some copytools will need to know endpoint specifics (e.g. the space token) stored in ddmconf, add it
+            kwargs['ddmconf'] = self.infosys.resolve_storage_data()
 
         return copytool.copy_out(files, **kwargs)
 
