@@ -453,6 +453,9 @@ class JobData(BaseData):
         ret, imagename = self.extract_container_image(ret)
         if imagename != "":
             self.imagename = imagename
+
+        # change any replaced " with ' back to " since it will cause problems when executing a container
+        ret = ret.replace("\'", '\"')
         logger.info('cleaning jobparams: %s' % ret)
 
         return ret
