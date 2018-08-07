@@ -108,7 +108,7 @@ def get_payload_command(job):
             if not job.imagename:
                 cmd += "; " + add_makeflags(job.corecount, "") + _cmd
             else:
-                cmd += "; " + _cmd
+                cmd += _cmd
 
         elif verify_release_string(job.homepackage) != 'NULL' and job.homepackage != ' ':
             if prepareasetup:
