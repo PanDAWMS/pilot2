@@ -244,10 +244,8 @@ def get_analysis_run_command(job, trf_name):
                                                                             job.is_build_job(),
                                                                             job.infosys.queuedata)
     # add the user proxy
-    if 'X509_USER_PROXY' in os.environ:
+    if 'X509_USER_PROXY' in os.environ and not job.imagename:
         cmd += 'export X509_USER_PROXY=%s;' % os.environ.get('X509_USER_PROXY')
-    else:
-        log.warning("could not add user proxy to the run command (proxy does not exist)")
 
     # set up analysis trf
     cmd += './%s %s' % (trf_name, job.jobparams)
