@@ -104,7 +104,9 @@ def get_payload_command(job):
                 _cmd = job.jobparams
 
             # correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
-            cmd += "; " + add_makeflags(job.corecount, "") + _cmd
+            # only if not using a user container
+            if not job.imagename:
+                cmd += "; " + add_makeflags(job.corecount, "") + _cmd
 
         elif verify_release_string(job.homepackage) != 'NULL' and job.homepackage != ' ':
             if prepareasetup:
@@ -117,9 +119,11 @@ def get_payload_command(job):
             else:
                 cmd = job.jobparams
 
-    site = os.environ.get('PILOT_SITENAME', '')
-    variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
-    cmd = ''.join(variables) + cmd
+    # only if not using a user container
+    if not job.imagename:
+        site = os.environ.get('PILOT_SITENAME', '')
+        variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
+        cmd = ''.join(variables) + cmd
 
     cmd = cmd.replace(';;', ';')
 

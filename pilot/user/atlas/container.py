@@ -273,7 +273,7 @@ def singularity_wrapper(cmd, workdir, job):
         log.info("singularity has been requested")
 
         # Get the singularity options
-        singularity_options = queuedata.container_options
+        singularity_options = queuedata.container_options + ",/cvmfs,${workdir},/home"
         log.debug("resolved singularity_options from queuedata.container_options: %s" % singularity_options)
 
         if not singularity_options:
