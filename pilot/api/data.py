@@ -330,6 +330,9 @@ class StageInClient(StagingClient):
             :return: dict(surl, ddmendpoint, pfn)
         """
 
+        self.logger.info('type(fspec.replicas)=%s'%type(fspec.replicas))
+        self.logger.info('fspec.replicas=%s'%str(fspec.replicas))
+
         if not fspec.replicas:
             return
         allowed_schemas = allowed_schemas or [None]
