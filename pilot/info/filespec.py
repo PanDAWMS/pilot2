@@ -43,6 +43,9 @@ class FileSpec(BaseData):
     dataset = ""
     ddmendpoint = ""    ## DDMEndpoint name (input or output depending on FileSpec.type)
 
+    accessmode = ""
+    allowremoteinputs = False
+
     ## dispatchDblock =  ""       # moved from Pilot1: is it needed? suggest proper internal name?
     ## dispatchDBlockToken = ""   # moved from Pilot1: is it needed? suggest proper internal name?
 
