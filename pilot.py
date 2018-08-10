@@ -30,7 +30,10 @@ from pilot.util.information import set_location
 from pilot.util.workernode import is_virtual_machine
 from pilot.util.timing import add_to_pilot_timing
 
-VERSION = '0.9.001'
+RELEASE = '2'  # fixed at 2 for Pilot 2
+VERSION = '0'  # '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
+REVISION = '0'  # reset to '0' for every new Pilot version release, increased for small updates
+BUILD = '1'  # reset to '1' for every new development cycle or always increase?
 
 
 def pilot_version_banner():
@@ -42,7 +45,7 @@ def pilot_version_banner():
 
     logger = logging.getLogger(__name__)
 
-    version = '***  PanDA Pilot 2 version %s  ***' % VERSION
+    version = '***  PanDA Pilot 2 version %s  ***' % get_pilot_version()
     logger.info('*' * len(version))
     logger.info(version)
     logger.info('*' * len(version))
@@ -50,6 +53,16 @@ def pilot_version_banner():
 
     if is_virtual_machine():
         logger.info('pilot is running in a VM')
+
+
+def get_pilot_version():
+    """
+    Return the current Pilot version string with the format <release>.<version>.<revision>.<build>.
+    E.g. pilot_version = '2.1.3.12'
+    :return: version string.
+    """
+
+    return '{0}.{1}.{2}.{3}'.format(RELEASE, VERSION, REVISION, BUILD)
 
 
 def main():
@@ -64,7 +77,7 @@ def main():
     args.retrieve_next_job = True  # go ahead and download a new job
     config.read(args.config)
 
-    https_setup(args, VERSION)
+    https_setup(args, get_pilot_version())
 
     if not set_location(args):  # ## DEPRECATE ME LATER
         return False
@@ -349,7 +362,7 @@ if __name__ == '__main__':
     environ['PILOT_USER'] = args.pilot_user  # TODO: replace with singleton
 
     # Set the pilot version
-    environ['PILOT_VERSION'] = VERSION
+    environ['PILOT_VERSION'] = get_pilot_version()
 
     # Establish logging
     console = logging.StreamHandler(sys.stdout)
