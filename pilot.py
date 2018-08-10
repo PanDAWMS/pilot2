@@ -62,7 +62,10 @@ def get_pilot_version():
     :return: version string.
     """
 
-    return '{0}.{1}.{2}.{3}'.format(RELEASE, VERSION, REVISION, BUILD)
+    return '{release}.{version}.{revision}.{build}'.format(release=RELEASE,
+                                                           version=VERSION,
+                                                           revision=REVISION,
+                                                           build=BUILD)
 
 
 def main():
