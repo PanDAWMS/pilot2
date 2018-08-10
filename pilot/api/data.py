@@ -359,6 +359,22 @@ class StageInClient(StagingClient):
 
         return {'surl': surl, 'ddmendpoint': ddmendpoint, 'pfn': replica}
 
+    def get_direct_access_variables(self):
+        """
+        Return the direct access settings for the PQ.
+
+        :return: use_direct_access (bool), direct_access_type (string).
+        """
+
+        use_direct_access = self.infosys.queuedata.direct_access_lan or self.infosys.queuedata.direct_access_wan
+        direct_access_type = ''
+        if self.infosys.queuedata.direct_access_lan:
+            direct_access_type = 'LAN'
+        if self.infosys.queuedata.direct_access_wan:
+            direct_access_type = 'WAN'
+
+        return use_direct_access, direct_access_type
+
     def transfer_files(self, copytool, files, activity=None, **kwargs):
         """
             Automatically stage in files using the selected copy tool module.
@@ -370,6 +386,17 @@ class StageInClient(StagingClient):
             :return: the output of the copytool transfer operation
             :raise: PilotException in case of controlled error
         """
+
+        # sort out direct access logic
+        job = kwargs.get('job', None)
+        job_access_mode = job.accessmode if job else ''
+
+        allow_direct_access, direct_access_type = self.get_direct_access_variables()
+        self.logger.info("direct access settings for the PQ: allow_direct_access=%s (type=%s)" %
+                         (allow_direct_access, direct_access_type))
+        if job_access_mode != 'direct': ## task forbids direct access
+            allow_directaccess = False
+        self.logger.info("direct access settings for the job: allow_direct_access=%s" % allow_direct_access)
 
         if getattr(copytool, 'require_replicas', False) and files and files[0].replicas is None:
             files = self.resolve_replicas(files)
