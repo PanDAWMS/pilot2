@@ -98,8 +98,8 @@ class StagingClient(object):
 
             ## skip fdat if need for further workflow (e.g. to properly handle OS ddms)
 
-            fdat.accessmode = 'copy'        ### quick hack to avoid changing logic below for DIRECT access handling  ## REVIEW AND FIX ME LATER
-            fdat.allowRemoteInputs = False  ### quick hack to avoid changing logic below for DIRECT access handling  ## REVIEW AND FIX ME LATER
+            #fdat.accessmode = 'copy'        ### quick hack to avoid changing logic below for DIRECT access handling  ## REVIEW AND FIX ME LATER
+            #fdat.allowRemoteInputs = False  ### quick hack to avoid changing logic below for DIRECT access handling  ## REVIEW AND FIX ME LATER
 
             if not fdat.inputddms and self.infosys.queuedata:
                 fdat.inputddms = self.infosys.queuedata.astorages.get('pr', {})  ## FIX ME LATER: change to proper activity=read_lan
