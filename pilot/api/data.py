@@ -388,15 +388,29 @@ class StageInClient(StagingClient):
         """
 
         # sort out direct access logic
-        job = kwargs.get('job', None)
-        job_access_mode = job.accessmode if job else ''
+        #job = kwargs.get('job', None)
+        #job_access_mode = job.accessmode if job else ''
 
         allow_direct_access, direct_access_type = self.get_direct_access_variables()
         self.logger.info("direct access settings for the PQ: allow_direct_access=%s (type=%s)" %
                          (allow_direct_access, direct_access_type))
-        if job_access_mode != 'direct': ## task forbids direct access
-            allow_directaccess = False
-        self.logger.info("direct access settings for the job: allow_direct_access=%s" % allow_direct_access)
+        #if job_access_mode != 'direct': ## task forbids direct access
+        #    allow_directaccess = False
+        #self.logger.info("direct access settings for the job: allow_direct_access=%s" % allow_direct_access)
+
+        if allow_direct_access:
+            # sort files to get candidates for remote_io coming first in order to exclude them from checking of available space for stage-in
+            files = sorted(files, key=lambda x: x.is_directaccess(ensure_replica=False), reverse=True)
+
+            # populate allowremoteinputs for each fdata
+            for fdata in files:
+                is_directaccess = allow_direct_access and fdata.is_directaccess(ensure_replica=False) #fdata.turl is not defined at this point
+                if is_directaccess and direct_access_type == 'WAN':  ## is it the same for ES workflow ?? -- test and verify/FIXME LATER
+                    fdata.allowremoteinputs = True
+                self.logger.info("check direct access for lfn=%s: allow_direct_access=%s, fdata.is_directaccess()=%s =>"
+                                 " is_directaccess=%s, allowremoteinputs=%s" % (fdata.lfn, allow_direct_access,
+                                                                                fdata.is_directaccess(ensure_replica=False),
+                                                                                is_directaccess, fdata.allowremoteinputs))
 
         if getattr(copytool, 'require_replicas', False) and files and files[0].replicas is None:
             files = self.resolve_replicas(files)
