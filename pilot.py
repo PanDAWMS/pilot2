@@ -57,12 +57,12 @@ def pilot_version_banner():
 
 def get_pilot_version():
     """
-    Return the current Pilot version string with the format <release>.<version>.<revision>.<build>.
-    E.g. pilot_version = '2.1.3.12'
+    Return the current Pilot version string with the format <release>.<version>.<revision> (<build>).
+    E.g. pilot_version = '2.1.3 (12)'
     :return: version string.
     """
 
-    return '{release}.{version}.{revision}.{build}'.format(release=RELEASE,
+    return '{release}.{version}.{revision} ({build})'.format(release=RELEASE,
                                                            version=VERSION,
                                                            revision=REVISION,
                                                            build=BUILD)
