@@ -221,7 +221,7 @@ if __name__ == '__main__':
 
     arg_parser.add_argument('-z',
                             dest='update_server',
-                            action='store_false',
+                            action='store_true',
                             default=True,
                             help='Disable server updates')
 
