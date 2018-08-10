@@ -218,7 +218,7 @@ class StagingClient(object):
         return files
 
     @classmethod
-    def detect_client_location(self, site):  ## TO BE DEPRECATED ONCE RUCIO BUG IS FIXED
+    def detect_client_location(self):  ## TO BE DEPRECATED ONCE RUCIO BUG IS FIXED
         """
         Open a UDP socket to a machine on the internet, to get the local IP address
         of the requesting client.
@@ -231,6 +231,7 @@ class StagingClient(object):
         """
 
         ret = {}
+        site = os.environ.get('PILOT_SITENAME', 'unknown')
         try:
             import socket
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
