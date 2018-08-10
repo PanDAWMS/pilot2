@@ -99,7 +99,7 @@ class StagingClient(object):
             ## skip fdat if need for further workflow (e.g. to properly handle OS ddms)
 
             #fdat.accessmode = 'copy'        ### quick hack to avoid changing logic below for DIRECT access handling  ## REVIEW AND FIX ME LATER
-            #fdat.allowRemoteInputs = False  ### quick hack to avoid changing logic below for DIRECT access handling  ## REVIEW AND FIX ME LATER
+            #fdat.allowremoteinputs = False  ### quick hack to avoid changing logic below for DIRECT access handling  ## REVIEW AND FIX ME LATER
 
             if not fdat.inputddms and self.infosys.queuedata:
                 fdat.inputddms = self.infosys.queuedata.astorages.get('pr', {})  ## FIX ME LATER: change to proper activity=read_lan
@@ -119,7 +119,7 @@ class StagingClient(object):
         bquery = {'schemes': ['srm', 'root', 'davs', 'gsiftp', 'https'],
                   'dids': [dict(scope=e.scope, name=e.lfn) for e in xfiles]}
 
-        allow_remoteinput = True in set(e.allowRemoteInputs for e in xfiles)  ## implement direct access later
+        allow_remoteinput = True in set(e.allowremoteinputs for e in xfiles)  ## implement direct access later
 
         try:
             query = bquery.copy()
@@ -175,16 +175,16 @@ class StagingClient(object):
                 if not has_direct_remoteinput_replicas:
                     has_direct_remoteinput_replicas = bool(get_preferred_replica(r['rses'][ddm], self.direct_remoteinput_allowed_schemas))
 
-            if (not fdat.replicas or (fdat.accessmode == 'direct' and not has_direct_remoteinput_replicas)) and fdat.allowRemoteInputs:
+            if (not fdat.replicas or (fdat.accessmode == 'direct' and not has_direct_remoteinput_replicas)) and fdat.allowremoteinputs:
                 if fdat.accessmode == 'direct':
                     allowed_schemas = self.direct_remoteinput_allowed_schemas
                 else:
                     allowed_schemas = self.remoteinput_allowed_schemas
 
                 if not fdat.replicas:
-                    logger.info("No local replicas found for lfn=%s but allowRemoteInputs is set => looking for remote inputs" % fdat.lfn)
+                    logger.info("No local replicas found for lfn=%s but allowremoteinputs is set => looking for remote inputs" % fdat.lfn)
                 else:
-                    logger.info("Direct access is set but no local direct access files, but allowRemoteInputs is set => looking for remote inputs" % fdat.lfn)
+                    logger.info("Direct access is set but no local direct access files, but allowremoteinputs is set => looking for remote inputs" % fdat.lfn)
                 logger.info("consider first/closest replica, accessmode=%s, remoteinput_allowed_schemas=%s" % (fdat.accessmode, allowed_schemas))
                 logger.debug('rses=%s' % r['rses'])
                 for ddm, replicas in r['rses'].iteritems():
@@ -212,8 +212,8 @@ class StagingClient(object):
                     fdat.checksum[ctype] = r[ctype]
 
         logger.info('Number of resolved replicas:\n' +
-                    '\n'.join(["lfn=%s: replicas=%s, allowRemoteInputs=%s, is_directaccess=%s"
-                               % (f.lfn, len(f.replicas), f.allowRemoteInputs, f.is_directaccess(ensure_replica=False)) for f in files]))
+                    '\n'.join(["lfn=%s: replicas=%s, allowremoteinputs=%s, is_directaccess=%s"
+                               % (f.lfn, len(f.replicas), f.allowremoteinputs, f.is_directaccess(ensure_replica=False)) for f in files]))
 
         return files
 
