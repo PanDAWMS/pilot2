@@ -608,10 +608,7 @@ def calculate_adler32_checksum(filename):
                 asum += 2**32
 
     # convert to hex
-    try:
-        return "{:08x}".format(asum)  # python 2.7
-    except Exception:  # python 2.6 fix
-        return "%08x" % asum
+    return "{0:08x}".format(asum)
 
 
 def calculate_md5_checksum(filename):
