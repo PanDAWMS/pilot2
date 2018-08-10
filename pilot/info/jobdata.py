@@ -58,7 +58,8 @@ class JobData(BaseData):
 
     is_eventservice = False        # True for event service jobs
 
-    transfertype = ""  # direct access
+    transfertype = ""  # direct access instruction from server
+    accessmode = ""  # direct access instruction from jobparams
     processingtype = ""  # e.g. nightlies
 
     # set by the pilot (not from job definition)
@@ -337,6 +338,7 @@ class JobData(BaseData):
             'datasetin': 'realDatasetsIn',               ## TO BE DEPRECATED: moved to FileSpec
             #'datasetout': 'realDatasets',                ## TO BE DEPRECATED: moved to FileSpec
             'processingtype': 'processingType',
+            'transfertype': 'transferType',
             'destinationdblock': 'destinationDblock',
             'noexecstrcnv': 'noExecStrCnv',
             'swrelease': 'swRelease',
@@ -426,15 +428,13 @@ class JobData(BaseData):
         """
 
         logger.info('cleaning jobparams: %s' % value)
+
         ## clean job params from Pilot1 old-formatted options
         ret = re.sub(r"--overwriteQueuedata={.*?}", "", value)
-        logger.info('cleaning jobparams: %s' % ret)
 
         ## extract overwrite options
         options, ret = self.parse_args(ret, {'--overwriteQueueData': lambda x: ast.literal_eval(x) if x else {}}, remove=True)
         self.overwrite_queuedata = options.get('--overwriteQueueData', {})
-
-        logger.info('cleaning jobparams: %s' % ret)
 
         # extract zip map  ## TO BE FIXED? better to pass it via dedicated sub-option in jobParams from PanDA side: e.g. using --zipmap "content"
         # so that the zip_map can be handles more gracefully via parse_args
@@ -447,16 +447,27 @@ class JobData(BaseData):
             self.zipmap = result[0]
             # remove zip map from final jobparams
             ret = re.sub(pattern, '', ret)
-        logger.info('cleaning jobparams: %s' % ret)
 
         # extract and remove any present --containerimage XYZ options
         ret, imagename = self.extract_container_image(ret)
         if imagename != "":
             self.imagename = imagename
 
+        # direct access handling
+        if self.transfertype == 'direct':
+            self.accessmode = 'direct'
+        # job input options overwrite any Job settings
+        if '--accessmode=direct' in self.jobparams:
+            self.accessmode = 'direct'
+        if '--accessmode=copy' in self.jobparams:
+            self.accessmode = 'copy'
+        logger.info('transfertype=%s' % self.transfertype)
+        logger.info('accessmode=%s' % self.accessmode)
+
         # change any replaced " with ' back to " since it will cause problems when executing a container
         ret = ret.replace("\'", '\"')
-        logger.info('cleaning jobparams: %s' % ret)
+
+        logger.info('cleaned jobparams: %s' % ret)
 
         return ret
 
