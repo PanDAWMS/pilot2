@@ -63,9 +63,9 @@ def get_pilot_version():
     """
 
     return '{release}.{version}.{revision} ({build})'.format(release=RELEASE,
-                                                           version=VERSION,
-                                                           revision=REVISION,
-                                                           build=BUILD)
+                                                             version=VERSION,
+                                                             revision=REVISION,
+                                                             build=BUILD)
 
 
 def main():

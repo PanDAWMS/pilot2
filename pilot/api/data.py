@@ -330,9 +330,6 @@ class StageInClient(StagingClient):
             :return: dict(surl, ddmendpoint, pfn)
         """
 
-        self.logger.info('type(fspec.replicas)=%s'%type(fspec.replicas))
-        self.logger.info('fspec.replicas=%s'%str(fspec.replicas))
-
         if not fspec.replicas:
             return
         allowed_schemas = allowed_schemas or [None]
@@ -404,7 +401,7 @@ class StageInClient(StagingClient):
 
             # populate allowremoteinputs for each fdata
             for fdata in files:
-                is_directaccess = allow_direct_access and fdata.is_directaccess(ensure_replica=False) #fdata.turl is not defined at this point
+                is_directaccess = allow_direct_access and fdata.is_directaccess(ensure_replica=False)
                 if is_directaccess and direct_access_type == 'WAN':  ## is it the same for ES workflow ?? -- test and verify/FIXME LATER
                     fdata.allowremoteinputs = True
                 self.logger.info("check direct access for lfn=%s: allow_direct_access=%s, fdata.is_directaccess()=%s =>"
