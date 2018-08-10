@@ -396,7 +396,7 @@ class StageInClient(StagingClient):
         #    allow_directaccess = False
         #self.logger.info("direct access settings for the job: allow_direct_access=%s" % allow_direct_access)
 
-        if allow_direct_access:
+        if allow_direct_access and False:
             # sort files to get candidates for remote_io coming first in order to exclude them from checking of available space for stage-in
             files = sorted(files, key=lambda x: x.is_directaccess(ensure_replica=False), reverse=True)
 
