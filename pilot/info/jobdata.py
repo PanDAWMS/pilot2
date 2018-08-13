@@ -466,7 +466,6 @@ class JobData(BaseData):
 
         # change any replaced " with ' back to " since it will cause problems when executing a container
         # yes, but this creates a problem for user jobs to run..
-        # ..
         # ret = ret.replace("\'", '\"')
 
         logger.info('cleaned jobparams: %s' % ret)
