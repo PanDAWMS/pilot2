@@ -289,13 +289,13 @@ def singularity_wrapper(cmd, workdir, job):
         # Does the image exist?
         if image_path != '':
             # Prepend it to the given command
-#            cmd = "export workdir=" + workdir + "; singularity exec " + singularity_options + " " + image_path + \
-#                  " /bin/bash -c \'cd $workdir;pwd;" + cmd.replace("\'", "\\'").replace('\"', '\\"') + "\'"
+            cmd = "export workdir=" + workdir + "; singularity exec " + singularity_options + " " + image_path + \
+                  " /bin/bash -c \'cd $workdir;pwd;" + cmd.replace("\'", "\\'").replace('\"', '\\"') + "\'"
 
-            singularity_options = "-B $PWD:/data --pwd / "
-            singularity_cmd = "singularity exec " + singularity_options + image_path
-            cmd = re.sub(r'-p "([A-Za-z0-9.%/]+)"', r'-p "%s\1"' % urllib.pathname2url(singularity_cmd), cmd)
-
+            # for testing user containers
+            # singularity_options = "-B $PWD:/data --pwd / "
+            # singularity_cmd = "singularity exec " + singularity_options + image_path
+            # cmd = re.sub(r'-p "([A-Za-z0-9.%/]+)"', r'-p "%s\1"' % urllib.pathname2url(singularity_cmd), cmd)
         else:
             log.warning("singularity options found but image does not exist")
 
