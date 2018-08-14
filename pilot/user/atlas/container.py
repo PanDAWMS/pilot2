@@ -9,7 +9,7 @@
 
 import os
 import re
-import urllib
+# for user container test: import urllib
 
 from pilot.user.atlas.setup import get_asetup
 from pilot.user.atlas.setup import get_file_system_root_path
