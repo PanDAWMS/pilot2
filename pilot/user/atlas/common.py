@@ -14,11 +14,12 @@ from collections import defaultdict
 from glob import glob
 from signal import SIGTERM, SIGUSR1
 
-from pilot.common.exception import TrfDownloadFailure, PilotException
-from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
-    set_inds, get_analysis_trf, get_payload_environment_variables
-from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
+from .setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
+    set_inds, get_analysis_trf, get_payload_environment_variables, replace_lfns_with_turls
+from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
     get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
+
+from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import get_logger
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD,\
     UTILITY_WITH_STAGEIN
@@ -128,6 +129,15 @@ def get_payload_command(job):
         cmd = ''.join(variables) + cmd
 
     cmd = cmd.replace(';;', ';')
+
+    # For direct access in prod jobs, we need to substitute the input file names with the corresponding TURLs
+    # get relevant file transfer info
+    use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype,
+                                                                            job.is_build_job(),
+                                                                            job.infosys.queuedata)
+    if not userjob and use_direct_access:
+        lfns, guids = job.get_lfns_and_guids()
+        cmd = replace_lfns_with_turls(cmd, job.workdir, "PoolFileCatalog.xml", lfns)
 
     log.info('payload run command: %s' % cmd)
 
@@ -262,7 +272,8 @@ def get_analysis_run_command(job, trf_name):
     # add guids when needed
     # get the correct guids list (with only the direct access files)
     if not job.is_build_job():
-        _guids = get_guids_from_jobparams(job.jobparams, job.infiles, job.infilesguids)
+        lfns, guids = job.get_lfns_and_guids()
+        _guids = get_guids_from_jobparams(job.jobparams, lfns, guids)
         if _guids:
             cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
 
