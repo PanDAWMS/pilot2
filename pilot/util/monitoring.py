@@ -390,9 +390,10 @@ def check_payload_stdout(job):
                     # remove the payload stdout file after the log extracts have been created
 
                     # remove any lingering input files from the work dir
-                    if job.infiles:
+                    lfns, guids = job.get_lfns_and_guids()
+                    if lfns:
                         # remove any lingering input files from the work dir
-                        exit_code = remove_files(job.workdir, job.infiles)
+                        exit_code = remove_files(job.workdir, lfns)
                 else:
                     log.info("payload stdout (%s) within allowed size limit (%d B): %d B" %
                              (_stdout, localsizelimit_stdout, fsize))
@@ -463,8 +464,9 @@ def check_work_dir(job):
                 kill_processes(job.pid)
 
                 # remove any lingering input files from the work dir
-                if job.infiles != []:
-                    remove_files(job.workdir, job.infiles)
+                lfns, guids = job.get_lfns_and_guids()
+                if lfns:
+                    remove_files(job.workdir, lfns)
 
                     # remeasure the size of the workdir at this point since the value is stored below
                     workdirsize = get_directory_size(directory=job.workdir)
