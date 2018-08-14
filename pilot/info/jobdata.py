@@ -107,7 +107,7 @@ class JobData(BaseData):
     produserid = ""  # the user DN (added to trace report)
     jobdefinitionid = ""  # the job definition id (added to trace report)
 
-    infiles = ""  # comma-separated list (string) of input files  ## TO BE DEPRECATED: moved to FileSpec (use job.indata instead)
+    # infiles = ""  # comma-separated list (string) of input files  ## TO BE DEPRECATED: moved to FileSpec (use job.indata instead)
     infilesguids = ""
 
     indata = []   # list of `FileSpec` objects for input files (aggregated inFiles, ddmEndPointIn, scopeIn, filesizeIn, etc)
@@ -137,7 +137,7 @@ class JobData(BaseData):
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
                    'state', 'status', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg', 'produserid', 'jobdefinitionid',
-                   'infiles',         ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+                   #'infiles',         ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'scopein',        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'outfiles', 'ddmendpointin',   ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'scopeout', 'ddmendpointout',    ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
@@ -328,7 +328,7 @@ class JobData(BaseData):
             #'scopeout': 'scopeOut',                      ## TO BE DEPRECATED: moved to FileSpec
             #'scopelog': 'scopeLog',                      ## TO BE DEPRECATED: moved to FileSpec
             #'logfile': 'logFile',                        ## TO BE DEPRECATED: moved to FileSpec
-            'infiles': 'inFiles',                        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+            #'infiles': 'inFiles',                        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
             #'outfiles': 'outFiles',                      ## TO BE DEPRECATED: moved to FileSpec
             #'logguid': 'logGUID',                        ## TO BE DEPRECATED: moved to FileSpec
             'infilesguids': 'GUID',                      ## TO BE DEPRECATED: moved to FileSpec
@@ -633,3 +633,19 @@ class JobData(BaseData):
             logger.warning("found no stored workdir sizes")
 
         return maxdirsize
+
+    def get_lfns_and_guids(self):
+        """
+        Return ordered lists with the input file LFNs and GUIDs.
+
+        :return: list of input files, list of corresponding GUIDs.
+        """
+
+        lfns = []
+        guids = []
+        if self.indata:
+            for fspec in self.indata:
+                lfns.append(fspec.lfn)
+                guids.append(fspec.guid)
+
+        return lfns, guids
