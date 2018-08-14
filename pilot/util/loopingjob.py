@@ -158,11 +158,11 @@ def kill_looping_job(job):
     job.state = 'failed'
 
     # remove any lingering input files from the work dir
-    if job.infiles:
-        if len(job.infiles) > 0:
-            ec = remove_files(job.workdir, job.infiles)
-            if ec != 0:
-                log.warning('failed to remove all files')
+    lfns, guids = job.get_lfns_and_guids()
+    if lfns:
+        ec = remove_files(job.workdir, lfns)
+        if ec != 0:
+            log.warning('failed to remove all files')
 
 
 def get_looping_job_limit(is_analysis):
