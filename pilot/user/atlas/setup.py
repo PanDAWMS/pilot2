@@ -14,6 +14,7 @@ from time import sleep
 from pilot.info import infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
+from .utilities import get_file_info_from_xml
 
 import logging
 logger = logging.getLogger(__name__)
@@ -363,3 +364,31 @@ def get_payload_environment_variables(cmd, job_id, task_id, processing_type, sit
     variables.append('export RUCIO_ACCOUNT=\"%s\";' % os.environ.get('RUCIO_ACCOUNT', 'pilot'))
 
     return variables
+
+
+def replace_lfns_with_turls(cmd, workdir, filename, infiles):
+    """
+    Replace all LFNs with full TURLs in the payload execution command.
+
+    This function is used with direct access in production jobs. Athena requires a full TURL instead of LFN.
+
+    :param cmd: payload execution command (string).
+    :param workdir: location of metadata file (string).
+    :param filename: metadata file name (string).
+    :param infiles: list of input files.
+    :return: updated cmd (string).
+    """
+
+    if os.path.exists(filename):
+        file_info_dictionary = get_file_info_from_xml(workdir, filename=filename)
+        for inputfile in infiles:
+            if inputfile in cmd:
+                turl = file_info_dictionary[inputfile][0]
+                # if turl.startswith('root://') and turl not in cmd:
+                if turl not in cmd:
+                    cmd = cmd.replace(inputfile, turl)
+                    logger.info("replaced '%s' with '%s' in the run command" % (inputfile, turl))
+    else:
+        logger.warning("could not find file: %s (cannot locate TURLs for direct access)" % filename)
+
+    return cmd
