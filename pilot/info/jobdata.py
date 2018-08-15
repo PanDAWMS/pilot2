@@ -199,6 +199,7 @@ class JobData(BaseData):
             idat = {}
             for attrname, k in kmap.iteritems():
                 idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
+            idat['accessmode'] = self.accessmode
             finfo = FileSpec(type='input', **idat)
             logger.info('added file %s' % lfn)
             ret.append(finfo)
