@@ -350,16 +350,13 @@ def copytool_in(queues, traces, args):
 
             log = get_logger(job.jobid)
 
-            log.info('Test job.infosys: queuedata.copytools=%s' % job.infosys.queuedata.copytools)
-            log.info('Test job.infosys: queuedata.acopytools=%s' % job.infosys.queuedata.acopytools)
-
             if _stage_in(args, job):
                 queues.finished_data_in.put(job)
 
                 # now create input file metadata if required by the payload
                 pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
                 user = __import__('pilot.user.%s.setup' % pilot_user, globals(), locals(), [pilot_user], -1)
-                file_dictionary = get_input_file_dictionary(job.indata)  # NOTE: add use_turl=True for direct access
+                file_dictionary = get_input_file_dictionary(job.indata)
                 log.debug('file_dictionary=%s' % str(file_dictionary))
                 xml = user.create_input_file_metadata(file_dictionary, job.workdir)
                 log.info('created input file metadata:\n%s' % xml)
@@ -391,21 +388,20 @@ def copytool_out(queues, traces, args):
             continue
 
 
-def get_input_file_dictionary(indata, use_turl=False):
+def get_input_file_dictionary(indata):
     """
     Return an input file dictionary.
     Format: {'guid': 'pfn', ..}
     Normally use_turl would be set to True if direct access is used.
 
     :param indata: FileSpec object.
-    :param use_turl: if True, the 'pfn' will be set to the turl value, otherwise the surl value will be used.
     :return: file dictionary.
     """
 
     file_dictionary = {}
 
     for e in indata:
-        file_dictionary[e.guid] = e.turl if use_turl else e.surl
+        file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else e.surl
 
     return file_dictionary
 
