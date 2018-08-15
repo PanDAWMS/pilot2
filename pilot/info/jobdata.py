@@ -162,6 +162,9 @@ class JobData(BaseData):
 
         self.load(data)
 
+        logger.info('debug: transfertype=%s' % self.transfertype)
+        logger.info('debug: accessmode=%s' % self.accessmode)
+
         self.indata = self.prepare_infiles(data)
         self.outdata, self.logdata = self.prepare_outfiles(data)
 
