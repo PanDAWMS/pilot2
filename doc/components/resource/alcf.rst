@@ -1,5 +1,5 @@
 ..
-    Pilot 2 documentation pilot.resource index
+    Pilot 2 pilot.resource.alcf doc file
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -9,14 +9,11 @@
     Authors:
      - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
-resource components
-===================
+alcf
+====
 
-.. toctree::
-    :maxdepth: 2
-
-    alcf
-    bnl
-    generic
-    nersc
-    titan
+.. automodule:: pilot.resource.alcf
+    :members:
+    :private-members:
+    :special-members:
+    :undoc-members:
