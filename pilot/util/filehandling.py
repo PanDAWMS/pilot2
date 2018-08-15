@@ -67,19 +67,20 @@ def read_file(filename):
     return out
 
 
-def write_file(filename, contents):
+def write_file(path, contents, mute=True):
     """
     Write the given contents to a file.
 
-    :param filename: file name (string).
+    :param path: full path for file (string).
     :param contents: file contents (string).
+    :param mute: boolean to control stdout info message
     :raises PilotException: FileHandlingFailure.
     :return: True if successful, otherwise False.
     """
 
     status = False
 
-    f = open_file(filename, 'w')
+    f = open_file(path, 'w')
     if f:
         try:
             f.write(contents)
@@ -88,6 +89,9 @@ def write_file(filename, contents):
         else:
             status = True
         f.close()
+
+    if not mute:
+        logger.info('created file: %s' % path)
 
     return status
 

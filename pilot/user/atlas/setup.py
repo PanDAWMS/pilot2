@@ -406,7 +406,7 @@ def create_input_file_metadata(file_dictionary, workdir, filename="PoolFileCatal
     # create a new XML file with the results
     xml = ElementTree.tostring(data, encoding='utf8')
     xml = minidom.parseString(xml).toprettyxml(indent="  ")
-    write_file(os.path.join(workdir, filename), xml)
+    write_file(os.path.join(workdir, filename), xml, mute=False)
 
     return xml
 

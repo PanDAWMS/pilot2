@@ -417,7 +417,7 @@ class StageInClient(StagingClient):
 
             # make sure that root is the first protocol in the schemas list if direct access is to be used
             if allowed_schemas and allowed_schemas[0] != self.remoteinput_allowed_schemas[0]:
-                ## add supported schema for direct access
+                # add supported schemas for direct access
                 allowed_schemas = add_lists(self.remoteinput_allowed_schemas, allowed_schemas)
                 self.logger.info('allowed schemas updated: %s' % allowed_schemas)
             else:
