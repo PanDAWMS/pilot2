@@ -143,7 +143,7 @@ class JobData(BaseData):
                    #'scopeout', 'ddmendpointout',    ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    #'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
                    'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload', 'processingtype',
-                   'swrelease', 'zipmap', 'imagename', 'transfertype',
+                   'swrelease', 'zipmap', 'imagename', 'accessmode', 'transfertype',
                    'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'datasetout',  ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    'infilesguids'],
