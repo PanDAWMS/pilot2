@@ -151,3 +151,18 @@ def is_greater_or_equal(a, b):
     """
 
     return split_version(a) >= split_version(b)
+
+
+def add_lists(list1, list2):
+    """
+    Add list1 and list2 and remove any duplicates.
+    Example:
+    list1=[1,2,3,4]
+    list2=[3,4,5,6]
+    add_lists(list1, list2) = [1, 2, 3, 4, 5, 6]
+
+    :param list1: input list 1
+    :param list2: input list 2
+    :return: added lists with removed duplicates
+    """
+    return list1 + list(set(list2) - set(list1))
