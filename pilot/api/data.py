@@ -417,6 +417,9 @@ class StageInClient(StagingClient):
             # make sure that root is the first protocol in the schemas list if direct access is to be used
             if allowed_schemas and allowed_schemas[0] != self.remoteinput_allowed_schemas[0]:
                 allowed_schemas = self.remoteinput_allowed_schemas + allowed_schemas  ## add supported schema for direct access
+                self.logger.info('allowed schemas updated: %s' % allowed_schemas)
+            else:
+                self.logger.info('allowed schemas: %s' % allowed_schemas)
 
             for fspec in files:
                 resolve_replica = getattr(copytool, 'resolve_replica', None)
