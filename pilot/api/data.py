@@ -410,6 +410,10 @@ class StageInClient(StagingClient):
                                  " is_directaccess=%s, allowremoteinputs=%s" % (fdata.lfn, allow_direct_access,
                                                                                 fdata.is_directaccess(ensure_replica=False),
                                                                                 is_directaccess, fdata.allowremoteinputs))
+                # must update accessmode for user jobs (it is only set already for production jobs)
+                if fdata.accessmode != 'direct' and is_directaccess:
+                    fdata.accessmode = 'direct'
+                    self.logger.info('updated accessmode for LFN=%s: %s' % (fdata.lfn, fdata.accessmode))
 
         if getattr(copytool, 'require_replicas', False) and files and files[0].replicas is None:
             files = self.resolve_replicas(files)
