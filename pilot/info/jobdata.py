@@ -162,9 +162,6 @@ class JobData(BaseData):
 
         self.load(data)
 
-        logger.info('debug: transfertype=%s' % self.transfertype)
-        logger.info('debug: accessmode=%s' % self.accessmode)
-
         self.indata = self.prepare_infiles(data)
         self.outdata, self.logdata = self.prepare_outfiles(data)
 
@@ -178,6 +175,15 @@ class JobData(BaseData):
             Construct FileSpec objects for input files from raw dict `data`
             :return: list of validated `FileSpec` objects
         """
+
+        # direct access handling (transfertype is now set)
+        if self.transfertype == 'direct':
+            self.accessmode = 'direct'
+        # job input options overwrite any Job settings
+        if '--accessmode=direct' in self.jobparams:
+            self.accessmode = 'direct'
+        if '--accessmode=copy' in self.jobparams:
+            self.accessmode = 'copy'
 
         # form raw list data from input comma-separated values for further validataion by FileSpec
         kmap = {
@@ -456,17 +462,6 @@ class JobData(BaseData):
         ret, imagename = self.extract_container_image(ret)
         if imagename != "":
             self.imagename = imagename
-
-        # direct access handling
-        if self.transfertype == 'direct':
-            self.accessmode = 'direct'
-        # job input options overwrite any Job settings
-        if '--accessmode=direct' in self.jobparams:
-            self.accessmode = 'direct'
-        if '--accessmode=copy' in self.jobparams:
-            self.accessmode = 'copy'
-        logger.info('transfertype=%s' % self.transfertype)
-        logger.info('accessmode=%s' % self.accessmode)
 
         # change any replaced " with ' back to " since it will cause problems when executing a container
         # yes, but this creates a problem for user jobs to run..
