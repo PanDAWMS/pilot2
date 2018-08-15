@@ -413,6 +413,11 @@ class StageInClient(StagingClient):
         if getattr(copytool, 'require_replicas', False) and files and files[0].replicas is None:
             files = self.resolve_replicas(files)
             allowed_schemas = getattr(copytool, 'allowed_schemas', None)
+
+            # make sure that root is the first protocol in the schemas list if direct access is to be used
+            if allowed_schemas and allowed_schemas[0] != self.remoteinput_allowed_schemas[0]:
+                allowed_schemas = self.remoteinput_allowed_schemas + allowed_schemas  ## add supported schema for direct access
+
             for fspec in files:
                 resolve_replica = getattr(copytool, 'resolve_replica', None)
                 if not callable(resolve_replica):
