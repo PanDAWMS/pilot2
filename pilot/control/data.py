@@ -358,7 +358,7 @@ def copytool_in(queues, traces, args):
 
                 # now create input file metadata if required by the payload
                 pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-                user = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user], -1)
+                user = __import__('pilot.user.%s.setup' % pilot_user, globals(), locals(), [pilot_user], -1)
                 file_dictionary = get_input_file_dictionary(job.indata)  # NOTE: add use_turl=True for direct access
                 log.debug('file_dictionary=%s' % str(file_dictionary))
                 xml = user.create_input_file_metadata(file_dictionary, job.workdir)
