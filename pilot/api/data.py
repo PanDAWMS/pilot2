@@ -19,6 +19,7 @@ import logging
 from pilot.info import infosys
 from pilot.common.exception import PilotException, ErrorCodes
 from pilot.util.filehandling import calculate_checksum
+from pilot.util.math import add_lists
 
 
 class StagingClient(object):
@@ -416,7 +417,8 @@ class StageInClient(StagingClient):
 
             # make sure that root is the first protocol in the schemas list if direct access is to be used
             if allowed_schemas and allowed_schemas[0] != self.remoteinput_allowed_schemas[0]:
-                allowed_schemas = self.remoteinput_allowed_schemas + allowed_schemas  ## add supported schema for direct access
+                ## add supported schema for direct access
+                allowed_schemas = add_lists(self.remoteinput_allowed_schemas, allowed_schemas)
                 self.logger.info('allowed schemas updated: %s' % allowed_schemas)
             else:
                 self.logger.info('allowed schemas: %s' % allowed_schemas)
