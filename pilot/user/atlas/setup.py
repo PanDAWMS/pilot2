@@ -471,7 +471,8 @@ def replace_lfns_with_turls(cmd, workdir, filename, infiles):
     :return: updated cmd (string).
     """
 
-    if os.path.exists(filename):
+    path = os.path.join(workdir, filename)
+    if os.path.exists(path):
         file_info_dictionary = get_file_info_from_xml(workdir, filename=filename)
         for inputfile in infiles:
             if inputfile in cmd:
