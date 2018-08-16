@@ -413,6 +413,9 @@ class StageInClient(StagingClient):
                 # must update accessmode for user jobs (it is only set already for production jobs)
                 if fdata.accessmode != 'direct' and is_directaccess:
                     fdata.accessmode = 'direct'
+                # reset accessmode if direct access is not to be used
+                if fdata.accessmode == 'direct' and not is_directaccess:
+                    fdata.accessmode = ''
                 self.logger.info('accessmode for LFN=%s: %s (is_directaccess=%s)' % (fdata.lfn, fdata.accessmode, is_directaccess))
 
         if getattr(copytool, 'require_replicas', False) and files and files[0].replicas is None:
