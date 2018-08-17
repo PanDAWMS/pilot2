@@ -32,7 +32,22 @@ logger = logging.getLogger(__name__)
 
 
 def interrupt(args, signum, frame):
+    """
+    Interrupt function on the receiving end of kill signals.
+    This function is forwarded any incoming signals (SIGINT, SIGTERM, etc) and will set abort_job which instructs
+    the threads to abort the job.
+
+    :param args: pilot arguments.
+    :param signum: signal.
+    :param frame: stack/execution frame pointing to the frame that was interrupted by the signal.
+    :return:
+    """
     logger.info('caught signal: %s' % [v for v, k in signal.__dict__.iteritems() if k == signum][0])
+    logger.info('will instruct threads to abort and update the server')
+    args.abort_job.set()
+    logger.info('waiting for threads to finish')
+    args.abort_job.wait()
+    logger.info('setting graceful stop, pilot will abort')
     args.graceful_stop.set()
 
 
