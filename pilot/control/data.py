@@ -170,6 +170,7 @@ def _stage_in(args, job):
         :return: True in case of success
     """
 
+    log.info('testing sending SIGUSR1')
     import signal
     os.kill(os.getpid(), signal.SIGUSR1)
 
