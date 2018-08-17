@@ -1092,6 +1092,11 @@ def queue_monitor(queues, traces, args):
             # make sure that state=failed
             job.state = 'failed'
 
+            # set job_aborted in case of kill signals
+            if args.abort_job.is_set():
+                logger.warning('detected a set abort_job (due to a kill signal), setting job_aborted')
+                args.job_aborted.set()
+
         # job has not been defined if it's still running
         if job:
             # send final server update
