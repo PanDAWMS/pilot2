@@ -185,7 +185,7 @@ class StagingClient(object):
                 if not fdat.replicas:
                     logger.info("No local replicas found for lfn=%s but allowremoteinputs is set => looking for remote inputs" % fdat.lfn)
                 else:
-                    logger.info("Direct access is set but no local direct access files, but allowremoteinputs is set => looking for remote inputs" % fdat.lfn)
+                    logger.info("Direct access is set but no local direct access files, but allowremoteinputs is set => looking for remote inputs")
                 logger.info("consider first/closest replica, accessmode=%s, remoteinput_allowed_schemas=%s" % (fdat.accessmode, allowed_schemas))
                 logger.debug('rses=%s' % r['rses'])
                 for ddm, replicas in r['rses'].iteritems():

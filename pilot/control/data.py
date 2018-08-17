@@ -170,6 +170,9 @@ def _stage_in(args, job):
         :return: True in case of success
     """
 
+    import signal
+    os.kill(os.getpid(), signal.SIGUSR1)
+
     log = get_logger(job.jobid)
 
     # write time stamps to pilot timing file
