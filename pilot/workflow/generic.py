@@ -45,10 +45,10 @@ def interrupt(args, signum, frame):
     logger.warning('caught signal: %s' % [v for v, k in signal.__dict__.iteritems() if k == signum][0])
     logger.warning('will instruct threads to abort and update the server')
     args.abort_job.set()
-    logger.warning('setting graceful stop, pilot will abort')
-    args.graceful_stop.set()
     logger.warning('waiting for threads to finish')
     args.job_aborted.wait()
+    logger.warning('setting graceful stop (in case it was not set already), pilot will abort')
+    args.graceful_stop.set()
 
 
 def run(args):
