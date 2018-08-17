@@ -78,6 +78,7 @@ def main():
 
     args.graceful_stop = threading.Event()
     args.abort_job = threading.Event()
+    args.job_aborted = threading.Event()
     args.retrieve_next_job = True  # go ahead and download a new job
     config.read(args.config)
 
