@@ -15,7 +15,7 @@ import logging
 import threading
 import time
 
-from pilot.common.exception import UnknownException, ExceededMaxWaitTime
+from pilot.common.exception import PilotException, ExceededMaxWaitTime
 from pilot.util.config import config
 
 logger = logging.getLogger(__name__)
@@ -72,7 +72,7 @@ def control(queues, traces, args):
 
     except Exception as e:
         print("monitor: exception caught: %s" % e)
-        raise UnknownException(e)
+        raise PilotException(e)
 
 
 #def log_lifetime(sig, frame, traces):
