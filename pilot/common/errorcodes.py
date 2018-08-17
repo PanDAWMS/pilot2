@@ -127,6 +127,23 @@ class ErrorCodes:
         EXCEEDEDMAXWAITTIME: "Exceeded maximum waiting time",
     }
 
+    def get_kill_signal_error_code(self, signal):
+        """
+        Match a kill signal with a corresponding Pilot error code.
+
+        :param signal: signal name (string).
+        :return: Pilot error code (integer).
+        """
+
+        signals_dictionary = {'SIGTERM': self.SIGTERM,
+                              'SIGQUIT': self.SIGQUIT,
+                              'SIGSEGV': self.SIGSEGV,
+                              'SIGXCPU': self.SIGXCPU,
+                              'SIGUSR1': self.SIGUSR1,
+                              'SIGBUS': self.SIGBUS}
+
+        return signals_dictionary.get(signal, self.KILLSIGNAL)
+
     def get_error_message(self, errorcode):
         """
         Return the error message corresponding to the given error code.

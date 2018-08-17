@@ -1165,10 +1165,13 @@ def job_monitor(queues, traces, args):
             logger.warning('job monitor received an abort command')
 
         # sleep for a while if stage-in has not completed
+        abort_job = False
         if queues.finished_data_in.empty():
             # check for any abort_job requests
             if args.abort_job.is_set():
                 logger.warning('job monitor detected an abort_job request (signal=%s)' % args.signal)
+                logger.warning('in case pilot is running more than one job, all jobs will be aborted')
+                abort_job = True
             time.sleep(1)
             continue
 
@@ -1183,6 +1186,16 @@ def job_monitor(queues, traces, args):
                 peeking_time = int(time.time())
                 for i in range(len(jobs)):
                     log = get_logger(jobs[i].jobid)
+
+                    if abort_job:
+                        jobs[i].state = 'failed'
+                        error_code = errors.get_kill_signal_error_code(signal)
+                        jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(error_code)
+                        queues.failed_payloads.put(jobs[i])
+                        log.info('aborting job monitoring since job state=%s (error code=%d)' %
+                                 (jobs[i].state), error_code)
+                        break
+
                     log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
                     if jobs[i].state == 'finished' or jobs[i].state == 'failed':
                         log.info('aborting job monitoring since job state=%s' % jobs[i].state)
