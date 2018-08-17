@@ -64,6 +64,7 @@ class ErrorCodes:
     UNKNOWNCHECKSUMTYPE = 1314
     UNKNOWNTRFFAILURE = 1315
     RUCIOSERVICEUNAVAILABLE = 1316
+    EXCEEDEDMAXWAITTIME = 1317
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -107,6 +108,7 @@ class ErrorCodes:
         UNKNOWNCHECKSUMTYPE: "Unknown checksum type",
         UNKNOWNTRFFAILURE: "Unknown TRF failure",
         RUCIOSERVICEUNAVAILABLE: "Rucio: Service unavailable",
+        EXCEEDEDMAXWAITTIME: "Exceeded maximum waiting time",
     }
 
     def get_error_message(self, errorcode):

@@ -33,7 +33,7 @@ from pilot.util.timing import add_to_pilot_timing
 RELEASE = '2'  # fixed at 2 for Pilot 2
 VERSION = '0'  # '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
 REVISION = '0'  # reset to '0' for every new Pilot version release, increased for small updates
-BUILD = '19'  # reset to '1' for every new development cycle or always increase?
+BUILD = '19'  # reset to '1' for every new development cycle
 
 
 def pilot_version_banner():
@@ -77,6 +77,7 @@ def main():
     pilot_version_banner()
 
     args.graceful_stop = threading.Event()
+    args.abort_job = threading.Event()
     args.retrieve_next_job = True  # go ahead and download a new job
     config.read(args.config)
 
@@ -87,7 +88,7 @@ def main():
 
     set_info(args)  # initialize InfoService and populate args.info structure
 
-    logger.debug('pilot arguments: %s' % str(args))
+    logger.info('pilot arguments: %s' % str(args))
     logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
 
