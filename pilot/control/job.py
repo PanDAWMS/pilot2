@@ -146,13 +146,15 @@ def send_state(job, args, state, xml=None):
                 if 'command' in res and res.get('command') != 'NULL':
                     # look for 'tobekilled', 'softkill', 'debug', 'debugoff'
                     if res.get('command') == 'tobekilled':
-                        pass
+                        log.info('pilot received a panda server signal to kill job %d at %s' %
+                                 (job.jobid, time_stamp()))
                     elif res.get('command') == 'softkill':
-                        pass
+                        log.info('pilot received a panda server signal to softkill job %d at %s' %
+                                 (job.jobid, time_stamp()))
                     elif res.get('command') == 'debug':
-                        pass
+                        log.info('pilot received a command to turn on debug mode from the server')
                     elif res.get('command') == 'debugoff':
-                        pass
+                        log.info('pilot received a command to turn off debug mode from the server')
                     else:
                         log.warning('received unknown server command via backchannel: %s' % res.get('command'))
 
@@ -175,7 +177,7 @@ def get_data_structure(job, state, sitename, versiontag, xml=None):
     :param job: job object.
     :param state: state of the job (string).
     :param sitename: site name (string).
-    :param versiontag: versio tag (string).
+    :param versiontag: version tag (string).
     :param xml: optional XML string.
     :return: data structure (dictionary).
     """
@@ -217,18 +219,17 @@ def get_data_structure(job, state, sitename, versiontag, xml=None):
 
     pilotid = get_pilot_id()
     if pilotid:
-        use_newmover_tag = 'DEPRECATED'
         pilotversion = os.environ.get('PILOT_VERSION')
 
         # report the batch system job id, if available
         batchsystem_type, batchsystem_id = get_batchsystem_jobid()
 
         if batchsystem_type:
-            data['pilotID'] = "%s|%s|%s|%s|%s" % \
-                              (pilotid, use_newmover_tag, batchsystem_type, versiontag, pilotversion)
+            data['pilotID'] = "%s|%s|%s|%s" % \
+                              (pilotid, batchsystem_type, versiontag, pilotversion)
             data['batchID'] = batchsystem_id,
         else:
-            data['pilotID'] = "%s|%s|%s|%s" % (pilotid, use_newmover_tag, versiontag, pilotversion)
+            data['pilotID'] = "%s|%s|%s" % (pilotid, versiontag, pilotversion)
 
     starttime = get_postgetjob_time(job.jobid)
     if starttime:
@@ -371,6 +372,24 @@ def get_task_id():
     return taskid
 
 
+def get_job_label(args):
+    """
+    Return a proper job label.
+    The function returns a job label that corresponds to the actual pilot version, ie if the pilot is a development
+    version (ptest or rc_test2) or production version (managed or user).
+
+    :param args: pilot args object.
+    :return: job_label (string).
+    """
+
+    if args.version_tag.startswith('RC'):
+        job_label = 'rc_test2'
+    else:
+        job_label = args.job_label
+
+    return job_label
+
+
 def get_dispatcher_dictionary(args):
     """
     Return a dictionary with required fields for the dispatcher getJob operation.
@@ -400,10 +419,13 @@ def get_dispatcher_dictionary(args):
     _mem, _cpu, _disk = collect_workernode_info()
     _nodename = get_node_name()
 
+    # override for RC dev pilots
+    job_label = get_job_label(args)
+
     data = {
         'siteName': args.resource,
         'computingElement': args.location.queue,
-        'prodSourceLabel': args.job_label,
+        'prodSourceLabel': job_label,
         'diskSpace': _diskspace,
         'workingGroup': args.working_group,
         'cpu': _cpu,
@@ -905,7 +927,7 @@ def retrieve(queues, traces, args):
 
         # get a job definition from a source (file or server)
         res = get_job_definition(args)
-        logger.info('res = %s' % str(res))
+        logger.info('job definition = %s' % str(res))
 
         if res is None:
             logger.fatal('fatal error in job download loop - cannot continue')

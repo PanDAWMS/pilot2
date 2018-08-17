@@ -48,9 +48,14 @@ def run(args):
 
     logger.info('setting up signal handling')
     signal.signal(signal.SIGINT, functools.partial(interrupt, args))
+    signal.signal(signal.SIGTERM, functools.partial(interrupt, args))
+    signal.signal(signal.SIGQUIT, functools.partial(interrupt, args))
+    signal.signal(signal.SIGSEGV, functools.partial(interrupt, args))
+    signal.signal(signal.SIGXCPU, functools.partial(interrupt, args))
+    signal.signal(signal.SIGUSR1, functools.partial(interrupt, args))
+    signal.signal(signal.SIGBUS, functools.partial(interrupt, args))
 
     logger.info('setting up queues')
-
     queues = namedtuple('queues', ['jobs', 'payloads', 'data_in', 'data_out',
                                    'validated_jobs', 'validated_payloads', 'monitored_payloads',
                                    'finished_jobs', 'finished_payloads', 'finished_data_in', 'finished_data_out',

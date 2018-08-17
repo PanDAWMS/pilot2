@@ -63,6 +63,11 @@ def copy_in(files, **kwargs):
         raise StageInFailure("No GFAL2 tools found")
 
     for fspec in files:
+        # continue loop for files that are to be accessed directly
+        if fspec.is_directaccess(ensure_replica=False):
+            fspec.status_code = 0
+            fspec.status = 'remote_io'
+            continue
 
         dst = fspec.workdir or kwargs.get('workdir') or '.'
 

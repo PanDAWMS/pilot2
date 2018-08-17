@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 import os
 import re
@@ -14,11 +14,12 @@ from collections import defaultdict
 from glob import glob
 from signal import SIGTERM, SIGUSR1
 
-from pilot.common.exception import TrfDownloadFailure, PilotException
-from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
-    set_inds, get_analysis_trf, get_payload_environment_variables
-from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
+from .setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
+    set_inds, get_analysis_trf, get_payload_environment_variables, replace_lfns_with_turls
+from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
     get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
+
+from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import get_logger
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD,\
     UTILITY_WITH_STAGEIN
@@ -86,8 +87,6 @@ def get_payload_command(job):
             else:
                 cmd += "; " + job.jobparams
 
-        cmd = cmd.replace(';;', ';')
-
     else:  # Generic, non-ATLAS specific jobs, or at least a job with undefined swRelease
 
         log.info("generic job (non-ATLAS specific or with undefined swRelease)")
@@ -106,7 +105,11 @@ def get_payload_command(job):
                 _cmd = job.jobparams
 
             # correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
-            cmd += "; " + add_makeflags(job.corecount, "") + _cmd
+            # only if not using a user container
+            if not job.imagename:
+                cmd += "; " + add_makeflags(job.corecount, "") + _cmd
+            else:
+                cmd += _cmd
 
         elif verify_release_string(job.homepackage) != 'NULL' and job.homepackage != ' ':
             if prepareasetup:
@@ -119,9 +122,22 @@ def get_payload_command(job):
             else:
                 cmd = job.jobparams
 
-    site = os.environ.get('PILOT_SITENAME', '')
-    variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
-    cmd = ''.join(variables) + cmd
+    # only if not using a user container
+    if not job.imagename:
+        site = os.environ.get('PILOT_SITENAME', '')
+        variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
+        cmd = ''.join(variables) + cmd
+
+    cmd = cmd.replace(';;', ';')
+
+    # For direct access in prod jobs, we need to substitute the input file names with the corresponding TURLs
+    # get relevant file transfer info
+    use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype,
+                                                                            job.is_build_job(),
+                                                                            job.infosys.queuedata)
+    if not userjob and use_direct_access:
+        lfns, guids = job.get_lfns_and_guids()
+        cmd = replace_lfns_with_turls(cmd, job.workdir, "PoolFileCatalog.xml", lfns)
 
     log.info('payload run command: %s' % cmd)
 
@@ -138,6 +154,10 @@ def get_setup_command(job, prepareasetup):
     :param prepareasetup: should the pilot prepare the asetup command itself? boolean.
     :return:
     """
+
+    # return immediately if there is no release
+    if job.swrelease == 'NULL':
+        return ""
 
     # Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
     cmd = get_asetup(asetup=prepareasetup)
@@ -234,10 +254,8 @@ def get_analysis_run_command(job, trf_name):
                                                                             job.is_build_job(),
                                                                             job.infosys.queuedata)
     # add the user proxy
-    if 'X509_USER_PROXY' in os.environ:
+    if 'X509_USER_PROXY' in os.environ and not job.imagename:
         cmd += 'export X509_USER_PROXY=%s;' % os.environ.get('X509_USER_PROXY')
-    else:
-        log.warning("could not add user proxy to the run command (proxy does not exist)")
 
     # set up analysis trf
     cmd += './%s %s' % (trf_name, job.jobparams)
@@ -254,7 +272,8 @@ def get_analysis_run_command(job, trf_name):
     # add guids when needed
     # get the correct guids list (with only the direct access files)
     if not job.is_build_job():
-        _guids = get_guids_from_jobparams(job.jobparams, job.infiles, job.infilesguids)
+        lfns, guids = job.get_lfns_and_guids()
+        _guids = get_guids_from_jobparams(job.jobparams, lfns, guids)
         if _guids:
             cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
 

@@ -43,6 +43,9 @@ class FileSpec(BaseData):
     dataset = ""
     ddmendpoint = ""    ## DDMEndpoint name (input or output depending on FileSpec.type)
 
+    accessmode = ""
+    allowremoteinputs = False
+
     ## dispatchDblock =  ""       # moved from Pilot1: is it needed? suggest proper internal name?
     ## dispatchDBlockToken = ""   # moved from Pilot1: is it needed? suggest proper internal name?
 
@@ -64,7 +67,7 @@ class FileSpec(BaseData):
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['filesize', 'mtime', 'status_code'],
              str: ['lfn', 'guid', 'checksum', 'scope', 'dataset', 'ddmendpoint',
-                   'type', 'surl', 'turl', 'status', 'workdir'],
+                   'type', 'surl', 'turl', 'status', 'workdir', 'accessmode', 'allowremoteinputs'],
              list: ['replicas', 'inputddms'],
              bool: []
              }

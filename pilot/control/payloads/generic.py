@@ -116,18 +116,17 @@ class Executor(object):
         # write time stamps to pilot timing file
         add_to_pilot_timing(job.jobid, PILOT_PRE_PAYLOAD, time.time())
 
-        # replace platform and workdir with new function get_payload_options() or someting from experiment specific code
+        # replace platform and workdir with new function get_payload_options() or something from experiment specific
+        # code
         try:
             proc = execute(cmd, workdir=job.workdir, returnproc=True,
-                           usecontainer=False, stdout=out, stderr=err, cwd=job.workdir, job=job)
+                           usecontainer=True, stdout=out, stderr=err, cwd=job.workdir, job=job)
         except Exception as e:
             log.error('could not execute: %s' % str(e))
             return None
 
         log.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
         job.pid = proc.pid
-
-        # WRONG PLACE FOR THE FOLLOWING? MAIN PAYLOAD IS STILL RUNNING!!!
 
         # should any additional commands be executed after the payload?
         cmds = user.get_utility_commands_list(order=UTILITY_AFTER_PAYLOAD)
@@ -171,13 +170,13 @@ class Executor(object):
             for i in xrange(100):
                 if args.graceful_stop.is_set():
                     breaker = True
-                    log.debug('breaking -- sending SIGTERM pid=%s' % proc.pid)
+                    log.info('breaking -- sending SIGTERM pid=%s' % proc.pid)
                     os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
                     # proc.terminate()
                     break
                 time.sleep(0.1)
             if breaker:
-                log.debug('breaking -- sleep 3s before sending SIGKILL pid=%s' % proc.pid)
+                log.info('breaking -- sleep 3s before sending SIGKILL pid=%s' % proc.pid)
                 time.sleep(3)
                 proc.kill()
                 break
@@ -211,8 +210,12 @@ class Executor(object):
             if proc is not None:
                 log.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
-                log.info('finished pid=%s exit_code=%s' % (proc.pid, exit_code))
                 self.__job.state = 'finished' if exit_code == 0 else 'failed'
+                log.info('finished pid=%s exit_code=%s state=%s' % (proc.pid, exit_code, self.__job.state))
+
+                if exit_code is None:
+                    log.warning('detected unset exit_code from wait_graceful - reset to -1')
+                    exit_code = -1
 
                 # write time stamps to pilot timing file
                 add_to_pilot_timing(self.__job.jobid, PILOT_POST_PAYLOAD, time.time())

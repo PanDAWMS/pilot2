@@ -45,6 +45,12 @@ def copy_in(files, **kwargs):
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
     for fspec in files:
+        # continue loop for files that are to be accessed directly
+        if fspec.is_directaccess(ensure_replica=False):
+            fspec.status_code = 0
+            fspec.status = 'remote_io'
+            continue
+
         dst = fspec.workdir or kwargs.get('workdir') or '.'
         cmd = ['/usr/bin/env', 'rucio', '-v', 'download', '--no-subdir', '--dir', dst]
         if require_replicas:
@@ -130,7 +136,10 @@ def copy_out(files, **kwargs):
                     # the logic should be unified and moved to base layer shared for all the movers
                     adler32 = dat.get('adler32')
                     if fspec.checksum.get('adler32') and adler32 and fspec.checksum.get('adler32') != adler32:
-                        raise PilotException("Failed to stageout: CRC mismatched", code=ErrorCodes.PUTADMISMATCH, state='AD_MISMATCH')
+                        logger.warning('checksum verification failed: local %s != remote %s' %
+                                       (fspec.checksum.get('adler32'), adler32))
+                        raise PilotException("Failed to stageout: CRC mismatched",
+                                             code=ErrorCodes.PUTADMISMATCH, state='AD_MISMATCH')
 
         fspec.status_code = 0
         fspec.status = 'transferred'
@@ -151,6 +160,9 @@ def resolve_transfer_error(output, is_stagein):
         m = re.search("Details\s*:\s*(?P<error>.*)", line)
         if m:
             ret['error'] = m.group('error')
+        elif 'service_unavailable' in line:
+            ret['error'] = 'service_unavailable'
+            ret['rcode'] = ErrorCodes.RUCIOSERVICEUNAVAILABLE
 
     return ret
 
