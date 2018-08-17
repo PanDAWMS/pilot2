@@ -245,6 +245,7 @@ class ExceededMaxWaitTime(PilotException):
         self._errorCode = errors.EXCEEDEDMAXWAITTIME
         self._message = errors.get_error_message(self._errorCode)
 
+
 class ExcThread(threading.Thread):
     """
     Support class that allows for catching exceptions in threads.
