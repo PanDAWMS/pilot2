@@ -42,7 +42,10 @@ def interrupt(args, signum, frame):
     :param frame: stack/execution frame pointing to the frame that was interrupted by the signal.
     :return:
     """
-    logger.warning('caught signal: %s' % [v for v, k in signal.__dict__.iteritems() if k == signum][0])
+
+    sig = [v for v, k in signal.__dict__.iteritems() if k == signum][0]
+    logger.warning('caught signal: %s' % sig)
+    args.signal = sig
     logger.warning('will instruct threads to abort and update the server')
     args.abort_job.set()
     logger.warning('waiting for threads to finish')
@@ -101,7 +104,8 @@ def run(args):
     logger.info('setting up tracing')
     traces = namedtuple('traces', ['pilot'])
     traces.pilot = {'state': SUCCESS,
-                    'nr_jobs': 0}
+                    'nr_jobs': 0,
+                    'command': None}
 
     # define the threads
     targets = {'job': job.control, 'payload': payload.control, 'data': data.control, 'monitor': monitor.control}

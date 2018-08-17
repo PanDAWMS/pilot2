@@ -1161,11 +1161,14 @@ def job_monitor(queues, traces, args):
         if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
             break
 
+        if traces.pilot.get('command') == 'abort':
+            logger.warning('job monitor received an abort command')
+
         # sleep for a while if stage-in has not completed
         if queues.finished_data_in.empty():
             # check for any abort_job requests
             if args.abort_job.is_set():
-                logger.warning('job monitor detected an abort_job request')
+                logger.warning('job monitor detected an abort_job request (signal=%s)' % args.sig)
             time.sleep(1)
             continue
 

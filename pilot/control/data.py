@@ -71,6 +71,7 @@ def control(queues, traces, args):
 
     if args.abort_job.is_set():
         logger.warning('data control detected a set abort_job (due to a kill signal)')
+        traces,pilot['command'] = 'abort'
 
 
 def prepare_for_container(workdir):
