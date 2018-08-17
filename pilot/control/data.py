@@ -69,6 +69,9 @@ def control(queues, traces, args):
             thread.join(0.1)
             time.sleep(0.1)
 
+    if args.abort_job.is_set():
+        logger.warning('data control detected a set abort_job (due to a kill signal)')
+
 
 def prepare_for_container(workdir):
     """
