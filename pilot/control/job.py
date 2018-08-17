@@ -1168,7 +1168,7 @@ def job_monitor(queues, traces, args):
         if queues.finished_data_in.empty():
             # check for any abort_job requests
             if args.abort_job.is_set():
-                logger.warning('job monitor detected an abort_job request (signal=%s)' % args.sig)
+                logger.warning('job monitor detected an abort_job request (signal=%s)' % args.signal)
             time.sleep(1)
             continue
 
