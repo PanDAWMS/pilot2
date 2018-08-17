@@ -43,6 +43,15 @@ class ErrorCodes:
     GETADMISMATCH = 1171
     PUTADMISMATCH = 1172
     NOVOMSPROXY = 1177
+    KILLSIGNAL = 1200
+    SIGTERM = 1201
+    SIGQUIT = 1202
+    SIGSEGV = 1203
+    SIGXCPU = 1204
+    #    USERKILL = 1205 # not used by pilot
+    SIGBUS = 1206
+    SIGUSR1 = 1207
+
     PAYLOADEXCEEDMAXMEM = 1235
     CHKSUMNOTSUP = 1242
 
@@ -89,6 +98,13 @@ class ErrorCodes:
         GETADMISMATCH: "adler32 mismatch on input file",
         PUTADMISMATCH: "adler32 mismatch on output file",
         NOVOMSPROXY: "Voms proxy not valid",
+        KILLSIGNAL: "Job terminated by unknown kill signal",
+        SIGTERM: "Job killed by signal: SIGTERM",
+        SIGQUIT: "Job killed by signal: SIGQUIT",
+        SIGSEGV: "Job killed by signal: SIGSEGV",
+        SIGXCPU: "Job killed by signal: SIGXCPU",
+        SIGUSR1: "Job killed by signal: SIGUSR1",
+        SIGBUS: "Job killed by signal: SIGBUS",
         PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
         CHKSUMNOTSUP: "Mover error: query checksum is not supported",
         NOTIMPLEMENTED: "The class or function is not implemented",
