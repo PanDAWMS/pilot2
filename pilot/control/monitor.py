@@ -89,7 +89,7 @@ def run_checks(args):
 
     if args.abort_job.is_set():
         t_max = 2 * 60
-        logger.warning('pilot monitor received instruction that abort job has been requested')
+        logger.warning('pilot monitor received instruction that abort_job has been requested')
         logger.warning('will wait for a maximum of %d seconds for threads to finish' % t_max)
         logger.warning('setting graceful_stop')
         args.graceful_stop.set()
