@@ -83,6 +83,9 @@ def control(queues, traces, args):
                 # deal with the exception
                 # ..
 
+                if args.abort_job.is_set():
+                    logger.warning('job control detected a set abort_job (due to a kill signal)')
+
             thread.join(0.1)
             time.sleep(0.1)
 
