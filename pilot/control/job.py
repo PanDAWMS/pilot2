@@ -1094,7 +1094,7 @@ def queue_monitor(queues, traces, args):
 
             # set job_aborted in case of kill signals
             if args.abort_job.is_set():
-                logger.warning('detected a set abort_job (due to a kill signal), setting job_aborted')
+                logger.warning('queue monitor detected a set abort_job (due to a kill signal), setting job_aborted')
                 args.job_aborted.set()
 
         # job has not been defined if it's still running
@@ -1160,6 +1160,9 @@ def job_monitor(queues, traces, args):
 
         # sleep for a while if stage-in has not completed
         if queues.finished_data_in.empty():
+            # check for any abort_job requests
+            if args.abort_job.is_set():
+                logger.warning('job monitor detected an abort_job request')
             time.sleep(1)
             continue
 
