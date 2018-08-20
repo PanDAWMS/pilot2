@@ -91,8 +91,6 @@ def run_checks(args):
         t_max = 2 * 60
         logger.warning('pilot monitor received instruction that abort_job has been requested')
         logger.warning('will wait for a maximum of %d seconds for threads to finish' % t_max)
-        logger.warning('setting graceful_stop')
-        args.graceful_stop.set()
         t0 = time.time()
         while time.time() - t0 < t_max:
             if args.job_aborted.is_set():
@@ -101,7 +99,20 @@ def run_checks(args):
                 return
             time.sleep(1)
 
-        diagnostics = 'reached maximum waiting time (%d s) - threads should have finished' % t_max
+        logger.warning('setting graceful_stop')
+        logger.warning('will wait for a maximum of %d seconds for graceful_stop to take effect' % t_max)
+        args.graceful_stop.set()
+
+        t_max = 10
+        t0 = time.time()
+        while time.time() - t0 < t_max:
+            if args.job_aborted.is_set():
+                logger.warning('job_aborted has been set - aborting pilot monitoring')
+                args.abort_job.clear()
+                return
+            time.sleep(1)
+
+        diagnostics = 'reached maximum waiting time - threads should have finished'
         args.abort_job.clear()
         args.job_aborted.set()
         raise ExceededMaxWaitTime(diagnostics)

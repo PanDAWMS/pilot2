@@ -69,6 +69,7 @@ def control(queues, traces, args):
             thread.join(0.1)
             time.sleep(0.1)
 
+    logger.debug('data control ending since graceful_stop has been set')
     if args.abort_job.is_set():
         logger.warning('data control detected a set abort_job (due to a kill signal)')
         traces.pilot['command'] = 'abort'
@@ -370,7 +371,27 @@ def copytool_in(queues, traces, args):
 
             log = get_logger(job.jobid)
 
+            if args.abort_job.is_set():
+                logger.warning('1. copytool_in detected a set abort_job (due to a kill signal)')
+                traces.pilot['command'] = 'abort'
+                log.warning('stage-in failed, adding job object to failed_data_in queue')
+                job.state = 'failed'
+                error_code = errors.get_kill_signal_error_code(args.signal)
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error_code)
+                queues.failed_data_in.put(job)
+                break
+
             if _stage_in(args, job):
+                if args.abort_job.is_set():
+                    logger.warning('2. copytool_in detected a set abort_job (due to a kill signal)')
+                    traces.pilot['command'] = 'abort'
+                    log.warning('stage-in failed, adding job object to failed_data_in queue')
+                    job.state = 'failed'
+                    error_code = errors.get_kill_signal_error_code(args.signal)
+                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error_code)
+                    queues.failed_data_in.put(job)
+                    break
+
                 queues.finished_data_in.put(job)
 
                 # now create input file metadata if required by the payload
@@ -382,13 +403,18 @@ def copytool_in(queues, traces, args):
                 log.info('created input file metadata:\n%s' % xml)
             else:
                 log.warning('stage-in failed, adding job object to failed_data_in queue')
-                queues.failed_data_in.put(job)
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINFAILED)
                 job.state = "failed"
+                queues.failed_data_in.put(job)
                 # send_state(job, args, 'failed')
 
         except queue.Empty:
             continue
+
+    logger.debug('copytool_in ended since graceful_stop has been set')
+    if args.abort_job.is_set():
+        logger.warning('copytool_in detected a set abort_job (due to a kill signal)')
+        traces.pilot['command'] = 'abort'
 
 
 def copytool_out(queues, traces, args):
@@ -776,7 +802,7 @@ def queue_monitoring(queues, traces, args):
 
     while True:  # will abort when graceful_stop has been set
         if traces.pilot['command'] == 'abort':
-            logger.warning('data queue monitor received a abort instruction')
+            logger.warning('data queue monitor saw the abort instruction')
 
         # wait a second
         if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons

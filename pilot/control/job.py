@@ -66,8 +66,6 @@ def control(queues, traces, args):
 
     [thread.start() for thread in threads]
 
-    logger.info('waiting for interrupts')
-
     # if an exception is thrown, the graceful_stop will be set by the ExcThread class run() function
     while not args.graceful_stop.is_set():
         for thread in threads:
@@ -86,8 +84,10 @@ def control(queues, traces, args):
             thread.join(0.1)
             time.sleep(0.1)
 
+    logger.debug('job control ending since graceful_stop has been set')
     if args.abort_job.is_set():
         logger.warning('job control detected a set abort_job (due to a kill signal)')
+        traces.pilot['command'] = 'abort'
 
 
 def _validate_job(job):
@@ -1066,7 +1066,10 @@ def queue_monitor(queues, traces, args):
     :return:
     """
 
-    while not args.graceful_stop.is_set():
+    while True:  # will abort when graceful_stop has been set
+        if traces.pilot['command'] == 'abort':
+            logger.warning('job queue monitor received an abort instruction')
+
         # wait a second
         if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
             break
@@ -1190,7 +1193,7 @@ def job_monitor(queues, traces, args):
 
                     if abort_job:
                         jobs[i].state = 'failed'
-                        error_code = errors.get_kill_signal_error_code(signal)
+                        error_code = errors.get_kill_signal_error_code(args.signal)
                         jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(error_code)
                         queues.failed_payloads.put(jobs[i])
                         log.info('aborting job monitoring since job state=%s (error code=%d)' %
