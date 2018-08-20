@@ -1164,17 +1164,16 @@ def job_monitor(queues, traces, args):
         if traces.pilot.get('command') == 'abort':
             logger.warning('job monitor received an abort command')
 
-        # sleep for a while if stage-in has not completed
+        # check for any abort_job requests
         abort_job = False
-        if queues.finished_data_in.empty():
-            # check for any abort_job requests
-            if args.abort_job.is_set():
-                logger.warning('job monitor detected an abort_job request (signal=%s)' % args.signal)
-                logger.warning('in case pilot is running more than one job, all jobs will be aborted')
-                abort_job = True
-            else:
-                time.sleep(1)
-                continue
+        if args.abort_job.is_set():
+            logger.warning('job monitor detected an abort_job request (signal=%s)' % args.signal)
+            logger.warning('in case pilot is running more than one job, all jobs will be aborted')
+            abort_job = True
+        elif queues.finished_data_in.empty():
+            # sleep for a while if stage-in has not completed
+            time.sleep(1)
+            continue
 
         # wait a minute unless we are to abort
         if not abort_job:
