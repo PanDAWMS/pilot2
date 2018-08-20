@@ -1172,8 +1172,9 @@ def job_monitor(queues, traces, args):
                 logger.warning('job monitor detected an abort_job request (signal=%s)' % args.signal)
                 logger.warning('in case pilot is running more than one job, all jobs will be aborted')
                 abort_job = True
-            time.sleep(1)
-            continue
+            else:
+                time.sleep(1)
+                continue
 
         # wait a minute unless we are to abort
         if not abort_job:
