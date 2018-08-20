@@ -27,7 +27,8 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
 from pilot.info import infosys, JobData
 from pilot.util import https
-from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
+from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger,\
+    declare_failed_by_kill
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB
 from pilot.util.filehandling import get_files, tail
@@ -1192,12 +1193,8 @@ def job_monitor(queues, traces, args):
                     log = get_logger(jobs[i].jobid)
 
                     if abort_job:
-                        jobs[i].state = 'failed'
-                        error_code = errors.get_kill_signal_error_code(args.signal)
-                        jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(error_code)
-                        queues.failed_payloads.put(jobs[i])
-                        log.info('aborting job monitoring since job state=%s (error code=%d)' %
-                                 (jobs[i].state), error_code)
+                        declare_failed_by_kill(jobs[i], queues.failed_payloads, args.signal)
+                        log.info('aborting job monitoring since job state=%s' % jobs[i].state)
                         break
 
                     log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))

@@ -29,7 +29,7 @@ from pilot.api.data import StageInClient, StageOutClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
-from pilot.util.auxiliary import get_logger
+from pilot.util.auxiliary import get_logger, declare_failed_by_kill
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT
 from pilot.util.container import execute
@@ -362,6 +362,14 @@ def stage_out_auto(site, files):
 
 
 def copytool_in(queues, traces, args):
+    """
+    Call the stage-in function and put the job object in the proper queue.
+
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
 
     while not args.graceful_stop.is_set():
         try:
@@ -372,24 +380,16 @@ def copytool_in(queues, traces, args):
             log = get_logger(job.jobid)
 
             if args.abort_job.is_set():
-                logger.warning('1. copytool_in detected a set abort_job (due to a kill signal)')
                 traces.pilot['command'] = 'abort'
-                log.warning('stage-in failed, adding job object to failed_data_in queue')
-                job.state = 'failed'
-                error_code = errors.get_kill_signal_error_code(args.signal)
-                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error_code)
-                queues.failed_data_in.put(job)
+                log.warning('copytool_in detected a set abort_job pre stage-in (due to a kill signal)')
+                declare_failed_by_kill(job, queues.failed_data_in, args.signal)
                 break
 
             if _stage_in(args, job):
                 if args.abort_job.is_set():
-                    logger.warning('2. copytool_in detected a set abort_job (due to a kill signal)')
                     traces.pilot['command'] = 'abort'
-                    log.warning('stage-in failed, adding job object to failed_data_in queue')
-                    job.state = 'failed'
-                    error_code = errors.get_kill_signal_error_code(args.signal)
-                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error_code)
-                    queues.failed_data_in.put(job)
+                    log.warning('copytool_in detected a set abort_job post stage-in (due to a kill signal)')
+                    declare_failed_by_kill(job, queues.failed_data_in, args.signal)
                     break
 
                 queues.finished_data_in.put(job)
@@ -412,9 +412,6 @@ def copytool_in(queues, traces, args):
             continue
 
     logger.debug('copytool_in ended since graceful_stop has been set')
-    if args.abort_job.is_set():
-        logger.warning('copytool_in detected a set abort_job (due to a kill signal)')
-        traces.pilot['command'] = 'abort'
 
 
 def copytool_out(queues, traces, args):

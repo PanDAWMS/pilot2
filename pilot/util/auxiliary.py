@@ -155,3 +155,20 @@ def shell_exit_code(exit_code):
         return 1
     else:
         return 0
+
+
+def declare_failed_by_kill(job, queue, sig):
+    """
+    Declare the job failed by a kill signal and put it in a suitable failed queue.
+    E.g. queue=queues.failed_data_in, if the kill signal was received during stage-in.
+
+    :param job: job object.
+    :param queue: queue object.
+    :param sig: signal.
+    :return:
+    """
+
+    job.state = 'failed'
+    error_code = errors.get_kill_signal_error_code(sig)
+    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error_code)
+    queue.put(job)
