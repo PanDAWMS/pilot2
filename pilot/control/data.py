@@ -775,6 +775,9 @@ def queue_monitoring(queues, traces, args):
     """
 
     while True:  # will abort when graceful_stop has been set
+        if traces.pilot['command'] == 'abort':
+            logger.warning('data queue monitor received a abort instruction')
+
         # wait a second
         if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
             break
