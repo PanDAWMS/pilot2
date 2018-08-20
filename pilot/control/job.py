@@ -1175,8 +1175,9 @@ def job_monitor(queues, traces, args):
             time.sleep(1)
             continue
 
-        # wait a minute
-        time.sleep(60)
+        # wait a minute unless we are to abort
+        if not abort_job:
+            time.sleep(60)
         try:
             # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
             jobs = queues.monitored_payloads.queue
