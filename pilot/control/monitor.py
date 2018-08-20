@@ -96,7 +96,7 @@ def run_checks(args):
         t0 = time.time()
         while time.time() - t0 < t_max:
             if args.job_aborted.is_set():
-                logger.warning('graceful_stop has been set - aborting pilot monitoring')
+                logger.warning('job_aborted has been set - aborting pilot monitoring')
                 args.abort_job.clear()
                 return
             time.sleep(1)

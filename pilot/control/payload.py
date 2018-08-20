@@ -145,9 +145,9 @@ def execute_payloads(queues, traces, args):
             send_state(job, args, 'starting')
 
             if job.is_eventservice:
-                payload_executor = eventservice.Executor(args, job, out, err)
+                payload_executor = eventservice.Executor(args, queues, job, out, err)
             else:
-                payload_executor = generic.Executor(args, job, out, err)
+                payload_executor = generic.Executor(args, queues, job, out, err)
 
             # run the payload and measure the execution time
             job.t0 = os.times()

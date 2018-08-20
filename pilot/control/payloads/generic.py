@@ -29,8 +29,9 @@ logger = logging.getLogger(__name__)
 
 
 class Executor(object):
-    def __init__(self, args, job, out, err):
+    def __init__(self, args, queues, job, out, err):
         self.__args = args
+        self.__queues = queues
         self.__job = job
         self.__out = out
         self.__err = err
@@ -169,6 +170,7 @@ class Executor(object):
             iteration += 1
             for i in xrange(100):
                 if args.graceful_stop.is_set():
+                    self.__queues.failed_job(job)
                     breaker = True
                     log.info('breaking -- sending SIGTERM pid=%s' % proc.pid)
                     os.killpg(os.getpgid(proc.pid), signal.SIGTERM)

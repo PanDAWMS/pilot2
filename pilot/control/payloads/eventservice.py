@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 class Executor(generic.Executor, ESHook):
-    def __init__(self, args, job, out, err):
-        super(Executor, self).__init__(args, job, out, err)
+    def __init__(self, args, queues, job, out, err):
+        super(Executor, self).__init__(args, queues, job, out, err)
 
         self.__event_ranges = []
         self.__queued_out_messages = []

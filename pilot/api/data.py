@@ -213,7 +213,7 @@ class StagingClient(object):
                     fdat.checksum[ctype] = r[ctype]
 
         logger.info('Number of resolved replicas:\n' +
-                    '\n'.join(["lfn=%s: replicas=%s, allowremoteinputs=%s, is_directaccess=%s"
+                    '\n'.join(["lfn=%s: replicas=%s, allowremoteinputsallowremoteinputs=%s, is_directaccess=%s"
                                % (f.lfn, len(f.replicas), f.allowremoteinputs, f.is_directaccess(ensure_replica=False)) for f in files]))
 
         return files
