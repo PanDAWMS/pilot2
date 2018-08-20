@@ -1219,7 +1219,7 @@ def job_monitor(queues, traces, args):
                         update_time = int(time.time())
             else:
                 waiting_time = int(time.time()) - peeking_time
-                msg = 'no jobs in monitored_payloads queue (waiting for %d s)' % waiting_time
+                msg = 'no jobs in monitored_payloads queue (waited for %d s)' % waiting_time
                 if waiting_time > 120:
                     abort = True
                     msg += ' - aborting'

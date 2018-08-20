@@ -774,7 +774,7 @@ def queue_monitoring(queues, traces, args):
     :return:
     """
 
-    while not args.graceful_stop.is_set():
+    while True:  # will abort when graceful_stop has been set
         # wait a second
         if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
             break
