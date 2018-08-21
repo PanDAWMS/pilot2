@@ -29,7 +29,7 @@ from pilot.api.data import StageInClient, StageOutClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
-from pilot.util.auxiliary import get_logger, declare_failed_by_kill
+from pilot.util.auxiliary import get_logger, declare_failed_by_kill, abort_jobs_in_queues
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT
 from pilot.util.container import execute
@@ -73,6 +73,9 @@ def control(queues, traces, args):
     if args.abort_job.is_set():
         logger.warning('data control detected a set abort_job (due to a kill signal)')
         traces.pilot['command'] = 'abort'
+
+        # find all running jobs and stop them, find all jobs in queues relevant to this module
+        abort_jobs_in_queues(queues, args.signal)
 
 
 def prepare_for_container(workdir):

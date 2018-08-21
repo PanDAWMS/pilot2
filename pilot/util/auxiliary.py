@@ -136,7 +136,7 @@ def shell_exit_code(exit_code):
         errors.NOSUCHFILE: [67, "No such file or directory"],
         errors.NOVOMSPROXY: [68, "Voms proxy not valid"],
         errors.NOLOCALSPACE: [69, "No space left on local disk"],
-        # errors.PILOTEXC: [70, "Exception caught by pilot"],
+        errors.UNKNOWNEXCEPTION: [70, "Exception caught by pilot"],  # same as ERR_PILOTEXC?
         # errors.QUEUEDATA: [71, "Pilot could not download queuedata"],
         # errors.QUEUEDATANOTOK: [72, "Pilot found non-valid queuedata"],
         # errors.NOSOFTWAREDIR: [73, "Software directory does not exist"],
@@ -174,3 +174,29 @@ def declare_failed_by_kill(job, queue, sig):
     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error_code)
 
     queue.put(job)
+
+
+def abort_jobs_in_queues(queues, sig):
+    """
+    Find all jobs in the queues and abort them.
+
+    :param queues:
+    :param sig: detected kill signal.
+    :return:
+    """
+
+    jobs_list = []
+
+    # loop over all queues and find all jobs
+    for q in queues._fields:
+        _q = getattr(queues, q)
+        jobs = list(_q.queue)
+        for job in jobs:
+            if job not in jobs_list:
+                jobs_list.append(job)
+
+    logger.info('found %d job(s) in %d queues' % (len(jobs_list), len(queues._fields)))
+    for job in jobs_list:
+        log = get_logger(job.jobid)
+        log.info('aborting job %s' % (job.jobid))
+        declare_failed_by_kill(job, queues.failed_jobs, sig)

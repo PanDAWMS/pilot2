@@ -27,8 +27,8 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
 from pilot.info import infosys, JobData
 from pilot.util import https
-from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger,\
-    declare_failed_by_kill
+from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
+    abort_jobs_in_queues
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB
 from pilot.util.filehandling import get_files, tail
@@ -92,32 +92,6 @@ def control(queues, traces, args):
 
         # find all running jobs and stop them, find all jobs in queues relevant to this module
         abort_jobs_in_queues(queues, args.signal)
-
-
-def abort_jobs_in_queues(queues, sig):
-    """
-    Find all jobs in the queues and abort them.
-
-    :param queues:
-    :param sig: detected kill signal.
-    :return:
-    """
-
-    jobs_list = []
-
-    # loop over all queues and find all jobs
-    for q in queues._fields:
-        _q = getattr(queues, q)
-        jobs = list(_q.queue)
-        for job in jobs:
-            if job not in jobs_list:
-                jobs_list.append(job)
-
-    logger.info('found %d job(s) in %d queues' % (len(jobs_list), len(queues._fields)))
-    for job in jobs_list:
-        log = get_logger(job.jobid)
-        log.info('aborting job %s' % (job.jobid))
-        declare_failed_by_kill(job, queues.failed_jobs, sig)
 
 
 def _validate_job(job):
