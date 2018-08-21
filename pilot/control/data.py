@@ -91,10 +91,11 @@ def abort_jobs_in_queues(queues, sig):
 
     # loop over all queues and find all jobs
     for q in queues._fields:
-        jobs = list(q.queue)
+        _q = getattr(queues, q)
+        jobs = list(_q.queue)
         for job in jobs:
             if job.jobid not in jobs_dictionary.keys():
-                jobs_dictionary[job.jobid] = [job, q]
+                jobs_dictionary[job.jobid] = [job, _q]
 
     logger.info('found %d job(s) in %d queues' % (len(jobs_dictionary.keys()), len(queues._fields)))
     for jobid in jobs_dictionary.keys():
