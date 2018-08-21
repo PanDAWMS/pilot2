@@ -264,7 +264,7 @@ class StagingClient(object):
             :param activity: list of activity names used to determine appropriate copytool (prioritized list)
             :param kwargs: extra kwargs to be passed to copytool transfer handler
             :raise: PilotException in case of controlled error
-            :return: output of copytool trasfers (to be clarified)
+            :return: output of copytool transfers (to be clarified)
         """
 
         if isinstance(activity, basestring):

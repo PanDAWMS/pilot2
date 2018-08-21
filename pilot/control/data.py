@@ -177,9 +177,10 @@ def _stage_in(args, job):
 
     log = get_logger(job.jobid)
 
-    log.info('testing sending SIGUSR1')
-    import signal
-    os.kill(os.getpid(), signal.SIGUSR1)
+    # tested ok:
+    #log.info('testing sending SIGUSR1')
+    #import signal
+    #os.kill(os.getpid(), signal.SIGUSR1)
 
     # write time stamps to pilot timing file
     add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN, time.time())
@@ -607,6 +608,10 @@ def _stage_out_new(job, args):
     :param args:
     :return: True in case of success
     """
+
+    log.info('testing sending SIGUSR1')
+    import signal
+    os.kill(os.getpid(), signal.SIGUSR1)
 
     log = get_logger(job.jobid)
 
