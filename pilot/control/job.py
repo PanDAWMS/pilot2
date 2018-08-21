@@ -1193,10 +1193,10 @@ def job_monitor(queues, traces, args):
                 for i in range(len(jobs)):
                     log = get_logger(jobs[i].jobid)
 
-                    if abort_job:
-                        declare_failed_by_kill(jobs[i], queues.failed_payloads, args.signal)
-                        log.info('aborting job monitoring since job state=%s' % jobs[i].state)
-                        break
+                    #if abort_job:
+                    #    declare_failed_by_kill(jobs[i], queues.failed_payloads, args.signal)
+                    #    log.info('aborting job monitoring since job state=%s' % jobs[i].state)
+                    #    break
 
                     log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
                     if jobs[i].state == 'finished' or jobs[i].state == 'failed':

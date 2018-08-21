@@ -141,11 +141,11 @@ def shell_exit_code(exit_code):
         # errors.QUEUEDATANOTOK: [72, "Pilot found non-valid queuedata"],
         # errors.NOSOFTWAREDIR: [73, "Software directory does not exist"],
         errors.KILLSIGNAL: [137, "General kill signal"], # Job terminated by unknown kill signal
-        errors.SIGTERM: [143, "Job killed by signal: SIGTERM"], # 128+15
-        errors.SIGQUIT: [131, "Job killed by signal: SIGQUIT"], # 128+3
-        errors.SIGSEGV: [139, "Job killed by signal: SIGSEGV"], # 128+11
-        errors.SIGXCPU: [158, "Job killed by signal: SIGXCPU"], # 128+30
-        errors.SIGUSR1: [144, "Job killed by signal: SIGUSR1"], # 128+16
+        errors.SIGTERM: [143, "Job killed by signal: SIGTERM"],  # 128+15
+        errors.SIGQUIT: [131, "Job killed by signal: SIGQUIT"],  # 128+3
+        errors.SIGSEGV: [139, "Job killed by signal: SIGSEGV"],  # 128+11
+        errors.SIGXCPU: [158, "Job killed by signal: SIGXCPU"],  # 128+30
+        errors.SIGUSR1: [144, "Job killed by signal: SIGUSR1"],  # 128+16
         errors.SIGBUS: [138, "Job killed by signal: SIGBUS"]   # 128+10
     }
 

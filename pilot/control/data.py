@@ -96,7 +96,6 @@ def abort_jobs_in_queues(queues, sig):
             if job.jobid not in jobs_dictionary.keys():
                 jobs_dictionary[job.jobid] = [job, q]
 
-
     logger.info('found %d job(s) in %d queues' % (len(jobs_dictionary.keys()), len(queues._fields)))
     for jobid in jobs_dictionary.keys():
         log = get_logger(jobid)
@@ -451,6 +450,7 @@ def copytool_out(queues, traces, args):
     while not args.graceful_stop.is_set():
         try:
             job = queues.data_out.get(block=True, timeout=1)
+            log = get_logger(job.jobid)
 
             # send_state(job, args, 'running')  # not necessary to send job update at this point?
 
