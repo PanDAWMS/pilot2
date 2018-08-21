@@ -29,7 +29,6 @@ class ErrorCodes:
     STDOUTTOOBIG = 1106
     SETUPFAILURE = 1110
     OUTPUTFILETOOLARGE = 1124
-    MKDIR = 1134
     STAGEOUTFAILED = 1137
     PUTMD5MISMATCH = 1141
     GETMD5MISMATCH = 1145
@@ -43,7 +42,7 @@ class ErrorCodes:
     GETADMISMATCH = 1171
     PUTADMISMATCH = 1172
     NOVOMSPROXY = 1177
-    MKDIRWORKDIR = 1199
+    MKDIR = 1199
     KILLSIGNAL = 1200
     SIGTERM = 1201
     SIGQUIT = 1202
@@ -86,7 +85,6 @@ class ErrorCodes:
         STDOUTTOOBIG: "Payload log or stdout file too big",
         SETUPFAILURE: "Failed during payload setup",
         OUTPUTFILETOOLARGE: "Output file too large",
-        MKDIR: "Failed to create local directory",
         STAGEOUTFAILED: "Failed to stage-out file",
         PUTMD5MISMATCH: "md5sum mismatch on output file",
         GETMD5MISMATCH: "md5sum mismatch on input file",
@@ -99,7 +97,7 @@ class ErrorCodes:
         GETADMISMATCH: "adler32 mismatch on input file",
         PUTADMISMATCH: "adler32 mismatch on output file",
         NOVOMSPROXY: "Voms proxy not valid",
-        MKDIRWORKDIR: "Could not create directory",
+        MKDIR: "Failed to create local directory",
         KILLSIGNAL: "Job terminated by unknown kill signal",
         SIGTERM: "Job killed by signal: SIGTERM",
         SIGQUIT: "Job killed by signal: SIGQUIT",

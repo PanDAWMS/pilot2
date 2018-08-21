@@ -182,7 +182,7 @@ class MKDirFailure(PilotException):
     """
     def __init__(self, *args, **kwargs):
         super(MKDirFailure, self).__init__(args, kwargs)
-        self._errorCode = errors.MKDIRWORKDIR
+        self._errorCode = errors.MKDIR
         self._message = errors.get_error_message(self._errorCode)
 
 

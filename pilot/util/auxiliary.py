@@ -131,7 +131,7 @@ def shell_exit_code(exit_code):
     error_code_translation_dictionary = {
         -1: [64, "Site offline"],
         errors.GENERALERROR: [65, "General pilot error, consult batch log"],
-        # errors.MKDIRWORKDIR: [66, "Could not create directory"],
+        errors.MKDIR: [66, "Could not create directory"],
         errors.NOSUCHFILE: [67, "No such file or directory"],
         errors.NOVOMSPROXY: [68, "Voms proxy not valid"],
         errors.NOLOCALSPACE: [69, "No space left on local disk"],
@@ -139,13 +139,13 @@ def shell_exit_code(exit_code):
         # errors.QUEUEDATA: [71, "Pilot could not download queuedata"],
         # errors.QUEUEDATANOTOK: [72, "Pilot found non-valid queuedata"],
         # errors.NOSOFTWAREDIR: [73, "Software directory does not exist"],
-        # errors.KILLSIGNAL: [137, "General kill signal"], # Job terminated by unknown kill signal
-        # errors.SIGTERM: [143, "Job killed by signal: SIGTERM"], # 128+15
-        # errors.SIGQUIT: [131, "Job killed by signal: SIGQUIT"], # 128+3
-        # errors.SIGSEGV: [139, "Job killed by signal: SIGSEGV"], # 128+11
-        # errors.SIGXCPU: [158, "Job killed by signal: SIGXCPU"], # 128+30
-        # errors.SIGUSR1: [144, "Job killed by signal: SIGUSR1"], # 128+16
-        # errors.SIGBUS: [138, "Job killed by signal: SIGBUS"]   # 128+10
+        errors.KILLSIGNAL: [137, "General kill signal"], # Job terminated by unknown kill signal
+        errors.SIGTERM: [143, "Job killed by signal: SIGTERM"], # 128+15
+        errors.SIGQUIT: [131, "Job killed by signal: SIGQUIT"], # 128+3
+        errors.SIGSEGV: [139, "Job killed by signal: SIGSEGV"], # 128+11
+        errors.SIGXCPU: [158, "Job killed by signal: SIGXCPU"], # 128+30
+        errors.SIGUSR1: [144, "Job killed by signal: SIGUSR1"], # 128+16
+        errors.SIGBUS: [138, "Job killed by signal: SIGBUS"]   # 128+10
     }
 
     if exit_code in error_code_translation_dictionary:
