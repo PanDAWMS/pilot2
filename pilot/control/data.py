@@ -74,6 +74,37 @@ def control(queues, traces, args):
         logger.warning('data control detected a set abort_job (due to a kill signal)')
         traces.pilot['command'] = 'abort'
 
+        # find all running jobs and stop them, find all jobs in queues relevant to this module
+        abort_jobs_in_queues(queues, args.signal)
+
+
+def abort_jobs_in_queues(queues, sig):
+    """
+    Find all jobs in the queues and abort them.
+
+    :param queues:
+    :param sig: detected kill signal.
+    :return:
+    """
+
+    jobs_dictionary = {}  # { <jobid>: [<job>, <queue>], }
+
+    # loop over all queues and find all jobs
+    for q in queues._fields:
+        jobs = list(q.queue)
+        for job in jobs:
+            if job.jobid not in jobs_dictionary.keys():
+                jobs_dictionary[job.jobid] = [job, q]
+
+
+    logger.info('found %d job(s) in %d queues' % (len(jobs_dictionary.keys()), len(queues._fields)))
+    for jobid in jobs_dictionary.keys():
+        log = get_logger(jobid)
+        log.info('aborting job %s' % (jobid))
+        job = jobs_dictionary[jobid][0]
+        queue = jobs_dictionary[jobid][1]
+        declare_failed_by_kill(job, queue, sig)
+
 
 def prepare_for_container(workdir):
     """
