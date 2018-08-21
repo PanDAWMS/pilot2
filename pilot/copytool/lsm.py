@@ -182,10 +182,6 @@ def copy_out(files, **kwargs):
 
         logger.info("transferring file %s from %s to %s" % (fspec.lfn, source, destination))
 
-        import time
-        logger.info('taking a nap for kill signal to catch up')
-        time.sleep(120)
-
         nretries = 1  # input parameter to function?
         for retry in range(nretries):
             exit_code, stdout, stderr = move(source, destination, dst_in=False, copysetup=copysetup, options=opts)
