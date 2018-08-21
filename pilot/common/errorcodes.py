@@ -43,6 +43,7 @@ class ErrorCodes:
     GETADMISMATCH = 1171
     PUTADMISMATCH = 1172
     NOVOMSPROXY = 1177
+    MKDIRWORKDIR = 1199
     KILLSIGNAL = 1200
     SIGTERM = 1201
     SIGQUIT = 1202
@@ -98,6 +99,7 @@ class ErrorCodes:
         GETADMISMATCH: "adler32 mismatch on input file",
         PUTADMISMATCH: "adler32 mismatch on output file",
         NOVOMSPROXY: "Voms proxy not valid",
+        MKDIRWORKDIR: "Could not create directory",
         KILLSIGNAL: "Job terminated by unknown kill signal",
         SIGTERM: "Job killed by signal: SIGTERM",
         SIGQUIT: "Job killed by signal: SIGQUIT",
