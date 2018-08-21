@@ -12,6 +12,7 @@ import time
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.container import execute
+from pilot.util.constants import SUCCESS, FAILURE
 
 import logging
 logger = logging.getLogger(__name__)
@@ -152,9 +153,9 @@ def shell_exit_code(exit_code):
         return error_code_translation_dictionary.get(exit_code)[0]  # Only return the shell exit code, not the error meaning
     elif exit_code != 0:
         logger.warning("no translation to shell exit code for error code %d" % (exit_code))
-        return 1
+        return FAILURE
     else:
-        return 0
+        return SUCCESS
 
 
 def declare_failed_by_kill(job, queue, sig):

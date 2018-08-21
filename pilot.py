@@ -20,7 +20,7 @@ from os import getcwd, chdir, environ
 from shutil import rmtree
 
 from pilot.info import set_info
-#from pilot.util.auxiliary import shell_exit_code
+from pilot.util.auxiliary import shell_exit_code
 from pilot.util.config import config
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_T0, PILOT_END_TIME
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
@@ -350,7 +350,8 @@ if __name__ == '__main__':
         except Exception as e:
             # print to stderr since logging has not been established yet
             print('failed to create workdir at %s -- aborting: %s' % (mainworkdir, e), file=sys.stderr)
-            sys.exit(FAILURE)
+            exit_code = shell_exit_code(e._errorCode)
+            sys.exit(exit_code)
     else:
         mainworkdir = getcwd()
 
