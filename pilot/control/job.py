@@ -90,6 +90,35 @@ def control(queues, traces, args):
         logger.warning('job control detected a set abort_job (due to a kill signal)')
         traces.pilot['command'] = 'abort'
 
+        # find all running jobs and stop them, find all jobs in queues relevant to this module
+        abort_jobs_in_queues(queues, args.signal)
+
+
+def abort_jobs_in_queues(queues, sig):
+    """
+    Find all jobs in the queues and abort them.
+
+    :param queues:
+    :param sig: detected kill signal.
+    :return:
+    """
+
+    jobs_list = []
+
+    # loop over all queues and find all jobs
+    for q in queues._fields:
+        _q = getattr(queues, q)
+        jobs = list(_q.queue)
+        for job in jobs:
+            if job not in jobs_list:
+                jobs_list.append(job)
+
+    logger.info('found %d job(s) in %d queues' % (len(jobs_list), len(queues._fields)))
+    for job in jobs_list:
+        log = get_logger(job.jobid)
+        log.info('aborting job %s' % (job.jobid))
+        declare_failed_by_kill(job, queues.failed_jobs, sig)
+
 
 def _validate_job(job):
     """

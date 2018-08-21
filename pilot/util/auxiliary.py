@@ -172,4 +172,5 @@ def declare_failed_by_kill(job, queue, sig):
     job.state = 'failed'
     error_code = errors.get_kill_signal_error_code(sig)
     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error_code)
+
     queue.put(job)
