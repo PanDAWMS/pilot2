@@ -609,11 +609,11 @@ def _stage_out_new(job, args):
     :return: True in case of success
     """
 
+    log = get_logger(job.jobid)
+
     log.info('testing sending SIGUSR1')
     import signal
     os.kill(os.getpid(), signal.SIGUSR1)
-
-    log = get_logger(job.jobid)
 
     # write time stamps to pilot timing file
     add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEOUT, time.time())
