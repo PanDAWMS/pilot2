@@ -423,7 +423,19 @@ def copytool_out(queues, traces, args):
 
             # send_state(job, args, 'running')  # not necessary to send job update at this point?
 
+            if args.abort_job.is_set():
+                traces.pilot['command'] = 'abort'
+                log.warning('copytool_out detected a set abort_job pre stage-out (due to a kill signal)')
+                declare_failed_by_kill(job, queues.failed_data_out, args.signal)
+                break
+
             if _stage_out_new(job, args):
+                if args.abort_job.is_set():
+                    traces.pilot['command'] = 'abort'
+                    log.warning('copytool_out detected a set abort_job post stage-out (due to a kill signal)')
+                    declare_failed_by_kill(job, queues.failed_data_out, args.signal)
+                    break
+
                 queues.finished_data_out.put(job)
             else:
                 queues.failed_data_out.put(job)
