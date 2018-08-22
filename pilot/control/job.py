@@ -1120,7 +1120,8 @@ def queue_monitor(queues, traces, args):
             if args.job_aborted.is_set():
                 # if the pilot received a kill signal, how much time has passed since the signal was intercepted?
                 time_since_kill = get_time_since('0', PILOT_KILL_SIGNAL)
-                log.info('%d s has passed since kill signal was intercepted - make sure that stage-out has finished')
+                log.info('%d s has passed since kill signal was intercepted - make sure that stage-out has finished' %
+                         time_since_kill)
 
                 # if stage-out has not finished, we need to wait (less than two minutes or the batch system will issue
                 # a hard SIGKILL)
