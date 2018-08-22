@@ -11,6 +11,7 @@
 # When the timing measurements need to be recorded, the high-level functions, e.g. get_getjob_time(), can be used.
 
 import os
+from time import time
 
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
@@ -219,6 +220,38 @@ def get_time_measurement(timing_constant, time_measurement_dictionary, timing_di
                         (timing_constant, time_measurement_dictionary))
 
     return time_measurement
+
+
+def get_time_since(job_id, timing_constant):
+    """
+    Return the amount of time that has passed since the time measurement of timing_constant.
+
+    :param job_id: PanDA job id (string).
+    :param timing_constant:
+    :return: time in seconds (int).
+    """
+
+    diff = 0
+    log = get_logger(job_id)
+
+    # first read the current pilot timing dictionary
+    timing_dictionary = read_pilot_timing()
+
+    if job_id in timing_dictionary:
+
+        # extract time measurements
+        time_measurement_dictionary = timing_dictionary.get(job_id, None)
+        if time_measurement_dictionary:
+            time_measurement = get_time_measurement(timing_constant, time_measurement_dictionary,
+                                                    timing_dictionary, job_id)
+            if time_measurement:
+                diff = time() - time_measurement
+        else:
+            log.warning('failed to extract time measurement dictionary from %s' % str(timing_dictionary))
+    else:
+        log.warning('job id %s not found in timing dictionary' % job_id)
+
+    return diff
 
 
 def get_time_difference(job_id, timing_constant_1, timing_constant_2):
