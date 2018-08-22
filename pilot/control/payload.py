@@ -22,7 +22,7 @@ except Exception:
 
 from pilot.control.payloads import generic, eventservice
 from pilot.control.job import send_state
-from pilot.util.auxiliary import get_logger
+from pilot.util.auxiliary import get_logger, abort_jobs_in_queues
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
 from pilot.util.filehandling import read_file, get_guid
@@ -69,6 +69,17 @@ def control(queues, traces, args):
 
             thread.join(0.1)
             time.sleep(0.1)
+
+    logger.debug('payload control ending since graceful_stop has been set')
+    if args.abort_job.is_set():
+        if traces.pilot['command'] == 'abort':
+            logger.warning('jobs are aborting')
+        else:
+            logger.warning('data control detected a set abort_job (due to a kill signal)')
+            traces.pilot['command'] = 'abort'
+
+            # find all running jobs and stop them, find all jobs in queues relevant to this module
+            abort_jobs_in_queues(queues, args.signal)
 
 
 def validate_pre(queues, traces, args):

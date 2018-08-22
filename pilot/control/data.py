@@ -71,11 +71,14 @@ def control(queues, traces, args):
 
     logger.debug('data control ending since graceful_stop has been set')
     if args.abort_job.is_set():
-        logger.warning('data control detected a set abort_job (due to a kill signal)')
-        traces.pilot['command'] = 'abort'
+        if traces.pilot['command'] == 'abort':
+            logger.warning('jobs are aborting')
+        else:
+            logger.warning('data control detected a set abort_job (due to a kill signal)')
+            traces.pilot['command'] = 'abort'
 
-        # find all running jobs and stop them, find all jobs in queues relevant to this module
-        abort_jobs_in_queues(queues, args.signal)
+            # find all running jobs and stop them, find all jobs in queues relevant to this module
+            abort_jobs_in_queues(queues, args.signal)
 
 
 def prepare_for_container(workdir):
