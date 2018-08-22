@@ -1128,11 +1128,12 @@ def queue_monitor(queues, traces, args):
                 max_wait_time = 2 * 60 - time_since_kill - 5  # assume that we only need 5 more seconds to wrap up
                 t0 = time.time()
                 while time.time() - t0 < max_wait_time:
-                    if job not in queues.finished_data_out.queue or job not in queues.failed_data_out.queue:
+                    if job not in queues.finished_data_out.queue and job not in queues.failed_data_out.queue:
                         time.sleep(0.1)
                     else:
                         log.info('stage-out has finished, proceed with final server update')
                         break
+                log.info('proceeding with final server update')
 
             if job.fileinfo:
                 send_state(job, args, job.state, xml=dumps(job.fileinfo))
