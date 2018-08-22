@@ -73,7 +73,7 @@ def control(queues, traces, args):
     if args.abort_job.is_set():
         if traces.pilot['command'] == 'aborting':
             logger.warning('jobs are aborting')
-        elif traces.pilot['command'] == 'abort'
+        elif traces.pilot['command'] == 'abort':
             logger.warning('data control detected a set abort_job (due to a kill signal)')
             traces.pilot['command'] = 'aborting'
 
