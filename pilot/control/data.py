@@ -396,7 +396,7 @@ def copytool_in(queues, traces, args):
                 if args.abort_job.is_set():
                     traces.pilot['command'] = 'abort'
                     log.warning('copytool_in detected a set abort_job post stage-in (due to a kill signal)')
-                    declare_failed_by_kill(job, queues.failed_data_in, args.signal)
+                    #declare_failed_by_kill(job, queues.failed_data_in, args.signal)
                     break
 
                 queues.finished_data_in.put(job)
@@ -630,9 +630,9 @@ def _stage_out_new(job, args):
 
     log = get_logger(job.jobid)
 
-    #log.info('testing sending SIGUSR1')
-    #import signal
-    #os.kill(os.getpid(), signal.SIGUSR1)
+    log.info('testing sending SIGUSR1')
+    import signal
+    os.kill(os.getpid(), signal.SIGUSR1)
 
     # write time stamps to pilot timing file
     add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEOUT, time.time())
