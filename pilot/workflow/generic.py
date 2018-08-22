@@ -14,6 +14,7 @@ from __future__ import print_function
 import functools
 import signal
 import threading
+from time import time
 from sys import stderr
 
 try:
@@ -23,9 +24,10 @@ except Exception:
 
 from collections import namedtuple
 
-from pilot.control import job, payload, data, monitor
-from pilot.util.constants import SUCCESS
 from pilot.common.exception import ExcThread
+from pilot.control import job, payload, data, monitor
+from pilot.util.constants import SUCCESS, PILOT_KILL_SIGNAL
+from pilot.util.timing import add_to_pilot_timing
 
 import logging
 logger = logging.getLogger(__name__)
@@ -44,6 +46,7 @@ def interrupt(args, signum, frame):
     """
 
     sig = [v for v, k in signal.__dict__.iteritems() if k == signum][0]
+    add_to_pilot_timing('0', PILOT_KILL_SIGNAL, time())
     logger.warning('caught signal: %s' % sig)
     args.signal = sig
     logger.warning('will instruct threads to abort and update the server')

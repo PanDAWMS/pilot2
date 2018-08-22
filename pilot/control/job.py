@@ -30,7 +30,7 @@ from pilot.util import https
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
     abort_jobs_in_queues
 from pilot.util.config import config
-from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB
+from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL
 from pilot.util.filehandling import get_files, tail
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.util.jobmetrics import get_job_metrics
@@ -38,7 +38,7 @@ from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.timing import add_to_pilot_timing, get_getjob_time, get_setup_time, get_stagein_time, get_stageout_time,\
-    get_payload_execution_time, get_initial_setup_time, get_postgetjob_time
+    get_payload_execution_time, get_initial_setup_time, get_postgetjob_time, get_time_since
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, is_virtual_machine
 
 import logging
@@ -1114,6 +1114,25 @@ def queue_monitor(queues, traces, args):
         # job has not been defined if it's still running
         if job:
             # send final server update
+            log = get_logger(job.jobid)
+            log.info('preparing for final server update')
+
+            if args.job_aborted.is_set():
+                # if the pilot received a kill signal, how much time has passed since the signal was intercepted?
+                time_since_kill = get_time_since('0', PILOT_KILL_SIGNAL)
+                log.info('%d s has passed since kill signal was intercepted - make sure that stage-out has finished')
+
+                # if stage-out has not finished, we need to wait (less than two minutes or the batch system will issue
+                # a hard SIGKILL)
+                max_wait_time = 2 * 60 - time_since_kill - 5  # assume that we only need 5 more seconds to wrap up
+                t0 = time.time()
+                while time.time() - t0 < max_wait_time:
+                    if job not in queues.finished_data_out.queue or job not in queues.failed_data_out.queue:
+                        time.sleep(0.1)
+                    else:
+                        log.info('stage-out has finished, proceed with final server update')
+                        break
+
             if job.fileinfo:
                 send_state(job, args, job.state, xml=dumps(job.fileinfo))
             else:

@@ -589,12 +589,18 @@ def _stage_out(args, outfile, job):  ### TO BE DEPRECATED
 
 def _do_stageout(job, xdata, activity, title):
     """
-        :return: True in case of success transfers
-        :raise: PilotException in case of controlled error
+    Use the `StageOutClient` in the Data API to perform stage-out.
+
+    :param job: job object.
+    :param xdata: list of FileSpec objects.
+    :param activity:
+    :param title: type of stage-out (output, log) (string).
+    :raise: PilotException in case of controlled error
+    :return: True in case of success transfers
     """
 
     log = get_logger(job.jobid)
-    log.info('prepare to stage-out %s files' % title)
+    log.info('prepare to stage-out %s file(s)' % title)
 
     try:
         client = StageOutClient(job.infosys, logger=log)
