@@ -276,7 +276,7 @@ def utility_monitor(job):
     log = get_logger(job.jobid)
 
     # loop over all utilities
-    for utcmd in job.utilities.keys():
+    for utcmd in job.utilities.keys():  # E.g. utcmd = MemoryMonitor
 
         # make sure the subprocess is still running
         utproc = job.utilities[utcmd][0]
@@ -289,7 +289,7 @@ def utility_monitor(job):
                 utility_command = job.utilities[utcmd][2]
 
                 try:
-                    proc1 = execute(utility_command, workdir=job.workdir, returnproc=True, usecontainer=True,
+                    proc1 = execute(utility_command, workdir=job.workdir, returnproc=True, usecontainer=False,
                                     stdout=PIPE, stderr=PIPE, cwd=job.workdir, queuedata=job.infosys.queuedata)
                 except Exception as e:
                     log.error('could not execute: %s' % e)
