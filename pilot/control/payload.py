@@ -79,7 +79,7 @@ def control(queues, traces, args):
             traces.pilot['command'] = 'aborting'
 
             # find all running jobs and stop them, find all jobs in queues relevant to this module
-            abort_jobs_in_queues(queues, args.signal)
+            #abort_jobs_in_queues(queues, args.signal)
 
 
 def validate_pre(queues, traces, args):

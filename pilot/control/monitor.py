@@ -16,6 +16,7 @@ import threading
 import time
 
 from pilot.common.exception import PilotException, ExceededMaxWaitTime
+from pilot.util.auxiliary import abort_jobs_in_queues
 from pilot.util.config import config
 
 logger = logging.getLogger(__name__)
@@ -44,12 +45,12 @@ def control(queues, traces, args):
         n = 0
 
         while not args.graceful_stop.is_set():
-            # every 10 seconds, run the monitoring checks
-            if args.graceful_stop.wait(1 * 10) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility
+            # every seconds, run the monitoring checks
+            if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility
                 break
 
             # proceed with running the checks
-            run_checks(args)
+            run_checks(queues, args)
 
             # thread monitoring
             if int(time.time() - traces.pilot['lifetime_start']) % threadchecktime == 0:
@@ -61,12 +62,12 @@ def control(queues, traces, args):
                         # args.graceful_stop.set()
 
             # have we run out of time?
-            if runtime < args.lifetime:
-                time.sleep(1)
-                runtime += 1  # note that this is wrong.. use proper time measurement
-            else:
-                logger.debug('maximum lifetime reached: %s' % args.lifetime)
-                args.graceful_stop.set()
+            #if runtime < args.lifetime:
+            #    time.sleep(1)
+            #    runtime += 1  # note that this is wrong.. use proper time measurement
+            #else:
+            #    logger.debug('maximum lifetime reached: %s' % args.lifetime)
+            #    args.graceful_stop.set()
 
             n += 1
 
@@ -79,15 +80,19 @@ def control(queues, traces, args):
 #    logger.info('lifetime: %i used, %i maximum' % (int(time.time() - traces.pilot['lifetime_start']),
 #                                                   traces.pilot['lifetime_max']))
 
-def run_checks(args):
+def run_checks(queues, args):
     """
     Perform non-job related monitoring checks.
 
+    :param queues:
     :param args:
     :return:
     """
 
     if args.abort_job.is_set():
+        # find all running jobs and stop them, find all jobs in queues relevant to this module
+        abort_jobs_in_queues(queues, args.signal)
+
         t_max = 2 * 60
         logger.warning('pilot monitor received instruction that abort_job has been requested')
         logger.warning('will wait for a maximum of %d seconds for threads to finish' % t_max)
