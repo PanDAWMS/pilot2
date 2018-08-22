@@ -87,11 +87,11 @@ def control(queues, traces, args):
 
     logger.debug('job control ending since graceful_stop has been set')
     if args.abort_job.is_set():
-        if traces.pilot['command'] == 'abort':
+        if traces.pilot['command'] == 'aborting':
             logger.warning('jobs are aborting')
-        else:
+        elif traces.pilot['command'] == 'abort'
             logger.warning('job control detected a set abort_job (due to a kill signal)')
-            traces.pilot['command'] = 'abort'
+            traces.pilot['command'] = 'aborting'
 
             # find all running jobs and stop them, find all jobs in queues relevant to this module
             abort_jobs_in_queues(queues, args.signal)
