@@ -263,13 +263,16 @@ def get_data_structure(job, state, sitename, versiontag, xml=None):
     if job.debug:
         # find the latest updated log file
         list_of_files = get_files()
-        latest_file = max(list_of_files, key=os.path.getctime)
-        log.info('tail of file %s will be added to heartbeat' % latest_file)
+        if list_of_files:
+            latest_file = max(list_of_files, key=os.path.getctime)
+            log.info('tail of file %s will be added to heartbeat' % latest_file)
 
-        # now get the tail of the found log file and protect against potentially large tails
-        stdout_tail = tail(latest_file)
-        stdout_tail = stdout_tail[-2048:]
-        data['stdout'] = stdout_tail
+            # now get the tail of the found log file and protect against potentially large tails
+            stdout_tail = tail(latest_file)
+            stdout_tail = stdout_tail[-2048:]
+            data['stdout'] = stdout_tail
+        else:
+            log.info('no log files were found (will not send any stdout to server)')
 
     if state == 'finished' or state == 'failed':
         # collect pilot timing data
