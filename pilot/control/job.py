@@ -150,7 +150,7 @@ def send_state(job, args, state, xml=None):
             res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver), data=data)
             if res is not None:
                 log.info('server updateJob request completed for job %s' % job.jobid)
-                res['command'] = 'tobekilled'
+                res['command'] = 'debug'
                 log.info('res = %s' % str(res))
 
                 # does the server update contain any backchannel information? if so, update the job object
@@ -165,10 +165,13 @@ def send_state(job, args, state, xml=None):
                     elif res.get('command') == 'softkill':
                         log.info('pilot received a panda server signal to softkill job %s at %s' %
                                  (job.jobid, time_stamp()))
+                        # event service kill instruction
                     elif res.get('command') == 'debug':
                         log.info('pilot received a command to turn on debug mode from the server')
+                        job.debug = True
                     elif res.get('command') == 'debugoff':
                         log.info('pilot received a command to turn off debug mode from the server')
+                        job.debug = False
                     else:
                         log.warning('received unknown server command via backchannel: %s' % res.get('command'))
 
