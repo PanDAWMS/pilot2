@@ -157,11 +157,11 @@ def send_state(job, args, state, xml=None):
                 if 'command' in res and res.get('command') != 'NULL':
                     # look for 'tobekilled', 'softkill', 'debug', 'debugoff'
                     if res.get('command') == 'tobekilled':
-                        log.info('pilot received a panda server signal to kill job %d at %s' %
+                        log.info('pilot received a panda server signal to kill job %s at %s' %
                                  (job.jobid, time_stamp()))
                         args.abort_job.set()
                     elif res.get('command') == 'softkill':
-                        log.info('pilot received a panda server signal to softkill job %d at %s' %
+                        log.info('pilot received a panda server signal to softkill job %s at %s' %
                                  (job.jobid, time_stamp()))
                     elif res.get('command') == 'debug':
                         log.info('pilot received a command to turn on debug mode from the server')
