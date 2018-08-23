@@ -150,6 +150,7 @@ def send_state(job, args, state, xml=None):
             res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver), data=data)
             if res is not None:
                 log.info('server updateJob request completed for job %s' % job.jobid)
+                res['command'] = 'tobekilled'
                 log.info('res = %s' % str(res))
 
                 # does the server update contain any backchannel information? if so, update the job object
@@ -158,6 +159,7 @@ def send_state(job, args, state, xml=None):
                     if res.get('command') == 'tobekilled':
                         log.info('pilot received a panda server signal to kill job %d at %s' %
                                  (job.jobid, time_stamp()))
+                        args.abort_job.set()
                     elif res.get('command') == 'softkill':
                         log.info('pilot received a panda server signal to softkill job %d at %s' %
                                  (job.jobid, time_stamp()))
@@ -1120,7 +1122,7 @@ def queue_monitor(queues, traces, args):
             if args.job_aborted.is_set():
                 # if the pilot received a kill signal, how much time has passed since the signal was intercepted?
                 time_since_kill = get_time_since('0', PILOT_KILL_SIGNAL)
-                log.info('%d s has passed since kill signal was intercepted - make sure that stage-out has finished' %
+                log.info('%d s passed since kill signal was intercepted - make sure that stage-out has finished' %
                          time_since_kill)
 
                 # if stage-out has not finished, we need to wait (less than two minutes or the batch system will issue
