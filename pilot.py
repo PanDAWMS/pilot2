@@ -365,7 +365,7 @@ if __name__ == '__main__':
         console.setLevel(logging.DEBUG)
         console.setFormatter(logging.Formatter(logformat_str_debug))
     else:
-        logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.INFO,format=logformat_str_info)
+        logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.INFO, format=logformat_str_info)
         console.setLevel(logging.INFO)
         console.setFormatter(logformat_str_info)
     logging.Formatter.converter = time.gmtime
