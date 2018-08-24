@@ -533,24 +533,25 @@ def parse_jobreport_data(job_report):
         return work_attributes
 
     # these are default values for job metrics
-    core_count = "undef"
-    work_attributes["n_events"] = "None"
-    work_attributes["__db_time"] = "None"
-    work_attributes["__db_data"] = "None"
+    core_count = ""
+    work_attributes["nEvents"] = 0
+    work_attributes["dbTime"] = ""
+    work_attributes["dbData"] = ""
     work_attributes["inputfiles"] = []
     work_attributes["outputfiles"] = []
 
-    if 'ATHENA_PROC_NUMBER' in os.environ:
-        work_attributes['core_count'] = os.environ['ATHENA_PROC_NUMBER']
-        core_count = os.environ['ATHENA_PROC_NUMBER']
+    if "ATHENA_PROC_NUMBER" in os.environ:
+        logger.debug("ATHENA_PROC_NUMBER: {0}".format(os.environ["ATHENA_PROC_NUMBER"]))
+        work_attributes['core_count'] = int(os.environ["ATHENA_PROC_NUMBER"])
+        core_count = int(os.environ["ATHENA_PROC_NUMBER"])
 
     dq = DictQuery(job_report)
-    dq.get("resource/transform/processedEvents", work_attributes, "n_events")
+    dq.get("resource/transform/processedEvents", work_attributes, "nEvents")
     dq.get("resource/transform/cpuTimeTotal", work_attributes, "cpuConsumptionTime")
     dq.get("resource/machine/node", work_attributes, "node")
     dq.get("resource/machine/model_name", work_attributes, "cpuConsumptionUnit")
-    dq.get("resource/dbTimeTotal", work_attributes, "__db_time")
-    dq.get("resource/dbDataTotal", work_attributes, "__db_data")
+    dq.get("resource/dbTimeTotal", work_attributes, "dbTime")
+    dq.get("resource/dbDataTotal", work_attributes, "dbData")
     dq.get("exitCode", work_attributes, "transExitCode")
     dq.get("exitMsg", work_attributes, "exeErrorDiag")
     dq.get("files/input", work_attributes, "inputfiles")
@@ -581,12 +582,12 @@ def parse_jobreport_data(job_report):
     workdir_size = get_workdir_size()
     work_attributes['jobMetrics'] = 'coreCount=%s nEvents=%s dbTime=%s dbData=%s workDirSize=%s' % \
                                     (core_count,
-                                        work_attributes["n_events"],
-                                        work_attributes["__db_time"],
-                                        work_attributes["__db_data"],
+                                        work_attributes["nEvents"],
+                                        work_attributes["dbTime"],
+                                        work_attributes["dbData"],
                                         workdir_size)
-    del(work_attributes["__db_time"])
-    del(work_attributes["__db_data"])
+    del(work_attributes["dbData"])
+    del(work_attributes["dbTime"])
 
     return work_attributes
 

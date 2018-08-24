@@ -78,6 +78,7 @@ def get_setup(job=None):
                       'export CORAL_DBLOOKUP_PATH=/ccs/proj/csc108/AtlasReleases/21.0.15/nfs_db_files',
                       'export CORAL_AUTH_PATH=$SW_INSTALL_AREA/DBRelease/current/XMLConfig',
                       'export DATAPATH=$SW_INSTALL_AREA/DBRelease/current:$DATAPATH',
+                      'unset FRONTIER_SERVER',
                       ' ']
 
     return setup_commands

@@ -9,21 +9,21 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 # - Danila Oleynik danila.oleynik@cern.ch, 2018
 
-import os
 import functools
+import logging
+import os
 import signal
 import time
-from datetime import datetime
 from collections import namedtuple
+from datetime import datetime
 
-from pilot.util.harvester import get_initial_work_report, publish_work_report
-from pilot.util.config import config
-from pilot.util.filehandling import tar_files, write_json, read_json, copy
-from pilot.util.container import execute
-from pilot.util.constants import SUCCESS, FAILURE
 from pilot.common.exception import FileHandlingFailure
+from pilot.util.config import config
+from pilot.util.constants import SUCCESS, FAILURE
+from pilot.util.container import execute
+from pilot.util.filehandling import tar_files, write_json, read_json, copy
+from pilot.util.harvester import get_initial_work_report, publish_work_report
 
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -112,7 +112,8 @@ def run(args):
 
         stime = time.time()
         t0 = os.times()
-        exit_code = execute(my_command, stdout=payloadstdout, stderr=payloadstderr, shell=True)
+        exit_code, stdout, stderr = execute(my_command, stdout=payloadstdout, stderr=payloadstderr, shell=True)
+        logger.debug("Exit code: {0} (type: {1})".format(exit_code, type(exit_code)))
         t1 = os.times()
         exetime = time.time() - stime
         end_time = time.asctime(time.localtime(time.time()))
@@ -205,7 +206,6 @@ def copy_output(job, job_scratch_dir, work_dir):
 
 
 def declare_output(job, work_report, worker_stageout_declaration):
-
     out_file_report = {}
     out_file_report[job.jobid] = []
     for outfile in job.output_files.keys():
