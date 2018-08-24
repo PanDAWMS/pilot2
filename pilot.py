@@ -26,8 +26,8 @@ from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
 from pilot.util.mpi import get_ranks_info
-from pilot.util.workernode import is_virtual_machine
 from pilot.util.timing import add_to_pilot_timing
+from pilot.util.workernode import is_virtual_machine
 
 VERSION = '2018-07-20.004'
 
@@ -51,6 +51,29 @@ def pilot_version_banner():
         logger.info('pilot is running in a VM')
 
 
+def setup_log():
+    """ Setup of log string format """
+
+    rank, maxrank = get_ranks_info()
+    logformat_str_debug = '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'
+    logformat_str_info = '%(asctime)s | %(levelname)-8s | %(message)s'
+    if rank is not None:
+        logformat_str_debug = 'Rank {0} |'.format(rank) + logformat_str_debug
+        logformat_str_info = 'Rank {0} |'.format(rank) + logformat_str_info
+
+    console = logging.StreamHandler(sys.stdout)
+    if args.debug:
+        logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.DEBUG, format=logformat_str_debug)
+        console.setLevel(logging.DEBUG)
+        console.setFormatter(logging.Formatter(logformat_str_debug))
+    else:
+        logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.INFO, format=logformat_str_info)
+        console.setLevel(logging.INFO)
+        console.setFormatter(logformat_str_info)
+    logging.Formatter.converter = time.gmtime
+    logging.getLogger('').addHandler(console)
+
+
 def main():
     """ Main function of PanDA Pilot 2 """
 
@@ -66,7 +89,7 @@ def main():
     https_setup(args, VERSION)
 
     # Time to depricate. Does not work well with HPC workflow
-    #if not set_location(args):  # ## DEPRECATE ME LATER.
+    # if not set_location(args):  # ## DEPRECATE ME LATER.
     #    return False
 
     set_info(args)  # initialize InfoService and populate args.info structure
@@ -352,24 +375,7 @@ if __name__ == '__main__':
     environ['PILOT_VERSION'] = VERSION
 
     # Establish logging
-    rank, maxrank = get_ranks_info()
-    logformat_str_debug = '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'
-    logformat_str_info = '%(asctime)s | %(levelname)-8s | %(message)s'
-    if rank is not None:
-        logformat_str_debug = 'Rank {0} |'.format(rank) + logformat_str_debug
-        logformat_str_info = 'Rank {0} |'.format(rank) + logformat_str_info
-
-    console = logging.StreamHandler(sys.stdout)
-    if args.debug:
-        logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.DEBUG, format=logformat_str_debug)
-        console.setLevel(logging.DEBUG)
-        console.setFormatter(logging.Formatter(logformat_str_debug))
-    else:
-        logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.INFO, format=logformat_str_info)
-        console.setLevel(logging.INFO)
-        console.setFormatter(logformat_str_info)
-    logging.Formatter.converter = time.gmtime
-    logging.getLogger('').addHandler(console)
+    setup_log()
 
     trace = main()
 
@@ -389,6 +395,7 @@ if __name__ == '__main__':
     # in Harvester mode, create a kill_worker file that will instruct Harvester that the pilot has finished
     if args.harvester:
         from pilot.util.harvester import kill_worker
+
         kill_worker()
 
     if not trace:
