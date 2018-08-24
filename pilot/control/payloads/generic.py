@@ -87,8 +87,8 @@ class Executor(object):
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
         # for testing looping job:    cmd = user.get_payload_command(job) + ';sleep 240'
         try:
-            cmd = user.get_payload_command(job)
-            #cmd = user.get_payload_command(job) + ';sleep 240'
+            #cmd = user.get_payload_command(job)
+            cmd = user.get_payload_command(job) + ';sleep 600'
         except PilotException as e:
             log.fatal('could not define payload command')
             return None
