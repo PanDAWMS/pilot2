@@ -12,12 +12,15 @@ import logging
 import os
 import sys
 import shutil
-
+import time
 from pilot.util.config import config
 from pilot.util.mpi import get_ranks_info
 from pilot.util.filehandling import read_json, write_json, remove
+from pilot.util.disk import disk_usage
 from pilot.common.exception import FileHandlingFailure
 from jobdescription import JobDescription
+from pilot.util.timing import add_to_pilot_timing
+from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +111,8 @@ def set_scratch_workdir(job, work_dir):
     """
 
     scratch_path = config.HPC.scratch
-
+    du = disk_usage(scratch_path)
+    logger.info("Scratch dir available space: {0} used: {1}".format(du.free, du.used))
     job_scratch_dir = os.path.join(scratch_path, str(job.jobid))
     for inp_file in job.input_files:
         job.input_files[inp_file]["scratch_path"] = job_scratch_dir
@@ -124,18 +128,27 @@ def set_scratch_workdir(job, work_dir):
 
     if os.path.exists(scratch_path):
         try:
+            add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN,time.time())
             logger.debug("Prepare 'tmp' dir in scratch ")
             if not os.path.exists(scratch_path + tmp_path):
                 os.makedirs(scratch_path + tmp_path)
             logger.debug("Prepare dst and copy sqlite db files")
+            t0 = time.time()
             if not os.path.exists(scratch_path + dst_db_path):
                 os.makedirs(scratch_path + dst_db_path)
             shutil.copyfile(src_file, scratch_path + dst_db_path + dst_db_filename)
+            logger.debug("")
+            sql_cp_time = time.time() - t0
+            logger.debug("Copy of squlite files took: {0}".format(sql_cp_time))
             logger.debug("Prepare dst and copy geomDB  files")
+            t0 = time.time()
             if not os.path.exists(scratch_path + dst_db_path_2):
                 os.makedirs(scratch_path + dst_db_path_2)
             shutil.copyfile(src_file_2, scratch_path + dst_db_path_2 + dst_db_filename_2)
+            geomdb_cp_time = time.time() - t0
+            logger.debug("Copy of geomDB files took: {0}".format(geomdb_cp_time))
             logger.debug("Prepare job scratch dir")
+            t0 = time.time()
             if not os.path.exists(job_scratch_dir):
                 os.makedirs(job_scratch_dir)
             logger.debug("Copy input file")
@@ -144,22 +157,25 @@ def set_scratch_workdir(job, work_dir):
                                                        job.input_files[inp_file]["scratch_path"]))
                 shutil.copyfile(os.path.join(work_dir, inp_file),
                                 os.path.join(job.input_files[inp_file]["scratch_path"], inp_file))
+            input_cp_time = time.time() - t0
+            logger.debug("Copy of input files took: {0}".format(input_cp_time))
         except IOError as e:
             logger.error("I/O error({0}): {1}".format(e.errno, e.strerror))
             logger.error("Copy to scratch failed, execution terminated':  \n %s " % (sys.exc_info()[1]))
-
             raise FileHandlingFailure("Copy to RAM disk failed")
-
+        finally:
+            add_to_pilot_timing(job.jobid, PILOT_POST_STAGEIN, time.time())
     else:
         logger.info('Scratch directory (%s) dose not exist' % scratch_path)
         return work_dir
 
     os.chdir(job_scratch_dir)
     logger.debug("Current directory: {0}".format(os.getcwd()))
-
     true_dir = '/ccs/proj/csc108/AtlasReleases/21.0.15/nfs_db_files'
     pseudo_dir = "./poolcond"
     os.symlink(true_dir, pseudo_dir)
+    du = disk_usage(scratch_path)
+    logger.info("Scratch dir available space for job: {0} used: {1}".format(du.free, du.used))
 
     return job_scratch_dir
 

@@ -19,10 +19,12 @@ from datetime import datetime
 
 from pilot.common.exception import FileHandlingFailure
 from pilot.util.config import config
-from pilot.util.constants import SUCCESS, FAILURE
+from pilot.util.constants import SUCCESS, FAILURE, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_PRE_SETUP, \
+    PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT, PILOT_PRE_FINAL_UPDATE, PILOT_POST_FINAL_UPDATE
 from pilot.util.container import execute
 from pilot.util.filehandling import tar_files, write_json, read_json, copy
 from pilot.util.harvester import get_initial_work_report, publish_work_report
+from pilot.util.timing import add_to_pilot_timing
 
 logger = logging.getLogger(__name__)
 
@@ -74,9 +76,12 @@ def run(args):
                           [args.pilot_user.lower()], -1)
 
         # get job (and rank)
+        add_to_pilot_timing('0', PILOT_PRE_GETJOB, time.time())
         job, rank = resource.get_job(communication_point)
+        add_to_pilot_timing(job.jobid, PILOT_POST_GETJOB, time.time())
         # cd to job working directory
 
+        add_to_pilot_timing(job.jobid, PILOT_PRE_SETUP, time.time())
         work_dir = resource.set_job_workdir(job, communication_point)
         work_report['workdir'] = work_dir
         worker_attributes_file = os.path.join(work_dir, worker_attributes_file)
@@ -96,6 +101,7 @@ def run(args):
         my_command = " ".join([job.script, job.script_parameters])
         my_command = resource.command_fix(my_command, job_scratch_dir)
         my_command = setup_str + my_command
+        add_to_pilot_timing(job.jobid, PILOT_POST_SETUP, time.time())
 
         # Basic execution. Should be replaced with something like 'run_payload'
         logger.debug("Going to launch: {0}".format(my_command))
@@ -103,6 +109,7 @@ def run(args):
         payloadstdout = open(payload_stdout_file, "w")
         payloadstderr = open(payload_stderr_file, "w")
 
+        add_to_pilot_timing(job.jobid, PILOT_PRE_PAYLOAD, time.time())
         job.state = 'running'
         work_report["jobStatus"] = job.state
         work_report["startTime"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
@@ -113,7 +120,7 @@ def run(args):
         stime = time.time()
         t0 = os.times()
         exit_code, stdout, stderr = execute(my_command, stdout=payloadstdout, stderr=payloadstderr, shell=True)
-        logger.debug("Exit code: {0} (type: {1})".format(exit_code, type(exit_code)))
+        logger.debug("Payload exit code: {0}".format(exit_code))
         t1 = os.times()
         exetime = time.time() - stime
         end_time = time.asctime(time.localtime(time.time()))
@@ -122,6 +129,8 @@ def run(args):
         job.endTime = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         payloadstdout.close()
         payloadstderr.close()
+        add_to_pilot_timing(job.jobid, PILOT_POST_PAYLOAD, time.time())
+
         if exit_code == 0:
             job.state = 'finished'
         else:
@@ -168,17 +177,21 @@ def run(args):
         if res > 0:
             raise FileHandlingFailure("Log file tar failed")
 
+        add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEOUT, time.time())
         # Copy of output to shared FS for stageout
         if not job_scratch_dir == work_dir:
             copy_output(job, job_scratch_dir, work_dir)
+        add_to_pilot_timing(job.jobid, PILOT_POST_STAGEOUT, time.time())
 
         logger.info("Declare stage-out")
+        add_to_pilot_timing(job.jobid, PILOT_PRE_FINAL_UPDATE, time.time())
         declare_output(job, work_report, worker_stageout_declaration)
 
         logger.info("All done")
         publish_work_report(work_report, worker_attributes_file)
         traces.pilot['state'] = SUCCESS
         logger.debug("Final report: {0}".format(work_report))
+        add_to_pilot_timing(job.jobid, PILOT_POST_FINAL_UPDATE, time.time())
 
     except Exception as e:
         work_report["jobStatus"] = "failed"
