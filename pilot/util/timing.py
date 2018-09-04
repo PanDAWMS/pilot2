@@ -10,6 +10,11 @@
 # Note: The Pilot 2 modules that need to record timing measurements, can do so using the add_to_pilot_timing() function.
 # When the timing measurements need to be recorded, the high-level functions, e.g. get_getjob_time(), can be used.
 
+# Structure of pilot timing dictionary:
+#     { job_id: { <timing_constant_1>: <time measurement in seconds since epoch>, .. }
+# job_id = 0 means timing information from wrapper. Timing constants are defined in pilot.util.constants.
+# Time measurement are time.time() values. The float value will be converted to an int as a last step.
+
 import os
 from time import time
 
@@ -55,28 +60,28 @@ def write_pilot_timing(pilot_timing_dictionary):
         logger.info('failed to update pilot timing dictionary: %s' % (path))
 
 
-def add_to_pilot_timing(job_id, timing_constant, time_measurement):
+def add_to_pilot_timing(job_id, timing_constant, time_measurement, args, store=False):
     """
     Add the given timing contant and measurement got job_id to the pilot timing dictionary.
 
     :param job_id: PanDA job id (string).
     :param timing_constant: timing constant (string).
     :param time_measurement: time measurement (float).
+    :param args:
+    :param store: if True, write timing dictionary to file. False by default.
     :return:
     """
 
-    # get the timing dictionary from file
-    pilot_timing_dictionary = read_pilot_timing()
-
-    if pilot_timing_dictionary == {}:
-        pilot_timing_dictionary[job_id] = {timing_constant: time_measurement}
+    if args.timing == {}:
+        args.timing[job_id] = {timing_constant: time_measurement}
     else:
-        if job_id not in pilot_timing_dictionary:
-            pilot_timing_dictionary[job_id] = {}
-        pilot_timing_dictionary[job_id][timing_constant] = time_measurement
+        if job_id not in args.timing:
+            args.timing[job_id] = {}
+            args.timing[job_id][timing_constant] = time_measurement
 
     # update the file
-    write_pilot_timing(pilot_timing_dictionary)
+    if store:
+        write_pilot_timing(args.timing)
 
 
 def get_initial_setup_time(job_id):

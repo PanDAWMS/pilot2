@@ -360,8 +360,11 @@ if __name__ == '__main__':
     args.mainworkdir = mainworkdir
     chdir(mainworkdir)
 
+    # initialize the pilot timing dictionary
+    args.timing = {}
+
     # store T0 time stamp
-    add_to_pilot_timing('0', PILOT_T0, time.time())
+    add_to_pilot_timing('0', PILOT_T0, time.time(), args)
 
     environ['PILOT_SITENAME'] = args.site  # TODO: replace with singleton
 
@@ -390,7 +393,7 @@ if __name__ == '__main__':
     trace = main()
 
     # store final time stamp (cannot be placed later since the mainworkdir is about to be purged)
-    add_to_pilot_timing('0', PILOT_END_TIME, time.time())
+    add_to_pilot_timing('0', PILOT_END_TIME, time.time(), args, store=True)
 
     # cleanup pilot workdir if created
     if initdir != mainworkdir:
