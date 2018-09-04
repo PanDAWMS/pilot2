@@ -27,8 +27,8 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
 from pilot.info import infosys, JobData
 from pilot.util import https
-from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
-    abort_jobs_in_queues
+from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
+#    abort_jobs_in_queues
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL
 from pilot.util.filehandling import get_files, tail
@@ -37,8 +37,7 @@ from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.proxy import get_distinguished_name
-from pilot.util.timing import add_to_pilot_timing, get_getjob_time, get_setup_time, get_stagein_time, get_stageout_time,\
-    get_payload_execution_time, get_initial_setup_time, get_postgetjob_time, get_time_since
+from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, is_virtual_machine
 
 import logging
@@ -275,27 +274,10 @@ def get_data_structure(job, state, sitename, versiontag, xml=None):
             log.info('no log files were found (will not send any stdout to server)')
 
     if state == 'finished' or state == 'failed':
-        # collect pilot timing data
-        time_getjob = get_getjob_time(job.jobid)
-        time_initial_setup = get_initial_setup_time(job.jobid)
-        time_setup = get_setup_time(job.jobid)
-        time_total_setup = time_initial_setup + time_setup
-        time_stagein = get_stagein_time(job.jobid)
-        time_payload = get_payload_execution_time(job.jobid)
-        time_stageout = get_stageout_time(job.jobid)
-        log.info('.' * 30)
-        log.info('. Timing measurements:')
-        log.info('. get job = %d s' % time_getjob)
-        log.info('. initial setup = %d s' % time_initial_setup)
-        log.info('. payload setup = %d s' % time_setup)
-        log.info('. total setup = %d s' % time_total_setup)
-        log.info('. stage-in = %d s' % time_stagein)
-        log.info('. payload execution = %d s' % time_payload)
-        log.info('. stage-out = %d s' % time_stageout)
-        log.info('.' * 30)
-
+        time_getjob, time_stagein, time_payload, time_stageout, time_total_setup = timing_report(job.jobid)
         data['pilotTiming'] = "%s|%s|%s|%s|%s" % \
                               (time_getjob, time_stagein, time_payload, time_stageout, time_total_setup)
+
 
     return data
 

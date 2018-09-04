@@ -309,3 +309,35 @@ def get_time_difference(job_id, timing_constant_1, timing_constant_2):
         diff = 0
 
     return diff
+
+
+def timing_report(job_id):
+    """
+    Write a timing report to the job log and return relevant timing measurements.
+
+    :param job_id: job id (string).
+    :return: time_getjob, time_stagein, time_payload, time_stageout, time_total_setup (integer strings).
+    """
+
+    log = get_logger(job_id)
+
+    # collect pilot timing data
+    time_getjob = get_getjob_time(job_id)
+    time_initial_setup = get_initial_setup_time(job_id)
+    time_setup = get_setup_time(job_id)
+    time_total_setup = time_initial_setup + time_setup
+    time_stagein = get_stagein_time(job_id)
+    time_payload = get_payload_execution_time(job_id)
+    time_stageout = get_stageout_time(job_id)
+    log.info('.' * 30)
+    log.info('. Timing measurements:')
+    log.info('. get job = %d s' % time_getjob)
+    log.info('. initial setup = %d s' % time_initial_setup)
+    log.info('. payload setup = %d s' % time_setup)
+    log.info('. total setup = %d s' % time_total_setup)
+    log.info('. stage-in = %d s' % time_stagein)
+    log.info('. payload execution = %d s' % time_payload)
+    log.info('. stage-out = %d s' % time_stageout)
+    log.info('.' * 30)
+
+    return time_getjob, time_stagein, time_payload, time_stageout, time_total_setup
