@@ -174,30 +174,28 @@ def get_total_pilot_time(job_id):
     return get_time_difference(job_id, PILOT_T0, PILOT_END_TIME)
 
 
-def get_postgetjob_time(job_id):
+def get_postgetjob_time(job_id, args):
     """
     Return the post getjob time.
 
     :param job_id: job object.
+    :param args:
     :return: post getjob time measurement (int). In case of failure, return None.
     """
 
     time_measurement = None
     timing_constant = PILOT_POST_GETJOB
 
-    # first read the current pilot timing dictionary
-    timing_dictionary = read_pilot_timing()
-
-    if job_id in timing_dictionary:
+    if job_id in args.timing:
         # extract time measurements
-        time_measurement_dictionary = timing_dictionary.get(job_id, None)
+        time_measurement_dictionary = args.timing.get(job_id, None)
         if time_measurement_dictionary:
             time_measurement = time_measurement_dictionary.get(timing_constant, None)
 
-    if not time_measurement:
-        log = get_logger(job_id)
-        log.warning('failed to extract time measurement %d from %s (no such key)' %
-                    (timing_constant, time_measurement_dictionary))
+        if not time_measurement:
+            log = get_logger(job_id)
+            log.warning('failed to extract time measurement %d from %s (no such key)' %
+                        (timing_constant, time_measurement_dictionary))
 
     return time_measurement
 
@@ -227,32 +225,30 @@ def get_time_measurement(timing_constant, time_measurement_dictionary, timing_di
     return time_measurement
 
 
-def get_time_since(job_id, timing_constant):
+def get_time_since(job_id, timing_constant, args):
     """
     Return the amount of time that has passed since the time measurement of timing_constant.
 
     :param job_id: PanDA job id (string).
     :param timing_constant:
+    :param args:
     :return: time in seconds (int).
     """
 
     diff = 0
     log = get_logger(job_id)
 
-    # first read the current pilot timing dictionary
-    timing_dictionary = read_pilot_timing()
-
-    if job_id in timing_dictionary:
+    if job_id in args.timing:
 
         # extract time measurements
-        time_measurement_dictionary = timing_dictionary.get(job_id, None)
+        time_measurement_dictionary = args.timing.get(job_id, None)
         if time_measurement_dictionary:
             time_measurement = get_time_measurement(timing_constant, time_measurement_dictionary,
-                                                    timing_dictionary, job_id)
+                                                    args.timing, job_id)
             if time_measurement:
                 diff = time() - time_measurement
         else:
-            log.warning('failed to extract time measurement dictionary from %s' % str(timing_dictionary))
+            log.warning('failed to extract time measurement dictionary from %s' % str(args.timing))
     else:
         log.warning('job id %s not found in timing dictionary' % job_id)
 

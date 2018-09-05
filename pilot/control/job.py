@@ -137,7 +137,7 @@ def send_state(job, args, state, xml=None):
         log.info('job %s has state \'%s\' - sending heartbeat' % (job.jobid, state))
 
     # build the data structure needed for getJob, updateJob
-    data = get_data_structure(job, state, args.site, args.version_tag, xml=xml)
+    data = get_data_structure(job, state, args, xml=xml)
 
     try:
         if args.url != '' and args.port != 0:
@@ -186,14 +186,13 @@ def send_state(job, args, state, xml=None):
     return False
 
 
-def get_data_structure(job, state, sitename, versiontag, xml=None):
+def get_data_structure(job, state, args, xml=None):
     """
     Build the data structure needed for getJob, updateJob.
 
     :param job: job object.
     :param state: state of the job (string).
-    :param sitename: site name (string).
-    :param versiontag: version tag (string).
+    :param args:
     :param xml: optional XML string.
     :return: data structure (dictionary).
     """
@@ -203,7 +202,7 @@ def get_data_structure(job, state, sitename, versiontag, xml=None):
     data = {'jobId': job.jobid,
             'state': state,
             'timestamp': time_stamp(),
-            'siteName': sitename,
+            'siteName': args.sitename,
             'node': get_node_name()}
 
     # error codes
@@ -242,12 +241,12 @@ def get_data_structure(job, state, sitename, versiontag, xml=None):
 
         if batchsystem_type:
             data['pilotID'] = "%s|%s|%s|%s" % \
-                              (pilotid, batchsystem_type, versiontag, pilotversion)
+                              (pilotid, batchsystem_type, args.version_tag, pilotversion)
             data['batchID'] = batchsystem_id,
         else:
-            data['pilotID'] = "%s|%s|%s" % (pilotid, versiontag, pilotversion)
+            data['pilotID'] = "%s|%s|%s" % (pilotid, args.version_tag, pilotversion)
 
-    starttime = get_postgetjob_time(job.jobid)
+    starttime = get_postgetjob_time(job.jobid, args)
     if starttime:
         data['startTime'] = starttime
 
@@ -1111,7 +1110,7 @@ def queue_monitor(queues, traces, args):
 
             if args.job_aborted.is_set():
                 # if the pilot received a kill signal, how much time has passed since the signal was intercepted?
-                time_since_kill = get_time_since('0', PILOT_KILL_SIGNAL)
+                time_since_kill = get_time_since('0', PILOT_KILL_SIGNAL, args)
                 log.info('%d s passed since kill signal was intercepted - make sure that stage-out has finished' %
                          time_since_kill)
 
