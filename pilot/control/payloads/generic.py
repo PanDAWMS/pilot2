@@ -80,7 +80,7 @@ class Executor(object):
         log = get_logger(job.jobid)
 
         # write time stamps to pilot timing file
-        add_to_pilot_timing(job.jobid, PILOT_PRE_SETUP, time.time())
+        add_to_pilot_timing(job.jobid, PILOT_PRE_SETUP, time.time(), self.__args)
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -96,7 +96,7 @@ class Executor(object):
         log.info("payload execution command: %s" % cmd)
 
         # write time stamps to pilot timing file
-        add_to_pilot_timing(job.jobid, PILOT_POST_SETUP, time.time())
+        add_to_pilot_timing(job.jobid, PILOT_POST_SETUP, time.time(), self.__args)
 
         # should we run any additional commands? (e.g. special monitoring commands)
         cmds = user.get_utility_commands_list(order=UTILITY_BEFORE_PAYLOAD)
@@ -115,7 +115,7 @@ class Executor(object):
                 # add execution code here
 
         # write time stamps to pilot timing file
-        add_to_pilot_timing(job.jobid, PILOT_PRE_PAYLOAD, time.time())
+        add_to_pilot_timing(job.jobid, PILOT_PRE_PAYLOAD, time.time(), self.__args)
 
         # replace platform and workdir with new function get_payload_options() or something from experiment specific
         # code
@@ -222,7 +222,7 @@ class Executor(object):
                     exit_code = -1
 
                 # write time stamps to pilot timing file
-                add_to_pilot_timing(self.__job.jobid, PILOT_POST_PAYLOAD, time.time())
+                add_to_pilot_timing(self.__job.jobid, PILOT_POST_PAYLOAD, time.time(), self.__args)
 
                 # stop any running utilities
                 if self.__job.utilities != {}:

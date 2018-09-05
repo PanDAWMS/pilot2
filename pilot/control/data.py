@@ -189,7 +189,7 @@ def _stage_in(args, job):
     #os.kill(os.getpid(), signal.SIGUSR1)
 
     # write time stamps to pilot timing file
-    add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN, time.time())
+    add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN, time.time(), args)
 
     event_type = "get_sm"
     #if log_transfer:
@@ -217,7 +217,7 @@ def _stage_in(args, job):
     log.info("stage-in finished")
 
     # write time stamps to pilot timing file
-    add_to_pilot_timing(job.jobid, PILOT_POST_STAGEIN, time.time())
+    add_to_pilot_timing(job.jobid, PILOT_POST_STAGEIN, time.time(), args)
 
     remain_files = [e for e in job.indata if e.status not in ['remote_io', 'transferred', 'no_transfer']]
 
@@ -499,7 +499,7 @@ def _stage_out(args, outfile, job):  ### TO BE DEPRECATED
     log = get_logger(job.jobid)
 
     # write time stamps to pilot timing file
-    add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEOUT, time.time())
+    add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEOUT, time.time(), args)
 
     log.info('will stage-out: %s' % outfile)
 
@@ -563,7 +563,7 @@ def _stage_out(args, outfile, job):  ### TO BE DEPRECATED
     log.debug('stderr:\n%s' % err)
 
     # write time stamps to pilot timing file
-    add_to_pilot_timing(job.jobid, PILOT_POST_STAGEOUT, time.time())
+    add_to_pilot_timing(job.jobid, PILOT_POST_STAGEOUT, time.time(), args)
 
     # in case of problems, try to identify the error (and set it in the job object)
     if err != "":
@@ -641,7 +641,7 @@ def _stage_out_new(job, args):
     #os.kill(os.getpid(), signal.SIGUSR1)
 
     # write time stamps to pilot timing file
-    add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEOUT, time.time())
+    add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEOUT, time.time(), args)
 
     is_success = True
     if job.stageout != 'log':  ## do stage-out output files
@@ -659,7 +659,7 @@ def _stage_out_new(job, args):
             log.warning('log transfer failed')
 
     # write time stamps to pilot timing file
-    add_to_pilot_timing(job.jobid, PILOT_POST_STAGEOUT, time.time())
+    add_to_pilot_timing(job.jobid, PILOT_POST_STAGEOUT, time.time(), args)
 
     # generate fileinfo details to be send to Panda
     fileinfo = {}
