@@ -72,13 +72,18 @@ def add_to_pilot_timing(job_id, timing_constant, time_measurement, args, store=F
     :return:
     """
 
+    logger.debug('will add %s to %s' % (timing_constant, str(args.timing)))
+
     if args.timing == {}:
         args.timing[job_id] = {timing_constant: time_measurement}
+        logger.debug('added to empty dictionary')
     else:
         if job_id not in args.timing:
             args.timing[job_id] = {}
-            args.timing[job_id][timing_constant] = time_measurement
+        args.timing[job_id][timing_constant] = time_measurement
+        logger.debug('added')
 
+    logger.debug('. args.timing=%s' % str(args.timing))
     # update the file
     if store:
         write_pilot_timing(args.timing)

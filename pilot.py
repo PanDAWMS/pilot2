@@ -395,6 +395,8 @@ if __name__ == '__main__':
     # store final time stamp (cannot be placed later since the mainworkdir is about to be purged)
     add_to_pilot_timing('0', PILOT_END_TIME, time.time(), args, store=True)
 
+    logging.info('args.timing=%s' % args.timing)
+
     # cleanup pilot workdir if created
     if initdir != mainworkdir:
         chdir(initdir)
