@@ -263,7 +263,7 @@ def get_data_structure(job, state, args, xml=None):
         list_of_files = get_files()
         if not list_of_files:
             log.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
-            list_of_files = [config.Payload.payloadstdout]
+            list_of_files = os.path.join(job.workdir, config.Payload.payloadstdout)  # get_files(pattern=config.Payload.payloadstdout)
 
         latest_file = max(list_of_files, key=os.path.getctime)
         log.info('tail of file %s will be added to heartbeat' % latest_file)

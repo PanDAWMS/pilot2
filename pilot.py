@@ -33,7 +33,7 @@ from pilot.util.timing import add_to_pilot_timing
 RELEASE = '2'  # fixed at 2 for Pilot 2
 VERSION = '0'  # '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
 REVISION = '0'  # reset to '0' for every new Pilot version release, increased for small updates
-BUILD = '63'  # reset to '1' for every new development cycle
+BUILD = '64'  # reset to '1' for every new development cycle
 
 
 def pilot_version_banner():
@@ -384,16 +384,17 @@ if __name__ == '__main__':
     # Establish logging
     console = logging.StreamHandler(sys.stdout)
     if args.debug:
-        logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.DEBUG,
-                            format='%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s')
-        console.setLevel(logging.DEBUG)
-        console.setFormatter(logging.Formatter(
-            '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'))
+        format = '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'
+        level = logging.DEBUG
     else:
-        logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.INFO,
-                            format='%(asctime)s | %(levelname)-8s | %(message)s')
-        console.setLevel(logging.INFO)
-        console.setFormatter(logging.Formatter('%(asctime)s | %(levelname)-8s | %(message)s'))
+        format = '%(asctime)s | %(levelname)-8s | %(message)s'
+        level = logging.INFO
+    if args.nopilotlog:
+        logging.basicConfig(level=level, format=format)
+    else:
+        logging.basicConfig(filename=config.Pilot.pilotlog, level=level, format=format)
+    console.setLevel(level)
+    console.setFormatter(logging.Formatter(format))
     logging.Formatter.converter = time.gmtime
     logging.getLogger('').addHandler(console)
 
