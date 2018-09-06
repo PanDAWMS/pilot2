@@ -202,7 +202,7 @@ def get_data_structure(job, state, args, xml=None):
     data = {'jobId': job.jobid,
             'state': state,
             'timestamp': time_stamp(),
-            'siteName': args.sitename,
+            'siteName': args.site,
             'node': get_node_name()}
 
     # error codes
