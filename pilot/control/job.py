@@ -1153,7 +1153,11 @@ def get_heartbeat_period(debug=False):
     :return: heartbeat period (int).
     """
 
-    return config.Pilot.heartbeat if not debug else config.Pilot.debug_heartbeat
+    try:
+        return int(config.Pilot.heartbeat if not debug else config.Pilot.debug_heartbeat)
+    except Exception as e:
+        logger.warning('bad config data for heartbeat period: %s (will use default 1800 s)' % e)
+        return 1800
 
 
 def job_monitor(queues, traces, args):
@@ -1233,9 +1237,18 @@ def job_monitor(queues, traces, args):
                     # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
                     # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
                     period = get_heartbeat_period(jobs[i].debug)
-                    if int(time.time()) - update_time >= period:
+                    now = int(time.time())
+                    log.info('heartbeat period=%s' % str(period))
+                    log.info('time now: %d' % now)
+                    log.info('update time: %s' % update_time)
+                    log.info('period: %d' % period)
+                    if now - update_time >= period:
+                        log.info('now - update_time >= period     TRUE')
                         send_state(jobs[i], args, 'running')
                         update_time = int(time.time())
+                    else:
+                        log.info('now - update_time >= period     FALSE')
+
             else:
                 waiting_time = int(time.time()) - peeking_time
                 msg = 'no jobs in monitored_payloads queue (waited for %d s)' % waiting_time
