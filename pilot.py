@@ -401,7 +401,7 @@ if __name__ == '__main__':
     trace = main()
 
     # store final time stamp (cannot be placed later since the mainworkdir is about to be purged)
-    add_to_pilot_timing('0', PILOT_END_TIME, time.time(), args, store=True)
+    add_to_pilot_timing('0', PILOT_END_TIME, time.time(), args, store=False)
 
     # cleanup pilot workdir if created
     if initdir != mainworkdir:
