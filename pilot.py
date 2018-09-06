@@ -165,6 +165,13 @@ def import_module(**kwargs):
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()
 
+    # pilot log creation
+    arg_parser.add_argument('--no-pilot-log',
+                            dest='nopilotlog',
+                            action='store_true',
+                            default=False,
+                            help='Do not write the pilot log to file')
+
     # pilot work directory
     arg_parser.add_argument('-a',
                             dest='workdir',

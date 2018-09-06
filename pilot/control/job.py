@@ -261,16 +261,17 @@ def get_data_structure(job, state, args, xml=None):
     if job.debug:
         # find the latest updated log file
         list_of_files = get_files()
-        if list_of_files:
-            latest_file = max(list_of_files, key=os.path.getctime)
-            log.info('tail of file %s will be added to heartbeat' % latest_file)
+        if not list_of_files:
+            log.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
+            list_of_files = [config.Payload.payloadstdout]
 
-            # now get the tail of the found log file and protect against potentially large tails
-            stdout_tail = tail(latest_file)
-            stdout_tail = stdout_tail[-2048:]
-            data['stdout'] = stdout_tail
-        else:
-            log.info('no log files were found (will not send any stdout to server)')
+        latest_file = max(list_of_files, key=os.path.getctime)
+        log.info('tail of file %s will be added to heartbeat' % latest_file)
+
+        # now get the tail of the found log file and protect against potentially large tails
+        stdout_tail = tail(latest_file)
+        stdout_tail = stdout_tail[-2048:]
+        data['stdout'] = stdout_tail
 
     if state == 'finished' or state == 'failed':
         time_getjob, time_stagein, time_payload, time_stageout, time_total_setup = timing_report(job.jobid, args)
@@ -1238,16 +1239,9 @@ def job_monitor(queues, traces, args):
                     # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
                     period = get_heartbeat_period(jobs[i].debug)
                     now = int(time.time())
-                    log.info('heartbeat period=%s' % str(period))
-                    log.info('time now: %d' % now)
-                    log.info('update time: %s' % update_time)
-                    log.info('period: %d' % period)
                     if now - update_time >= period:
-                        log.info('now - update_time >= period     TRUE')
                         send_state(jobs[i], args, 'running')
                         update_time = int(time.time())
-                    else:
-                        log.info('now - update_time >= period     FALSE')
 
             else:
                 waiting_time = int(time.time()) - peeking_time
