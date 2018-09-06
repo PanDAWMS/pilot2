@@ -20,8 +20,8 @@ from time import time
 
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
-from pilot.util.constants import PILOT_T0, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_PRE_SETUP, PILOT_POST_SETUP, \
-    PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, PILOT_PRE_STAGEOUT, \
+from pilot.util.constants import PILOT_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_PRE_SETUP, \
+    PILOT_POST_SETUP, PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, PILOT_PRE_STAGEOUT,\
     PILOT_POST_STAGEOUT, PILOT_PRE_FINAL_UPDATE, PILOT_POST_FINAL_UPDATE, PILOT_END_TIME
 from pilot.util.filehandling import read_json, write_json
 
@@ -57,7 +57,7 @@ def write_pilot_timing(pilot_timing_dictionary):
     if write_json(path, pilot_timing_dictionary):
         logger.debug('updated pilot timing dictionary: %s' % (path))
     else:
-        logger.info('failed to update pilot timing dictionary: %s' % (path))
+        logger.warning('failed to update pilot timing dictionary: %s' % (path))
 
 
 def add_to_pilot_timing(job_id, timing_constant, time_measurement, args, store=False):
@@ -72,18 +72,13 @@ def add_to_pilot_timing(job_id, timing_constant, time_measurement, args, store=F
     :return:
     """
 
-    logger.debug('will add %s to %s' % (timing_constant, str(args.timing)))
-
     if args.timing == {}:
         args.timing[job_id] = {timing_constant: time_measurement}
-        logger.debug('added to empty dictionary')
     else:
         if job_id not in args.timing:
             args.timing[job_id] = {}
         args.timing[job_id][timing_constant] = time_measurement
-        logger.debug('added')
 
-    logger.debug('. args.timing=%s' % str(args.timing))
     # update the file
     if store:
         write_pilot_timing(args.timing)
@@ -92,14 +87,14 @@ def add_to_pilot_timing(job_id, timing_constant, time_measurement, args, store=F
 def get_initial_setup_time(job_id, args):
     """
     High level function that returns the time for the initial setup.
-    The initial setup time is measured from PILOT_T0 to PILOT_PRE_GETJOB.
+    The initial setup time is measured from PILOT_START_TIME to PILOT_PRE_GETJOB.
 
     :param job_id: PanDA job id (string).
     :param args: pilot arguments.
     :return: time in seconds (int).
     """
 
-    return get_time_difference(job_id, PILOT_T0, PILOT_PRE_GETJOB, args)
+    return get_time_difference(job_id, PILOT_START_TIME, PILOT_PRE_GETJOB, args)
 
 
 def get_getjob_time(job_id, args):
@@ -184,7 +179,7 @@ def get_total_pilot_time(job_id, args):
     :return: time in seconds (int).
     """
 
-    return get_time_difference(job_id, PILOT_T0, PILOT_END_TIME, args)
+    return get_time_difference(job_id, PILOT_START_TIME, PILOT_END_TIME, args)
 
 
 def get_postgetjob_time(job_id, args):
@@ -217,7 +212,7 @@ def get_time_measurement(timing_constant, time_measurement_dictionary, timing_di
     """
     Return a requested time measurement from the time measurement dictionary, read from the pilot timing file.
 
-    :param timing_constant: timing constant (e.g. PILOT_T0)
+    :param timing_constant: timing constant (e.g. PILOT_START_TIME)
     :param time_measurement_dictionary: time measurement dictionary, extracted from pilot timing dictionary.
     :param timing_dictionary: full timing dictionary from pilot timing file.
     :param job_id: PanDA job id (string).
@@ -226,7 +221,7 @@ def get_time_measurement(timing_constant, time_measurement_dictionary, timing_di
 
     time_measurement = time_measurement_dictionary.get(timing_constant, None)
     if not time_measurement:
-        # try to get the measurement for the PILOT_T0 dictionary
+        # try to get the measurement for the PILOT_START_TIME dictionary
         time_measurement_dictionary_0 = timing_dictionary.get('0', None)
         if time_measurement_dictionary_0:
             time_measurement = time_measurement_dictionary_0.get(timing_constant, None)

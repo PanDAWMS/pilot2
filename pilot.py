@@ -22,7 +22,7 @@ from shutil import rmtree
 from pilot.info import set_info
 from pilot.util.auxiliary import shell_exit_code
 from pilot.util.config import config
-from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_T0, PILOT_END_TIME
+from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_START_TIME, PILOT_END_TIME
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
@@ -33,7 +33,7 @@ from pilot.util.timing import add_to_pilot_timing
 RELEASE = '2'  # fixed at 2 for Pilot 2
 VERSION = '0'  # '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
 REVISION = '0'  # reset to '0' for every new Pilot version release, increased for small updates
-BUILD = '62'  # reset to '1' for every new development cycle
+BUILD = '63'  # reset to '1' for every new development cycle
 
 
 def pilot_version_banner():
@@ -364,7 +364,7 @@ if __name__ == '__main__':
     args.timing = {}
 
     # store T0 time stamp
-    add_to_pilot_timing('0', PILOT_T0, time.time(), args)
+    add_to_pilot_timing('0', PILOT_START_TIME, time.time(), args)
 
     environ['PILOT_SITENAME'] = args.site  # TODO: replace with singleton
 
@@ -394,8 +394,6 @@ if __name__ == '__main__':
 
     # store final time stamp (cannot be placed later since the mainworkdir is about to be purged)
     add_to_pilot_timing('0', PILOT_END_TIME, time.time(), args, store=True)
-
-    logging.info('args.timing=%s' % args.timing)
 
     # cleanup pilot workdir if created
     if initdir != mainworkdir:
