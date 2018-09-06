@@ -273,7 +273,7 @@ def get_data_structure(job, state, args, xml=None):
             log.info('no log files were found (will not send any stdout to server)')
 
     if state == 'finished' or state == 'failed':
-        time_getjob, time_stagein, time_payload, time_stageout, time_total_setup = timing_report(job.jobid)
+        time_getjob, time_stagein, time_payload, time_stageout, time_total_setup = timing_report(job.jobid, args)
         data['pilotTiming'] = "%s|%s|%s|%s|%s" % \
                               (time_getjob, time_stagein, time_payload, time_stageout, time_total_setup)
 

@@ -318,24 +318,25 @@ def get_time_difference(job_id, timing_constant_1, timing_constant_2, args):
     return diff
 
 
-def timing_report(job_id):
+def timing_report(job_id, args):
     """
     Write a timing report to the job log and return relevant timing measurements.
 
     :param job_id: job id (string).
+    :param args: pilot arguments.
     :return: time_getjob, time_stagein, time_payload, time_stageout, time_total_setup (integer strings).
     """
 
     log = get_logger(job_id)
 
     # collect pilot timing data
-    time_getjob = get_getjob_time(job_id)
-    time_initial_setup = get_initial_setup_time(job_id)
-    time_setup = get_setup_time(job_id)
+    time_getjob = get_getjob_time(job_id, args)
+    time_initial_setup = get_initial_setup_time(job_id, args)
+    time_setup = get_setup_time(job_id, args)
     time_total_setup = time_initial_setup + time_setup
-    time_stagein = get_stagein_time(job_id)
-    time_payload = get_payload_execution_time(job_id)
-    time_stageout = get_stageout_time(job_id)
+    time_stagein = get_stagein_time(job_id, args)
+    time_payload = get_payload_execution_time(job_id, args)
+    time_stageout = get_stageout_time(job_id, args)
     log.info('.' * 30)
     log.info('. Timing measurements:')
     log.info('. get job = %d s' % time_getjob)
