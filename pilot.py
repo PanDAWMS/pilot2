@@ -69,38 +69,53 @@ def get_pilot_version():
 
 
 def main():
-    """ Main function of PanDA Pilot 2 """
+    """
+    Main function of PanDA Pilot 2.
+    Prepare for and execute the requested workflow.
 
+    :return: exit code (int).
+    """
+
+    # get the logger
     logger = logging.getLogger(__name__)
 
     # print the pilot version
     pilot_version_banner()
 
+    # define threading events
     args.graceful_stop = threading.Event()
     args.abort_job = threading.Event()
     args.job_aborted = threading.Event()
+
+    # define useful variables
     args.retrieve_next_job = True  # go ahead and download a new job
     args.signal = None  # to store any incoming signals
+
+    # read and parse config file
     config.read(args.config)
 
+    # perform https setup
     https_setup(args, get_pilot_version())
 
     if not set_location(args):  # ## DEPRECATE ME LATER
         return False
 
-    set_info(args)  # initialize InfoService and populate args.info structure
+    # initialize InfoService and populate args.info structure
+    set_info(args)
 
+    # set requested workflow
     logger.info('pilot arguments: %s' % str(args))
     logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
 
+    # execute workflow
     try:
-        ret = workflow.run(args)
+        exit_code = workflow.run(args)
     except Exception as e:
         logger.fatal('main pilot function caught exception: %s' % e)
-        ret = None
+        exit_code = None
 
-    return ret
+    return exit_code
 
 
 class Args:
@@ -431,36 +446,17 @@ def establish_logging(args):
     logging.getLogger('').addHandler(console)
 
 
-if __name__ == '__main__':
+def wrap_up(initdir, mainworkdir, args):
+    """
+    Perform cleanup and terminate logging.
 
-    # get the args from the arg parser
-    args = get_args()
+    :param initdir: launch directory (string).
+    :param mainworkdir: main work directory (string).
+    :param args: pilot arguments object.
+    :return: exit code (int).
+    """
 
-    # Define and set the main harvester control boolean
-    args.harvester = is_harvester_mode(args)
-
-    # initialize the pilot timing dictionary
-    args.timing = {}
-
-    # store T0 time stamp
-    add_to_pilot_timing('0', PILOT_START_TIME, time.time(), args)
-
-    # ff requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
-    initdir = getcwd()
-    exit_code, mainworkdir = create_main_work_dir(args)
-    if exit_code != 0:
-        sys.exit(exit_code)
-
-    # set environment variables (to be replaced with singleton implementation)
-    set_environment_variables(args, mainworkdir)
-
-    # setup and establish standard logging
-    establish_logging(args)
-
-    trace = main()
-
-    # store final time stamp (cannot be placed later since the mainworkdir is about to be purged)
-    add_to_pilot_timing('0', PILOT_END_TIME, time.time(), args, store=False)
+    exit_code = 0
 
     # cleanup pilot workdir if created
     if initdir != mainworkdir:
@@ -500,4 +496,46 @@ if __name__ == '__main__':
 
     # exit_code = shell_exit_code(exit_code)
 
+    return exit_code
+
+
+if __name__ == '__main__':
+    """
+    Main function of pilot module.
+    """
+
+    # get the args from the arg parser
+    args = get_args()
+
+    # Define and set the main harvester control boolean
+    args.harvester = is_harvester_mode(args)
+
+    # initialize the pilot timing dictionary
+    args.timing = {}
+
+    # store T0 time stamp
+    add_to_pilot_timing('0', PILOT_START_TIME, time.time(), args)
+
+    # ff requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
+    initdir = getcwd()
+    exit_code, mainworkdir = create_main_work_dir(args)
+    if exit_code != 0:
+        sys.exit(exit_code)
+
+    # set environment variables (to be replaced with singleton implementation)
+    set_environment_variables(args, mainworkdir)
+
+    # setup and establish standard logging
+    establish_logging(args)
+
+    # execute main function
+    trace = main()
+
+    # store final time stamp (cannot be placed later since the mainworkdir is about to be purged)
+    add_to_pilot_timing('0', PILOT_END_TIME, time.time(), args, store=False)
+
+    # perform cleanup and terminate logging
+    exit_code = wrap_up(initdir, mainworkdir, args)
+
+    # the end.
     sys.exit(exit_code)
