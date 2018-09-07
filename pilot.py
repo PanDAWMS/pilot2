@@ -406,6 +406,31 @@ def set_environment_variables(args, mainworkdir):
     environ['PILOT_VERSION'] = get_pilot_version()
 
 
+def establish_logging(args):
+    """
+    Setup and establish logging.
+
+    :param args: pilot arguments object.
+    :return:
+    """
+
+    console = logging.StreamHandler(sys.stdout)
+    if args.debug:
+        format = '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'
+        level = logging.DEBUG
+    else:
+        format = '%(asctime)s | %(levelname)-8s | %(message)s'
+        level = logging.INFO
+    if args.nopilotlog:
+        logging.basicConfig(level=level, format=format)
+    else:
+        logging.basicConfig(filename=config.Pilot.pilotlog, level=level, format=format)
+    console.setLevel(level)
+    console.setFormatter(logging.Formatter(format))
+    logging.Formatter.converter = time.gmtime
+    logging.getLogger('').addHandler(console)
+
+
 if __name__ == '__main__':
 
     # get the args from the arg parser
@@ -429,22 +454,8 @@ if __name__ == '__main__':
     # set environment variables (to be replaced with singleton implementation)
     set_environment_variables(args, mainworkdir)
 
-    # establish logging
-    console = logging.StreamHandler(sys.stdout)
-    if args.debug:
-        format = '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'
-        level = logging.DEBUG
-    else:
-        format = '%(asctime)s | %(levelname)-8s | %(message)s'
-        level = logging.INFO
-    if args.nopilotlog:
-        logging.basicConfig(level=level, format=format)
-    else:
-        logging.basicConfig(filename=config.Pilot.pilotlog, level=level, format=format)
-    console.setLevel(level)
-    console.setFormatter(logging.Formatter(format))
-    logging.Formatter.converter = time.gmtime
-    logging.getLogger('').addHandler(console)
+    # setup and establish standard logging
+    establish_logging(args)
 
     trace = main()
 
