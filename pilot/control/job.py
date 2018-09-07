@@ -27,8 +27,8 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
 from pilot.info import infosys, JobData
 from pilot.util import https
-from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
-#    abort_jobs_in_queues
+from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
+    scan_for_jobs  #, abort_jobs_in_queues
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL
 from pilot.util.filehandling import get_files, tail
@@ -1093,33 +1093,6 @@ def has_job_failed(queues):
         job.state = 'failed'
 
     return job
-
-
-def scan_for_jobs(queues):
-    """
-    Scan queues until at least one queue has a job object. abort if it takes too long time
-
-    :param queues:
-    :return: found job (bool).
-    """
-
-    t0 = time.time()
-    found_job = False
-    while time.time() - t0 < 30:
-        for q in queues._fields:
-            _q = getattr(queues, q)
-            jobs = list(_q.queue)
-            if len(jobs) > 0:
-                logger.info('found %d job(s) in %d queues after %d s - will begin queue monitoring' %
-                            (len(jobs), len(queues._fields), time.time() - t0))
-                found_job = True
-                break
-        if found_job:
-            break
-        else:
-            time.sleep(0.1)
-
-    return found_job
 
 
 def queue_monitor(queues, traces, args):

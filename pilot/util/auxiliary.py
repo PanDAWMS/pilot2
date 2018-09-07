@@ -176,6 +176,35 @@ def declare_failed_by_kill(job, queue, sig):
     queue.put(job)
 
 
+def scan_for_jobs(queues):
+    """
+    Scan queues until at least one queue has a job object. abort if it takes too long time
+
+    :param queues:
+    :return: found jobs (list of job objects).
+    """
+
+    t0 = time.time()
+    found_job = False
+    jobs = None
+
+    while time.time() - t0 < 30:
+        for q in queues._fields:
+            _q = getattr(queues, q)
+            jobs = list(_q.queue)
+            if len(jobs) > 0:
+                logger.info('found %d job(s) in %d queues after %d s - will begin queue monitoring' %
+                            (len(jobs), len(queues._fields), time.time() - t0))
+                found_job = True
+                break
+        if found_job:
+            break
+        else:
+            time.sleep(0.1)
+
+    return jobs
+
+
 def get_queuedata_from_job(queues):
     """
     Return the queuedata object from a job in the given queues object.
@@ -186,6 +215,8 @@ def get_queuedata_from_job(queues):
     :param queues: queues object.
     :return: queuedata object.
     """
+
+    # TODO: use scan_for_jobs() instead of the loop below
 
     job = None
     queuedata = None
