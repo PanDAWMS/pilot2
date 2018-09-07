@@ -33,7 +33,7 @@ from pilot.util.timing import add_to_pilot_timing
 RELEASE = '2'  # fixed at 2 for Pilot 2
 VERSION = '0'  # '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
 REVISION = '0'  # reset to '0' for every new Pilot version release, increased for small updates
-BUILD = '67'  # reset to '1' for every new development cycle
+BUILD = '68'  # reset to '1' for every new development cycle
 
 
 def pilot_version_banner():
@@ -352,6 +352,34 @@ def get_args():
     return arg_parser.parse_args()
 
 
+def create_main_work_dir(args):
+    """
+    Create and return the pilot's main work directory.
+    The function also sets args.mainworkdir and cd's into this directory.
+
+    :param args: pilot arguments object.
+    :return: exit code (int), main work directory (string).
+    """
+
+    exit_code = 0
+
+    if args.workdir != "":
+        mainworkdir = get_pilot_work_dir(args.workdir)
+        try:
+            create_pilot_work_dir(mainworkdir)
+        except Exception as e:
+            # print to stderr since logging has not been established yet
+            print('failed to create workdir at %s -- aborting: %s' % (mainworkdir, e), file=sys.stderr)
+            exit_code = shell_exit_code(e._errorCode)
+    else:
+        mainworkdir = getcwd()
+
+    args.mainworkdir = mainworkdir
+    chdir(mainworkdir)
+
+    return exit_code, mainworkdir
+
+
 if __name__ == '__main__':
 
     # get the args from the arg parser
@@ -362,22 +390,12 @@ if __name__ == '__main__':
 
     # If requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
     initdir = getcwd()
-    if args.workdir != "":
-        mainworkdir = get_pilot_work_dir(args.workdir)
-        try:
-            create_pilot_work_dir(mainworkdir)
-        except Exception as e:
-            # print to stderr since logging has not been established yet
-            print('failed to create workdir at %s -- aborting: %s' % (mainworkdir, e), file=sys.stderr)
-            exit_code = shell_exit_code(e._errorCode)
-            sys.exit(exit_code)
-    else:
-        mainworkdir = getcwd()
+    exit_code, mainworkdir = create_main_work_dir(args)
+    if exit_code != 0:
+        sys.exit(exit_code)
 
     environ['PILOT_WORK_DIR'] = args.workdir  # TODO: replace with singleton
     environ['PILOT_HOME'] = mainworkdir  # TODO: replace with singleton
-    args.mainworkdir = mainworkdir
-    chdir(mainworkdir)
 
     # initialize the pilot timing dictionary
     args.timing = {}
