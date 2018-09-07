@@ -1106,7 +1106,12 @@ def queue_monitor(queues, traces, args):
     :return:
     """
 
+    # replace the sleep below with a waiting function, see code snippet in get_queuedata_from_job() that scans
+    # queues for jobs; sleep until at least one queue has a job in it
     time.sleep(30)
+
+    # scan queues until at least one queue has a job object. abort if it takes too long time (set graceful stop)
+    # ..
 
     while True:  # will abort when graceful_stop has been set
         if traces.pilot['command'] == 'abort':
