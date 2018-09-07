@@ -162,7 +162,13 @@ def import_module(**kwargs):
     return 0
 
 
-if __name__ == '__main__':
+def get_args():
+    """
+    Return the args from the arg parser.
+
+    :return: args (arg parser object).
+    """
+
     arg_parser = argparse.ArgumentParser()
 
     # pilot log creation
@@ -343,7 +349,13 @@ if __name__ == '__main__':
                             default='',
                             help='Name of the HPC (e.g. Titan)')
 
-    args = arg_parser.parse_args()
+    return arg_parser.parse_args()
+
+
+if __name__ == '__main__':
+
+    # get the args from the arg parser
+    args = get_args()
 
     # Define and set the main harvester control boolean
     args.harvester = is_harvester_mode(args)
