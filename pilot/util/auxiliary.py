@@ -196,6 +196,11 @@ def get_queuedata_from_job(queues):
     for q in queues._fields:
         _q = getattr(queues, q)
         jobs = list(_q.queue)
+        logger.info('found %d jobs in %d queues' % (len(jobs), len(queues)))
+        if len(jobs) == 0:
+            logger.info('taking a 5 s nap')
+            time.sleep(5)
+
         retry = 0
         for job in jobs:
             # allow some time to pass in case no job object has been added to the queues yet
