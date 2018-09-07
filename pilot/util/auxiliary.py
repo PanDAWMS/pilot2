@@ -215,8 +215,8 @@ def get_queuedata_from_job(queues):
                     retry += 1
                 else:
                     break
-            if queuedata:
-                break
+        if queuedata:
+            break
 
     return queuedata
 
