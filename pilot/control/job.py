@@ -1114,8 +1114,6 @@ def queue_monitor(queues, traces, args):
         if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
             break
 
-        job = None
-
         # check if the job has finished
         job = has_job_finished(queues)
         if job.state != 'finished':
