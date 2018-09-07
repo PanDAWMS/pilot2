@@ -176,11 +176,49 @@ def declare_failed_by_kill(job, queue, sig):
     queue.put(job)
 
 
+def get_queuedata_from_job(queues):
+    """
+    Return the queuedata object from a job in the given queues object.
+    This function is useful if queuedata is needed from a function that does not know about the job object.
+    E.g. the pilot monitor does not know about the job object, but still knows
+    about the queues from which a job object can be extracted and therefore the queuedata.
+
+    :param queues: queues object.
+    :return: queuedata object.
+    """
+
+    job = None
+    queuedata = None
+
+    # loop over all queues and find a job object, from which the queuedata object can be reached
+    delay = 5
+    maxretries = 5
+    for q in queues._fields:
+        _q = getattr(queues, q)
+        jobs = list(_q.queue)
+        retry = 0
+        for job in jobs:
+            # allow some time to pass in case no job object has been added to the queues yet
+            while retry < maxretries:
+                logger.info('attempting to extract queuedata from queues (#%d/#%d)' % (retry + 1, maxretries))
+                try:
+                    queuedata = job.infosys.queuedata
+                except Exception:
+                    logger.info('sleeping %d seconds to allow job object to be added to queues '
+                                '(needed for queuedata extraction)' % delay)
+                    time.sleep(delay)
+                    retry += 1
+                else:
+                    break
+
+    return queuedata
+
+
 def abort_jobs_in_queues(queues, sig):
     """
     Find all jobs in the queues and abort them.
 
-    :param queues:
+    :param queues: queues object.
     :param sig: detected kill signal.
     :return:
     """
