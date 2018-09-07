@@ -233,6 +233,17 @@ def get_time_measurement(timing_constant, time_measurement_dictionary, timing_di
     return time_measurement
 
 
+def get_time_since_start(args):
+    """
+    Return the amount of time that has passed since the pilot was launched.
+
+    :param args: pilot arguments.
+    :return: time in seconds (int).
+    """
+
+    return get_time_since(0, PILOT_START_TIME, args)
+
+
 def get_time_since(job_id, timing_constant, args):
     """
     Return the amount of time that has passed since the time measurement of timing_constant.
