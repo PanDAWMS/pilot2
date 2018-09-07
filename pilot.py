@@ -380,6 +380,32 @@ def create_main_work_dir(args):
     return exit_code, mainworkdir
 
 
+def set_environment_variables(args, mainworkdir):
+    """
+    Set environment variables. To be replaced with singleton implementation.
+    This function sets PILOT_WORK_DIR, PILOT_HOME, PILOT_SITENAME, PILOT_USER and PILOT_VERSION.
+
+    :param args:
+    :param mainworkdir:
+    :return:
+    """
+
+    # working directory as set with a pilot option (e.g. ..)
+    environ['PILOT_WORK_DIR'] = args.workdir  # TODO: replace with singleton
+
+    # main work directory (e.g. ..)
+    environ['PILOT_HOME'] = mainworkdir  # TODO: replace with singleton
+
+    # store the site name as set with a pilot option
+    environ['PILOT_SITENAME'] = args.site  # TODO: replace with singleton
+
+    # set the pilot user (e.g. ATLAS)
+    environ['PILOT_USER'] = args.pilot_user  # TODO: replace with singleton
+
+    # set the pilot version
+    environ['PILOT_VERSION'] = get_pilot_version()
+
+
 if __name__ == '__main__':
 
     # get the args from the arg parser
@@ -388,30 +414,22 @@ if __name__ == '__main__':
     # Define and set the main harvester control boolean
     args.harvester = is_harvester_mode(args)
 
-    # If requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
-    initdir = getcwd()
-    exit_code, mainworkdir = create_main_work_dir(args)
-    if exit_code != 0:
-        sys.exit(exit_code)
-
-    environ['PILOT_WORK_DIR'] = args.workdir  # TODO: replace with singleton
-    environ['PILOT_HOME'] = mainworkdir  # TODO: replace with singleton
-
     # initialize the pilot timing dictionary
     args.timing = {}
 
     # store T0 time stamp
     add_to_pilot_timing('0', PILOT_START_TIME, time.time(), args)
 
-    environ['PILOT_SITENAME'] = args.site  # TODO: replace with singleton
+    # ff requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
+    initdir = getcwd()
+    exit_code, mainworkdir = create_main_work_dir(args)
+    if exit_code != 0:
+        sys.exit(exit_code)
 
-    # Set the pilot user
-    environ['PILOT_USER'] = args.pilot_user  # TODO: replace with singleton
+    # set environment variables (to be replaced with singleton implementation)
+    set_environment_variables(args, mainworkdir)
 
-    # Set the pilot version
-    environ['PILOT_VERSION'] = get_pilot_version()
-
-    # Establish logging
+    # establish logging
     console = logging.StreamHandler(sys.stdout)
     if args.debug:
         format = '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'
