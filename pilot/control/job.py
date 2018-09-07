@@ -1095,6 +1095,33 @@ def has_job_failed(queues):
     return job
 
 
+def scan_for_jobs(queues):
+    """
+    Scan queues until at least one queue has a job object. abort if it takes too long time
+
+    :param queues:
+    :return: found job (bool).
+    """
+
+    t0 = time.time()
+    found_job = False
+    while time.time() - t0 < 30:
+        for q in queues._fields:
+            _q = getattr(queues, q)
+            jobs = list(_q.queue)
+            if len(jobs) > 0:
+                logger.info('found %d job(s) in %d queues after %d s - will begin queue monitoring' %
+                            (len(jobs), len(queues._fields), time.time() - t0))
+                found_job = True
+                break
+        if found_job:
+            break
+        else:
+            time.sleep(0.1)
+
+    return found_job
+
+
 def queue_monitor(queues, traces, args):
     """
     Monitoring of queues.
@@ -1106,12 +1133,9 @@ def queue_monitor(queues, traces, args):
     :return:
     """
 
-    # replace the sleep below with a waiting function, see code snippet in get_queuedata_from_job() that scans
-    # queues for jobs; sleep until at least one queue has a job in it
-    time.sleep(30)
-
-    # scan queues until at least one queue has a job object. abort if it takes too long time (set graceful stop)
-    # ..
+    # scan queues until at least one queue has a job object. abort if it takes too long time
+    if not scan_for_jobs(queues):
+        logger.warning('queues are still empty of jobs - will begin queue monitoring anyway')
 
     while True:  # will abort when graceful_stop has been set
         if traces.pilot['command'] == 'abort':
