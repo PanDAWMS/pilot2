@@ -1066,7 +1066,7 @@ def has_job_finished(queues):
         job = queues.finished_jobs.get(block=True, timeout=1)
     except queue.Empty:
         # logger.info("(job still running)")
-        pass
+        job = None
     else:
         logger.info("job %s has finished" % job.jobid)
         # make sure that state=finished
@@ -1086,7 +1086,7 @@ def has_job_failed(queues):
         job = queues.failed_jobs.get(block=True, timeout=1)
     except queue.Empty:
         # logger.info("(job still running)")
-        pass
+        job = None
     else:
         logger.info("job %s has failed" % job.jobid)
         # make sure that state=failed
@@ -1105,6 +1105,8 @@ def queue_monitor(queues, traces, args):
     :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return:
     """
+
+    time.sleep(30)
 
     while True:  # will abort when graceful_stop has been set
         if traces.pilot['command'] == 'abort':
