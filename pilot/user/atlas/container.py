@@ -56,7 +56,7 @@ def wrapper(executable, **kwargs):
     job = kwargs.get('job')
 
     logger.info('container wrapper called')
-    logger.info('job.imagename=%s'%str(job.imagename))
+
     if workdir == '.' and pilot_home != '':
         workdir = pilot_home
 

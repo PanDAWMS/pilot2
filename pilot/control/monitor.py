@@ -40,7 +40,6 @@ def control(queues, traces, args):
     traces.pilot['lifetime_max'] = time.time()
 
     threadchecktime = int(config.Pilot.thread_check)
-    runtime = 0
 
     queuedata = get_queuedata_from_job(queues)
     max_running_time = get_max_running_time(args.lifetime, queuedata)
@@ -161,6 +160,7 @@ def get_max_running_time(lifetime, queuedata):
             try:
                 max_running_time = int(queuedata.maxtime)
             except Exception as e:
+                logger.warning('exception caught: %s' % e)
                 logger.warning('failed to convert maxtime from queuedata, will use default value for max running time '
                                '(%d s)' % max_running_time)
             else:

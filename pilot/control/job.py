@@ -278,7 +278,6 @@ def get_data_structure(job, state, args, xml=None):
         data['pilotTiming'] = "%s|%s|%s|%s|%s" % \
                               (time_getjob, time_stagein, time_payload, time_stageout, time_total_setup)
 
-
     return data
 
 
