@@ -16,8 +16,10 @@ import threading
 import time
 
 from pilot.common.exception import PilotException, ExceededMaxWaitTime
-from pilot.util.auxiliary import abort_jobs_in_queues
+from pilot.util.auxiliary import abort_jobs_in_queues, get_queuedata_from_job
+
 from pilot.util.config import config
+from pilot.util.timing import get_time_since_start
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +36,14 @@ def control(queues, traces, args):
     :return:
     """
 
-    traces.pilot['lifetime_start'] = time.time()
+    traces.pilot['lifetime_start'] = time.time()  # ie referring to when pilot monitoring begain
     traces.pilot['lifetime_max'] = time.time()
 
     threadchecktime = int(config.Pilot.thread_check)
     runtime = 0
+
+    queuedata = get_queuedata_from_job(queues)
+    max_running_time = get_max_running_time(args.lifetime, queuedata)
 
     try:
         # overall loop counter (ignoring the fact that more than one job may be running)
@@ -48,6 +53,20 @@ def control(queues, traces, args):
             # every seconds, run the monitoring checks
             if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility
                 break
+
+            # check if the pilot has run out of time (stop ten minutes before PQ limit)
+            time_since_start = get_time_since_start(args)
+            grace_time = 10 * 60
+            if time_since_start - grace_time > max_running_time:
+                logger.fatal('max running time (%d s) minus grace time (%d s) has been exceeded - must abort pilot' %
+                             (max_running_time, grace_time))
+                logger.info('setting graceful stop')
+                args.graceful_stop.set()
+                break
+            else:
+                if n % 60 == 0:
+                    logger.info('%d s have passed since pilot start')
+            time.sleep(1)
 
             # proceed with running the checks
             run_checks(queues, args)
@@ -61,19 +80,13 @@ def control(queues, traces, args):
                         logger.fatal('thread \'%s\' is not alive' % thread.name)
                         # args.graceful_stop.set()
 
-            # have we run out of time?
-            #if runtime < args.lifetime:
-            #    time.sleep(1)
-            #    runtime += 1  # note that this is wrong.. use proper time measurement
-            #else:
-            #    logger.debug('maximum lifetime reached: %s' % args.lifetime)
-            #    args.graceful_stop.set()
-
             n += 1
 
     except Exception as e:
         print("monitor: exception caught: %s" % e)
         raise PilotException(e)
+
+    logger.info('monitor control has ended')
 
 
 #def log_lifetime(sig, frame, traces):
@@ -125,3 +138,32 @@ def run_checks(queues, args):
             args.abort_job.clear()
             args.job_aborted.set()
             raise ExceededMaxWaitTime(diagnostics)
+
+
+def get_max_running_time(lifetime, queuedata):
+    """
+    Return the maximum allowed running time for the pilot.
+    The max time is set either as a pilot option or via the schedconfig.maxtime for the PQ in question.
+
+    :param lifetime: optional pilot option time in seconds (int).
+    :param queuedata: queuedata object
+    :return: max running time in seconds (int).
+    """
+
+    max_running_time = lifetime
+
+    # use the schedconfig value if set, otherwise use the pilot option lifetime value
+    if not queuedata:
+        logger.warning('queuedata could not be extracted from queues, will use default for max running time '
+                       '(%d s)' % max_running_time)
+    else:
+        if queuedata.maxtime:
+            try:
+                max_running_time = int(queuedata.maxtime)
+            except Exception as e:
+                logger.warning('failed to convert maxtime from queuedata, will use default value for max running time '
+                               '(%d s)' % max_running_time)
+            else:
+                logger.info('will use queuedata.maxtime value for max running time: %d s' % max_running_time)
+
+    return max_running_time
