@@ -1054,6 +1054,47 @@ def job_has_finished(queues):
     return False
 
 
+def has_job_finished(queues):
+    """
+    Check if the job has finished.
+
+    :param queues:
+    :return: job object.
+    """
+
+    try:
+        job = queues.finished_jobs.get(block=True, timeout=1)
+    except queue.Empty:
+        # logger.info("(job still running)")
+        pass
+    else:
+        logger.info("job %s has finished" % job.jobid)
+        # make sure that state=finished
+        job.state = 'finished'
+
+    return job
+
+
+def has_job_failed(queues):
+    """
+    Check if the job has failed.
+
+    :param queues:
+    :return: job object.
+    """
+    try:
+        job = queues.failed_jobs.get(block=True, timeout=1)
+    except queue.Empty:
+        # logger.info("(job still running)")
+        pass
+    else:
+        logger.info("job %s has failed" % job.jobid)
+        # make sure that state=failed
+        job.state = 'failed'
+
+    return job
+
+
 def queue_monitor(queues, traces, args):
     """
     Monitoring of queues.
@@ -1076,27 +1117,13 @@ def queue_monitor(queues, traces, args):
         job = None
 
         # check if the job has finished
-        try:
-            job = queues.finished_jobs.get(block=True, timeout=1)
-        except queue.Empty:
-            # logger.info("(job still running)")
-            pass
-        else:
-            logger.info("job %s has finished" % job.jobid)
-            # make sure that state=finished
-            job.state = 'finished'
+        job = has_job_finished(queues)
+        if job.state != 'finished':
+            # check if the job has failed
+            job = has_job_failed(queues)
 
         # check if the job has failed
-        try:
-            job = queues.failed_jobs.get(block=True, timeout=1)
-        except queue.Empty:
-            # logger.info("(job still running)")
-            pass
-        else:
-            logger.info("job %s has failed" % job.jobid)
-            # make sure that state=failed
-            job.state = 'failed'
-
+        if job.state == 'failed':
             # set job_aborted in case of kill signals
             if args.abort_job.is_set():
                 logger.warning('queue monitor detected a set abort_job (due to a kill signal), setting job_aborted')
