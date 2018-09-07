@@ -196,7 +196,7 @@ def get_queuedata_from_job(queues):
     for q in queues._fields:
         _q = getattr(queues, q)
         jobs = list(_q.queue)
-        logger.info('found %d jobs in %d queues' % (len(jobs), len(queues)))
+        logger.info('found %d jobs in %d queues' % (len(jobs), len(queues._fields)))
         if len(jobs) == 0:
             logger.info('taking a 5 s nap')
             time.sleep(5)
