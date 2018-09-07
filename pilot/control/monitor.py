@@ -64,7 +64,7 @@ def control(queues, traces, args):
                 break
             else:
                 if n % 60 == 0:
-                    logger.info('%d s have passed since pilot start')
+                    logger.info('%d s have passed since pilot start' % time_since_start)
             time.sleep(1)
 
             # proceed with running the checks

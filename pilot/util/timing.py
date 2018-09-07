@@ -241,7 +241,7 @@ def get_time_since_start(args):
     :return: time in seconds (int).
     """
 
-    return get_time_since(0, PILOT_START_TIME, args)
+    return get_time_since('0', PILOT_START_TIME, args)
 
 
 def get_time_since(job_id, timing_constant, args):
