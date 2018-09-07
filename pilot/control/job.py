@@ -1116,12 +1116,13 @@ def queue_monitor(queues, traces, args):
 
         # check if the job has finished
         job = has_job_finished(queues)
-        if job.state != 'finished':
-            # check if the job has failed
-            job = has_job_failed(queues)
+        #if job and job.state != 'finished':
+        #    # check if the job has failed
+        #    job = has_job_failed(queues)
+        job = has_job_failed(queues)
 
         # check if the job has failed
-        if job.state == 'failed':
+        if job and job.state == 'failed':
             # set job_aborted in case of kill signals
             if args.abort_job.is_set():
                 logger.warning('queue monitor detected a set abort_job (due to a kill signal), setting job_aborted')
