@@ -171,7 +171,7 @@ class Executor(object):
             for i in xrange(100):
                 if args.graceful_stop.is_set():
                     if job not in self.__queues.failed_jobs.queue:
-                        self.__queues.failed_job(job)
+                        self.__queues.failed_jobs(job)
                         log.warning('added job object to failed_jobs queue')
                     breaker = True
                     log.info('breaking -- sending SIGTERM pid=%s' % proc.pid)
