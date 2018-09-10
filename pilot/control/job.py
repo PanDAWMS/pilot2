@@ -1235,62 +1235,56 @@ def job_monitor(queues, traces, args):
         # wait a minute unless we are to abort
         if not abort_job:
             time.sleep(60)
-        try:
-            # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
-            jobs = queues.monitored_payloads.queue
 
-            if jobs:
-                # update the peeking time
-                peeking_time = int(time.time())
-                for i in range(len(jobs)):
-                    log = get_logger(jobs[i].jobid)
+        # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
+        jobs = queues.monitored_payloads.queue
 
-                    #if abort_job:
-                    #    declare_failed_by_kill(jobs[i], queues.failed_payloads, args.signal)
-                    #    log.info('aborting job monitoring since job state=%s' % jobs[i].state)
-                    #    break
+        if jobs:
+            # update the peeking time
+            peeking_time = int(time.time())
+            for i in range(len(jobs)):
+                log = get_logger(jobs[i].jobid)
 
-                    log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
-                    if jobs[i].state == 'finished' or jobs[i].state == 'failed':
-                        log.info('aborting job monitoring since job state=%s' % jobs[i].state)
-                        break
+                #if abort_job:
+                #    declare_failed_by_kill(jobs[i], queues.failed_payloads, args.signal)
+                #    log.info('aborting job monitoring since job state=%s' % jobs[i].state)
+                #    break
 
-                    # perform the monitoring tasks
-                    exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
-                    if exit_code != 0:
-                        jobs[i].state = 'failed'
-                        jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
-                        queues.failed_payloads.put(jobs[i])
-                        log.info('aborting job monitoring since job state=%s' % jobs[i].state)
-                        break
+                log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
+                if jobs[i].state == 'finished' or jobs[i].state == 'failed':
+                    log.info('aborting job monitoring since job state=%s' % jobs[i].state)
+                    break
 
-                    # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
-                    # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
-                    period = get_heartbeat_period(jobs[i].debug)
-                    now = int(time.time())
-                    if now - update_time >= period:
-                        send_state(jobs[i], args, 'running')
-                        update_time = int(time.time())
+                # perform the monitoring tasks
+                exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
+                if exit_code != 0:
+                    jobs[i].state = 'failed'
+                    jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
+                    queues.failed_payloads.put(jobs[i])
+                    log.info('aborting job monitoring since job state=%s' % jobs[i].state)
+                    break
 
+                # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
+                # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
+                period = get_heartbeat_period(jobs[i].debug)
+                now = int(time.time())
+                if now - update_time >= period:
+                    send_state(jobs[i], args, 'running')
+                    update_time = int(time.time())
+
+        else:
+            waiting_time = int(time.time()) - peeking_time
+            msg = 'no jobs in monitored_payloads queue (waited for %d s)' % waiting_time
+            if waiting_time > 120:
+                abort = True
+                msg += ' - aborting'
             else:
-                waiting_time = int(time.time()) - peeking_time
-                msg = 'no jobs in monitored_payloads queue (waited for %d s)' % waiting_time
-                if waiting_time > 120:
-                    abort = True
-                    msg += ' - aborting'
-                else:
-                    abort = False
-                if logger:
-                    logger.warning(msg)
-                else:
-                    print(msg)
-                if abort:
-                    args.graceful_stop.set()
-        except PilotException as e:
-            msg = 'exception caught: %s' % e
+                abort = False
             if logger:
                 logger.warning(msg)
             else:
-                print(msg, file=sys.stderr)
-        else:
-            n += 1
+                print(msg)
+            if abort:
+                args.graceful_stop.set()
+
+        n += 1
