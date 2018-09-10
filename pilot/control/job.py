@@ -1109,13 +1109,15 @@ def queue_monitor(queues, traces, args):
     if not scan_for_jobs(queues):
         logger.warning('queues are still empty of jobs - will begin queue monitoring anyway')
 
+    abort = False
     while True:  # will abort when graceful_stop has been set
         if traces.pilot['command'] == 'abort':
             logger.warning('job queue monitor received an abort instruction')
 
         # wait a second
         if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
-            break
+            logger.warning('queue monitor received graceful stop - abort after this iteration')
+            abort = True
 
         # check if the job has finished
         job = has_job_finished(queues)
@@ -1170,6 +1172,11 @@ def queue_monitor(queues, traces, args):
                 logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
                 # now ready for the next job (or quit)
                 queues.completed_jobs.put(_job)
+
+        if abort:
+            break
+
+    logger.info('queue monitor has finished')
 
 
 def get_heartbeat_period(debug=False):
@@ -1287,3 +1294,5 @@ def job_monitor(queues, traces, args):
                 args.graceful_stop.set()
 
         n += 1
+
+    logger.info('job monitor has finished')
