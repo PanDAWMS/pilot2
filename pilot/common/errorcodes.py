@@ -53,6 +53,8 @@ class ErrorCodes:
     SIGBUS = 1206
     SIGUSR1 = 1207
 
+    REACHEDMAXTIME = 1213
+
     PAYLOADEXCEEDMAXMEM = 1235
     CHKSUMNOTSUP = 1242
 
@@ -107,6 +109,7 @@ class ErrorCodes:
         SIGXCPU: "Job killed by signal: SIGXCPU",
         SIGUSR1: "Job killed by signal: SIGUSR1",
         SIGBUS: "Job killed by signal: SIGBUS",
+        REACHEDMAXTIME: "Reached batch system time limit",
         PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
         CHKSUMNOTSUP: "Mover error: query checksum is not supported",
         NOTIMPLEMENTED: "The class or function is not implemented",
