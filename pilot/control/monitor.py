@@ -42,6 +42,10 @@ def control(queues, traces, args):
     threadchecktime = int(config.Pilot.thread_check)
 
     queuedata = get_queuedata_from_job(queues)
+    if queuedata:
+        logger.debug('extracted queuedata from job object')
+    else:
+        logger.debug('failed to extract queuedata from job object')
     max_running_time = get_max_running_time(args.lifetime, queuedata)
 
     try:

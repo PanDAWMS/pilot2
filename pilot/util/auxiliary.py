@@ -205,7 +205,7 @@ def scan_for_jobs(queues):
     return jobs
 
 
-def get_queuedata_from_job_new(queues):
+def get_queuedata_from_job(queues):
     """
     Return the queuedata object from a job in the given queues object.
     This function is useful if queuedata is needed from a function that does not know about the job object.
@@ -216,13 +216,19 @@ def get_queuedata_from_job_new(queues):
     :return: queuedata object.
     """
 
+    queuedata = None
+
     # extract jobs from the queues
     jobs = scan_for_jobs(queues)
     if jobs:
-        pass
+        for job in jobs:
+            queuedata = job.infosys.queuedata
+            break
+
+    return queuedata
 
 
-def get_queuedata_from_job(queues):
+def get_queuedata_from_job_old(queues):
     """
     Return the queuedata object from a job in the given queues object.
     This function is useful if queuedata is needed from a function that does not know about the job object.
