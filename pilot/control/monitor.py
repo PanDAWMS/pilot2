@@ -14,6 +14,7 @@
 import logging
 import threading
 import time
+from os import environ
 
 from pilot.common.exception import PilotException, ExceededMaxWaitTime
 from pilot.util.auxiliary import abort_jobs_in_queues, get_queuedata_from_job
@@ -63,7 +64,8 @@ def control(queues, traces, args):
             if time_since_start - grace_time > max_running_time:
                 logger.fatal('max running time (%d s) minus grace time (%d s) has been exceeded - must abort pilot' %
                              (max_running_time, grace_time))
-                logger.info('setting graceful stop')
+                logger.info('setting REACHED_MAXTIME and graceful stop')
+                environ['REACHED_MAXTIME'] = 'REACHED_MAXTIME'  # TODO: use singleton instead
                 args.graceful_stop.set()
                 break
             else:

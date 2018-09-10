@@ -22,10 +22,13 @@ from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD, \
     PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD
 from pilot.util.timing import add_to_pilot_timing
+from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import PilotException
 
 import logging
 logger = logging.getLogger(__name__)
+
+errors = ErrorCodes()
 
 
 class Executor(object):
@@ -170,6 +173,11 @@ class Executor(object):
             iteration += 1
             for i in xrange(100):
                 if args.graceful_stop.is_set():
+                    # does the job have a set error code?
+                    if os.environ.get('REACHED_MAXTIME'):  # TODO: READ FROM WITH SINGLETON
+                        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.REACHEDMAXTIME)
+                    if not job.piloterrorcodes:
+                        log.warning('received graceful stop but no pilot error code has been set yet')
                     if job not in self.__queues.failed_jobs.queue:
                         self.__queues.failed_jobs.put(job)
                         log.warning('added job object to failed_jobs queue')
