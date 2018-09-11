@@ -426,10 +426,13 @@ def copytool_in(queues, traces, args):
 def copytool_out(queues, traces, args):
 
     while not args.graceful_stop.is_set():
+
+        # check for loop abort, and include a 1 s sleep
+        abort = should_abort(args)
         try:
             job = queues.data_out.get(block=True, timeout=1)
             log = get_logger(job.jobid)
-
+            log.info('will perform stage-out')
             # send_state(job, args, 'running')  # not necessary to send job update at this point?
 
             if args.abort_job.is_set():

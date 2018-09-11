@@ -159,21 +159,25 @@ def shell_exit_code(exit_code):
         return SUCCESS
 
 
-def should_abort(args):
+def should_abort(args, limit=30):
     """
     Abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set).
 
-    :param args:
-    :return:
+    :param args: pilot arguments object.
+    :param limit: optional time limit (int).
+    :return: True if graceful_stop has been set (and less than optional time limit has passed since maxtime) or False
     """
 
     abort = False
     if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
-        delay = 30
-        if os.environ.get('REACHED_MAXTIME', None) and get_time_since(0, PILOT_KILL_SIGNAL, args) < delay:
-            logger.warning('queue monitor received graceful stop - less than %d s ago, continue for now' % delay)
+        if os.environ.get('REACHED_MAXTIME', None) and limit:
+            time_since = get_time_since(0, PILOT_KILL_SIGNAL, args)
+            if time_since < limit:
+                logger.warning('received graceful stop - %d s ago, continue for now' % delay)
+            else:
+                abort = True
         else:
-            logger.warning('queue monitor received graceful stop - abort after this iteration')
+            logger.warning('received graceful stop - abort after this iteration')
             abort = True
 
     return abort

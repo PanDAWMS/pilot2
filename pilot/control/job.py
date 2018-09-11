@@ -1262,7 +1262,6 @@ def job_monitor(queues, traces, args):
 
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
-    abort = False
     while not args.graceful_stop.is_set():
         # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
         # (abort at the end of the loop)
