@@ -28,7 +28,8 @@ from pilot.info import infosys, JobData
 from pilot.util import https
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
 from pilot.util.config import config
-from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE
+from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
+    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE
 from pilot.util.filehandling import get_files, tail
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.util.jobmetrics import get_job_metrics
@@ -1157,13 +1158,15 @@ def queue_monitor(queues, traces, args):
             nmax = 10
             while n < nmax:
                 log.info('waiting for log transfer to finish (#%d/#%d)' % (n + 1, nmax))
-                if is_queue_empty(queues, 'data_out'):
+                if is_queue_empty(queues, 'data_out') and job.logtransfer == LOG_TRANSFER_DONE:  # set in data component
                     log.info('stage-out of log has finished')
                     break
                 else:
+                    if job.logtransfer == LOG_TRANSFER_IN_PROGRESS:  # set in data component, job object is singleton
+                        log.info('log transfer is in progress')
                     time.sleep(1)
                     n += 1
-                log.info('proceeding with server update')
+            log.info('proceeding with server update (n=%d)' % n)
 
         # check if the job has failed
         if job and job.state == 'failed':
