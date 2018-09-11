@@ -29,7 +29,8 @@ from pilot.api.data import StageInClient, StageOutClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
-from pilot.util.auxiliary import get_logger, should_abort  #, abort_jobs_in_queues
+from pilot.util.auxiliary import get_logger  #, abort_jobs_in_queues
+from pilot.util.common import should_abort
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE
@@ -449,8 +450,10 @@ def copytool_out(queues, traces, args):
                     break
 
                 queues.finished_data_out.put(job)
+                log.debug('job object added to finished_data_out queue')
             else:
                 queues.failed_data_out.put(job)
+                log.debug('job object added to failed_data_out queue')
 
         except queue.Empty:
             continue

@@ -26,9 +26,9 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
 from pilot.info import infosys, JobData
 from pilot.util import https
-from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
-    should_abort
+from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
 from pilot.util.config import config
+from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE
 from pilot.util.filehandling import get_files, tail
