@@ -469,25 +469,73 @@ def get_input_file_dictionary(indata):
     return file_dictionary
 
 
-def prepare_log(job, logfile, tarball_name):
-    log = get_logger(job.jobid)
-    log.info('preparing log file')
+def filter_files_for_log(directory):
+    """
+    Create a file list recursi
+    :param directory:
+    :return:
+    """
+    filtered_files = []
+    maxfilesize = 10
+    for root, dirnames, filenames in os.walk(directory):
+        for filename in filenames:
+            location = os.path.join(root, filename)
+            if os.path.exists(location):  # do not include broken links
+                if os.path.getsize(location) < maxfilesize:
+                    filtered_files.append(location)
 
-    input_files = [e.lfn for e in job.indata]
-    output_files = [e.lfn for e in job.outdata]
-    force_exclude = ['geomDB', 'sqlite200']
+    return filtered_files
+
+
+def create_log(job, logfile, tarball_name):
+    """
+
+    :param job:
+    :param logfile:
+    :param tarball_name:
+    :return:
+    """
+
+    log = get_logger(job.jobid)
+    log.info('preparing to create log file')
 
     # perform special cleanup (user specific) prior to log file creation
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
     user.remove_redundant_files(job.workdir)
 
-    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as log_tar:
-        for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files) - set(force_exclude)):
-            if os.path.exists(os.path.join(job.workdir, _file)):
-                logging.debug('adding to log: %s' % _file)
-                log_tar.add(os.path.join(job.workdir, _file),
-                            arcname=os.path.join(tarball_name, _file))
+    input_files = [e.lfn for e in job.indata]
+    output_files = [e.lfn for e in job.outdata]
+
+    def filter_function(tarinfo):
+
+        if tarinfo.name in input_files or tarfile.name in output_files:
+            return None
+        else:
+            if os.path.exists(tarinfo.name):
+                return tarinfo
+            else:
+                return None
+
+    def exclude_function(filename):
+
+        if filename in input_files or filename in output_files or not os.path.exists(filename):
+            return True
+        else:
+            return False
+
+    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as archive:
+        try:  # python 2.6
+            archive.add(job.workdir, exclude=exclude_function, recursive=True)
+        except Exception:  # python 2.7
+            archive.add(job.workdir, exclude=filter_function, recursive=True)
+
+#    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as log_tar:
+#        for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files)):
+#            if os.path.exists(os.path.join(job.workdir, _file)):
+#                logging.debug('adding to log: %s' % _file)
+#                log_tar.add(os.path.join(job.workdir, _file),
+#                            arcname=os.path.join(tarball_name, _file))
 
     return {'scope': logfile.scope,
             'name': logfile.lfn,
@@ -652,7 +700,7 @@ def _stage_out_new(job, args):
     if job.stageout in ['log', 'all'] and job.logdata:  ## do stage-out log files
         # prepare log file, consider only 1st available log file
         logfile = job.logdata[0]
-        prepare_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
+        create_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
 
         if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], 'log'):
             is_success = False
@@ -753,7 +801,7 @@ def _stage_out_all(job, args):  ### NOT USED - TO BE DEPRECATED
     if job.logdata:
         logfile = job.logdata[0]
         key = '%s:%s' % (logfile.scope, logfile.lfn)
-        outputs[key] = prepare_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, args.queue))
+        outputs[key] = create_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, args.queue))
 
         status = single_stage_out(args, job, outputs[key], fileinfodict)
         if not status:
