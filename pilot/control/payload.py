@@ -301,5 +301,5 @@ def failed_post(queues, traces, args):
 
         log.debug('adding log for log stageout')
 
-        job.stageout = "log"  # only stage-out log file
+        job.stageout = 'log'  # only stage-out log file
         queues.data_out.put(job)

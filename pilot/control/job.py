@@ -29,7 +29,7 @@ from pilot.util import https
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
     scan_for_jobs  #, abort_jobs_in_queues
 from pilot.util.config import config
-from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL
+from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE
 from pilot.util.filehandling import get_files, tail
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.util.jobmetrics import get_job_metrics
@@ -1094,6 +1094,29 @@ def has_job_failed(queues):
     return job
 
 
+def is_queue_empty(queues, q):
+    """
+
+    :param queues:
+    :param q: queue name (string).
+    :return: True if queue is empty, False otherwise
+    """
+
+    status = False
+    if q in queues._fields:
+        _q = getattr(queues, q)
+        jobs = list(_q.queue)
+        if len(jobs) > 0:
+            logger.info('queue %s not empty: found %d job(s)' % (q, len(jobs)))
+        else:
+            logger.info('queue %s is empty' % q)
+            status = True
+    else:
+        logger.warning('queue %s not present in %s' % (q, queues._fields))
+
+    return status
+
+
 def queue_monitor(queues, traces, args):
     """
     Monitoring of queues.
@@ -1125,6 +1148,22 @@ def queue_monitor(queues, traces, args):
         #    # check if the job has failed
         #    job = has_job_failed(queues)
         job = has_job_failed(queues)
+        if job and job.logtransfer == LOG_TRANSFER_NOT_DONE:
+            log = get_logger(job.jobid)
+            job.stageout = 'log'  # only stage-out log file
+            queues.data_out.put(job)
+            log.info('job added to data_out queue')
+            n = 0
+            nmax = 10
+            while n < nmax:
+                log.info('waiting for log transfer to finish (#%d/#%d)' % (n + 1, nmax))
+                if is_queue_empty(queues, 'data_out'):
+                    log.info('stage-out of log has finished')
+                    break
+                else:
+                    time.sleep(1)
+                    n += 1
+                log.info('proceeding with server update')
 
         # check if the job has failed
         if job and job.state == 'failed':
@@ -1176,7 +1215,7 @@ def queue_monitor(queues, traces, args):
         if abort:
             break
 
-    logger.info('queue monitor has finished')
+    logger.info('[job] queue monitor has finished')
 
 
 def get_heartbeat_period(debug=False):

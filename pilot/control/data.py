@@ -878,13 +878,14 @@ def queue_monitoring(queues, traces, args):
     :return:
     """
 
+    abort = False
     while True:  # will abort when graceful_stop has been set
         if traces.pilot['command'] == 'abort':
             logger.warning('data queue monitor saw the abort instruction')
 
         # wait a second
         if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
-            break
+            abort = True
 
         # monitor the failed_data_in queue
         try:
@@ -939,5 +940,8 @@ def queue_monitoring(queues, traces, args):
                          "object to failed_jobs queue" % job.jobid)
 
             queues.failed_jobs.put(job)
+
+        if abort:
+            break
 
     logger.info('[data] queue monitor has finished')
