@@ -428,8 +428,8 @@ def copytool_out(queues, traces, args):
 
     while not args.graceful_stop.is_set():
 
-        # check for loop abort, and include a 1 s sleep
-        abort = should_abort(args)
+        # check for abort (not enforced inside loop), print useful messages and include a 1 s sleep
+        should_abort(args)
         try:
             job = queues.data_out.get(block=True, timeout=1)
             log = get_logger(job.jobid)

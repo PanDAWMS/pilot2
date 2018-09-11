@@ -12,8 +12,7 @@ import time
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.container import execute
-from pilot.util.constants import SUCCESS, FAILURE, PILOT_KILL_SIGNAL
-from pilot.util.timing import get_time_since
+from pilot.util.constants import SUCCESS, FAILURE
 
 import logging
 logger = logging.getLogger(__name__)
