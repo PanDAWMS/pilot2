@@ -17,9 +17,8 @@ import time
 from os import environ
 
 from pilot.common.exception import PilotException, ExceededMaxWaitTime
-from pilot.util.auxiliary import abort_jobs_in_queues, get_queuedata_from_job
-
 from pilot.util.config import config
+from pilot.util.queuehandling import get_queuedata_from_job, abort_jobs_in_queues
 from pilot.util.timing import get_time_since_start
 
 logger = logging.getLogger(__name__)

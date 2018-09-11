@@ -29,7 +29,7 @@ from pilot.api.data import StageInClient, StageOutClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
-from pilot.util.auxiliary import get_logger, declare_failed_by_kill  #, abort_jobs_in_queues
+from pilot.util.auxiliary import get_logger  #, abort_jobs_in_queues
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE
@@ -37,6 +37,7 @@ from pilot.util.container import execute
 from pilot.util.filehandling import find_executable, get_guid, get_local_file_size
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.tracereport import TraceReport
+from pilot.util.queuehandling import declare_failed_by_kill
 
 import logging
 
