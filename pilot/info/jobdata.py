@@ -29,6 +29,7 @@ import pipes
 from .basedata import BaseData
 from .filespec import FileSpec
 from pilot.util.filehandling import get_guid
+from pilot.util.constants import LOG_TRANSFER_NOT_DONE
 
 import logging
 logger = logging.getLogger(__name__)
@@ -88,6 +89,7 @@ class JobData(BaseData):
     utilities = {}  # utility processes { <name>: [<process handle>, number of launches, command string], .. }
     pid = None  # payload pid
     pgrp = None  # process group
+    logtransfer = LOG_TRANSFER_NOT_DONE  # keep track of log transfer
 
     # time variable used for on-the-fly cpu consumption time measurements done by job monitoring
     t0 = None  # payload startup time
