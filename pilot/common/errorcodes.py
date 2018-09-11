@@ -49,7 +49,7 @@ class ErrorCodes:
     SIGQUIT = 1202
     SIGSEGV = 1203
     SIGXCPU = 1204
-    #    USERKILL = 1205 # not used by pilot
+    USERKILL = 1205  # reserved error code, currently not used by pilot
     SIGBUS = 1206
     SIGUSR1 = 1207
 
@@ -109,6 +109,7 @@ class ErrorCodes:
         SIGXCPU: "Job killed by signal: SIGXCPU",
         SIGUSR1: "Job killed by signal: SIGUSR1",
         SIGBUS: "Job killed by signal: SIGBUS",
+        USERKILL: "Job killed by user",
         REACHEDMAXTIME: "Reached batch system time limit",
         PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
         CHKSUMNOTSUP: "Mover error: query checksum is not supported",
