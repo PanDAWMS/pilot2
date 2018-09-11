@@ -31,7 +31,8 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
 from pilot.util.auxiliary import get_logger, declare_failed_by_kill  #, abort_jobs_in_queues
 from pilot.util.config import config
-from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT
+from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
+    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE
 from pilot.util.container import execute
 from pilot.util.filehandling import find_executable, get_guid, get_local_file_size
 from pilot.util.timing import add_to_pilot_timing
@@ -699,12 +700,14 @@ def _stage_out_new(job, args):
 
     if job.stageout in ['log', 'all'] and job.logdata:  ## do stage-out log files
         # prepare log file, consider only 1st available log file
+        job.logtransfer = LOG_TRANSFER_IN_PROGRESS
         logfile = job.logdata[0]
         create_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
 
         if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], 'log'):
             is_success = False
             log.warning('log transfer failed')
+        job.logtransfer = LOG_TRANSFER_DONE
 
     # write time stamps to pilot timing file
     add_to_pilot_timing(job.jobid, PILOT_POST_STAGEOUT, time.time(), args)
@@ -936,3 +939,5 @@ def queue_monitoring(queues, traces, args):
                          "object to failed_jobs queue" % job.jobid)
 
             queues.failed_jobs.put(job)
+
+    logger.info('[data] queue monitor has finished')
