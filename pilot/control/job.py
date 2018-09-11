@@ -26,7 +26,8 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
 from pilot.info import infosys, JobData
 from pilot.util import https
-from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
+from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
+    should_abort
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE
@@ -1138,13 +1139,9 @@ def queue_monitor(queues, traces, args):
         if traces.pilot['command'] == 'abort':
             logger.warning('job queue monitor received an abort instruction')
 
-        # wait a second
-        if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
-            if os.environ.get('REACHED_MAXTIME', None) and get_time_since(0, PILOT_KILL_SIGNAL, args) < 30:
-                logger.warning('queue monitor received graceful stop - less than 30 s ago, continue for now')
-            else:
-                logger.warning('queue monitor received graceful stop - abort after this iteration')
-                abort = True
+        # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
+        # (abort at the end of the loop)
+        abort = should_abort(args)
 
         # check if the job has finished
         job = has_job_finished(queues)
@@ -1267,12 +1264,9 @@ def job_monitor(queues, traces, args):
     n = 0
     abort = False
     while not args.graceful_stop.is_set():
-        if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
-            if os.environ.get('REACHED_MAXTIME', None) and get_time_since(0, PILOT_KILL_SIGNAL, args) < 30:
-                logger.warning('queue monitor received graceful stop - less than 30 s ago, continue for now')
-            else:
-                logger.warning('queue monitor received graceful stop - abort after this iteration')
-                abort = True
+        # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
+        # (abort at the end of the loop)
+        abort = should_abort(args)
 
         if traces.pilot.get('command') == 'abort':
             logger.warning('job monitor received an abort command')

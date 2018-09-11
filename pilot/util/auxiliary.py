@@ -12,7 +12,8 @@ import time
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.container import execute
-from pilot.util.constants import SUCCESS, FAILURE
+from pilot.util.constants import SUCCESS, FAILURE, PILOT_KILL_SIGNAL
+from pilot.util.timing import get_time_since
 
 import logging
 logger = logging.getLogger(__name__)
@@ -156,3 +157,23 @@ def shell_exit_code(exit_code):
         return FAILURE
     else:
         return SUCCESS
+
+
+def should_abort(args):
+    """
+    Abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set).
+
+    :param args:
+    :return:
+    """
+
+    abort = False
+    if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
+        delay = 30
+        if os.environ.get('REACHED_MAXTIME', None) and get_time_since(0, PILOT_KILL_SIGNAL, args) < delay:
+            logger.warning('queue monitor received graceful stop - less than %d s ago, continue for now' % delay)
+        else:
+            logger.warning('queue monitor received graceful stop - abort after this iteration')
+            abort = True
+
+    return abort

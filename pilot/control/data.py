@@ -29,13 +29,13 @@ from pilot.api.data import StageInClient, StageOutClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
-from pilot.util.auxiliary import get_logger  #, abort_jobs_in_queues
+from pilot.util.auxiliary import get_logger, should_abort  #, abort_jobs_in_queues
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
-    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, PILOT_KILL_SIGNAL
+    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE
 from pilot.util.container import execute
 from pilot.util.filehandling import find_executable, get_guid, get_local_file_size
-from pilot.util.timing import add_to_pilot_timing, get_time_since
+from pilot.util.timing import add_to_pilot_timing
 from pilot.util.tracereport import TraceReport
 from pilot.util.queuehandling import declare_failed_by_kill
 
@@ -884,13 +884,9 @@ def queue_monitoring(queues, traces, args):
         if traces.pilot['command'] == 'abort':
             logger.warning('data queue monitor saw the abort instruction')
 
-        # wait a second
-        if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
-            if os.environ.get('REACHED_MAXTIME', None) and get_time_since(0, PILOT_KILL_SIGNAL, args) < 30:
-                logger.warning('queue monitor received graceful stop - less than 30 s ago, continue for now')
-            else:
-                logger.warning('queue monitor received graceful stop - abort after this iteration')
-                abort = True
+        # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
+        # (abort at the end of the loop)
+        abort = should_abort(args)
 
         # monitor the failed_data_in queue
         try:
