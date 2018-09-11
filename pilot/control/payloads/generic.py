@@ -20,7 +20,7 @@ from pilot.control.job import send_state
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD, \
-    PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, LOG_TRANSFER_NOT_DONE
+    PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, LOG_TRANSFER_NOT_DONE, PILOT_KILL_SIGNAL
 from pilot.util.timing import add_to_pilot_timing
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import PilotException
@@ -178,19 +178,21 @@ class Executor(object):
                         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.REACHEDMAXTIME)
                     if not job.piloterrorcodes:
                         log.warning('received graceful stop but no pilot error code has been set yet')
+                    if job not in self.__queues.failed_jobs.queue and job.logtransfer == LOG_TRANSFER_NOT_DONE:
+                        self.__queues.failed_jobs.put(job)
+                        log.warning('added job object to failed_jobs queue')
                     breaker = True
+                    add_to_pilot_timing(0, PILOT_KILL_SIGNAL, time.time(), args)
                     log.info('breaking -- sending SIGTERM pid=%s' % proc.pid)
                     os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
                     # proc.terminate()
                     break
                 time.sleep(0.1)
             if breaker:
-                log.info('breaking -- sleep 3s before sending SIGKILL pid=%s' % proc.pid)
-                time.sleep(3)
+                delay = 30
+                log.info('breaking -- sleep %d s before sending kill instruction to pid=%s' % (delay, proc.pid))
+                time.sleep(delay)
                 proc.kill()
-                if job not in self.__queues.failed_jobs.queue and job.logtransfer == LOG_TRANSFER_NOT_DONE:
-                    self.__queues.failed_jobs.put(job)
-                    log.warning('added job object to failed_jobs queue')
                 break
 
             exit_code = proc.poll()

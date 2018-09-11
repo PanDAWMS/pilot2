@@ -1140,8 +1140,11 @@ def queue_monitor(queues, traces, args):
 
         # wait a second
         if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
-            logger.warning('queue monitor received graceful stop - abort after this iteration')
-            abort = True
+            if os.environ.get('REACHED_MAXTIME', None) and get_time_since(0, PILOT_KILL_SIGNAL, args) < 30:
+                logger.warning('queue monitor received graceful stop - less than 30 s ago, continue for now')
+            else:
+                logger.warning('queue monitor received graceful stop - abort after this iteration')
+                abort = True
 
         # check if the job has finished
         job = has_job_finished(queues)
@@ -1262,9 +1265,14 @@ def job_monitor(queues, traces, args):
 
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
+    abort = False
     while not args.graceful_stop.is_set():
         if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
-            break
+            if os.environ.get('REACHED_MAXTIME', None) and get_time_since(0, PILOT_KILL_SIGNAL, args) < 30:
+                logger.warning('queue monitor received graceful stop - less than 30 s ago, continue for now')
+            else:
+                logger.warning('queue monitor received graceful stop - abort after this iteration')
+                abort = True
 
         if traces.pilot.get('command') == 'abort':
             logger.warning('job monitor received an abort command')
@@ -1336,5 +1344,8 @@ def job_monitor(queues, traces, args):
                 args.graceful_stop.set()
 
         n += 1
+
+        if abort:
+            break
 
     logger.info('job monitor has finished')
