@@ -38,3 +38,38 @@ def should_abort(args, limit=30):
             abort = True
 
     return abort
+
+
+def update_job_status(args, pandaid, key, value):
+    """
+
+    :param args: pilot arguments object.
+    :param pandaid: PanDA job id (string).
+    :param key: key name (string).
+    :param value: key value (string).
+    :return:
+    """
+
+    if not pandaid in args.job_status:
+        args.job_status[pandaid] = {}
+    args.job_status[pandaid][key] = value
+
+
+def get_job_status(args, pandaid, key):
+    """
+    This function will return the key value for the given pandaid.
+    E.g. get_job_status(12345678, 'LOG_TRANSFER') -> 'LOG_TRANSFER_IN_PROGRESS'
+    job_status = { pandaid: {key1: value1, ..}, ..}
+
+    :param args: pilot arguments object.
+    :param pandaid: PanDA job id (string).
+    :param key: key name (string).
+    :return: key value (string).
+    """
+
+    value = None
+    dic = args.job_status.get(pandaid, None)
+    if dic:
+        value = dic.get(key, None)
+
+    return value

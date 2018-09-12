@@ -30,7 +30,7 @@ from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
 from pilot.util.auxiliary import get_logger  #, abort_jobs_in_queues
-from pilot.util.common import should_abort
+from pilot.util.common import should_abort, update_job_status
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE
@@ -685,9 +685,9 @@ def _stage_out_new(job, args):
     Stage-out of all output files.
     If job.stageout=log then only log files will be transferred.
 
-    :param job: job object
-    :param args:
-    :return: True in case of success
+    :param job: job object.
+    :param args: pilot args object.
+    :return: True in case of success, False otherwise.
     """
 
     log = get_logger(job.jobid)
@@ -707,14 +707,14 @@ def _stage_out_new(job, args):
 
     if job.stageout in ['log', 'all'] and job.logdata:  ## do stage-out log files
         # prepare log file, consider only 1st available log file
-        job.logtransfer = LOG_TRANSFER_IN_PROGRESS
+        update_job_status(args, job.jobid, 'LOG_TRANSFER', LOG_TRANSFER_IN_PROGRESS)
         logfile = job.logdata[0]
         create_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
 
         if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], 'log'):
             is_success = False
             log.warning('log transfer failed')
-        job.logtransfer = LOG_TRANSFER_DONE
+        update_job_status(args, job.jobid, 'LOG_TRANSFER', LOG_TRANSFER_DONE)
 
     # write time stamps to pilot timing file
     add_to_pilot_timing(job.jobid, PILOT_POST_STAGEOUT, time.time(), args)

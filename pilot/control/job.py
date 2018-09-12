@@ -28,7 +28,7 @@ from pilot.info import infosys, JobData
 from pilot.util import https
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
 from pilot.util.config import config
-from pilot.util.common import should_abort
+from pilot.util.common import should_abort, get_job_status
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE
 from pilot.util.filehandling import get_files, tail
@@ -1148,7 +1148,8 @@ def queue_monitor(queues, traces, args):
         #    # check if the job has failed
         #    job = has_job_failed(queues)
         job = has_job_failed(queues)
-        if job and job.logtransfer == LOG_TRANSFER_NOT_DONE:
+        log_transfer = get_job_status(args, job.jobid, 'LOG_TRANSFER')
+        if job and log_transfer == LOG_TRANSFER_NOT_DONE:
             log = get_logger(job.jobid)
             job.stageout = 'log'  # only stage-out log file
             queues.data_out.put(job)
@@ -1156,12 +1157,14 @@ def queue_monitor(queues, traces, args):
             n = 0
             nmax = 10
             while n < nmax:
-                log.info('waiting for log transfer to finish (#%d/#%d)' % (n + 1, nmax))
-                if is_queue_empty(queues, 'data_out') and job.logtransfer == LOG_TRANSFER_DONE:  # set in data component
+                # refresh the log_transfer since it might have changed
+                log_transfer = get_job_status(args, job.jobid, 'LOG_TRANSFER')
+                log.info('waiting for log transfer to finish (#%d/#%d): %s' % (n + 1, nmax, log_transfer))
+                if is_queue_empty(queues, 'data_out') and log_transfer == LOG_TRANSFER_DONE:  # set in data component
                     log.info('stage-out of log has finished')
                     break
                 else:
-                    if job.logtransfer == LOG_TRANSFER_IN_PROGRESS:  # set in data component, job object is singleton
+                    if log_transfer == LOG_TRANSFER_IN_PROGRESS:  # set in data component, job object is singleton
                         log.info('log transfer is in progress')
                     time.sleep(1)
                     n += 1

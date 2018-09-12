@@ -511,7 +511,10 @@ if __name__ == '__main__':
     args.harvester = is_harvester_mode(args)
 
     # initialize the pilot timing dictionary
-    args.timing = {}
+    args.timing = {}  # TODO: move to singleton?
+
+    # initialize job status dictionary (e.g. used to keep track of log transfers)
+    args.job_status = {}
 
     # store T0 time stamp
     add_to_pilot_timing('0', PILOT_START_TIME, time.time(), args)
