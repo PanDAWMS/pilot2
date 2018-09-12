@@ -28,7 +28,7 @@ from pilot.info import infosys, JobData
 from pilot.util import https
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
 from pilot.util.config import config
-from pilot.util.common import should_abort, get_job_status
+from pilot.util.common import should_abort, get_job_status, get_log_transfer
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE
 from pilot.util.filehandling import get_files, tail
@@ -1148,7 +1148,10 @@ def queue_monitor(queues, traces, args):
         #    # check if the job has failed
         #    job = has_job_failed(queues)
         job = has_job_failed(queues)
-        log_transfer = get_job_status(args, job.jobid, 'LOG_TRANSFER')
+
+        # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
+        log_transfer = get_log_transfer(args, job)
+
         if job and log_transfer == LOG_TRANSFER_NOT_DONE:
             log = get_logger(job.jobid)
             job.stageout = 'log'  # only stage-out log file
@@ -1158,7 +1161,7 @@ def queue_monitor(queues, traces, args):
             nmax = 10
             while n < nmax:
                 # refresh the log_transfer since it might have changed
-                log_transfer = get_job_status(args, job.jobid, 'LOG_TRANSFER')
+                log_transfer = get_log_transfer(args, job)
                 log.info('waiting for log transfer to finish (#%d/#%d): %s' % (n + 1, nmax, log_transfer))
                 if is_queue_empty(queues, 'data_out') and log_transfer == LOG_TRANSFER_DONE:  # set in data component
                     log.info('stage-out of log has finished')

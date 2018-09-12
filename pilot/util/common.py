@@ -73,3 +73,23 @@ def get_job_status(args, pandaid, key):
         value = dic.get(key, None)
 
     return value
+
+
+def get_log_transfer(args, job, key='LOG_TRANSFER'):
+    """
+
+    Return the current log transfer status.
+    LOG_TRANSFER_NOT_DONE is returned if job object is not defined.
+
+    :param args: pilot args object.
+    :param job: job object.
+    :param key: optional key name, should be 'LOG_TRANSFER'
+    :return: key value (string).
+    """
+
+    if job:
+        log_transfer = get_job_status(args, job.jobid, key)
+    else:
+        log_transfer = LOG_TRANSFER_NOT_DONE
+
+    return log_transfer
