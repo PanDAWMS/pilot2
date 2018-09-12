@@ -38,8 +38,6 @@ def should_abort(args, limit=30, label=''):
             logger.warning('%s:received graceful stop - abort after this iteration' % label)
             abort = True
 
-    logger.debug('%s: returning %s' % (label, str(abort)))
-
     return abort
 
 
