@@ -426,8 +426,8 @@ def copytool_in(queues, traces, args):
 
 def copytool_out(queues, traces, args):
 
-    abort = False
-    while not args.graceful_stop.is_set() and abort:
+    cont = True
+    while not args.graceful_stop.is_set() and cont:
 
         # check for abort, print useful messages and include a 1 s sleep
         abort = should_abort(args, label='data:copytool_out')
@@ -460,6 +460,7 @@ def copytool_out(queues, traces, args):
             continue
 
         if abort:
+            cont = False
             break
 
 
