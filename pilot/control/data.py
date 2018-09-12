@@ -429,7 +429,7 @@ def copytool_out(queues, traces, args):
 #    while not args.graceful_stop.is_set():
     while True:
         # check for abort, print useful messages and include a 1 s sleep
-        abort = should_abort(args)
+        abort = should_abort(args, label='data:copytool_out')
         try:
             job = queues.data_out.get(block=True, timeout=1)
             log = get_logger(job.jobid)
@@ -900,7 +900,7 @@ def queue_monitoring(queues, traces, args):
 
         # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
         # (abort at the end of the loop)
-        abort = should_abort(args)
+        abort = should_abort(args, label='data:queue_monitoring')
 
         # monitor the failed_data_in queue
         try:

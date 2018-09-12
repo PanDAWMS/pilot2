@@ -1140,7 +1140,7 @@ def queue_monitor(queues, traces, args):
 
         # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
         # (abort at the end of the loop)
-        abort = should_abort(args)
+        abort = should_abort(args, label='job:queue_monitor')
 
         # check if the job has finished
         job = has_job_finished(queues)
@@ -1272,7 +1272,7 @@ def job_monitor(queues, traces, args):
     while not args.graceful_stop.is_set():
         # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
         # (abort at the end of the loop)
-        abort = should_abort(args)
+        abort = should_abort(args, label='job:job_monitor')
 
         if traces.pilot.get('command') == 'abort':
             logger.warning('job monitor received an abort command')
