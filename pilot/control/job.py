@@ -1118,6 +1118,44 @@ def is_queue_empty(queues, q):
     return status
 
 
+def order_log_transfer(args, queues, job):
+    """
+    Order a log transfer for a failed job.
+
+    :param args: pilot args object.
+    :param queues: pilot queues object.
+    :param job: job object.
+    :return:
+    """
+
+    log = get_logger(job.jobid)
+
+    # add the job object to the data_out queue to have it staged out
+    job.stageout = 'log'  # only stage-out log file
+    queues.data_out.put(job)
+    log.info('job added to data_out queue')
+
+    # wait for the log transfer to finish
+    n = 0
+    nmax = 30
+    while n < nmax:
+        # refresh the log_transfer since it might have changed
+        log_transfer = get_log_transfer(args, job)
+        log.info('job.status=%s' % job.status)
+        log.info('waiting for log transfer to finish (#%d/#%d): %s' % (n + 1, nmax, log_transfer))
+        if is_queue_empty(queues, 'data_out') and \
+                (log_transfer == LOG_TRANSFER_DONE or log_transfer == LOG_TRANSFER_FAILED):  # set in data component
+            log.info('stage-out of log has completed')
+            break
+        else:
+            if log_transfer == LOG_TRANSFER_IN_PROGRESS:  # set in data component, job object is singleton
+                log.info('log transfer is in progress')
+            time.sleep(1)
+            n += 1
+
+    log.info('proceeding with server update (n=%d)' % n)
+
+
 def queue_monitor(queues, traces, args):
     """
     Monitoring of queues.
@@ -1144,36 +1182,15 @@ def queue_monitor(queues, traces, args):
 
         # check if the job has finished
         job = has_job_finished(queues)
-        #if job and job.state != 'finished':
-        #    # check if the job has failed
-        #    job = has_job_failed(queues)
-        job = has_job_failed(queues)
+        if not job:
+            job = has_job_failed(queues)
 
-        # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
-        log_transfer = get_log_transfer(args, job)
+            # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
+            log_transfer = get_log_transfer(args, job)
 
-        if job and log_transfer == LOG_TRANSFER_NOT_DONE:
-            log = get_logger(job.jobid)
-            job.stageout = 'log'  # only stage-out log file
-            queues.data_out.put(job)
-            log.info('job added to data_out queue')
-            n = 0
-            nmax = 10
-            while n < nmax:
-                # refresh the log_transfer since it might have changed
-                log_transfer = get_log_transfer(args, job)
-                log.info('job.status=%s' % job.status)
-                log.info('waiting for log transfer to finish (#%d/#%d): %s' % (n + 1, nmax, log_transfer))
-                if is_queue_empty(queues, 'data_out') and \
-                        (log_transfer == LOG_TRANSFER_DONE or log_transfer == LOG_TRANSFER_FAILED):  # set in data component
-                    log.info('stage-out of log has completed')
-                    break
-                else:
-                    if log_transfer == LOG_TRANSFER_IN_PROGRESS:  # set in data component, job object is singleton
-                        log.info('log transfer is in progress')
-                    time.sleep(1)
-                    n += 1
-            log.info('proceeding with server update (n=%d)' % n)
+            if job and log_transfer == LOG_TRANSFER_NOT_DONE:
+                # order a log transfer for a failed job
+                order_log_transfer(args, queues, job)
 
         # check if the job has failed
         if job and job.state == 'failed':
