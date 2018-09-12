@@ -1156,6 +1156,33 @@ def order_log_transfer(args, queues, job):
     log.info('proceeding with server update (n=%d)' % n)
 
 
+def wait_for_aborted_job_stageout(queues, log):
+    """
+    Wait for stage-out to finish for aborted job.
+
+    :param queues: pilot queues object.
+    :param log: job logger object.
+    :return:
+    """
+
+    # if the pilot received a kill signal, how much time has passed since the signal was intercepted?
+    time_since_kill = get_time_since('0', PILOT_KILL_SIGNAL, args)
+    log.info('%d s passed since kill signal was intercepted - make sure that stage-out has finished' % time_since_kill)
+
+    # if stage-out has not finished, we need to wait (less than two minutes or the batch system will issue
+    # a hard SIGKILL)
+    max_wait_time = 2 * 60 - time_since_kill - 5  # assume that we only need 5 more seconds to wrap up
+    t0 = time.time()
+    while time.time() - t0 < max_wait_time:
+        if job not in queues.finished_data_out.queue and job not in queues.failed_data_out.queue:
+            time.sleep(0.1)
+        else:
+            log.info('stage-out has finished, proceed with final server update')
+            break
+
+    log.info('proceeding with final server update')
+
+
 def queue_monitor(queues, traces, args):
     """
     Monitoring of queues.
@@ -1201,28 +1228,14 @@ def queue_monitor(queues, traces, args):
 
         # job has not been defined if it's still running
         if job:
-            # send final server update
             log = get_logger(job.jobid)
-            log.info('preparing for final server update')
+            log.info('preparing for final server update for job %s' % job.jobid)
 
             if args.job_aborted.is_set():
-                # if the pilot received a kill signal, how much time has passed since the signal was intercepted?
-                time_since_kill = get_time_since('0', PILOT_KILL_SIGNAL, args)
-                log.info('%d s passed since kill signal was intercepted - make sure that stage-out has finished' %
-                         time_since_kill)
+                # wait for stage-out to finish for aborted job
+                wait_for_aborted_job_stageout(queues, log)
 
-                # if stage-out has not finished, we need to wait (less than two minutes or the batch system will issue
-                # a hard SIGKILL)
-                max_wait_time = 2 * 60 - time_since_kill - 5  # assume that we only need 5 more seconds to wrap up
-                t0 = time.time()
-                while time.time() - t0 < max_wait_time:
-                    if job not in queues.finished_data_out.queue and job not in queues.failed_data_out.queue:
-                        time.sleep(0.1)
-                    else:
-                        log.info('stage-out has finished, proceed with final server update')
-                        break
-                log.info('proceeding with final server update')
-
+            # send final server update
             if job.fileinfo:
                 send_state(job, args, job.state, xml=dumps(job.fileinfo))
             else:
