@@ -425,43 +425,71 @@ def copytool_in(queues, traces, args):
 
 
 def copytool_out(queues, traces, args):
+    """
+    Main stage-out thread.
+    Perform stage-out as soon as a job object can be extracted from the data_out queue.
+
+    :param queues: pilot queues object.
+    :param traces: pilot traces object.
+    :param args: pilot args object.
+    :return:
+    """
 
     cont = True
-    while not args.graceful_stop.is_set() and cont:
+    logger.debug('entering copytool_out loop')
+    if args.graceful_stop.is_set():
+        logger.debug('graceful_stop already set')
+    first = True
+#    while not args.graceful_stop.is_set() and cont:
+    while cont:
+
+        if first:
+            first = False
+            logger.debug('inside copytool_out() loop')
 
         # check for abort, print useful messages and include a 1 s sleep
         abort = should_abort(args, label='data:copytool_out')
+        if abort:
+            logger.debug('will abort ')
         try:
             job = queues.data_out.get(block=True, timeout=1)
-            log = get_logger(job.jobid)
-            log.info('will perform stage-out')
-            # send_state(job, args, 'running')  # not necessary to send job update at this point?
+            if job:
+                log = get_logger(job.jobid)
+                log.info('will perform stage-out')
 
-            if args.abort_job.is_set():
-                traces.pilot['command'] = 'abort'
-                log.warning('copytool_out detected a set abort_job pre stage-out (due to a kill signal)')
-                declare_failed_by_kill(job, queues.failed_data_out, args.signal)
-                break
-
-            if _stage_out_new(job, args):
                 if args.abort_job.is_set():
                     traces.pilot['command'] = 'abort'
-                    log.warning('copytool_out detected a set abort_job post stage-out (due to a kill signal)')
-                    #declare_failed_by_kill(job, queues.failed_data_out, args.signal)
+                    log.warning('copytool_out detected a set abort_job pre stage-out (due to a kill signal)')
+                    declare_failed_by_kill(job, queues.failed_data_out, args.signal)
                     break
 
-                queues.finished_data_out.put(job)
-                log.debug('job object added to finished_data_out queue')
-            else:
-                queues.failed_data_out.put(job)
-                log.debug('job object added to failed_data_out queue')
+                if _stage_out_new(job, args):
+                    if args.abort_job.is_set():
+                        traces.pilot['command'] = 'abort'
+                        log.warning('copytool_out detected a set abort_job post stage-out (due to a kill signal)')
+                        #declare_failed_by_kill(job, queues.failed_data_out, args.signal)
+                        break
 
+                    queues.finished_data_out.put(job)
+                    log.debug('job object added to finished_data_out queue')
+                else:
+                    queues.failed_data_out.put(job)
+                    log.debug('job object added to failed_data_out queue')
+            else:
+                log.debug('no returned job - why no exception?')
         except queue.Empty:
+            if abort:
+                logger.debug('aborting')
+                cont = False
+                break
             continue
 
         if abort:
+            logger.debug('aborting')
             cont = False
             break
+
+    logger.debug('copytool_out has finished')
 
 
 def get_input_file_dictionary(indata):
