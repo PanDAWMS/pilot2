@@ -1156,14 +1156,17 @@ def order_log_transfer(args, queues, job):
     log.info('proceeding with server update (n=%d)' % n)
 
 
-def wait_for_aborted_job_stageout(queues, log):
+def wait_for_aborted_job_stageout(args, queues, job):
     """
     Wait for stage-out to finish for aborted job.
 
+    :param args: pilot args object.
     :param queues: pilot queues object.
-    :param log: job logger object.
+    :param job: job object.
     :return:
     """
+
+    log = get_logger(job.jobid)
 
     # if the pilot received a kill signal, how much time has passed since the signal was intercepted?
     time_since_kill = get_time_since('0', PILOT_KILL_SIGNAL, args)
@@ -1233,7 +1236,7 @@ def queue_monitor(queues, traces, args):
 
             if args.job_aborted.is_set():
                 # wait for stage-out to finish for aborted job
-                wait_for_aborted_job_stageout(queues, log)
+                wait_for_aborted_job_stageout(args, queues, job)
 
             # send final server update
             if job.fileinfo:
