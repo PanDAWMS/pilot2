@@ -9,7 +9,7 @@
 
 import os
 
-from pilot.util.constants import PILOT_KILL_SIGNAL
+from pilot.util.constants import PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE
 from pilot.util.timing import get_time_since
 
 import logging
@@ -50,7 +50,7 @@ def update_job_status(args, pandaid, key, value):
     :return:
     """
 
-    if not pandaid in args.job_status:
+    if pandaid not in args.job_status:
         args.job_status[pandaid] = {}
     args.job_status[pandaid][key] = value
 

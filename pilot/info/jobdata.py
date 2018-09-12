@@ -29,7 +29,6 @@ import pipes
 from .basedata import BaseData
 from .filespec import FileSpec
 from pilot.util.filehandling import get_guid
-from pilot.util.constants import LOG_TRANSFER_NOT_DONE
 
 import logging
 logger = logging.getLogger(__name__)
