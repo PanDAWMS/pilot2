@@ -426,10 +426,10 @@ def copytool_in(queues, traces, args):
 
 def copytool_out(queues, traces, args):
 
-    while not args.graceful_stop.is_set():
-
-        # check for abort (not enforced inside loop), print useful messages and include a 1 s sleep
-        should_abort(args)
+#    while not args.graceful_stop.is_set():
+    while True:
+        # check for abort, print useful messages and include a 1 s sleep
+        abort = should_abort(args)
         try:
             job = queues.data_out.get(block=True, timeout=1)
             log = get_logger(job.jobid)
@@ -457,6 +457,9 @@ def copytool_out(queues, traces, args):
 
         except queue.Empty:
             continue
+
+        if abort:
+            break
 
 
 def get_input_file_dictionary(indata):
