@@ -30,7 +30,7 @@ from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_sche
 from pilot.util.config import config
 from pilot.util.common import should_abort, get_job_status, get_log_transfer
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
-    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE
+    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED
 from pilot.util.filehandling import get_files, tail
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.util.jobmetrics import get_job_metrics
@@ -1162,9 +1162,11 @@ def queue_monitor(queues, traces, args):
             while n < nmax:
                 # refresh the log_transfer since it might have changed
                 log_transfer = get_log_transfer(args, job)
+                log.info('job.status=%s' % job.status)
                 log.info('waiting for log transfer to finish (#%d/#%d): %s' % (n + 1, nmax, log_transfer))
-                if is_queue_empty(queues, 'data_out') and log_transfer == LOG_TRANSFER_DONE:  # set in data component
-                    log.info('stage-out of log has finished')
+                if is_queue_empty(queues, 'data_out') and \
+                        (log_transfer == LOG_TRANSFER_DONE or log_transfer == LOG_TRANSFER_FAILED):  # set in data component
+                    log.info('stage-out of log has completed')
                     break
                 else:
                     if log_transfer == LOG_TRANSFER_IN_PROGRESS:  # set in data component, job object is singleton

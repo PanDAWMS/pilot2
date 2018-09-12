@@ -180,6 +180,7 @@ class Executor(object):
                     if not job.piloterrorcodes:
                         log.warning('received graceful stop but no pilot error code has been set yet')
                     log_transfer = get_log_transfer(args, job)
+                    log.info('job.status=%s, log_transfer=%s' % (job.status, log_transfer))
                     if job not in self.__queues.failed_jobs.queue and log_transfer == LOG_TRANSFER_NOT_DONE:
                         self.__queues.failed_jobs.put(job)
                         log.warning('added job object to failed_jobs queue')
