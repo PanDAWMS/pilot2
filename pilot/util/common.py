@@ -58,7 +58,7 @@ def update_job_status(args, pandaid, key, value):
 def get_job_status(args, pandaid, key):
     """
     This function will return the key value for the given pandaid.
-    E.g. get_job_status(12345678, 'LOG_TRANSFER') -> 'LOG_TRANSFER_IN_PROGRESS'
+    E.g. get_job_status(12345678, 'LOG_TRANSFER') -> 'IN_PROGRESS'
     job_status = { pandaid: {key1: value1, ..}, ..}
 
     :param args: pilot arguments object.

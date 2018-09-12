@@ -51,7 +51,7 @@ class JobData(BaseData):
     transformation = ""    # Script execution name
 
     state = ""            # Current job state
-    status = ""           # Current job status
+    status = {}           # Current job status; format = {key: value, ..} e.g. key='LOG_TRANSFER', value='DONE'
     workdir = ""          # Working directoty for this job
 
     corecount = 1   # Number of cores as requested by the task
@@ -136,7 +136,7 @@ class JobData(BaseData):
     _keys = {int: ['corecount', 'piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
                    'attemptnr', 'nevents', 'neventsw', 'pid'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
-                   'state', 'status', 'workdir', 'stageout',
+                   'state', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg', 'produserid', 'jobdefinitionid',
                    #'infiles',         ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'scopein',        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
@@ -149,7 +149,7 @@ class JobData(BaseData):
                    #'datasetout',  ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    'infilesguids'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
-             dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
+             dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
              bool: ['is_eventservice', 'noexecstrcnv', 'debug']
              }
 
