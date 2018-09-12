@@ -33,7 +33,7 @@ from pilot.util.timing import add_to_pilot_timing
 RELEASE = '2'  # fixed at 2 for Pilot 2
 VERSION = '0'  # '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
 REVISION = '0'  # reset to '0' for every new Pilot version release, increased for small updates
-BUILD = '71'  # reset to '1' for every new development cycle
+BUILD = '72'  # reset to '1' for every new development cycle
 
 
 def pilot_version_banner():
@@ -511,7 +511,10 @@ if __name__ == '__main__':
     args.harvester = is_harvester_mode(args)
 
     # initialize the pilot timing dictionary
-    args.timing = {}
+    args.timing = {}  # TODO: move to singleton?
+
+    # initialize job status dictionary (e.g. used to keep track of log transfers)
+    args.job_status = {}  # TODO: move to singleton or to job object directly?
 
     # store T0 time stamp
     add_to_pilot_timing('0', PILOT_START_TIME, time.time(), args)

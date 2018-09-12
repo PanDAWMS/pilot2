@@ -29,7 +29,6 @@ import pipes
 from .basedata import BaseData
 from .filespec import FileSpec
 from pilot.util.filehandling import get_guid
-from pilot.util.constants import LOG_TRANSFER_NOT_DONE
 
 import logging
 logger = logging.getLogger(__name__)
@@ -51,7 +50,7 @@ class JobData(BaseData):
     transformation = ""    # Script execution name
 
     state = ""            # Current job state
-    status = ""           # Current job status
+    status = {}           # Current job status; format = {key: value, ..} e.g. key='LOG_TRANSFER', value='DONE'
     workdir = ""          # Working directoty for this job
 
     corecount = 1   # Number of cores as requested by the task
@@ -89,7 +88,6 @@ class JobData(BaseData):
     utilities = {}  # utility processes { <name>: [<process handle>, number of launches, command string], .. }
     pid = None  # payload pid
     pgrp = None  # process group
-    logtransfer = LOG_TRANSFER_NOT_DONE  # keep track of log transfer
 
     # time variable used for on-the-fly cpu consumption time measurements done by job monitoring
     t0 = None  # payload startup time
@@ -137,7 +135,7 @@ class JobData(BaseData):
     _keys = {int: ['corecount', 'piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
                    'attemptnr', 'nevents', 'neventsw', 'pid'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
-                   'state', 'status', 'workdir', 'stageout',
+                   'state', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg', 'produserid', 'jobdefinitionid',
                    #'infiles',         ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'scopein',        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
@@ -150,7 +148,7 @@ class JobData(BaseData):
                    #'datasetout',  ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    'infilesguids'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
-             dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
+             dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
              bool: ['is_eventservice', 'noexecstrcnv', 'debug']
              }
 

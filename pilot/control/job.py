@@ -28,9 +28,9 @@ from pilot.info import infosys, JobData
 from pilot.util import https
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
 from pilot.util.config import config
-from pilot.util.common import should_abort
+from pilot.util.common import should_abort, get_log_transfer
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
-    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE
+    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED
 from pilot.util.filehandling import get_files, tail
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.util.jobmetrics import get_job_metrics
@@ -150,7 +150,6 @@ def send_state(job, args, state, xml=None):
             res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver), data=data)
             if res is not None:
                 log.info('server updateJob request completed for job %s' % job.jobid)
-                res['command'] = 'debug'
                 log.info('res = %s' % str(res))
 
                 # does the server update contain any backchannel information? if so, update the job object
@@ -1149,7 +1148,11 @@ def queue_monitor(queues, traces, args):
         #    # check if the job has failed
         #    job = has_job_failed(queues)
         job = has_job_failed(queues)
-        if job and job.logtransfer == LOG_TRANSFER_NOT_DONE:
+
+        # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
+        log_transfer = get_log_transfer(args, job)
+
+        if job and log_transfer == LOG_TRANSFER_NOT_DONE:
             log = get_logger(job.jobid)
             job.stageout = 'log'  # only stage-out log file
             queues.data_out.put(job)
@@ -1157,12 +1160,16 @@ def queue_monitor(queues, traces, args):
             n = 0
             nmax = 10
             while n < nmax:
-                log.info('waiting for log transfer to finish (#%d/#%d)' % (n + 1, nmax))
-                if is_queue_empty(queues, 'data_out') and job.logtransfer == LOG_TRANSFER_DONE:  # set in data component
-                    log.info('stage-out of log has finished')
+                # refresh the log_transfer since it might have changed
+                log_transfer = get_log_transfer(args, job)
+                log.info('job.status=%s' % job.status)
+                log.info('waiting for log transfer to finish (#%d/#%d): %s' % (n + 1, nmax, log_transfer))
+                if is_queue_empty(queues, 'data_out') and \
+                        (log_transfer == LOG_TRANSFER_DONE or log_transfer == LOG_TRANSFER_FAILED):  # set in data component
+                    log.info('stage-out of log has completed')
                     break
                 else:
-                    if job.logtransfer == LOG_TRANSFER_IN_PROGRESS:  # set in data component, job object is singleton
+                    if log_transfer == LOG_TRANSFER_IN_PROGRESS:  # set in data component, job object is singleton
                         log.info('log transfer is in progress')
                     time.sleep(1)
                     n += 1
