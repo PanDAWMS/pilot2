@@ -1213,14 +1213,22 @@ def queue_monitor(queues, traces, args):
         # check if the job has finished
         job = has_job_finished(queues)
         if not job:
+            logger.debug('job:queue_monitor: job has not finished')
             job = has_job_failed(queues)
 
+            if job:
+                logger.debug('job:queue_monitor: job has failed')
+            else:
+                logger.debug('job:queue_monitor: job has not failed')
             # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
             log_transfer = get_log_transfer(args, job)
+            logger.debug('job:queue_monitor: log_transfer=%s' % log_transfer)
 
             if job and log_transfer == LOG_TRANSFER_NOT_DONE:
                 # order a log transfer for a failed job
                 order_log_transfer(args, queues, job)
+            else:
+                logger.debug('job:queue_monitor: will not order log transfer')
 
         # check if the job has failed
         if job and job.state == 'failed':

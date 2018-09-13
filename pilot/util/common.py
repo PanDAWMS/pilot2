@@ -89,7 +89,8 @@ def get_log_transfer(args, job, key='LOG_TRANSFER'):
     """
 
     if job:
-        log_transfer = get_job_status(args, job.jobid, key)
+        log_transfer = job.status.get(key, LOG_TRANSFER_NOT_DONE)
+        #log_transfer = get_job_status(args, job.jobid, key)
     else:
         log_transfer = LOG_TRANSFER_NOT_DONE
 
