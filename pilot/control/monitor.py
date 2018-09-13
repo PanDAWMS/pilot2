@@ -154,7 +154,7 @@ def get_max_running_time(lifetime, queuedata):
     :return: max running time in seconds (int).
     """
 
-    return 40
+    #return 40
 
     max_running_time = lifetime
 
