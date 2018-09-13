@@ -228,7 +228,7 @@ def get_data_structure(job, state, args, xml=None):
 
     data['attemptNr'] = job.attemptnr
 
-    schedulerid = get_job_scheduler_id()
+    schedulerid = tcheduler_id()
     if schedulerid:
         data['schedulerID'] = schedulerid
 
@@ -1185,6 +1185,26 @@ def wait_for_aborted_job_stageout(args, queues, job):
     log.info('proceeding with final server update')
 
 
+def get_job_status(job, key):
+    """
+    Wrapper function around job.get_status().
+    If key = 'LOG_TRANSFER' but job object is not defined, the function will return value = LOG_TRANSFER_NOT_DONE.
+
+    :param job: job object.
+    :param key: key name (string).
+    :return: value (string).
+    """
+
+    value = ""
+    if job:
+        value = job.get_status(key)
+    else:
+        if key == 'LOG_TRANSFER':
+            value = LOG_TRANSFER_NOT_DONE
+
+    return value
+
+
 def queue_monitor(queues, traces, args):
     """
     Monitoring of queues.
@@ -1215,7 +1235,7 @@ def queue_monitor(queues, traces, args):
             job = has_job_failed(queues)
 
             # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
-            log_transfer = job.get_status('LOG_TRANSFER')
+            log_transfer = get_job_status(job, 'LOG_TRANSFER')
 
             if job and log_transfer == LOG_TRANSFER_NOT_DONE:
                 # order a log transfer for a failed job
