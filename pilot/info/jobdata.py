@@ -51,7 +51,7 @@ class JobData(BaseData):
     transformation = ""    # Script execution name
 
     state = ""            # Current job state
-    status = {'LOG_TRANSFER': LOG_TRANSFER_NOT_DONE} # Current job status; format = {key: value, ..} e.g. key='LOG_TRANSFER', value='DONE'
+    status = {'LOG_TRANSFER': LOG_TRANSFER_NOT_DONE}  # Current job status; format = {key: value, ..} e.g. key='LOG_TRANSFER', value='DONE'
     workdir = ""          # Working directoty for this job
 
     corecount = 1   # Number of cores as requested by the task
