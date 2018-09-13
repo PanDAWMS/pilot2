@@ -228,7 +228,7 @@ def get_data_structure(job, state, args, xml=None):
 
     data['attemptNr'] = job.attemptnr
 
-    schedulerid = tcheduler_id()
+    schedulerid = get_job_scheduler_id()
     if schedulerid:
         data['schedulerID'] = schedulerid
 
