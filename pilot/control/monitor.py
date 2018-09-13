@@ -171,6 +171,10 @@ def get_max_running_time(lifetime, queuedata):
                 logger.warning('failed to convert maxtime from queuedata, will use default value for max running time '
                                '(%d s)' % max_running_time)
             else:
-                logger.info('will use queuedata.maxtime value for max running time: %d s' % max_running_time)
+                if max_running_time == 0:
+                    max_running_time = lifetime  # fallback to default value
+                    logger.info('will use default value for max running time: %d s' % max_running_time)
+                else:
+                    logger.info('will use queuedata.maxtime value for max running time: %d s' % max_running_time)
 
     return max_running_time

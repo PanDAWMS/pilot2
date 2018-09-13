@@ -65,12 +65,14 @@ class QueueData(BaseData):
     timefloor = 0  # The maximum time during which the pilot is allowed to start a new job, in seconds
     corecount = 1  #
 
+    maxtime = 0  # maximum allowed lifetime for pilot to run on the resource (0 will be ignored, fallback to default)
+
     pledgedcpu = 0  #
     es_stageout_gap = 0  ## time gap value in seconds for ES stageout
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['timefloor', 'maxwdir', 'pledgedcpu', 'es_stageout_gap',
-                   'corecount', 'maxrss'],
+                   'corecount', 'maxrss', 'maxtime'],
              str: ['name', 'appdir', 'catchall', 'platform', 'container_options', 'container_type',
                    'state', 'site'],
              dict: ['copytools', 'acopytools', 'astorages', 'aprotocols'],
