@@ -649,3 +649,22 @@ class JobData(BaseData):
                 guids.append(fspec.guid)
 
         return lfns, guids
+
+    def get_status(self, key):
+        """
+
+        Return the value for the given key (e.g. LOG_TRANSFER) from the status dictionary.
+        LOG_TRANSFER_NOT_DONE is returned if job object is not defined for key='LOG_TRANSFER'.
+        If no key is found, None will be returned.
+
+        :param key: key name (string).
+        :return: corresponding key value in job.status dictionary (string).
+        """
+
+        log_transfer = self.status.get(key, None)
+
+        if not log_transfer:
+            if key == 'LOG_TRANSFER':
+                log_transfer = LOG_TRANSFER_NOT_DONE
+
+        return log_transfer

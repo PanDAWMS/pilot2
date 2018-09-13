@@ -30,7 +30,7 @@ from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
 from pilot.util.auxiliary import get_logger  #, abort_jobs_in_queues
-from pilot.util.common import should_abort, update_job_status
+from pilot.util.common import should_abort
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED
@@ -565,11 +565,17 @@ def create_log(job, logfile, tarball_name):
         else:
             return False
 
-    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as archive:
-        try:  # python 2.6
-            archive.add(job.workdir, exclude=exclude_function, recursive=True)
-        except Exception:  # python 2.7
-            archive.add(job.workdir, exclude=filter_function, recursive=True)
+    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as log_tar:
+        for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files)):
+            if os.path.exists(os.path.join(job.workdir, _file)):
+                logging.debug('adding to log: %s' % _file)
+                log_tar.add(os.path.join(job.workdir, _file), arcname=os.path.join(tarball_name, _file))
+
+#    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as archive:
+#        try:  # python 2.6
+#            archive.add(job.workdir, exclude=exclude_function, recursive=True)
+#        except Exception:  # python 2.7
+#            archive.add(job.workdir, exclude=filter_function, recursive=True)
 
 #    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as log_tar:
 #        for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files)):
@@ -740,7 +746,6 @@ def _stage_out_new(job, args):
 
     if job.stageout in ['log', 'all'] and job.logdata:  ## do stage-out log files
         # prepare log file, consider only 1st available log file
-        update_job_status(args, job.jobid, 'LOG_TRANSFER', LOG_TRANSFER_IN_PROGRESS)
         job.status['LOG_TRANSFER'] = LOG_TRANSFER_IN_PROGRESS
         logfile = job.logdata[0]
         create_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
@@ -748,10 +753,8 @@ def _stage_out_new(job, args):
         if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], 'log'):
             is_success = False
             log.warning('log transfer failed')
-            update_job_status(args, job.jobid, 'LOG_TRANSFER', LOG_TRANSFER_FAILED)
             job.status['LOG_TRANSFER'] = LOG_TRANSFER_FAILED
         else:
-            update_job_status(args, job.jobid, 'LOG_TRANSFER', LOG_TRANSFER_DONE)
             job.status['LOG_TRANSFER'] = LOG_TRANSFER_DONE
 
     # write time stamps to pilot timing file

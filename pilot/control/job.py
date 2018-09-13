@@ -28,7 +28,7 @@ from pilot.info import infosys, JobData
 from pilot.util import https
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
 from pilot.util.config import config
-from pilot.util.common import should_abort, get_log_transfer
+from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED
 from pilot.util.filehandling import get_files, tail
@@ -1140,8 +1140,7 @@ def order_log_transfer(args, queues, job):
     nmax = 30
     while n < nmax:
         # refresh the log_transfer since it might have changed
-        log_transfer = get_log_transfer(args, job)
-        log.info('job.status=%s' % job.status)
+        log_transfer = job.get_status('LOG_TRANSFER')
         log.info('waiting for log transfer to finish (#%d/#%d): %s' % (n + 1, nmax, log_transfer))
         if is_queue_empty(queues, 'data_out') and \
                 (log_transfer == LOG_TRANSFER_DONE or log_transfer == LOG_TRANSFER_FAILED):  # set in data component
@@ -1213,22 +1212,14 @@ def queue_monitor(queues, traces, args):
         # check if the job has finished
         job = has_job_finished(queues)
         if not job:
-            logger.debug('job:queue_monitor: job has not finished')
             job = has_job_failed(queues)
 
-            if job:
-                logger.debug('job:queue_monitor: job has failed')
-            else:
-                logger.debug('job:queue_monitor: job has not failed')
             # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
-            log_transfer = get_log_transfer(args, job)
-            logger.debug('job:queue_monitor: log_transfer=%s' % log_transfer)
+            log_transfer = job.get_status('LOG_TRANSFER')
 
             if job and log_transfer == LOG_TRANSFER_NOT_DONE:
                 # order a log transfer for a failed job
                 order_log_transfer(args, queues, job)
-            else:
-                logger.debug('job:queue_monitor: will not order log transfer')
 
         # check if the job has failed
         if job and job.state == 'failed':

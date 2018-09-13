@@ -18,7 +18,6 @@ from subprocess import PIPE
 
 from pilot.control.job import send_state
 from pilot.util.auxiliary import get_logger
-from pilot.util.common import get_log_transfer
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD, \
     PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, LOG_TRANSFER_NOT_DONE, PILOT_KILL_SIGNAL
@@ -179,7 +178,7 @@ class Executor(object):
                         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.REACHEDMAXTIME)
                     if not job.piloterrorcodes:
                         log.warning('received graceful stop but no pilot error code has been set yet')
-                    log_transfer = get_log_transfer(args, job)
+                    log_transfer = job.get_status('LOG_TRANSFER')
                     log.info('job.status=%s, log_transfer=%s' % (job.status, log_transfer))
                     if job not in self.__queues.failed_jobs.queue and log_transfer == LOG_TRANSFER_NOT_DONE:
                         self.__queues.failed_jobs.put(job)
