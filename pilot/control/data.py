@@ -35,7 +35,7 @@ from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED
 from pilot.util.container import execute
-from pilot.util.filehandling import find_executable, get_guid, get_local_file_size
+from pilot.util.filehandling import find_executable, get_guid, get_local_file_size, remove
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.tracereport import TraceReport
 from pilot.util.queuehandling import declare_failed_by_kill
@@ -548,9 +548,10 @@ def create_log(job, logfile, tarball_name):
     input_files = [e.lfn for e in job.indata]
     output_files = [e.lfn for e in job.outdata]
 
+    # filter function to be used when files are added individually (python 2.7)
     def filter_function(tarinfo):
 
-        if tarinfo.name in input_files or tarfile.name in output_files:
+        if tarinfo.name in input_files or tarinfo.name in output_files:
             return None
         else:
             if os.path.exists(tarinfo.name):
@@ -558,6 +559,7 @@ def create_log(job, logfile, tarball_name):
             else:
                 return None
 
+    # exclude function to be used when files are added individually (python 2.7)
     def exclude_function(filename):
 
         if filename in input_files or filename in output_files or not os.path.exists(filename):
@@ -565,17 +567,18 @@ def create_log(job, logfile, tarball_name):
         else:
             return False
 
-    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as log_tar:
-        for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files)):
-            if os.path.exists(os.path.join(job.workdir, _file)):
-                logging.debug('adding to log: %s' % _file)
-                log_tar.add(os.path.join(job.workdir, _file), arcname=os.path.join(tarball_name, _file))
+    # remove any present input/output files before tarring up workdir
+    for f in input_files + output_files:
+        log.info('removing file: %s' % f)
+        remove(os.path.join(job.workdir, f))
 
-#    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as archive:
-#        try:  # python 2.6
+    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as archive:
+        archive.add(job.workdir, recursive=True)
+
+#        try:  # python 2.7
+#            archive.add(job.workdir, filter=filter_function, recursive=True)
+#        except Exception:  # python 2.6
 #            archive.add(job.workdir, exclude=exclude_function, recursive=True)
-#        except Exception:  # python 2.7
-#            archive.add(job.workdir, exclude=filter_function, recursive=True)
 
 #    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as log_tar:
 #        for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files)):
@@ -926,7 +929,6 @@ def queue_monitoring(queues, traces, args):
     :return:
     """
 
-    abort = False
     while True:  # will abort when graceful_stop has been set
         if traces.pilot['command'] == 'abort':
             logger.warning('data queue monitor saw the abort instruction')
