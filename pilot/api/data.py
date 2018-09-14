@@ -393,6 +393,11 @@ class StageInClient(StagingClient):
         allow_direct_access, direct_access_type = self.get_direct_access_variables()
         self.logger.info("direct access settings for the PQ: allow_direct_access=%s (type=%s)" %
                          (allow_direct_access, direct_access_type))
+
+        if not job.is_analysis() and job.transfertype != 'direct': ## task forbids direct access
+            allow_directaccess = False
+            self.logger.info('switched off direct access mode for production job since transfertype=%s' % job.transfertype)
+
         #if job_access_mode != 'direct': ## task forbids direct access
         #    allow_directaccess = False
         #self.logger.info("direct access settings for the job: allow_direct_access=%s" % allow_direct_access)
