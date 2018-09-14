@@ -268,6 +268,7 @@ def validate_post(queues, traces, args):
         try:
             job = queues.finished_payloads.get(block=True, timeout=1)
         except queue.Empty:
+            time.sleep(0.1)
             continue
         log = get_logger(job.jobid)
 
