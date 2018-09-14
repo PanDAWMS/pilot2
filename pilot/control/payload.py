@@ -255,7 +255,7 @@ def validate_post(queues, traces, args):
     """
     Validate finished payloads.
     If payload finished correctly, add the job to the data_out queue. If it failed, add it to the data_out queue as
-    well but only for log stage-out.
+    well but only for log stage-out (in failed_post() below).
 
     :param queues:
     :param traces:

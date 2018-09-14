@@ -569,8 +569,9 @@ def create_log(job, logfile, tarball_name):
 
     # remove any present input/output files before tarring up workdir
     for f in input_files + output_files:
-        log.info('removing file: %s' % f)
-        remove(os.path.join(job.workdir, f))
+        path = os.path.join(job.workdir, f)
+        log.info('removing file: %s' % path)
+        remove(path)
 
     with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as archive:
         archive.add(job.workdir, recursive=True)
