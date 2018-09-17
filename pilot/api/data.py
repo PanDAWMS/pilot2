@@ -387,14 +387,13 @@ class StageInClient(StagingClient):
         """
 
         # sort out direct access logic
-        #job = kwargs.get('job', None)
+        job = kwargs.get('job', None)
         #job_access_mode = job.accessmode if job else ''
-
         allow_direct_access, direct_access_type = self.get_direct_access_variables()
         self.logger.info("direct access settings for the PQ: allow_direct_access=%s (type=%s)" %
                          (allow_direct_access, direct_access_type))
 
-        if not job.is_analysis() and job.transfertype != 'direct': ## task forbids direct access
+        if not job.is_analysis() and job.transfertype != 'direct':  ## task forbids direct access
             allow_direct_access = False
             self.logger.info('switched off direct access mode for production job since transfertype=%s' % job.transfertype)
 

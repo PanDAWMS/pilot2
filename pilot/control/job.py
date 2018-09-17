@@ -1229,8 +1229,13 @@ def queue_monitor(queues, traces, args):
         # (abort at the end of the loop)
         abort = should_abort(args, label='job:queue_monitor')
         if abort:
-            logger.warning('since job:queue_monitor is responsible for sending job updates, we sleep for a while (60s)')
-            time.sleep(60)
+            delay = 20
+            logger.warning('since job:queue_monitor is responsible for sending job updates, we sleep until log has been'
+                           ' transferred (or a maximum of %d s)' % delay)
+            # use global object here (singleton or whatever) that will know the global status, such as finished log
+            # transfer
+            # ..
+            time.sleep(delay)
 
         # check if the job has finished
         job = has_job_finished(queues)
@@ -1243,6 +1248,9 @@ def queue_monitor(queues, traces, args):
             if job and log_transfer == LOG_TRANSFER_NOT_DONE:
                 # order a log transfer for a failed job
                 order_log_transfer(args, queues, job)
+        else:
+            if abort:
+                logger.debug('job has finished and abort is set')
 
         # check if the job has failed
         if job and job.state == 'failed':
@@ -1324,7 +1332,7 @@ def job_monitor(queues, traces, args):
 
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
-    while True:  # will abort when graceful_stop has been set  # not args.graceful_stop.is_set():
+    while not args.graceful_stop.is_set():
         # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
         # (abort at the end of the loop)
         abort = should_abort(args, label='job:job_monitor')

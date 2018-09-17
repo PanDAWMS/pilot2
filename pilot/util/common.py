@@ -9,7 +9,7 @@
 
 import os
 
-from pilot.util.constants import PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE
+from pilot.util.constants import PILOT_KILL_SIGNAL
 from pilot.util.timing import get_time_since
 
 import logging
