@@ -33,7 +33,7 @@ from pilot.util.timing import add_to_pilot_timing
 RELEASE = '2'  # fixed at 2 for Pilot 2
 VERSION = '0'  # '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
 REVISION = '0'  # reset to '0' for every new Pilot version release, increased for small updates
-BUILD = '74'  # reset to '1' for every new development cycle
+BUILD = '75'  # reset to '1' for every new development cycle
 
 
 def pilot_version_banner():
@@ -408,8 +408,11 @@ def set_environment_variables(args, mainworkdir):
     # working directory as set with a pilot option (e.g. ..)
     environ['PILOT_WORK_DIR'] = args.workdir  # TODO: replace with singleton
 
-    # main work directory (e.g. ..)
+    # main work directory (e.g. /scratch/PanDA_Pilot2_3908_1537173670)
     environ['PILOT_HOME'] = mainworkdir  # TODO: replace with singleton
+
+    # pilot source directory (e.g. /cluster/home/usatlas1/gram_scratch_hHq4Ns/condorg_oqmHdWxz)
+    environ['PILOT_SOURCE_DIR'] = args.sourcedir  # TODO: replace with singleton
 
     # store the site name as set with a pilot option
     environ['PILOT_SITENAME'] = args.site  # TODO: replace with singleton
@@ -519,8 +522,9 @@ if __name__ == '__main__':
     # store T0 time stamp
     add_to_pilot_timing('0', PILOT_START_TIME, time.time(), args)
 
-    # ff requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
-    initdir = getcwd()
+    # if requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
+    args.sourcedir = getcwd()
+
     exit_code, mainworkdir = create_main_work_dir(args)
     if exit_code != 0:
         sys.exit(exit_code)
@@ -538,7 +542,7 @@ if __name__ == '__main__':
     add_to_pilot_timing('0', PILOT_END_TIME, time.time(), args, store=False)
 
     # perform cleanup and terminate logging
-    exit_code = wrap_up(initdir, mainworkdir, args)
+    exit_code = wrap_up(args.sourcedir, mainworkdir, args)
 
     # the end.
     sys.exit(exit_code)
