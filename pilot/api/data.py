@@ -358,21 +358,26 @@ class StageInClient(StagingClient):
 
         return {'surl': surl, 'ddmendpoint': ddmendpoint, 'pfn': replica}
 
-    def get_direct_access_variables(self):
+    def get_direct_access_variables(self, job):
         """
         Return the direct access settings for the PQ.
 
-        :return: use_direct_access (bool), direct_access_type (string).
+        :param job: job object.
+        :return: allow_direct_access (bool), direct_access_type (string).
         """
 
-        use_direct_access = self.infosys.queuedata.direct_access_lan or self.infosys.queuedata.direct_access_wan
+        allow_direct_access = self.infosys.queuedata.direct_access_lan or self.infosys.queuedata.direct_access_wan
         direct_access_type = ''
         if self.infosys.queuedata.direct_access_lan:
             direct_access_type = 'LAN'
         if self.infosys.queuedata.direct_access_wan:
             direct_access_type = 'WAN'
 
-        return use_direct_access, direct_access_type
+        if not job.is_analysis() and job.transfertype != 'direct':  ## task forbids direct access
+            allow_direct_access = False
+            self.logger.info('switched off direct access mode for production job since transfertype=%s' % job.transfertype)
+
+        return allow_direct_access, direct_access_type
 
     def transfer_files(self, copytool, files, activity=None, **kwargs):
         """
@@ -389,17 +394,9 @@ class StageInClient(StagingClient):
         # sort out direct access logic
         job = kwargs.get('job', None)
         #job_access_mode = job.accessmode if job else ''
-        allow_direct_access, direct_access_type = self.get_direct_access_variables()
+        allow_direct_access, direct_access_type = self.get_direct_access_variables(job)
         self.logger.info("direct access settings for the PQ: allow_direct_access=%s (type=%s)" %
                          (allow_direct_access, direct_access_type))
-
-        if not job.is_analysis() and job.transfertype != 'direct':  ## task forbids direct access
-            allow_direct_access = False
-            self.logger.info('switched off direct access mode for production job since transfertype=%s' % job.transfertype)
-
-        #if job_access_mode != 'direct': ## task forbids direct access
-        #    allow_directaccess = False
-        #self.logger.info("direct access settings for the job: allow_direct_access=%s" % allow_direct_access)
 
         if allow_direct_access:
             # sort files to get candidates for remote_io coming first in order to exclude them from checking of available space for stage-in
