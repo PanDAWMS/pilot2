@@ -164,8 +164,8 @@ def get_generic_payload_command(cmd, job, prepareasetup, userjob):
 
         # correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
         # only if not using a user container
-           if not job.imagename:
-               cmd += "; " + add_makeflags(job.corecount, "") + _cmd
+        if not job.imagename:
+            cmd += "; " + add_makeflags(job.corecount, "") + _cmd
         else:
             cmd += _cmd
 
