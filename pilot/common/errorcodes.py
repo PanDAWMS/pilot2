@@ -31,6 +31,7 @@ class ErrorCodes:
     OUTPUTFILETOOLARGE = 1124
     STAGEOUTFAILED = 1137
     PUTMD5MISMATCH = 1141
+    CHMODTRF = 1143
     PANDAKILL = 1144
     GETMD5MISMATCH = 1145
     TRFDOWNLOADFAILURE = 1149
@@ -91,6 +92,7 @@ class ErrorCodes:
         STAGEOUTFAILED: "Failed to stage-out file",
         PUTMD5MISMATCH: "md5sum mismatch on output file",
         GETMD5MISMATCH: "md5sum mismatch on input file",
+        CHMODTRF: "Failed to chmod trf",
         PANDAKILL: "This job was killed by panda server",
         MISSINGOUTPUTFILE: "Local output file is missing",
         TRFDOWNLOADFAILURE: "Transform could not be downloaded",

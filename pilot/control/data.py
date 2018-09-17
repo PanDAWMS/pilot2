@@ -211,6 +211,12 @@ def _stage_in(args, job):
         client.transfer(job.indata, activity='pr', **kwargs)
     except Exception as error:
         log.error('Failed to stage-in: error=%s' % error)
+        if 'pilot exception' in str(error):
+            log.error('setting graceful stop since a pilot exception was caught')
+            args.graceful_stop.set()
+        else:
+            log.error('did not parse error of type: %s (setting graceful stop anyway)' % type(error))
+            args.graceful_stop.set()
         #return False
 
     log.info('Summary of transferred files:')
