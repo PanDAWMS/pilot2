@@ -64,12 +64,13 @@ def get_payload_command(job):
             # set the INDS env variable (used by runAthena)
             set_inds(job.datasetin)  # realDatasetsIn
 
-            # Try to download the trf
-            ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
-            if ec != 0:
-                raise TrfDownloadFailure(diagnostics)
-            else:
-                log.debug('user analysis trf: %s' % trf_name)
+            # Try to download the trf (skip when user container is to be used)
+            if '--containerImage' not in job.jobparams:
+                ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
+                if ec != 0:
+                    raise TrfDownloadFailure(diagnostics)
+                else:
+                    log.debug('user analysis trf: %s' % trf_name)
 
             if prepareasetup:
                 _cmd = get_analysis_run_command(job, trf_name)
@@ -77,7 +78,8 @@ def get_payload_command(job):
                 _cmd = job.jobparams
 
             # Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
-            cmd += "; " + add_makeflags(job.corecount, "") + _cmd
+            if '--containerImage' not in job.jobparams:
+                cmd += "; " + add_makeflags(job.corecount, "") + _cmd
         else:
             # Add Database commands if they are set by the local site
             cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
@@ -155,8 +157,8 @@ def get_setup_command(job, prepareasetup):
     :return:
     """
 
-    # return immediately if there is no release
-    if job.swrelease == 'NULL':
+    # return immediately if there is no release or if user containers are used
+    if job.swrelease == 'NULL' or '--containerImage' in job.jobparams:
         return ""
 
     # Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
@@ -258,7 +260,11 @@ def get_analysis_run_command(job, trf_name):
         cmd += 'export X509_USER_PROXY=%s;' % os.environ.get('X509_USER_PROXY')
 
     # set up analysis trf
-    cmd += './%s %s' % (trf_name, job.jobparams)
+    if '--containerImage' not in job.jobparams:
+        cmd += './%s %s' % (trf_name, job.jobparams)
+    else:
+        # test code: remove
+        cmd += 'python %s' % os.path.join(os.environ.get('PILOT_SOURCE_DIR', ''), 'pilot/scripts/runcontainer.py')
 
     # add control options for PFC turl and direct access
     if use_pfc_turl and '--usePFCTurl' not in cmd:
