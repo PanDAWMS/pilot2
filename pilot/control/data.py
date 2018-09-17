@@ -570,12 +570,21 @@ def create_log(job, logfile, tarball_name):
     # remove any present input/output files before tarring up workdir
     for f in input_files + output_files:
         path = os.path.join(job.workdir, f)
-        log.info('removing file: %s' % path)
-        remove(path)
+        if os.path.exists(path):
+            log.info('removing file: %s' % path)
+            remove(path)
 
-    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as archive:
+    name = os.path.join(job.workdir, logfile.lfn)
+    log.info('will create archive %s from %s' % (name, job.workdir))
+    with closing(tarfile.open(name=name, mode='w:gz', dereference=True)) as archive:
         archive.add(job.workdir, recursive=True)
 
+    if os.path.exists(name):
+        log.debug('created archive %s with size %s B' % (name, os.path.getsize(name)))
+        import commands
+        cmd = "tar xvfz %s" % name
+        out = commands.getoutput(cmd)
+        log.debug('%s:\n%s' % (cmd, out))
 #        try:  # python 2.7
 #            archive.add(job.workdir, filter=filter_function, recursive=True)
 #        except Exception:  # python 2.6
