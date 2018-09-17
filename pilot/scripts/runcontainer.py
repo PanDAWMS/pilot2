@@ -17,8 +17,8 @@ import urllib
 import ast
 import subprocess
 
-print "=== start ==="
-print time.ctime()
+print("=== start ===")
+print(time.ctime())
 
 # Example of prun command to process
 # prun --exec 'pwd && ls -l %IN %OUT' --outDS user.aforti.test$a \
@@ -58,7 +58,7 @@ def singularity_command():
                        args.ctr_image,
                        command)
 
-    print singularity_cmd
+    print(singularity_cmd)
     return singularity_cmd
 
 
