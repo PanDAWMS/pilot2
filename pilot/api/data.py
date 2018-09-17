@@ -381,14 +381,14 @@ class StageInClient(StagingClient):
 
     def transfer_files(self, copytool, files, activity=None, **kwargs):
         """
-            Automatically stage in files using the selected copy tool module.
+        Automatically stage in files using the selected copy tool module.
 
-            :param copytool: copytool module
-            :param files: list of `FileSpec` objects
-            :param kwargs: extra kwargs to be passed to copytool transfer handler
+        :param copytool: copytool module
+        :param files: list of `FileSpec` objects
+        :param kwargs: extra kwargs to be passed to copytool transfer handler
 
-            :return: the output of the copytool transfer operation
-            :raise: PilotException in case of controlled error
+        :return: the output of the copytool transfer operation
+        :raise: PilotException in case of controlled error
         """
 
         # sort out direct access logic
