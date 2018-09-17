@@ -554,25 +554,6 @@ def create_log(job, logfile, tarball_name):
     input_files = [e.lfn for e in job.indata]
     output_files = [e.lfn for e in job.outdata]
 
-    # filter function to be used when files are added individually (python 2.7)
-    def filter_function(tarinfo):
-
-        if tarinfo.name in input_files or tarinfo.name in output_files:
-            return None
-        else:
-            if os.path.exists(tarinfo.name):
-                return tarinfo
-            else:
-                return None
-
-    # exclude function to be used when files are added individually (python 2.7)
-    def exclude_function(filename):
-
-        if filename in input_files or filename in output_files or not os.path.exists(filename):
-            return True
-        else:
-            return False
-
     # remove any present input/output files before tarring up workdir
     for f in input_files + output_files:
         path = os.path.join(job.workdir, f)
@@ -584,17 +565,6 @@ def create_log(job, logfile, tarball_name):
     log.info('will create archive %s from %s' % (name, job.workdir))
     with closing(tarfile.open(name=name, mode='w:gz', dereference=True)) as archive:
         archive.add(job.workdir, recursive=True)
-
-    if os.path.exists(name):
-        log.debug('created archive %s with size %s B' % (name, os.path.getsize(name)))
-        import commands
-        cmd = "tar xvfz %s" % name
-        out = commands.getoutput(cmd)
-        log.debug('%s:\n%s' % (cmd, out))
-#        try:  # python 2.7
-#            archive.add(job.workdir, filter=filter_function, recursive=True)
-#        except Exception:  # python 2.6
-#            archive.add(job.workdir, exclude=exclude_function, recursive=True)
 
 #    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as log_tar:
 #        for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files)):

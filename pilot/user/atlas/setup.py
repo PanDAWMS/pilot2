@@ -231,7 +231,7 @@ def get_analysis_trf(transform, workdir):
         logger.debug("verified the trf base url: %s" % (original_base_url))
 
     # try to download from the required location, if not - switch to backup
-    stauts = False
+    status = False
     for base_url in get_valid_base_urls(order=original_base_url):
         trf = re.sub(original_base_url, base_url, transform)
         logger.debug("attempting to download trf: %s" % (trf))
