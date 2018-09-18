@@ -544,7 +544,7 @@ def create_log(job, logfile, tarball_name):
     """
 
     log = get_logger(job.jobid)
-    log.info('preparing to create log file')
+    log.debug('preparing to create log file')
 
     # perform special cleanup (user specific) prior to log file creation
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
