@@ -110,7 +110,8 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
 
         # Try to download the trf (skip when user container is to be used)
         trf_name = ""
-        if '--containerImage' not in job.jobparams:
+        if job.imagename == "":
+        #if '--containerImage' not in job.jobparams:
             ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
             if ec != 0:
                 raise TrfDownloadFailure(diagnostics)
@@ -122,7 +123,8 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
         else:
             _cmd = job.jobparams
 
-        if '--containerImage' not in job.jobparams:
+        if job.imagename == "":
+        #if '--containerImage' not in job.jobparams:
             # Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
             cmd += "; " + add_makeflags(job.corecount, "") + _cmd
     else:
@@ -297,7 +299,8 @@ def get_analysis_run_command(job, trf_name):
         cmd += 'export X509_USER_PROXY=%s;' % os.environ.get('X509_USER_PROXY')
 
     # set up analysis trf
-    if '--containerImage' not in job.jobparams:
+    if job.imagename == "":
+    #if '--containerImage' not in job.jobparams:
         cmd += './%s %s' % (trf_name, job.jobparams)
 
         # add control options for PFC turl and direct access
@@ -319,6 +322,9 @@ def get_analysis_run_command(job, trf_name):
     else:
         # test code: remove eventually (get script from /cvmfs)
         cmd += 'python %s' % os.path.join(os.environ.get('PILOT_SOURCE_DIR', ''), 'pilot/scripts/runcontainer.py')
+
+        # restore the image name
+        cmd += ' --containerImage=%s' % job.imagename
 
     return cmd
 
