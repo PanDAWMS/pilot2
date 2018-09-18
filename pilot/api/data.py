@@ -397,6 +397,7 @@ class StageInClient(StagingClient):
         allow_direct_access, direct_access_type = self.get_direct_access_variables(job)
         self.logger.info("direct access settings for the PQ: allow_direct_access=%s (type=%s)" %
                          (allow_direct_access, direct_access_type))
+        kwargs['allow_direct_access'] = allow_direct_access
 
         if allow_direct_access:
             # sort files to get candidates for remote_io coming first in order to exclude them from checking of available space for stage-in
