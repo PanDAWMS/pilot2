@@ -125,17 +125,16 @@ def get_memory_monitor_info_path(workdir, allowtxtfile=False):
     init_path = os.path.join(pilot_initdir, get_memory_monitor_summary_filename())
 
     if not os.path.exists(path):
-        logger.info("file does not exist: %s" % (path))
         if os.path.exists(init_path):
             path = init_path
         else:
-            logger.info("file does not exist either: %s" % (init_path))
+            logger.info("neither %s, nor %s exist" % (path, init_path))
             path = ""
 
         if path == "" and allowtxtfile:
             path = os.path.join(workdir, get_memory_monitor_output_filename())
             if not os.path.exists(path):
-                logger.warning("File does not exist either: %s" % (path))
+                logger.warning("file does not exist either: %s" % (path))
 
     return path
 
