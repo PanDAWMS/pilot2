@@ -969,7 +969,7 @@ def retrieve(queues, traces, args):
 
                 jobnumber += 1
                 while not args.graceful_stop.is_set():
-                    if job_has_finished(queues):
+                    if has_job_completed(queues):
                         logger.info('ready for new job')
                         break
                     time.sleep(0.5)
@@ -1016,9 +1016,10 @@ def create_job(dispatcher_response, queue):
     return job
 
 
-def job_has_finished(queues):
+def has_job_completed(queues):
     """
-    Has the current payload finished?
+    Has the current job completed (finished or failed)?
+    Note: the job object was extracted from monitored_payloads queue before this function was called.
 
     :param queues: Pilot queues object.
     :return: True is the payload has finished or failed
@@ -1032,6 +1033,9 @@ def job_has_finished(queues):
         pass
     else:
         log = get_logger(job.jobid)
+
+        make_job_report(job)
+
         log.info("job %s has completed" % job.jobid)
         return True
 
@@ -1432,3 +1436,45 @@ def job_monitor(queues, traces, args):
             break
 
     logger.info('job monitor has finished')
+
+
+def make_job_report(job):
+    """
+    Make a summary report for the given job.
+    This function is called when the job has completed.
+
+    :param job: job object.
+    :return:
+    """
+
+    log = get_logger(job.jobid)
+
+    log.info('')
+    log.info('job summary report')
+    log.info('--------------------------------------------------')
+    log.info('PanDA job id: %s' % job.jobid)
+    log.info('task id: %s' % job.taskid)
+    n = len(job.piloterrorcodes)
+    if n > 0:
+        for i in range(n):
+            log.info('error %d/%d: %s: %s' % (i + 1, n, job.piloterrorcodes[i], job.piloterrordiags[i]))
+    else:
+        log.info('errors: (none)')
+    info = ""
+    for key in job.status:
+        info += key + " = " + job.status[key] + " "
+    log.info('status: %s' % info)
+    log.info('pilot state: %s' % job.state)
+    log.info('transexitcode: %d' % job.transexitcode)
+    log.info('exeerrorcode: %d' % job.exeerrorcode)
+    log.info('exeerrordiag: %s' % job.exeerrordiag)
+    log.info('exitcode: %d' % job.exitcode)
+    log.info('exitmsg: %s' % job.exitmsg)
+    log.info('cpuconsumptiontime: %d %s' % (job.cpuconsumptiontime, job.cpuconsumptionunit))
+    log.info('nevents: %d' % job.nevents)
+    log.info('neventsw: %d' % job.neventsw)
+    log.info('pid: %d' % job.pid)
+    log.info('pgrp: %d' % job.pgrp)
+    log.info('corecount: %d' % job.corecount)
+    log.info('event service: %s' % str(job.is_eventservice))
+    log.info('')
