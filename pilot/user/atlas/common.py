@@ -323,8 +323,8 @@ def get_analysis_run_command(job, trf_name):
         # test code: remove eventually (get script from /cvmfs)
         cmd += 'python %s' % os.path.join(os.environ.get('PILOT_SOURCE_DIR', ''), 'pilot/scripts/runcontainer.py')
 
-        # restore the image name
-        cmd += ' --containerImage=%s' % job.imagename
+        # restore the image name and add the job params
+        cmd += ' --containerImage=%s %s' % (job.imagename, job.jobparams)
 
     return cmd
 
