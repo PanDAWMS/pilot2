@@ -1229,35 +1229,10 @@ def queue_monitor(queues, traces, args):
         # (abort at the end of the loop)
         abort = should_abort(args, label='job:queue_monitor')
         if abort:
-            delay = 20
-            logger.warning('since job:queue_monitor is responsible for sending job updates, we sleep until log has been'
-                           ' transferred (or a maximum of %d s)' % delay)
-            # use global object here (singleton or whatever) that will know the global status, such as finished log
-            # transfer
-            # ..
-            time.sleep(delay)
+            pause_queue_monitor(20)
 
         # check if the job has finished
-        job = has_job_finished(queues)
-        if not job:
-            job = has_job_failed(queues)
-
-            # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
-            log_transfer = get_job_status(job, 'LOG_TRANSFER')
-
-            if job and log_transfer == LOG_TRANSFER_NOT_DONE:
-                # order a log transfer for a failed job
-                order_log_transfer(args, queues, job)
-        else:
-            if abort:
-                logger.debug('job has finished and abort is set')
-
-        # check if the job has failed
-        if job and job.state == 'failed':
-            # set job_aborted in case of kill signals
-            if args.abort_job.is_set():
-                logger.warning('queue monitor detected a set abort_job (due to a kill signal), setting job_aborted')
-                args.job_aborted.set()
+        job = check_job(args, queues)
 
         # job has not been defined if it's still running
         if job:
@@ -1289,6 +1264,50 @@ def queue_monitor(queues, traces, args):
             break
 
     logger.info('[job] queue monitor has finished')
+
+
+def pause_queue_monitor(delay):
+    """
+    Pause the queue monitor to let log transfer complete.
+    Note: this function should use globally available object. Use sleep for now.
+    :param delay: sleep time in seconds (int).
+    :return:
+    """
+
+    logger.warning('since job:queue_monitor is responsible for sending job updates, we sleep until log has been'
+                   ' transferred (or a maximum of %d s)' % delay)
+    time.sleep(delay)
+
+
+def check_job(args, queues):
+    """
+    Check if the job has completed (either finished or failed).
+    If failed, order a log transfer. If the job is in state 'failed' and abort_job is set, set job_aborted.
+
+    :param args: pilot args object.
+    :param queues: pilot queues object.
+    :return: job object.
+    """
+
+    job = has_job_finished(queues)
+    if not job:
+        job = has_job_failed(queues)
+
+        # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
+        log_transfer = get_job_status(job, 'LOG_TRANSFER')
+
+        if job and log_transfer == LOG_TRANSFER_NOT_DONE:
+            # order a log transfer for a failed job
+            order_log_transfer(args, queues, job)
+
+    # check if the job has failed
+    if job and job.state == 'failed':
+        # set job_aborted in case of kill signals
+        if args.abort_job.is_set():
+            logger.warning('queue monitor detected a set abort_job (due to a kill signal), setting job_aborted')
+            args.job_aborted.set()
+
+    return job
 
 
 def get_heartbeat_period(debug=False):
