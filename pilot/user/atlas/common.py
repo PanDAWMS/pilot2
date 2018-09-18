@@ -941,7 +941,7 @@ def remove_redundant_files(workdir, outputfiles=[]):
     :return:
     """
 
-    logger.info("removing redundant files prior to log creation")
+    logger.debug("removing redundant files prior to log creation")
 
     workdir = os.path.abspath(workdir)
 
