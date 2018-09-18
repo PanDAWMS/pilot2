@@ -1097,8 +1097,9 @@ def has_job_failed(queues):
 
 def is_queue_empty(queues, q):
     """
+    Check if the given queue is empty (without pulling).
 
-    :param queues:
+    :param queues: pilot queues object.
     :param q: queue name (string).
     :return: True if queue is empty, False otherwise
     """
