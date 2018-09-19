@@ -8,6 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Wen Guan, wen.guan@cern.ch, 2018
 
 from __future__ import print_function
 
@@ -125,7 +126,7 @@ def send_state(job, args, state, xml=None):
     :return: boolean (True if successful, False otherwise).
     """
 
-    log = get_logger(job.jobid)
+    log = get_logger(job.jobid, logger)
 
     # should the pilot make any server updates?
     if not args.update_server:
@@ -197,7 +198,7 @@ def get_data_structure(job, state, args, xml=None):
     :return: data structure (dictionary).
     """
 
-    log = get_logger(job.jobid)
+    log = get_logger(job.jobid, logger)
 
     data = {'jobId': job.jobid,
             'state': state,
@@ -297,7 +298,7 @@ def validate(queues, traces, args):
         except queue.Empty:
             continue
 
-        log = get_logger(job.jobid)
+        log = get_logger(job.jobid, logger)
         traces.pilot['nr_jobs'] += 1
 
         # set the environmental variable for the task id
@@ -546,96 +547,6 @@ def getjob_server_command(url, port):
         logger.warning('detected missing protocol in server url (added)')
 
     return '{pandaserver}/server/panda/getJob'.format(pandaserver=url)
-
-
-# MOVE TO EVENT SERVICE CODE AFTER MERGE
-def create_es_file_dictionary(writetofile):
-    """
-    Create the event range file dictionary from the writetofile info.
-
-    writetofile = 'fileNameForTrf_1:LFN_1,LFN_2^fileNameForTrf_2:LFN_3,LFN_4'
-    -> esfiledictionary = {'fileNameForTrf_1': 'LFN_1,LFN_2', 'fileNameForTrf_2': 'LFN_3,LFN_4'}
-    Also, keep track of the dictionary keys (e.g. 'fileNameForTrf_1') ordered since we have to use them to update the
-    jobParameters once we know the full path to them (i.e. '@fileNameForTrf_1:..' will be replaced by
-    '@/path/filename:..'), the dictionary is otherwise not ordered so we cannot simply use the dictionary keys later.
-    fileinfo = ['fileNameForTrf_1:LFN_1,LFN_2', 'fileNameForTrf_2:LFN_3,LFN_4']
-
-    :param writetofile: file info string
-    :return: esfiledictionary, orderedfnamelist
-    """
-
-    fileinfo = writetofile.split("^")
-    esfiledictionary = {}
-    orderedfnamelist = []
-    for i in range(len(fileinfo)):
-        # Extract the file name
-        if ":" in fileinfo[i]:
-            finfo = fileinfo[i].split(":")
-
-            # fix the issue that some athena 20 releases have _000 at the end of the filename
-            if finfo[0].endswith("_000"):
-                finfo[0] = finfo[0][:-4]
-            esfiledictionary[finfo[0]] = finfo[1]
-            orderedfnamelist.append(finfo[0])
-        else:
-            logger.warning("file info does not have the correct format, expected a separator \':\': %s" % (fileinfo[i]))
-            esfiledictionary = {}
-            break
-
-    return esfiledictionary, orderedfnamelist
-
-
-# MOVE TO EVENT SERVICE CODE AFTER MERGE
-def update_es_guids(guids):
-    """
-    Update the NULL valued ES guids.
-    This is necessary since guids are used as dictionary keys in some places.
-    Replace the NULL values with different values:
-    E.g. guids = 'NULL,NULL,NULL,sasdasdasdasdd'
-    -> 'DUMMYGUID0,DUMMYGUID1,DUMMYGUID2,sasdasdasdasdd'
-
-    :param guids:
-    :return: updated guids
-    """
-
-    for i in range(guids.count('NULL')):
-        guids = guids.replace('NULL', 'DUMMYGUID%d' % i, 1)
-
-    return guids
-
-
-# MOVE TO EVENT SERVICE CODE AFTER MERGE
-def update_es_dispatcher_data(data):
-    """
-    Update the dispatcher data for Event Service.
-    For Event Service merge jobs, the input file list will not arrive in the inFiles list as usual, but in the
-    writeToFile field, so the inFiles list need to be corrected.
-
-    :param data: dispatcher data dictionary
-    :return: data (updated dictionary)
-    """
-
-    if 'writeToFile' in data:
-        writetofile = data['writeToFile']
-        esfiledictionary, orderedfnamelist = create_es_file_dictionary(writetofile)
-        if esfiledictionary != {}:
-            # fix the issue that some athena 20 releases have _000 at the end of the filename
-            for name in orderedfnamelist:
-                name_000 = "@%s_000 " % (name)
-                new_name = "@%s " % (name)
-                if name_000 in data['jobPars']:
-                    data['jobPars'] = data['jobPars'].replace(name_000, new_name)
-
-            # Remove the autoconf
-            if "--autoConfiguration=everything " in data['jobPars']:
-                data['jobPars'] = data['jobPars'].replace("--autoConfiguration=everything ", " ")
-
-            # Replace the NULL valued guids for the ES files
-            data['GUID'] = update_es_guids(data['GUID'])
-        else:
-            logger.warning("empty event service file dictionary")
-
-    return data
 
 
 def get_job_definition_from_file(path, harvester):
@@ -952,9 +863,6 @@ def retrieve(queues, traces, args):
                         break
                     time.sleep(1)
             else:
-                # update dispatcher data for ES (if necessary)
-                res = update_es_dispatcher_data(res)
-
                 # create the job object out of the raw dispatcher job dictionary
                 job = create_job(res, args.queue)
 
@@ -1032,7 +940,7 @@ def has_job_completed(queues):
         # logger.info("(job still running)")
         pass
     else:
-        log = get_logger(job.jobid)
+        log = get_logger(job.jobid, logger)
 
         make_job_report(job)
 

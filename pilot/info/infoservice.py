@@ -19,7 +19,7 @@ in a unified structured way via provided high-level API
 
 import inspect
 
-from pilot.common.exception import PilotException
+from pilot.common.exception import PilotException, NotDefined
 
 from .configinfo import PilotConfigProvider
 from .extinfo import ExtInfoProvider
@@ -65,6 +65,9 @@ class InfoService(object):
         self.confinfo = None   ## by default (when non initalized) ignore overwrites/settings from Config
         self.jobinfo = None    ## by default (when non initalized) ignore overwrites/settings from Job
         self.extinfo = ExtInfoProvider(cache_time=self.cache_time)
+
+        self.storage_id2ddmendpoint = {}
+        self.ddmendpoint2storage_id = {}
 
     def init(self, pandaqueue, confinfo=None, extinfo=None, jobinfo=None):
 
@@ -200,3 +203,52 @@ class InfoService(object):
     #
     #    # look up priority order: either from job, local config, extinfo provider
     #    return self._resolve_data(self.whoami(), providers=(self.confinfo, self.jobinfo, self.extinfo), args=[name])
+
+    def resolve_ddmendpoint_storageid(self, ddmendpoint=None):
+        """
+        Resolve the map between ddmendpoint and storage_id
+        """
+        if not ddmendpoint or ddmendpoint not in self.ddmendpoint2storage_id:
+            storages = self.resolve_storage_data(ddmendpoint)
+            for storage_name in storages:
+                storage_id = storages[storage_name].pk
+                self.ddmendpoint2storage_id[storage_name] = storage_id
+                self.storage_id2ddmendpoint[storage_id] = storage_name
+
+    def get_storage_id(self, ddmendpoint):
+        """
+        Return the storage_id of a ddmendpoint.
+
+        :param ddmendpoint: ddmendpoint name.
+        :returns storage_id: storage_id of the ddmendpoint.
+        :raises NotDefined:
+        """
+        if ddmendpoint not in self.ddmendpoint2storage_id:
+            self.resolve_ddmendpoint_storageid(ddmendpoint)
+
+        if ddmendpoint in self.ddmendpoint2storage_id:
+            storage_id = self.ddmendpoint2storage_id[ddmendpoint]
+            logger.info("Found storage id for ddmendpoint(%s): %s" % (ddmendpoint, storage_id))
+            return storage_id
+        else:
+            raise NotDefined("Cannot find the storage id for ddmendpoint: %s" % ddmendpoint)
+
+    def get_ddmendpoint(self, storage_id):
+        """
+        Return the ddmendpoint name from a storage id.
+
+        :param storage_id: storage_id as an int.
+        :returns ddmendpoint: ddmendpoint name.
+        :raises NotDefined:
+        """
+        storage_id = int(storage_id)
+        if storage_id not in self.storage_id2ddmendpoint:
+            self.resolve_ddmendpoint_storageid()
+
+        if storage_id in self.storage_id2ddmendpoint:
+            ddmendpoint = self.storage_id2ddmendpoint[storage_id]
+            logger.info("Found ddmendpoint for storage id(%s): %s" % (storage_id, ddmendpoint))
+            return ddmendpoint
+        else:
+            self.resolve_storage_data()
+            raise NotDefined("Cannot find ddmendpoint for storage id: %s" % storage_id)
