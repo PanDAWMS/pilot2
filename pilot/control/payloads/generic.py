@@ -196,6 +196,10 @@ class Executor(object):
 
         self.pre_setup(job)
 
+        # get the payload command from the user specific code
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+
         self.post_setup(job)
 
         self.utility_before_payload(job)
@@ -203,9 +207,6 @@ class Executor(object):
 
         self.utility_with_payload(job)
 
-        # get the payload command from the user specific code
-        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
         # for testing looping job:    cmd = user.get_payload_command(job) + ';sleep 240'
         try:
             cmd = user.get_payload_command(job)
