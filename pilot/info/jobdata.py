@@ -6,6 +6,7 @@
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Wen Guan, wen.guan@cern.ch, 2018
 
 """
 The implementation of data structure to host Job definition.
@@ -58,6 +59,7 @@ class JobData(BaseData):
     platform = ""   # cmtconfig value from the task definition
 
     is_eventservice = False        # True for event service jobs
+    is_eventservicemerge = False   # True for event service merge jobs
 
     transfertype = ""  # direct access instruction from server
     accessmode = ""  # direct access instruction from jobparams
@@ -128,6 +130,7 @@ class JobData(BaseData):
     #scopelog = ""  # scope for log file                                  ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
     #scopeout = ""  # comma-separated list (string) of output file scopes ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
     swrelease = ""  # software release string
+    writetofile = ""  # writeToFile
 
     # RAW data to keep backward compatible behavior for a while ## TO BE REMOVED once all job attributes will be covered
     _rawdata = {}
@@ -137,7 +140,7 @@ class JobData(BaseData):
                    'attemptnr', 'nevents', 'neventsw', 'pid'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
                    'state', 'workdir', 'stageout',
-                   'platform', 'piloterrordiag', 'exitmsg', 'produserid', 'jobdefinitionid',
+                   'platform', 'piloterrordiag', 'exitmsg', 'produserid', 'jobdefinitionid', 'writetofile',
                    #'infiles',         ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'scopein',        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'outfiles', 'ddmendpointin',   ## TO BE DEPRECATED: moved to FileSpec (job.indata)
@@ -150,7 +153,7 @@ class JobData(BaseData):
                    'infilesguids'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
              dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
-             bool: ['is_eventservice', 'noexecstrcnv', 'debug']
+             bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug']
              }
 
     def __init__(self, data):
@@ -194,7 +197,7 @@ class JobData(BaseData):
             'dataset': 'realDatasetsIn', 'guid': 'GUID',
             'filesize': 'fsize', 'checksum': 'checksum', 'scope': 'scopeIn',
             ##'??define_internal_key': 'prodDBlocks',
-            ##'storage_token': 'prodDBlockToken',
+            'storage_token': 'prodDBlockToken',
             'ddmendpoint': 'ddmEndPointIn',
             # 'transfertype': 'transferType',  # if transfertype was defined per file (it currently is not)
         }
@@ -356,7 +359,9 @@ class JobData(BaseData):
             'jobsetid': 'jobsetID',
             'produserid': 'prodUserID',
             'jobdefinitionid': 'jobDefinitionID',
-            'is_eventservice': 'eventService',  ## is it coming from Job def?? yes (PN)
+            'writetofile': 'writeToFile',
+            'is_eventservice': 'eventService',
+            'is_eventservicemerge': 'eventServiceMerge',
         }
 
         self._load_data(data, kmap)
@@ -668,3 +673,53 @@ class JobData(BaseData):
                 log_transfer = LOG_TRANSFER_NOT_DONE
 
         return log_transfer
+
+    def get_job_option_for_input_name(self, input_name):
+        """
+        Expecting something like --inputHitsFile=@input_name in jobparams.
+
+        :returns: job_option such as --inputHitsFile
+        """
+        job_options = self.jobparams.split(' ')
+        input_name_option = '=@%s' % input_name
+        for job_option in job_options:
+            if input_name_option in job_option:
+                return job_option.split("=")[0]
+        return None
+
+    def process_writetofile(self):
+        """
+        Expecting writetofile from the job definition.
+        The format is 'inputFor_file1:lfn1,lfn2^inputFor_file2:lfn3,lfn4'
+
+        format writetofile_dictionary = {'inputFor_file1': [lfn1, lfn2], 'inputFor_file2': [lfn3, lfn4]}
+        """
+        writetofile_dictionary = {}
+        if self.writetofile:
+            fileinfos = self.writetofile.split("^")
+            for fileinfo in fileinfos:
+                if ':' in fileinfo:
+                    input_name, input_list = fileinfo.split(":")
+                    writetofile_dictionary[input_name] = input_list.split(',')
+                else:
+                    logger.error("writeToFile doesn't have the correct format, expecting a separator ':' for %s" % fileinfo)
+
+        if writetofile_dictionary:
+            for input_name in writetofile_dictionary:
+                input_name_new = input_name + '.txt'
+                input_name_full = os.path.join(self.workdir, input_name_new)
+                f = open(input_name_full, 'w')
+                job_option = self.get_job_option_for_input_name(input_name)
+                if not job_option:
+                    logger.error("Unknow job option format, expecting to get job option such as '--inputHitsFile' for input file: %s" % input_name)
+                else:
+                    f.write("%s\n" % job_option)
+                for input_file in writetofile_dictionary[input_name]:
+                    f.write("%s\n" % os.path.join(self.workdir, input_file))
+                logger.info("Wrote input file list to file %s: %s" % (input_name_full, writetofile_dictionary[input_name]))
+
+                self.jobparams = self.jobparams.replace(input_name, input_name_full)
+                if job_option:
+                    self.jobparams = self.jobparams.replace('%s=' % job_option, '')
+                self.jobparams = self.jobparams.replace('--autoConfiguration=everything', '')
+                logger.info("jobparams after processing writeToFile: %s" % self.jobparams)
