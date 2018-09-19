@@ -111,7 +111,7 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
         # Try to download the trf (skip when user container is to be used)
         trf_name = ""
         if job.imagename == "":
-        #if '--containerImage' not in job.jobparams:
+        # if '--containerImage' not in job.jobparams:
             ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
             if ec != 0:
                 raise TrfDownloadFailure(diagnostics)
@@ -124,7 +124,7 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
             _cmd = job.jobparams
 
         if job.imagename == "":
-        #if '--containerImage' not in job.jobparams:
+        # if '--containerImage' not in job.jobparams:
             # Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
             cmd += "; " + add_makeflags(job.corecount, "") + _cmd
     else:
@@ -300,7 +300,7 @@ def get_analysis_run_command(job, trf_name):
 
     # set up analysis trf
     if job.imagename == "":
-    #if '--containerImage' not in job.jobparams:
+    # if '--containerImage' not in job.jobparams:
         cmd += './%s %s' % (trf_name, job.jobparams)
 
         # add control options for PFC turl and direct access
