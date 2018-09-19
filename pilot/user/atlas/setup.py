@@ -13,6 +13,7 @@ from time import sleep
 from xml.dom import minidom
 from xml.etree import ElementTree
 
+from pilot.common.errorcodes import ErrorCodes
 from pilot.info import infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
@@ -20,6 +21,8 @@ from pilot.util.filehandling import write_file
 
 import logging
 logger = logging.getLogger(__name__)
+
+errors = ErrorCodes()
 
 
 def get_file_system_root_path():
@@ -223,11 +226,12 @@ def get_analysis_trf(transform, workdir):
 
     if original_base_url == "":
         diagnostics = "invalid base URL: %s" % (transform)
-        # return self.__error.ERR_TRFDOWNLOAD, pilotErrorDiag, ""
+        return errors.TRFDOWNLOADFAILURE, diagnostics, ""
     else:
         logger.debug("verified the trf base url: %s" % (original_base_url))
 
     # try to download from the required location, if not - switch to backup
+    status = False
     for base_url in get_valid_base_urls(order=original_base_url):
         trf = re.sub(original_base_url, base_url, transform)
         logger.debug("attempting to download trf: %s" % (trf))
@@ -236,8 +240,7 @@ def get_analysis_trf(transform, workdir):
             break
 
     if not status:
-        pass
-        # return self.__error.ERR_TRFDOWNLOAD, diagnostics, ""
+        return errors.TRFDOWNLOADFAILURE, diagnostics, ""
 
     logger.info("successfully downloaded transform")
     path = os.path.join(workdir, transform_name)
@@ -246,7 +249,7 @@ def get_analysis_trf(transform, workdir):
         os.chmod(path, 0755)
     except Exception as e:
         diagnostics = "failed to chmod %s: %s" % (transform_name, e)
-        # return self.__error.ERR_CHMODTRF, diagnostics, ""
+        return errors.CHMODTRF, diagnostics, ""
 
     return ec, diagnostics, transform_name
 

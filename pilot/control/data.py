@@ -29,13 +29,16 @@ from pilot.api.data import StageInClient, StageOutClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
-from pilot.util.auxiliary import get_logger
+from pilot.util.auxiliary import get_logger  #, abort_jobs_in_queues
+from pilot.util.common import should_abort
 from pilot.util.config import config
-from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT
+from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
+    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED
 from pilot.util.container import execute
-from pilot.util.filehandling import find_executable, get_guid, get_local_file_size
+from pilot.util.filehandling import find_executable, get_guid, get_local_file_size, remove
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.tracereport import TraceReport
+from pilot.util.queuehandling import declare_failed_by_kill
 
 import logging
 
@@ -68,6 +71,17 @@ def control(queues, traces, args):
 
             thread.join(0.1)
             time.sleep(0.1)
+
+    logger.debug('data control ending since graceful_stop has been set')
+    if args.abort_job.is_set():
+        if traces.pilot['command'] == 'aborting':
+            logger.warning('jobs are aborting')
+        elif traces.pilot['command'] == 'abort':
+            logger.warning('data control detected a set abort_job (due to a kill signal)')
+            traces.pilot['command'] = 'aborting'
+
+            # find all running jobs and stop them, find all jobs in queues relevant to this module
+            #abort_jobs_in_queues(queues, args.signal)
 
 
 def prepare_for_container(workdir):
@@ -172,8 +186,13 @@ def _stage_in(args, job):
 
     log = get_logger(job.jobid)
 
+    # tested ok:
+    #log.info('testing sending SIGUSR1')
+    #import signal
+    #os.kill(os.getpid(), signal.SIGUSR1)
+
     # write time stamps to pilot timing file
-    add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN, time.time())
+    add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN, time.time(), args)
 
     event_type = "get_sm"
     #if log_transfer:
@@ -192,6 +211,12 @@ def _stage_in(args, job):
         client.transfer(job.indata, activity='pr', **kwargs)
     except Exception as error:
         log.error('Failed to stage-in: error=%s' % error)
+        if 'pilot exception' in str(error):
+            log.error('setting graceful stop since a pilot exception was caught')
+            args.graceful_stop.set()
+        else:
+            log.error('did not parse error of type: %s (setting graceful stop anyway)' % type(error))
+            args.graceful_stop.set()
         #return False
 
     log.info('Summary of transferred files:')
@@ -201,7 +226,7 @@ def _stage_in(args, job):
     log.info("stage-in finished")
 
     # write time stamps to pilot timing file
-    add_to_pilot_timing(job.jobid, PILOT_POST_STAGEIN, time.time())
+    add_to_pilot_timing(job.jobid, PILOT_POST_STAGEIN, time.time(), args)
 
     remain_files = [e for e in job.indata if e.status not in ['remote_io', 'transferred', 'no_transfer']]
 
@@ -353,6 +378,14 @@ def stage_out_auto(site, files):
 
 
 def copytool_in(queues, traces, args):
+    """
+    Call the stage-in function and put the job object in the proper queue.
+
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
 
     while not args.graceful_stop.is_set():
         try:
@@ -362,7 +395,19 @@ def copytool_in(queues, traces, args):
 
             log = get_logger(job.jobid)
 
+            if args.abort_job.is_set():
+                traces.pilot['command'] = 'abort'
+                log.warning('copytool_in detected a set abort_job pre stage-in (due to a kill signal)')
+                declare_failed_by_kill(job, queues.failed_data_in, args.signal)
+                break
+
             if _stage_in(args, job):
+                if args.abort_job.is_set():
+                    traces.pilot['command'] = 'abort'
+                    log.warning('copytool_in detected a set abort_job post stage-in (due to a kill signal)')
+                    declare_failed_by_kill(job, queues.failed_data_in, args.signal)
+                    break
+
                 queues.finished_data_in.put(job)
 
                 # now create input file metadata if required by the payload
@@ -374,30 +419,83 @@ def copytool_in(queues, traces, args):
                 log.info('created input file metadata:\n%s' % xml)
             else:
                 log.warning('stage-in failed, adding job object to failed_data_in queue')
-                queues.failed_data_in.put(job)
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINFAILED)
                 job.state = "failed"
+                queues.failed_data_in.put(job)
                 # send_state(job, args, 'failed')
 
         except queue.Empty:
             continue
 
+    logger.debug('copytool_in ended since graceful_stop has been set')
+
 
 def copytool_out(queues, traces, args):
+    """
+    Main stage-out thread.
+    Perform stage-out as soon as a job object can be extracted from the data_out queue.
 
-    while not args.graceful_stop.is_set():
+    :param queues: pilot queues object.
+    :param traces: pilot traces object.
+    :param args: pilot args object.
+    :return:
+    """
+
+    cont = True
+    logger.debug('entering copytool_out loop')
+    if args.graceful_stop.is_set():
+        logger.debug('graceful_stop already set')
+    first = True
+#    while not args.graceful_stop.is_set() and cont:
+    while cont:
+
+        if first:
+            first = False
+            logger.debug('inside copytool_out() loop')
+
+        # check for abort, print useful messages and include a 1 s sleep
+        abort = should_abort(args, label='data:copytool_out')
+        if abort:
+            logger.debug('will abort ')
         try:
             job = queues.data_out.get(block=True, timeout=1)
+            if job:
+                log = get_logger(job.jobid)
+                log.info('will perform stage-out')
 
-            # send_state(job, args, 'running')  # not necessary to send job update at this point?
+                if args.abort_job.is_set():
+                    traces.pilot['command'] = 'abort'
+                    log.warning('copytool_out detected a set abort_job pre stage-out (due to a kill signal)')
+                    declare_failed_by_kill(job, queues.failed_data_out, args.signal)
+                    break
 
-            if _stage_out_new(job, args):
-                queues.finished_data_out.put(job)
+                if _stage_out_new(job, args):
+                    if args.abort_job.is_set():
+                        traces.pilot['command'] = 'abort'
+                        log.warning('copytool_out detected a set abort_job post stage-out (due to a kill signal)')
+                        #declare_failed_by_kill(job, queues.failed_data_out, args.signal)
+                        break
+
+                    queues.finished_data_out.put(job)
+                    log.debug('job object added to finished_data_out queue')
+                else:
+                    queues.failed_data_out.put(job)
+                    log.debug('job object added to failed_data_out queue')
             else:
-                queues.failed_data_out.put(job)
-
+                log.debug('no returned job - why no exception?')
         except queue.Empty:
+            if abort:
+                logger.debug('aborting')
+                cont = False
+                break
             continue
+
+        if abort:
+            logger.debug('aborting')
+            cont = False
+            break
+
+    logger.debug('copytool_out has finished')
 
 
 def get_input_file_dictionary(indata):
@@ -418,21 +516,58 @@ def get_input_file_dictionary(indata):
     return file_dictionary
 
 
-def prepare_log(job, logfile, tarball_name):
-    log = get_logger(job.jobid)
-    log.info('preparing log file')
+def filter_files_for_log(directory):
+    """
+    Create a file list recursi
+    :param directory:
+    :return:
+    """
+    filtered_files = []
+    maxfilesize = 10
+    for root, dirnames, filenames in os.walk(directory):
+        for filename in filenames:
+            location = os.path.join(root, filename)
+            if os.path.exists(location):  # do not include broken links
+                if os.path.getsize(location) < maxfilesize:
+                    filtered_files.append(location)
 
-    input_files = [e.lfn for e in job.indata]
-    output_files = [e.lfn for e in job.outdata]
-    force_exclude = ['geomDB', 'sqlite200']
+    return filtered_files
+
+
+def create_log(job, logfile, tarball_name):
+    """
+
+    :param job:
+    :param logfile:
+    :param tarball_name:
+    :return:
+    """
+
+    log = get_logger(job.jobid)
+    log.debug('preparing to create log file')
 
     # perform special cleanup (user specific) prior to log file creation
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
     user.remove_redundant_files(job.workdir)
 
+    input_files = [e.lfn for e in job.indata]
+    output_files = [e.lfn for e in job.outdata]
+
+    # remove any present input/output files before tarring up workdir
+    for f in input_files + output_files:
+        path = os.path.join(job.workdir, f)
+        if os.path.exists(path):
+            log.info('removing file: %s' % path)
+            remove(path)
+
+    name = os.path.join(job.workdir, logfile.lfn)
+    log.info('will create archive %s from %s' % (name, job.workdir))
+#    with closing(tarfile.open(name=name, mode='w:gz', dereference=True)) as archive:
+#        archive.add(job.workdir, recursive=True)
+
     with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as log_tar:
-        for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files) - set(force_exclude)):
+        for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files)):
             if os.path.exists(os.path.join(job.workdir, _file)):
                 logging.debug('adding to log: %s' % _file)
                 log_tar.add(os.path.join(job.workdir, _file),
@@ -448,7 +583,7 @@ def _stage_out(args, outfile, job):  ### TO BE DEPRECATED
     log = get_logger(job.jobid)
 
     # write time stamps to pilot timing file
-    add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEOUT, time.time())
+    add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEOUT, time.time(), args)
 
     log.info('will stage-out: %s' % outfile)
 
@@ -512,7 +647,7 @@ def _stage_out(args, outfile, job):  ### TO BE DEPRECATED
     log.debug('stderr:\n%s' % err)
 
     # write time stamps to pilot timing file
-    add_to_pilot_timing(job.jobid, PILOT_POST_STAGEOUT, time.time())
+    add_to_pilot_timing(job.jobid, PILOT_POST_STAGEOUT, time.time(), args)
 
     # in case of problems, try to identify the error (and set it in the job object)
     if err != "":
@@ -538,12 +673,18 @@ def _stage_out(args, outfile, job):  ### TO BE DEPRECATED
 
 def _do_stageout(job, xdata, activity, title):
     """
-        :return: True in case of success transfers
-        :raise: PilotException in case of controlled error
+    Use the `StageOutClient` in the Data API to perform stage-out.
+
+    :param job: job object.
+    :param xdata: list of FileSpec objects.
+    :param activity:
+    :param title: type of stage-out (output, log) (string).
+    :raise: PilotException in case of controlled error
+    :return: True in case of success transfers
     """
 
     log = get_logger(job.jobid)
-    log.info('prepare to stage-out %s files' % title)
+    log.info('prepare to stage-out %s file(s)' % title)
 
     try:
         client = StageOutClient(job.infosys, logger=log)
@@ -572,15 +713,19 @@ def _stage_out_new(job, args):
     Stage-out of all output files.
     If job.stageout=log then only log files will be transferred.
 
-    :param job: job object
-    :param args:
-    :return: True in case of success
+    :param job: job object.
+    :param args: pilot args object.
+    :return: True in case of success, False otherwise.
     """
 
     log = get_logger(job.jobid)
 
+    #log.info('testing sending SIGUSR1')
+    #import signal
+    #os.kill(os.getpid(), signal.SIGUSR1)
+
     # write time stamps to pilot timing file
-    add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEOUT, time.time())
+    add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEOUT, time.time(), args)
 
     is_success = True
     if job.stageout != 'log':  ## do stage-out output files
@@ -590,15 +735,24 @@ def _stage_out_new(job, args):
 
     if job.stageout in ['log', 'all'] and job.logdata:  ## do stage-out log files
         # prepare log file, consider only 1st available log file
+        status = job.get_status('LOG_TRANSFER')
+        if status != LOG_TRANSFER_NOT_DONE:
+            log.warning('log transfer already attempted')
+            return False
+
+        job.status['LOG_TRANSFER'] = LOG_TRANSFER_IN_PROGRESS
         logfile = job.logdata[0]
-        prepare_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
+        create_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
 
         if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], 'log'):
             is_success = False
             log.warning('log transfer failed')
+            job.status['LOG_TRANSFER'] = LOG_TRANSFER_FAILED
+        else:
+            job.status['LOG_TRANSFER'] = LOG_TRANSFER_DONE
 
     # write time stamps to pilot timing file
-    add_to_pilot_timing(job.jobid, PILOT_POST_STAGEOUT, time.time())
+    add_to_pilot_timing(job.jobid, PILOT_POST_STAGEOUT, time.time(), args)
 
     # generate fileinfo details to be send to Panda
     fileinfo = {}
@@ -692,7 +846,7 @@ def _stage_out_all(job, args):  ### NOT USED - TO BE DEPRECATED
     if job.logdata:
         logfile = job.logdata[0]
         key = '%s:%s' % (logfile.scope, logfile.lfn)
-        outputs[key] = prepare_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, args.queue))
+        outputs[key] = create_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, args.queue))
 
         status = single_stage_out(args, job, outputs[key], fileinfodict)
         if not status:
@@ -766,10 +920,13 @@ def queue_monitoring(queues, traces, args):
     :return:
     """
 
-    while not args.graceful_stop.is_set():
-        # wait a second
-        if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
-            break
+    while True:  # will abort when graceful_stop has been set
+        if traces.pilot['command'] == 'abort':
+            logger.warning('data queue monitor saw the abort instruction')
+
+        # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
+        # (abort at the end of the loop)
+        abort = should_abort(args, label='data:queue_monitoring')
 
         # monitor the failed_data_in queue
         try:
@@ -824,3 +981,8 @@ def queue_monitoring(queues, traces, args):
                          "object to failed_jobs queue" % job.jobid)
 
             queues.failed_jobs.put(job)
+
+        if abort:
+            break
+
+    logger.info('[data] queue monitor has finished')

@@ -47,11 +47,11 @@ def get_payload_command(job):
     # Should the pilot do the asetup or do the jobPars already contain the information?
     prepareasetup = should_pilot_prepare_asetup(job.noexecstrcnv, job.jobparams)
 
-    # Is it a user job or not?
-    userjob = job.is_analysis()
-
     # Get the platform value
     # platform = job.infosys.queuedata.platform
+
+    # Is it a user job or not?
+    userjob = job.is_analysis()
 
     cmd = get_setup_command(job, prepareasetup)
 
@@ -59,68 +59,12 @@ def get_payload_command(job):
 
         # Normal setup (production and user jobs)
         log.info("preparing normal production/analysis job setup command")
-
-        if userjob:
-            # set the INDS env variable (used by runAthena)
-            set_inds(job.datasetin)  # realDatasetsIn
-
-            # Try to download the trf
-            ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
-            if ec != 0:
-                raise TrfDownloadFailure(diagnostics)
-            else:
-                log.debug('user analysis trf: %s' % trf_name)
-
-            if prepareasetup:
-                _cmd = get_analysis_run_command(job, trf_name)
-            else:
-                _cmd = job.jobparams
-
-            # Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
-            cmd += "; " + add_makeflags(job.corecount, "") + _cmd
-        else:
-            # Add Database commands if they are set by the local site
-            cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
-            # Add the transform and the job parameters (production jobs)
-            if prepareasetup:
-                cmd += "; %s %s" % (job.transformation, job.jobparams)
-            else:
-                cmd += "; " + job.jobparams
+        cmd += get_normal_payload_command(cmd, job, prepareasetup, userjob)
 
     else:  # Generic, non-ATLAS specific jobs, or at least a job with undefined swRelease
 
         log.info("generic job (non-ATLAS specific or with undefined swRelease)")
-
-        if userjob:
-            # Try to download the trf
-            ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
-            if ec != 0:
-                raise TrfDownloadFailure(diagnostics)
-            else:
-                log.debug('user analysis trf: %s' % trf_name)
-
-            if prepareasetup:
-                _cmd = get_analysis_run_command(job, trf_name)
-            else:
-                _cmd = job.jobparams
-
-            # correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
-            # only if not using a user container
-            if not job.imagename:
-                cmd += "; " + add_makeflags(job.corecount, "") + _cmd
-            else:
-                cmd += _cmd
-
-        elif verify_release_string(job.homepackage) != 'NULL' and job.homepackage != ' ':
-            if prepareasetup:
-                cmd = "python %s/%s %s" % (job.homepackage, job.transformation, job.jobparams)
-            else:
-                cmd = job.jobparams
-        else:
-            if prepareasetup:
-                cmd = "python %s %s" % (job.transformation, job.jobparams)
-            else:
-                cmd = job.jobparams
+        cmd += get_generic_payload_command(cmd, job, prepareasetup, userjob)
 
     # only if not using a user container
     if not job.imagename:
@@ -135,11 +79,108 @@ def get_payload_command(job):
     use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype,
                                                                             job.is_build_job(),
                                                                             job.infosys.queuedata)
-    if not userjob and use_direct_access:
+    if not userjob and use_direct_access and job.transfertype == 'direct':
         lfns, guids = job.get_lfns_and_guids()
         cmd = replace_lfns_with_turls(cmd, job.workdir, "PoolFileCatalog.xml", lfns)
 
     log.info('payload run command: %s' % cmd)
+
+    return cmd
+
+
+def get_normal_payload_command(cmd, job, prepareasetup, userjob):
+    """
+    Return the payload command for a normal production/analysis job.
+
+    :param cmd: any preliminary command setup (string).
+    :param job: job object.
+    :param userjob: True for user analysis jobs, False otherwise (bool).
+    :param prepareasetup: True if the pilot should prepare the setup, False if already in the job parameters.
+    :return: normal payload command (string).
+    """
+
+    log = get_logger(job.jobid)
+
+    # Is it a user job or not?
+    userjob = job.is_analysis()
+
+    if userjob:
+        # set the INDS env variable (used by runAthena)
+        set_inds(job.datasetin)  # realDatasetsIn
+
+        # Try to download the trf (skip when user container is to be used)
+        trf_name = ""
+        if job.imagename == "":
+            # if '--containerImage' not in job.jobparams:
+            ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
+            if ec != 0:
+                raise TrfDownloadFailure(diagnostics)
+            else:
+                log.debug('user analysis trf: %s' % trf_name)
+
+        if prepareasetup:
+            _cmd = get_analysis_run_command(job, trf_name)
+        else:
+            _cmd = job.jobparams
+
+        if job.imagename == "":
+            # if '--containerImage' not in job.jobparams:
+            # Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
+            cmd += "; " + add_makeflags(job.corecount, "") + _cmd
+    else:
+        # Add Database commands if they are set by the local site
+        cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
+        # Add the transform and the job parameters (production jobs)
+        if prepareasetup:
+            cmd += "; %s %s" % (job.transformation, job.jobparams)
+        else:
+            cmd += "; " + job.jobparams
+
+    return cmd
+
+
+def get_generic_payload_command(cmd, job, prepareasetup, userjob):
+    """
+
+    :param cmd:
+    :param job: job object.
+    :param prepareasetup:
+    :param userjob: True for user analysis jobs, False otherwise (bool).
+    :return: generic job command (string).
+    """
+
+    log = get_logger(job.jobid)
+
+    if userjob:
+        # Try to download the trf
+        ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
+        if ec != 0:
+            raise TrfDownloadFailure(diagnostics)
+        else:
+            log.debug('user analysis trf: %s' % trf_name)
+
+        if prepareasetup:
+            _cmd = get_analysis_run_command(job, trf_name)
+        else:
+            _cmd = job.jobparams
+
+        # correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
+        # only if not using a user container
+        if not job.imagename:
+            cmd += "; " + add_makeflags(job.corecount, "") + _cmd
+        else:
+            cmd += _cmd
+
+    elif verify_release_string(job.homepackage) != 'NULL' and job.homepackage != ' ':
+        if prepareasetup:
+            cmd = "python %s/%s %s" % (job.homepackage, job.transformation, job.jobparams)
+        else:
+            cmd = job.jobparams
+    else:
+        if prepareasetup:
+            cmd = "python %s %s" % (job.transformation, job.jobparams)
+        else:
+            cmd = job.jobparams
 
     return cmd
 
@@ -155,8 +196,8 @@ def get_setup_command(job, prepareasetup):
     :return:
     """
 
-    # return immediately if there is no release
-    if job.swrelease == 'NULL':
+    # return immediately if there is no release or if user containers are used
+    if job.swrelease == 'NULL' or '--containerImage' in job.jobparams:
         return ""
 
     # Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
@@ -241,7 +282,7 @@ def get_analysis_run_command(job, trf_name):
     Example output: export X509_USER_PROXY=<..>;./runAthena <job parameters> --usePFCTurl --directIn
 
     :param job: job object.
-    :param trf_name: name of the transform that will run the job (string).
+    :param trf_name: name of the transform that will run the job (string). Used when containers are not used.
     :return: command (string).
     """
 
@@ -258,24 +299,32 @@ def get_analysis_run_command(job, trf_name):
         cmd += 'export X509_USER_PROXY=%s;' % os.environ.get('X509_USER_PROXY')
 
     # set up analysis trf
-    cmd += './%s %s' % (trf_name, job.jobparams)
+    if job.imagename == "":
+        # if '--containerImage' not in job.jobparams:
+        cmd += './%s %s' % (trf_name, job.jobparams)
 
-    # add control options for PFC turl and direct access
-    if use_pfc_turl and '--usePFCTurl' not in cmd:
-        cmd += ' --usePFCTurl'
-    if use_direct_access and '--directIn' not in cmd:
-        cmd += ' --directIn'
+        # add control options for PFC turl and direct access
+        if use_pfc_turl and '--usePFCTurl' not in cmd:
+            cmd += ' --usePFCTurl'
+        if use_direct_access and '--directIn' not in cmd:
+            cmd += ' --directIn'
 
-    # update the payload command for forced accessmode
-    cmd = update_forced_accessmode(log, cmd, job.transfertype, job.jobparams, trf_name)
+        # update the payload command for forced accessmode
+        cmd = update_forced_accessmode(log, cmd, job.transfertype, job.jobparams, trf_name)
 
-    # add guids when needed
-    # get the correct guids list (with only the direct access files)
-    if not job.is_build_job():
-        lfns, guids = job.get_lfns_and_guids()
-        _guids = get_guids_from_jobparams(job.jobparams, lfns, guids)
-        if _guids:
-            cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
+        # add guids when needed
+        # get the correct guids list (with only the direct access files)
+        if not job.is_build_job():
+            lfns, guids = job.get_lfns_and_guids()
+            _guids = get_guids_from_jobparams(job.jobparams, lfns, guids)
+            if _guids:
+                cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
+    else:
+        # test code: remove eventually (get script from /cvmfs)
+        cmd += 'python %s' % os.path.join(os.environ.get('PILOT_SOURCE_DIR', ''), 'pilot/scripts/runcontainer.py')
+
+        # restore the image name and add the job params
+        cmd += ' --containerImage=%s %s' % (job.imagename, job.jobparams)
 
     return cmd
 
@@ -898,7 +947,7 @@ def remove_redundant_files(workdir, outputfiles=[]):
     :return:
     """
 
-    logger.info("removing redundant files prior to log creation")
+    logger.debug("removing redundant files prior to log creation")
 
     workdir = os.path.abspath(workdir)
 

@@ -28,6 +28,7 @@ import pipes
 
 from .basedata import BaseData
 from .filespec import FileSpec
+from pilot.util.constants import LOG_TRANSFER_NOT_DONE
 from pilot.util.filehandling import get_guid
 
 import logging
@@ -50,7 +51,7 @@ class JobData(BaseData):
     transformation = ""    # Script execution name
 
     state = ""            # Current job state
-    status = ""           # Current job status
+    status = {'LOG_TRANSFER': LOG_TRANSFER_NOT_DONE}  # Current job status; format = {key: value, ..} e.g. key='LOG_TRANSFER', value='DONE'
     workdir = ""          # Working directoty for this job
 
     corecount = 1   # Number of cores as requested by the task
@@ -135,7 +136,7 @@ class JobData(BaseData):
     _keys = {int: ['corecount', 'piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
                    'attemptnr', 'nevents', 'neventsw', 'pid'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
-                   'state', 'status', 'workdir', 'stageout',
+                   'state', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg', 'produserid', 'jobdefinitionid',
                    #'infiles',         ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'scopein',        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
@@ -148,7 +149,7 @@ class JobData(BaseData):
                    #'datasetout',  ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    'infilesguids'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
-             dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
+             dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
              bool: ['is_eventservice', 'noexecstrcnv', 'debug']
              }
 
@@ -648,3 +649,22 @@ class JobData(BaseData):
                 guids.append(fspec.guid)
 
         return lfns, guids
+
+    def get_status(self, key):
+        """
+
+        Return the value for the given key (e.g. LOG_TRANSFER) from the status dictionary.
+        LOG_TRANSFER_NOT_DONE is returned if job object is not defined for key='LOG_TRANSFER'.
+        If no key is found, None will be returned.
+
+        :param key: key name (string).
+        :return: corresponding key value in job.status dictionary (string).
+        """
+
+        log_transfer = self.status.get(key, None)
+
+        if not log_transfer:
+            if key == 'LOG_TRANSFER':
+                log_transfer = LOG_TRANSFER_NOT_DONE
+
+        return log_transfer

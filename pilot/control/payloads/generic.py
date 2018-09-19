@@ -20,17 +20,21 @@ from pilot.control.job import send_state
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD, \
-    PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD
+    PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, LOG_TRANSFER_NOT_DONE, PILOT_KILL_SIGNAL
 from pilot.util.timing import add_to_pilot_timing
+from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import PilotException
 
 import logging
 logger = logging.getLogger(__name__)
 
+errors = ErrorCodes()
+
 
 class Executor(object):
-    def __init__(self, args, job, out, err):
+    def __init__(self, args, queues, job, out, err):
         self.__args = args
+        self.__queues = queues
         self.__job = job
         self.__out = out
         self.__err = err
@@ -79,7 +83,7 @@ class Executor(object):
         log = get_logger(job.jobid)
 
         # write time stamps to pilot timing file
-        add_to_pilot_timing(job.jobid, PILOT_PRE_SETUP, time.time())
+        add_to_pilot_timing(job.jobid, PILOT_PRE_SETUP, time.time(), self.__args)
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -87,7 +91,6 @@ class Executor(object):
         # for testing looping job:    cmd = user.get_payload_command(job) + ';sleep 240'
         try:
             cmd = user.get_payload_command(job)
-            #cmd = user.get_payload_command(job) + ';sleep 240'
         except PilotException as e:
             log.fatal('could not define payload command')
             return None
@@ -95,7 +98,7 @@ class Executor(object):
         log.info("payload execution command: %s" % cmd)
 
         # write time stamps to pilot timing file
-        add_to_pilot_timing(job.jobid, PILOT_POST_SETUP, time.time())
+        add_to_pilot_timing(job.jobid, PILOT_POST_SETUP, time.time(), self.__args)
 
         # should we run any additional commands? (e.g. special monitoring commands)
         cmds = user.get_utility_commands_list(order=UTILITY_BEFORE_PAYLOAD)
@@ -114,7 +117,7 @@ class Executor(object):
                 # add execution code here
 
         # write time stamps to pilot timing file
-        add_to_pilot_timing(job.jobid, PILOT_PRE_PAYLOAD, time.time())
+        add_to_pilot_timing(job.jobid, PILOT_PRE_PAYLOAD, time.time(), self.__args)
 
         # replace platform and workdir with new function get_payload_options() or something from experiment specific
         # code
@@ -169,15 +172,27 @@ class Executor(object):
             iteration += 1
             for i in xrange(100):
                 if args.graceful_stop.is_set():
+                    # does the job have a set error code?
+                    if os.environ.get('REACHED_MAXTIME'):  # TODO: READ FROM WITH SINGLETON
+                        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.REACHEDMAXTIME)
+                    if not job.piloterrorcodes:
+                        log.warning('received graceful stop but no pilot error code has been set yet')
+                    log_transfer = job.get_status('LOG_TRANSFER')
+                    log.info('job.status=%s, log_transfer=%s' % (job.status, log_transfer))
+                    if job not in self.__queues.failed_jobs.queue and log_transfer == LOG_TRANSFER_NOT_DONE:
+                        self.__queues.failed_jobs.put(job)
+                        log.warning('added job object to failed_jobs queue')
                     breaker = True
+                    add_to_pilot_timing(0, PILOT_KILL_SIGNAL, time.time(), args)
                     log.info('breaking -- sending SIGTERM pid=%s' % proc.pid)
                     os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
                     # proc.terminate()
                     break
                 time.sleep(0.1)
             if breaker:
-                log.info('breaking -- sleep 3s before sending SIGKILL pid=%s' % proc.pid)
-                time.sleep(3)
+                delay = 30
+                log.info('breaking -- sleep %d s before sending kill instruction to pid=%s' % (delay, proc.pid))
+                time.sleep(delay)
                 proc.kill()
                 break
 
@@ -218,7 +233,7 @@ class Executor(object):
                     exit_code = -1
 
                 # write time stamps to pilot timing file
-                add_to_pilot_timing(self.__job.jobid, PILOT_POST_PAYLOAD, time.time())
+                add_to_pilot_timing(self.__job.jobid, PILOT_POST_PAYLOAD, time.time(), self.__args)
 
                 # stop any running utilities
                 if self.__job.utilities != {}:

@@ -185,7 +185,7 @@ class StagingClient(object):
                 if not fdat.replicas:
                     logger.info("No local replicas found for lfn=%s but allowremoteinputs is set => looking for remote inputs" % fdat.lfn)
                 else:
-                    logger.info("Direct access is set but no local direct access files, but allowremoteinputs is set => looking for remote inputs" % fdat.lfn)
+                    logger.info("Direct access is set but no local direct access files, but allowremoteinputs is set => looking for remote inputs")
                 logger.info("consider first/closest replica, accessmode=%s, remoteinput_allowed_schemas=%s" % (fdat.accessmode, allowed_schemas))
                 logger.debug('rses=%s' % r['rses'])
                 for ddm, replicas in r['rses'].iteritems():
@@ -213,7 +213,7 @@ class StagingClient(object):
                     fdat.checksum[ctype] = r[ctype]
 
         logger.info('Number of resolved replicas:\n' +
-                    '\n'.join(["lfn=%s: replicas=%s, allowremoteinputs=%s, is_directaccess=%s"
+                    '\n'.join(["lfn=%s: replicas=%s, allowremoteinputsallowremoteinputs=%s, is_directaccess=%s"
                                % (f.lfn, len(f.replicas), f.allowremoteinputs, f.is_directaccess(ensure_replica=False)) for f in files]))
 
         return files
@@ -264,7 +264,7 @@ class StagingClient(object):
             :param activity: list of activity names used to determine appropriate copytool (prioritized list)
             :param kwargs: extra kwargs to be passed to copytool transfer handler
             :raise: PilotException in case of controlled error
-            :return: output of copytool trasfers (to be clarified)
+            :return: output of copytool transfers (to be clarified)
         """
 
         if isinstance(activity, basestring):
@@ -358,44 +358,46 @@ class StageInClient(StagingClient):
 
         return {'surl': surl, 'ddmendpoint': ddmendpoint, 'pfn': replica}
 
-    def get_direct_access_variables(self):
+    def get_direct_access_variables(self, job):
         """
         Return the direct access settings for the PQ.
 
-        :return: use_direct_access (bool), direct_access_type (string).
+        :param job: job object.
+        :return: allow_direct_access (bool), direct_access_type (string).
         """
 
-        use_direct_access = self.infosys.queuedata.direct_access_lan or self.infosys.queuedata.direct_access_wan
+        allow_direct_access = self.infosys.queuedata.direct_access_lan or self.infosys.queuedata.direct_access_wan
         direct_access_type = ''
         if self.infosys.queuedata.direct_access_lan:
             direct_access_type = 'LAN'
         if self.infosys.queuedata.direct_access_wan:
             direct_access_type = 'WAN'
 
-        return use_direct_access, direct_access_type
+        if not job.is_analysis() and job.transfertype != 'direct':  ## task forbids direct access
+            allow_direct_access = False
+            self.logger.info('switched off direct access mode for production job since transfertype=%s' % job.transfertype)
+
+        return allow_direct_access, direct_access_type
 
     def transfer_files(self, copytool, files, activity=None, **kwargs):
         """
-            Automatically stage in files using the selected copy tool module.
+        Automatically stage in files using the selected copy tool module.
 
-            :param copytool: copytool module
-            :param files: list of `FileSpec` objects
-            :param kwargs: extra kwargs to be passed to copytool transfer handler
+        :param copytool: copytool module
+        :param files: list of `FileSpec` objects
+        :param kwargs: extra kwargs to be passed to copytool transfer handler
 
-            :return: the output of the copytool transfer operation
-            :raise: PilotException in case of controlled error
+        :return: the output of the copytool transfer operation
+        :raise: PilotException in case of controlled error
         """
 
         # sort out direct access logic
-        #job = kwargs.get('job', None)
+        job = kwargs.get('job', None)
         #job_access_mode = job.accessmode if job else ''
-
-        allow_direct_access, direct_access_type = self.get_direct_access_variables()
+        allow_direct_access, direct_access_type = self.get_direct_access_variables(job)
         self.logger.info("direct access settings for the PQ: allow_direct_access=%s (type=%s)" %
                          (allow_direct_access, direct_access_type))
-        #if job_access_mode != 'direct': ## task forbids direct access
-        #    allow_directaccess = False
-        #self.logger.info("direct access settings for the job: allow_direct_access=%s" % allow_direct_access)
+        kwargs['allow_direct_access'] = allow_direct_access
 
         if allow_direct_access:
             # sort files to get candidates for remote_io coming first in order to exclude them from checking of available space for stage-in

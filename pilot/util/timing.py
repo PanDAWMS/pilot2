@@ -10,12 +10,18 @@
 # Note: The Pilot 2 modules that need to record timing measurements, can do so using the add_to_pilot_timing() function.
 # When the timing measurements need to be recorded, the high-level functions, e.g. get_getjob_time(), can be used.
 
+# Structure of pilot timing dictionary:
+#     { job_id: { <timing_constant_1>: <time measurement in seconds since epoch>, .. }
+# job_id = 0 means timing information from wrapper. Timing constants are defined in pilot.util.constants.
+# Time measurement are time.time() values. The float value will be converted to an int as a last step.
+
 import os
+from time import time
 
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
-from pilot.util.constants import PILOT_T0, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_PRE_SETUP, PILOT_POST_SETUP, \
-    PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, PILOT_PRE_STAGEOUT, \
+from pilot.util.constants import PILOT_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_PRE_SETUP, \
+    PILOT_POST_SETUP, PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, PILOT_PRE_STAGEOUT,\
     PILOT_POST_STAGEOUT, PILOT_PRE_FINAL_UPDATE, PILOT_POST_FINAL_UPDATE, PILOT_END_TIME
 from pilot.util.filehandling import read_json, write_json
 
@@ -51,147 +57,153 @@ def write_pilot_timing(pilot_timing_dictionary):
     if write_json(path, pilot_timing_dictionary):
         logger.debug('updated pilot timing dictionary: %s' % (path))
     else:
-        logger.info('failed to update pilot timing dictionary: %s' % (path))
+        logger.warning('failed to update pilot timing dictionary: %s' % (path))
 
 
-def add_to_pilot_timing(job_id, timing_constant, time_measurement):
+def add_to_pilot_timing(job_id, timing_constant, time_measurement, args, store=False):
     """
     Add the given timing contant and measurement got job_id to the pilot timing dictionary.
 
     :param job_id: PanDA job id (string).
     :param timing_constant: timing constant (string).
     :param time_measurement: time measurement (float).
+    :param args: pilot arguments.
+    :param store: if True, write timing dictionary to file. False by default.
     :return:
     """
 
-    # get the timing dictionary from file
-    pilot_timing_dictionary = read_pilot_timing()
-
-    if pilot_timing_dictionary == {}:
-        pilot_timing_dictionary[job_id] = {timing_constant: time_measurement}
+    if args.timing == {}:
+        args.timing[job_id] = {timing_constant: time_measurement}
     else:
-        if job_id not in pilot_timing_dictionary:
-            pilot_timing_dictionary[job_id] = {}
-        pilot_timing_dictionary[job_id][timing_constant] = time_measurement
+        if job_id not in args.timing:
+            args.timing[job_id] = {}
+        args.timing[job_id][timing_constant] = time_measurement
 
     # update the file
-    write_pilot_timing(pilot_timing_dictionary)
+    if store:
+        write_pilot_timing(args.timing)
 
 
-def get_initial_setup_time(job_id):
+def get_initial_setup_time(job_id, args):
     """
     High level function that returns the time for the initial setup.
-    The initial setup time is measured from PILOT_T0 to PILOT_PRE_GETJOB.
+    The initial setup time is measured from PILOT_START_TIME to PILOT_PRE_GETJOB.
 
     :param job_id: PanDA job id (string).
+    :param args: pilot arguments.
     :return: time in seconds (int).
     """
 
-    return get_time_difference(job_id, PILOT_T0, PILOT_PRE_GETJOB)
+    return get_time_difference(job_id, PILOT_START_TIME, PILOT_PRE_GETJOB, args)
 
 
-def get_getjob_time(job_id):
+def get_getjob_time(job_id, args):
     """
     High level function that returns the time for the getjob operation for the given job_id.
 
     :param job_id: PanDA job id (string).
+    :param args: pilot arguments.
     :return: time in seconds (int).
     """
 
-    return get_time_difference(job_id, PILOT_PRE_GETJOB, PILOT_POST_GETJOB)
+    return get_time_difference(job_id, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, args)
 
 
-def get_setup_time(job_id):
+def get_setup_time(job_id, args):
     """
     High level function that returns the time for the setup operation for the given job_id.
 
     :param job_id: PanDA job id (string).
+    :param args: pilot arguments.
     :return: time in seconds (int).
     """
 
-    return get_time_difference(job_id, PILOT_PRE_SETUP, PILOT_POST_SETUP)
+    return get_time_difference(job_id, PILOT_PRE_SETUP, PILOT_POST_SETUP, args)
 
 
-def get_stagein_time(job_id):
+def get_stagein_time(job_id, args):
     """
     High level function that returns the time for the stage-in operation for the given job_id.
 
     :param job_id: PanDA job id (string).
+    :param args: pilot arguments.
     :return: time in seconds (int).
     """
 
-    return get_time_difference(job_id, PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN)
+    return get_time_difference(job_id, PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, args)
 
 
-def get_stageout_time(job_id):
+def get_stageout_time(job_id, args):
     """
     High level function that returns the time for the stage-out operation for the given job_id.
 
     :param job_id: PanDA job id (string).
+    :param args: pilot arguments.
     :return: time in seconds (int).
     """
 
-    return get_time_difference(job_id, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT)
+    return get_time_difference(job_id, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT, args)
 
 
-def get_payload_execution_time(job_id):
+def get_payload_execution_time(job_id, args):
     """
     High level function that returns the time for the payload execution for the given job_id.
 
     :param job_id: PanDA job id (string).
+    :param args: pilot arguments.
     :return: time in seconds (int).
     """
 
-    return get_time_difference(job_id, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD)
+    return get_time_difference(job_id, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, args)
 
 
-def get_final_update_time(job_id):
+def get_final_update_time(job_id, args):
     """
     High level function that returns the time for execution the final update for the given job_id.
 
     :param job_id: PanDA job id (string).
+    :param args: pilot arguments.
     :return: time in seconds (int).
     """
 
-    return get_time_difference(job_id, PILOT_PRE_FINAL_UPDATE, PILOT_POST_FINAL_UPDATE)
+    return get_time_difference(job_id, PILOT_PRE_FINAL_UPDATE, PILOT_POST_FINAL_UPDATE, args)
 
 
-def get_total_pilot_time(job_id):
+def get_total_pilot_time(job_id, args):
     """
     High level function that returns the end time for the given job_id.
     This means the wall time that has passed from the start of the pilot until after the last job update.
 
     :param job_id: PanDA job id (string).
+    :param args: pilot arguments.
     :return: time in seconds (int).
     """
 
-    return get_time_difference(job_id, PILOT_T0, PILOT_END_TIME)
+    return get_time_difference(job_id, PILOT_START_TIME, PILOT_END_TIME, args)
 
 
-def get_postgetjob_time(job_id):
+def get_postgetjob_time(job_id, args):
     """
     Return the post getjob time.
 
     :param job_id: job object.
+    :param args: pilot arguments.
     :return: post getjob time measurement (int). In case of failure, return None.
     """
 
     time_measurement = None
     timing_constant = PILOT_POST_GETJOB
 
-    # first read the current pilot timing dictionary
-    timing_dictionary = read_pilot_timing()
-
-    if job_id in timing_dictionary:
+    if job_id in args.timing:
         # extract time measurements
-        time_measurement_dictionary = timing_dictionary.get(job_id, None)
+        time_measurement_dictionary = args.timing.get(job_id, None)
         if time_measurement_dictionary:
             time_measurement = time_measurement_dictionary.get(timing_constant, None)
 
-    if not time_measurement:
-        log = get_logger(job_id)
-        log.warning('failed to extract time measurement %d from %s (no such key)' %
-                    (timing_constant, time_measurement_dictionary))
+        if not time_measurement:
+            log = get_logger(job_id)
+            log.warning('failed to extract time measurement %s from %s (no such key)' %
+                        (timing_constant, time_measurement_dictionary))
 
     return time_measurement
 
@@ -200,7 +212,7 @@ def get_time_measurement(timing_constant, time_measurement_dictionary, timing_di
     """
     Return a requested time measurement from the time measurement dictionary, read from the pilot timing file.
 
-    :param timing_constant: timing constant (e.g. PILOT_T0)
+    :param timing_constant: timing constant (e.g. PILOT_START_TIME)
     :param time_measurement_dictionary: time measurement dictionary, extracted from pilot timing dictionary.
     :param timing_dictionary: full timing dictionary from pilot timing file.
     :param job_id: PanDA job id (string).
@@ -209,19 +221,60 @@ def get_time_measurement(timing_constant, time_measurement_dictionary, timing_di
 
     time_measurement = time_measurement_dictionary.get(timing_constant, None)
     if not time_measurement:
-        # try to get the measurement for the PILOT_T0 dictionary
+        # try to get the measurement for the PILOT_START_TIME dictionary
         time_measurement_dictionary_0 = timing_dictionary.get('0', None)
         if time_measurement_dictionary_0:
             time_measurement = time_measurement_dictionary_0.get(timing_constant, None)
         else:
             log = get_logger(job_id)
-            log.warning('failed to extract time measurement %d from %s (no such key)' %
+            log.warning('failed to extract time measurement %s from %s (no such key)' %
                         (timing_constant, time_measurement_dictionary))
 
     return time_measurement
 
 
-def get_time_difference(job_id, timing_constant_1, timing_constant_2):
+def get_time_since_start(args):
+    """
+    Return the amount of time that has passed since the pilot was launched.
+
+    :param args: pilot arguments.
+    :return: time in seconds (int).
+    """
+
+    return get_time_since('0', PILOT_START_TIME, args)
+
+
+def get_time_since(job_id, timing_constant, args):
+    """
+    Return the amount of time that has passed since the time measurement of timing_constant.
+
+    :param job_id: PanDA job id (string).
+    :param timing_constant:
+    :param args: pilot arguments.
+    :return: time in seconds (int).
+    """
+
+    diff = 0
+    log = get_logger(job_id)
+
+    if job_id in args.timing:
+
+        # extract time measurements
+        time_measurement_dictionary = args.timing.get(job_id, None)
+        if time_measurement_dictionary:
+            time_measurement = get_time_measurement(timing_constant, time_measurement_dictionary,
+                                                    args.timing, job_id)
+            if time_measurement:
+                diff = time() - time_measurement
+        else:
+            log.warning('failed to extract time measurement dictionary from %s' % str(args.timing))
+    else:
+        log.warning('job id %s not found in timing dictionary' % job_id)
+
+    return diff
+
+
+def get_time_difference(job_id, timing_constant_1, timing_constant_2, args):
     """
     Return the positive time difference between the given constants.
     The order is not important and a positive difference is always returned. The function collects the time measurements
@@ -236,6 +289,7 @@ def get_time_difference(job_id, timing_constant_1, timing_constant_2):
     :param job_id: PanDA job id (string).
     :param timing_constant_1:
     :param timing_constant_2:
+    :param args: pilot arguments.
     :return: time difference in seconds (int).
     """
 
@@ -243,24 +297,21 @@ def get_time_difference(job_id, timing_constant_1, timing_constant_2):
 
     log = get_logger(job_id)
 
-    # first read the current pilot timing dictionary
-    timing_dictionary = read_pilot_timing()
-
-    if job_id in timing_dictionary:
+    if job_id in args.timing:
 
         # extract time measurements
-        time_measurement_dictionary = timing_dictionary.get(job_id, None)
+        time_measurement_dictionary = args.timing.get(job_id, None)
         if time_measurement_dictionary:
 
             time_measurement_1 = get_time_measurement(timing_constant_1, time_measurement_dictionary,
-                                                      timing_dictionary, job_id)
+                                                      args.timing, job_id)
             time_measurement_2 = get_time_measurement(timing_constant_2, time_measurement_dictionary,
-                                                      timing_dictionary, job_id)
+                                                      args.timing, job_id)
 
             if time_measurement_1 and time_measurement_2:
                 diff = time_measurement_2 - time_measurement_1
         else:
-            log.warning('failed to extract time measurement dictionary from %s' % str(timing_dictionary))
+            log.warning('failed to extract time measurement dictionary from %s' % str(args.timing))
     else:
         log.warning('job id %s not found in timing dictionary' % job_id)
 
@@ -276,3 +327,36 @@ def get_time_difference(job_id, timing_constant_1, timing_constant_2):
         diff = 0
 
     return diff
+
+
+def timing_report(job_id, args):
+    """
+    Write a timing report to the job log and return relevant timing measurements.
+
+    :param job_id: job id (string).
+    :param args: pilot arguments.
+    :return: time_getjob, time_stagein, time_payload, time_stageout, time_total_setup (integer strings).
+    """
+
+    log = get_logger(job_id)
+
+    # collect pilot timing data
+    time_getjob = get_getjob_time(job_id, args)
+    time_initial_setup = get_initial_setup_time(job_id, args)
+    time_setup = get_setup_time(job_id, args)
+    time_total_setup = time_initial_setup + time_setup
+    time_stagein = get_stagein_time(job_id, args)
+    time_payload = get_payload_execution_time(job_id, args)
+    time_stageout = get_stageout_time(job_id, args)
+    log.info('.' * 30)
+    log.info('. Timing measurements:')
+    log.info('. get job = %d s' % time_getjob)
+    log.info('. initial setup = %d s' % time_initial_setup)
+    log.info('. payload setup = %d s' % time_setup)
+    log.info('. total setup = %d s' % time_total_setup)
+    log.info('. stage-in = %d s' % time_stagein)
+    log.info('. payload execution = %d s' % time_payload)
+    log.info('. stage-out = %d s' % time_stageout)
+    log.info('.' * 30)
+
+    return time_getjob, time_stagein, time_payload, time_stageout, time_total_setup
