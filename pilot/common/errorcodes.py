@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Wen Guan, wen.guan, 2018
 
 import re
 
@@ -78,6 +79,7 @@ class ErrorCodes:
     UNKNOWNTRFFAILURE = 1315
     RUCIOSERVICEUNAVAILABLE = 1316
     EXCEEDEDMAXWAITTIME = 1317
+    COMMUNICATIONFAILURE = 1318
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -133,6 +135,7 @@ class ErrorCodes:
         UNKNOWNTRFFAILURE: "Unknown TRF failure",
         RUCIOSERVICEUNAVAILABLE: "Rucio: Service unavailable",
         EXCEEDEDMAXWAITTIME: "Exceeded maximum waiting time",
+        COMMUNICATIONFAILURE: "Failed to communication to servers(such as Panda, Harvester, ACT, ...)",
     }
 
     def get_kill_signal_error_code(self, signal):
