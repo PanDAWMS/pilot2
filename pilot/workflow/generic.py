@@ -14,6 +14,7 @@ from __future__ import print_function
 import functools
 import signal
 import threading
+from time import time
 from sys import stderr
 
 try:
@@ -23,16 +24,36 @@ except Exception:
 
 from collections import namedtuple
 
-from pilot.control import job, payload, data, monitor
-from pilot.util.constants import SUCCESS
 from pilot.common.exception import ExcThread
+from pilot.control import job, payload, data, monitor
+from pilot.util.constants import SUCCESS, PILOT_KILL_SIGNAL
+from pilot.util.timing import add_to_pilot_timing
 
 import logging
 logger = logging.getLogger(__name__)
 
 
 def interrupt(args, signum, frame):
-    logger.info('caught signal: %s' % [v for v, k in signal.__dict__.iteritems() if k == signum][0])
+    """
+    Interrupt function on the receiving end of kill signals.
+    This function is forwarded any incoming signals (SIGINT, SIGTERM, etc) and will set abort_job which instructs
+    the threads to abort the job.
+
+    :param args: pilot arguments.
+    :param signum: signal.
+    :param frame: stack/execution frame pointing to the frame that was interrupted by the signal.
+    :return:
+    """
+
+    sig = [v for v, k in signal.__dict__.iteritems() if k == signum][0]
+    add_to_pilot_timing('0', PILOT_KILL_SIGNAL, time(), args)
+    logger.warning('caught signal: %s' % sig)
+    args.signal = sig
+    logger.warning('will instruct threads to abort and update the server')
+    args.abort_job.set()
+    logger.warning('waiting for threads to finish')
+    args.job_aborted.wait()
+    logger.warning('setting graceful stop (in case it was not set already), pilot will abort')
     args.graceful_stop.set()
 
 
@@ -48,9 +69,14 @@ def run(args):
 
     logger.info('setting up signal handling')
     signal.signal(signal.SIGINT, functools.partial(interrupt, args))
+    signal.signal(signal.SIGTERM, functools.partial(interrupt, args))
+    signal.signal(signal.SIGQUIT, functools.partial(interrupt, args))
+    signal.signal(signal.SIGSEGV, functools.partial(interrupt, args))
+    signal.signal(signal.SIGXCPU, functools.partial(interrupt, args))
+    signal.signal(signal.SIGUSR1, functools.partial(interrupt, args))
+    signal.signal(signal.SIGBUS, functools.partial(interrupt, args))
 
     logger.info('setting up queues')
-
     queues = namedtuple('queues', ['jobs', 'payloads', 'data_in', 'data_out',
                                    'validated_jobs', 'validated_payloads', 'monitored_payloads',
                                    'finished_jobs', 'finished_payloads', 'finished_data_in', 'finished_data_out',
@@ -81,7 +107,8 @@ def run(args):
     logger.info('setting up tracing')
     traces = namedtuple('traces', ['pilot'])
     traces.pilot = {'state': SUCCESS,
-                    'nr_jobs': 0}
+                    'nr_jobs': 0,
+                    'command': None}
 
     # define the threads
     targets = {'job': job.control, 'payload': payload.control, 'data': data.control, 'monitor': monitor.control}

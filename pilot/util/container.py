@@ -44,13 +44,26 @@ def execute(executable, **kwargs):
         user = environ.get('PILOT_USER', 'generic').lower()  # TODO: replace with singleton
         container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], -1)
         if container:
-            try:
-                executable = container.wrapper(executable, **kwargs)
-            except Exception as e:
-                logger.fatal('failed to execute wrapper function: %s' % e)
-    else:
-        # logger.info("will not use container")
-        pass
+            # should a container really be used?
+            do_use_container = container.do_use_container(**kwargs)
+
+            if do_use_container:
+                diagnostics = ""
+                try:
+                    executable = container.wrapper(executable, **kwargs)
+                except Exception as e:
+                    diagnostics = 'failed to execute wrapper function: %s' % e
+                    logger.fatal(diagnostics)
+                else:
+                    if executable == "":
+                        diagnostics = 'failed to prepare container command'
+                        logger.fatal(diagnostics)
+                if diagnostics != "":
+                    return None if returnproc else -1, "", diagnostics
+            else:
+                logger.info('pilot user container module has decided to not use a container')
+        else:
+            logger.warning('container module could not be imported')
 
     if not mute:
         logger.info('executing command: %s' % executable)

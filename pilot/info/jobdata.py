@@ -28,6 +28,7 @@ import pipes
 
 from .basedata import BaseData
 from .filespec import FileSpec
+from pilot.util.constants import LOG_TRANSFER_NOT_DONE
 from pilot.util.filehandling import get_guid
 
 import logging
@@ -50,7 +51,7 @@ class JobData(BaseData):
     transformation = ""    # Script execution name
 
     state = ""            # Current job state
-    status = ""           # Current job status
+    status = {'LOG_TRANSFER': LOG_TRANSFER_NOT_DONE}  # Current job status; format = {key: value, ..} e.g. key='LOG_TRANSFER', value='DONE'
     workdir = ""          # Working directoty for this job
 
     corecount = 1   # Number of cores as requested by the task
@@ -58,7 +59,8 @@ class JobData(BaseData):
 
     is_eventservice = False        # True for event service jobs
 
-    transfertype = ""  # direct access
+    transfertype = ""  # direct access instruction from server
+    accessmode = ""  # direct access instruction from jobparams
     processingtype = ""  # e.g. nightlies
 
     # set by the pilot (not from job definition)
@@ -106,7 +108,7 @@ class JobData(BaseData):
     produserid = ""  # the user DN (added to trace report)
     jobdefinitionid = ""  # the job definition id (added to trace report)
 
-    infiles = ""  # comma-separated list (string) of input files  ## TO BE DEPRECATED: moved to FileSpec (use job.indata instead)
+    # infiles = ""  # comma-separated list (string) of input files  ## TO BE DEPRECATED: moved to FileSpec (use job.indata instead)
     infilesguids = ""
 
     indata = []   # list of `FileSpec` objects for input files (aggregated inFiles, ddmEndPointIn, scopeIn, filesizeIn, etc)
@@ -134,20 +136,20 @@ class JobData(BaseData):
     _keys = {int: ['corecount', 'piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
                    'attemptnr', 'nevents', 'neventsw', 'pid'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
-                   'state', 'status', 'workdir', 'stageout',
+                   'state', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg', 'produserid', 'jobdefinitionid',
-                   'infiles',         ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+                   #'infiles',         ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'scopein',        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'outfiles', 'ddmendpointin',   ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'scopeout', 'ddmendpointout',    ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    #'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
                    'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload', 'processingtype',
-                   'swrelease', 'zipmap', 'imagename', 'transfertype',
+                   'swrelease', 'zipmap', 'imagename', 'accessmode', 'transfertype',
                    'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'datasetout',  ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    'infilesguids'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
-             dict: ['fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
+             dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
              bool: ['is_eventservice', 'noexecstrcnv', 'debug']
              }
 
@@ -175,6 +177,15 @@ class JobData(BaseData):
             :return: list of validated `FileSpec` objects
         """
 
+        # direct access handling (transfertype is now set)
+        if self.transfertype == 'direct':
+            self.accessmode = 'direct'
+        # job input options overwrite any Job settings
+        if '--accessmode=direct' in self.jobparams:
+            self.accessmode = 'direct'
+        if '--accessmode=copy' in self.jobparams:
+            self.accessmode = 'copy'
+
         # form raw list data from input comma-separated values for further validataion by FileSpec
         kmap = {
             # 'internal_name': 'ext_key_structure'
@@ -198,6 +209,7 @@ class JobData(BaseData):
             idat = {}
             for attrname, k in kmap.iteritems():
                 idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
+            idat['accessmode'] = self.accessmode
             finfo = FileSpec(type='input', **idat)
             logger.info('added file %s' % lfn)
             ret.append(finfo)
@@ -327,7 +339,7 @@ class JobData(BaseData):
             #'scopeout': 'scopeOut',                      ## TO BE DEPRECATED: moved to FileSpec
             #'scopelog': 'scopeLog',                      ## TO BE DEPRECATED: moved to FileSpec
             #'logfile': 'logFile',                        ## TO BE DEPRECATED: moved to FileSpec
-            'infiles': 'inFiles',                        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+            #'infiles': 'inFiles',                        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
             #'outfiles': 'outFiles',                      ## TO BE DEPRECATED: moved to FileSpec
             #'logguid': 'logGUID',                        ## TO BE DEPRECATED: moved to FileSpec
             'infilesguids': 'GUID',                      ## TO BE DEPRECATED: moved to FileSpec
@@ -337,6 +349,7 @@ class JobData(BaseData):
             'datasetin': 'realDatasetsIn',               ## TO BE DEPRECATED: moved to FileSpec
             #'datasetout': 'realDatasets',                ## TO BE DEPRECATED: moved to FileSpec
             'processingtype': 'processingType',
+            'transfertype': 'transferType',
             'destinationdblock': 'destinationDblock',
             'noexecstrcnv': 'noExecStrCnv',
             'swrelease': 'swRelease',
@@ -425,6 +438,8 @@ class JobData(BaseData):
         :return: updated job parameters (string).
         """
 
+        logger.info('cleaning jobparams: %s' % value)
+
         ## clean job params from Pilot1 old-formatted options
         ret = re.sub(r"--overwriteQueuedata={.*?}", "", value)
 
@@ -444,13 +459,16 @@ class JobData(BaseData):
             # remove zip map from final jobparams
             ret = re.sub(pattern, '', ret)
 
-        logger.debug('Extracted data from jobparams: zipmap=%s' % self.zipmap)
-        logger.debug('Extracted data from jobparams: overwrite_queuedata=%s' % self.overwrite_queuedata)
-
         # extract and remove any present --containerimage XYZ options
         ret, imagename = self.extract_container_image(ret)
         if imagename != "":
             self.imagename = imagename
+
+        # change any replaced " with ' back to " since it will cause problems when executing a container
+        # yes, but this creates a problem for user jobs to run..
+        # ret = ret.replace("\'", '\"')
+
+        logger.info('cleaned jobparams: %s' % ret)
 
         return ret
 
@@ -465,17 +483,18 @@ class JobData(BaseData):
         imagename = ""
 
         # define regexp pattern for the full container image option
-        _pattern = r'(\ \-\-containerimage\=?\s?[\S]+)'
+        _pattern = r'(\ \-\-containerImage\=?\s?[\S]+)'
         pattern = re.compile(_pattern)
         image_option = re.findall(pattern, jobparams)
 
         if image_option and image_option[0] != "":
 
-            imagepattern = re.compile(r'(\ \-\-containerimage\=?\s?([\S]+))')
+            imagepattern = re.compile(r" \'?\-\-containerImage\=?\ ?([\S]+)\ ?\'?")
+            # imagepattern = re.compile(r'(\ \-\-containerImage\=?\s?([\S]+))')
             image = re.findall(imagepattern, jobparams)
             if image and image[0] != "":
                 try:
-                    imagename = image[0][1]
+                    imagename = image[0]  # removed [1]
                 except Exception as e:
                     logger.warning('failed to extract image name: %s' % e)
                 else:
@@ -614,3 +633,38 @@ class JobData(BaseData):
             logger.warning("found no stored workdir sizes")
 
         return maxdirsize
+
+    def get_lfns_and_guids(self):
+        """
+        Return ordered lists with the input file LFNs and GUIDs.
+
+        :return: list of input files, list of corresponding GUIDs.
+        """
+
+        lfns = []
+        guids = []
+        if self.indata:
+            for fspec in self.indata:
+                lfns.append(fspec.lfn)
+                guids.append(fspec.guid)
+
+        return lfns, guids
+
+    def get_status(self, key):
+        """
+
+        Return the value for the given key (e.g. LOG_TRANSFER) from the status dictionary.
+        LOG_TRANSFER_NOT_DONE is returned if job object is not defined for key='LOG_TRANSFER'.
+        If no key is found, None will be returned.
+
+        :param key: key name (string).
+        :return: corresponding key value in job.status dictionary (string).
+        """
+
+        log_transfer = self.status.get(key, None)
+
+        if not log_transfer:
+            if key == 'LOG_TRANSFER':
+                log_transfer = LOG_TRANSFER_NOT_DONE
+
+        return log_transfer

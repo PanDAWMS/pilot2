@@ -10,13 +10,19 @@
 import os
 import re
 from time import sleep
+from xml.dom import minidom
+from xml.etree import ElementTree
 
+from pilot.common.errorcodes import ErrorCodes
 from pilot.info import infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
+from pilot.util.filehandling import write_file
 
 import logging
 logger = logging.getLogger(__name__)
+
+errors = ErrorCodes()
 
 
 def get_file_system_root_path():
@@ -220,11 +226,12 @@ def get_analysis_trf(transform, workdir):
 
     if original_base_url == "":
         diagnostics = "invalid base URL: %s" % (transform)
-        # return self.__error.ERR_TRFDOWNLOAD, pilotErrorDiag, ""
+        return errors.TRFDOWNLOADFAILURE, diagnostics, ""
     else:
         logger.debug("verified the trf base url: %s" % (original_base_url))
 
     # try to download from the required location, if not - switch to backup
+    status = False
     for base_url in get_valid_base_urls(order=original_base_url):
         trf = re.sub(original_base_url, base_url, transform)
         logger.debug("attempting to download trf: %s" % (trf))
@@ -233,8 +240,7 @@ def get_analysis_trf(transform, workdir):
             break
 
     if not status:
-        pass
-        # return self.__error.ERR_TRFDOWNLOAD, diagnostics, ""
+        return errors.TRFDOWNLOADFAILURE, diagnostics, ""
 
     logger.info("successfully downloaded transform")
     path = os.path.join(workdir, transform_name)
@@ -243,7 +249,7 @@ def get_analysis_trf(transform, workdir):
         os.chmod(path, 0755)
     except Exception as e:
         diagnostics = "failed to chmod %s: %s" % (transform_name, e)
-        # return self.__error.ERR_CHMODTRF, diagnostics, ""
+        return errors.CHMODTRF, diagnostics, ""
 
     return ec, diagnostics, transform_name
 
@@ -363,3 +369,122 @@ def get_payload_environment_variables(cmd, job_id, task_id, processing_type, sit
     variables.append('export RUCIO_ACCOUNT=\"%s\";' % os.environ.get('RUCIO_ACCOUNT', 'pilot'))
 
     return variables
+
+
+def create_input_file_metadata(file_dictionary, workdir, filename="PoolFileCatalog.xml"):
+    """
+    Create a Pool File Catalog for the files listed in the input dictionary.
+    The function creates properly formmatted XML (pretty printed) and writes the XML to file.
+
+    Format:
+    dictionary = {'guid': 'pfn', ..}
+    ->
+    <POOLFILECATALOG>
+    <File ID="guid">
+      <physical>
+        <pfn filetype="ROOT_All" name="surl"/>
+      </physical>
+      <logical/>
+    </File>
+    <POOLFILECATALOG>
+
+    :param file_dictionary: file dictionary.
+    :param workdir: job work directory (string).
+    :param filename: PFC file name (string).
+    :return: xml (string)
+    """
+
+    # create the file structure
+    data = ElementTree.Element('POOLFILECATALOG')
+
+    for fileid in file_dictionary.keys():
+        _file = ElementTree.SubElement(data, 'File')
+        _file.set('ID', fileid)
+        _physical = ElementTree.SubElement(_file, 'physical')
+        _pfn = ElementTree.SubElement(_physical, 'pfn')
+        _pfn.set('filetype', 'ROOT_ALL')
+        _pfn.set('name', file_dictionary.get(fileid))
+        ElementTree.SubElement(_file, 'logical')
+
+    # create a new XML file with the results
+    xml = ElementTree.tostring(data, encoding='utf8')
+    xml = minidom.parseString(xml).toprettyxml(indent="  ")
+    write_file(os.path.join(workdir, filename), xml, mute=False)
+
+    return xml
+
+
+def get_file_info_from_xml(workdir, filename="PoolFileCatalog.xml"):
+    """
+    Return a file info dictionary based on the metadata in the given XML file.
+    The file info dictionary is used to replace the input file LFN list in the job parameters with the full PFNs
+    which are needed for direct access in production jobs.
+
+    Example of PoolFileCatalog.xml:
+
+    <?xml version="1.0" ?>
+    <POOLFILECATALOG>
+      <File ID="4ACC5018-2EA3-B441-BC11-0C0992847FD1">
+        <physical>
+          <pfn filetype="ROOT_ALL" name="root://dcgftp.usatlas.bnl.gov:1096//../AOD.11164242._001522.pool.root.1"/>
+        </physical>
+        <logical/>
+      </File>
+    </POOLFILECATALOG>
+
+    which gives the following dictionary:
+
+    {'AOD.11164242._001522.pool.root.1': ['root://dcgftp.usatlas.bnl.gov:1096//../AOD.11164242._001522.pool.root.1',
+    '4ACC5018-2EA3-B441-BC11-0C0992847FD1']}
+
+    :param workdir: directory of PoolFileCatalog.xml (string).
+    :param filename: file name (default: PoolFileCatalog.xml) (string).
+    :return: dictionary { LFN: [PFN, GUID], .. }
+    """
+
+    file_info_dictionary = {}
+    tree = ElementTree.parse(os.path.join(workdir, filename))
+    root = tree.getroot()
+    # root.tag = POOLFILECATALOG
+
+    for child in root:
+        # child.tag = 'File', child.attrib = {'ID': '4ACC5018-2EA3-B441-BC11-0C0992847FD1'}
+        guid = child.attrib['ID']
+        for grandchild in child:
+            # grandchild.tag = 'physical', grandchild.attrib = {}
+            for greatgrandchild in grandchild:
+                # greatgrandchild.tag = 'pfn', greatgrandchild.attrib = {'filetype': 'ROOT_ALL', 'name': 'root://dcgftp.usatlas.bnl ..'}
+                pfn = greatgrandchild.attrib['name']
+                lfn = os.path.basename(pfn)
+                file_info_dictionary[lfn] = [pfn, guid]
+
+    return file_info_dictionary
+
+
+def replace_lfns_with_turls(cmd, workdir, filename, infiles):
+    """
+    Replace all LFNs with full TURLs in the payload execution command.
+
+    This function is used with direct access in production jobs. Athena requires a full TURL instead of LFN.
+
+    :param cmd: payload execution command (string).
+    :param workdir: location of metadata file (string).
+    :param filename: metadata file name (string).
+    :param infiles: list of input files.
+    :return: updated cmd (string).
+    """
+
+    path = os.path.join(workdir, filename)
+    if os.path.exists(path):
+        file_info_dictionary = get_file_info_from_xml(workdir, filename=filename)
+        for inputfile in infiles:
+            if inputfile in cmd:
+                turl = file_info_dictionary[inputfile][0]
+                # if turl.startswith('root://') and turl not in cmd:
+                if turl not in cmd:
+                    cmd = cmd.replace(inputfile, turl)
+                    logger.info("replaced '%s' with '%s' in the run command" % (inputfile, turl))
+    else:
+        logger.warning("could not find file: %s (cannot locate TURLs for direct access)" % filename)
+
+    return cmd

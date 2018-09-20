@@ -70,6 +70,17 @@ def control(queues, traces, args):
             thread.join(0.1)
             time.sleep(0.1)
 
+    logger.debug('payload control ending since graceful_stop has been set')
+    if args.abort_job.is_set():
+        if traces.pilot['command'] == 'aborting':
+            logger.warning('jobs are aborting')
+        elif traces.pilot['command'] == 'abort':
+            logger.warning('data control detected a set abort_job (due to a kill signal)')
+            traces.pilot['command'] = 'aborting'
+
+            # find all running jobs and stop them, find all jobs in queues relevant to this module
+            #abort_jobs_in_queues(queues, args.signal)
+
 
 def validate_pre(queues, traces, args):
     """
@@ -145,9 +156,9 @@ def execute_payloads(queues, traces, args):
             send_state(job, args, 'starting')
 
             if job.is_eventservice:
-                payload_executor = eventservice.Executor(args, job, out, err)
+                payload_executor = eventservice.Executor(args, queues, job, out, err)
             else:
-                payload_executor = generic.Executor(args, job, out, err)
+                payload_executor = generic.Executor(args, queues, job, out, err)
 
             # run the payload and measure the execution time
             job.t0 = os.times()
@@ -244,7 +255,7 @@ def validate_post(queues, traces, args):
     """
     Validate finished payloads.
     If payload finished correctly, add the job to the data_out queue. If it failed, add it to the data_out queue as
-    well but only for log stage-out.
+    well but only for log stage-out (in failed_post() below).
 
     :param queues:
     :param traces:
@@ -257,6 +268,7 @@ def validate_post(queues, traces, args):
         try:
             job = queues.finished_payloads.get(block=True, timeout=1)
         except queue.Empty:
+            time.sleep(0.1)
             continue
         log = get_logger(job.jobid)
 
@@ -290,5 +302,5 @@ def failed_post(queues, traces, args):
 
         log.debug('adding log for log stageout')
 
-        job.stageout = "log"  # only stage-out log file
+        job.stageout = 'log'  # only stage-out log file
         queues.data_out.put(job)

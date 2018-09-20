@@ -236,6 +236,16 @@ class NotSameLength(PilotException):
         self._message = errors.get_error_message(self._errorCode)
 
 
+class ExceededMaxWaitTime(PilotException):
+    """
+    Exceeded maximum waiting time (after abort_job has been set).
+    """
+    def __init__(self, *args, **kwargs):
+        super(ExceededMaxWaitTime, self).__init__(args, kwargs)
+        self._errorCode = errors.EXCEEDEDMAXWAITTIME
+        self._message = errors.get_error_message(self._errorCode)
+
+
 class ExcThread(threading.Thread):
     """
     Support class that allows for catching exceptions in threads.
