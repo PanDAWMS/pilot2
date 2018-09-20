@@ -52,7 +52,11 @@ def write_pilot_timing(pilot_timing_dictionary):
     :param pilot_timing_dictionary:
     :return:
     """
-
+    timing_file = config.Pilot.timing_file
+    rank, max_ranks = get_ranks_info()
+    if rank is not None:
+        timing_file += '_{0}'.format(rank)
+    path = os.path.join(os.environ.get('PILOT_HOME', ''), timing_file)
     path = os.path.join(os.environ.get('PILOT_HOME', ''), config.Pilot.timing_file)
     if write_json(path, pilot_timing_dictionary):
         logger.debug('updated pilot timing dictionary: %s' % (path))
