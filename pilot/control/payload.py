@@ -25,7 +25,7 @@ from pilot.control.job import send_state
 from pilot.util.auxiliary import get_logger
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
-from pilot.util.filehandling import read_file, get_guid
+from pilot.util.filehandling import read_file
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
 
@@ -174,11 +174,6 @@ def execute_payloads(queues, traces, args):
             out.close()
             err.close()
 
-            # analyze and interpret the payload execution output
-            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-            user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
-            exit_code = user.interpret(job, exit_code)
-
             if exit_code == 0:
                 job.transexitcode = 0
                 queues.finished_payloads.put(job)
@@ -206,56 +201,6 @@ def execute_payloads(queues, traces, args):
                 time.sleep(5)
 
 
-def process_job_report(job):
-    """
-    Process the job report produced by the payload/transform if it exists.
-    Payload error codes and diagnostics, as well as payload metadata (for output files) and stageout type will be
-    extracted. The stageout type is either "all" (i.e. stage-out both output and log files) or "log" (i.e. only log file
-    will be staged out).
-    Note: some fields might be experiment specific. A call to a user function is therefore also done.
-
-    :param job: job dictionary will be updated by the function and several fields set.
-    :return:
-    """
-
-    log = get_logger(job.jobid)
-    path = os.path.join(job.workdir, config.Payload.jobreport)
-    if not os.path.exists(path):
-        log.warning('job report does not exist: %s (any missing output file guids must be generated)' % path)
-
-        # add missing guids
-        for dat in job.outdata:
-            if not dat.guid:
-                dat.guid = get_guid()
-                log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
-
-    else:
-        with open(path) as data_file:
-            # compulsory field; the payload must produce a job report (see config file for file name)
-            job.metadata = json.load(data_file)
-
-            # extract user specific info from job report
-            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
-            user.update_job_data(job)
-
-            # compulsory fields
-            try:
-                job.exitcode = job.metadata['exitCode']
-            except Exception as e:
-                log.warning('could not find compulsory payload exitCode in job report: %s (will be set to 0)' % e)
-                job.exitcode = 0
-            else:
-                log.info('extracted exit code from job report: %d' % job.exitcode)
-            try:
-                job.exitmsg = job.metadata['exitMsg']
-            except Exception as e:
-                log.warning('could not find compulsory payload exitMsg in job report: %s (will be set to empty string)' % e)
-                job.exitmsg = ""
-            else:
-                log.info('extracted exit message from job report: %s' % job.exitmsg)
-
-
 def validate_post(queues, traces, args):
     """
     Validate finished payloads.
@@ -280,12 +225,18 @@ def validate_post(queues, traces, args):
         # by default, both output and log should be staged out
         job.stageout = 'all'
 
-        # process the job report if it exists and set multiple fields
-        process_job_report(job)
+        # analyze and interpret the payload execution output
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
+        exit_code = user.interpret(job)
+        if exit_code != 0:
+            log.debug('adding job to failed_payloads queue')
+            queues.failed_payloads.put(job)
+        else:
+            log.debug('adding job to data_out queue')
+            queues.data_out.put(job)
 
-        log.debug('adding job to data_out queue')
-        queues.data_out.put(job)
-
+    logger.info('validate_post has finished')
 
 def failed_post(queues, traces, args):
     """

@@ -481,7 +481,7 @@ def update_job_data(job):  # noqa: C901
     """
     This function can be used to update/add data to the job object.
     E.g. user specific information can be extracted from other job object fields. In the case of ATLAS, information
-    is extracted from the metaData field and added to other job object fields.
+    is extracted from the metadata field and added to other job object fields.
 
     :param job: job object
     :return:
