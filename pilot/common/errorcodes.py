@@ -55,7 +55,7 @@ class ErrorCodes:
     SIGUSR1 = 1207
 
     REACHEDMAXTIME = 1213
-
+    BADALLOC = 1223
     PAYLOADEXCEEDMAXMEM = 1235
     CHKSUMNOTSUP = 1242
 
@@ -92,7 +92,7 @@ class ErrorCodes:
         STAGEOUTFAILED: "Failed to stage-out file",
         PUTMD5MISMATCH: "md5sum mismatch on output file",
         GETMD5MISMATCH: "md5sum mismatch on input file",
-        CHMODTRF: "Failed to chmod trf",
+        CHMODTRF: "Failed to chmod transform",
         PANDAKILL: "This job was killed by panda server",
         MISSINGOUTPUTFILE: "Local output file is missing",
         TRFDOWNLOADFAILURE: "Transform could not be downloaded",
@@ -113,6 +113,7 @@ class ErrorCodes:
         SIGBUS: "Job killed by signal: SIGBUS",
         USERKILL: "Job killed by user",
         REACHEDMAXTIME: "Reached batch system time limit",
+        BADALLOC: "Transform failed due to bad_alloc",
         PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
         CHKSUMNOTSUP: "Mover error: query checksum is not supported",
         NOTIMPLEMENTED: "The class or function is not implemented",
@@ -130,7 +131,7 @@ class ErrorCodes:
         NOTSAMELENGTH: "Not same length",
         NOSTORAGEPROTOCOL: "No protocol defined for storage endpoint",
         UNKNOWNCHECKSUMTYPE: "Unknown checksum type",
-        UNKNOWNTRFFAILURE: "Unknown TRF failure",
+        UNKNOWNTRFFAILURE: "Unknown transform failure",
         RUCIOSERVICEUNAVAILABLE: "Rucio: Service unavailable",
         EXCEEDEDMAXWAITTIME: "Exceeded maximum waiting time",
     }

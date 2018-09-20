@@ -238,6 +238,7 @@ def validate_post(queues, traces, args):
 
     logger.info('validate_post has finished')
 
+
 def failed_post(queues, traces, args):
     """
     (add description)
