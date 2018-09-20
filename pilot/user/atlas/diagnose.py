@@ -13,7 +13,21 @@ def interpret(job, code):
 
     :param job: job object
     :param code: payload execution exit code (Int).
-    :return:
+    :return: exit code (updated from payload) (Int).
+    """
+    exit_code = code
+
+    # extract errors from job report
+    ec = process_job_report(job)
+    if exit_code == 0 and ec != 0:
+        exit_code = ec
+
+    return exit_code
+
+
+def process_job_report(job):
     """
 
-    pass
+    :param job:
+    :return:
+    """
