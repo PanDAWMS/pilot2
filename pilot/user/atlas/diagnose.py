@@ -80,3 +80,36 @@ def process_job_report(job):
                 job.exitmsg = ""
             else:
                 log.info('extracted exit message from job report: %s' % job.exitmsg)
+
+
+def get_job_report_errors(job_report_dictionary, log):
+    """
+    Extract the error list from the jobReport.json dictionary.
+    The returned list is scanned for special errors.
+
+    :param job_report_dictionary:
+    :param log: job logger object.
+    :return: job_report_errors list.
+    """
+
+    job_report_errors = []
+    if 'reportVersion' in job_report_dictionary:
+        log.info("scanning jobReport (v %s) for error info" % job_report_dictionary.get('reportVersion'))
+    else:
+        log.warning("jobReport does not have the reportVersion key")
+
+    if 'executor' in job_report_dictionary:
+        try:
+            error_details = job_report_dictionary['executor'][0]['logfileReport']['details']['ERROR']
+        except Exception as e:
+            log.warning("WARNING: aborting jobReport scan: %s" % e)
+        else:
+            try:
+                for m in error_details:
+                    job_report_errors.append(m['message'])
+            except Exception as e:
+                log.warning("fid not get a list object: %s" % e)
+    else:
+        log.warning("jobReport does not have the executor key (aborting)")
+
+    return job_report_errors
