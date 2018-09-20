@@ -113,3 +113,24 @@ def get_job_report_errors(job_report_dictionary, log):
         log.warning("jobReport does not have the executor key (aborting)")
 
     return job_report_errors
+
+
+def is_bad_alloc(job_report_errors, log):
+    """
+    Check for bad_alloc errors.
+
+    :param job_report_errors: list with errors extracted from the job report.
+    :param log: job logger object.
+    :return: bad_alloc (bool), diagnostics (string).
+    """
+
+    bad_alloc = False
+    diagnostics = ""
+    for m in job_report_errors:
+        if "bad_alloc" in m:
+            log.warning("encountered a bad_alloc error: %s" % m)
+            bad_alloc = True
+            diagnostics = m
+            break
+
+    return bad_alloc, diagnostics
