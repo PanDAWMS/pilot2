@@ -174,6 +174,11 @@ def execute_payloads(queues, traces, args):
             out.close()
             err.close()
 
+            # analyze and interpret the payload execution output
+            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+            user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
+            exit_code = user.interpret(job, exit_code)
+
             if exit_code == 0:
                 job.transexitcode = 0
                 queues.finished_payloads.put(job)
