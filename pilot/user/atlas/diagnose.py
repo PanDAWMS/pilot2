@@ -28,13 +28,17 @@ def interpret(job):
     :return: exit code (updated from payload) (Int).
     """
 
+    log = get_logger(job.jobid)
+
     # extract errors from job report
-    exit_code = process_job_report(job)
+    process_job_report(job)
 
     if job.exitcode == 0:
         pass
     else:
         exit_code = job.exitcode
+
+    log.debug('payload interpret function ended with exit_code: %d' % exit_code)
 
     return exit_code
 

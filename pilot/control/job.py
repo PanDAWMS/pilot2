@@ -1460,6 +1460,9 @@ def make_job_report(job):
             log.info('error %d/%d: %s: %s' % (i + 1, n, job.piloterrorcodes[i], job.piloterrordiags[i]))
     else:
         log.info('errors: (none)')
+    if job.piloterrorcode != 0:
+        log.info('pilot error code: %d' % job.piloterrorcode)
+        log.info('pilot error diag: %d' % job.piloterrordiag)
     info = ""
     for key in job.status:
         info += key + " = " + job.status[key] + " "
