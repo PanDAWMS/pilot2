@@ -562,7 +562,7 @@ def create_log(job, logfile, tarball_name):
             remove(path)
 
     # rename the workdir for the tarball creation
-    newname = 'tarball_PandaJob_%s_%s' % (job.jobId, environ.get('PILOT_SITENAME'))
+    newname = 'tarball_PandaJob_%s_%s' % (job.jobid, environ.get('PILOT_SITENAME'))
     os.rename(job.workdir, newname)
     job.workdir = newname
     name = os.path.join(job.workdir, logfile.lfn)
