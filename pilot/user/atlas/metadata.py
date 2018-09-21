@@ -177,8 +177,28 @@ def get_number_of_events(metadata_dictionary, filename=''):
 
     nevents = -1
     if filename != '' and filename in metadata_dictionary:
-        nevents = metadata_dictionary[filename].get('events')
+        try:
+            nevents = int(metadata_dictionary[filename].get('events'))
+        except Exception as e:
+            logger.warning('failed to convert number of events to int: %s' % e)
     else:
         logger.warning('number of events could not be extracted from metadata dictionary (based on metadata.xml)')
+
+    return nevents
+
+
+def get_total_number_of_events(metadata_dictionary):
+    """
+    Get the total number of events for all files in the metadata dictionary.
+
+    :param metadata_dictionary: dictionary from parsed metadata.xml file.
+    :return: total number of processed events (int).
+    """
+
+    nevents = 0
+    for filename in metadata_dictionary:
+        _nevents = get_number_of_events(metadata_dictionary, filename=filename)
+        if _nevents != -1:
+            nevents += _nevents
 
     return nevents
