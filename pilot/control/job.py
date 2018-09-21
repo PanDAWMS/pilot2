@@ -1477,7 +1477,7 @@ def make_job_report(job):
     if job.pgrp and type(job.pgrp) == int:
         log.info('pgrp: %d' % job.pgrp)
     else:
-        log.info('pgrp: %s' % str(job.pgrp)
+        log.info('pgrp: %s' % str(job.pgrp))
     log.info('corecount: %d' % job.corecount)
     log.info('event service: %s' % str(job.is_eventservice))
     log.info('')
