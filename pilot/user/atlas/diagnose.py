@@ -40,6 +40,7 @@ def interpret(job):
     else:
         exit_code = job.exitcode
 
+    exit_code = 146
     # check for special errors
     if exit_code == 146:
         set_error_nousertarball(job)
@@ -60,6 +61,7 @@ def set_error_nousertarball(job):
     # get the tail of the stdout since it will contain the URL of the user log
     filename = os.path.join(job.workdir, config.Payload.payloadstdout)
     _tail = tail(filename)
+    _tail += 'http://someurl.se/path'
     if _tail:
         # try to extract the tarball url from the tail
         tarball_url = extract_tarball_url(_tail)
