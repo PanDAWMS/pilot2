@@ -563,15 +563,15 @@ def create_log(job, logfile, tarball_name):
 
     name = os.path.join(job.workdir, logfile.lfn)
     log.info('will create archive %s from %s' % (name, job.workdir))
-#    with closing(tarfile.open(name=name, mode='w:gz', dereference=True)) as archive:
-#        archive.add(job.workdir, recursive=True)
+    with closing(tarfile.open(name=name, mode='w:gz', dereference=True)) as archive:
+        archive.add(job.workdir, recursive=True)
 
-    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as log_tar:
-        for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files)):
-            if os.path.exists(os.path.join(job.workdir, _file)):
-                logging.debug('adding to log: %s' % _file)
-                log_tar.add(os.path.join(job.workdir, _file),
-                            arcname=os.path.join(tarball_name, _file))
+#    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as log_tar:
+#        for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files)):
+#           if os.path.exists(os.path.join(job.workdir, _file)):
+#                logging.debug('adding to log: %s' % _file)
+#                log_tar.add(os.path.join(job.workdir, _file),
+#                            arcname=os.path.join(tarball_name, _file))
 
     return {'scope': logfile.scope,
             'name': logfile.lfn,

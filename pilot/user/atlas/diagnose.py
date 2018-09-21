@@ -43,6 +43,7 @@ def interpret(job):
     exit_code = 146
     # check for special errors
     if exit_code == 146:
+        log.warning('encountered exit code %d (no user tarball)')
         set_error_nousertarball(job)
 
     log.debug('payload interpret function ended with exit_code: %d' % exit_code)
