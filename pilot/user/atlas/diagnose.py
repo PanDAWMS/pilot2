@@ -41,20 +41,31 @@ def interpret(job):
 
     # check for special errors
     if exit_code == 146:
-        # get the tail of the stdout since it will contain the URL of the user log
-        filename = os.path.join(job.workdir, config.Payload.payloadstdout)
-        _tail = tail(filename)
-        if _tail:
-            # try to extract the tarball url from the tail
-            tarball_url = extract_tarball_url(_tail)
-
-            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOUSERTARBALL)
-            job.piloterrorcode = errors.NOUSERTARBALL
-            job.piloterrordiag = "User tarball %s cannot be downloaded from PanDA server" % tarball_url
+        set_error_nousertarball(job)
 
     log.debug('payload interpret function ended with exit_code: %d' % exit_code)
 
     return exit_code
+
+
+def set_error_nousertarball(job):
+    """
+    Set error code for NOUSERTARBALL.
+
+    :param job: job object.
+    :return:
+    """
+
+    # get the tail of the stdout since it will contain the URL of the user log
+    filename = os.path.join(job.workdir, config.Payload.payloadstdout)
+    _tail = tail(filename)
+    if _tail:
+        # try to extract the tarball url from the tail
+        tarball_url = extract_tarball_url(_tail)
+
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOUSERTARBALL)
+        job.piloterrorcode = errors.NOUSERTARBALL
+        job.piloterrordiag = "User tarball %s cannot be downloaded from PanDA server" % tarball_url
 
 
 def extract_tarball_url(_tail):
