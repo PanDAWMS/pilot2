@@ -40,7 +40,6 @@ def interpret(job):
     else:
         exit_code = job.exitcode
 
-    exit_code = 146
     # check for special errors
     if exit_code == 146:
         log.warning('user tarball was not downloaded (payload exit code %d)' % exit_code)
