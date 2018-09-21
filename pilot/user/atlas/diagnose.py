@@ -17,18 +17,21 @@ from pilot.util.filehandling import get_guid
 from .common import update_job_data
 
 
-def interpret(job, code):
+def interpret(job):
     """
     Interpret the payload, look for specific errors in the stdout.
 
     :param job: job object
-    :param code: payload execution exit code (Int).
     :return: exit code (updated from payload) (Int).
     """
-    exit_code = code
 
     # extract errors from job report
-    process_job_report(job)
+    exit_code = process_job_report(job)
+
+    if job.exitcode == 0:
+        pass
+    else:
+        exit_code = job.exitcode
 
     return exit_code
 
@@ -46,6 +49,8 @@ def process_job_report(job):
     """
 
     log = get_logger(job.jobid)
+
+    # get the job report
     path = os.path.join(job.workdir, config.Payload.jobreport)
     if not os.path.exists(path):
         log.warning('job report does not exist: %s (any missing output file guids must be generated)' % path)
@@ -81,6 +86,16 @@ def process_job_report(job):
             else:
                 log.info('extracted exit message from job report: %s' % job.exitmsg)
 
+            if job.exitcode != 0:
+                # get list with identified errors in job report
+                job_report_errors = get_job_report_errors(job.metadata, log)
+
+                # is it a bad_alloc failure?
+                bad_alloc, diagnostics = is_bad_alloc(job_report_errors, log)
+                if bad_alloc:
+                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.BADALLOC)
+                    job.piloterrordiag = diagnostics
+
 
 def get_job_report_errors(job_report_dictionary, log):
     """
@@ -108,7 +123,7 @@ def get_job_report_errors(job_report_dictionary, log):
                 for m in error_details:
                     job_report_errors.append(m['message'])
             except Exception as e:
-                log.warning("fid not get a list object: %s" % e)
+                log.warning("did not get a list object: %s" % e)
     else:
         log.warning("jobReport does not have the executor key (aborting)")
 

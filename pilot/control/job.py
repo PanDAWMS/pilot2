@@ -1474,7 +1474,7 @@ def make_job_report(job):
     log.info('nevents: %d' % job.nevents)
     log.info('neventsw: %d' % job.neventsw)
     log.info('pid: %d' % job.pid)
-    if job.pgrp:
+    if job.pgrp and type(job.pgrp) == int:
         log.info('pgrp: %d' % job.pgrp)
     else:
         log.info('pgrp: %s' % str(job.pgrp)
