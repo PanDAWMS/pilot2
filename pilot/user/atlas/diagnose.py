@@ -9,11 +9,12 @@
 
 import json
 import os
+import re
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
-from pilot.util.filehandling import get_guid
+from pilot.util.filehandling import get_guid, tail
 
 from .common import update_job_data
 
@@ -25,7 +26,7 @@ def interpret(job):
     Interpret the payload, look for specific errors in the stdout.
 
     :param job: job object
-    :return: exit code (updated from payload) (Int).
+    :return: exit code (payload) (int).
     """
 
     log = get_logger(job.jobid)
@@ -38,9 +39,41 @@ def interpret(job):
     else:
         exit_code = job.exitcode
 
+    # check for special errors
+    if exit_code == 146:
+        # get the tail of the stdout since it will contain the URL of the user log
+        filename = os.path.join(job.workdir, config.Payload.payloadstdout)
+        _tail = tail(filename)
+        if _tail:
+            # try to extract the tarball url from the tail
+            tarball_url = extract_tarball_url(_tail)
+
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOUSERTARBALL)
+            job.piloterrorcode = errors.NOUSERTARBALL
+            job.piloterrordiag = "User tarball %s cannot be downloaded from PanDA server" % tarball_url
+
     log.debug('payload interpret function ended with exit_code: %d' % exit_code)
 
     return exit_code
+
+
+def extract_tarball_url(_tail):
+    """
+    Extract the tarball URL for missing user code if possible from stdout tail.
+
+    :param _tail: tail of payload stdout (string).
+    :return: url (string).
+    """
+
+    tarball_url = "(source unknown)"
+
+    if "https://" in _tail or "http://" in _tail:
+        pattern = r"(https?\:\/\/.+)"
+        found = re.findall(pattern, _tail)
+        if len(found) > 0:
+            tarball_url = found[0]
+
+    return tarball_url
 
 
 def process_job_report(job):

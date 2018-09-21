@@ -58,6 +58,7 @@ class ErrorCodes:
     BADALLOC = 1223
     PAYLOADEXCEEDMAXMEM = 1235
     CHKSUMNOTSUP = 1242
+    NOUSERTARBALL = 1246
 
     # Error code constants (new since Pilot 2)
     NOTIMPLEMENTED = 1300
@@ -116,6 +117,7 @@ class ErrorCodes:
         BADALLOC: "Transform failed due to bad_alloc",
         PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
         CHKSUMNOTSUP: "Mover error: query checksum is not supported",
+        NOUSERTARBALL: "User tarball cannot be downloaded from PanDA server",
         NOTIMPLEMENTED: "The class or function is not implemented",
         UNKNOWNEXCEPTION: "An unknown pilot exception has occurred",
         CONVERSIONFAILURE: "Failed to convert object data",
