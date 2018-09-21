@@ -561,6 +561,10 @@ def create_log(job, logfile, tarball_name):
             log.info('removing file: %s' % path)
             remove(path)
 
+    # rename the workdir for the tarball creation
+    newname = 'tarball_PandaJob_%s_%s' % (job.jobId, environ.get('PILOT_SITENAME'))
+    os.rename(job.workdir, newname)
+    job.workdir = newname
     name = os.path.join(job.workdir, logfile.lfn)
     log.info('will create archive %s from %s' % (name, job.workdir))
     with closing(tarfile.open(name=name, mode='w:gz', dereference=True)) as archive:
