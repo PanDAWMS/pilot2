@@ -29,6 +29,7 @@ def interpret(job):
     :return: exit code (payload) (int).
     """
 
+    exit_code = 0
     log = get_logger(job.jobid)
 
     # extract errors from job report
