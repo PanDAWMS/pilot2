@@ -142,7 +142,7 @@ class Executor(object):
 
                 try:
                     proc1 = execute(utilitycommand, workdir=job.workdir, returnproc=True,
-                                    usecontainer=True, stdout=PIPE, stderr=PIPE, cwd=job.workdir,
+                                    usecontainer=False, stdout=PIPE, stderr=PIPE, cwd=job.workdir,
                                     job=job)
                 except Exception as e:
                     log.error('could not execute: %s' % e)
