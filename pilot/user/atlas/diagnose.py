@@ -10,11 +10,14 @@
 import json
 import os
 
+from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 from pilot.util.filehandling import get_guid
 
 from .common import update_job_data
+
+errors = ErrorCodes()
 
 
 def interpret(job):
@@ -94,6 +97,7 @@ def process_job_report(job):
                 bad_alloc, diagnostics = is_bad_alloc(job_report_errors, log)
                 if bad_alloc:
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.BADALLOC)
+                    job.piloterrorcode = errors.BADALLOC
                     job.piloterrordiag = diagnostics
 
 
