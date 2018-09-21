@@ -64,7 +64,7 @@ def get_setup(job=None):
     :return: setup commands (list).
     """
 
-    setup_commands = ['source /lustre/atlas/proj-shared/csc108/app_dir/pilot/grid_env/external/setup.sh',
+    setup_commands = ['source /ccs/proj/csc108/athena_grid_env/setup.sh',
                       'source $MODULESHOME/init/bash',
                       'tmp_dirname=/tmp/scratch',
                       'tmp_dirname+="/tmp"',
@@ -101,7 +101,7 @@ def set_job_workdir(job, path):
     return work_dir
 
 
-def set_scratch_workdir(job, work_dir):
+def set_scratch_workdir(job, work_dir, args):
     """
     Copy input files and some db files to RAM disk
 
@@ -128,7 +128,7 @@ def set_scratch_workdir(job, work_dir):
 
     if os.path.exists(scratch_path):
         try:
-            add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN,time.time())
+            add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN,time.time(), args)
             logger.debug("Prepare 'tmp' dir in scratch ")
             if not os.path.exists(scratch_path + tmp_path):
                 os.makedirs(scratch_path + tmp_path)
@@ -164,7 +164,7 @@ def set_scratch_workdir(job, work_dir):
             logger.error("Copy to scratch failed, execution terminated':  \n %s " % (sys.exc_info()[1]))
             raise FileHandlingFailure("Copy to RAM disk failed")
         finally:
-            add_to_pilot_timing(job.jobid, PILOT_POST_STAGEIN, time.time())
+            add_to_pilot_timing(job.jobid, PILOT_POST_STAGEIN, time.time(), args)
     else:
         logger.info('Scratch directory (%s) dose not exist' % scratch_path)
         return work_dir
