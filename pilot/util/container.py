@@ -39,7 +39,7 @@ def execute(executable, **kwargs):
         executable = ' '.join(executable)
 
     # switch off pilot controlled containers for user defined containers
-    if job.imagename != "" and "runcontainer" in executable:
+    if job and job.imagename != "" and "runcontainer" in executable:
         usecontainer = False
 
     # Import user specific code if necessary (in case the command should be executed in a container)
