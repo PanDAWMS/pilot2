@@ -135,7 +135,8 @@ def process_job_report(job):
             try:
                 job.exitmsg = job.metadata['exitMsg']
             except Exception as e:
-                log.warning('could not find compulsory payload exitMsg in job report: %s (will be set to empty string)' % e)
+                log.warning('could not find compulsory payload exitMsg in job report: %s '
+                            '(will be set to empty string)' % e)
                 job.exitmsg = ""
             else:
                 log.info('extracted exit message from job report: %s' % job.exitmsg)

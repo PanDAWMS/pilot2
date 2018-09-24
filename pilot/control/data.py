@@ -567,6 +567,7 @@ def create_log(job, logfile, tarball_name):
     # rename the workdir for the tarball creation
     newname = 'tarball_PandaJob_%s_%s' % (job.jobid, os.environ.get('PILOT_SITENAME'))
     topdir = os.path.dirname(job.workdir)
+    orgworkdir = job.workdir
     os.rename(job.workdir, newname)
     job.workdir = newname
     name = os.path.join(topdir, logfile.lfn)
@@ -580,6 +581,9 @@ def create_log(job, logfile, tarball_name):
 #                logging.debug('adding to log: %s' % _file)
 #                log_tar.add(os.path.join(job.workdir, _file),
 #                            arcname=os.path.join(tarball_name, _file))
+
+    os.rename(job.workdir, orgworkdir)
+    job.workdir = orgworkdir
 
     return {'scope': logfile.scope,
             'name': logfile.lfn,
