@@ -566,14 +566,12 @@ def create_log(job, logfile, tarball_name):
 
     # rename the workdir for the tarball creation
     newname = 'tarball_PandaJob_%s_%s' % (job.jobid, os.environ.get('PILOT_SITENAME'))
-    topdir = os.path.dirname(job.workdir)
     orgworkdir = job.workdir
     os.rename(job.workdir, newname)
-    job.workdir = newname
-    name = os.path.join(topdir, logfile.lfn)
-    log.info('will create archive %s from %s' % (name, job.workdir))
+    name = os.path.join(newname, logfile.lfn)
+    log.info('will create archive %s' % name)
     with closing(tarfile.open(name=name, mode='w:gz', dereference=True)) as archive:
-        archive.add(job.workdir, recursive=True)
+        archive.add(newname, recursive=True)
 
 #    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as log_tar:
 #        for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files)):
@@ -583,12 +581,11 @@ def create_log(job, logfile, tarball_name):
 #                            arcname=os.path.join(tarball_name, _file))
 
     os.rename(job.workdir, orgworkdir)
-    job.workdir = orgworkdir
 
     return {'scope': logfile.scope,
             'name': logfile.lfn,
             'guid': logfile.guid,
-            'bytes': os.stat(os.path.join(topdir, logfile.lfn)).st_size}
+            'bytes': os.stat(os.path.join(job.workfir, logfile.lfn)).st_size}
 
 
 def _stage_out(args, outfile, job):  ### TO BE DEPRECATED
