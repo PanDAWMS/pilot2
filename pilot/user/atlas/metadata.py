@@ -137,7 +137,7 @@ def get_metadata_from_xml(workdir, filename="metadata.xml"):
 
     :param workdir: payload work directory (string).
     :param filename: metadata file name (string).
-    :return: metadata
+    :return: metadata dictionary.
     """
 
     # metadata_dictionary = { lfn: { att_name1: att_value1, .. }, ..}
