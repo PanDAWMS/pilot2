@@ -16,7 +16,6 @@ import uuid
 from pilot.api.es_data import StageOutESClient, StageInESClient
 from pilot.common import exception
 from pilot.info.filespec import FileSpec
-from pilot.info import infosys
 from pilot.util.https import https_setup
 
 
