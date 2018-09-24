@@ -13,6 +13,9 @@ from xml.etree import ElementTree
 
 from pilot.util.filehandling import write_file
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 def create_input_file_metadata(file_dictionary, workdir, filename="PoolFileCatalog.xml"):
     """

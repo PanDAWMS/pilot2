@@ -11,7 +11,6 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
 
-import json
 import os
 import time
 

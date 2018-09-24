@@ -119,7 +119,7 @@ def input():
 
     for file in args.input_files:
         if os.path.isfile(file):
-            file = args.ctr_datadir+'/'+file
+            file = args.ctr_datadir + '/' + file
             input_string += "%s," % file
         else:
             logging.info("Input file %s is missing", file)
