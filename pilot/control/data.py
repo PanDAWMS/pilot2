@@ -584,7 +584,7 @@ def create_log(job, logfile, tarball_name):
     return {'scope': logfile.scope,
             'name': logfile.lfn,
             'guid': logfile.guid,
-            'bytes': os.stat(os.path.join(job.workdir, logfile.lfn)).st_size}
+            'bytes': os.stat(os.path.join(topdir, logfile.lfn)).st_size}
 
 
 def _stage_out(args, outfile, job):  ### TO BE DEPRECATED
