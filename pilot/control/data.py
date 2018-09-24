@@ -565,21 +565,32 @@ def create_log(job, logfile, tarball_name):
             remove(path)
 
     # rename the workdir for the tarball creation
-    newname = 'tarball_PandaJob_%s_%s' % (job.jobid, os.environ.get('PILOT_SITENAME'))
-    orgworkdir = os.path.dirname(job.workdir)
-    os.rename(job.workdir, newname)
-    name = os.path.join(newname, logfile.lfn)
+    newworkdir = os.path.join(os.path.dirname(job.workdir), tarball_name)
+    orgworkdir = job.workdir
+    log.debug('renaming %s to %s' % (job.workdir, newworkdir))
+    os.rename(job.workdir, newworkdir)
+    job.workdir = newworkdir
 
-    log.info('will create archive %s' % name)
-    with closing(tarfile.open(name=name, mode='w:gz', dereference=True)) as archive:
-        archive.add(newname, recursive=True)
+    fullpath = os.path.join(job.workdir, logfile.lfn)  # /some/path/to/dirname/log.tgz
+    log.info('will create archive %s' % fullpath)
+    with closing(tarfile.open(name=fullpath, mode='w:gz', dereference=True)) as archive:
+        archive.add(os.path.basename(job.workdir), recursive=True)
 
-    os.rename(job.workdir, orgworkdir)
+    cmd = 'tar xvfz %s' % fullpath
+    out = execute(cmd)
+    log.debug('%s:\n%s' % (cmd, out))
+
+    log.debug('renaming %s back to %s' % (job.workdir, orgworkdir))
+    try:
+        os.rename(job.workdir, orgworkdir)
+    except Exception as e:
+        log.debug('exception caught: %s' % e)
+    job.workdir = orgworkdir
 
     return {'scope': logfile.scope,
             'name': logfile.lfn,
             'guid': logfile.guid,
-            'bytes': os.stat(os.path.join(job.workfir, logfile.lfn)).st_size}
+            'bytes': os.stat(os.path.join(job.workdir, logfile.lfn)).st_size}
 
 
 def _stage_out(args, outfile, job):  ### TO BE DEPRECATED
