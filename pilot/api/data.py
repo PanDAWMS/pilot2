@@ -374,7 +374,7 @@ class StageInClient(StagingClient):
         if self.infosys.queuedata.direct_access_wan:
             direct_access_type = 'WAN'
 
-        if not job.is_analysis() and job.transfertype != 'direct':  ## task forbids direct access
+        if job and not job.is_analysis() and job.transfertype != 'direct':  ## task forbids direct access
             allow_direct_access = False
             self.logger.info('switched off direct access mode for production job since transfertype=%s' % job.transfertype)
 
