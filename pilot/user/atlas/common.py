@@ -101,9 +101,6 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
 
     log = get_logger(job.jobid)
 
-    # Is it a user job or not?
-    userjob = job.is_analysis()
-
     if userjob:
         # set the INDS env variable (used by runAthena)
         set_inds(job.datasetin)  # realDatasetsIn
@@ -113,7 +110,7 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
         ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
         if ec != 0:
            raise TrfDownloadFailure(diagnostics)
-       else:
+        else:
            log.debug('user analysis trf: %s' % trf_name)
 
         if prepareasetup:
