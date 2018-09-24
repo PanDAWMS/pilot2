@@ -110,13 +110,11 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
 
         # Try to download the trf (skip when user container is to be used)
         trf_name = ""
-        if job.imagename == "":
-            # if '--containerImage' not in job.jobparams:
-            ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
-            if ec != 0:
-                raise TrfDownloadFailure(diagnostics)
-            else:
-                log.debug('user analysis trf: %s' % trf_name)
+        ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
+        if ec != 0:
+           raise TrfDownloadFailure(diagnostics)
+       else:
+           log.debug('user analysis trf: %s' % trf_name)
 
         if prepareasetup:
             _cmd = get_analysis_run_command(job, trf_name)
@@ -302,29 +300,30 @@ def get_analysis_run_command(job, trf_name):
     if job.imagename == "":
         # if '--containerImage' not in job.jobparams:
         cmd += './%s %s' % (trf_name, job.jobparams)
-
-        # add control options for PFC turl and direct access
-        if use_pfc_turl and '--usePFCTurl' not in cmd:
-            cmd += ' --usePFCTurl'
-        if use_direct_access and '--directIn' not in cmd:
-            cmd += ' --directIn'
-
-        # update the payload command for forced accessmode
-        cmd = update_forced_accessmode(log, cmd, job.transfertype, job.jobparams, trf_name)
-
-        # add guids when needed
-        # get the correct guids list (with only the direct access files)
-        if not job.is_build_job():
-            lfns, guids = job.get_lfns_and_guids()
-            _guids = get_guids_from_jobparams(job.jobparams, lfns, guids)
-            if _guids:
-                cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
     else:
-        # test code: remove eventually (get script from /cvmfs)
-        cmd += 'python %s' % os.path.join(os.environ.get('PILOT_SOURCE_DIR', ''), 'pilot/scripts/runcontainer.py')
+        #
+        cmd += 'python %s' % trf_name
+        #cmd += 'python %s' % os.path.join(os.environ.get('PILOT_SOURCE_DIR', ''), 'pilot/scripts/runcontainer.py')
 
         # restore the image name and add the job params
         cmd += ' --containerImage=%s %s' % (job.imagename, job.jobparams)
+
+    # add control options for PFC turl and direct access
+    if use_pfc_turl and '--usePFCTurl' not in cmd:
+        cmd += ' --usePFCTurl'
+    if use_direct_access and '--directIn' not in cmd:
+        cmd += ' --directIn'
+
+    # update the payload command for forced accessmode
+    cmd = update_forced_accessmode(log, cmd, job.transfertype, job.jobparams, trf_name)
+
+    # add guids when needed
+    # get the correct guids list (with only the direct access files)
+    if not job.is_build_job():
+        lfns, guids = job.get_lfns_and_guids()
+        _guids = get_guids_from_jobparams(job.jobparams, lfns, guids)
+        if _guids:
+            cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
 
     return cmd
 
