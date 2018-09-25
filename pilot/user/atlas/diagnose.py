@@ -84,7 +84,7 @@ def is_out_of_memory(job):
     :return: Boolean.
     """
 
-    pass
+    return False
 
 
 def extract_special_information(job):
