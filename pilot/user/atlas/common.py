@@ -111,9 +111,9 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
             log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
         ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
         if ec != 0:
-           raise TrfDownloadFailure(diagnostics)
+            raise TrfDownloadFailure(diagnostics)
         else:
-           log.debug('user analysis trf: %s' % trf_name)
+            log.debug('user analysis trf: %s' % trf_name)
 
         if prepareasetup:
             _cmd = get_analysis_run_command(job, trf_name)

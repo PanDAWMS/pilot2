@@ -158,61 +158,89 @@ def process_athena_summary(job):
         log.info("did not find any athena summary files")
     else:
         # find the most recent and the oldest files
-        oldest_summary_file = ""
-        recent_summary_file = ""
-        oldest_time = 9999999999
-        recent_time = 0
-        if len(file_list) > 1:
-            for summary_file in file_list:
-                # get the modification time
-                try:
-                    st_mtime = os.path.getmtime(summary_file)
-                except Exception, e:
-                    log.warning("could not read modification time of file %s: %s" % (summary_file, e))
-                else:
-                    if st_mtime > recent_time:
-                        recent_time = st_mtime
-                        recent_summary_file = summary_file
-                    if st_mtime < oldest_time:
-                        oldest_time = st_mtime
-                        oldest_summary_file = summary_file
-        else:
-            oldest_summary_file = file_list[0]
-            recent_summary_file = oldest_summary_file
-            oldest_time = os.path.getmtime(oldest_summary_file)
-            recent_time = oldest_time
-
+        recent_summary_file, recent_time, oldest_summary_file, oldest_time = \
+            find_most_recent_and_oldest_summary_files(file_list)
         if oldest_summary_file == recent_summary_file:
             log.info("summary file %s will be processed for errors and number of events" %
                      os.path.basename(oldest_summary_file))
         else:
-            log.info("most recent summary file %s (updated at %d) will be processed for errors" %
+            log.info("most recent summary file %s (updated at %d) will be processed for errors [to be implemented]" %
                      (os.path.basename(recent_summary_file), recent_time))
             log.info("oldest summary file %s (updated at %d) will be processed for number of events" %
                      (os.path.basename(oldest_summary_file), oldest_time))
 
         # Get the number of events from the oldest summary file
-        f = open_file(oldest_summary_file, 'r')
-        if f:
-            lines = f.readlines()
-            f.close()
+        n1, n2 = get_number_of_events_from_summary_file(oldest_summary_file)
 
-            if len(lines) > 0:
-                for line in lines:
-                    if "Events Read:" in line:
-                        n1 = int(re.match('Events Read\: *(\d+)', line).group(1))
-                    if "Events Written:" in line:
-                        n2 = int(re.match('Events Written\: *(\d+)', line).group(1))
-                    if n1 > 0 and n2 > 0:
-                        break
+    return n1, n2
+
+
+def find_most_recent_and_oldest_summary_files(file_list):
+    """
+    Find the most recent and the oldest athena summary files.
+    :param file_list: list of athena summary files (list of strings).
+    :return: most recent summary file (string), recent time (int), oldest summary file (string), oldest time (int).
+    """
+
+    oldest_summary_file = ""
+    recent_summary_file = ""
+    oldest_time = 9999999999
+    recent_time = 0
+    if len(file_list) > 1:
+        for summary_file in file_list:
+            # get the modification time
+            try:
+                st_mtime = os.path.getmtime(summary_file)
+            except Exception, e:
+                log.warning("could not read modification time of file %s: %s" % (summary_file, e))
             else:
-                log.warning('failed to get number of events from empty summary file')
+                if st_mtime > recent_time:
+                    recent_time = st_mtime
+                    recent_summary_file = summary_file
+                if st_mtime < oldest_time:
+                    oldest_time = st_mtime
+                    oldest_summary_file = summary_file
+    else:
+        oldest_summary_file = file_list[0]
+        recent_summary_file = oldest_summary_file
+        oldest_time = os.path.getmtime(oldest_summary_file)
+        recent_time = oldest_time
 
-            log.info("number of events: %d (read)" % n1)
-            log.info("number of events: %d (written)" % n2)
+    return recent_summary_file, recent_time, oldest_summary_file, oldest_time
 
-        # Get the errors from the most recent summary file
-        # ...
+
+def get_number_of_events_from_summary_file(oldest_summary_file):
+    """
+    Get the number of events from the oldest summary file.
+
+    :param oldest_summary_file: athena summary file (filename, str).
+    :return: number of read events (int), number of written events (int).
+    """
+
+    n1 = 0
+    n2 = 0
+
+    f = open_file(oldest_summary_file, 'r')
+    if f:
+        lines = f.readlines()
+        f.close()
+
+        if len(lines) > 0:
+            for line in lines:
+                if "Events Read:" in line:
+                    n1 = int(re.match('Events Read\: *(\d+)', line).group(1))
+                if "Events Written:" in line:
+                    n2 = int(re.match('Events Written\: *(\d+)', line).group(1))
+                if n1 > 0 and n2 > 0:
+                    break
+        else:
+            log.warning('failed to get number of events from empty summary file')
+
+        log.info("number of events: %d (read)" % n1)
+        log.info("number of events: %d (written)" % n2)
+
+    # Get the errors from the most recent summary file
+    # ...
 
     return n1, n2
 
