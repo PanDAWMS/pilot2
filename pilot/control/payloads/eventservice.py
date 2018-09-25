@@ -68,7 +68,7 @@ class Executor(generic.Executor):
             log.info("ESProcess started with pid: %s" % executor.get_pid())
             job.pid = executor.get_pid()
             if job.pid:
-                job.pgrp = os.getpgid(pid)
+                job.pgrp = os.getpgid(job.pid)
 
             self.utility_after_payload_started(job)
         except Exception as e:
