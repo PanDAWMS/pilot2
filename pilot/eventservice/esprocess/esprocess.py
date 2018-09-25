@@ -23,7 +23,7 @@ except Exception:
 
 from pilot.common.exception import PilotException, MessageFailure, SetupFailure, RunPayloadFailure, UnknownException
 from pilot.eventservice.esprocess.esmessage import MessageThread
-from pilot.util.processes import kill_processes
+from pilot.util.processes import kill_child_processes
 
 
 logger = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ class ESProcess(threading.Thread):
     def is_payload_started(self):
         return self.__is_payload_started
 
-    def stop(self, delay=60):
+    def stop(self, delay=300):
         if not self.__stop.is_set():
             self.__stop.set()
             self.__stop_set_time = time.time()
@@ -463,7 +463,7 @@ class ESProcess(threading.Thread):
                         # logger.info('send SIGTERM to process group: %s' % pgid)
                         # os.killpg(pgid, signal.SIGTERM)
                         logger.info('send SIGTERM to process: %s' % self.__process.pid)
-                        kill_processes(self.__process.pid)
+                        kill_child_processes(self.__process.pid)
                 self.__ret_code = self.__process.poll()
             else:
                 self.__ret_code = -1
@@ -498,7 +498,7 @@ class ESProcess(threading.Thread):
                     # logger.info('send SIGKILL to process group: %s' % pgid)
                     # os.killpg(pgid, signal.SIGKILL)
                     logger.info('send SIGKILL to process: %s' % self.__process.pid)
-                    kill_processes(self.__process.pid)
+                    kill_child_processes(self.__process.pid)
         except Exception as e:
             logger.error('Exception caught when terminating ESProcess: %s' % e)
             self.stop()
