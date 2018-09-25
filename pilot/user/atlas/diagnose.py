@@ -171,6 +171,8 @@ def process_athena_summary(job):
 
         # Get the number of events from the oldest summary file
         n1, n2 = get_number_of_events_from_summary_file(oldest_summary_file)
+        log.info("number of events: %d (read)" % n1)
+        log.info("number of events: %d (written)" % n2)
 
     return n1, n2
 
@@ -192,7 +194,7 @@ def find_most_recent_and_oldest_summary_files(file_list):
             try:
                 st_mtime = os.path.getmtime(summary_file)
             except Exception, e:
-                log.warning("could not read modification time of file %s: %s" % (summary_file, e))
+                logger.warning("could not read modification time of file %s: %s" % (summary_file, e))
             else:
                 if st_mtime > recent_time:
                     recent_time = st_mtime
@@ -234,10 +236,7 @@ def get_number_of_events_from_summary_file(oldest_summary_file):
                 if n1 > 0 and n2 > 0:
                     break
         else:
-            log.warning('failed to get number of events from empty summary file')
-
-        log.info("number of events: %d (read)" % n1)
-        log.info("number of events: %d (written)" % n2)
+            logger.warning('failed to get number of events from empty summary file')
 
     # Get the errors from the most recent summary file
     # ...
