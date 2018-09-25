@@ -204,7 +204,7 @@ class InfoService(object):
     #    # look up priority order: either from job, local config, extinfo provider
     #    return self._resolve_data(self.whoami(), providers=(self.confinfo, self.jobinfo, self.extinfo), args=[name])
 
-    def resolve_ddmendpoint_storageid(self, ddmendpoint=None):
+    def resolve_ddmendpoint_storageid(self, ddmendpoint=[]):
         """
         Resolve the map between ddmendpoint and storage_id
         """
