@@ -13,7 +13,6 @@ import json
 import logging
 
 from pilot.common.exception import PilotException, ErrorCodes
-from pilot.info.storagekeys import storage_keys
 from pilot.info.storageactivitymaps import get_ddm_activity
 from pilot.util.container import execute
 from pilot.util.ruciopath import get_rucio_path
@@ -111,7 +110,7 @@ def copy_in(files, **kwargs):
             surls = resolve_surl(fspec, protocol, ddmconf)
             if 'surl' in surls:
                 fspec.surl = surls['surl']
-            ddm_special_setup = storage_keys.get_special_setup(ddm, protocol.get('id', None))
+            ddm_special_setup = ddm.get_special_setup(protocol.get('id', None))
             if ddm_special_setup:
                 cmd += [ddm_special_setup]
 
@@ -159,7 +158,7 @@ def copy_out(files, **kwargs):
         if fspec.protocol_id:
             ddm = ddmconf.get(fspec.ddmendpoint)
             if ddm:
-                ddm_special_setup = storage_keys.get_special_setup(ddm, fspec.protocol_id)
+                ddm_special_setup = ddm.get_special_setup(fspec.protocol_id)
                 if ddm_special_setup:
                     cmd = [ddm_special_setup]
 
