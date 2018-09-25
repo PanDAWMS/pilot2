@@ -182,7 +182,7 @@ def get_number_of_events(metadata_dictionary, filename=''):
     if filename != '' and filename in metadata_dictionary:
         try:
             nevents = int(metadata_dictionary[filename].get('events'))
-        except Exception as e:
+        except ValueError as e:
             logger.warning('failed to convert number of events to int: %s' % e)
     else:
         logger.warning('number of events could not be extracted from metadata dictionary (based on metadata.xml)')

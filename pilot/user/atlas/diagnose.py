@@ -144,7 +144,10 @@ def find_number_of_events_in_jobreport(job):
 
     work_attributes = parse_jobreport_data(job.metadata)
     if 'n_events' in work_attributes:
-        job.nevents = work_attributes.get('n_events')
+        try:
+            job.nevents = int(work_attributes.get('n_events'))
+        except ValueError as e:
+            logger.warning('failed to convert number of events to int: %s' % e)
 
 
 def find_number_of_events_in_xml(job):
@@ -260,9 +263,15 @@ def get_number_of_events_from_summary_file(oldest_summary_file):
         if len(lines) > 0:
             for line in lines:
                 if "Events Read:" in line:
-                    n1 = int(re.match('Events Read\: *(\d+)', line).group(1))
+                    try:
+                        n1 = int(re.match('Events Read\: *(\d+)', line).group(1))
+                    except ValueError as e:
+                        logger.warning('failed to convert number of read events to int: %s' % e)
                 if "Events Written:" in line:
-                    n2 = int(re.match('Events Written\: *(\d+)', line).group(1))
+                    try:
+                        n2 = int(re.match('Events Written\: *(\d+)', line).group(1))
+                    except ValueError as e:
+                        logger.warning('failed to convert number of written events to int: %s' % e)
                 if n1 > 0 and n2 > 0:
                     break
         else:
@@ -286,10 +295,16 @@ def find_db_info(job):
 
     work_attributes = parse_jobreport_data(job.metadata)
     if '__db_time' in work_attributes:
-        job.dbtime = work_attributes.get('__db_time')
+        try:
+            job.dbtime = int(work_attributes.get('__db_time'))
+        except ValueError as e:
+            logger.warning('failed to convert dbtime to int: %s' % e)
         log.info('dbtime (total): %d' % job.dbtime)
     if '__db_data' in work_attributes:
-        job.dbdata = work_attributes.get('__db_data')
+        try:
+            job.dbdata = work_attributes.get('__db_data')
+        except ValueError as e:
+            logger.warning('failed to convert dbdata to int: %s' % e)
         log.info('dbdata (total): %d' % job.dbdata)
 
 
