@@ -106,7 +106,9 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
         set_inds(job.datasetin)  # realDatasetsIn
 
         # Try to download the trf (skip when user container is to be used)
-        trf_name = ""
+        if job.imagename != "":
+            job.transformation = "runcontainer.py"
+            log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
         ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
         if ec != 0:
            raise TrfDownloadFailure(diagnostics)
@@ -299,7 +301,7 @@ def get_analysis_run_command(job, trf_name):
         cmd += './%s %s' % (trf_name, job.jobparams)
     else:
         #
-        cmd += 'python %s' % trf_name
+        cmd += 'python runcontainer.py'  # should be: % trf_name but this is not correctly set by prun at the moment
 
         # restore the image name and add the job params
         cmd += ' --containerImage=%s %s' % (job.imagename, job.jobparams)
