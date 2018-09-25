@@ -81,7 +81,7 @@ class JobData(BaseData):
     stageout = ""  # stage-out identifier, e.g. log
     metadata = {}  # payload metadata (job report)
     cpuconsumptionunit = ""
-    cpuconsumptiontime = ""
+    cpuconsumptiontime = -1
     cpuconversionfactor = 1
     nevents = 0  # number of events
     neventsw = 0  # number of events written
@@ -137,7 +137,7 @@ class JobData(BaseData):
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['corecount', 'piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
-                   'attemptnr', 'nevents', 'neventsw', 'pid'],
+                   'attemptnr', 'nevents', 'neventsw', 'pid', 'cpuconsumptiontime'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
                    'state', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg', 'produserid', 'jobdefinitionid', 'writetofile',
@@ -146,7 +146,7 @@ class JobData(BaseData):
                    #'outfiles', 'ddmendpointin',   ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'scopeout', 'ddmendpointout',    ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    #'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
-                   'cpuconsumptionunit', 'cpuconsumptiontime', 'homepackage', 'jobsetid', 'payload', 'processingtype',
+                   'cpuconsumptionunit', 'homepackage', 'jobsetid', 'payload', 'processingtype',
                    'swrelease', 'zipmap', 'imagename', 'accessmode', 'transfertype',
                    'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    #'datasetout',  ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
