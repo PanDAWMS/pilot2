@@ -75,7 +75,7 @@ class ESProcess(threading.Thread):
     def is_payload_started(self):
         return self.__is_payload_started
 
-    def stop(self, delay=300):
+    def stop(self, delay=1800):
         if not self.__stop.is_set():
             self.__stop.set()
             self.__stop_set_time = time.time()
