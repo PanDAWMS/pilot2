@@ -98,6 +98,7 @@ class StorageData(BaseData):
     ##
     ##    return value
 
+    # to be improved: move it to some data loader
     def get_security_key(self, secret_key, access_key):
         """
             Get security key pair from panda
