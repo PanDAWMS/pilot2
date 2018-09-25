@@ -29,7 +29,7 @@ class Executor(generic.Executor):
         exit_code, stdout, stderr = execute(command)
         logger.info("exit_code: %s, stdout: %s, stderr: %s\n" % (exit_code, stdout, stderr))
 
-    def before_payload(self, job):
+    def utility_before_payload(self, job):
         """
         Functions to run before payload
 
@@ -45,4 +45,4 @@ class Executor(generic.Executor):
         log.info("Processing writeToFile for eventservicemerge job")
         job.process_writetofile()
 
-        super(Executor, self).before_payload(job)
+        super(Executor, self).utility_before_payload(job)
