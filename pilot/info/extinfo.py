@@ -65,7 +65,7 @@ class ExtInfoProvider(DataLoader):
                             'cache_time': 3 * 60 * 60,  # 3 hours
                             'fname': os.path.join(cache_dir, 'agis_schedconf.agis.%s.json' %
                                                   ('_'.join(sorted(pandaqueues)) or 'ALL'))},
-                   'LOCAL': {'url': None,
+                   'LOCAL': {'url': os.environ.get('LOCAL_AGIS_SCHEDCONF', None),
                              'nretry': 1,
                              'cache_time': 3 * 60 * 60,  # 3 hours
                              'fname': os.path.join(cache_dir, 'agis_schedconf.json')},
