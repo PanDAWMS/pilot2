@@ -127,6 +127,9 @@ class StorageData(BaseData):
         """
 
         logger.info("Get special setup for protocol id(%s)" % (protocol_id))
+        if protocol_id in self.special_setup and self.special_setup[protocol_id]:
+            return self.special_setup[protocol_id]
+
         if protocol_id is None or str(protocol_id) not in self.rprotocols.keys():
             return None
 
