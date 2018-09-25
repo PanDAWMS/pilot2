@@ -69,6 +69,8 @@ class ESProcess(threading.Thread):
         self.setName("ESProcess")
         self.corecount = 1
 
+        self.event_ranges_cache = []
+
     def __del__(self):
         if self.__message_thread:
             self.__message_thread.stop()
@@ -288,6 +290,22 @@ class ESProcess(threading.Thread):
             return True
         return False
 
+    def get_event_range_to_payload(self):
+        """
+        Get one event range to be sent to payload
+        """
+        logger.debug("Number of cached event ranges: %s" % len(self.event_ranges_cache))
+        if not self.event_ranges_cache:
+            event_ranges = self.get_event_ranges()
+            if event_ranges:
+                self.event_ranges_cache.extend(event_ranges)
+
+        if self.event_ranges_cache:
+            event_range = self.event_ranges_cache.pop(0)
+            return event_range
+        else:
+            return []
+
     def get_event_ranges(self, num_ranges=None):
         """
         Calling get_event_ranges hook to get event ranges.
@@ -415,7 +433,7 @@ class ESProcess(threading.Thread):
         else:
             logger.debug('received message from payload: %s' % message)
             if "Ready for events" in message:
-                event_ranges = self.get_event_ranges()
+                event_ranges = self.get_event_range_to_payload()
                 if not event_ranges:
                     event_ranges = "No more events"
                 self.send_event_ranges_to_payload(event_ranges)
