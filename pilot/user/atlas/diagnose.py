@@ -10,13 +10,15 @@
 import json
 import os
 import re
+from glob import glob
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
-from pilot.util.filehandling import get_guid, tail
+from pilot.util.filehandling import get_guid, tail, open_file
 
-from .common import update_job_data
+from .common import update_job_data, parse_jobreport_data
+from .metadata import get_metadata_from_xml, get_total_number_of_events
 
 errors = ErrorCodes()
 
@@ -45,9 +47,193 @@ def interpret(job):
         log.warning('user tarball was not downloaded (payload exit code %d)' % exit_code)
         set_error_nousertarball(job)
 
+    # extract special information, e.g. number of events
+    extract_special_information(job)
+
+    # interpret the stdout from the payload
+
     log.debug('payload interpret function ended with exit_code: %d' % exit_code)
 
     return exit_code
+
+
+def extract_special_information(job):
+    """
+    Extract special information from different sources, such as number of events and data base fields.
+
+    :param job: job object.
+    :return:
+    """
+
+    # try to find the number(s) of processed events (will be set in the relevant job fields)
+    find_number_of_events(job)
+
+    # get the DB info from the jobReport
+    find_db_info(job)
+
+
+def find_number_of_events(job):
+    """
+    Locate the number of events.
+
+    :param job: job object.
+    :return:
+    """
+
+    log = get_logger(job.jobid)
+
+    log.info('looking for number of processed events (source #1: jobReport.json)')
+    find_number_of_events_in_jobreport(job)
+    if job.nevents > 0:
+        log.info('found %d processed events' % job.nevents)
+        return
+
+    log.info('looking for number of processed events (source #2: metadata.xml)')
+    find_number_of_events_in_xml(job)
+    if job.nevents > 0:
+        log.info('found %d processed events' % job.nevents)
+        return
+
+    log.info('looking for number of processed events (source #3: athena summary file(s)')
+    n1, n2 = process_athena_summary(job)
+    if n1 > 0:
+        job.nevents = n1
+        log.info('found %d processed (read) events' % job.nevents)
+    if n2 > 0:
+        job.neventsw = n2
+        log.info('found %d processed (written) events' % job.neventsw)
+
+
+def find_number_of_events_in_jobreport(job):
+    """
+    Try to find the number of events in the jobReport.json file.
+
+    :param job: job object.
+    :return:
+    """
+
+    work_attributes = parse_jobreport_data(job.metadata)
+    if 'n_events' in work_attributes:
+        job.nevents = work_attributes.get('n_events')
+
+
+def find_number_of_events_in_xml(job):
+    """
+    Try to find the number of events in the metadata.xml file.
+
+    :param job: job object.
+    :return:
+    """
+
+    metadata = get_metadata_from_xml(job.workdir)
+    nevents = get_total_number_of_events(metadata)
+    if nevents > 0:
+        job.nevents = nevents
+
+
+def process_athena_summary(job):
+    """
+    Try to find the number of events in the Athena summary file.
+
+    :param job: job object.
+    :return: number of read events (int), number of written events (int).
+    """
+
+    log = get_logger(job.jobid)
+
+    n1 = 0
+    n2 = 0
+    file_pattern_list = ['AthSummary*', 'AthenaSummary*']
+
+    file_list = []
+    # loop over all patterns in the list to find all possible summary files
+    for file_pattern in file_pattern_list:
+        # get all the summary files for the current file pattern
+        files = glob(os.path.join(job.workdir, file_pattern))
+        # append all found files to the file list
+        for summary_file in files:
+            file_list.append(summary_file)
+
+    if file_list == [] or file_list == ['']:
+        log.info("did not find any athena summary files")
+    else:
+        # find the most recent and the oldest files
+        oldest_summary_file = ""
+        recent_summary_file = ""
+        oldest_time = 9999999999
+        recent_time = 0
+        if len(file_list) > 1:
+            for summary_file in file_list:
+                # get the modification time
+                try:
+                    st_mtime = os.path.getmtime(summary_file)
+                except Exception, e:
+                    log.warning("could not read modification time of file %s: %s" % (summary_file, e))
+                else:
+                    if st_mtime > recent_time:
+                        recent_time = st_mtime
+                        recent_summary_file = summary_file
+                    if st_mtime < oldest_time:
+                        oldest_time = st_mtime
+                        oldest_summary_file = summary_file
+        else:
+            oldest_summary_file = file_list[0]
+            recent_summary_file = oldest_summary_file
+            oldest_time = os.path.getmtime(oldest_summary_file)
+            recent_time = oldest_time
+
+        if oldest_summary_file == recent_summary_file:
+            log.info("summary file %s will be processed for errors and number of events" %
+                     os.path.basename(oldest_summary_file))
+        else:
+            log.info("most recent summary file %s (updated at %d) will be processed for errors" %
+                     (os.path.basename(recent_summary_file), recent_time))
+            log.info("oldest summary file %s (updated at %d) will be processed for number of events" %
+                     (os.path.basename(oldest_summary_file), oldest_time))
+
+        # Get the number of events from the oldest summary file
+        f = open_file(oldest_summary_file, 'r')
+        if f:
+            lines = f.readlines()
+            f.close()
+
+            if len(lines) > 0:
+                for line in lines:
+                    if "Events Read:" in line:
+                        n1 = int(re.match('Events Read\: *(\d+)', line).group(1))
+                    if "Events Written:" in line:
+                        n2 = int(re.match('Events Written\: *(\d+)', line).group(1))
+                    if n1 > 0 and n2 > 0:
+                        break
+            else:
+                log.warning('failed to get number of events from empty summary file')
+
+            log.info("number of events: %d (read)" % n1)
+            log.info("number of events: %d (written)" % n2)
+
+        # Get the errors from the most recent summary file
+        # ...
+
+    return n1, n2
+
+
+def find_db_info(job):
+    """
+    Find the DB info in the jobReport
+
+    :param job: job object.
+    :return:
+    """
+
+    log = get_logger(job.jobid)
+
+    work_attributes = parse_jobreport_data(job.metadata)
+    if '__db_time' in work_attributes:
+        job.dbtime = work_attributes.get('__db_time')
+        log.info('dbtime (total): %d' % job.dbtime)
+    if '__db_data' in work_attributes:
+        job.dbdata = work_attributes.get('__db_data')
+        log.info('dbdata (total): %d' % job.dbdata)
 
 
 def set_error_nousertarball(job):
