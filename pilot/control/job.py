@@ -1382,7 +1382,7 @@ def make_job_report(job):
     log.info('nevents: %d' % job.nevents)
     log.info('neventsw: %d' % job.neventsw)
     log.info('pid: %s' % job.pid)
-    log.info('pgrp: %d' % str(job.pgrp))
+    log.info('pgrp: %s' % str(job.pgrp))
     log.info('corecount: %d' % job.corecount)
     log.info('event service: %s' % str(job.is_eventservice))
     log.info('')
