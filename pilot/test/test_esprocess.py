@@ -138,7 +138,7 @@ class TestESMessageThread(unittest.TestCase):
 
         msg_thread.send('test')
         msg_thread.stop()
-        self.assertTrue(msg_thread.stopped())
+        self.assertTrue(msg_thread.is_stopped())
         time.sleep(1)
         self.assertFalse(msg_thread.is_alive())
 
