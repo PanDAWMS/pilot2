@@ -185,7 +185,7 @@ def execute_payloads(queues, traces, args):
                 ec = errors.resolve_transform_error(exit_code, stderr)
                 if ec != 0:
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
-                job.transexitcode = exit_code
+                job.transexitcode = exit_code % 255
                 queues.failed_payloads.put(job)
 
         except queue.Empty:
