@@ -53,11 +53,38 @@ def interpret(job):
     # extract special information, e.g. number of events
     extract_special_information(job)
 
-    # interpret the stdout from the payload
+    # interpret the exit info from the payload
+    interpret_payload_exit_info(job)
 
     log.debug('payload interpret function ended with exit_code: %d' % exit_code)
 
     return exit_code
+
+
+def interpret_payload_exit_info(job):
+    """
+    Interpret the exit info from the payload
+
+    :param job: job object.
+    :return:
+    """
+
+    # try to identify out of memory errors in the stderr
+    out_of_memory = is_out_of_memory(job)
+    failed = out_of_memory  # failed boolean used below
+
+    pass
+
+
+def is_out_of_memory(job):
+    """
+    Did the payload run out of memory?
+
+    :param job: job object.
+    :return: Boolean.
+    """
+
+    pass
 
 
 def extract_special_information(job):
