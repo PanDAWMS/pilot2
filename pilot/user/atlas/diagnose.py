@@ -20,6 +20,9 @@ from pilot.util.filehandling import get_guid, tail, open_file
 from .common import update_job_data, parse_jobreport_data
 from .metadata import get_metadata_from_xml, get_total_number_of_events
 
+import logging
+logger = logging.getLogger(__name__)
+
 errors = ErrorCodes()
 
 
