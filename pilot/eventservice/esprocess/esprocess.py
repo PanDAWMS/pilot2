@@ -67,6 +67,7 @@ class ESProcess(threading.Thread):
 
         self.__ret_code = None
         self.setName("ESProcess")
+        self.corecount = 1
 
     def __del__(self):
         if self.__message_thread:
@@ -169,6 +170,8 @@ class ESProcess(threading.Thread):
                                                                                                     output_file_fd,
                                                                                                     error_file_fd,
                                                                                                     self.__process.pid))
+            if 'job' in self.__payload and self.__payload['job'] and self.__payload['job'].corecount:
+                self.corecount = int(self.__payload['job'].corecount)
         except PilotException as e:
             logger.error("Failed to start payload process: %s, %s" % (e.get_detail(), traceback.format_exc()))
             self.__ret_code = -1
@@ -285,7 +288,7 @@ class ESProcess(threading.Thread):
             return True
         return False
 
-    def get_event_ranges(self, num_ranges=1):
+    def get_event_ranges(self, num_ranges=None):
         """
         Calling get_event_ranges hook to get event ranges.
 
@@ -294,6 +297,8 @@ class ESProcess(threading.Thread):
         :raises: SetupFailure: If get_event_ranges_hook is not set.
                  MessageFailure: when failed to get event ranges.
         """
+        if not num_ranges:
+            num_ranges = self.corecount
 
         logger.debug('getting event ranges(num_ranges=%s)' % num_ranges)
         if not self.get_event_ranges_hook:
