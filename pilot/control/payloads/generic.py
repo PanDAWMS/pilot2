@@ -70,7 +70,7 @@ class Executor(object):
         :param job: job object
         """
         # write time stamps to pilot timing file
-        add_to_pilot_timing(job.jobid, PILOT_PRE_SETUP, time.time())
+        add_to_pilot_timing(job.jobid, PILOT_PRE_SETUP, time.time(), self.__args)
 
     def post_setup(self, job):
         """
@@ -78,7 +78,7 @@ class Executor(object):
         :param job: job object
         """
         # write time stamps to pilot timing file
-        add_to_pilot_timing(job.jobid, PILOT_POST_SETUP, time.time())
+        add_to_pilot_timing(job.jobid, PILOT_POST_SETUP, time.time(), self.__args)
 
     def utility_before_payload(self, job):
         """
@@ -173,7 +173,7 @@ class Executor(object):
         :param job: job object
         """
         # write time stamps to pilot timing file
-        add_to_pilot_timing(job.jobid, PILOT_PRE_PAYLOAD, time.time())
+        add_to_pilot_timing(job.jobid, PILOT_PRE_PAYLOAD, time.time(), self.__args)
 
     def post_payload(self, job):
         """
@@ -181,7 +181,7 @@ class Executor(object):
         :param job: job object
         """
         # write time stamps to pilot timing file
-        add_to_pilot_timing(job.jobid, PILOT_POST_PAYLOAD, time.time())
+        add_to_pilot_timing(job.jobid, PILOT_POST_PAYLOAD, time.time(), self.__args)
 
     def run_payload(self, job, out, err):
         """

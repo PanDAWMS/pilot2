@@ -43,9 +43,9 @@ class Executor(generic.Executor):
 
         self.post_setup(job)
 
-        self.before_payload(job)
+        self.utility_before_payload(job)
 
-        self.with_payload(job)
+        self.utility_with_payload(job)
 
         try:
             executable = user.get_payload_command(job)
@@ -68,7 +68,7 @@ class Executor(generic.Executor):
             log.info("ESProcess started with pid: %s" % executor.get_pid())
             job.pid = executor.get_pid()
 
-            self.after_payload_started(job)
+            self.utility_after_payload_started(job)
         except Exception as e:
             log.error('could not execute: %s' % str(e))
             return None
