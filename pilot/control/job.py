@@ -1388,4 +1388,5 @@ def make_job_report(job):
     log.info('pgrp: %s' % str(job.pgrp))
     log.info('corecount: %d' % job.corecount)
     log.info('event service: %s' % str(job.is_eventservice))
+    log.info('--------------------------------------------------')
     log.info('')

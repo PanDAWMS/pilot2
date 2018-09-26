@@ -102,7 +102,7 @@ def is_out_of_memory(job):
     files = {stderr: ["FATAL out of memory: taking the application down"], stdout: ["St9bad_alloc", "std::bad_alloc"]}
     for path in files:
         if os.path.exists(path):
-            log.info('looking for out-of-memory errors in %s' % path)
+            log.info('looking for out-of-memory errors in %s' % os.path.basename(path))
             if os.path.getsize(path) > 0:
                 matched_lines = grep(files[path], path)
                 if len(matched_lines) > 0:
@@ -214,7 +214,9 @@ def find_number_of_events_in_jobreport(job):
     work_attributes = parse_jobreport_data(job.metadata)
     if 'n_events' in work_attributes:
         try:
-            job.nevents = int(work_attributes.get('n_events'))
+            n_events = work_attributes.get('n_events')
+            if n_events:
+                job.nevents = int(n_events)
         except ValueError as e:
             logger.warning('failed to convert number of events to int: %s' % e)
 

@@ -521,11 +521,6 @@ def update_job_data(job):  # noqa: C901
     # determine what should be staged out
     job.stageout = stageout  # output and log file or only log file
 
-    # extract the number of events
-    if not job.is_eventservice:
-        # extract the number of events
-        job.nevents = get_number_of_events(job.metadata)
-
     work_attributes = None
     try:
         work_attributes = parse_jobreport_data(job.metadata)
@@ -688,7 +683,7 @@ def get_executor_dictionary(jobreport_dictionary):
     return executor_dictionary
 
 
-def get_number_of_events(jobreport_dictionary):
+def get_number_of_events_deprecated(jobreport_dictionary):  # TODO: remove this function
     """
     Extract the number of events from the job report.
 
