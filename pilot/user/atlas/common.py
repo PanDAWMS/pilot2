@@ -107,6 +107,8 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
         set_inds(job.datasetin)  # realDatasetsIn
 
         # Try to download the trf (skip when user container is to be used)
+        log.info('imagename=%s' % job.imagename)
+        log.info('jobparams=%s' % job.jobparams)
         if job.imagename != "" or "--containerImage" in job.jobparams:
             job.transformation = "runcontainer.py"
             log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
