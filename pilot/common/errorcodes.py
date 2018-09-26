@@ -55,6 +55,7 @@ class ErrorCodes:
     SIGBUS = 1206
     SIGUSR1 = 1207
 
+    PAYLOADOUTOFMEMORY = 1212
     REACHEDMAXTIME = 1213
     BADALLOC = 1223
     PAYLOADEXCEEDMAXMEM = 1235
@@ -115,6 +116,7 @@ class ErrorCodes:
         SIGUSR1: "Job killed by signal: SIGUSR1",
         SIGBUS: "Job killed by signal: SIGBUS",
         USERKILL: "Job killed by user",
+        PAYLOADOUTOFMEMORY: "Payload ran out of memory",
         REACHEDMAXTIME: "Reached batch system time limit",
         BADALLOC: "Transform failed due to bad_alloc",
         PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",

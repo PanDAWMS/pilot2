@@ -15,7 +15,7 @@ from glob import glob
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
-from pilot.util.filehandling import get_guid, tail, open_file
+from pilot.util.filehandling import get_guid, tail, grep, open_file
 
 from .common import update_job_data, parse_jobreport_data
 from .metadata import get_metadata_from_xml, get_total_number_of_events
@@ -70,10 +70,9 @@ def interpret_payload_exit_info(job):
     """
 
     # try to identify out of memory errors in the stderr
-    out_of_memory = is_out_of_memory(job)
-    # failed = out_of_memory  # failed boolean used below
-
-    pass
+    if is_out_of_memory(job):
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADOUTOFMEMORY)
+        return
 
 
 def is_out_of_memory(job):
@@ -84,7 +83,27 @@ def is_out_of_memory(job):
     :return: Boolean.
     """
 
-    return False
+    out_of_memory = False
+    log = get_logger(job.jobid)
+
+    stdout = os.path.join(job.workdir, config.Payload.payloadstdout)
+    stderr = os.path.join(job.workdir, config.Payload.payloadstderr)
+
+    files = {stderr: ["FATAL out of memory: taking the application down"], stdout: ["St9bad_alloc", "std::bad_alloc"]}
+    for path in files:
+        if os.path.exists(path):
+            log.info('looking for out-of-memory errors in %s' % path)
+            if os.path.getsize(path) > 0:
+                matched_lines = grep(files[path], path)
+                if len(matched_lines) > 0:
+                    log.warning("identified an out of memory error in %s %s:" % (job.payload, os.path.basename(path)))
+                    for line in matched_lines:
+                        log.info(line)
+                    out_of_memory = True
+        else:
+            log.warning('file does not exist: %s (cannot look for out-of-memory error in it)')
+
+    return out_of_memory
 
 
 def extract_special_information(job):
