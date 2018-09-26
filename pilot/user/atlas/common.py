@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Wen Guan, wen.guan, 2018
 
 import os
 import re
@@ -21,7 +22,7 @@ from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post
 
 from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import get_logger
-from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD,\
+from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
     UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid
@@ -127,6 +128,13 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
     else:
         # Add Database commands if they are set by the local site
         cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
+
+        if job.is_eventservice:
+            if job.corecount:
+                cmd += '; export ATHENA_PROC_NUMBER=%s' % job.corecount
+            else:
+                cmd += '; export ATHENA_PROC_NUMBER=1'
+
         # Add the transform and the job parameters (production jobs)
         if prepareasetup:
             cmd += "; %s %s" % (job.transformation, job.jobparams)
@@ -493,14 +501,18 @@ def update_job_data(job):  # noqa: C901
 
     stageout = "all"
 
-    # handle any error codes
-    if 'exeErrorCode' in job.metadata:
-        job.exeerrorcode = job.metadata['exeErrorCode']
-        if job.exeerrorcode == 0:
-            stageout = "all"
-        else:
-            log.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
-            stageout = "log"
+    if job.is_eventservice:
+        logger.info('payload is eventservice, will only stageout log')
+        stageout = "log"
+    else:
+        # handle any error codes
+        if 'exeErrorCode' in job.metadata:
+            job.exeerrorcode = job.metadata['exeErrorCode']
+            if job.exeerrorcode == 0:
+                stageout = "all"
+            else:
+                log.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
+                stageout = "log"
     if 'exeErrorDiag' in job.metadata:
         job.exeerrordiag = job.metadata['exeErrorDiag']
         if job.exeerrordiag:
@@ -510,7 +522,9 @@ def update_job_data(job):  # noqa: C901
     job.stageout = stageout  # output and log file or only log file
 
     # extract the number of events
-    job.nevents = get_number_of_events(job.metadata)
+    if not job.is_eventservice:
+        # extract the number of events
+        job.nevents = get_number_of_events(job.metadata)
 
     work_attributes = None
     try:
@@ -522,7 +536,7 @@ def update_job_data(job):  # noqa: C901
 
     # extract output files from the job report, in case the trf has created additional (overflow) files
     # also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
-    if job.metadata:
+    if job.metadata and not job.is_eventservice:
         data = dict([e.lfn, e] for e in job.outdata)
         extra = []
 
@@ -1000,7 +1014,7 @@ def get_utility_commands_list(order=None):
     If the optional order parameter is set, the function should return the list of corresponding commands.
     E.g. if order=UTILITY_BEFORE_PAYLOAD, the function should return all commands that are to be executed before the
     payload. If order=UTILITY_WITH_PAYLOAD, the corresponding commands will be prepended to the payload execution
-    string. If order=UTILITY_AFTER_PAYLOAD, the commands that should be executed after the payload has been started
+    string. If order=UTILITY_AFTER_PAYLOAD_STARTED, the commands that should be executed after the payload has been started
     should be returned. If order=UTILITY_WITH_STAGEIN, the commands that should be executed parallel with stage-in will
     be returned.
 
@@ -1013,7 +1027,7 @@ def get_utility_commands_list(order=None):
             return ['Prefetcher']
         elif order == UTILITY_WITH_PAYLOAD:
             return ['NetworkMonitor']
-        elif order == UTILITY_AFTER_PAYLOAD:
+        elif order == UTILITY_AFTER_PAYLOAD_STARTED:
             return ['MemoryMonitor']
         elif order == UTILITY_WITH_STAGEIN:
             return ['Benchmark']
@@ -1055,10 +1069,10 @@ def get_utility_command_execution_order(name):
     if name == 'NetworkMonitor':
         return UTILITY_WITH_PAYLOAD
     elif name == 'MemoryMonitor':
-        return UTILITY_AFTER_PAYLOAD
+        return UTILITY_AFTER_PAYLOAD_STARTED
     else:
         logger.warning('unknown utility name: %s' % name)
-        return UTILITY_AFTER_PAYLOAD
+        return UTILITY_AFTER_PAYLOAD_STARTED
 
 
 def post_utility_command_action(name, job):

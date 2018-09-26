@@ -9,8 +9,8 @@
 
 import logging
 
-from pilot.eventservice.esprocess import ESProcess
-from pilot.eventservice.eshook import ESHook
+from pilot.eventservice.esprocess.esprocess import ESProcess
+from pilot.eventservice.esprocess.eshook import ESHook
 
 logger = logging.getLogger(__name__)
 

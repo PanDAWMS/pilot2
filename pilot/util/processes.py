@@ -171,6 +171,43 @@ def kill_processes(pid):
     kill_orphans()
 
 
+def kill_child_processes(pid):
+    """
+    Kill child processes.
+
+    :param pid: process id (int).
+    :return:
+    """
+    # firstly find all the children process IDs to be killed
+    children = []
+    find_processes_in_group(children, pid)
+
+    # reverse the process order so that the athena process is killed first (otherwise the stdout will be truncated)
+    children.reverse()
+    logger.info("process IDs to be killed: %s (in reverse order)" % str(children))
+
+    # find which commands are still running
+    try:
+        cmds = get_process_commands(os.geteuid(), children)
+    except Exception as e:
+        logger.warning("get_process_commands() threw an exception: %s" % e)
+    else:
+        if len(cmds) <= 1:
+            logger.warning("found no corresponding commands to process id(s)")
+        else:
+            logger.info("found commands still running:")
+            for cmd in cmds:
+                logger.info(cmd)
+
+            # loop over all child processes
+            for i in children:
+                # dump the stack trace before killing it
+                dump_stack_trace(i)
+
+                # kill the process gracefully
+                kill_process(i)
+
+
 def kill_process_group(pgrp):
     """
     Kill the process group.
