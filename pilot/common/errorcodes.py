@@ -29,6 +29,7 @@ class ErrorCodes:
     USERDIRTOOLARGE = 1104
     STDOUTTOOBIG = 1106
     SETUPFAILURE = 1110
+    NFSSQLITE = 1115
     OUTPUTFILETOOLARGE = 1124
     STAGEOUTFAILED = 1137
     PUTMD5MISMATCH = 1141
@@ -93,6 +94,7 @@ class ErrorCodes:
         USERDIRTOOLARGE: "User work directory too large",
         STDOUTTOOBIG: "Payload log or stdout file too big",
         SETUPFAILURE: "Failed during payload setup",
+        NFSSQLITE: "NFS SQLite locking problems",
         OUTPUTFILETOOLARGE: "Output file too large",
         STAGEOUTFAILED: "Failed to stage-out file",
         PUTMD5MISMATCH: "md5sum mismatch on output file",

@@ -74,9 +74,14 @@ def interpret_payload_exit_info(job):
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADOUTOFMEMORY)
         return
 
-    # look for specific errors in the stdout
+    # look for specific errors in the stdout (tail)
     if is_installation_error(job):
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGINSTALLATION)
+        return
+
+    # look for specific errors in the stdout (full)
+    if is_nfssqlite_locking_problem(job):
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NFSSQLITE)
         return
 
 
@@ -85,7 +90,7 @@ def is_out_of_memory(job):
     Did the payload run out of memory?
 
     :param job: job object.
-    :return: Boolean.
+    :return: Boolean. (note: True means the error was found)
     """
 
     out_of_memory = False
@@ -116,7 +121,7 @@ def is_installation_error(job):
     Did the payload fail to run? (Due to faulty/missing installation).
 
     :param job: job object.
-    :return: Boolean.
+    :return: Boolean. (note: True means the error was found)
     """
 
     stdout = os.path.join(job.workdir, config.Payload.payloadstdout)
@@ -126,6 +131,29 @@ def is_installation_error(job):
         return True
     else:
         return False
+
+
+def is_nfssqlite_locking_problem(job):
+    """
+    Were there any NFS SQLite locking problems?
+
+    :param job: job object.
+    :return: Boolean. (note: True means the error was found)
+    """
+
+    locking_problem = False
+
+    stdout = os.path.join(job.workdir, config.Payload.payloadstdout)
+    errormsgs = ["prepare 5 database is locked", "Error SQLiteStatement"]
+    matched_lines = grep(errormsgs, stdout)
+    if len(matched_lines) > 0:
+        log = get_logger(job.jobid)
+        log.warning("identified an NFS/Sqlite locking problem in %s" % os.path.basename(stdout))
+        for line in matched_lines:
+            log.info(line)
+        locking_problem = True
+
+    return locking_problem
 
 
 def extract_special_information(job):
