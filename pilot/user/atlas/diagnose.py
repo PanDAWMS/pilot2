@@ -71,7 +71,7 @@ def interpret_payload_exit_info(job):
 
     # try to identify out of memory errors in the stderr
     out_of_memory = is_out_of_memory(job)
-    failed = out_of_memory  # failed boolean used below
+    # failed = out_of_memory  # failed boolean used below
 
     pass
 
