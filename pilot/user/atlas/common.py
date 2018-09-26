@@ -131,6 +131,13 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
     else:
         # Add Database commands if they are set by the local site
         cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
+
+        if job.is_eventservice:
+            if job.corecount:
+                cmd += '; export ATHENA_PROC_NUMBER=%s' % job.corecount
+            else:
+                cmd += '; export ATHENA_PROC_NUMBER=1'
+
         # Add the transform and the job parameters (production jobs)
         if prepareasetup:
             cmd += "; %s %s" % (job.transformation, job.jobparams)

@@ -193,4 +193,5 @@ class FileSpec(BaseData):
                     storage_id = int(self.storage_token)
         except Exception as ex:
             logger.warning("Failed to parse storage_token(%s): %s" % (self.storage_token, ex))
+        logger.info('storage_id: %s, path_convention: %s' % (storage_id, path_convention))
         return storage_id, path_convention

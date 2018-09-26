@@ -247,7 +247,7 @@ class GenericExecutor(BaseExecutor):
         self.__all_out_messages = []
 
         if self.proc:
-            self.proc.stop(20)
+            self.proc.stop()
             while self.proc.is_alive():
                 time.sleep(0.1)
 
@@ -287,7 +287,7 @@ class GenericExecutor(BaseExecutor):
                 iteration += 1
                 if self.is_stop():
                     log.info('Stop is set. breaking -- stop process pid=%s' % proc.pid)
-                    proc.stop(60)
+                    proc.stop()
                     break
                 self.stageout_es()
 

@@ -14,8 +14,8 @@ import sys
 import time
 
 from pilot.eventservice.communicationmanager.communicationmanager import CommunicationRequest, CommunicationResponse, CommunicationManager
+from pilot.util.auxiliary import time_stamp
 from pilot.util.https import https_setup
-
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -106,7 +106,17 @@ class TestESCommunicationManagerPanda(unittest.TestCase):
 
             job_list = []
             for job in jobs:
-                job_data = {}
+                job_data = {'node': socket.getfqdn(),
+                            'pilotErrorCode': 0,
+                            'startTime': time.time(),
+                            'jobMetrics': 'coreCount=8',
+                            'schedulerID': 'unknown',
+                            'timestamp': time_stamp(),
+                            'exeErrorCode': 0,
+                            'pilotID': 'unknown|PR|2.0.0 (80)',
+                            'transExitCode': 0,
+                            'pilotErrorDiag': '',
+                            'exeErrorDiag': ''}
                 job_data['jobId'] = job['PandaID']
                 job_data['siteName'] = 'BNL_CLOUD_MCORE'
                 job_data['state'] = 'running'

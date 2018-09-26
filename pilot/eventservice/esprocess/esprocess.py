@@ -23,7 +23,7 @@ except Exception:
 
 from pilot.common.exception import PilotException, MessageFailure, SetupFailure, RunPayloadFailure, UnknownException
 from pilot.eventservice.esprocess.esmessage import MessageThread
-from pilot.util.processes import kill_processes
+from pilot.util.processes import kill_child_processes
 
 
 logger = logging.getLogger(__name__)
@@ -67,6 +67,9 @@ class ESProcess(threading.Thread):
 
         self.__ret_code = None
         self.setName("ESProcess")
+        self.corecount = 1
+
+        self.event_ranges_cache = []
 
     def __del__(self):
         if self.__message_thread:
@@ -75,7 +78,7 @@ class ESProcess(threading.Thread):
     def is_payload_started(self):
         return self.__is_payload_started
 
-    def stop(self, delay=60):
+    def stop(self, delay=1800):
         if not self.__stop.is_set():
             self.__stop.set()
             self.__stop_set_time = time.time()
@@ -169,6 +172,8 @@ class ESProcess(threading.Thread):
                                                                                                     output_file_fd,
                                                                                                     error_file_fd,
                                                                                                     self.__process.pid))
+            if 'job' in self.__payload and self.__payload['job'] and self.__payload['job'].corecount:
+                self.corecount = int(self.__payload['job'].corecount)
         except PilotException as e:
             logger.error("Failed to start payload process: %s, %s" % (e.get_detail(), traceback.format_exc()))
             self.__ret_code = -1
@@ -285,7 +290,23 @@ class ESProcess(threading.Thread):
             return True
         return False
 
-    def get_event_ranges(self, num_ranges=1):
+    def get_event_range_to_payload(self):
+        """
+        Get one event range to be sent to payload
+        """
+        logger.debug("Number of cached event ranges: %s" % len(self.event_ranges_cache))
+        if not self.event_ranges_cache:
+            event_ranges = self.get_event_ranges()
+            if event_ranges:
+                self.event_ranges_cache.extend(event_ranges)
+
+        if self.event_ranges_cache:
+            event_range = self.event_ranges_cache.pop(0)
+            return event_range
+        else:
+            return []
+
+    def get_event_ranges(self, num_ranges=None):
         """
         Calling get_event_ranges hook to get event ranges.
 
@@ -294,6 +315,8 @@ class ESProcess(threading.Thread):
         :raises: SetupFailure: If get_event_ranges_hook is not set.
                  MessageFailure: when failed to get event ranges.
         """
+        if not num_ranges:
+            num_ranges = self.corecount
 
         logger.debug('getting event ranges(num_ranges=%s)' % num_ranges)
         if not self.get_event_ranges_hook:
@@ -410,7 +433,7 @@ class ESProcess(threading.Thread):
         else:
             logger.debug('received message from payload: %s' % message)
             if "Ready for events" in message:
-                event_ranges = self.get_event_ranges()
+                event_ranges = self.get_event_range_to_payload()
                 if not event_ranges:
                     event_ranges = "No more events"
                 self.send_event_ranges_to_payload(event_ranges)
@@ -463,7 +486,7 @@ class ESProcess(threading.Thread):
                         # logger.info('send SIGTERM to process group: %s' % pgid)
                         # os.killpg(pgid, signal.SIGTERM)
                         logger.info('send SIGTERM to process: %s' % self.__process.pid)
-                        kill_processes(self.__process.pid)
+                        kill_child_processes(self.__process.pid)
                 self.__ret_code = self.__process.poll()
             else:
                 self.__ret_code = -1
@@ -498,7 +521,7 @@ class ESProcess(threading.Thread):
                     # logger.info('send SIGKILL to process group: %s' % pgid)
                     # os.killpg(pgid, signal.SIGKILL)
                     logger.info('send SIGKILL to process: %s' % self.__process.pid)
-                    kill_processes(self.__process.pid)
+                    kill_child_processes(self.__process.pid)
         except Exception as e:
             logger.error('Exception caught when terminating ESProcess: %s' % e)
             self.stop()
