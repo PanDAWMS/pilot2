@@ -74,6 +74,11 @@ def interpret_payload_exit_info(job):
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADOUTOFMEMORY)
         return
 
+    # look for specific errors in the stdout
+    if is_installation_error(job):
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGINSTALLATION)
+        return
+
 
 def is_out_of_memory(job):
     """
@@ -104,6 +109,23 @@ def is_out_of_memory(job):
             log.warning('file does not exist: %s (cannot look for out-of-memory error in it)')
 
     return out_of_memory
+
+
+def is_installation_error(job):
+    """
+    Did the payload fail to run? (Due to faulty/missing installation).
+
+    :param job: job object.
+    :return: Boolean.
+    """
+
+    stdout = os.path.join(job.workdir, config.Payload.payloadstdout)
+    _tail = tail(stdout)
+    res_tmp = _tail[:1024]
+    if res_tmp[0:3] == "sh:" and 'setup.sh' in res_tmp and 'No such file or directory' in res_tmp:
+        return True
+    else:
+        return False
 
 
 def extract_special_information(job):
