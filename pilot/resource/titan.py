@@ -10,17 +10,18 @@
 
 import logging
 import os
-import sys
 import shutil
+import sys
 import time
-from pilot.util.config import config
-from pilot.util.mpi import get_ranks_info
-from pilot.util.filehandling import read_json, write_json, remove
-from pilot.util.disk import disk_usage
-from pilot.common.exception import FileHandlingFailure
+
 from jobdescription import JobDescription
-from pilot.util.timing import add_to_pilot_timing
+from pilot.common.exception import FileHandlingFailure
+from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN
+from pilot.util.disk import disk_usage
+from pilot.util.filehandling import read_json, write_json, remove
+from pilot.util.mpi import get_ranks_info
+from pilot.util.timing import add_to_pilot_timing
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +107,8 @@ def set_scratch_workdir(job, work_dir, args):
     Copy input files and some db files to RAM disk
 
     :param job: job object
-    :param workdir: job working directory (permanent FS)
+    :param work_dir: job working directory (permanent FS)
+    :param args:  args dictionary to collect timing metrics
     :return: job working directory in scratch
     """
 
@@ -128,7 +130,7 @@ def set_scratch_workdir(job, work_dir, args):
 
     if os.path.exists(scratch_path):
         try:
-            add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN,time.time(), args)
+            add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN, time.time(), args)
             logger.debug("Prepare 'tmp' dir in scratch ")
             if not os.path.exists(scratch_path + tmp_path):
                 os.makedirs(scratch_path + tmp_path)
@@ -183,9 +185,9 @@ def set_scratch_workdir(job, work_dir, args):
 def process_jobreport(payload_report_file, job_scratch_path, job_communication_point):
     """
     Copy job report file to be aaccesible by Harvester. Shrink job report file
-    :param job_report_filename:
-    :param src_dir:
-    :param dst_dir:
+    :param payload_report_file:
+    :param job_scratch_path:
+    :param job_communication_point:
     """
     src_file = os.path.join(job_scratch_path, payload_report_file)
     dst_file = os.path.join(job_communication_point, payload_report_file)
