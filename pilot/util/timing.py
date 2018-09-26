@@ -24,6 +24,7 @@ from pilot.util.constants import PILOT_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_
     PILOT_POST_SETUP, PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, PILOT_PRE_STAGEOUT,\
     PILOT_POST_STAGEOUT, PILOT_PRE_FINAL_UPDATE, PILOT_POST_FINAL_UPDATE, PILOT_END_TIME
 from pilot.util.filehandling import read_json, write_json
+from pilot.util.mpi import get_ranks_info
 
 import logging
 logger = logging.getLogger(__name__)
@@ -57,11 +58,10 @@ def write_pilot_timing(pilot_timing_dictionary):
     if rank is not None:
         timing_file += '_{0}'.format(rank)
     path = os.path.join(os.environ.get('PILOT_HOME', ''), timing_file)
-    path = os.path.join(os.environ.get('PILOT_HOME', ''), config.Pilot.timing_file)
     if write_json(path, pilot_timing_dictionary):
-        logger.debug('updated pilot timing dictionary: %s' % (path))
+        logger.debug('updated pilot timing dictionary: %s' % path)
     else:
-        logger.warning('failed to update pilot timing dictionary: %s' % (path))
+        logger.warning('failed to update pilot timing dictionary: %s' % path)
 
 
 def add_to_pilot_timing(job_id, timing_constant, time_measurement, args, store=False):
