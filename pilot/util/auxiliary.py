@@ -97,7 +97,7 @@ def whoami():
     return who_am_i
 
 
-def get_logger(job_id):
+def get_logger(job_id, log=None):
     """
     Return the logger object.
     Use this function to get the proper logger object. It relies on a pythno 2.7 function, getChild(), but if the queue
@@ -108,9 +108,13 @@ def get_logger(job_id):
     """
 
     try:
-        log = logger.getChild(job_id)
+        if log:
+            log = log.getChild(job_id)
+        else:
+            log = logger.getChild(job_id)
     except Exception:
-        log = logger
+        if not log:
+            log = logger
     return log
 
 

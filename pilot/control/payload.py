@@ -14,13 +14,14 @@
 import json
 import os
 import time
+import traceback
 
 try:
     import Queue as queue
 except Exception:
     import queue  # python 3
 
-from pilot.control.payloads import generic, eventservice
+from pilot.control.payloads import generic, eventservice, eventservicemerge
 from pilot.control.job import send_state
 from pilot.util.auxiliary import get_logger
 from pilot.util.processes import get_cpu_consumption_time
@@ -119,6 +120,24 @@ def _validate_payload(job):
     return True
 
 
+def get_payload_executor(args, job, out, err):
+    """
+    Get payload executor function for different payload.
+     :param args:
+    :param job:
+    :param out:
+    :param err:
+    :return: instance of a payload executor
+    """
+    if job.is_eventservice:
+        payload_executor = eventservice.Executor(args, job, out, err)
+    elif job.is_eventservicemerge:
+        payload_executor = eventservicemerge.Executor(args, job, out, err)
+    else:
+        payload_executor = generic.Executor(args, job, out, err)
+    return payload_executor
+
+
 def execute_payloads(queues, traces, args):
     """
     Execute queued payloads.
@@ -133,7 +152,7 @@ def execute_payloads(queues, traces, args):
     while not args.graceful_stop.is_set():
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
-            log = get_logger(job.jobid)
+            log = get_logger(job.jobid, logger)
 
             q_snapshot = list(queues.finished_data_in.queue)
             peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
@@ -155,10 +174,8 @@ def execute_payloads(queues, traces, args):
 
             send_state(job, args, 'starting')
 
-            if job.is_eventservice:
-                payload_executor = eventservice.Executor(args, queues, job, out, err)
-            else:
-                payload_executor = generic.Executor(args, queues, job, out, err)
+            payload_executor = get_payload_executor(args, job, out, err)
+            log.info("Got payload executor: %s" % payload_executor)
 
             # run the payload and measure the execution time
             job.t0 = os.times()
@@ -192,7 +209,7 @@ def execute_payloads(queues, traces, args):
         except queue.Empty:
             continue
         except Exception as e:
-            logger.fatal('execute payloads caught an exception (cannot recover): %s' % e)
+            logger.fatal('execute payloads caught an exception (cannot recover): %s, %s' % (e, traceback.format_exc()))
             if job:
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADEXECUTIONEXCEPTION)
                 queues.failed_payloads.put(job)
@@ -213,7 +230,7 @@ def process_job_report(job):
     :return:
     """
 
-    log = get_logger(job.jobid)
+    log = get_logger(job.jobid, logger)
     path = os.path.join(job.workdir, config.Payload.jobreport)
     if not os.path.exists(path):
         log.warning('job report does not exist: %s (any missing output file guids must be generated)' % path)
@@ -270,7 +287,7 @@ def validate_post(queues, traces, args):
         except queue.Empty:
             time.sleep(0.1)
             continue
-        log = get_logger(job.jobid)
+        log = get_logger(job.jobid, logger)
 
         # by default, both output and log should be staged out
         job.stageout = 'all'
@@ -298,7 +315,7 @@ def failed_post(queues, traces, args):
             job = queues.failed_payloads.get(block=True, timeout=1)
         except queue.Empty:
             continue
-        log = get_logger(job.jobid)
+        log = get_logger(job.jobid, logger)
 
         log.debug('adding log for log stageout')
 
