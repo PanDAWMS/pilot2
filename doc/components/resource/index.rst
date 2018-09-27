@@ -15,5 +15,8 @@ resource components
 .. toctree::
     :maxdepth: 2
 
+    alcf
+    bnl
     generic
+    nersc
     titan

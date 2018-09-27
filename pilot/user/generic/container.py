@@ -5,10 +5,21 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 # import logging
 # logger = logging.getLogger(__name__)
+
+
+def do_use_container(**kwargs):
+    """
+    Decide whether to use a container or not.
+
+    :param kwargs: dictionary of key-word arguments.
+    :return: True is function has decided that a container should be used, False otherwise (boolean).
+    """
+
+    return True
 
 
 def wrapper(executable):

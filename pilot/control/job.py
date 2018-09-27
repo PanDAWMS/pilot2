@@ -8,11 +8,11 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Wen Guan, wen.guan@cern.ch, 2018
 
 from __future__ import print_function
 
 import os
-import sys
 import time
 import hashlib
 
@@ -24,20 +24,22 @@ except Exception:
 from json import dumps
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import ExcThread, PilotException
+from pilot.common.exception import ExcThread
 from pilot.info import infosys, JobData
 from pilot.util import https
 from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
 from pilot.util.config import config
-from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB
+from pilot.util.common import should_abort
+from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
+    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED
 from pilot.util.filehandling import get_files, tail
 from pilot.util.harvester import request_new_jobs, remove_job_request_file
 from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.proxy import get_distinguished_name
-from pilot.util.timing import add_to_pilot_timing, get_getjob_time, get_setup_time, get_stagein_time, get_stageout_time,\
-    get_payload_execution_time, get_initial_setup_time, get_postgetjob_time
+from pilot.util.queuehandling import scan_for_jobs
+from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, is_virtual_machine
 
 import logging
@@ -66,8 +68,6 @@ def control(queues, traces, args):
 
     [thread.start() for thread in threads]
 
-    logger.info('waiting for interrupts')
-
     # if an exception is thrown, the graceful_stop will be set by the ExcThread class run() function
     while not args.graceful_stop.is_set():
         for thread in threads:
@@ -85,6 +85,17 @@ def control(queues, traces, args):
 
             thread.join(0.1)
             time.sleep(0.1)
+
+    logger.debug('job control ending since graceful_stop has been set')
+    if args.abort_job.is_set():
+        if traces.pilot['command'] == 'aborting':
+            logger.warning('jobs are aborting')
+        elif traces.pilot['command'] == 'abort':
+            logger.warning('job control detected a set abort_job (due to a kill signal)')
+            traces.pilot['command'] = 'aborting'
+
+            # find all running jobs and stop them, find all jobs in queues relevant to this module
+            #abort_jobs_in_queues(queues, args.signal)
 
 
 def _validate_job(job):
@@ -115,7 +126,7 @@ def send_state(job, args, state, xml=None):
     :return: boolean (True if successful, False otherwise).
     """
 
-    log = get_logger(job.jobid)
+    log = get_logger(job.jobid, logger)
 
     # should the pilot make any server updates?
     if not args.update_server:
@@ -128,7 +139,7 @@ def send_state(job, args, state, xml=None):
         log.info('job %s has state \'%s\' - sending heartbeat' % (job.jobid, state))
 
     # build the data structure needed for getJob, updateJob
-    data = get_data_structure(job, state, args.site, args.version_tag, xml=xml)
+    data = get_data_structure(job, state, args, xml=xml)
 
     try:
         if args.url != '' and args.port != 0:
@@ -146,13 +157,21 @@ def send_state(job, args, state, xml=None):
                 if 'command' in res and res.get('command') != 'NULL':
                     # look for 'tobekilled', 'softkill', 'debug', 'debugoff'
                     if res.get('command') == 'tobekilled':
-                        pass
+                        log.info('pilot received a panda server signal to kill job %s at %s' %
+                                 (job.jobid, time_stamp()))
+                        job.state = 'failed'
+                        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL)
+                        args.abort_job.set()
                     elif res.get('command') == 'softkill':
-                        pass
+                        log.info('pilot received a panda server signal to softkill job %s at %s' %
+                                 (job.jobid, time_stamp()))
+                        # event service kill instruction
                     elif res.get('command') == 'debug':
-                        pass
+                        log.info('pilot received a command to turn on debug mode from the server')
+                        job.debug = True
                     elif res.get('command') == 'debugoff':
-                        pass
+                        log.info('pilot received a command to turn off debug mode from the server')
+                        job.debug = False
                     else:
                         log.warning('received unknown server command via backchannel: %s' % res.get('command'))
 
@@ -168,24 +187,23 @@ def send_state(job, args, state, xml=None):
     return False
 
 
-def get_data_structure(job, state, sitename, versiontag, xml=None):
+def get_data_structure(job, state, args, xml=None):
     """
     Build the data structure needed for getJob, updateJob.
 
     :param job: job object.
     :param state: state of the job (string).
-    :param sitename: site name (string).
-    :param versiontag: versio tag (string).
+    :param args:
     :param xml: optional XML string.
     :return: data structure (dictionary).
     """
 
-    log = get_logger(job.jobid)
+    log = get_logger(job.jobid, logger)
 
     data = {'jobId': job.jobid,
             'state': state,
             'timestamp': time_stamp(),
-            'siteName': sitename,
+            'siteName': args.site,
             'node': get_node_name()}
 
     # error codes
@@ -217,20 +235,19 @@ def get_data_structure(job, state, sitename, versiontag, xml=None):
 
     pilotid = get_pilot_id()
     if pilotid:
-        use_newmover_tag = 'DEPRECATED'
         pilotversion = os.environ.get('PILOT_VERSION')
 
         # report the batch system job id, if available
         batchsystem_type, batchsystem_id = get_batchsystem_jobid()
 
         if batchsystem_type:
-            data['pilotID'] = "%s|%s|%s|%s|%s" % \
-                              (pilotid, use_newmover_tag, batchsystem_type, versiontag, pilotversion)
+            data['pilotID'] = "%s|%s|%s|%s" % \
+                              (pilotid, batchsystem_type, args.version_tag, pilotversion)
             data['batchID'] = batchsystem_id,
         else:
-            data['pilotID'] = "%s|%s|%s|%s" % (pilotid, use_newmover_tag, versiontag, pilotversion)
+            data['pilotID'] = "%s|%s|%s" % (pilotid, args.version_tag, pilotversion)
 
-    starttime = get_postgetjob_time(job.jobid)
+    starttime = get_postgetjob_time(job.jobid, args)
     if starttime:
         data['startTime'] = starttime
 
@@ -245,7 +262,11 @@ def get_data_structure(job, state, sitename, versiontag, xml=None):
     if job.debug:
         # find the latest updated log file
         list_of_files = get_files()
-        latest_file = max(list_of_files, key=os.path.getctime)
+        if not list_of_files:
+            log.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
+            list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]  # get_files(pattern=config.Payload.payloadstdout)
+
+        latest_file = max(list_of_files, key=os.path.getmtime)
         log.info('tail of file %s will be added to heartbeat' % latest_file)
 
         # now get the tail of the found log file and protect against potentially large tails
@@ -254,25 +275,7 @@ def get_data_structure(job, state, sitename, versiontag, xml=None):
         data['stdout'] = stdout_tail
 
     if state == 'finished' or state == 'failed':
-        # collect pilot timing data
-        time_getjob = get_getjob_time(job.jobid)
-        time_initial_setup = get_initial_setup_time(job.jobid)
-        time_setup = get_setup_time(job.jobid)
-        time_total_setup = time_initial_setup + time_setup
-        time_stagein = get_stagein_time(job.jobid)
-        time_payload = get_payload_execution_time(job.jobid)
-        time_stageout = get_stageout_time(job.jobid)
-        log.info('.' * 30)
-        log.info('. Timing measurements:')
-        log.info('. get job = %d s' % time_getjob)
-        log.info('. initial setup = %d s' % time_initial_setup)
-        log.info('. payload setup = %d s' % time_setup)
-        log.info('. total setup = %d s' % time_total_setup)
-        log.info('. stage-in = %d s' % time_stagein)
-        log.info('. payload execution = %d s' % time_payload)
-        log.info('. stage-out = %d s' % time_stageout)
-        log.info('.' * 30)
-
+        time_getjob, time_stagein, time_payload, time_stageout, time_total_setup = timing_report(job.jobid, args)
         data['pilotTiming'] = "%s|%s|%s|%s|%s" % \
                               (time_getjob, time_stagein, time_payload, time_stageout, time_total_setup)
 
@@ -295,7 +298,7 @@ def validate(queues, traces, args):
         except queue.Empty:
             continue
 
-        log = get_logger(job.jobid)
+        log = get_logger(job.jobid, logger)
         traces.pilot['nr_jobs'] += 1
 
         # set the environmental variable for the task id
@@ -308,6 +311,7 @@ def validate(queues, traces, args):
             job_dir = os.path.join(args.mainworkdir, 'PanDA_Pilot-%s' % job.jobid)
             try:
                 os.mkdir(job_dir)
+                os.chmod(job_dir, 0770)
                 job.workdir = job_dir
             except Exception as e:
                 log.debug('cannot create working directory: %s' % str(e))
@@ -371,6 +375,24 @@ def get_task_id():
     return taskid
 
 
+def get_job_label(args):
+    """
+    Return a proper job label.
+    The function returns a job label that corresponds to the actual pilot version, ie if the pilot is a development
+    version (ptest or rc_test2) or production version (managed or user).
+
+    :param args: pilot args object.
+    :return: job_label (string).
+    """
+
+    if args.version_tag.startswith('RC'):
+        job_label = 'rc_test2'
+    else:
+        job_label = args.job_label
+
+    return job_label
+
+
 def get_dispatcher_dictionary(args):
     """
     Return a dictionary with required fields for the dispatcher getJob operation.
@@ -400,10 +422,13 @@ def get_dispatcher_dictionary(args):
     _mem, _cpu, _disk = collect_workernode_info()
     _nodename = get_node_name()
 
+    # override for RC dev pilots
+    job_label = get_job_label(args)
+
     data = {
         'siteName': args.resource,
         'computingElement': args.location.queue,
-        'prodSourceLabel': args.job_label,
+        'prodSourceLabel': job_label,
         'diskSpace': _diskspace,
         'workingGroup': args.working_group,
         'cpu': _cpu,
@@ -522,96 +547,6 @@ def getjob_server_command(url, port):
         logger.warning('detected missing protocol in server url (added)')
 
     return '{pandaserver}/server/panda/getJob'.format(pandaserver=url)
-
-
-# MOVE TO EVENT SERVICE CODE AFTER MERGE
-def create_es_file_dictionary(writetofile):
-    """
-    Create the event range file dictionary from the writetofile info.
-
-    writetofile = 'fileNameForTrf_1:LFN_1,LFN_2^fileNameForTrf_2:LFN_3,LFN_4'
-    -> esfiledictionary = {'fileNameForTrf_1': 'LFN_1,LFN_2', 'fileNameForTrf_2': 'LFN_3,LFN_4'}
-    Also, keep track of the dictionary keys (e.g. 'fileNameForTrf_1') ordered since we have to use them to update the
-    jobParameters once we know the full path to them (i.e. '@fileNameForTrf_1:..' will be replaced by
-    '@/path/filename:..'), the dictionary is otherwise not ordered so we cannot simply use the dictionary keys later.
-    fileinfo = ['fileNameForTrf_1:LFN_1,LFN_2', 'fileNameForTrf_2:LFN_3,LFN_4']
-
-    :param writetofile: file info string
-    :return: esfiledictionary, orderedfnamelist
-    """
-
-    fileinfo = writetofile.split("^")
-    esfiledictionary = {}
-    orderedfnamelist = []
-    for i in range(len(fileinfo)):
-        # Extract the file name
-        if ":" in fileinfo[i]:
-            finfo = fileinfo[i].split(":")
-
-            # fix the issue that some athena 20 releases have _000 at the end of the filename
-            if finfo[0].endswith("_000"):
-                finfo[0] = finfo[0][:-4]
-            esfiledictionary[finfo[0]] = finfo[1]
-            orderedfnamelist.append(finfo[0])
-        else:
-            logger.warning("file info does not have the correct format, expected a separator \':\': %s" % (fileinfo[i]))
-            esfiledictionary = {}
-            break
-
-    return esfiledictionary, orderedfnamelist
-
-
-# MOVE TO EVENT SERVICE CODE AFTER MERGE
-def update_es_guids(guids):
-    """
-    Update the NULL valued ES guids.
-    This is necessary since guids are used as dictionary keys in some places.
-    Replace the NULL values with different values:
-    E.g. guids = 'NULL,NULL,NULL,sasdasdasdasdd'
-    -> 'DUMMYGUID0,DUMMYGUID1,DUMMYGUID2,sasdasdasdasdd'
-
-    :param guids:
-    :return: updated guids
-    """
-
-    for i in range(guids.count('NULL')):
-        guids = guids.replace('NULL', 'DUMMYGUID%d' % i, 1)
-
-    return guids
-
-
-# MOVE TO EVENT SERVICE CODE AFTER MERGE
-def update_es_dispatcher_data(data):
-    """
-    Update the dispatcher data for Event Service.
-    For Event Service merge jobs, the input file list will not arrive in the inFiles list as usual, but in the
-    writeToFile field, so the inFiles list need to be corrected.
-
-    :param data: dispatcher data dictionary
-    :return: data (updated dictionary)
-    """
-
-    if 'writeToFile' in data:
-        writetofile = data['writeToFile']
-        esfiledictionary, orderedfnamelist = create_es_file_dictionary(writetofile)
-        if esfiledictionary != {}:
-            # fix the issue that some athena 20 releases have _000 at the end of the filename
-            for name in orderedfnamelist:
-                name_000 = "@%s_000 " % (name)
-                new_name = "@%s " % (name)
-                if name_000 in data['jobPars']:
-                    data['jobPars'] = data['jobPars'].replace(name_000, new_name)
-
-            # Remove the autoconf
-            if "--autoConfiguration=everything " in data['jobPars']:
-                data['jobPars'] = data['jobPars'].replace("--autoConfiguration=everything ", " ")
-
-            # Replace the NULL valued guids for the ES files
-            data['GUID'] = update_es_guids(data['GUID'])
-        else:
-            logger.warning("empty event service file dictionary")
-
-    return data
 
 
 def get_job_definition_from_file(path, harvester):
@@ -905,7 +840,7 @@ def retrieve(queues, traces, args):
 
         # get a job definition from a source (file or server)
         res = get_job_definition(args)
-        logger.info('res = %s' % str(res))
+        logger.info('job definition = %s' % str(res))
 
         if res is None:
             logger.fatal('fatal error in job download loop - cannot continue')
@@ -928,16 +863,13 @@ def retrieve(queues, traces, args):
                         break
                     time.sleep(1)
             else:
-                # update dispatcher data for ES (if necessary)
-                res = update_es_dispatcher_data(res)
-
                 # create the job object out of the raw dispatcher job dictionary
                 job = create_job(res, args.queue)
 
                 # write time stamps to pilot timing file
                 # note: PILOT_POST_GETJOB corresponds to START_TIME in Pilot 1
-                add_to_pilot_timing(job.jobid, PILOT_PRE_GETJOB, time_pre_getjob)
-                add_to_pilot_timing(job.jobid, PILOT_POST_GETJOB, time.time())
+                add_to_pilot_timing(job.jobid, PILOT_PRE_GETJOB, time_pre_getjob, args)
+                add_to_pilot_timing(job.jobid, PILOT_POST_GETJOB, time.time(), args)
 
                 # add the job definition to the jobs queue and increase the job counter,
                 # and wait until the job has finished
@@ -945,7 +877,7 @@ def retrieve(queues, traces, args):
 
                 jobnumber += 1
                 while not args.graceful_stop.is_set():
-                    if job_has_finished(queues):
+                    if has_job_completed(queues):
                         logger.info('ready for new job')
                         break
                     time.sleep(0.5)
@@ -992,9 +924,10 @@ def create_job(dispatcher_response, queue):
     return job
 
 
-def job_has_finished(queues):
+def has_job_completed(queues):
     """
-    Has the current payload finished?
+    Has the current job completed (finished or failed)?
+    Note: the job object was extracted from monitored_payloads queue before this function was called.
 
     :param queues: Pilot queues object.
     :return: True is the payload has finished or failed
@@ -1007,7 +940,10 @@ def job_has_finished(queues):
         # logger.info("(job still running)")
         pass
     else:
-        log = get_logger(job.jobid)
+        log = get_logger(job.jobid, logger)
+
+        make_job_report(job)
+
         log.info("job %s has completed" % job.jobid)
         return True
 
@@ -1030,6 +966,158 @@ def job_has_finished(queues):
     return False
 
 
+def has_job_finished(queues):
+    """
+    Check if the job has finished.
+
+    :param queues:
+    :return: job object.
+    """
+
+    try:
+        job = queues.finished_jobs.get(block=True, timeout=1)
+    except queue.Empty:
+        # logger.info("(job still running)")
+        job = None
+    else:
+        logger.info("job %s has finished" % job.jobid)
+        # make sure that state=finished
+        job.state = 'finished'
+
+    return job
+
+
+def has_job_failed(queues):
+    """
+    Check if the job has failed.
+
+    :param queues:
+    :return: job object.
+    """
+    try:
+        job = queues.failed_jobs.get(block=True, timeout=1)
+    except queue.Empty:
+        # logger.info("(job still running)")
+        job = None
+    else:
+        logger.info("job %s has failed" % job.jobid)
+        # make sure that state=failed
+        job.state = 'failed'
+
+    return job
+
+
+def is_queue_empty(queues, q):
+    """
+    Check if the given queue is empty (without pulling).
+
+    :param queues: pilot queues object.
+    :param q: queue name (string).
+    :return: True if queue is empty, False otherwise
+    """
+
+    status = False
+    if q in queues._fields:
+        _q = getattr(queues, q)
+        jobs = list(_q.queue)
+        if len(jobs) > 0:
+            logger.info('queue %s not empty: found %d job(s)' % (q, len(jobs)))
+        else:
+            logger.info('queue %s is empty' % q)
+            status = True
+    else:
+        logger.warning('queue %s not present in %s' % (q, queues._fields))
+
+    return status
+
+
+def order_log_transfer(args, queues, job):
+    """
+    Order a log transfer for a failed job.
+
+    :param args: pilot args object.
+    :param queues: pilot queues object.
+    :param job: job object.
+    :return:
+    """
+
+    log = get_logger(job.jobid)
+
+    # add the job object to the data_out queue to have it staged out
+    job.stageout = 'log'  # only stage-out log file
+    queues.data_out.put(job)
+    log.info('job added to data_out queue')
+
+    # wait for the log transfer to finish
+    n = 0
+    nmax = 30
+    while n < nmax:
+        # refresh the log_transfer since it might have changed
+        log_transfer = job.get_status('LOG_TRANSFER')
+        log.info('waiting for log transfer to finish (#%d/#%d): %s' % (n + 1, nmax, log_transfer))
+        if is_queue_empty(queues, 'data_out') and \
+                (log_transfer == LOG_TRANSFER_DONE or log_transfer == LOG_TRANSFER_FAILED):  # set in data component
+            log.info('stage-out of log has completed')
+            break
+        else:
+            if log_transfer == LOG_TRANSFER_IN_PROGRESS:  # set in data component, job object is singleton
+                log.info('log transfer is in progress')
+            time.sleep(1)
+            n += 1
+
+    log.info('proceeding with server update (n=%d)' % n)
+
+
+def wait_for_aborted_job_stageout(args, queues, job):
+    """
+    Wait for stage-out to finish for aborted job.
+
+    :param args: pilot args object.
+    :param queues: pilot queues object.
+    :param job: job object.
+    :return:
+    """
+
+    log = get_logger(job.jobid)
+
+    # if the pilot received a kill signal, how much time has passed since the signal was intercepted?
+    time_since_kill = get_time_since('0', PILOT_KILL_SIGNAL, args)
+    log.info('%d s passed since kill signal was intercepted - make sure that stage-out has finished' % time_since_kill)
+
+    # if stage-out has not finished, we need to wait (less than two minutes or the batch system will issue
+    # a hard SIGKILL)
+    max_wait_time = 2 * 60 - time_since_kill - 5  # assume that we only need 5 more seconds to wrap up
+    t0 = time.time()
+    while time.time() - t0 < max_wait_time:
+        if job not in queues.finished_data_out.queue and job not in queues.failed_data_out.queue:
+            time.sleep(0.1)
+        else:
+            log.info('stage-out has finished, proceed with final server update')
+            break
+
+    log.info('proceeding with final server update')
+
+
+def get_job_status(job, key):
+    """
+    Wrapper function around job.get_status().
+    If key = 'LOG_TRANSFER' but job object is not defined, the function will return value = LOG_TRANSFER_NOT_DONE.
+
+    :param job: job object.
+    :param key: key name (string).
+    :return: value (string).
+    """
+
+    value = ""
+    if job:
+        value = job.get_status(key)
+    else:
+        if key == 'LOG_TRANSFER':
+            value = LOG_TRANSFER_NOT_DONE
+
+    return value
+
+
 def queue_monitor(queues, traces, args):
     """
     Monitoring of queues.
@@ -1041,37 +1129,33 @@ def queue_monitor(queues, traces, args):
     :return:
     """
 
-    while not args.graceful_stop.is_set():
-        # wait a second
-        if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
-            break
+    # scan queues until at least one queue has a job object. abort if it takes too long time
+    if not scan_for_jobs(queues):
+        logger.warning('queues are still empty of jobs - will begin queue monitoring anyway')
 
-        job = None
+    abort = False
+    while True:  # will abort when graceful_stop has been set
+        if traces.pilot['command'] == 'abort':
+            logger.warning('job queue monitor received an abort instruction')
+
+        # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
+        # (abort at the end of the loop)
+        abort = should_abort(args, label='job:queue_monitor')
+        if abort:
+            pause_queue_monitor(20)
 
         # check if the job has finished
-        try:
-            job = queues.finished_jobs.get(block=True, timeout=1)
-        except queue.Empty:
-            # logger.info("(job still running)")
-            pass
-        else:
-            logger.info("job %s has finished" % job.jobid)
-            # make sure that state=finished
-            job.state = 'finished'
-
-        # check if the job has failed
-        try:
-            job = queues.failed_jobs.get(block=True, timeout=1)
-        except queue.Empty:
-            # logger.info("(job still running)")
-            pass
-        else:
-            logger.info("job %s has failed" % job.jobid)
-            # make sure that state=failed
-            job.state = 'failed'
+        job = check_job(args, queues)
 
         # job has not been defined if it's still running
         if job:
+            log = get_logger(job.jobid)
+            log.info('preparing for final server update for job %s' % job.jobid)
+
+            if args.job_aborted.is_set():
+                # wait for stage-out to finish for aborted job
+                wait_for_aborted_job_stageout(args, queues, job)
+
             # send final server update
             if job.fileinfo:
                 send_state(job, args, job.state, xml=dumps(job.fileinfo))
@@ -1089,6 +1173,55 @@ def queue_monitor(queues, traces, args):
                 # now ready for the next job (or quit)
                 queues.completed_jobs.put(_job)
 
+        if abort:
+            break
+
+    logger.info('[job] queue monitor has finished')
+
+
+def pause_queue_monitor(delay):
+    """
+    Pause the queue monitor to let log transfer complete.
+    Note: this function should use globally available object. Use sleep for now.
+    :param delay: sleep time in seconds (int).
+    :return:
+    """
+
+    logger.warning('since job:queue_monitor is responsible for sending job updates, we sleep until log has been'
+                   ' transferred (or a maximum of %d s)' % delay)
+    time.sleep(delay)
+
+
+def check_job(args, queues):
+    """
+    Check if the job has completed (either finished or failed).
+    If failed, order a log transfer. If the job is in state 'failed' and abort_job is set, set job_aborted.
+
+    :param args: pilot args object.
+    :param queues: pilot queues object.
+    :return: job object.
+    """
+
+    job = has_job_finished(queues)
+    if not job:
+        job = has_job_failed(queues)
+
+        # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
+        log_transfer = get_job_status(job, 'LOG_TRANSFER')
+
+        if job and log_transfer == LOG_TRANSFER_NOT_DONE:
+            # order a log transfer for a failed job
+            order_log_transfer(args, queues, job)
+
+    # check if the job has failed
+    if job and job.state == 'failed':
+        # set job_aborted in case of kill signals
+        if args.abort_job.is_set():
+            logger.warning('queue monitor detected a set abort_job (due to a kill signal), setting job_aborted')
+            args.job_aborted.set()
+
+    return job
+
 
 def get_heartbeat_period(debug=False):
     """
@@ -1100,7 +1233,11 @@ def get_heartbeat_period(debug=False):
     :return: heartbeat period (int).
     """
 
-    return config.Pilot.heartbeat if not debug else config.Pilot.debug_heartbeat
+    try:
+        return int(config.Pilot.heartbeat if not debug else config.Pilot.debug_heartbeat)
+    except Exception as e:
+        logger.warning('bad config data for heartbeat period: %s (will use default 1800 s)' % e)
+        return 1800
 
 
 def job_monitor(queues, traces, args):
@@ -1128,64 +1265,124 @@ def job_monitor(queues, traces, args):
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
     while not args.graceful_stop.is_set():
-        if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
-            break
+        # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
+        # (abort at the end of the loop)
+        abort = should_abort(args, label='job:job_monitor')
 
-        # sleep for a while if stage-in has not completed
-        if queues.finished_data_in.empty():
+        if traces.pilot.get('command') == 'abort':
+            logger.warning('job monitor received an abort command')
+
+        # check for any abort_job requests
+        abort_job = False
+        if args.abort_job.is_set():
+            logger.warning('job monitor detected an abort_job request (signal=%s)' % args.signal)
+            logger.warning('in case pilot is running more than one job, all jobs will be aborted')
+            abort_job = True
+        elif queues.finished_data_in.empty():
+            # sleep for a while if stage-in has not completed
             time.sleep(1)
             continue
 
-        # wait a minute
-        time.sleep(60)
-        try:
-            # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
-            jobs = queues.monitored_payloads.queue
+        # wait a minute unless we are to abort
+        if not abort_job:
+            time.sleep(60)
 
-            if jobs:
-                # update the peeking time
-                peeking_time = int(time.time())
-                for i in range(len(jobs)):
-                    log = get_logger(jobs[i].jobid)
-                    log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
-                    if jobs[i].state == 'finished' or jobs[i].state == 'failed':
-                        log.info('aborting job monitoring since job state=%s' % jobs[i].state)
-                        break
+        # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
+        jobs = queues.monitored_payloads.queue
 
-                    # perform the monitoring tasks
-                    exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
-                    if exit_code != 0:
-                        jobs[i].state = 'failed'
-                        jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
-                        queues.failed_payloads.put(jobs[i])
-                        log.info('aborting job monitoring since job state=%s' % jobs[i].state)
-                        break
+        if jobs:
+            # update the peeking time
+            peeking_time = int(time.time())
+            for i in range(len(jobs)):
+                log = get_logger(jobs[i].jobid)
 
-                    # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
-                    # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
-                    period = get_heartbeat_period(jobs[i].debug)
-                    if int(time.time()) - update_time >= period:
-                        send_state(jobs[i], args, 'running')
-                        update_time = int(time.time())
+                #if abort_job:
+                #    declare_failed_by_kill(jobs[i], queues.failed_payloads, args.signal)
+                #    log.info('aborting job monitoring since job state=%s' % jobs[i].state)
+                #    break
+
+                log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
+                if jobs[i].state == 'finished' or jobs[i].state == 'failed':
+                    log.info('aborting job monitoring since job state=%s' % jobs[i].state)
+                    break
+
+                # perform the monitoring tasks
+                exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
+                if exit_code != 0:
+                    jobs[i].state = 'failed'
+                    jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
+                    queues.failed_payloads.put(jobs[i])
+                    log.info('aborting job monitoring since job state=%s' % jobs[i].state)
+                    break
+
+                # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
+                # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
+                period = get_heartbeat_period(jobs[i].debug)
+                now = int(time.time())
+                if now - update_time >= period:
+                    send_state(jobs[i], args, 'running')
+                    update_time = int(time.time())
+
+        else:
+            waiting_time = int(time.time()) - peeking_time
+            msg = 'no jobs in monitored_payloads queue (waited for %d s)' % waiting_time
+            if waiting_time > 120:
+                abort = True
+                msg += ' - aborting'
             else:
-                waiting_time = int(time.time()) - peeking_time
-                msg = 'no jobs in monitored_payloads queue (waiting for %d s)' % waiting_time
-                if waiting_time > 120:
-                    abort = True
-                    msg += ' - aborting'
-                else:
-                    abort = False
-                if logger:
-                    logger.warning(msg)
-                else:
-                    print(msg)
-                if abort:
-                    args.graceful_stop.set()
-        except PilotException as e:
-            msg = 'exception caught: %s' % e
+                abort = False
             if logger:
                 logger.warning(msg)
             else:
-                print(msg, file=sys.stderr)
-        else:
-            n += 1
+                print(msg)
+            if abort:
+                args.graceful_stop.set()
+
+        n += 1
+
+        if abort:
+            break
+
+    logger.info('job monitor has finished')
+
+
+def make_job_report(job):
+    """
+    Make a summary report for the given job.
+    This function is called when the job has completed.
+
+    :param job: job object.
+    :return:
+    """
+
+    log = get_logger(job.jobid)
+
+    log.info('')
+    log.info('job summary report')
+    log.info('--------------------------------------------------')
+    log.info('PanDA job id: %s' % job.jobid)
+    log.info('task id: %s' % job.taskid)
+    n = len(job.piloterrorcodes)
+    if n > 0:
+        for i in range(n):
+            log.info('error %d/%d: %s: %s' % (i + 1, n, job.piloterrorcodes[i], job.piloterrordiags[i]))
+    else:
+        log.info('errors: (none)')
+    info = ""
+    for key in job.status:
+        info += key + " = " + job.status[key] + " "
+    log.info('status: %s' % info)
+    log.info('pilot state: %s' % job.state)
+    log.info('transexitcode: %d' % job.transexitcode)
+    log.info('exeerrorcode: %d' % job.exeerrorcode)
+    log.info('exeerrordiag: %s' % job.exeerrordiag)
+    log.info('exitcode: %d' % job.exitcode)
+    log.info('exitmsg: %s' % job.exitmsg)
+    log.info('cpuconsumptiontime: %d %s' % (job.cpuconsumptiontime, job.cpuconsumptionunit))
+    log.info('nevents: %d' % job.nevents)
+    log.info('neventsw: %d' % job.neventsw)
+    log.info('pid: %s' % job.pid)
+    log.info('pgrp: %s' % str(job.pgrp))
+    log.info('corecount: %d' % job.corecount)
+    log.info('event service: %s' % str(job.is_eventservice))
+    log.info('')

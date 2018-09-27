@@ -5,7 +5,8 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Wen Guan, wen.guan, 2018
 
 import re
 
@@ -29,9 +30,10 @@ class ErrorCodes:
     STDOUTTOOBIG = 1106
     SETUPFAILURE = 1110
     OUTPUTFILETOOLARGE = 1124
-    MKDIR = 1134
     STAGEOUTFAILED = 1137
     PUTMD5MISMATCH = 1141
+    CHMODTRF = 1143
+    PANDAKILL = 1144
     GETMD5MISMATCH = 1145
     TRFDOWNLOADFAILURE = 1149
     LOOPINGJOB = 1150
@@ -43,6 +45,18 @@ class ErrorCodes:
     GETADMISMATCH = 1171
     PUTADMISMATCH = 1172
     NOVOMSPROXY = 1177
+    MKDIR = 1199
+    KILLSIGNAL = 1200
+    SIGTERM = 1201
+    SIGQUIT = 1202
+    SIGSEGV = 1203
+    SIGXCPU = 1204
+    USERKILL = 1205  # reserved error code, currently not used by pilot
+    SIGBUS = 1206
+    SIGUSR1 = 1207
+
+    REACHEDMAXTIME = 1213
+
     PAYLOADEXCEEDMAXMEM = 1235
     CHKSUMNOTSUP = 1242
 
@@ -62,6 +76,10 @@ class ErrorCodes:
     NOTSAMELENGTH = 1312
     NOSTORAGEPROTOCOL = 1313
     UNKNOWNCHECKSUMTYPE = 1314
+    UNKNOWNTRFFAILURE = 1315
+    RUCIOSERVICEUNAVAILABLE = 1316
+    EXCEEDEDMAXWAITTIME = 1317
+    COMMUNICATIONFAILURE = 1318
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -73,10 +91,11 @@ class ErrorCodes:
         STDOUTTOOBIG: "Payload log or stdout file too big",
         SETUPFAILURE: "Failed during payload setup",
         OUTPUTFILETOOLARGE: "Output file too large",
-        MKDIR: "Failed to create local directory",
         STAGEOUTFAILED: "Failed to stage-out file",
         PUTMD5MISMATCH: "md5sum mismatch on output file",
         GETMD5MISMATCH: "md5sum mismatch on input file",
+        CHMODTRF: "Failed to chmod trf",
+        PANDAKILL: "This job was killed by panda server",
         MISSINGOUTPUTFILE: "Local output file is missing",
         TRFDOWNLOADFAILURE: "Transform could not be downloaded",
         LOOPINGJOB: "Looping job killed by pilot",
@@ -86,6 +105,16 @@ class ErrorCodes:
         GETADMISMATCH: "adler32 mismatch on input file",
         PUTADMISMATCH: "adler32 mismatch on output file",
         NOVOMSPROXY: "Voms proxy not valid",
+        MKDIR: "Failed to create local directory",
+        KILLSIGNAL: "Job terminated by unknown kill signal",
+        SIGTERM: "Job killed by signal: SIGTERM",
+        SIGQUIT: "Job killed by signal: SIGQUIT",
+        SIGSEGV: "Job killed by signal: SIGSEGV",
+        SIGXCPU: "Job killed by signal: SIGXCPU",
+        SIGUSR1: "Job killed by signal: SIGUSR1",
+        SIGBUS: "Job killed by signal: SIGBUS",
+        USERKILL: "Job killed by user",
+        REACHEDMAXTIME: "Reached batch system time limit",
         PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
         CHKSUMNOTSUP: "Mover error: query checksum is not supported",
         NOTIMPLEMENTED: "The class or function is not implemented",
@@ -103,7 +132,28 @@ class ErrorCodes:
         NOTSAMELENGTH: "Not same length",
         NOSTORAGEPROTOCOL: "No protocol defined for storage endpoint",
         UNKNOWNCHECKSUMTYPE: "Unknown checksum type",
+        UNKNOWNTRFFAILURE: "Unknown TRF failure",
+        RUCIOSERVICEUNAVAILABLE: "Rucio: Service unavailable",
+        EXCEEDEDMAXWAITTIME: "Exceeded maximum waiting time",
+        COMMUNICATIONFAILURE: "Failed to communication to servers(such as Panda, Harvester, ACT, ...)",
     }
+
+    def get_kill_signal_error_code(self, signal):
+        """
+        Match a kill signal with a corresponding Pilot error code.
+
+        :param signal: signal name (string).
+        :return: Pilot error code (integer).
+        """
+
+        signals_dictionary = {'SIGTERM': self.SIGTERM,
+                              'SIGQUIT': self.SIGQUIT,
+                              'SIGSEGV': self.SIGSEGV,
+                              'SIGXCPU': self.SIGXCPU,
+                              'SIGUSR1': self.SIGUSR1,
+                              'SIGBUS': self.SIGBUS}
+
+        return signals_dictionary.get(signal, self.KILLSIGNAL)
 
     def get_error_message(self, errorcode):
         """
@@ -174,6 +224,8 @@ class ErrorCodes:
             ec = self.SINGULARITYNOLOOPDEVICES
         elif exit_code == 255 and "Failed to mount image" in stderr:
             ec = self.SINGULARITYIMAGEMOUNTFAILURE
+        elif exit_code == -1:
+            ec = self.UNKNOWNTRFFAILURE
         else:
             # do not assign a pilot error code for unidentified transform error, return 0
             ec = 0

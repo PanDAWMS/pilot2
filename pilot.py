@@ -20,16 +20,21 @@ from os import getcwd, chdir, environ
 from shutil import rmtree
 
 from pilot.info import set_info
+from pilot.util.auxiliary import shell_exit_code
 from pilot.util.config import config
-from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_T0, PILOT_END_TIME
+from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_START_TIME, PILOT_END_TIME
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
-from pilot.util.mpi import get_ranks_info
+#from pilot.util.information import set_location
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.workernode import is_virtual_machine
+from pilot.util.mpi import get_ranks_info
 
-VERSION = '2018-07-20.004'
+RELEASE = '2'  # fixed at 2 for Pilot 2
+VERSION = '0'  # '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
+REVISION = '0'  # reset to '0' for every new Pilot version release, increased for small updates
+BUILD = '81'  # reset to '1' for every new development cycle
 
 
 def pilot_version_banner():
@@ -41,7 +46,7 @@ def pilot_version_banner():
 
     logger = logging.getLogger(__name__)
 
-    version = '***  PanDA Pilot 2 version %s  ***' % VERSION
+    version = '***  PanDA Pilot 2 version %s  ***' % get_pilot_version()
     logger.info('*' * len(version))
     logger.info(version)
     logger.info('*' * len(version))
@@ -51,60 +56,67 @@ def pilot_version_banner():
         logger.info('pilot is running in a VM')
 
 
-def setup_log():
-    """ Setup of log string format """
+def get_pilot_version():
+    """
+    Return the current Pilot version string with the format <release>.<version>.<revision> (<build>).
+    E.g. pilot_version = '2.1.3 (12)'
+    :return: version string.
+    """
 
-    rank, maxrank = get_ranks_info()
-    logformat_str_debug = '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'
-    logformat_str_info = '%(asctime)s | %(levelname)-8s | %(message)s'
-    if rank is not None:
-        logformat_str_debug = 'Rank {0} |'.format(rank) + logformat_str_debug
-        logformat_str_info = 'Rank {0} |'.format(rank) + logformat_str_info
-
-    console = logging.StreamHandler(sys.stdout)
-    if args.debug:
-        logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.DEBUG, format=logformat_str_debug)
-        console.setLevel(logging.DEBUG)
-        console.setFormatter(logging.Formatter(logformat_str_debug))
-    else:
-        logging.basicConfig(filename=config.Pilot.pilotlog, level=logging.INFO, format=logformat_str_info)
-        console.setLevel(logging.INFO)
-        console.setFormatter(logformat_str_info)
-    logging.Formatter.converter = time.gmtime
-    logging.getLogger('').addHandler(console)
+    return '{release}.{version}.{revision} ({build})'.format(release=RELEASE,
+                                                             version=VERSION,
+                                                             revision=REVISION,
+                                                             build=BUILD)
 
 
 def main():
-    """ Main function of PanDA Pilot 2 """
+    """
+    Main function of PanDA Pilot 2.
+    Prepare for and execute the requested workflow.
 
+    :return: exit code (int).
+    """
+
+    # get the logger
     logger = logging.getLogger(__name__)
 
     # print the pilot version
     pilot_version_banner()
 
+    # define threading events
     args.graceful_stop = threading.Event()
+    args.abort_job = threading.Event()
+    args.job_aborted = threading.Event()
+
+    # define useful variables
     args.retrieve_next_job = True  # go ahead and download a new job
+    args.signal = None  # to store any incoming signals
+
+    # read and parse config file
     config.read(args.config)
 
-    https_setup(args, VERSION)
+    # perform https setup
+    https_setup(args, get_pilot_version())
 
-    # Time to depricate. Does not work well with HPC workflow
-    # if not set_location(args):  # ## DEPRECATE ME LATER.
+    #if not set_location(args):  # ## DEPRECATE ME LATER
     #    return False
 
-    set_info(args)  # initialize InfoService and populate args.info structure
+    # initialize InfoService and populate args.info structure
+    set_info(args)
 
-    logger.debug('pilot arguments: %s' % str(args))
+    # set requested workflow
+    logger.info('pilot arguments: %s' % str(args))
     logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
 
+    # execute workflow
     try:
-        ret = workflow.run(args)
+        exit_code = workflow.run(args)
     except Exception as e:
         logger.fatal('main pilot function caught exception: %s' % e)
-        ret = None
+        exit_code = None
 
-    return ret
+    return exit_code
 
 
 class Args:
@@ -166,8 +178,21 @@ def import_module(**kwargs):
     return 0
 
 
-if __name__ == '__main__':
+def get_args():
+    """
+    Return the args from the arg parser.
+
+    :return: args (arg parser object).
+    """
+
     arg_parser = argparse.ArgumentParser()
+
+    # pilot log creation
+    arg_parser.add_argument('--no-pilot-log',
+                            dest='nopilotlog',
+                            action='store_true',
+                            default=False,
+                            help='Do not write the pilot log to file')
 
     # pilot work directory
     arg_parser.add_argument('-a',
@@ -195,10 +220,10 @@ if __name__ == '__main__':
     # graciously stop pilot process after hard limit
     arg_parser.add_argument('-l',
                             dest='lifetime',
-                            default=3600,
+                            default=324000,
                             required=False,
                             type=int,
-                            help='Pilot lifetime seconds (default: 3600 s)')
+                            help='Pilot lifetime seconds (default: 324000 s)')
 
     # set the appropriate site, resource and queue
     arg_parser.add_argument('-q',
@@ -228,7 +253,7 @@ if __name__ == '__main__':
 
     arg_parser.add_argument('-z',
                             dest='update_server',
-                            action='store_false',
+                            action='store_true',
                             default=True,
                             help='Disable server updates')
 
@@ -340,13 +365,20 @@ if __name__ == '__main__':
                             default='',
                             help='Name of the HPC (e.g. Titan)')
 
-    args = arg_parser.parse_args()
+    return arg_parser.parse_args()
 
-    # Define and set the main harvester control boolean
-    args.harvester = is_harvester_mode(args)
 
-    # If requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
-    initdir = getcwd()
+def create_main_work_dir(args):
+    """
+    Create and return the pilot's main work directory.
+    The function also sets args.mainworkdir and cd's into this directory.
+
+    :param args: pilot arguments object.
+    :return: exit code (int), main work directory (string).
+    """
+
+    exit_code = 0
+
     if args.workdir != "":
         mainworkdir = get_pilot_work_dir(args.workdir)
         try:
@@ -354,33 +386,84 @@ if __name__ == '__main__':
         except Exception as e:
             # print to stderr since logging has not been established yet
             print('failed to create workdir at %s -- aborting: %s' % (mainworkdir, e), file=sys.stderr)
-            sys.exit(FAILURE)
+            exit_code = shell_exit_code(e._errorCode)
     else:
         mainworkdir = getcwd()
 
-    environ['PILOT_WORK_DIR'] = args.workdir  # TODO: replace with singleton
-    environ['PILOT_HOME'] = mainworkdir  # TODO: replace with singleton
     args.mainworkdir = mainworkdir
     chdir(mainworkdir)
 
-    # store T0 time stamp
-    add_to_pilot_timing('0', PILOT_T0, time.time())
+    return exit_code, mainworkdir
 
+
+def set_environment_variables(args, mainworkdir):
+    """
+    Set environment variables. To be replaced with singleton implementation.
+    This function sets PILOT_WORK_DIR, PILOT_HOME, PILOT_SITENAME, PILOT_USER and PILOT_VERSION.
+
+    :param args:
+    :param mainworkdir:
+    :return:
+    """
+
+    # working directory as set with a pilot option (e.g. ..)
+    environ['PILOT_WORK_DIR'] = args.workdir  # TODO: replace with singleton
+
+    # main work directory (e.g. /scratch/PanDA_Pilot2_3908_1537173670)
+    environ['PILOT_HOME'] = mainworkdir  # TODO: replace with singleton
+
+    # pilot source directory (e.g. /cluster/home/usatlas1/gram_scratch_hHq4Ns/condorg_oqmHdWxz)
+    environ['PILOT_SOURCE_DIR'] = args.sourcedir  # TODO: replace with singleton
+
+    # store the site name as set with a pilot option
     environ['PILOT_SITENAME'] = args.site  # TODO: replace with singleton
 
-    # Set the pilot user
+    # set the pilot user (e.g. ATLAS)
     environ['PILOT_USER'] = args.pilot_user  # TODO: replace with singleton
 
-    # Set the pilot version
-    environ['PILOT_VERSION'] = VERSION
+    # set the pilot version
+    environ['PILOT_VERSION'] = get_pilot_version()
 
-    # Establish logging
-    setup_log()
 
-    trace = main()
+def establish_logging(args):
+    """
+    Setup and establish logging.
 
-    # store final time stamp (cannot be placed later since the mainworkdir is about to be purged)
-    add_to_pilot_timing('0', PILOT_END_TIME, time.time())
+    :param args: pilot arguments object.
+    :return:
+    """
+
+    console = logging.StreamHandler(sys.stdout)
+    if args.debug:
+        format_str = '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'
+        level = logging.DEBUG
+    else:
+        format_str = '%(asctime)s | %(levelname)-8s | %(message)s'
+        level = logging.INFO
+    rank, maxrank = get_ranks_info()
+    if rank is not None:
+        format_str = 'Rank {0} |'.format(rank) + format_str
+    if args.nopilotlog:
+        logging.basicConfig(level=level, format=format_str)
+    else:
+        logging.basicConfig(filename=config.Pilot.pilotlog, level=level, format=format_str)
+    console.setLevel(level)
+    console.setFormatter(logging.Formatter(format_str))
+    logging.Formatter.converter = time.gmtime
+    logging.getLogger('').addHandler(console)
+
+
+def wrap_up(initdir, mainworkdir, args):
+    """
+    Perform cleanup and terminate logging.
+
+    :param initdir: launch directory (string).
+    :param mainworkdir: main work directory (string).
+    :param args: pilot arguments object.
+    :return: exit code (int).
+    """
+
+    exit_code = 0
 
     # cleanup pilot workdir if created
     if initdir != mainworkdir:
@@ -395,7 +478,6 @@ if __name__ == '__main__':
     # in Harvester mode, create a kill_worker file that will instruct Harvester that the pilot has finished
     if args.harvester:
         from pilot.util.harvester import kill_worker
-
         kill_worker()
 
     if not trace:
@@ -419,4 +501,52 @@ if __name__ == '__main__':
 
     logging.shutdown()
 
-    sys.exit(exit_code)
+    # exit_code = shell_exit_code(exit_code)
+
+    return exit_code
+
+
+if __name__ == '__main__':
+    """
+    Main function of pilot module.
+    """
+
+    # get the args from the arg parser
+    args = get_args()
+
+    # Define and set the main harvester control boolean
+    args.harvester = is_harvester_mode(args)
+
+    # initialize the pilot timing dictionary
+    args.timing = {}  # TODO: move to singleton?
+
+    # initialize job status dictionary (e.g. used to keep track of log transfers)
+    args.job_status = {}  # TODO: move to singleton or to job object directly?
+
+    # store T0 time stamp
+    add_to_pilot_timing('0', PILOT_START_TIME, time.time(), args)
+
+    # if requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
+    args.sourcedir = getcwd()
+
+    ec, mainworkdir = create_main_work_dir(args)
+    if ec != 0:
+        sys.exit(ec)
+
+    # set environment variables (to be replaced with singleton implementation)
+    set_environment_variables(args, mainworkdir)
+
+    # setup and establish standard logging
+    establish_logging(args)
+
+    # execute main function
+    trace = main()
+
+    # store final time stamp (cannot be placed later since the mainworkdir is about to be purged)
+    add_to_pilot_timing('0', PILOT_END_TIME, time.time(), args, store=False)
+
+    # perform cleanup and terminate logging
+    ec = wrap_up(args.sourcedir, mainworkdir, args)
+
+    # the end.
+    sys.exit(ec)

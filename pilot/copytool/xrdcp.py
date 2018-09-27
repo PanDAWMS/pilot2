@@ -133,10 +133,16 @@ def copy_in(files, **kwargs):
         :raise: PilotException in case of controlled error
     """
 
+    allow_direct_access = kwargs.get('allow_direct_access') or False
     setup = kwargs.pop('copytools', {}).get('xrdcp', {}).get('setup')
     coption = _resolve_checksum_option(setup, **kwargs)
 
     for fspec in files:
+        # continue loop for files that are to be accessed directly
+        if fspec.is_directaccess(ensure_replica=False) and allow_direct_access:
+            fspec.status_code = 0
+            fspec.status = 'remote_io'
+            continue
 
         dst = fspec.workdir or kwargs.get('workdir') or '.'
         destination = os.path.join(dst, fspec.lfn)

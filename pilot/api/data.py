@@ -17,8 +17,10 @@ import hashlib
 import logging
 
 from pilot.info import infosys
+from pilot.info.storageactivitymaps import get_ddm_activity
 from pilot.common.exception import PilotException, ErrorCodes
 from pilot.util.filehandling import calculate_checksum
+from pilot.util.math import add_lists
 
 
 class StagingClient(object):
@@ -98,8 +100,8 @@ class StagingClient(object):
 
             ## skip fdat if need for further workflow (e.g. to properly handle OS ddms)
 
-            fdat.accessmode = 'copy'        ### quick hack to avoid changing logic below for DIRECT access handling  ## REVIEW AND FIX ME LATER
-            fdat.allowRemoteInputs = False  ### quick hack to avoid changing logic below for DIRECT access handling  ## REVIEW AND FIX ME LATER
+            #fdat.accessmode = 'copy'        ### quick hack to avoid changing logic below for DIRECT access handling  ## REVIEW AND FIX ME LATER
+            #fdat.allowremoteinputs = False  ### quick hack to avoid changing logic below for DIRECT access handling  ## REVIEW AND FIX ME LATER
 
             if not fdat.inputddms and self.infosys.queuedata:
                 fdat.inputddms = self.infosys.queuedata.astorages.get('pr', {})  ## FIX ME LATER: change to proper activity=read_lan
@@ -119,7 +121,7 @@ class StagingClient(object):
         bquery = {'schemes': ['srm', 'root', 'davs', 'gsiftp', 'https'],
                   'dids': [dict(scope=e.scope, name=e.lfn) for e in xfiles]}
 
-        allow_remoteinput = True in set(e.allowRemoteInputs for e in xfiles)  ## implement direct access later
+        allow_remoteinput = True in set(e.allowremoteinputs for e in xfiles)  ## implement direct access later
 
         try:
             query = bquery.copy()
@@ -175,16 +177,16 @@ class StagingClient(object):
                 if not has_direct_remoteinput_replicas:
                     has_direct_remoteinput_replicas = bool(get_preferred_replica(r['rses'][ddm], self.direct_remoteinput_allowed_schemas))
 
-            if (not fdat.replicas or (fdat.accessmode == 'direct' and not has_direct_remoteinput_replicas)) and fdat.allowRemoteInputs:
+            if (not fdat.replicas or (fdat.accessmode == 'direct' and not has_direct_remoteinput_replicas)) and fdat.allowremoteinputs:
                 if fdat.accessmode == 'direct':
                     allowed_schemas = self.direct_remoteinput_allowed_schemas
                 else:
                     allowed_schemas = self.remoteinput_allowed_schemas
 
                 if not fdat.replicas:
-                    logger.info("No local replicas found for lfn=%s but allowRemoteInputs is set => looking for remote inputs" % fdat.lfn)
+                    logger.info("No local replicas found for lfn=%s but allowremoteinputs is set => looking for remote inputs" % fdat.lfn)
                 else:
-                    logger.info("Direct access is set but no local direct access files, but allowRemoteInputs is set => looking for remote inputs" % fdat.lfn)
+                    logger.info("Direct access is set but no local direct access files, but allowremoteinputs is set => looking for remote inputs")
                 logger.info("consider first/closest replica, accessmode=%s, remoteinput_allowed_schemas=%s" % (fdat.accessmode, allowed_schemas))
                 logger.debug('rses=%s' % r['rses'])
                 for ddm, replicas in r['rses'].iteritems():
@@ -212,13 +214,13 @@ class StagingClient(object):
                     fdat.checksum[ctype] = r[ctype]
 
         logger.info('Number of resolved replicas:\n' +
-                    '\n'.join(["lfn=%s: replicas=%s, allowRemoteInputs=%s, is_directaccess=%s"
-                               % (f.lfn, len(f.replicas), f.allowRemoteInputs, f.is_directaccess(ensure_replica=False)) for f in files]))
+                    '\n'.join(["lfn=%s: replicas=%s, allowremoteinputsallowremoteinputs=%s, is_directaccess=%s"
+                               % (f.lfn, len(f.replicas), f.allowremoteinputs, f.is_directaccess(ensure_replica=False)) for f in files]))
 
         return files
 
     @classmethod
-    def detect_client_location(self, site):  ## TO BE DEPRECATED ONCE RUCIO BUG IS FIXED
+    def detect_client_location(self):  ## TO BE DEPRECATED ONCE RUCIO BUG IS FIXED
         """
         Open a UDP socket to a machine on the internet, to get the local IP address
         of the requesting client.
@@ -231,6 +233,7 @@ class StagingClient(object):
         """
 
         ret = {}
+        site = os.environ.get('PILOT_SITENAME', 'unknown')
         try:
             import socket
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -262,7 +265,7 @@ class StagingClient(object):
             :param activity: list of activity names used to determine appropriate copytool (prioritized list)
             :param kwargs: extra kwargs to be passed to copytool transfer handler
             :raise: PilotException in case of controlled error
-            :return: output of copytool trasfers (to be clarified)
+            :return: output of copytool transfers (to be clarified)
         """
 
         if isinstance(activity, basestring):
@@ -356,21 +359,80 @@ class StageInClient(StagingClient):
 
         return {'surl': surl, 'ddmendpoint': ddmendpoint, 'pfn': replica}
 
+    def get_direct_access_variables(self, job):
+        """
+        Return the direct access settings for the PQ.
+
+        :param job: job object.
+        :return: allow_direct_access (bool), direct_access_type (string).
+        """
+
+        allow_direct_access = self.infosys.queuedata.direct_access_lan or self.infosys.queuedata.direct_access_wan
+        direct_access_type = ''
+        if self.infosys.queuedata.direct_access_lan:
+            direct_access_type = 'LAN'
+        if self.infosys.queuedata.direct_access_wan:
+            direct_access_type = 'WAN'
+
+        if job and not job.is_analysis() and job.transfertype != 'direct':  ## task forbids direct access
+            allow_direct_access = False
+            self.logger.info('switched off direct access mode for production job since transfertype=%s' % job.transfertype)
+
+        return allow_direct_access, direct_access_type
+
     def transfer_files(self, copytool, files, activity=None, **kwargs):
         """
-            Automatically stage in files using the selected copy tool module.
+        Automatically stage in files using the selected copy tool module.
 
-            :param copytool: copytool module
-            :param files: list of `FileSpec` objects
-            :param kwargs: extra kwargs to be passed to copytool transfer handler
+        :param copytool: copytool module
+        :param files: list of `FileSpec` objects
+        :param kwargs: extra kwargs to be passed to copytool transfer handler
 
-            :return: the output of the copytool transfer operation
-            :raise: PilotException in case of controlled error
+        :return: the output of the copytool transfer operation
+        :raise: PilotException in case of controlled error
         """
+
+        # sort out direct access logic
+        job = kwargs.get('job', None)
+        #job_access_mode = job.accessmode if job else ''
+        allow_direct_access, direct_access_type = self.get_direct_access_variables(job)
+        self.logger.info("direct access settings for the PQ: allow_direct_access=%s (type=%s)" %
+                         (allow_direct_access, direct_access_type))
+        kwargs['allow_direct_access'] = allow_direct_access
+
+        if allow_direct_access:
+            # sort files to get candidates for remote_io coming first in order to exclude them from checking of available space for stage-in
+            files = sorted(files, key=lambda x: x.is_directaccess(ensure_replica=False), reverse=True)
+
+            # populate allowremoteinputs for each fdata
+            for fdata in files:
+                is_directaccess = allow_direct_access and fdata.is_directaccess(ensure_replica=False)
+                if is_directaccess and direct_access_type == 'WAN':  ## is it the same for ES workflow ?? -- test and verify/FIXME LATER
+                    fdata.allowremoteinputs = True
+                self.logger.info("check direct access for lfn=%s: allow_direct_access=%s, fdata.is_directaccess()=%s =>"
+                                 " is_directaccess=%s, allowremoteinputs=%s" % (fdata.lfn, allow_direct_access,
+                                                                                fdata.is_directaccess(ensure_replica=False),
+                                                                                is_directaccess, fdata.allowremoteinputs))
+                # must update accessmode for user jobs (it is only set already for production jobs)
+                if fdata.accessmode != 'direct' and is_directaccess:
+                    fdata.accessmode = 'direct'
+                # reset accessmode if direct access is not to be used
+                if fdata.accessmode == 'direct' and not is_directaccess:
+                    fdata.accessmode = ''
+                self.logger.info('accessmode for LFN=%s: %s (is_directaccess=%s)' % (fdata.lfn, fdata.accessmode, is_directaccess))
 
         if getattr(copytool, 'require_replicas', False) and files and files[0].replicas is None:
             files = self.resolve_replicas(files)
             allowed_schemas = getattr(copytool, 'allowed_schemas', None)
+
+            # make sure that root is the first protocol in the schemas list if direct access is to be used
+            if allowed_schemas and allowed_schemas[0] != self.remoteinput_allowed_schemas[0]:
+                # add supported schemas for direct access
+                allowed_schemas = add_lists(self.remoteinput_allowed_schemas, allowed_schemas)
+                self.logger.info('allowed schemas updated: %s' % allowed_schemas)
+            else:
+                self.logger.info('allowed schemas: %s' % allowed_schemas)
+
             for fspec in files:
                 resolve_replica = getattr(copytool, 'resolve_replica', None)
                 if not callable(resolve_replica):
@@ -392,6 +454,8 @@ class StageInClient(StagingClient):
 
         if self.infosys:
             kwargs['copytools'] = self.infosys.queuedata.copytools
+            kwargs['ddmconf'] = self.infosys.resolve_storage_data()
+        kwargs['activity'] = activity
 
         self.logger.info('Ready to transfer (stage-in) files: %s' % files)
 
@@ -421,6 +485,7 @@ class StageOutClient(StagingClient):
 
             protocols = []
             for aname in activity:
+                aname = get_ddm_activity(aname)
                 protocols = ddm.arprotocols.get(aname)
                 if protocols:
                     break

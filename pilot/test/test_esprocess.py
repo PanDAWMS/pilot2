@@ -5,25 +5,20 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 import json
 import logging
 import os
+import Queue
 import subprocess
 import sys
 import threading
 import time
 
-try:
-    import Queue as queue
-except Exception:
-    import queue  # python 3
-
-from pilot.eventservice.eshook import ESHook
-from pilot.eventservice.esmanager import ESManager
-from pilot.eventservice.esmessage import MessageThread
-from pilot.eventservice.esprocess import ESProcess
+from pilot.eventservice.esprocess.eshook import ESHook
+from pilot.eventservice.esprocess.esmanager import ESManager
+from pilot.eventservice.esprocess.esmessage import MessageThread
+from pilot.eventservice.esprocess.esprocess import ESProcess
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -55,7 +50,7 @@ class TestESHook(ESHook):
         """
         with open('pilot/test/resource/eventservice_job.txt') as job_file:
             job = json.load(job_file)
-            self.__payload = job.payload
+            self.__payload = job['payload']
             self.__event_ranges = job['event_ranges']  # doesn't exit
 
         if check_env():
@@ -133,8 +128,8 @@ class TestESMessageThread(unittest.TestCase):
         """
         Make sure that es message thread works as expected.
         """
-
-        msg_thread = MessageThread(queue.Queue(), socket_name='test', context='local')
+        queue = Queue.Queue()
+        msg_thread = MessageThread(queue, socket_name='test', context='local')
         self.assertIsInstance(msg_thread, threading.Thread)
 
         msg_thread.start()
@@ -143,7 +138,7 @@ class TestESMessageThread(unittest.TestCase):
 
         msg_thread.send('test')
         msg_thread.stop()
-        self.assertTrue(msg_thread.stopped())
+        self.assertTrue(msg_thread.is_stopped())
         time.sleep(1)
         self.assertFalse(msg_thread.is_alive())
 
