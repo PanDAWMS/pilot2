@@ -307,15 +307,10 @@ def get_analysis_run_command(job, trf_name):
         cmd += 'export X509_USER_PROXY=%s;' % os.environ.get('X509_USER_PROXY')
 
     # set up analysis trf
+    cmd += './%s %s' % (trf_name, job.jobparams)
     if job.imagename == "":
-        # if '--containerImage' not in job.jobparams:
-        cmd += './%s %s' % (trf_name, job.jobparams)
-    else:
-        #
-        cmd += 'python runcontainer'  # should be: % trf_name but this is not correctly set by prun at the moment
-
-        # restore the image name and add the job params
-        cmd += ' --containerImage=%s %s' % (job.imagename, job.jobparams)
+        # restore the image name
+        cmd += ' --containerImage=%s' % job.imagename
 
     # add control options for PFC turl and direct access
     if use_pfc_turl and '--usePFCTurl' not in cmd:
