@@ -958,6 +958,9 @@ def queue_monitoring(queues, traces, args):
 
             # stage-out log file then add the job to the failed_jobs queue
             job.stageout = "log"
+
+            # TODO: put in data_out queue instead?
+
             if not _stage_out_new(job, args):
                 log.info("job %s failed during stage-in and stage-out of log, adding job object to failed_data_outs "
                          "queue" % job.jobid)
