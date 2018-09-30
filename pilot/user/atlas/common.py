@@ -308,7 +308,7 @@ def get_analysis_run_command(job, trf_name):
 
     # set up analysis trf
     cmd += './%s %s' % (trf_name, job.jobparams)
-    if job.imagename == "":
+    if job.imagename != "":
         # restore the image name
         cmd += ' --containerImage=%s' % job.imagename
 
