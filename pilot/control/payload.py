@@ -252,7 +252,7 @@ def validate_post(queues, traces, args):
                 exit_code = -1
         else:
             # no payload analysis for user defined containers
-            exit_code == 0
+            exit_code = 0
 
         if exit_code != 0:
             log.debug('adding job to failed_payloads queue')
