@@ -246,6 +246,46 @@ class NotSameLength(PilotException):
         self._message = errors.get_error_message(self._errorCode)
 
 
+class ESRECOVERABLE(PilotException):
+    """
+    Eventservice recoverable exception.
+    """
+    def __init__(self, *args, **kwargs):
+        super(ESRECOVERABLE, self).__init__(args, kwargs)
+        self._errorCode = errors.ESRECOVERABLE
+        self._message = errors.get_error_message(self._errorCode)
+
+
+class ESFATAL(PilotException):
+    """
+    Eventservice fatal exception.
+    """
+    def __init__(self, *args, **kwargs):
+        super(ESFATAL, self).__init__(args, kwargs)
+        self._errorCode = errors.ESFATAL
+        self._message = errors.get_error_message(self._errorCode)
+
+
+class EXECUTEDCLONEJOB(PilotException):
+    """
+    Clone job excuted exception.
+    """
+    def __init__(self, *args, **kwargs):
+        super(EXECUTEDCLONEJOB, self).__init__(args, kwargs)
+        self._errorCode = errors.EXECUTEDCLONEJOB
+        self._message = errors.get_error_message(self._errorCode)
+
+
+class ESNOEVENTS(PilotException):
+    """
+    Eventservice no events exception.
+    """
+    def __init__(self, *args, **kwargs):
+        super(ESNOEVENTS, self).__init__(args, kwargs)
+        self._errorCode = errors.ESNOEVENTS
+        self._message = errors.get_error_message(self._errorCode)
+
+
 class ExceededMaxWaitTime(PilotException):
     """
     Exceeded maximum waiting time (after abort_job has been set).
