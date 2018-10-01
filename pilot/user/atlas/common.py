@@ -307,8 +307,11 @@ def get_analysis_run_command(job, trf_name):
         cmd += 'export X509_USER_PROXY=%s;' % os.environ.get('X509_USER_PROXY')
 
     # set up analysis trf
-    cmd += './%s %s' % (trf_name, job.jobparams)
-    if job.imagename != "":
+    if job.imagename == "":
+        cmd += './%s %s' % (trf_name, job.jobparams)
+    else:
+        cmd += 'python %s %s' % (trf_name, job.jobparams)
+
         # restore the image name
         cmd += ' --containerImage=%s' % job.imagename
 
