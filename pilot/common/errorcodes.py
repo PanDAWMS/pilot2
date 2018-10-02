@@ -57,6 +57,12 @@ class ErrorCodes:
 
     REACHEDMAXTIME = 1213
 
+    ESRECOVERABLE = 1224
+    ESFATAL = 1228
+    EXECUTEDCLONEJOB = 1234
+    ESNOEVENTS = 1238
+    MESSAGEHANDLINGFAILURE = 1240
+
     PAYLOADEXCEEDMAXMEM = 1235
     CHKSUMNOTSUP = 1242
 
@@ -65,7 +71,6 @@ class ErrorCodes:
     UNKNOWNEXCEPTION = 1301
     CONVERSIONFAILURE = 1302
     FILEHANDLINGFAILURE = 1303
-    MESSAGEHANDLINGFAILURE = 1304
     PAYLOADEXECUTIONFAILURE = 1305
     SINGULARITYGENERALFAILURE = 1306
     SINGULARITYNOLOOPDEVICES = 1307
@@ -117,6 +122,10 @@ class ErrorCodes:
         REACHEDMAXTIME: "Reached batch system time limit",
         PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
         CHKSUMNOTSUP: "Mover error: query checksum is not supported",
+        ESRECOVERABLE: "Eventservice recoverable error",
+        ESFATAL: "Eventservice fatal error",
+        EXECUTEDCLONEJOB: "Clone job is already excuted",
+        ESNOEVENTS: "Eventservice no events",
         NOTIMPLEMENTED: "The class or function is not implemented",
         UNKNOWNEXCEPTION: "An unknown pilot exception has occurred",
         CONVERSIONFAILURE: "Failed to convert object data",
