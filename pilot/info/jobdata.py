@@ -392,6 +392,18 @@ class JobData(BaseData):
 
         return False
 
+    def is_local(self):
+        """
+        Should the input files be accessed locally?
+        Note: all input files will have storage_token set to local in that case.
+
+        :return: boolean.
+        """
+
+        for fspec in self.indata:
+            if fspec.storage_token == 'local':
+                return True
+
     def clean(self):
         """
             Validate and finally clean up required data values (object properties) if need

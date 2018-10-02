@@ -302,6 +302,12 @@ def get_analysis_run_command(job, trf_name):
     use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype,
                                                                             job.is_build_job(),
                                                                             job.infosys.queuedata)
+    # check if the input files are to be accessed locally (ie if prodDBlockToken is set to local)
+    if job.is_local():
+        log.debug('switched off direct access for local prodDBlockToken')
+        use_direct_access = False
+        use_pfc_turl = False
+
     # add the user proxy
     if 'X509_USER_PROXY' in os.environ and not job.imagename:
         cmd += 'export X509_USER_PROXY=%s;' % os.environ.get('X509_USER_PROXY')
