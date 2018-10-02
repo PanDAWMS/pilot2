@@ -242,17 +242,13 @@ def validate_post(queues, traces, args):
         job.stageout = 'all'
 
         # analyze and interpret the payload execution output
-        if job.imagename == "":
-            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-            user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
-            try:
-                exit_code = user.interpret(job)
-            except Exception as e:
-                log.warning('exception caught: %s' % e)
-                exit_code = -1
-        else:
-            # no payload analysis for user defined containers
-            exit_code = 0
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
+        try:
+            exit_code = user.interpret(job)
+        except Exception as e:
+            log.warning('exception caught: %s' % e)
+            exit_code = -1
 
         if exit_code != 0:
             log.debug('adding job to failed_payloads queue')
