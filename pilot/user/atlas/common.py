@@ -577,6 +577,31 @@ def update_job_data(job):  # noqa: C901
             log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
 
 
+def get_outfiles_records(subfiles):
+    res = {}
+    for f in subfiles:
+        res[f['name']] = {'guid': f['file_guid'],
+                          'nentries': f['nentries'],
+                          'size': f['file_size']}
+    return res
+
+
+class DictQuery(dict):
+    def get(self, path, dst_dict, dst_key):
+        keys = path.split("/")
+        if len(keys) == 0:
+            return
+        last_key = keys.pop()
+        v = self
+        for key in keys:
+            if key in v and isinstance(v[key], dict):
+                v = v[key]
+            else:
+                return
+        if last_key in v:
+            dst_dict[dst_key] = v[last_key]
+
+
 def parse_jobreport_data(job_report):
     """
     Parse a job report and extract relevant fields.
@@ -589,42 +614,38 @@ def parse_jobreport_data(job_report):
         return work_attributes
 
     # these are default values for job metrics
-    core_count = "undef"
-    work_attributes["n_events"] = "None"
-    work_attributes["__db_time"] = "None"
-    work_attributes["__db_data"] = "None"
+    core_count = ""
+    work_attributes["nEvents"] = 0
+    work_attributes["dbTime"] = ""
+    work_attributes["dbData"] = ""
+    work_attributes["inputfiles"] = []
+    work_attributes["outputfiles"] = []
 
-    class DictQuery(dict):
-        def get(self, path, dst_dict, dst_key):
-            keys = path.split("/")
-            if len(keys) == 0:
-                return
-            last_key = keys.pop()
-            v = self
-            for key in keys:
-                if key in v and isinstance(v[key], dict):
-                    v = v[key]
-                else:
-                    return
-            if last_key in v:
-                dst_dict[dst_key] = v[last_key]
-            else:
-                return
-
-    if 'ATHENA_PROC_NUMBER' in os.environ:
-        work_attributes['core_count'] = os.environ['ATHENA_PROC_NUMBER']
-        core_count = os.environ['ATHENA_PROC_NUMBER']
+    if "ATHENA_PROC_NUMBER" in os.environ:
+        logger.debug("ATHENA_PROC_NUMBER: {0}".format(os.environ["ATHENA_PROC_NUMBER"]))
+        work_attributes['core_count'] = int(os.environ["ATHENA_PROC_NUMBER"])
+        core_count = int(os.environ["ATHENA_PROC_NUMBER"])
 
     dq = DictQuery(job_report)
-    dq.get("resource/transform/processedEvents", work_attributes, "n_events")
+    dq.get("resource/transform/processedEvents", work_attributes, "nEvents")
     dq.get("resource/transform/cpuTimeTotal", work_attributes, "cpuConsumptionTime")
     dq.get("resource/machine/node", work_attributes, "node")
     dq.get("resource/machine/model_name", work_attributes, "cpuConsumptionUnit")
-    dq.get("resource/dbTimeTotal", work_attributes, "__db_time")
-    dq.get("resource/dbDataTotal", work_attributes, "__db_data")
+    dq.get("resource/dbTimeTotal", work_attributes, "dbTime")
+    dq.get("resource/dbDataTotal", work_attributes, "dbData")
     dq.get("exitCode", work_attributes, "transExitCode")
     dq.get("exitMsg", work_attributes, "exeErrorDiag")
-    dq.get("files/input/subfiles", work_attributes, "nInputFiles")
+    dq.get("files/input", work_attributes, "inputfiles")
+    dq.get("files/output", work_attributes, "outputfiles")
+
+    outputfiles_dict = {}
+    for of in work_attributes['outputfiles']:
+        outputfiles_dict.update(get_outfiles_records(of['subFiles']))
+    work_attributes['outputfiles'] = outputfiles_dict
+
+    if work_attributes['inputfiles']:
+        work_attributes['nInputFiles'] = reduce(lambda a, b: a + b, map(lambda inpfiles: len(inpfiles['subFiles']),
+                                                                        work_attributes['inputfiles']))
 
     if 'resource' in job_report and 'executor' in job_report['resource']:
         j = job_report['resource']['executor']
@@ -639,18 +660,15 @@ def parse_jobreport_data(job_report):
             fin_report[x[0]] += x[1]
         work_attributes.update(fin_report)
 
-    if 'files' in job_report and 'input' in job_report['files'] and 'subfiles' in job_report['files']['input']:
-                work_attributes['nInputFiles'] = len(job_report['files']['input']['subfiles'])
-
     workdir_size = get_workdir_size()
     work_attributes['jobMetrics'] = 'coreCount=%s nEvents=%s dbTime=%s dbData=%s workDirSize=%s' % \
                                     (core_count,
-                                        work_attributes["n_events"],
-                                        work_attributes["__db_time"],
-                                        work_attributes["__db_data"],
+                                        work_attributes["nEvents"],
+                                        work_attributes["dbTime"],
+                                        work_attributes["dbData"],
                                         workdir_size)
-    del(work_attributes["__db_time"])
-    del(work_attributes["__db_data"])
+    del(work_attributes["dbData"])
+    del(work_attributes["dbTime"])
 
     return work_attributes
 

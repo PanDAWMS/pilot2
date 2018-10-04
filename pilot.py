@@ -27,13 +27,14 @@ from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
 from pilot.util.information import set_location
-from pilot.util.workernode import is_virtual_machine
+from pilot.util.mpi import get_ranks_info
 from pilot.util.timing import add_to_pilot_timing
+from pilot.util.workernode import is_virtual_machine
 
 RELEASE = '2'  # fixed at 2 for Pilot 2
 VERSION = '0'  # '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
 REVISION = '0'  # reset to '0' for every new Pilot version release, increased for small updates
-BUILD = '109'  # reset to '1' for every new development cycle
+BUILD = '110'  # reset to '1' for every new development cycle
 
 
 def pilot_version_banner():
@@ -97,8 +98,9 @@ def main():
     # perform https setup
     https_setup(args, get_pilot_version())
 
-    if not set_location(args):  # ## DEPRECATE ME LATER
-        return False
+    if not args.workflow == "generic_hpc":  # set_location does not work well for hpc workflow
+        if not set_location(args):  # ## DEPRECATE ME LATER
+            return False
 
     # initialize InfoService and populate args.info structure
     set_info(args)
@@ -434,17 +436,20 @@ def establish_logging(args):
 
     console = logging.StreamHandler(sys.stdout)
     if args.debug:
-        format = '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'
+        format_str = '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'
         level = logging.DEBUG
     else:
-        format = '%(asctime)s | %(levelname)-8s | %(message)s'
+        format_str = '%(asctime)s | %(levelname)-8s | %(message)s'
         level = logging.INFO
+    rank, maxrank = get_ranks_info()
+    if rank is not None:
+        format_str = 'Rank {0} |'.format(rank) + format_str
     if args.nopilotlog:
-        logging.basicConfig(level=level, format=format)
+        logging.basicConfig(level=level, format=format_str)
     else:
-        logging.basicConfig(filename=config.Pilot.pilotlog, level=level, format=format)
+        logging.basicConfig(filename=config.Pilot.pilotlog, level=level, format=format_str)
     console.setLevel(level)
-    console.setFormatter(logging.Formatter(format))
+    console.setFormatter(logging.Formatter(format_str))
     logging.Formatter.converter = time.gmtime
     logging.getLogger('').addHandler(console)
 

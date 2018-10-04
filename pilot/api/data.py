@@ -20,7 +20,6 @@ from pilot.info import infosys
 from pilot.info.storageactivitymaps import get_ddm_activity
 from pilot.common.exception import PilotException, ErrorCodes
 from pilot.util.filehandling import calculate_checksum
-from pilot.util.math import add_lists
 
 
 class StagingClient(object):
@@ -38,8 +37,10 @@ class StagingClient(object):
                         'lsm': {'module_name': 'lsm'}
                         }
 
-    direct_remoteinput_allowed_schemas = ['root']
-    remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm']
+    direct_remoteinput_allowed_schemas = ['root']   ## list of allowed schemas to be used for direct acccess mode from REMOTE replicas
+    direct_localinput_allowed_schemas = ['root', 'dcache', 'dcap', 'file', 'https']  ## list of schemas to be used for direct acccess mode from LOCAL replicas
+
+    remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm']  ## list of allowed schemas to be used for transfers from REMOTE sites
 
     def __init__(self, infosys_instance=None, acopytools=None, logger=None, default_copytools='rucio'):
         """
@@ -79,6 +80,18 @@ class StagingClient(object):
             self.acopytools['default'] = default_copytools
 
         logger.info('Configured copytools per activity: acopytools=%s' % self.acopytools)
+
+    @classmethod
+    def get_preferred_replica(self, replicas, allowed_schemas):
+        """
+            Get preferred replica from the `replicas` list suitable for `allowed_schemas`
+            :return: replica or None if not found
+        """
+
+        for replica in replicas:
+            for schema in allowed_schemas:
+                if replica and (not schema or replica.startswith('%s://' % schema)):
+                    return replica
 
     def resolve_replicas(self, files):  # noqa: C901
         """
@@ -156,28 +169,20 @@ class StagingClient(object):
                 continue
 
             fdat.replicas = []  # reset replicas list
-
-            def get_preferred_replica(replicas, allowed_schemas):
-                for schema in allowed_schemas:
-                    for replica in replicas:
-                        if replica and replica.startswith('%s://' % schema):
-                            return replica
-                return None
-
-            has_direct_remoteinput_replicas = False
+            has_direct_localinput_replicas = False
 
             # local replicas
             for ddm in fdat.inputddms:  ## iterate over local ddms and check if replica is exist here
-
-                if ddm not in r['rses']:  # no replica found for given local ddm
+                pfns = r.get('rses', {}).get(ddm)
+                if not pfns:  # no replica found for given local ddm
                     continue
 
-                fdat.replicas.append((ddm, r['rses'][ddm]))
+                fdat.replicas.append((ddm, pfns))
 
-                if not has_direct_remoteinput_replicas:
-                    has_direct_remoteinput_replicas = bool(get_preferred_replica(r['rses'][ddm], self.direct_remoteinput_allowed_schemas))
+                if not has_direct_localinput_replicas:
+                    has_direct_localinput_replicas = bool(self.get_preferred_replica(pfns, self.direct_localinput_allowed_schemas))
 
-            if (not fdat.replicas or (fdat.accessmode == 'direct' and not has_direct_remoteinput_replicas)) and fdat.allowremoteinputs:
+            if (not fdat.replicas or (fdat.accessmode == 'direct' and not has_direct_localinput_replicas)) and fdat.allowremoteinputs:
                 if fdat.accessmode == 'direct':
                     allowed_schemas = self.direct_remoteinput_allowed_schemas
                 else:
@@ -186,16 +191,16 @@ class StagingClient(object):
                 if not fdat.replicas:
                     logger.info("No local replicas found for lfn=%s but allowremoteinputs is set => looking for remote inputs" % fdat.lfn)
                 else:
-                    logger.info("Direct access is set but no local direct access files, but allowremoteinputs is set => looking for remote inputs")
-                logger.info("consider first/closest replica, accessmode=%s, remoteinput_allowed_schemas=%s" % (fdat.accessmode, allowed_schemas))
-                logger.debug('rses=%s' % r['rses'])
-                for ddm, replicas in r['rses'].iteritems():
-                    replica = get_preferred_replica(r['rses'][ddm], self.remoteinput_allowed_schemas)
+                    logger.info("Direct access=True but no appr. local replicas found: allowremoteinputs=True =>checking remote input suitable for direct read")
+                logger.info("Consider first/closest replica, accessmode=%s, allowed_schemas=%s" % (fdat.accessmode, allowed_schemas))
+                #logger.debug('rses=%s' % r['rses'])
+                for ddm, pfns in r['rses'].iteritems():
+                    replica = self.get_preferred_replica(pfns, self.allowed_schemas)
                     if not replica:
                         continue
 
-                    # remoteinput supported replica (root) replica has been found
-                    fdat.replicas.append((ddm, r['rses'][ddm]))
+                    # remoteinput supported replica found
+                    fdat.replicas.append((ddm, pfns))
                     # break # ignore other remote replicas/sites
 
             # verify filesize and checksum values
@@ -214,7 +219,7 @@ class StagingClient(object):
                     fdat.checksum[ctype] = r[ctype]
 
         logger.info('Number of resolved replicas:\n' +
-                    '\n'.join(["lfn=%s: replicas=%s, allowremoteinputsallowremoteinputs=%s, is_directaccess=%s"
+                    '\n'.join(["lfn=%s: replicas=%s, allowremoteinputs=%s, is_directaccess=%s"
                                % (f.lfn, len(f.replicas), f.allowremoteinputs, f.is_directaccess(ensure_replica=False)) for f in files]))
 
         return files
@@ -325,9 +330,10 @@ class StagingClient(object):
 
 class StageInClient(StagingClient):
 
-    def resolve_replica(self, fspec, allowed_schemas=None):
+    def resolve_replica(self, fspec, primary_schemas=None, allowed_schemas=None):
         """
-            Resolve input replica according to allowed schema
+            Resolve input replica first according to `primary_schemas`,
+            if not found then look up within `allowed_schemas`
             :param fspec: input `FileSpec` objects
             :param allowed_schemas: list of allowed schemas or any if None
             :return: dict(surl, ddmendpoint, pfn)
@@ -335,21 +341,20 @@ class StageInClient(StagingClient):
 
         if not fspec.replicas:
             return
+
         allowed_schemas = allowed_schemas or [None]
         replica = None
-        for sval in allowed_schemas:
-            for ddmendpoint, replicas in fspec.replicas:
-                if not replicas:  # ignore ddms with no replicas
-                    continue
-                surl = replicas[0]  # assume srm protocol is first entry
-                self.logger.info("[stage-in] surl (srm replica) from Rucio: pfn=%s, ddmendpoint=%s" % (surl, ddmendpoint))
-                for r in replicas:
-                    if sval is None or r.startswith("%s://" % sval):
-                        replica = r
-                        break
-                if replica:
-                    break
+
+        for ddmendpoint, replicas in fspec.replicas:
+            if not replicas:  # ignore ddms with no replicas
+                continue
+            if primary_schemas:  ## look up primary schemas if requested
+                replica = self.get_preferred_replica(replicas, primary_schemas)
+            if not replica:
+                replica = self.get_preferred_replica(replicas, allowed_schemas)
             if replica:
+                surl = self.get_preferred_replica(replicas, ['srm']) or replicas[0]  # prefer SRM protocol for surl -- to be verified
+                self.logger.info("[stage-in] surl (srm replica) from Rucio: pfn=%s, ddmendpoint=%s" % (surl, ddmendpoint))
                 break
 
         if not replica:  # replica not found
@@ -424,20 +429,15 @@ class StageInClient(StagingClient):
         if getattr(copytool, 'require_replicas', False) and files and files[0].replicas is None:
             files = self.resolve_replicas(files)
             allowed_schemas = getattr(copytool, 'allowed_schemas', None)
-
-            # make sure that root is the first protocol in the schemas list if direct access is to be used
-            if allowed_schemas and allowed_schemas[0] != self.remoteinput_allowed_schemas[0]:
-                # add supported schemas for direct access
-                allowed_schemas = add_lists(self.remoteinput_allowed_schemas, allowed_schemas)
-                self.logger.info('allowed schemas updated: %s' % allowed_schemas)
-            else:
-                self.logger.info('allowed schemas: %s' % allowed_schemas)
-
             for fspec in files:
                 resolve_replica = getattr(copytool, 'resolve_replica', None)
                 if not callable(resolve_replica):
                     resolve_replica = self.resolve_replica
-                r = resolve_replica(fspec, allowed_schemas)
+
+                ## prepare schemas which will be used to look up first the replicas allowed for direct access mode
+                primary_schemas = self.direct_localinput_allowed_schemas if fspec.accessmode == 'direct' else None
+                r = resolve_replica(fspec, primary_schemas, allowed_schemas)
+
                 if r.get('pfn'):
                     fspec.turl = r['pfn']
                 if r.get('surl'):

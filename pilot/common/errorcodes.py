@@ -60,6 +60,13 @@ class ErrorCodes:
     PAYLOADOUTOFMEMORY = 1212
     REACHEDMAXTIME = 1213
     BADALLOC = 1223
+
+    ESRECOVERABLE = 1224
+    ESFATAL = 1228
+    EXECUTEDCLONEJOB = 1234
+    ESNOEVENTS = 1238
+    MESSAGEHANDLINGFAILURE = 1240
+
     PAYLOADEXCEEDMAXMEM = 1235
     CHKSUMNOTSUP = 1242
     NOUSERTARBALL = 1246
@@ -69,7 +76,6 @@ class ErrorCodes:
     UNKNOWNEXCEPTION = 1301
     CONVERSIONFAILURE = 1302
     FILEHANDLINGFAILURE = 1303
-    MESSAGEHANDLINGFAILURE = 1304
     PAYLOADEXECUTIONFAILURE = 1305
     SINGULARITYGENERALFAILURE = 1306
     SINGULARITYNOLOOPDEVICES = 1307
@@ -126,6 +132,10 @@ class ErrorCodes:
         PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
         CHKSUMNOTSUP: "Mover error: query checksum is not supported",
         NOUSERTARBALL: "User tarball cannot be downloaded from PanDA server",
+        ESRECOVERABLE: "Event service: recoverable error",
+        ESFATAL: "Event service: fatal error",
+        EXECUTEDCLONEJOB: "Clone job is already executed",
+        ESNOEVENTS: "Event service: no events",
         NOTIMPLEMENTED: "The class or function is not implemented",
         UNKNOWNEXCEPTION: "An unknown pilot exception has occurred",
         CONVERSIONFAILURE: "Failed to convert object data",
