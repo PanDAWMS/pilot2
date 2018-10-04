@@ -29,6 +29,7 @@ class ErrorCodes:
     USERDIRTOOLARGE = 1104
     STDOUTTOOBIG = 1106
     SETUPFAILURE = 1110
+    NFSSQLITE = 1115
     OUTPUTFILETOOLARGE = 1124
     STAGEOUTFAILED = 1137
     PUTMD5MISMATCH = 1141
@@ -55,16 +56,20 @@ class ErrorCodes:
     SIGBUS = 1206
     SIGUSR1 = 1207
 
+    MISSINGINSTALLATION = 1211
+    PAYLOADOUTOFMEMORY = 1212
     REACHEDMAXTIME = 1213
+    BADALLOC = 1223
 
     ESRECOVERABLE = 1224
     ESFATAL = 1228
     EXECUTEDCLONEJOB = 1234
+    PAYLOADEXCEEDMAXMEM = 1235
     ESNOEVENTS = 1238
     MESSAGEHANDLINGFAILURE = 1240
 
-    PAYLOADEXCEEDMAXMEM = 1235
     CHKSUMNOTSUP = 1242
+    NOUSERTARBALL = 1246
 
     # Error code constants (new since Pilot 2)
     NOTIMPLEMENTED = 1300
@@ -95,11 +100,12 @@ class ErrorCodes:
         USERDIRTOOLARGE: "User work directory too large",
         STDOUTTOOBIG: "Payload log or stdout file too big",
         SETUPFAILURE: "Failed during payload setup",
+        NFSSQLITE: "NFS SQLite locking problems",
         OUTPUTFILETOOLARGE: "Output file too large",
         STAGEOUTFAILED: "Failed to stage-out file",
         PUTMD5MISMATCH: "md5sum mismatch on output file",
         GETMD5MISMATCH: "md5sum mismatch on input file",
-        CHMODTRF: "Failed to chmod trf",
+        CHMODTRF: "Failed to chmod transform",
         PANDAKILL: "This job was killed by panda server",
         MISSINGOUTPUTFILE: "Local output file is missing",
         TRFDOWNLOADFAILURE: "Transform could not be downloaded",
@@ -119,18 +125,22 @@ class ErrorCodes:
         SIGUSR1: "Job killed by signal: SIGUSR1",
         SIGBUS: "Job killed by signal: SIGBUS",
         USERKILL: "Job killed by user",
+        MISSINGINSTALLATION: "Missing installation",
+        PAYLOADOUTOFMEMORY: "Payload ran out of memory",
         REACHEDMAXTIME: "Reached batch system time limit",
-        PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
+        BADALLOC: "Transform failed due to bad_alloc",
         CHKSUMNOTSUP: "Mover error: query checksum is not supported",
-        ESRECOVERABLE: "Eventservice recoverable error",
-        ESFATAL: "Eventservice fatal error",
-        EXECUTEDCLONEJOB: "Clone job is already excuted",
-        ESNOEVENTS: "Eventservice no events",
+        NOUSERTARBALL: "User tarball could not be downloaded from PanDA server",
+        ESRECOVERABLE: "Event service: recoverable error",
+        ESFATAL: "Event service: fatal error",
+        EXECUTEDCLONEJOB: "Clone job is already executed",
+        PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
+        ESNOEVENTS: "Event service: no events",
+        MESSAGEHANDLINGFAILURE: "Failed to handle message from payload",
         NOTIMPLEMENTED: "The class or function is not implemented",
         UNKNOWNEXCEPTION: "An unknown pilot exception has occurred",
         CONVERSIONFAILURE: "Failed to convert object data",
         FILEHANDLINGFAILURE: "Failed during file handling",
-        MESSAGEHANDLINGFAILURE: "Failed to handle message from payload",
         PAYLOADEXECUTIONFAILURE: "Failed to execute payload",
         SINGULARITYGENERALFAILURE: "Singularity: general failure",
         SINGULARITYNOLOOPDEVICES: "Singularity: No more available loop devices",
@@ -141,10 +151,10 @@ class ErrorCodes:
         NOTSAMELENGTH: "Not same length",
         NOSTORAGEPROTOCOL: "No protocol defined for storage endpoint",
         UNKNOWNCHECKSUMTYPE: "Unknown checksum type",
-        UNKNOWNTRFFAILURE: "Unknown TRF failure",
+        UNKNOWNTRFFAILURE: "Unknown transform failure",
         RUCIOSERVICEUNAVAILABLE: "Rucio: Service unavailable",
         EXCEEDEDMAXWAITTIME: "Exceeded maximum waiting time",
-        COMMUNICATIONFAILURE: "Failed to communication to servers(such as Panda, Harvester, ACT, ...)",
+        COMMUNICATIONFAILURE: "Failed to communicate with server",
     }
 
     def get_kill_signal_error_code(self, signal):

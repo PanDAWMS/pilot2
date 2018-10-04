@@ -46,3 +46,15 @@ Add the following lines somewhere in the documentation:
         :members:
 
 For more info, visit http://sphinx-doc.org
+
+### Syncing your GitHub repository
+
+Before making a pull request, make sure that you are synced to the latest version.
+
+1. git clone https://github.com/USERNAME/pilot2.git
+2. cd pilot2
+3. git checkout next
+4. git remote -v
+5. git remote add upstream https://github.com/PanDAWMS/pilot2.git
+6. git fetch upstream
+7. git merge upstream/next

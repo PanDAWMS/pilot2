@@ -102,22 +102,19 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
 
     log = get_logger(job.jobid)
 
-    # Is it a user job or not?
-    userjob = job.is_analysis()
-
     if userjob:
         # set the INDS env variable (used by runAthena)
         set_inds(job.datasetin)  # realDatasetsIn
 
         # Try to download the trf (skip when user container is to be used)
-        trf_name = ""
-        if job.imagename == "":
-            # if '--containerImage' not in job.jobparams:
-            ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
-            if ec != 0:
-                raise TrfDownloadFailure(diagnostics)
-            else:
-                log.debug('user analysis trf: %s' % trf_name)
+        if job.imagename != "" or "--containerImage" in job.jobparams:
+            job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
+            log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
+        ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
+        if ec != 0:
+            raise TrfDownloadFailure(diagnostics)
+        else:
+            log.debug('user analysis trf: %s' % trf_name)
 
         if prepareasetup:
             _cmd = get_analysis_run_command(job, trf_name)
@@ -161,6 +158,9 @@ def get_generic_payload_command(cmd, job, prepareasetup, userjob):
 
     if userjob:
         # Try to download the trf
+        if job.imagename != "" or "--containerImage" in job.jobparams:
+            job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
+            log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
         ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
         if ec != 0:
             raise TrfDownloadFailure(diagnostics)
@@ -302,37 +302,41 @@ def get_analysis_run_command(job, trf_name):
     use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype,
                                                                             job.is_build_job(),
                                                                             job.infosys.queuedata)
+    # check if the input files are to be accessed locally (ie if prodDBlockToken is set to local)
+    if job.is_local():
+        log.debug('switched off direct access for local prodDBlockToken')
+        use_direct_access = False
+        use_pfc_turl = False
+
     # add the user proxy
     if 'X509_USER_PROXY' in os.environ and not job.imagename:
         cmd += 'export X509_USER_PROXY=%s;' % os.environ.get('X509_USER_PROXY')
 
     # set up analysis trf
     if job.imagename == "":
-        # if '--containerImage' not in job.jobparams:
         cmd += './%s %s' % (trf_name, job.jobparams)
-
-        # add control options for PFC turl and direct access
-        if use_pfc_turl and '--usePFCTurl' not in cmd:
-            cmd += ' --usePFCTurl'
-        if use_direct_access and '--directIn' not in cmd:
-            cmd += ' --directIn'
-
-        # update the payload command for forced accessmode
-        cmd = update_forced_accessmode(log, cmd, job.transfertype, job.jobparams, trf_name)
-
-        # add guids when needed
-        # get the correct guids list (with only the direct access files)
-        if not job.is_build_job():
-            lfns, guids = job.get_lfns_and_guids()
-            _guids = get_guids_from_jobparams(job.jobparams, lfns, guids)
-            if _guids:
-                cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
     else:
-        # test code: remove eventually (get script from /cvmfs)
-        cmd += 'python %s' % os.path.join(os.environ.get('PILOT_SOURCE_DIR', ''), 'pilot/scripts/runcontainer.py')
+        cmd += 'python %s %s' % (trf_name, job.jobparams)
 
-        # restore the image name and add the job params
-        cmd += ' --containerImage=%s %s' % (job.imagename, job.jobparams)
+        # restore the image name
+        cmd += ' --containerImage=%s' % job.imagename
+
+    # add control options for PFC turl and direct access
+    if use_pfc_turl and '--usePFCTurl' not in cmd:
+        cmd += ' --usePFCTurl'
+    if use_direct_access and '--directIn' not in cmd:
+        cmd += ' --directIn'
+
+    # update the payload command for forced accessmode
+    cmd = update_forced_accessmode(log, cmd, job.transfertype, job.jobparams, trf_name)
+
+    # add guids when needed
+    # get the correct guids list (with only the direct access files)
+    if not job.is_build_job():
+        lfns, guids = job.get_lfns_and_guids()
+        _guids = get_guids_from_jobparams(job.jobparams, lfns, guids)
+        if _guids:
+            cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
 
     return cmd
 
@@ -489,7 +493,7 @@ def update_job_data(job):  # noqa: C901
     """
     This function can be used to update/add data to the job object.
     E.g. user specific information can be extracted from other job object fields. In the case of ATLAS, information
-    is extracted from the metaData field and added to other job object fields.
+    is extracted from the metadata field and added to other job object fields.
 
     :param job: job object
     :return:
@@ -523,11 +527,6 @@ def update_job_data(job):  # noqa: C901
 
     # determine what should be staged out
     job.stageout = stageout  # output and log file or only log file
-
-    # extract the number of events
-    if not job.is_eventservice:
-        # extract the number of events
-        job.nevents = get_number_of_events(job.metadata)
 
     work_attributes = None
     try:
@@ -709,7 +708,7 @@ def get_executor_dictionary(jobreport_dictionary):
     return executor_dictionary
 
 
-def get_number_of_events(jobreport_dictionary):
+def get_number_of_events_deprecated(jobreport_dictionary):  # TODO: remove this function
     """
     Extract the number of events from the job report.
 

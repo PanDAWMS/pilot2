@@ -140,7 +140,7 @@ class Executor(object):
 
                 try:
                     proc1 = execute(utilitycommand, workdir=job.workdir, returnproc=True,
-                                    usecontainer=True, stdout=PIPE, stderr=PIPE, cwd=job.workdir,
+                                    usecontainer=False, stdout=PIPE, stderr=PIPE, cwd=job.workdir,
                                     job=job)
                 except Exception as e:
                     log.error('could not execute: %s' % e)
@@ -283,6 +283,8 @@ class Executor(object):
         log = get_logger(str(self.__job.jobid), logger)
 
         exit_code = 1
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+
         if self.setup_payload(self.__job, self.__out, self.__err):
             log.debug('running payload')
             self.__job.state = 'running'
@@ -306,7 +308,6 @@ class Executor(object):
                     for utcmd in self.__job.utilities.keys():
                         utproc = self.__job.utilities[utcmd][0]
                         if utproc:
-                            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
                             user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user],
                                               -1)
                             sig = user.get_utility_command_kill_signal(utcmd)

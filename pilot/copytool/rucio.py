@@ -60,6 +60,8 @@ def copy_in(files, **kwargs):
         cmd += ['%s:%s' % (fspec.scope, fspec.lfn)]
 
         rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
+        logger.info('stdout = %s' % stdout)
+        logger.info('stderr = %s' % stderr)
 
         if rcode:  ## error occurred
             error = resolve_transfer_error(stderr, is_stagein=True)
@@ -117,7 +119,8 @@ def copy_out(files, **kwargs):
         cmd += [fspec.surl]
 
         rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
-
+        logger.info('stdout = %s' % stdout)
+        logger.info('stderr = %s' % stderr)
         if rcode:  ## error occurred
             error = resolve_transfer_error(stderr, is_stagein=False)
             fspec.status = 'failed'

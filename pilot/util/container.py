@@ -32,11 +32,15 @@ def execute(executable, **kwargs):
     usecontainer = kwargs.get('usecontainer', False)
     returnproc = kwargs.get('returnproc', False)
     mute = kwargs.get('mute', False)
-    # job = kwargs.get('job')
+    job = kwargs.get('job')
 
     # convert executable to string if it is a list
     if type(executable) is list:
         executable = ' '.join(executable)
+
+    # switch off pilot controlled containers for user defined containers
+    if job and job.imagename != "" and "runcontainer" in executable:
+        usecontainer = False
 
     # Import user specific code if necessary (in case the command should be executed in a container)
     # Note: the container.wrapper() function must at least be declared

@@ -1368,6 +1368,9 @@ def make_job_report(job):
             log.info('error %d/%d: %s: %s' % (i + 1, n, job.piloterrorcodes[i], job.piloterrordiags[i]))
     else:
         log.info('errors: (none)')
+    if job.piloterrorcode != 0:
+        log.info('pilot error code: %d' % job.piloterrorcode)
+        log.info('pilot error diag: %s' % job.piloterrordiag)
     info = ""
     for key in job.status:
         info += key + " = " + job.status[key] + " "
@@ -1385,4 +1388,5 @@ def make_job_report(job):
     log.info('pgrp: %s' % str(job.pgrp))
     log.info('corecount: %d' % job.corecount)
     log.info('event service: %s' % str(job.is_eventservice))
+    log.info('--------------------------------------------------')
     log.info('')

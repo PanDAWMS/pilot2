@@ -417,12 +417,15 @@ def copytool_in(queues, traces, args):
                 queues.finished_data_in.put(job)
 
                 # now create input file metadata if required by the payload
-                pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-                user = __import__('pilot.user.%s.setup' % pilot_user, globals(), locals(), [pilot_user], -1)
-                file_dictionary = get_input_file_dictionary(job.indata)
-                log.debug('file_dictionary=%s' % str(file_dictionary))
-                xml = user.create_input_file_metadata(file_dictionary, job.workdir)
-                log.info('created input file metadata:\n%s' % xml)
+                try:
+                    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+                    user = __import__('pilot.user.%s.metadata' % pilot_user, globals(), locals(), [pilot_user], -1)
+                    file_dictionary = get_input_file_dictionary(job.indata)
+                    log.debug('file_dictionary=%s' % str(file_dictionary))
+                    xml = user.create_input_file_metadata(file_dictionary, job.workdir)
+                    log.info('created input file metadata:\n%s' % xml)
+                except Exception as e:
+                    pass
             else:
                 log.warning('stage-in failed, adding job object to failed_data_in queue')
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINFAILED)
@@ -567,17 +570,28 @@ def create_log(job, logfile, tarball_name):
             log.info('removing file: %s' % path)
             remove(path)
 
-    name = os.path.join(job.workdir, logfile.lfn)
-    log.info('will create archive %s from %s' % (name, job.workdir))
-#    with closing(tarfile.open(name=name, mode='w:gz', dereference=True)) as archive:
-#        archive.add(job.workdir, recursive=True)
+    # rename the workdir for the tarball creation
+    newworkdir = os.path.join(os.path.dirname(job.workdir), tarball_name)
+    orgworkdir = job.workdir
+    log.debug('renaming %s to %s' % (job.workdir, newworkdir))
+    os.rename(job.workdir, newworkdir)
+    job.workdir = newworkdir
 
-    with closing(tarfile.open(name=os.path.join(job.workdir, logfile.lfn), mode='w:gz', dereference=True)) as log_tar:
-        for _file in list(set(os.listdir(job.workdir)) - set(input_files) - set(output_files)):
-            if os.path.exists(os.path.join(job.workdir, _file)):
-                logging.debug('adding to log: %s' % _file)
-                log_tar.add(os.path.join(job.workdir, _file),
-                            arcname=os.path.join(tarball_name, _file))
+    fullpath = os.path.join(job.workdir, logfile.lfn)  # /some/path/to/dirname/log.tgz
+    log.info('will create archive %s' % fullpath)
+    with closing(tarfile.open(name=fullpath, mode='w:gz', dereference=True)) as archive:
+        archive.add(os.path.basename(job.workdir), recursive=True)
+
+    cmd = 'tar xvfz %s' % fullpath
+    out = execute(cmd)
+    log.debug('%s:\n%s' % (cmd, out))
+
+    log.debug('renaming %s back to %s' % (job.workdir, orgworkdir))
+    try:
+        os.rename(job.workdir, orgworkdir)
+    except Exception as e:
+        log.debug('exception caught: %s' % e)
+    job.workdir = orgworkdir
 
     return {'scope': logfile.scope,
             'name': logfile.lfn,
@@ -944,6 +958,9 @@ def queue_monitoring(queues, traces, args):
 
             # stage-out log file then add the job to the failed_jobs queue
             job.stageout = "log"
+
+            # TODO: put in data_out queue instead?
+
             if not _stage_out_new(job, args):
                 log.info("job %s failed during stage-in and stage-out of log, adding job object to failed_data_outs "
                          "queue" % job.jobid)

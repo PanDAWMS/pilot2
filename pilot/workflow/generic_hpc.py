@@ -36,11 +36,11 @@ def interrupt(args, signum, frame):
 
 def run(args):
     """
-     Main execution function for the generic HPC workflow.
+    Main execution function for the generic HPC workflow.
 
-     :param args: pilot arguments.
-     :returns: traces.
-     """
+    :param args: pilot arguments.
+    :returns: traces object.
+    """
 
     # set communication point. Worker report should be placed there, matched with working directory of Harvester
     if args.harvester_workdir:

@@ -160,8 +160,7 @@ class FileSpec(BaseData):
         if not is_rootfile:
             return False
 
-        is_directaccess = True
-        #is_directaccess = self.prodDBlockToken != 'local'  ## FIX ME LATER once prodDBlockToken (proper name?) will be added into the FileSpec
+        is_directaccess = self.storage_token != 'local'
 
         if ensure_replica:
 
