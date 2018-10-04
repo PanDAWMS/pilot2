@@ -29,11 +29,11 @@ def interrupt(args, signum, frame):
 
 def run(args):
     """
-     Main execution function for the generic HPC workflow.
+    Main execution function for the generic HPC workflow.
 
-     :param args: pilot arguments.
-     :returns: traces.
-     """
+    :param args: pilot arguments.
+    :returns: traces object.
+    """
 
     try:
         logger.info('setting up signal handling')
