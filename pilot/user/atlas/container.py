@@ -27,16 +27,21 @@ def do_use_container(**kwargs):
     Decide whether to use a container or not.
 
     :param kwargs: dictionary of key-word arguments.
-    :return: True is function has decided that a container should be used, False otherwise (boolean).
+    :return: True if function has decided that a container should be used, False otherwise (boolean).
     """
 
-    use_container = True
+    use_container = False
 
     job = kwargs.get('job')
     if job:
         # for user jobs, TRF option --containerImage must have been used, ie imagename must be set
-        if not (job.is_analysis() and job.imagename):
+        if job.is_analysis() and job.imagename:
             use_container = False
+        else:
+            queuedata = job.infosys.queuedata
+            container_name = queuedata.container_type.get("pilot")
+            if container_name == 'singularity':
+                use_container = True
 
     return use_container
 
