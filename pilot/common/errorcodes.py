@@ -64,10 +64,10 @@ class ErrorCodes:
     ESRECOVERABLE = 1224
     ESFATAL = 1228
     EXECUTEDCLONEJOB = 1234
+    PAYLOADEXCEEDMAXMEM = 1235
     ESNOEVENTS = 1238
     MESSAGEHANDLINGFAILURE = 1240
 
-    PAYLOADEXCEEDMAXMEM = 1235
     CHKSUMNOTSUP = 1242
     NOUSERTARBALL = 1246
 
@@ -129,18 +129,18 @@ class ErrorCodes:
         PAYLOADOUTOFMEMORY: "Payload ran out of memory",
         REACHEDMAXTIME: "Reached batch system time limit",
         BADALLOC: "Transform failed due to bad_alloc",
-        PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
         CHKSUMNOTSUP: "Mover error: query checksum is not supported",
-        NOUSERTARBALL: "User tarball cannot be downloaded from PanDA server",
+        NOUSERTARBALL: "User tarball could not be downloaded from PanDA server",
         ESRECOVERABLE: "Event service: recoverable error",
         ESFATAL: "Event service: fatal error",
         EXECUTEDCLONEJOB: "Clone job is already executed",
+        PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
         ESNOEVENTS: "Event service: no events",
+        MESSAGEHANDLINGFAILURE: "Failed to handle message from payload",
         NOTIMPLEMENTED: "The class or function is not implemented",
         UNKNOWNEXCEPTION: "An unknown pilot exception has occurred",
         CONVERSIONFAILURE: "Failed to convert object data",
         FILEHANDLINGFAILURE: "Failed during file handling",
-        MESSAGEHANDLINGFAILURE: "Failed to handle message from payload",
         PAYLOADEXECUTIONFAILURE: "Failed to execute payload",
         SINGULARITYGENERALFAILURE: "Singularity: general failure",
         SINGULARITYNOLOOPDEVICES: "Singularity: No more available loop devices",
@@ -154,7 +154,7 @@ class ErrorCodes:
         UNKNOWNTRFFAILURE: "Unknown transform failure",
         RUCIOSERVICEUNAVAILABLE: "Rucio: Service unavailable",
         EXCEEDEDMAXWAITTIME: "Exceeded maximum waiting time",
-        COMMUNICATIONFAILURE: "Failed to communication to servers(such as Panda, Harvester, ACT, ...)",
+        COMMUNICATIONFAILURE: "Failed to communicate with server",
     }
 
     def get_kill_signal_error_code(self, signal):
