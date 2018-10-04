@@ -11,6 +11,7 @@
 import functools
 import signal
 from collections import namedtuple
+from os import environ
 
 from pilot.util.constants import SUCCESS, FAILURE
 
@@ -51,16 +52,13 @@ def run(args):
         # example usage:
         logger.info('setup for resource %s: %s' % (args.hpc_resource, str(resource.get_setup())))
 
-        # extract user specific info from job report
-        user = __import__('pilot.user.%s.common' % args.pilot_user.lower(), globals(), locals(),
-                          [args.pilot_user.lower()], -1)
-        # example usage:
-        # user.remove_redundant_files()
-        # user.cleanup_payload()
-        # parse_jobreport_data()
+        # are we Yoda or Droid?
+        if environ.get('SOME_ENV_VARIABLE', '') == 'YODA':
+            yodadroid = __import__('pilot.eventservice.yoda')
+        else:
+            yodadroid = __import__('pilot.eventservice.droid')
+        yodadroid.run()
 
-        # implement main function here
-        # ..
     except Exception as e:
         logger.fatal('exception caught: %s' % e)
 
