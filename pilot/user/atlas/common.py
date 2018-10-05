@@ -322,10 +322,11 @@ def get_analysis_run_command(job, trf_name):
         cmd += ' --containerImage=%s' % job.imagename
 
     # add control options for PFC turl and direct access
-    if use_pfc_turl and '--usePFCTurl' not in cmd:
-        cmd += ' --usePFCTurl'
-    if use_direct_access and '--directIn' not in cmd:
-        cmd += ' --directIn'
+    if job.indata != []:
+        if use_pfc_turl and '--usePFCTurl' not in cmd:
+            cmd += ' --usePFCTurl'
+        if use_direct_access and '--directIn' not in cmd:
+            cmd += ' --directIn'
 
     # update the payload command for forced accessmode
     cmd = update_forced_accessmode(log, cmd, job.transfertype, job.jobparams, trf_name)
