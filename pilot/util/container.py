@@ -38,22 +38,47 @@ def execute(executable, **kwargs):
     if type(executable) is list:
         executable = ' '.join(executable)
 
+    # switch off pilot controlled containers for user defined containers
+    if job and job.imagename != "" and "runcontainer" in executable:
+        usecontainer = False
+
     # Import user specific code if necessary (in case the command should be executed in a container)
     # Note: the container.wrapper() function must at least be declared
     if usecontainer:
         user = environ.get('PILOT_USER', 'generic').lower()  # TODO: replace with singleton
         container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], -1)
         if container:
-            try:
-                executable = container.wrapper(executable, **kwargs)
-            except Exception as e:
-                logger.fatal('failed to execute wrapper function: %s' % e)
-    else:
-        # logger.info("will not use container")
-        pass
+            # should a container really be used?
+            do_use_container = container.do_use_container(**kwargs)
+
+            if do_use_container:
+                diagnostics = ""
+                try:
+                    executable = container.wrapper(executable, **kwargs)
+                except Exception as e:
+                    diagnostics = 'failed to execute wrapper function: %s' % e
+                    logger.fatal(diagnostics)
+                else:
+                    if executable == "":
+                        diagnostics = 'failed to prepare container command'
+                        logger.fatal(diagnostics)
+                if diagnostics != "":
+                    return None if returnproc else -1, "", diagnostics
+            else:
+                logger.info('pilot user container module has decided to not use a container')
+        else:
+            logger.warning('container module could not be imported')
 
     if not mute:
-        logger.info('executing command: %s' % executable)
+        executable_readable = executable
+        executables = executable_readable.split(";")
+        for sub_cmd in executables:
+            if 'S3_SECRET_KEY=' in sub_cmd:
+                secret_key = sub_cmd.split('S3_SECRET_KEY=')[1]
+                secret_key = 'S3_SECRET_KEY=' + secret_key
+                executable_readable = executable_readable.replace(secret_key, 'S3_SECRET_KEY=********')
+        logger.info('executing command: %s' % executable_readable)
+
     exe = ['/bin/bash', '-c', executable]
     process = subprocess.Popen(exe,
                                bufsize=-1,
@@ -68,7 +93,7 @@ def execute(executable, **kwargs):
         exit_code = process.poll()
 
         # remove any added \n
-        if stdout.endswith('\n'):
+        if stdout and stdout.endswith('\n'):
             stdout = stdout[:-1]
 
         return exit_code, stdout, stderr

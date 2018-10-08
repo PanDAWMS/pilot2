@@ -10,6 +10,7 @@
 import hashlib
 import io
 import os
+import re
 import tarfile
 import time
 import uuid
@@ -67,19 +68,20 @@ def read_file(filename):
     return out
 
 
-def write_file(filename, contents):
+def write_file(path, contents, mute=True):
     """
     Write the given contents to a file.
 
-    :param filename: file name (string).
+    :param path: full path for file (string).
     :param contents: file contents (string).
+    :param mute: boolean to control stdout info message
     :raises PilotException: FileHandlingFailure.
     :return: True if successful, otherwise False.
     """
 
     status = False
 
-    f = open_file(filename, 'w')
+    f = open_file(path, 'w')
     if f:
         try:
             f.write(contents)
@@ -88,6 +90,9 @@ def write_file(filename, contents):
         else:
             status = True
         f.close()
+
+    if not mute:
+        logger.info('created file: %s' % path)
 
     return status
 
@@ -147,6 +152,43 @@ def tail(filename, nlines=10):
 
     exit_code, stdout, stderr = execute('tail -n %d %s' % (nlines, filename))
     return stdout
+
+
+def grep(patterns, file_name):
+    """
+    Search for the patterns in the given list in a file.
+
+    Example:
+      grep(["St9bad_alloc", "FATAL"], "athena_stdout.txt")
+      -> [list containing the lines below]
+        CaloTrkMuIdAlg2.sysExecute()             ERROR St9bad_alloc
+        AthAlgSeq.sysExecute()                   FATAL  Standard std::exception is caught
+
+    :param patterns: list of regexp patterns.
+    :param file_name: file name (string).
+    :return: list of matched lines in file.
+    """
+
+    matched_lines = []
+    p = []
+    for pattern in patterns:
+        p.append(re.compile(pattern))
+
+    f = open_file(file_name, 'r')
+    if f:
+        while True:
+            # get the next line in the file
+            line = f.readline()
+            if not line:
+                break
+
+            # can the search pattern be found
+            for cp in p:
+                if re.search(cp, line):
+                    matched_lines.append(line)
+        f.close()
+
+    return matched_lines
 
 
 def convert(data):
@@ -607,7 +649,8 @@ def calculate_adler32_checksum(filename):
             if asum < 0:
                 asum += 2**32
 
-    return "{:08x}".format(asum)  # convert to hex
+    # convert to hex
+    return "{0:08x}".format(asum)
 
 
 def calculate_md5_checksum(filename):

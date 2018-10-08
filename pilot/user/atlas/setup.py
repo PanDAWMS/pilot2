@@ -5,18 +5,23 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 import os
 import re
 from time import sleep
 
+from pilot.common.errorcodes import ErrorCodes
 from pilot.info import infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 
+from .metadata import get_file_info_from_xml
+
 import logging
 logger = logging.getLogger(__name__)
+
+errors = ErrorCodes()
 
 
 def get_file_system_root_path():
@@ -220,11 +225,12 @@ def get_analysis_trf(transform, workdir):
 
     if original_base_url == "":
         diagnostics = "invalid base URL: %s" % (transform)
-        # return self.__error.ERR_TRFDOWNLOAD, pilotErrorDiag, ""
+        return errors.TRFDOWNLOADFAILURE, diagnostics, ""
     else:
         logger.debug("verified the trf base url: %s" % (original_base_url))
 
     # try to download from the required location, if not - switch to backup
+    status = False
     for base_url in get_valid_base_urls(order=original_base_url):
         trf = re.sub(original_base_url, base_url, transform)
         logger.debug("attempting to download trf: %s" % (trf))
@@ -233,8 +239,7 @@ def get_analysis_trf(transform, workdir):
             break
 
     if not status:
-        pass
-        # return self.__error.ERR_TRFDOWNLOAD, diagnostics, ""
+        return errors.TRFDOWNLOADFAILURE, diagnostics, ""
 
     logger.info("successfully downloaded transform")
     path = os.path.join(workdir, transform_name)
@@ -243,7 +248,7 @@ def get_analysis_trf(transform, workdir):
         os.chmod(path, 0755)
     except Exception as e:
         diagnostics = "failed to chmod %s: %s" % (transform_name, e)
-        # return self.__error.ERR_CHMODTRF, diagnostics, ""
+        return errors.CHMODTRF, diagnostics, ""
 
     return ec, diagnostics, transform_name
 
@@ -363,3 +368,32 @@ def get_payload_environment_variables(cmd, job_id, task_id, processing_type, sit
     variables.append('export RUCIO_ACCOUNT=\"%s\";' % os.environ.get('RUCIO_ACCOUNT', 'pilot'))
 
     return variables
+
+
+def replace_lfns_with_turls(cmd, workdir, filename, infiles):
+    """
+    Replace all LFNs with full TURLs in the payload execution command.
+
+    This function is used with direct access in production jobs. Athena requires a full TURL instead of LFN.
+
+    :param cmd: payload execution command (string).
+    :param workdir: location of metadata file (string).
+    :param filename: metadata file name (string).
+    :param infiles: list of input files.
+    :return: updated cmd (string).
+    """
+
+    path = os.path.join(workdir, filename)
+    if os.path.exists(path):
+        file_info_dictionary = get_file_info_from_xml(workdir, filename=filename)
+        for inputfile in infiles:
+            if inputfile in cmd:
+                turl = file_info_dictionary[inputfile][0]
+                # if turl.startswith('root://') and turl not in cmd:
+                if turl not in cmd:
+                    cmd = cmd.replace(inputfile, turl)
+                    logger.info("replaced '%s' with '%s' in the run command" % (inputfile, turl))
+    else:
+        logger.warning("could not find file: %s (cannot locate TURLs for direct access)" % filename)
+
+    return cmd

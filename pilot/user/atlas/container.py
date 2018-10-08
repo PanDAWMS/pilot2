@@ -5,19 +5,45 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 import os
 import re
+# for user container test: import urllib
 
 from pilot.user.atlas.setup import get_asetup
 from pilot.user.atlas.setup import get_file_system_root_path
 from pilot.info import infosys
+from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 # import pilot.info.infoservice as infosys
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+def do_use_container(**kwargs):
+    """
+    Decide whether to use a container or not.
+
+    :param kwargs: dictionary of key-word arguments.
+    :return: True if function has decided that a container should be used, False otherwise (boolean).
+    """
+
+    use_container = False
+
+    job = kwargs.get('job')
+    if job:
+        # for user jobs, TRF option --containerImage must have been used, ie imagename must be set
+        if job.is_analysis() and job.imagename:
+            use_container = False
+        else:
+            queuedata = job.infosys.queuedata
+            container_name = queuedata.container_type.get("pilot")
+            if container_name == 'singularity':
+                use_container = True
+
+    return use_container
 
 
 def wrapper(executable, **kwargs):
@@ -26,7 +52,7 @@ def wrapper(executable, **kwargs):
     This function will be called by pilot.util.container.execute() and prepends the executable with a container command.
 
     :param executable: command to be executed (string).
-    :param kwargs:
+    :param kwargs: dictionary of key-word arguments.
     :return: executable wrapped with container command (string).
     """
 
@@ -34,10 +60,13 @@ def wrapper(executable, **kwargs):
     pilot_home = os.environ.get('PILOT_HOME', '')
     job = kwargs.get('job')
 
+    logger.info('container wrapper called')
+
     if workdir == '.' and pilot_home != '':
         workdir = pilot_home
 
-    if config.Container.setup_type == "ALRB":
+    # if job.imagename (from --containerimage <image>) is set, then always use raw singularity
+    if config.Container.setup_type == "ALRB" and not job.imagename:
         fctn = alrb_wrapper
     else:
         fctn = singularity_wrapper
@@ -161,6 +190,7 @@ def alrb_wrapper(cmd, workdir, job):
     :return: prepended command with singularity execution command (string).
     """
 
+    log = get_logger(job.jobid)
     queuedata = job.infosys.queuedata
 
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
@@ -173,22 +203,57 @@ def alrb_wrapper(cmd, workdir, job):
 
         # Get the singularity options
         singularity_options = queuedata.container_options
-        logger.debug(
+        log.debug(
             "resolved singularity_options from queuedata.container_options: %s" % singularity_options)
 
         _cmd = asetup
-        _cmd += 'export thePlatform=\"%s\";' % job.platform
+        if job.platform:
+            _cmd += 'export thePlatform=\"%s\";' % job.platform
         #if '--containall' not in singularity_options:
         #    singularity_options += ' --containall'
         if singularity_options != "":
             _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % singularity_options
         _cmd += 'export ALRB_CONT_RUNPAYLOAD=\"%s\";' % cmd
-        _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c images+$thePlatform'
+
+        # this should not be necessary after the extract_container_image() in JobData update
+        # containerImage should have been removed already
+        if '--containerImage' in job.jobparams:
+            job.jobparams, container_path = remove_container_string(job.jobparams)
+            if container_path != "":
+                _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % container_path
+            else:
+                log.warning('failed to extract container path from %s' % job.jobparams)
+                _cmd = ""
+        else:
+            _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c images'
+            if job.platform:
+                _cmd += '+$thePlatform'
+
         _cmd = _cmd.replace('  ', ' ')
         cmd = _cmd
-        logger.info("Updated command: %s" % cmd)
+        log.info("Updated command: %s" % cmd)
 
     return cmd
+
+
+## DEPRECATED, remove after verification with user container job
+def remove_container_string(job_params):
+    """ Retrieve the container string from the job parameters """
+
+    pattern = r" \'?\-\-containerImage\=?\ ?([\S]+)\ ?\'?"
+    compiled_pattern = re.compile(pattern)
+
+    # remove any present ' around the option as well
+    job_params = re.sub(r'\'\ \'', ' ', job_params)
+
+    # extract the container path
+    found = re.findall(compiled_pattern, job_params)
+    container_path = found[0] if len(found) > 0 else ""
+
+    # Remove the pattern and update the job parameters
+    job_params = re.sub(pattern, ' ', job_params)
+
+    return job_params, container_path
 
 
 def singularity_wrapper(cmd, workdir, job):
@@ -204,32 +269,41 @@ def singularity_wrapper(cmd, workdir, job):
     :return: prepended command with singularity execution command (string).
     """
 
+    log = get_logger(job.jobid)
     queuedata = job.infosys.queuedata
 
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
-    logger.debug("resolved container_name from queuedata.contaner_type: %s" % container_name)
+    log.debug("resolved container_name from queuedata.contaner_type: %s" % container_name)
 
     if container_name == 'singularity':
-        logger.info("singularity has been requested")
+        log.info("singularity has been requested")
 
         # Get the singularity options
-        singularity_options = queuedata.container_options
-        logger.debug("resolved singularity_options from queuedata.container_options: %s" % singularity_options)
+        singularity_options = queuedata.container_options + ",/cvmfs,${workdir},/home"
+        log.debug("resolved singularity_options from queuedata.container_options: %s" % singularity_options)
 
         if not singularity_options:
-            logger.warning('singularity options not set')
+            log.warning('singularity options not set')
 
         # Get the image path
-        image_path = get_grid_image_for_singularity(job.platform)
+        if job.imagename:
+            image_path = job.imagename
+        else:
+            image_path = get_grid_image_for_singularity(job.platform)
 
         # Does the image exist?
         if image_path != '':
             # Prepend it to the given command
             cmd = "export workdir=" + workdir + "; singularity exec " + singularity_options + " " + image_path + \
                   " /bin/bash -c \'cd $workdir;pwd;" + cmd.replace("\'", "\\'").replace('\"', '\\"') + "\'"
-        else:
-            logger.warning("singularity options found but image does not exist")
 
-        logger.info("Updated command: %s" % cmd)
+            # for testing user containers
+            # singularity_options = "-B $PWD:/data --pwd / "
+            # singularity_cmd = "singularity exec " + singularity_options + image_path
+            # cmd = re.sub(r'-p "([A-Za-z0-9.%/]+)"', r'-p "%s\1"' % urllib.pathname2url(singularity_cmd), cmd)
+        else:
+            log.warning("singularity options found but image does not exist")
+
+        log.info("Updated command: %s" % cmd)
 
     return cmd

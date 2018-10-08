@@ -5,12 +5,17 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Mario Lassnig, mario.lassnig@cern.ch, 2016
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 import logging
 logger = logging.getLogger(__name__)
 
 
 def run():
-    logger.critical('not implemented')
-    return -1
+    """
+    Dummy run function.
+
+    :return:
+    """
+
+    pass

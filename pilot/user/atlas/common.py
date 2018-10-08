@@ -5,7 +5,8 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Wen Guan, wen.guan, 2018
 
 import os
 import re
@@ -14,13 +15,14 @@ from collections import defaultdict
 from glob import glob
 from signal import SIGTERM, SIGUSR1
 
-from pilot.common.exception import TrfDownloadFailure, PilotException
-from pilot.user.atlas.setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
-    set_inds, get_analysis_trf, get_payload_environment_variables
-from pilot.user.atlas.utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
+from .setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
+    set_inds, get_analysis_trf, get_payload_environment_variables, replace_lfns_with_turls
+from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
     get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
+
+from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import get_logger
-from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD,\
+from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
     UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid
@@ -46,11 +48,11 @@ def get_payload_command(job):
     # Should the pilot do the asetup or do the jobPars already contain the information?
     prepareasetup = should_pilot_prepare_asetup(job.noexecstrcnv, job.jobparams)
 
-    # Is it a user job or not?
-    userjob = job.is_analysis()
-
     # Get the platform value
     # platform = job.infosys.queuedata.platform
+
+    # Is it a user job or not?
+    userjob = job.is_analysis()
 
     cmd = get_setup_command(job, prepareasetup)
 
@@ -58,72 +60,135 @@ def get_payload_command(job):
 
         # Normal setup (production and user jobs)
         log.info("preparing normal production/analysis job setup command")
-
-        if userjob:
-            # set the INDS env variable (used by runAthena)
-            set_inds(job.datasetin)  # realDatasetsIn
-
-            # Try to download the trf
-            ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
-            if ec != 0:
-                raise TrfDownloadFailure(diagnostics)
-            else:
-                log.debug('user analysis trf: %s' % trf_name)
-
-            if prepareasetup:
-                _cmd = get_analysis_run_command(job, trf_name)
-            else:
-                _cmd = job.jobparams
-
-            # Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
-            cmd += "; " + add_makeflags(job.corecount, "") + _cmd
-        else:
-            # Add Database commands if they are set by the local site
-            cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
-            # Add the transform and the job parameters (production jobs)
-            if prepareasetup:
-                cmd += "; %s %s" % (job.transformation, job.jobparams)
-            else:
-                cmd += "; " + job.jobparams
-
-        cmd = cmd.replace(';;', ';')
+        cmd += get_normal_payload_command(cmd, job, prepareasetup, userjob)
 
     else:  # Generic, non-ATLAS specific jobs, or at least a job with undefined swRelease
 
         log.info("generic job (non-ATLAS specific or with undefined swRelease)")
+        cmd += get_generic_payload_command(cmd, job, prepareasetup, userjob)
 
-        if userjob:
-            # Try to download the trf
-            ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
-            if ec != 0:
-                raise TrfDownloadFailure(diagnostics)
-            else:
-                log.debug('user analysis trf: %s' % trf_name)
+    # only if not using a user container
+    if not job.imagename:
+        site = os.environ.get('PILOT_SITENAME', '')
+        variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
+        cmd = ''.join(variables) + cmd
 
-            if prepareasetup:
-                _cmd = get_analysis_run_command(job, trf_name)
-            else:
-                _cmd = job.jobparams
+    cmd = cmd.replace(';;', ';')
 
-            # correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
-            cmd += "; " + add_makeflags(job.corecount, "") + _cmd
-
-        elif verify_release_string(job.homepackage) != 'NULL' and job.homepackage != ' ':
-            if prepareasetup:
-                cmd = "python %s/%s %s" % (job.homepackage, job.transformation, job.jobparams)
-            else:
-                cmd = job.jobparams
-        else:
-            if prepareasetup:
-                cmd = "python %s %s" % (job.transformation, job.jobparams)
-            else:
-                cmd = job.jobparams
-
-    site = os.environ.get('PILOT_SITENAME', '')
-    variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
-    cmd = ''.join(variables) + cmd
+    # For direct access in prod jobs, we need to substitute the input file names with the corresponding TURLs
+    # get relevant file transfer info
+    use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype,
+                                                                            job.is_build_job(),
+                                                                            job.infosys.queuedata)
+    if not userjob and use_direct_access and job.transfertype == 'direct':
+        lfns, guids = job.get_lfns_and_guids()
+        cmd = replace_lfns_with_turls(cmd, job.workdir, "PoolFileCatalog.xml", lfns)
 
     log.info('payload run command: %s' % cmd)
+
+    return cmd
+
+
+def get_normal_payload_command(cmd, job, prepareasetup, userjob):
+    """
+    Return the payload command for a normal production/analysis job.
+
+    :param cmd: any preliminary command setup (string).
+    :param job: job object.
+    :param userjob: True for user analysis jobs, False otherwise (bool).
+    :param prepareasetup: True if the pilot should prepare the setup, False if already in the job parameters.
+    :return: normal payload command (string).
+    """
+
+    log = get_logger(job.jobid)
+
+    if userjob:
+        # set the INDS env variable (used by runAthena)
+        set_inds(job.datasetin)  # realDatasetsIn
+
+        # Try to download the trf (skip when user container is to be used)
+        if job.imagename != "" or "--containerImage" in job.jobparams:
+            job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
+            log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
+        ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
+        if ec != 0:
+            raise TrfDownloadFailure(diagnostics)
+        else:
+            log.debug('user analysis trf: %s' % trf_name)
+
+        if prepareasetup:
+            _cmd = get_analysis_run_command(job, trf_name)
+        else:
+            _cmd = job.jobparams
+
+        if job.imagename == "":
+            # if '--containerImage' not in job.jobparams:
+            # Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
+            cmd += "; " + add_makeflags(job.corecount, "") + _cmd
+    else:
+        # Add Database commands if they are set by the local site
+        cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
+
+        if job.is_eventservice:
+            if job.corecount:
+                cmd += '; export ATHENA_PROC_NUMBER=%s' % job.corecount
+            else:
+                cmd += '; export ATHENA_PROC_NUMBER=1'
+
+        # Add the transform and the job parameters (production jobs)
+        if prepareasetup:
+            cmd += "; %s %s" % (job.transformation, job.jobparams)
+        else:
+            cmd += "; " + job.jobparams
+
+    return cmd
+
+
+def get_generic_payload_command(cmd, job, prepareasetup, userjob):
+    """
+
+    :param cmd:
+    :param job: job object.
+    :param prepareasetup:
+    :param userjob: True for user analysis jobs, False otherwise (bool).
+    :return: generic job command (string).
+    """
+
+    log = get_logger(job.jobid)
+
+    if userjob:
+        # Try to download the trf
+        if job.imagename != "" or "--containerImage" in job.jobparams:
+            job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
+            log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
+        ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
+        if ec != 0:
+            raise TrfDownloadFailure(diagnostics)
+        else:
+            log.debug('user analysis trf: %s' % trf_name)
+
+        if prepareasetup:
+            _cmd = get_analysis_run_command(job, trf_name)
+        else:
+            _cmd = job.jobparams
+
+        # correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
+        # only if not using a user container
+        if not job.imagename:
+            cmd += "; " + add_makeflags(job.corecount, "") + _cmd
+        else:
+            cmd += _cmd
+
+    elif verify_release_string(job.homepackage) != 'NULL' and job.homepackage != ' ':
+        if prepareasetup:
+            cmd = "python %s/%s %s" % (job.homepackage, job.transformation, job.jobparams)
+        else:
+            cmd = job.jobparams
+    else:
+        if prepareasetup:
+            cmd = "python %s %s" % (job.transformation, job.jobparams)
+        else:
+            cmd = job.jobparams
 
     return cmd
 
@@ -138,6 +203,10 @@ def get_setup_command(job, prepareasetup):
     :param prepareasetup: should the pilot prepare the asetup command itself? boolean.
     :return:
     """
+
+    # return immediately if there is no release or if user containers are used
+    if job.swrelease == 'NULL' or '--containerImage' in job.jobparams:
+        return ""
 
     # Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
     cmd = get_asetup(asetup=prepareasetup)
@@ -221,7 +290,7 @@ def get_analysis_run_command(job, trf_name):
     Example output: export X509_USER_PROXY=<..>;./runAthena <job parameters> --usePFCTurl --directIn
 
     :param job: job object.
-    :param trf_name: name of the transform that will run the job (string).
+    :param trf_name: name of the transform that will run the job (string). Used when containers are not used.
     :return: command (string).
     """
 
@@ -233,14 +302,24 @@ def get_analysis_run_command(job, trf_name):
     use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype,
                                                                             job.is_build_job(),
                                                                             job.infosys.queuedata)
+    # check if the input files are to be accessed locally (ie if prodDBlockToken is set to local)
+    if job.is_local():
+        log.debug('switched off direct access for local prodDBlockToken')
+        use_direct_access = False
+        use_pfc_turl = False
+
     # add the user proxy
-    if 'X509_USER_PROXY' in os.environ:
+    if 'X509_USER_PROXY' in os.environ and not job.imagename:
         cmd += 'export X509_USER_PROXY=%s;' % os.environ.get('X509_USER_PROXY')
-    else:
-        log.warning("could not add user proxy to the run command (proxy does not exist)")
 
     # set up analysis trf
-    cmd += './%s %s' % (trf_name, job.jobparams)
+    if job.imagename == "":
+        cmd += './%s %s' % (trf_name, job.jobparams)
+    else:
+        cmd += 'python %s %s' % (trf_name, job.jobparams)
+
+        # restore the image name
+        cmd += ' --containerImage=%s' % job.imagename
 
     # add control options for PFC turl and direct access
     if use_pfc_turl and '--usePFCTurl' not in cmd:
@@ -254,7 +333,8 @@ def get_analysis_run_command(job, trf_name):
     # add guids when needed
     # get the correct guids list (with only the direct access files)
     if not job.is_build_job():
-        _guids = get_guids_from_jobparams(job.jobparams, job.infiles, job.infilesguids)
+        lfns, guids = job.get_lfns_and_guids()
+        _guids = get_guids_from_jobparams(job.jobparams, lfns, guids)
         if _guids:
             cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
 
@@ -413,7 +493,7 @@ def update_job_data(job):  # noqa: C901
     """
     This function can be used to update/add data to the job object.
     E.g. user specific information can be extracted from other job object fields. In the case of ATLAS, information
-    is extracted from the metaData field and added to other job object fields.
+    is extracted from the metadata field and added to other job object fields.
 
     :param job: job object
     :return:
@@ -428,14 +508,18 @@ def update_job_data(job):  # noqa: C901
 
     stageout = "all"
 
-    # handle any error codes
-    if 'exeErrorCode' in job.metadata:
-        job.exeerrorcode = job.metadata['exeErrorCode']
-        if job.exeerrorcode == 0:
-            stageout = "all"
-        else:
-            log.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
-            stageout = "log"
+    if job.is_eventservice:
+        logger.info('payload is eventservice, will only stageout log')
+        stageout = "log"
+    else:
+        # handle any error codes
+        if 'exeErrorCode' in job.metadata:
+            job.exeerrorcode = job.metadata['exeErrorCode']
+            if job.exeerrorcode == 0:
+                stageout = "all"
+            else:
+                log.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
+                stageout = "log"
     if 'exeErrorDiag' in job.metadata:
         job.exeerrordiag = job.metadata['exeErrorDiag']
         if job.exeerrordiag:
@@ -443,9 +527,6 @@ def update_job_data(job):  # noqa: C901
 
     # determine what should be staged out
     job.stageout = stageout  # output and log file or only log file
-
-    # extract the number of events
-    job.nevents = get_number_of_events(job.metadata)
 
     work_attributes = None
     try:
@@ -457,7 +538,7 @@ def update_job_data(job):  # noqa: C901
 
     # extract output files from the job report, in case the trf has created additional (overflow) files
     # also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
-    if job.metadata:
+    if job.metadata and not job.is_eventservice:
         data = dict([e.lfn, e] for e in job.outdata)
         extra = []
 
@@ -496,6 +577,31 @@ def update_job_data(job):  # noqa: C901
             log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
 
 
+def get_outfiles_records(subfiles):
+    res = {}
+    for f in subfiles:
+        res[f['name']] = {'guid': f['file_guid'],
+                          'nentries': f['nentries'],
+                          'size': f['file_size']}
+    return res
+
+
+class DictQuery(dict):
+    def get(self, path, dst_dict, dst_key):
+        keys = path.split("/")
+        if len(keys) == 0:
+            return
+        last_key = keys.pop()
+        v = self
+        for key in keys:
+            if key in v and isinstance(v[key], dict):
+                v = v[key]
+            else:
+                return
+        if last_key in v:
+            dst_dict[dst_key] = v[last_key]
+
+
 def parse_jobreport_data(job_report):
     """
     Parse a job report and extract relevant fields.
@@ -508,42 +614,38 @@ def parse_jobreport_data(job_report):
         return work_attributes
 
     # these are default values for job metrics
-    core_count = "undef"
-    work_attributes["n_events"] = "None"
-    work_attributes["__db_time"] = "None"
-    work_attributes["__db_data"] = "None"
+    core_count = ""
+    work_attributes["nEvents"] = 0
+    work_attributes["dbTime"] = ""
+    work_attributes["dbData"] = ""
+    work_attributes["inputfiles"] = []
+    work_attributes["outputfiles"] = []
 
-    class DictQuery(dict):
-        def get(self, path, dst_dict, dst_key):
-            keys = path.split("/")
-            if len(keys) == 0:
-                return
-            last_key = keys.pop()
-            v = self
-            for key in keys:
-                if key in v and isinstance(v[key], dict):
-                    v = v[key]
-                else:
-                    return
-            if last_key in v:
-                dst_dict[dst_key] = v[last_key]
-            else:
-                return
-
-    if 'ATHENA_PROC_NUMBER' in os.environ:
-        work_attributes['core_count'] = os.environ['ATHENA_PROC_NUMBER']
-        core_count = os.environ['ATHENA_PROC_NUMBER']
+    if "ATHENA_PROC_NUMBER" in os.environ:
+        logger.debug("ATHENA_PROC_NUMBER: {0}".format(os.environ["ATHENA_PROC_NUMBER"]))
+        work_attributes['core_count'] = int(os.environ["ATHENA_PROC_NUMBER"])
+        core_count = int(os.environ["ATHENA_PROC_NUMBER"])
 
     dq = DictQuery(job_report)
-    dq.get("resource/transform/processedEvents", work_attributes, "n_events")
+    dq.get("resource/transform/processedEvents", work_attributes, "nEvents")
     dq.get("resource/transform/cpuTimeTotal", work_attributes, "cpuConsumptionTime")
     dq.get("resource/machine/node", work_attributes, "node")
     dq.get("resource/machine/model_name", work_attributes, "cpuConsumptionUnit")
-    dq.get("resource/dbTimeTotal", work_attributes, "__db_time")
-    dq.get("resource/dbDataTotal", work_attributes, "__db_data")
+    dq.get("resource/dbTimeTotal", work_attributes, "dbTime")
+    dq.get("resource/dbDataTotal", work_attributes, "dbData")
     dq.get("exitCode", work_attributes, "transExitCode")
     dq.get("exitMsg", work_attributes, "exeErrorDiag")
-    dq.get("files/input/subfiles", work_attributes, "nInputFiles")
+    dq.get("files/input", work_attributes, "inputfiles")
+    dq.get("files/output", work_attributes, "outputfiles")
+
+    outputfiles_dict = {}
+    for of in work_attributes['outputfiles']:
+        outputfiles_dict.update(get_outfiles_records(of['subFiles']))
+    work_attributes['outputfiles'] = outputfiles_dict
+
+    if work_attributes['inputfiles']:
+        work_attributes['nInputFiles'] = reduce(lambda a, b: a + b, map(lambda inpfiles: len(inpfiles['subFiles']),
+                                                                        work_attributes['inputfiles']))
 
     if 'resource' in job_report and 'executor' in job_report['resource']:
         j = job_report['resource']['executor']
@@ -558,18 +660,15 @@ def parse_jobreport_data(job_report):
             fin_report[x[0]] += x[1]
         work_attributes.update(fin_report)
 
-    if 'files' in job_report and 'input' in job_report['files'] and 'subfiles' in job_report['files']['input']:
-                work_attributes['nInputFiles'] = len(job_report['files']['input']['subfiles'])
-
     workdir_size = get_workdir_size()
     work_attributes['jobMetrics'] = 'coreCount=%s nEvents=%s dbTime=%s dbData=%s workDirSize=%s' % \
                                     (core_count,
-                                        work_attributes["n_events"],
-                                        work_attributes["__db_time"],
-                                        work_attributes["__db_data"],
+                                        work_attributes["nEvents"],
+                                        work_attributes["dbTime"],
+                                        work_attributes["dbData"],
                                         workdir_size)
-    del(work_attributes["__db_time"])
-    del(work_attributes["__db_data"])
+    del(work_attributes["dbData"])
+    del(work_attributes["dbTime"])
 
     return work_attributes
 
@@ -609,7 +708,7 @@ def get_executor_dictionary(jobreport_dictionary):
     return executor_dictionary
 
 
-def get_number_of_events(jobreport_dictionary):
+def get_number_of_events_deprecated(jobreport_dictionary):  # TODO: remove this function
     """
     Extract the number of events from the job report.
 
@@ -879,7 +978,7 @@ def remove_redundant_files(workdir, outputfiles=[]):
     :return:
     """
 
-    logger.info("removing redundant files prior to log creation")
+    logger.debug("removing redundant files prior to log creation")
 
     workdir = os.path.abspath(workdir)
 
@@ -935,7 +1034,7 @@ def get_utility_commands_list(order=None):
     If the optional order parameter is set, the function should return the list of corresponding commands.
     E.g. if order=UTILITY_BEFORE_PAYLOAD, the function should return all commands that are to be executed before the
     payload. If order=UTILITY_WITH_PAYLOAD, the corresponding commands will be prepended to the payload execution
-    string. If order=UTILITY_AFTER_PAYLOAD, the commands that should be executed after the payload has been started
+    string. If order=UTILITY_AFTER_PAYLOAD_STARTED, the commands that should be executed after the payload has been started
     should be returned. If order=UTILITY_WITH_STAGEIN, the commands that should be executed parallel with stage-in will
     be returned.
 
@@ -948,7 +1047,7 @@ def get_utility_commands_list(order=None):
             return ['Prefetcher']
         elif order == UTILITY_WITH_PAYLOAD:
             return ['NetworkMonitor']
-        elif order == UTILITY_AFTER_PAYLOAD:
+        elif order == UTILITY_AFTER_PAYLOAD_STARTED:
             return ['MemoryMonitor']
         elif order == UTILITY_WITH_STAGEIN:
             return ['Benchmark']
@@ -990,10 +1089,10 @@ def get_utility_command_execution_order(name):
     if name == 'NetworkMonitor':
         return UTILITY_WITH_PAYLOAD
     elif name == 'MemoryMonitor':
-        return UTILITY_AFTER_PAYLOAD
+        return UTILITY_AFTER_PAYLOAD_STARTED
     else:
         logger.warning('unknown utility name: %s' % name)
-        return UTILITY_AFTER_PAYLOAD
+        return UTILITY_AFTER_PAYLOAD_STARTED
 
 
 def post_utility_command_action(name, job):

@@ -163,6 +163,8 @@ def request(url, data=None, plain=False):
 
     _ctx.ssl_context = None  # certificates are not available on the grid, use curl
 
+    logger.debug('server update dictionary = \n%s' % str(data))
+
     if _ctx.ssl_context is None:
         req = 'curl -sS --compressed --connect-timeout %s --max-time %s '\
               '--capath %s --cert %s --cacert %s --key %s '\

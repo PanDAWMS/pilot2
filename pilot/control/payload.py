@@ -11,21 +11,21 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
 
-import json
 import os
 import time
+import traceback
 
 try:
     import Queue as queue
 except Exception:
     import queue  # python 3
 
-from pilot.control.payloads import generic, eventservice
+from pilot.control.payloads import generic, eventservice, eventservicemerge
 from pilot.control.job import send_state
 from pilot.util.auxiliary import get_logger
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
-from pilot.util.filehandling import read_file, get_guid
+from pilot.util.filehandling import read_file
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
 
@@ -70,6 +70,17 @@ def control(queues, traces, args):
             thread.join(0.1)
             time.sleep(0.1)
 
+    logger.debug('payload control ending since graceful_stop has been set')
+    if args.abort_job.is_set():
+        if traces.pilot['command'] == 'aborting':
+            logger.warning('jobs are aborting')
+        elif traces.pilot['command'] == 'abort':
+            logger.warning('data control detected a set abort_job (due to a kill signal)')
+            traces.pilot['command'] = 'aborting'
+
+            # find all running jobs and stop them, find all jobs in queues relevant to this module
+            #abort_jobs_in_queues(queues, args.signal)
+
 
 def validate_pre(queues, traces, args):
     """
@@ -108,6 +119,24 @@ def _validate_payload(job):
     return True
 
 
+def get_payload_executor(args, job, out, err):
+    """
+    Get payload executor function for different payload.
+     :param args:
+    :param job:
+    :param out:
+    :param err:
+    :return: instance of a payload executor
+    """
+    if job.is_eventservice:
+        payload_executor = eventservice.Executor(args, job, out, err)
+    elif job.is_eventservicemerge:
+        payload_executor = eventservicemerge.Executor(args, job, out, err)
+    else:
+        payload_executor = generic.Executor(args, job, out, err)
+    return payload_executor
+
+
 def execute_payloads(queues, traces, args):
     """
     Execute queued payloads.
@@ -122,7 +151,7 @@ def execute_payloads(queues, traces, args):
     while not args.graceful_stop.is_set():
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
-            log = get_logger(job.jobid)
+            log = get_logger(job.jobid, logger)
 
             q_snapshot = list(queues.finished_data_in.queue)
             peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
@@ -144,10 +173,8 @@ def execute_payloads(queues, traces, args):
 
             send_state(job, args, 'starting')
 
-            if job.is_eventservice:
-                payload_executor = eventservice.Executor(args, job, out, err)
-            else:
-                payload_executor = generic.Executor(args, job, out, err)
+            payload_executor = get_payload_executor(args, job, out, err)
+            log.info("Got payload executor: %s" % payload_executor)
 
             # run the payload and measure the execution time
             job.t0 = os.times()
@@ -175,13 +202,13 @@ def execute_payloads(queues, traces, args):
                 ec = errors.resolve_transform_error(exit_code, stderr)
                 if ec != 0:
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
-                job.transexitcode = exit_code
+                job.transexitcode = exit_code % 255
                 queues.failed_payloads.put(job)
 
         except queue.Empty:
             continue
         except Exception as e:
-            logger.fatal('execute payloads caught an exception (cannot recover): %s' % e)
+            logger.fatal('execute payloads caught an exception (cannot recover): %s, %s' % (e, traceback.format_exc()))
             if job:
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADEXECUTIONEXCEPTION)
                 queues.failed_payloads.put(job)
@@ -190,61 +217,11 @@ def execute_payloads(queues, traces, args):
                 time.sleep(5)
 
 
-def process_job_report(job):
-    """
-    Process the job report produced by the payload/transform if it exists.
-    Payload error codes and diagnostics, as well as payload metadata (for output files) and stageout type will be
-    extracted. The stageout type is either "all" (i.e. stage-out both output and log files) or "log" (i.e. only log file
-    will be staged out).
-    Note: some fields might be experiment specific. A call to a user function is therefore also done.
-
-    :param job: job dictionary will be updated by the function and several fields set.
-    :return:
-    """
-
-    log = get_logger(job.jobid)
-    path = os.path.join(job.workdir, config.Payload.jobreport)
-    if not os.path.exists(path):
-        log.warning('job report does not exist: %s (any missing output file guids must be generated)' % path)
-
-        # add missing guids
-        for dat in job.outdata:
-            if not dat.guid:
-                dat.guid = get_guid()
-                log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
-
-    else:
-        with open(path) as data_file:
-            # compulsory field; the payload must produce a job report (see config file for file name)
-            job.metadata = json.load(data_file)
-
-            # extract user specific info from job report
-            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
-            user.update_job_data(job)
-
-            # compulsory fields
-            try:
-                job.exitcode = job.metadata['exitCode']
-            except Exception as e:
-                log.warning('could not find compulsory payload exitCode in job report: %s (will be set to 0)' % e)
-                job.exitcode = 0
-            else:
-                log.info('extracted exit code from job report: %d' % job.exitcode)
-            try:
-                job.exitmsg = job.metadata['exitMsg']
-            except Exception as e:
-                log.warning('could not find compulsory payload exitMsg in job report: %s (will be set to empty string)' % e)
-                job.exitmsg = ""
-            else:
-                log.info('extracted exit message from job report: %s' % job.exitmsg)
-
-
 def validate_post(queues, traces, args):
     """
     Validate finished payloads.
     If payload finished correctly, add the job to the data_out queue. If it failed, add it to the data_out queue as
-    well but only for log stage-out.
+    well but only for log stage-out (in failed_post() below).
 
     :param queues:
     :param traces:
@@ -257,17 +234,30 @@ def validate_post(queues, traces, args):
         try:
             job = queues.finished_payloads.get(block=True, timeout=1)
         except queue.Empty:
+            time.sleep(0.1)
             continue
-        log = get_logger(job.jobid)
+        log = get_logger(job.jobid, logger)
 
         # by default, both output and log should be staged out
         job.stageout = 'all'
 
-        # process the job report if it exists and set multiple fields
-        process_job_report(job)
+        # analyze and interpret the payload execution output
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
+        try:
+            exit_code = user.interpret(job)
+        except Exception as e:
+            log.warning('exception caught: %s' % e)
+            exit_code = -1
 
-        log.debug('adding job to data_out queue')
-        queues.data_out.put(job)
+        if exit_code != 0:
+            log.debug('adding job to failed_payloads queue')
+            queues.failed_payloads.put(job)
+        else:
+            log.debug('adding job to data_out queue')
+            queues.data_out.put(job)
+
+    logger.info('validate_post has finished')
 
 
 def failed_post(queues, traces, args):
@@ -286,9 +276,9 @@ def failed_post(queues, traces, args):
             job = queues.failed_payloads.get(block=True, timeout=1)
         except queue.Empty:
             continue
-        log = get_logger(job.jobid)
+        log = get_logger(job.jobid, logger)
 
         log.debug('adding log for log stageout')
 
-        job.stageout = "log"  # only stage-out log file
+        job.stageout = 'log'  # only stage-out log file
         queues.data_out.put(job)

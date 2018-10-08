@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Wen Guan, wen.guan@cern.ch, 2017
+# - Wen Guan, wen.guan@cern.ch, 2017-2018
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 """
@@ -146,6 +146,16 @@ class MessageFailure(PilotException):
         self._message = errors.get_error_message(self._errorCode)
 
 
+class CommunicationFailure(PilotException):
+    """
+    Failed to communicate with servers such as Panda, Harvester, ACT and so on.
+    """
+    def __init__(self, *args, **kwargs):
+        super(CommunicationFailure, self).__init__(args, kwargs)
+        self._errorCode = errors.COMMUNICATIONFAILURE
+        self._message = errors.get_error_message(self._errorCode)
+
+
 class FileHandlingFailure(PilotException):
     """
     Failed during file handling.
@@ -233,6 +243,56 @@ class NotSameLength(PilotException):
     def __init__(self, *args, **kwargs):
         super(NotSameLength, self).__init__(args, kwargs)
         self._errorCode = errors.NOTSAMELENGTH
+        self._message = errors.get_error_message(self._errorCode)
+
+
+class ESRECOVERABLE(PilotException):
+    """
+    Eventservice recoverable exception.
+    """
+    def __init__(self, *args, **kwargs):
+        super(ESRECOVERABLE, self).__init__(args, kwargs)
+        self._errorCode = errors.ESRECOVERABLE
+        self._message = errors.get_error_message(self._errorCode)
+
+
+class ESFATAL(PilotException):
+    """
+    Eventservice fatal exception.
+    """
+    def __init__(self, *args, **kwargs):
+        super(ESFATAL, self).__init__(args, kwargs)
+        self._errorCode = errors.ESFATAL
+        self._message = errors.get_error_message(self._errorCode)
+
+
+class EXECUTEDCLONEJOB(PilotException):
+    """
+    Clone job excuted exception.
+    """
+    def __init__(self, *args, **kwargs):
+        super(EXECUTEDCLONEJOB, self).__init__(args, kwargs)
+        self._errorCode = errors.EXECUTEDCLONEJOB
+        self._message = errors.get_error_message(self._errorCode)
+
+
+class ESNOEVENTS(PilotException):
+    """
+    Eventservice no events exception.
+    """
+    def __init__(self, *args, **kwargs):
+        super(ESNOEVENTS, self).__init__(args, kwargs)
+        self._errorCode = errors.ESNOEVENTS
+        self._message = errors.get_error_message(self._errorCode)
+
+
+class ExceededMaxWaitTime(PilotException):
+    """
+    Exceeded maximum waiting time (after abort_job has been set).
+    """
+    def __init__(self, *args, **kwargs):
+        super(ExceededMaxWaitTime, self).__init__(args, kwargs)
+        self._errorCode = errors.EXCEEDEDMAXWAITTIME
         self._message = errors.get_error_message(self._errorCode)
 
 
