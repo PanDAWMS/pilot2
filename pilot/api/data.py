@@ -64,21 +64,22 @@ class StagingClient(object):
         if isinstance(acopytools, (list, tuple)):
             acopytools = {'default': acopytools} if acopytools else {}
 
-        self.acopytools = acopytools
-        if not self.acopytools:  ## resolve from queuedata.acopytools using infosys
-            self.acopytools = (self.infosys.queuedata.acopytools or {}).copy()
-        if not self.acopytools:  ## resolve from queuedata.copytools using infosys
-            self.acopytools = dict(default=(self.infosys.queuedata.copytools or {}).keys())
+        self.acopytools = acopytools or {}
 
-        if not self.acopytools:
-            logger.error('Failed to initilize StagingClient: no acopytools options found, acopytools=' % self.acopytools)
-            raise PilotException("Failed to resolve acopytools settings")
+        if self.infosys.queuedata:
+            if not self.acopytools:  ## resolve from queuedata.acopytools using infosys
+                self.acopytools = (self.infosys.queuedata.acopytools or {}).copy()
+            if not self.acopytools:  ## resolve from queuedata.copytools using infosys
+                self.acopytools = dict(default=(self.infosys.queuedata.copytools or {}).keys())
 
         if not self.acopytools.get('default'):
             if isinstance(default_copytools, basestring):
                 default_copytools = [default_copytools] if default_copytools else []
             self.acopytools['default'] = default_copytools
 
+        if not self.acopytools:
+            logger.error('Failed to initilize StagingClient: no acopytools options found, acopytools=%s' % self.acopytools)
+            raise PilotException("Failed to resolve acopytools settings")
         logger.info('Configured copytools per activity: acopytools=%s' % self.acopytools)
 
     @classmethod
@@ -372,12 +373,15 @@ class StageInClient(StagingClient):
         :return: allow_direct_access (bool), direct_access_type (string).
         """
 
-        allow_direct_access = self.infosys.queuedata.direct_access_lan or self.infosys.queuedata.direct_access_wan
-        direct_access_type = ''
-        if self.infosys.queuedata.direct_access_lan:
-            direct_access_type = 'LAN'
-        if self.infosys.queuedata.direct_access_wan:
-            direct_access_type = 'WAN'
+        allow_direct_access, direct_access_type = False, ''
+        if self.infosys.queuedata:  ## infosys is initialized
+            allow_direct_access = self.infosys.queuedata.direct_access_lan or self.infosys.queuedata.direct_access_wan
+            if self.infosys.queuedata.direct_access_lan:
+                direct_access_type = 'LAN'
+            if self.infosys.queuedata.direct_access_wan:
+                direct_access_type = 'WAN'
+        else:
+            self.logger.info('infosys.queuedata is not initialized: direct access mode will be DISABLED by default')
 
         if job and not job.is_analysis() and job.transfertype != 'direct':  ## task forbids direct access
             allow_direct_access = False
