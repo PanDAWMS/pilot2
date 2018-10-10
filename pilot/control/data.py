@@ -256,6 +256,8 @@ def get_rse(indata, lfn=""):
         try:
             return indata[0].ddmendpoint
         except Exception as e:
+            logger.warning("exception caught: %s" % e)
+            logger.warning("end point is currently unknown")
             return "unknown"
 
     for fspec in indata:
@@ -263,7 +265,7 @@ def get_rse(indata, lfn=""):
             rse = fspec.ddmendpoint
 
     if rse == "":
-        logger.warning("End point is currently unknown")
+        logger.warning("end point is currently unknown")
         rse = "unknown"
 
     return rse
