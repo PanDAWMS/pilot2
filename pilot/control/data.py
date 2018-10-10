@@ -253,7 +253,7 @@ def get_rse(indata, lfn=""):
     rse = ""
 
     if lfn == "":
-        try
+        try:
             return indata[0].ddmendpoint
         except Exception as e:
             return "unknown"
