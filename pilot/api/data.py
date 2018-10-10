@@ -477,7 +477,7 @@ class StageInClient(StagingClient):
         :raise: PilotException in case of not enough space or total input size too large
         """
 
-        maxinputsize = convert_mb_to_b(get_maximum_input_sizes(os.getcwd()))
+        maxinputsize = convert_mb_to_b(get_maximum_input_sizes())
         totalsize = reduce(lambda x, y: x + y.filesize, files, 0)
 
         # verify total filesize
