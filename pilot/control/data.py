@@ -202,8 +202,9 @@ def _stage_in(args, job):
     #    eventType += '_logs_os'
     #if job.isAnalysisJob():
     #    eventType += "_a"
-    #trace_report = TraceReport(pq=jobSite.sitename, localSite=jobSite.sitename, remoteSite=jobSite.sitename, dataset="", eventType=eventType)
-    trace_report = TraceReport(pq='', localSite='', remoteSite='', dataset="", eventType=event_type)
+    rse = get_rse(job.indata)
+    localsite = remotesite = rse
+    trace_report = TraceReport(pq='', localSite=localsite, remoteSite=remotesite, dataset="", eventType=event_type)
     trace_report.init(job)
 
     try:
@@ -237,6 +238,35 @@ def _stage_in(args, job):
     remain_files = [e for e in job.indata if e.status not in ['remote_io', 'transferred', 'no_transfer']]
 
     return not remain_files
+
+
+def get_rse(indata, lfn=""):
+    """
+    Return the ddmEndPoint corresponding to the given lfn.
+    If lfn is not provided, the first ddmEndPoint will be returned.
+
+    :param indata: FileSpec list object.
+    :param lfn: local file name (string).
+    :return: rse (string)
+    """
+
+    rse = ""
+
+    if lfn == "":
+        try
+            return indata[0].ddmendpoint
+        except Exception as e:
+            return "unknown"
+
+    for fspec in indata:
+        if fspec.lfn == lfn:
+            rse = fspec.ddmendpoint
+
+    if rse == "":
+        logger.warning("End point is currently unknown")
+        rse = "unknown"
+
+    return rse
 
 
 def stage_in_auto(site, files):
