@@ -450,9 +450,9 @@ class StageInClient(StagingClient):
                 self.logger.info("[stage-in] found replica to be used for lfn=%s: ddmendpoint=%s, pfn=%s" % (fspec.lfn, fspec.ddmendpoint, fspec.turl))
 
         if not copytool.is_valid_for_copy_in(files):
-            self.logger.warning('Input is not valid for transfers using copytool=%s' % copytool)
-            self.logger.debug('Input: %s' % files)
-            raise PilotException('Invalid input data for transfer operation')
+            self.logger.warning('input is not valid for transfers using copytool=%s' % copytool)
+            self.logger.debug('input: %s' % files)
+            raise PilotException('invalid input data for transfer operation')
 
         if self.infosys:
             kwargs['copytools'] = self.infosys.queuedata.copytools
@@ -462,7 +462,7 @@ class StageInClient(StagingClient):
         # verify file sizes and available space for stage-in
         self.check_availablespace([e for e in files if e.status not in ['remote_io', 'transferred']])
 
-        self.logger.info('Ready to transfer (stage-in) files: %s' % files)
+        self.logger.info('ready to transfer (stage-in) files: %s' % files)
 
         return copytool.copy_in(files, **kwargs)
 
@@ -471,7 +471,7 @@ class StageInClient(StagingClient):
         Verify that enough local space is available to stage in and run the job
 
         :param files: list of FileSpec objects.
-        :raise: PilotException in case of not enough space
+        :raise: PilotException in case of not enough space or total input size too large
         """
 
         maxinputsize = get_maximum_input_sizes()

@@ -109,6 +109,7 @@ class ErrorCodes:
         CHMODTRF: "Failed to chmod transform",
         PANDAKILL: "This job was killed by panda server",
         MISSINGOUTPUTFILE: "Local output file is missing",
+        SIZETOOLARGE: "Total file size too large",
         TRFDOWNLOADFAILURE: "Transform could not be downloaded",
         LOOPINGJOB: "Looping job killed by pilot",
         STAGEINTIMEOUT: "File transfer timed out during stage-in",
