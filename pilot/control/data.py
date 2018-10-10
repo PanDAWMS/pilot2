@@ -468,10 +468,12 @@ def copytool_in(queues, traces, args):
                 except Exception as e:
                     pass
             else:
-                log.warning('stage-in failed, adding job object to failed_data_in queue')
+                log.warning('stage-in failed, adding job object to failed_data_in queue (will take a 1 minute nap)')
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINFAILED)
                 job.state = "failed"
                 queues.failed_data_in.put(job)
+                time.sleep(60)
+                args.graceful_stop.set()
                 # send_state(job, args, 'failed')
 
         except queue.Empty:

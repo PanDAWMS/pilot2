@@ -290,7 +290,8 @@ class StagingClient(object):
                 break
 
         if not copytools:
-            raise PilotException('failed to resolve copytool by preferred activities=%s, acopytools=%s' % (activity, self.acopytools))
+            raise PilotException('failed to resolve copytool by preferred activities=%s, acopytools=%s' %
+                                 (activity, self.acopytools))
 
         result, caught_errors = None, []
 
@@ -320,7 +321,8 @@ class StagingClient(object):
                 self.logger.error(traceback.format_exc())
                 caught_errors.append(e)
 
-            if caught_errors and isinstance(caught_errors[-1], PilotException) and caught_errors[-1].get_error_code() == ErrorCodes.MISSINGOUTPUTFILE:
+            if caught_errors and isinstance(caught_errors[-1], PilotException) and \
+                    caught_errors[-1].get_error_code() == ErrorCodes.MISSINGOUTPUTFILE:
                 raise caught_errors[-1]
 
             if result:
@@ -466,6 +468,12 @@ class StageInClient(StagingClient):
             kwargs['ddmconf'] = self.infosys.resolve_storage_data()
         kwargs['activity'] = activity
 
+        # mark direct access files with status=remote_io
+        for fspec in files:
+            if fspec.is_directaccess(ensure_replica=False) and allow_direct_access:
+                fspec.status_code = 0
+                fspec.status = 'remote_io'
+
         # verify file sizes and available space for stage-in
         self.check_availablespace([e for e in files if e.status not in ['remote_io', 'transferred']])
 
@@ -481,7 +489,7 @@ class StageInClient(StagingClient):
         :raise: PilotException in case of not enough space or total input size too large
         """
 
-        maxinputsize = 1  #convert_mb_to_b(get_maximum_input_sizes())
+        maxinputsize = convert_mb_to_b(get_maximum_input_sizes())
         totalsize = reduce(lambda x, y: x + y.filesize, files, 0)
 
         # verify total filesize
