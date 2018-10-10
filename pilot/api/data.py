@@ -18,7 +18,7 @@ import logging
 
 from pilot.info import infosys
 from pilot.info.storageactivitymaps import get_ddm_activity
-from pilot.common.exception import PilotException, ErrorCodes
+from pilot.common.exception import PilotException, ErrorCodes, SizeTooLarge, NoLocalSpace
 from pilot.util.filehandling import calculate_checksum
 from pilot.util.math import convert_mb_to_b
 from pilot.util.parameters import get_maximum_input_sizes
@@ -477,14 +477,14 @@ class StageInClient(StagingClient):
         :raise: PilotException in case of not enough space or total input size too large
         """
 
-        maxinputsize = convert_mb_to_b(get_maximum_input_sizes())
+        maxinputsize = 1  #convert_mb_to_b(get_maximum_input_sizes())
         totalsize = reduce(lambda x, y: x + y.filesize, files, 0)
 
         # verify total filesize
         if maxinputsize and totalsize > maxinputsize:
             error = "too many/too large input files (%s). total file size=%s B > maxinputsize=%s B" % \
                     (len(files), totalsize, maxinputsize)
-            raise PilotException(error, code=errors.SIZETOOLARGE)
+            raise SizeTooLarge(error)
 
         self.logger.info("total input file size=%s B within allowed limit=%s B (zero value means unlimited)" %
                          (totalsize, maxinputsize))
@@ -497,7 +497,7 @@ class StageInClient(StagingClient):
         if totalsize > available_space:
             error = "not enough local space for staging input files and run the job (need %d B, but only have %d B)" % \
                     (totalsize, available_space)
-            raise PilotException(error, code=errors.NOLOCALSPACE)
+            raise NoLocalSpace(error)
 
 
 class StageOutClient(StagingClient):

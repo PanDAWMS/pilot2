@@ -96,6 +96,16 @@ class NoLocalSpace(PilotException):
         self._message = errors.get_error_message(self._errorCode)
 
 
+class SizeTooLarge(PilotException):
+    """
+    Too large input files.
+    """
+    def __init__(self, *args, **kwargs):
+        super(SizeTooLarge, self).__init__(args, kwargs)
+        self._errorCode = errors.SIZETOOLARGE
+        self._message = errors.get_error_message(self._errorCode)
+
+
 class StageInFailure(PilotException):
     """
     Failed to stage-in file.
