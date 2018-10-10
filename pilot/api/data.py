@@ -327,8 +327,12 @@ class StagingClient(object):
                 break
 
         if not result:
+            if caught_errors and isinstance(caught_errors[-1], PilotException):
+                code = caught_errors[0].get_error_code()
+            else:
+                code = None
             raise PilotException('failed to transfer files using copytools=%s, error=%s' % (copytools, caught_errors),
-                                 code=caught_errors[0].get_error_code())
+                                 code=code)
 
         return result
 

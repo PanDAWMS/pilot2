@@ -219,27 +219,32 @@ def _stage_in(args, job):
     except PilotException as error:
         log.error('PilotException caught: %s' % error)
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())
-        args.graceful_stop.set()
+        #args.graceful_stop.set()
     except Exception as error:
         log.error('failed to stage-in: error=%s' % error)
         if 'pilot exception' in str(error):
             log.error('setting graceful stop since a pilot exception was caught')
-            args.graceful_stop.set()
+            #args.graceful_stop.set()
         else:
             log.error('did not parse error of type: %s (setting graceful stop anyway)' % type(error))
-            args.graceful_stop.set()
-        #return False
+            #args.graceful_stop.set()
 
     log.info('summary of transferred files:')
     for e in job.indata:
-        log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
-
-    log.info("stage-in finished")
+        if not e.status:
+            status = "(not transferred)"
+        else:
+            status = e.status
+        log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, status))
 
     # write time stamps to pilot timing file
     add_to_pilot_timing(job.jobid, PILOT_POST_STAGEIN, time.time(), args)
 
     remain_files = [e for e in job.indata if e.status not in ['remote_io', 'transferred', 'no_transfer']]
+    if not remain_files:
+        log.info("stage-in finished")
+    else:
+        log.info("stage-in failed")
 
     return not remain_files
 
