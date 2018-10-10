@@ -488,7 +488,7 @@ class StageInClient(StagingClient):
 
         # get available space
         diskspace = get_local_disk_space()
-        available_space = int(diskspace) * 1024 ** 2 # convert from MB to B
+        available_space = int(diskspace) * 1024 ** 2  # convert from MB to B
         self.logger.info("locally available space: %d B" % available_space)
 
         # are we within the limit?
