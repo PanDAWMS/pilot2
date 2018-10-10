@@ -53,7 +53,7 @@ class PilotConfigProvider(object):
         """
 
         import ast
-        data = {'maxwdir': 10555,  # in MB
+        data = {
                 'maxwdir_broken': self.config.Pilot.maximum_input_file_sizes,  # ## Config API is broken -- FIXME LATER
                 #'container_type': 'singularity:pilot;docker:wrapper',  # ## for testing
                 #'container_options': '-B /cvmfs,/scratch,/etc/grid-security --contain',  ## for testing
