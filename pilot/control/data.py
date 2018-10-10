@@ -614,13 +614,10 @@ def create_log(job, logfile, tarball_name):
     job.workdir = newworkdir
 
     fullpath = os.path.join(job.workdir, logfile.lfn)  # /some/path/to/dirname/log.tgz
+
     log.info('will create archive %s' % fullpath)
     with closing(tarfile.open(name=fullpath, mode='w:gz', dereference=True)) as archive:
         archive.add(os.path.basename(job.workdir), recursive=True)
-
-    cmd = 'tar xvfz %s' % fullpath
-    out = execute(cmd)
-    log.debug('%s:\n%s' % (cmd, out))
 
     log.debug('renaming %s back to %s' % (job.workdir, orgworkdir))
     try:
@@ -629,10 +626,12 @@ def create_log(job, logfile, tarball_name):
         log.debug('exception caught: %s' % e)
     job.workdir = orgworkdir
 
+    fullpath = os.path.join(job.workdir, logfile.lfn)  # reset fullpath since workdir has changed since above
+
     return {'scope': logfile.scope,
             'name': logfile.lfn,
             'guid': logfile.guid,
-            'bytes': os.stat(os.path.join(job.workdir, logfile.lfn)).st_size}
+            'bytes': os.stat(fullpath).st_size}
 
 
 def _stage_out(args, outfile, job):  ### TO BE DEPRECATED
