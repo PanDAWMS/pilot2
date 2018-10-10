@@ -166,3 +166,21 @@ def add_lists(list1, list2):
     :return: added lists with removed duplicates
     """
     return list1 + list(set(list2) - set(list1))
+
+
+def convert_mb_to_b(size):
+    """
+    Convert value from MB to B for the given size variable.
+    If the size is a float, the function will convert it to int.
+
+    :param size: size in MB (float or int).
+    :return: size in B (int).
+    :raises: ValueError for conversion error.
+    """
+
+    try:
+        size = int(size)
+    except Exception as e:
+        raise ValueError('cannot convert %s to int: %s' % (str(size), e))
+
+    return size * 1024 ** 2
