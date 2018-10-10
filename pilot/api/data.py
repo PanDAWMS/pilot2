@@ -290,7 +290,7 @@ class StagingClient(object):
                 break
 
         if not copytools:
-            raise PilotException('Failed to resolve copytool by preferred activities=%s, acopytools=%s' % (activity, self.acopytools))
+            raise PilotException('failed to resolve copytool by preferred activities=%s, acopytools=%s' % (activity, self.acopytools))
 
         result, caught_errors = None, []
 
@@ -300,23 +300,24 @@ class StagingClient(object):
                 if name not in self.copytool_modules:
                     raise PilotException('passed unknown copytool with name=%s .. skipped' % name)
                 module = self.copytool_modules[name]['module_name']
-                self.logger.info('Trying to use copytool=%s for activity=%s' % (name, activity))
+                self.logger.info('trying to use copytool=%s for activity=%s' % (name, activity))
                 copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], -1)
             except PilotException as e:
                 caught_errors.append(e)
-                self.logger.debug('Error: %s' % e)
+                self.logger.debug('error: %s' % e)
                 continue
             except Exception as e:
-                self.logger.warning('Failed to import copytool module=%s, error=%s' % (module, e))
-                self.logger.debug('Error: %s' % e)
+                self.logger.warning('failed to import copytool module=%s, error=%s' % (module, e))
+                self.logger.debug('error: %s' % e)
                 continue
             try:
                 result = self.transfer_files(copytool, files, activity, **kwargs)
             except PilotException as e:
                 caught_errors.append(e)
-                self.logger.debug('Error: %s' % e)
+                self.logger.debug('error: %s' % e)
+                self.logger.debug('code: %d' % e.get_error_code())
             except Exception as e:
-                self.logger.warning('Failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
+                self.logger.warning('failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
                 import traceback
                 self.logger.error(traceback.format_exc())
                 caught_errors.append(e)
@@ -328,7 +329,8 @@ class StagingClient(object):
                 break
 
         if not result:
-            raise PilotException('Failed to transfer files using copytools=%s, error=%s' % (copytools, caught_errors))
+            raise PilotException('failed to transfer files using copytools=%s, error=%s' % (copytools, caught_errors),
+                                 code=caught_errors[0].get_error_code())
 
         return result
 

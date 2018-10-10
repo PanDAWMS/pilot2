@@ -30,19 +30,23 @@ class PilotException(Exception):
 
     def __init__(self, *args, **kwargs):
         super(PilotException, self).__init__(args, kwargs)
-        self._errorCode = errors.UNKNOWNEXCEPTION
-        self._message = errors.get_error_message(self._errorCode)
         self.args = args
         self.kwargs = kwargs
+        code = self.kwargs.get('code', None)
+        if code:
+            self._errorCode = code
+        else:
+            self._errorCode = errors.UNKNOWNEXCEPTION
+        self._message = errors.get_error_message(self._errorCode)
         self._error_string = None
         self._stack_trace = "%s" % traceback.format_exc()
 
     def __str__(self):
         try:
-            self._error_string = "Error code: %s, message: %s" % (self._errorCode, self._message % self.kwargs)
+            self._error_string = "error code: %s, message: %s" % (self._errorCode, self._message % self.kwargs)
         except Exception:
             # at least get the core message out if something happened
-            self._error_string = "Error code: %s, message: %s" % (self._errorCode, self._message)
+            self._error_string = "error code: %s, message: %s" % (self._errorCode, self._message)
 
         if len(self.args) > 0:
             # If there is a non-kwarg parameter, assume it's the error
@@ -50,17 +54,17 @@ class PilotException(Exception):
             # of the exception message
             # Convert all arguments into their string representations...
             args = ["%s" % arg for arg in self.args if arg]
-            self._error_string = (self._error_string + "\nDetails: %s" % '\n'.join(args))
+            self._error_string = (self._error_string + "\ndetails: %s" % '\n'.join(args))
         return self._error_string.strip()
 
     def get_detail(self):
         try:
-            self._error_string = "Error code: %s, message: %s" % (self._errorCode, self._message % self.kwargs)
+            self._error_string = "error code: %s, message: %s" % (self._errorCode, self._message % self.kwargs)
         except Exception:
             # at least get the core message out if something happened
-            self._error_string = "Error code: %s, message: %s" % (self._errorCode, self._message)
+            self._error_string = "error code: %s, message: %s" % (self._errorCode, self._message)
 
-        return self._error_string + "\nStacktrace: %s" % self._stack_trace
+        return self._error_string + "\nstacktrace: %s" % self._stack_trace
 
     def get_error_code(self):
         return self._errorCode

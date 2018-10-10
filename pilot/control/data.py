@@ -216,8 +216,16 @@ def _stage_in(args, job):
             activity = 'pr'
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
         client.transfer(job.indata, activity=activity, **kwargs)
+    except PilotException as error:
+        log.error('PilotException caught: %s' % error)
+        ec = error.get_error_code()
+        log.debug('got error code: %d' % ec)
+        detail = error.get_detail()
+        log.debug('got detail: %s' % detail)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
+        args.graceful_stop.set()
     except Exception as error:
-        log.error('Failed to stage-in: error=%s' % error)
+        log.error('failed to stage-in: error=%s' % error)
         if 'pilot exception' in str(error):
             log.error('setting graceful stop since a pilot exception was caught')
             args.graceful_stop.set()
@@ -226,7 +234,7 @@ def _stage_in(args, job):
             args.graceful_stop.set()
         #return False
 
-    log.info('Summary of transferred files:')
+    log.info('summary of transferred files:')
     for e in job.indata:
         log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
 
