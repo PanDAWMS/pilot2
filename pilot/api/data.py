@@ -308,14 +308,12 @@ class StagingClient(object):
                 continue
             except Exception as e:
                 self.logger.warning('failed to import copytool module=%s, error=%s' % (module, e))
-                self.logger.debug('error: %s' % e)
                 continue
             try:
                 result = self.transfer_files(copytool, files, activity, **kwargs)
             except PilotException as e:
+                self.logger.warning('failed to execute transfer_files(): PilotException caught: %s' % e)
                 caught_errors.append(e)
-                self.logger.debug('error: %s' % e)
-                self.logger.debug('code: %d' % e.get_error_code())
             except Exception as e:
                 self.logger.warning('failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
                 import traceback
