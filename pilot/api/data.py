@@ -200,7 +200,7 @@ class StagingClient(object):
                 logger.info("Consider first/closest replica, accessmode=%s, allowed_schemas=%s" % (fdat.accessmode, allowed_schemas))
                 #logger.debug('rses=%s' % r['rses'])
                 for ddm, pfns in r['rses'].iteritems():
-                    replica = self.get_preferred_replica(pfns, self.allowed_schemas)
+                    replica = self.get_preferred_replica(pfns, allowed_schemas)
                     if not replica:
                         continue
 
