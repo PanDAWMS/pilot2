@@ -20,6 +20,7 @@ from pilot.info import infosys
 from pilot.info.storageactivitymaps import get_ddm_activity
 from pilot.common.exception import PilotException, ErrorCodes
 from pilot.util.filehandling import calculate_checksum
+from pilot.util.math import convert_mb_to_b
 from pilot.util.parameters import get_maximum_input_sizes
 from pilot.util.workernode import get_local_disk_space
 
@@ -476,7 +477,7 @@ class StageInClient(StagingClient):
         :raise: PilotException in case of not enough space or total input size too large
         """
 
-        maxinputsize = get_maximum_input_sizes()
+        maxinputsize = convert_mb_to_b(get_maximum_input_sizes())
         totalsize = reduce(lambda x, y: x + y.filesize, files, 0)
 
         # verify total filesize
