@@ -490,7 +490,7 @@ class StageInClient(StagingClient):
                          (totalsize, maxinputsize))
 
         # get available space
-        available_space = int(get_local_disk_space()) * 1024 ** 2  # convert from MB to B
+        available_space = convert_mb_to_b(get_local_disk_space(os.getcwd()))
         self.logger.info("locally available space: %d B" % available_space)
 
         # are we within the limit?
