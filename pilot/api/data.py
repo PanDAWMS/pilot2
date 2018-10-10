@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
 
@@ -20,6 +20,8 @@ from pilot.info import infosys
 from pilot.info.storageactivitymaps import get_ddm_activity
 from pilot.common.exception import PilotException, ErrorCodes
 from pilot.util.filehandling import calculate_checksum
+from pilot.util.parameters import get_maximum_input_sizes
+from pilot.util.workernode import get_local_disk_space
 
 
 class StagingClient(object):
@@ -457,9 +459,43 @@ class StageInClient(StagingClient):
             kwargs['ddmconf'] = self.infosys.resolve_storage_data()
         kwargs['activity'] = activity
 
+        # verify file sizes and available space for stage-in
+        self.check_availablespace([e for e in files if e.status not in ['remote_io', 'transferred']])
+
         self.logger.info('Ready to transfer (stage-in) files: %s' % files)
 
         return copytool.copy_in(files, **kwargs)
+
+    def check_availablespace(self, files):
+        """
+        Verify that enough local space is available to stage in and run the job
+
+        :param files: list of FileSpec objects.
+        :raise: PilotException in case of not enough space
+        """
+
+        maxinputsize = get_maximum_input_sizes()
+        totalsize = reduce(lambda x, y: x + y.filesize, files, 0)
+
+        # verify total filesize
+        if maxinputsize and totalsize > maxinputsize:
+            error = "too many/too large input files (%s). total file size=%s B > maxinputsize=%s B" % \
+                    (len(files), totalsize, maxinputsize)
+            raise PilotException(error, code=error.SIZETOOLARGE)
+
+        self.logger.info("total input file size=%s B within allowed limit=%s B (zero value means unlimited)" %
+                         (totalsize, maxinputsize))
+
+        # get available space
+        diskspace = get_local_disk_space()
+        available_space = int(diskspace)*1024**2 # convert from MB to B
+        self.logger.info("locally available space: %d B" % available_space)
+
+        # are we within the limit?
+        if totalsize > available_space:
+            error = "not enough local space for staging input files and run the job (need %d B, but only have %d B)" % \
+                    (totalsize, available_space)
+            raise PilotException(error, code=error.NOLOCALSPACE)
 
 
 class StageOutClient(StagingClient):
