@@ -218,11 +218,7 @@ def _stage_in(args, job):
         client.transfer(job.indata, activity=activity, **kwargs)
     except PilotException as error:
         log.error('PilotException caught: %s' % error)
-        ec = error.get_error_code()
-        log.debug('got error code: %d' % ec)
-        detail = error.get_detail()
-        log.debug('got detail: %s' % detail)
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())
         args.graceful_stop.set()
     except Exception as error:
         log.error('failed to stage-in: error=%s' % error)
