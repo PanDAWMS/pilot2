@@ -340,14 +340,18 @@ def kill_orphans():
                 if args.endswith('bash'):
                     logger.info("will not kill bash process")
                 else:
-                    os.killpg(pid, signal.SIGKILL)
-                    #cmd = 'kill -9 %s' % (pid)
-                    #exit_code, rs, stderr = execute(cmd)
-                    #if exit_code != 0:
-                    #    logger.warning(rs)
-                    #else:
-                    #    logger.info("killed orphaned process %s (%s)" % (pid, args))
-                    logger.info("killed orphaned process group %s (%s)" % (pid, args))
+                    try:
+                        os.killpg(int(pid), signal.SIGKILL)
+                    except Exception as e:
+                        logger.warning("failed to execute killpg(): %s" % e)
+                        cmd = 'kill -9 %s' % (pid)
+                        exit_code, rs, stderr = execute(cmd)
+                        if exit_code != 0:
+                            logger.warning(rs)
+                        else:
+                            logger.info("killed orphaned process %s (%s)" % (pid, args))
+                    else:
+                        logger.info("killed orphaned process group %s (%s)" % (pid, args))
 
     if count == 0:
         logger.info("did not find any orphan processes")
