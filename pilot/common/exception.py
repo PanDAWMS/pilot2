@@ -256,42 +256,42 @@ class NotSameLength(PilotException):
         self._message = errors.get_error_message(self._errorCode)
 
 
-class ESRECOVERABLE(PilotException):
+class ESRecoverable(PilotException):
     """
     Eventservice recoverable exception.
     """
     def __init__(self, *args, **kwargs):
-        super(ESRECOVERABLE, self).__init__(args, kwargs)
+        super(ESRecoverable, self).__init__(args, kwargs)
         self._errorCode = errors.ESRECOVERABLE
         self._message = errors.get_error_message(self._errorCode)
 
 
-class ESFATAL(PilotException):
+class ESFatal(PilotException):
     """
     Eventservice fatal exception.
     """
     def __init__(self, *args, **kwargs):
-        super(ESFATAL, self).__init__(args, kwargs)
+        super(ESFatal, self).__init__(args, kwargs)
         self._errorCode = errors.ESFATAL
         self._message = errors.get_error_message(self._errorCode)
 
 
-class EXECUTEDCLONEJOB(PilotException):
+class ExecutedCloneJob(PilotException):
     """
-    Clone job excuted exception.
+    Clone job executed exception.
     """
     def __init__(self, *args, **kwargs):
-        super(EXECUTEDCLONEJOB, self).__init__(args, kwargs)
+        super(ExecutedCloneJob, self).__init__(args, kwargs)
         self._errorCode = errors.EXECUTEDCLONEJOB
         self._message = errors.get_error_message(self._errorCode)
 
 
-class ESNOEVENTS(PilotException):
+class ESNoEvents(PilotException):
     """
     Eventservice no events exception.
     """
     def __init__(self, *args, **kwargs):
-        super(ESNOEVENTS, self).__init__(args, kwargs)
+        super(ESNoEvents, self).__init__(args, kwargs)
         self._errorCode = errors.ESNOEVENTS
         self._message = errors.get_error_message(self._errorCode)
 
