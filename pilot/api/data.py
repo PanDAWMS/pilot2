@@ -23,6 +23,8 @@ from pilot.util.filehandling import calculate_checksum
 from pilot.util.parameters import get_maximum_input_sizes
 from pilot.util.workernode import get_local_disk_space
 
+errors = ErrorCodes()
+
 
 class StagingClient(object):
     """
@@ -289,7 +291,7 @@ class StagingClient(object):
         if not copytools:
             raise PilotException('Failed to resolve copytool by preferred activities=%s, acopytools=%s' % (activity, self.acopytools))
 
-        result, errors = None, []
+        result, caught_errors = None, []
 
         for name in copytools:
 
@@ -300,7 +302,7 @@ class StagingClient(object):
                 self.logger.info('Trying to use copytool=%s for activity=%s' % (name, activity))
                 copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], -1)
             except PilotException as e:
-                errors.append(e)
+                caught_errors.append(e)
                 self.logger.debug('Error: %s' % e)
                 continue
             except Exception as e:
@@ -310,22 +312,22 @@ class StagingClient(object):
             try:
                 result = self.transfer_files(copytool, files, activity, **kwargs)
             except PilotException as e:
-                errors.append(e)
+                caught_errors.append(e)
                 self.logger.debug('Error: %s' % e)
             except Exception as e:
                 self.logger.warning('Failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
                 import traceback
                 self.logger.error(traceback.format_exc())
-                errors.append(e)
+                caught_errors.append(e)
 
-            if errors and isinstance(errors[-1], PilotException) and errors[-1].get_error_code() == ErrorCodes.MISSINGOUTPUTFILE:
-                raise errors[-1]
+            if caught_errors and isinstance(caught_errors[-1], PilotException) and caught_errors[-1].get_error_code() == ErrorCodes.MISSINGOUTPUTFILE:
+                raise caught_errors[-1]
 
             if result:
                 break
 
         if not result:
-            raise PilotException('Failed to transfer files using copytools=%s, error=%s' % (copytools, errors))
+            raise PilotException('Failed to transfer files using copytools=%s, error=%s' % (copytools, caught_errors))
 
         return result
 
@@ -481,21 +483,20 @@ class StageInClient(StagingClient):
         if maxinputsize and totalsize > maxinputsize:
             error = "too many/too large input files (%s). total file size=%s B > maxinputsize=%s B" % \
                     (len(files), totalsize, maxinputsize)
-            raise PilotException(error, code=error.SIZETOOLARGE)
+            raise PilotException(error, code=errors.SIZETOOLARGE)
 
         self.logger.info("total input file size=%s B within allowed limit=%s B (zero value means unlimited)" %
                          (totalsize, maxinputsize))
 
         # get available space
-        diskspace = get_local_disk_space()
-        available_space = int(diskspace) * 1024 ** 2  # convert from MB to B
+        available_space = int(get_local_disk_space()) * 1024 ** 2  # convert from MB to B
         self.logger.info("locally available space: %d B" % available_space)
 
         # are we within the limit?
         if totalsize > available_space:
             error = "not enough local space for staging input files and run the job (need %d B, but only have %d B)" % \
                     (totalsize, available_space)
-            raise PilotException(error, code=error.NOLOCALSPACE)
+            raise PilotException(error, code=errors.NOLOCALSPACE)
 
 
 class StageOutClient(StagingClient):
