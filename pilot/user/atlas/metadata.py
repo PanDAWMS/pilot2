@@ -145,7 +145,7 @@ def get_metadata_from_xml(workdir, filename="metadata.xml"):
     path = os.path.join(workdir, filename)
     if not os.path.exists(path):
         logger.warning('file does not exist: %s' % path)
-        return os.path.join(workdir, filename)
+        return metadata_dictionary
 
     tree = ElementTree.parse(path)
     root = tree.getroot()
