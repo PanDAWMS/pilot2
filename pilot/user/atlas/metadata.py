@@ -143,7 +143,7 @@ def get_metadata_from_xml(workdir, filename="metadata.xml"):
     # metadata_dictionary = { lfn: { att_name1: att_value1, .. }, ..}
     metadata_dictionary = {}
     path = os.path.join(workdir, filename)
-    if not os.path.exists():
+    if not os.path.exists(path):
         logger.warning('file does not exist: %s' % path)
         return os.path.join(workdir, filename)
 
