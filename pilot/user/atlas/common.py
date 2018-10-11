@@ -916,7 +916,8 @@ def get_redundants():
                 "*PROC*",
                 "madevent",
                 "*proxy",
-                "ckpt*"]
+                "ckpt*",
+                "runcontainer"]
 
     return dir_list
 
