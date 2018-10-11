@@ -230,9 +230,10 @@ def find_number_of_events_in_xml(job):
     """
 
     metadata = get_metadata_from_xml(job.workdir)
-    nevents = get_total_number_of_events(metadata)
-    if nevents > 0:
-        job.nevents = nevents
+    if metadata:
+        nevents = get_total_number_of_events(metadata)
+        if nevents > 0:
+            job.nevents = nevents
 
 
 def process_athena_summary(job):
