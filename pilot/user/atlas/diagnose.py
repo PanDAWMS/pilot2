@@ -56,8 +56,6 @@ def interpret(job):
     # interpret the exit info from the payload
     interpret_payload_exit_info(job)
 
-    log.debug('payload interpret function ended with exit_code: %d' % exit_code)
-
     return exit_code
 
 

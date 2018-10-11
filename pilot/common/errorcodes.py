@@ -47,6 +47,8 @@ class ErrorCodes:
     GETADMISMATCH = 1171
     PUTADMISMATCH = 1172
     NOVOMSPROXY = 1177
+    GETGLOBUSSYSERR = 1180
+    PUTGLOBUSSYSERR = 1181
     MKDIR = 1199
     KILLSIGNAL = 1200
     SIGTERM = 1201
@@ -118,6 +120,8 @@ class ErrorCodes:
         GETADMISMATCH: "adler32 mismatch on input file",
         PUTADMISMATCH: "adler32 mismatch on output file",
         NOVOMSPROXY: "Voms proxy not valid",
+        GETGLOBUSSYSERR: "Globus system error during stage-in",
+        PUTGLOBUSSYSERR: "Globus system error during stage-out",
         MKDIR: "Failed to create local directory",
         KILLSIGNAL: "Job terminated by unknown kill signal",
         SIGTERM: "Job killed by signal: SIGTERM",

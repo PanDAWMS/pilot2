@@ -32,6 +32,8 @@ def do_use_container(**kwargs):
 
     use_container = False
 
+    # to force no container use: return False
+
     job = kwargs.get('job')
     if job:
         # for user jobs, TRF option --containerImage must have been used, ie imagename must be set
