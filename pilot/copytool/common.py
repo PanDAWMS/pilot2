@@ -99,3 +99,44 @@ def get_copysetup(copytools, copytool_name):
             break
 
     return copysetup
+
+
+def resolve_common_transfer_errors(output, is_stagein=True):
+    """
+    Resolve any common transfer related errors.
+
+    :param output: stdout from transfer command (string).
+    :param is_stagein: optional (boolean).
+    :return: dict {'rcode', 'state, 'error'}
+    """
+
+    ret = {'rcode': ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
+           'state': 'COPY_ERROR', 'error': 'Copy operation failed [is_stagein=%s]: %s' % (is_stagein, output)}
+
+    if "timeout" in output:
+        ret['rcode'] = ErrorCodes.STAGEINTIMEOUT if is_stagein else ErrorCodes.STAGEOUTTIMEOUT
+        ret['state'] = 'CP_TIMEOUT'
+        ret['error'] = 'copy command timed out: %s' % output
+    elif "does not match the checksum" in output:
+        if 'adler32' in output:
+            state = 'AD_MISMATCH'
+            rcode = ErrorCodes.GETADMISMATCH if is_stagein else ErrorCodes.PUTADMISMATCH
+        else:
+            state = 'MD5_MISMATCH'
+            rcode = ErrorCodes.GETMD5MISMATCH if is_stagein else ErrorCodes.PUTMD5MISMATCH
+        ret['rcode'] = rcode
+        ret['state'] = state
+    elif "query chksum is not supported" in output or "Unable to checksum" in output:
+        ret['rcode'] = ErrorCodes.CHKSUMNOTSUP
+        ret['state'] = 'CHKSUM_NOTSUP'
+        ret['error'] = output
+    else:
+        for line in output.split('\n'):
+            m = re.search("Details\s*:\s*(?P<error>.*)", line)
+            if m:
+                ret['error'] = m.group('error')
+            elif 'service_unavailable' in line:
+                ret['error'] = 'service_unavailable'
+                ret['rcode'] = ErrorCodes.RUCIOSERVICEUNAVAILABLE
+
+    return ret

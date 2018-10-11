@@ -12,6 +12,7 @@ import re
 import json
 import logging
 
+from .common import resolve_common_transfer_errors
 from pilot.common.exception import PilotException, ErrorCodes
 from pilot.info.storageactivitymaps import get_ddm_activity
 from pilot.util.container import execute
@@ -127,7 +128,7 @@ def copy_in(files, **kwargs):
         rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
 
         if rcode:  ## error occurred
-            error = resolve_transfer_error(stderr, is_stagein=True)
+            error = resolve_common_transfer_errors(stderr, is_stagein=True)
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
             raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
@@ -184,7 +185,7 @@ def copy_out(files, **kwargs):
         rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
 
         if rcode:  ## error occurred
-            error = resolve_transfer_error(stderr, is_stagein=False)
+            error = resolve_common_transfer_errors(stderr, is_stagein=False)
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
             raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
@@ -209,20 +210,3 @@ def copy_out(files, **kwargs):
         fspec.status = 'transferred'
 
     return files
-
-
-def resolve_transfer_error(output, is_stagein):
-    """
-        Resolve error code, client state and defined error mesage from the output of transfer command
-        :return: dict {'rcode', 'state, 'error'}
-    """
-
-    ret = {'rcode': ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
-           'state': 'COPY_ERROR', 'error': 'Copy operation failed [is_stagein=%s]: %s' % (is_stagein, output)}
-
-    for line in output.split('\n'):
-        m = re.search("Details\s*:\s*(?P<error>.*)", line)
-        if m:
-            ret['error'] = m.group('error')
-
-    return ret

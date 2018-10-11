@@ -64,7 +64,7 @@ def copy_in(files, **kwargs):
         logger.info('stderr = %s' % stderr)
 
         if rcode:  ## error occurred
-            error = resolve_transfer_error(stderr, is_stagein=True)
+            error = resolve_common_transfer_errors(stderr, is_stagein=True)
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
             raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
@@ -122,7 +122,7 @@ def copy_out(files, **kwargs):
         logger.info('stdout = %s' % stdout)
         logger.info('stderr = %s' % stderr)
         if rcode:  ## error occurred
-            error = resolve_transfer_error(stderr, is_stagein=False)
+            error = resolve_common_transfer_errors(stderr, is_stagein=False)
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
             raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))

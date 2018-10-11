@@ -14,6 +14,7 @@ import os
 import logging
 import errno
 
+from .common import resolve_common_transfer_errors
 from pilot.common.exception import PilotException, ErrorCodes, StageInFailure, StageOutFailure
 from pilot.util.container import execute
 
@@ -92,7 +93,7 @@ def copy_in(files, **kwargs):
                          'state': 'CP_TIMEOUT',
                          'error': 'Copy command timed out: %s' % stderr}
             else:
-                error = resolve_transfer_error(stdout + stderr, is_stagein=True)
+                error = resolve_common_transfer_errors(stdout + stderr, is_stagein=True)
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
             raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
@@ -101,33 +102,6 @@ def copy_in(files, **kwargs):
         fspec.status = 'transferred'
 
     return files
-
-
-def resolve_transfer_error(output, is_stagein):
-    """
-        Resolve error code, client state and defined error mesage from the output of transfer command
-        :return: dict {'rcode', 'state, 'error'}
-    """
-
-    ret = {'rcode': ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
-           'state': 'COPY_ERROR', 'error': 'Copy operation failed [is_stagein=%s]: %s' % (is_stagein, output)}
-
-    ## VERIFY ME LATER
-    if "timeout" in output:
-        ret['rcode'] = ErrorCodes.STAGEINTIMEOUT if is_stagein else ErrorCodes.STAGEOUTTIMEOUT
-        ret['state'] = 'CP_TIMEOUT'
-        ret['error'] = 'copy command timed out: %s' % output
-    elif "does not match the checksum" in output:
-        if 'adler32' in output:
-            state = 'AD_MISMATCH'
-            rcode = ErrorCodes.GETADMISMATCH if is_stagein else ErrorCodes.PUTADMISMATCH
-        else:
-            state = 'MD5_MISMATCH'
-            rcode = ErrorCodes.GETMD5MISMATCH if is_stagein else ErrorCodes.PUTMD5MISMATCH
-        ret['rcode'] = rcode
-        ret['state'] = state
-
-    return ret
 
 
 def copy_out(files, **kwargs):
@@ -165,7 +139,7 @@ def copy_out(files, **kwargs):
                          'state': 'CP_TIMEOUT',
                          'error': 'Copy command timed out: %s' % stderr}
             else:
-                error = resolve_transfer_error(stdout + stderr, is_stagein=False)
+                error = resolve_common_transfer_errors(stdout + stderr, is_stagein=False)
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
             raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))

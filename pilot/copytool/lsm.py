@@ -14,8 +14,8 @@ import logging
 import errno
 import re
 
+from .common import get_copysetup, verify_catalog_checksum, resolve_common_transfer_errors
 from pilot.common.exception import StageInFailure, StageOutFailure, PilotException, ErrorCodes
-from pilot.copytool.common import get_copysetup, verify_catalog_checksum
 from pilot.util.container import execute
 
 
@@ -119,22 +119,14 @@ def copy_in(files, **kwargs):
 
 def resolve_transfer_error(output, is_stagein=True):
     """
-    Resolve error code, client state and defined error mesage from the output of transfer command
+    Resolve error code, client state and defined error message from the output of transfer command
 
     :param output: command output (string).
     :param is_stagein: boolean, True for stage-in.
     :return: dict {'rcode', 'state, 'error'}
     """
 
-    ret = {'rcode': ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
-           'state': 'COPY_ERROR', 'error': 'Copy operation failed [is_stagein=%s]: %s' % (is_stagein, output)}
-
-    for line in output.split('\n'):
-        m = re.search("Details\s*:\s*(?P<error>.*)", line)
-        if m:
-            ret['error'] = m.group('error')
-
-    return ret
+    return resolve_common_transfer_errors(output, is_stagein=is_stagein)
 
 
 def copy_out(files, **kwargs):
