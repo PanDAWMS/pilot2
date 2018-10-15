@@ -274,6 +274,14 @@ def get_data_structure(job, state, args, xml=None):
         stdout_tail = stdout_tail[-2048:]
         data['stdout'] = stdout_tail
 
+    # add log extracts (for failed/holding jobs or for jobs with outbound connections)
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
+    extracts = user.get_log_extracts(job, state)
+    if extracts != "":
+        log.warning('pilot log extracts:\n%s' % extracts)
+        data['pilotLog'] = extracts
+
     if state == 'finished' or state == 'failed':
         time_getjob, time_stagein, time_payload, time_stageout, time_total_setup = timing_report(job.jobid, args)
         data['pilotTiming'] = "%s|%s|%s|%s|%s" % \

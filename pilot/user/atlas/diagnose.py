@@ -15,7 +15,7 @@ from glob import glob
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
-from pilot.util.filehandling import get_guid, tail, grep, open_file
+from pilot.util.filehandling import get_guid, tail, grep, open_file, read_file
 
 from .common import update_job_data, parse_jobreport_data
 from .metadata import get_metadata_from_xml, get_total_number_of_events
@@ -533,3 +533,100 @@ def is_bad_alloc(job_report_errors, log):
             break
 
     return bad_alloc, diagnostics
+
+
+def get_log_extracts(job, state):
+    """
+    Extract special warnings and other other info from special logs.
+    This function also discovers if the payload had any outbound connections.
+
+    :param job: job object.
+    :param state: job state (string).
+    :return: log extracts (string).
+    """
+
+    log = get_logger(job.jobid)
+    log.info("building log extracts (sent to the server as \'pilotLog\')")
+
+    # did the job have any outbound connections?
+    # look for the pandatracerlog.txt file, produced if the user payload attempted any outgoing connections
+    extracts = get_panda_tracer_log(job)
+
+    # for failed/holding jobs, add extracts from the pilot log file, but always add it to the pilot log itself
+    _extracts = get_pilot_log_extracts(job)
+    if _extracts != "":
+        log.warning('detected the following tail of warning/fatal messages in the pilot log:\n%s' % _extracts)
+        if state == 'failed' or state == 'holding':
+            extracts += _extracts
+
+    # add extracts from payload logs
+    # (see buildLogExtracts in Pilot 1)
+
+    return extracts
+
+
+def get_panda_tracer_log(job):
+    """
+    Return the contents of the PanDA tracer log if it exists.
+    This file will contain information about outbound connections.
+
+    :param job: job object.
+    :return: log extracts from pandatracerlog.txt (string).
+    """
+
+    extracts = ""
+    log = get_logger(job.jobid)
+
+    tracerlog = os.path.join(job.workdir, "pandatracerlog.txt")
+    if os.path.exists(tracerlog):
+        # only add if file is not empty
+        if os.path.getsize(tracerlog) > 0:
+            message = "PandaID=%s had outbound connections" % (job.jobid)
+            extracts += message
+            message = read_file(tracerlog)
+            extracts += message
+        else:
+            log.info("PanDA tracer log (%s) has zero size (no outbound connections detected)" % tracerlog)
+    else:
+        log.debug("PanDA tracer log does not exist: %s (ignoring)" % tracerlog)
+
+    return extracts
+
+
+def get_pilot_log_extracts(job):
+    """
+    Get the extracts from the pilot log (warning/fatal messages, as well as tail of the log itself).
+
+    :param job: job object.
+    :return: tail of pilot log (string).
+    """
+
+    log = get_logger(job.jobid)
+    extracts = ""
+
+    path = os.path.join(job.workdir, config.Pilot.pilotlog)
+    if os.path.exists(path):
+        # get the last 20 lines of the pilot log in case it contains relevant error information
+        _tail = tail(path, nlines=20)
+        if _tail != "":
+            if extracts != "":
+                extracts += "\n"
+            extracts += "- Log from %s -" % config.Pilot.pilotlog
+            extracts += _tail
+
+        # grep for warning/fatal in the pilot log
+        errormsgs = ["WARNING", "FATAL", "CRITICAL", "ERROR"]
+        matched_lines = grep(errormsgs, path)
+        _extracts = ""
+        if len(matched_lines) > 0:
+            log.warning("identified an out of memory error in %s %s:" % (job.payload, os.path.basename(path)))
+            for line in matched_lines:
+                log.info(line)
+                _extracts += line + "\n"
+        if _extracts != "":
+            extracts += "\n- Error messages from %s -\n" % config.Pilot.pilotlog
+            extracts += _extracts
+    else:
+        log.warning('pilot log file does not exist: %s' % path)
+
+    return extracts
