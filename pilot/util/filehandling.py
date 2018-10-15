@@ -289,13 +289,17 @@ def write_json(filename, dictionary):
 def touch(path):
     """
     Touch a file and update mtime in case the file exists.
+    Default to use execute() if case of python problem with appending to non-existant path.
 
-    :param path:
+    :param path: full path to file to be touched (string).
     :return:
     """
 
-    with open(path, 'a'):
-        os.utime(path, None)
+    try:
+        with open(path, 'a'):
+            os.utime(path, None)
+    except Exception:
+        exit_code, stdout, stderr = execute('touch %s' % path)
 
 
 def remove_empty_directories(src_dir):
