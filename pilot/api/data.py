@@ -628,6 +628,13 @@ class StageOutClient(StagingClient):
                 raise PilotException(msg, code=ErrorCodes.MISSINGOUTPUTFILE, state="FILE_INFO_FAIL")
             if not fspec.filesize:
                 fspec.filesize = os.path.getsize(pfn)
+
+            fspec.filesize = 0
+            if fspec.filesize == 0:
+                msg = 'output file has size zero: %s' % fspec.lfn
+                self.logger.fatal(msg)
+                raise PilotException(msg, code=ErrorCodes.ZEROFILESIZE, state="ZERO_FILE_SIZE")
+
             fspec.surl = pfn
             fspec.activity = activity
             if not fspec.checksum.get('adler32'):

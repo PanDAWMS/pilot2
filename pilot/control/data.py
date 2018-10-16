@@ -871,18 +871,11 @@ def _stage_out_all(job, args):  ### NOT USED - TO BE DEPRECATED
             scopes = dict([e.lfn, e.scope] for e in job.outdata)  # quick hack: to be properly implemented later
             # extract output files from the job report, in case the trf has created additional (overflow) files
             for f in job.metadata['files']['output']:
-                f.filesize = 0
-                if f.filesize == 0:
-                    log.fatal('output file has size zero: %s' % f.lfn)
-                    failed = True
-                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.ZEROFILESIZE)
-                    break
-                else:
-                    outputs[f['subFiles'][0]['name']] = {'scope': scopes.get(f['subFiles'][0]['name'],
-                                                                             job.scopeout.split(',')[0]),  # [0]? a bug?
-                                                         'name': f['subFiles'][0]['name'],
-                                                         'guid': f['subFiles'][0]['file_guid'],
-                                                         'bytes': f['subFiles'][0]['file_size']}
+                outputs[f['subFiles'][0]['name']] = {'scope': scopes.get(f['subFiles'][0]['name'],
+                                                                         job.scopeout.split(',')[0]),  # [0]? a bug?
+                                                     'name': f['subFiles'][0]['name'],
+                                                     'guid': f['subFiles'][0]['file_guid'],
+                                                     'bytes': f['subFiles'][0]['file_size']}
         elif job.is_build_job():
             # scopes = dict([e.lfn, e.scope] for e in job.outdata)  # quick hack: to be properly implemented later
             for f in job.outdata:  # should be only one output file
