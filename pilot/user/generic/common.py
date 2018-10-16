@@ -130,3 +130,17 @@ def get_utility_command_output_filename(name, selector=None):
     """
 
     return ""
+
+
+def verify_job(job):
+    """
+    Verify job parameters for specific errors.
+    Note:
+      in case of problem, the function should set the corresponding pilot error code using
+      job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())
+
+    :param job: job object
+    :return: Boolean.
+    """
+
+    return True

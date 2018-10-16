@@ -20,6 +20,7 @@ from .setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, 
 from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
     get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
 
+from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import get_logger
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
@@ -31,6 +32,8 @@ from pilot.info import FileSpec
 
 import logging
 logger = logging.getLogger(__name__)
+
+errors = ErrorCodes()
 
 
 def get_payload_command(job):
@@ -1144,3 +1147,51 @@ def get_utility_command_output_filename(name, selector=None):
         filename = ""
 
     return filename
+
+
+def verify_lfn_length(outdata):
+    """
+    Make sure that the LFNs are all within the allowed length.
+
+    :param outdata: FileSpec object.
+    :return: error code (int), diagnostics (string).
+    """
+
+    ec = 0
+    diagnostics = ""
+    max_length = 255
+
+    # loop over all output files
+    for fspec in outdata:
+        if len(fspec.lfn) > max_length:
+            diagnostics = "LFN too long (length: %d, must be less than %d characters): %s" % \
+                          (len(fspec.lfn), max_length, fspec.lfn)
+            ec = errors.LFNTOOLONG
+            break
+
+    return ec, diagnostics
+
+
+def verify_job(job):
+    """
+    Verify job parameters for specific errors.
+    Note:
+      in case of problem, the function should set the corresponding pilot error code using
+      job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())
+
+    :param job: job object
+    :return: Boolean.
+    """
+
+    status = False
+    log = get_logger(job.jobid)
+
+    ec, diagnostics = verify_lfn_length(job.outdata)
+    if ec != 0:
+        log.fatal(diagnostics)
+        job.piloterrordiag = diagnostics
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
+    else:
+        status = True
+
+    return status
