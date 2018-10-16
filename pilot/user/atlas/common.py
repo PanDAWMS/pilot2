@@ -1163,6 +1163,7 @@ def verify_lfn_length(outdata):
 
     # loop over all output files
     for fspec in outdata:
+        fspec.lfn = fspec.lfn + 'X'*255
         if len(fspec.lfn) > max_length:
             diagnostics = "LFN too long (length: %d, must be less than %d characters): %s" % \
                           (len(fspec.lfn), max_length, fspec.lfn)
