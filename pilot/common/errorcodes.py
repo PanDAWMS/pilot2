@@ -48,6 +48,7 @@ class ErrorCodes:
     NOVOMSPROXY = 1177
     GETGLOBUSSYSERR = 1180
     PUTGLOBUSSYSERR = 1181
+    LFNTOOLONG = 1190
     ZEROFILESIZE = 1191
     MKDIR = 1199
     KILLSIGNAL = 1200
@@ -120,6 +121,7 @@ class ErrorCodes:
         NOVOMSPROXY: "Voms proxy not valid",
         GETGLOBUSSYSERR: "Globus system error during stage-in",
         PUTGLOBUSSYSERR: "Globus system error during stage-out",
+        LFNTOOLONG: "LFN too long (exceeding limit of 150 characters)",
         ZEROFILESIZE: "File size cannot be zero",
         MKDIR: "Failed to create local directory",
         KILLSIGNAL: "Job terminated by unknown kill signal",
