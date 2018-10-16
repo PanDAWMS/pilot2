@@ -62,6 +62,7 @@ class ErrorCodes:
     MISSINGINSTALLATION = 1211
     PAYLOADOUTOFMEMORY = 1212
     REACHEDMAXTIME = 1213
+    FILEEXITS = 1221
     BADALLOC = 1223
 
     ESRECOVERABLE = 1224
@@ -134,6 +135,7 @@ class ErrorCodes:
         MISSINGINSTALLATION: "Missing installation",
         PAYLOADOUTOFMEMORY: "Payload ran out of memory",
         REACHEDMAXTIME: "Reached batch system time limit",
+        FILEEXITS: "File already exists",
         BADALLOC: "Transform failed due to bad_alloc",
         CHKSUMNOTSUP: "Mover error: query checksum is not supported",
         NOUSERTARBALL: "User tarball could not be downloaded from PanDA server",
