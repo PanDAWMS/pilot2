@@ -31,10 +31,10 @@ from pilot.util.mpi import get_ranks_info
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.workernode import is_virtual_machine
 
-RELEASE = '2'  # fixed at 2 for Pilot 2
-VERSION = '0'  # '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
+RELEASE = '2'   # fixed at 2 for Pilot 2
+VERSION = '0'   # '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
 REVISION = '0'  # reset to '0' for every new Pilot version release, increased for small updates
-BUILD = '119'  # reset to '1' for every new development cycle
+BUILD = '119'   # reset to '1' for every new development cycle
 
 
 def pilot_version_banner():

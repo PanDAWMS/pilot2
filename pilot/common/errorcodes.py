@@ -71,6 +71,7 @@ class ErrorCodes:
     ESNOEVENTS = 1238
     MESSAGEHANDLINGFAILURE = 1240
     CHKSUMNOTSUP = 1242
+    NORELEASEFOUND = 1244
     NOUSERTARBALL = 1246
 
     # Error code constants (new since Pilot 2)
@@ -138,6 +139,7 @@ class ErrorCodes:
         FILEEXITS: "File already exists",
         BADALLOC: "Transform failed due to bad_alloc",
         CHKSUMNOTSUP: "Query checksum is not supported",
+        NORELEASEFOUND: "No release candidates found",
         NOUSERTARBALL: "User tarball could not be downloaded from PanDA server",
         ESRECOVERABLE: "Event service: recoverable error",
         ESFATAL: "Event service: fatal error",
