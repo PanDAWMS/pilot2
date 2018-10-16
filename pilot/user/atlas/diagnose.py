@@ -15,7 +15,7 @@ from glob import glob
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
-from pilot.util.filehandling import get_guid, tail, grep, open_file, read_file
+from pilot.util.filehandling import get_guid, tail, grep, open_file, read_file, write_file
 
 from .common import update_job_data, parse_jobreport_data
 from .metadata import get_metadata_from_xml, get_total_number_of_events
@@ -614,16 +614,18 @@ def get_pilot_log_extracts(job):
             extracts += "- Log from %s -" % config.Pilot.pilotlog
             extracts += _tail
 
-        # grep for warning/fatal in the pilot log
-        errormsgs = ["WARNING", "FATAL", "CRITICAL", "ERROR"]
+        # grep for fatal/critical errors in the pilot log
+        errormsgs = ["FATAL", "CRITICAL", "ERROR"]
         matched_lines = grep(errormsgs, path)
         _extracts = ""
         if len(matched_lines) > 0:
-            log.warning("identified an out of memory error in %s %s:" % (job.payload, os.path.basename(path)))
+            log.debug("dumping warning messages from %s:\n" % os.path.basename(path))
             for line in matched_lines:
-                log.info(line)
                 _extracts += line + "\n"
         if _extracts != "":
+            if config.Pilot.error_log != "":
+                path = os.path.join(job.workdir, config.Pilot.error_log)
+                write_file(path, _extracts)
             extracts += "\n- Error messages from %s -\n" % config.Pilot.pilotlog
             extracts += _extracts
     else:
