@@ -16,6 +16,7 @@ import os
 import signal
 from subprocess import PIPE
 
+from pilot.common.errorcodes import ErrorCodes
 from pilot.control.job import send_state
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
@@ -26,6 +27,8 @@ from pilot.common.exception import PilotException
 
 import logging
 logger = logging.getLogger(__name__)
+
+errors = ErrorCodes()
 
 
 class Executor(object):
@@ -210,8 +213,10 @@ class Executor(object):
         # for testing looping job:    cmd = user.get_payload_command(job) + ';sleep 240'
         try:
             cmd = user.get_payload_command(job)
-            #cmd = user.get_payload_command(job) + ';sleep 240'
-        except PilotException as e:
+        except PilotException as error:
+            import traceback
+            log.error(traceback.format_exc())
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())
             log.fatal('could not define payload command')
             return None
 

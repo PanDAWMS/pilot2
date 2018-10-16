@@ -57,7 +57,11 @@ def get_payload_command(job):
     # Is it a user job or not?
     userjob = job.is_analysis()
 
+    # get the general setup command and then verify it
     cmd = get_setup_command(job, prepareasetup)
+    ec, diagnostics = verify_setup_command(cmd)
+    if ec != 0:
+        raise PilotException(diagnostics, code=ec)
 
     if is_standard_atlas_job(job.swrelease):
 
@@ -90,6 +94,26 @@ def get_payload_command(job):
     log.info('payload run command: %s' % cmd)
 
     return cmd
+
+
+def verify_setup_command(cmd):
+    """
+    Verify the setup command.
+
+    :param cmd: command string to be verified (string).
+    :return: pilot error code (int), diagnostics (string).
+    """
+
+    ec = 0
+    diagnostics = ""
+
+    exit_code, stdout, stderr = execute(cmd, timeout=5 * 60)
+    if exit_code != 0:
+        if "No release candidates found" in stdout:
+            ec = errors.NORELEASEFOUND
+            diagnostics = stdout + stderr
+
+    return ec, diagnostics
 
 
 def get_normal_payload_command(cmd, job, prepareasetup, userjob):
