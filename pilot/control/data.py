@@ -222,11 +222,11 @@ def _stage_in(args, job):
         #args.graceful_stop.set()
     except Exception as error:
         log.error('failed to stage-in: error=%s' % error)
-        if 'pilot exception' in str(error):
-            log.error('setting graceful stop since a pilot exception was caught')
+        #if 'pilot exception' in str(error):
+            #log.error('setting graceful stop since a pilot exception was caught')
             #args.graceful_stop.set()
-        else:
-            log.error('did not parse error of type: %s (setting graceful stop anyway)' % type(error))
+        #else:
+            #log.error('did not parse error of type: %s (setting graceful stop anyway)' % type(error))
             #args.graceful_stop.set()
 
     log.info('summary of transferred files:')
@@ -752,9 +752,10 @@ def _do_stageout(job, xdata, activity, title):
         client = StageOutClient(job.infosys, logger=log)
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
         client.transfer(xdata, activity, **kwargs)
-    except PilotException:
+    except PilotException as error:
         import traceback
         log.error(traceback.format_exc())
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())
     except Exception as e:
         import traceback
         log.error(traceback.format_exc())
