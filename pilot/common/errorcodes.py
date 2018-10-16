@@ -43,12 +43,12 @@ class ErrorCodes:
     NOPROXY = 1163
     MISSINGOUTPUTFILE = 1165
     SIZETOOLARGE = 1168
-
     GETADMISMATCH = 1171
     PUTADMISMATCH = 1172
     NOVOMSPROXY = 1177
     GETGLOBUSSYSERR = 1180
     PUTGLOBUSSYSERR = 1181
+    ZEROFILESIZE = 1191
     MKDIR = 1199
     KILLSIGNAL = 1200
     SIGTERM = 1201
@@ -58,20 +58,17 @@ class ErrorCodes:
     USERKILL = 1205  # reserved error code, currently not used by pilot
     SIGBUS = 1206
     SIGUSR1 = 1207
-
     MISSINGINSTALLATION = 1211
     PAYLOADOUTOFMEMORY = 1212
     REACHEDMAXTIME = 1213
     FILEEXITS = 1221
     BADALLOC = 1223
-
     ESRECOVERABLE = 1224
     ESFATAL = 1228
     EXECUTEDCLONEJOB = 1234
     PAYLOADEXCEEDMAXMEM = 1235
     ESNOEVENTS = 1238
     MESSAGEHANDLINGFAILURE = 1240
-
     CHKSUMNOTSUP = 1242
     NOUSERTARBALL = 1246
 
@@ -123,6 +120,7 @@ class ErrorCodes:
         NOVOMSPROXY: "Voms proxy not valid",
         GETGLOBUSSYSERR: "Globus system error during stage-in",
         PUTGLOBUSSYSERR: "Globus system error during stage-out",
+        ZEROFILESIZE: "File size cannot be zero",
         MKDIR: "Failed to create local directory",
         KILLSIGNAL: "Job terminated by unknown kill signal",
         SIGTERM: "Job killed by signal: SIGTERM",
@@ -137,7 +135,7 @@ class ErrorCodes:
         REACHEDMAXTIME: "Reached batch system time limit",
         FILEEXITS: "File already exists",
         BADALLOC: "Transform failed due to bad_alloc",
-        CHKSUMNOTSUP: "Mover error: query checksum is not supported",
+        CHKSUMNOTSUP: "Query checksum is not supported",
         NOUSERTARBALL: "User tarball could not be downloaded from PanDA server",
         ESRECOVERABLE: "Event service: recoverable error",
         ESFATAL: "Event service: fatal error",

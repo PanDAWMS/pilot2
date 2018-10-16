@@ -860,6 +860,7 @@ def _stage_out_all(job, args):  ### NOT USED - TO BE DEPRECATED
 
     log = get_logger(job.jobid)
     outputs = {}
+    failed = False
 
     if job.stageout == 'log':
         log.info('will stage-out log file')
@@ -887,21 +888,26 @@ def _stage_out_all(job, args):  ### NOT USED - TO BE DEPRECATED
                     f.filesize = get_local_file_size(os.path.join(job.workdir, f.lfn))
                     if f.filesize:
                         log.info('set file size for %s to %d B' % (f.lfn, f.filesize))
-                outputs[f.lfn] = {'scope': f.scope, 'name': f.lfn, 'guid': f.guid, 'bytes': f.filesize}
+                if f.filesize == 0:
+                    log.fatal('output file has size zero: %s' % f.lfn)
+                    failed = True
+                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.ZEROFILESIZE)
+                else:
+                    outputs[f.lfn] = {'scope': f.scope, 'name': f.lfn, 'guid': f.guid, 'bytes': f.filesize}
             log.info('outputs=%s' % str(outputs))
         else:
             log.warning('job object does not contain a job report (payload failed?) and is not a build job '
                         '- will only stage-out log file')
 
     fileinfodict = {}
-    failed = False
 
     # stage-out output files first, wait with log
-    for outfile in outputs:
-        status = single_stage_out(args, job, outputs[outfile], fileinfodict)
-        if not status:
-            failed = True
-            log.warning('transfer of output file(s) failed')
+    if not failed:
+        for outfile in outputs:
+            status = single_stage_out(args, job, outputs[outfile], fileinfodict)
+            if not status:
+                failed = True
+                log.warning('transfer of output file(s) failed')
 
     # proceed with log transfer
     # consider only 1st available log file
