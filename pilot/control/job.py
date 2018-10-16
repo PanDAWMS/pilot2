@@ -100,18 +100,20 @@ def control(queues, traces, args):
 
 def _validate_job(job):
     """
-    (add description)
+    Verify job parameters for specific problems.
 
     :param job: job object.
-    :return:
+    :return: Boolean.
     """
-    # valid = random.uniform(0, 100)
-    # if valid > 99:
-    #     logger.warning('%s: job did not validate correctly -- skipping' % job.jobid)
-    #     job['errno'] = random.randint(0, 100)
-    #     job['errmsg'] = 'job failed random validation'
-    #     return False
-    return True
+
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+    if user.verify_job(job):
+        status = True
+    else:
+        status = False
+
+    return status
 
 
 def send_state(job, args, state, xml=None):

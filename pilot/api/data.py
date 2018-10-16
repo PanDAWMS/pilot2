@@ -629,7 +629,6 @@ class StageOutClient(StagingClient):
             if not fspec.filesize:
                 fspec.filesize = os.path.getsize(pfn)
 
-            fspec.filesize = 0
             if fspec.filesize == 0:
                 msg = 'output file has size zero: %s' % fspec.lfn
                 self.logger.fatal(msg)
