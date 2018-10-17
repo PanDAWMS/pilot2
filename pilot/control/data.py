@@ -746,7 +746,7 @@ def _do_stageout(job, xdata, activity, title):
     """
 
     log = get_logger(job.jobid)
-    log.info('prepare to stage-out %s file(s)' % title)
+    log.info('prepare to stage-out %d %s file(s)' % (len(xdata), title))
 
     try:
         client = StageOutClient(job.infosys, logger=log)

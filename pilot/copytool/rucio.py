@@ -14,8 +14,8 @@ import re
 import json
 import logging
 
+from .common import resolve_common_transfer_errors, verify_catalog_checksum
 from pilot.common.exception import PilotException, ErrorCodes
-from pilot.copytool.common import verify_catalog_checksum
 from pilot.util.container import execute
 
 logger = logging.getLogger(__name__)

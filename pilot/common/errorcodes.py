@@ -93,6 +93,7 @@ class ErrorCodes:
     RUCIOSERVICEUNAVAILABLE = 1316
     EXCEEDEDMAXWAITTIME = 1317
     COMMUNICATIONFAILURE = 1318
+    INTERNALPILOTPROBLEM = 1319
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -165,6 +166,7 @@ class ErrorCodes:
         RUCIOSERVICEUNAVAILABLE: "Rucio: Service unavailable",
         EXCEEDEDMAXWAITTIME: "Exceeded maximum waiting time",
         COMMUNICATIONFAILURE: "Failed to communicate with server",
+        INTERNALPILOTPROBLEM: "An internal Pilot problem has occurred (consult Pilot log)",
     }
 
     def get_kill_signal_error_code(self, signal):

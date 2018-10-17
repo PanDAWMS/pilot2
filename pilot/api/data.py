@@ -320,6 +320,8 @@ class StagingClient(object):
                 import traceback
                 self.logger.error(traceback.format_exc())
                 caught_errors.append(e)
+            else:
+                self.logger.debug('transfer_files() completed with result=%s' % str(result))
 
             if caught_errors and isinstance(caught_errors[-1], PilotException) and \
                     caught_errors[-1].get_error_code() == ErrorCodes.MISSINGOUTPUTFILE:
@@ -333,6 +335,8 @@ class StagingClient(object):
                 code = caught_errors[0].get_error_code()
             else:
                 code = None
+            self.logger.fatal('caught_errors=%s' % str(caught_errors))
+            self.logger.fatal('code=%s' % str(code))
             raise PilotException('failed to transfer files using copytools=%s, error=%s' % (copytools, caught_errors),
                                  code=code)
 
@@ -657,7 +661,7 @@ class StageOutClient(StagingClient):
                 # take first available protocol for copytool: FIX ME LATER if need (do iterate over all allowed protocols?)
                 protocol = protocols[0]
 
-                self.logger.info("Resolved protocol to be used for transfer: data=%s" % protocol)
+                self.logger.info("resolved protocol to be used for transfer: data=%s" % protocol)
 
                 resolve_surl = getattr(copytool, 'resolve_surl', None)
                 if not callable(resolve_surl):
@@ -674,13 +678,18 @@ class StageOutClient(StagingClient):
             self.logger.debug('Input: %s' % files)
             raise PilotException('Invalid input for transfer operation')
 
-        self.logger.info('Ready to transfer (stage-out) files: %s' % files)
+        self.logger.info('ready to transfer (stage-out) files: %s' % files)
 
         if self.infosys:
             kwargs['copytools'] = self.infosys.queuedata.copytools
 
             # some copytools will need to know endpoint specifics (e.g. the space token) stored in ddmconf, add it
             kwargs['ddmconf'] = self.infosys.resolve_storage_data()
+
+        if files == []:
+            msg = 'nothing to stage-out - an internal Pilot error has occurred'
+            self.logger.fatal(msg)
+            raise PilotException(msg, code=errors.INTERNALPILOTPROBLEM)
 
         return copytool.copy_out(files, **kwargs)
 
