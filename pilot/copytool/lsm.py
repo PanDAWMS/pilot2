@@ -101,7 +101,7 @@ def copy_in(files, **kwargs):
         if exit_code != 0:
             logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
 
-            error = resolve_transfer_error(stderr, is_stagein=True)
+            error = resolve_common_transfer_errors(stderr, is_stagein=True)
             fspec.status = 'failed'
             fspec.status_code = error.get('exit_code')
             raise PilotException(error.get('error'), code=error.get('exit_code'), state=error.get('state'))
@@ -115,18 +115,6 @@ def copy_in(files, **kwargs):
         fspec.status = 'transferred'
 
     return files
-
-
-def resolve_transfer_error(output, is_stagein=True):
-    """
-    Resolve error code, client state and defined error message from the output of transfer command
-
-    :param output: command output (string).
-    :param is_stagein: boolean, True for stage-in.
-    :return: dict {'rcode', 'state, 'error'}
-    """
-
-    return resolve_common_transfer_errors(output, is_stagein=is_stagein)
 
 
 def copy_out(files, **kwargs):
@@ -177,7 +165,7 @@ def copy_out(files, **kwargs):
             exit_code, stdout, stderr = move(source, destination, dst_in=False, copysetup=copysetup, options=opts)
 
             if exit_code != 0:
-                error = resolve_transfer_error(stderr, is_stagein=False)
+                error = resolve_common_transfer_errors(stderr, is_stagein=False)
                 fspec.status = 'failed'
                 fspec.status_code = error.get('exit_code')
                 raise PilotException(error.get('error'), code=error.get('exit_code'), state=error.get('state'))

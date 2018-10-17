@@ -110,6 +110,9 @@ def verify_setup_command(cmd):
     exit_code, stdout, stderr = execute(cmd, timeout=5 * 60)
     if exit_code != 0:
         if "No release candidates found" in stdout:
+            logger.info('exit_code=%d' % exit_code)
+            logger.info('stdout=%s' % stdout)
+            logger.info('stderr=%s' % stderr)
             ec = errors.NORELEASEFOUND
             diagnostics = stdout + stderr
 
@@ -944,7 +947,8 @@ def get_redundants():
                 "madevent",
                 "*proxy",
                 "ckpt*",
-                "runcontainer"]
+                "runcontainer",
+                "*job.log.tgz"]
 
     return dir_list
 

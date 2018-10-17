@@ -152,26 +152,6 @@ def copy_out(files, **kwargs):
     return files
 
 
-def resolve_transfer_error(output, is_stagein):
-    """
-        Resolve error code, client state and defined error mesage from the output of transfer command
-        :return: dict {'rcode', 'state, 'error'}
-    """
-
-    ret = {'rcode': ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
-           'state': 'COPY_ERROR', 'error': 'Copy operation failed [is_stagein=%s]: %s' % (is_stagein, output)}
-
-    for line in output.split('\n'):
-        m = re.search("Details\s*:\s*(?P<error>.*)", line)
-        if m:
-            ret['error'] = m.group('error')
-        elif 'service_unavailable' in line:
-            ret['error'] = 'service_unavailable'
-            ret['rcode'] = ErrorCodes.RUCIOSERVICEUNAVAILABLE
-
-    return ret
-
-
 def copy_out_old(files):   ### NOT USED - TO BE DEPRECATED
     """
     Tries to upload the given files using rucio
