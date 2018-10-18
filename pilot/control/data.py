@@ -791,6 +791,11 @@ def _stage_out_new(job, args):
     add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEOUT, time.time(), args)
 
     is_success = True
+
+    if not job.outdata:
+        log.info('this job does not have any output files, only stage-out log file')
+        job.stageout = 'log'
+
     if job.stageout != 'log':  ## do stage-out output files
         if not _do_stageout(job, job.outdata, ['pw', 'w'], 'output'):
             is_success = False

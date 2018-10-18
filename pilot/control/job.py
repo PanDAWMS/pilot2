@@ -612,22 +612,40 @@ def get_job_definition_from_server(args):
     return res
 
 
+def locate_job_definition(args):
+    """
+    Locate the job definition file among standard locations.
+
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
+    :return: path (string).
+    """
+
+    paths = [os.path.join("%s/.." % args.sourcedir, config.Pilot.pandajobdata),
+             os.path.join(args.sourcedir, config.Pilot.pandajobdata),
+             os.path.join(os.environ['PILOT_WORK_DIR'], config.Pilot.pandajobdata)]
+
+    path = ""
+    for _path in paths:
+        if os.path.exists(path):
+            path = _path
+            break
+
+    if path == "":
+        logger.info('did not find any local job definition file')
+
+    return path
+
+
 def get_job_definition(args):
     """
     Get a job definition from a source (server or pre-placed local file).
+
     :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return: job definition dictionary.
     """
 
     res = {}
-
-    path = os.path.join(os.environ['PILOT_WORK_DIR'], config.Pilot.pandajobdata)
-
-    if not os.path.exists(path):
-        _path = path
-        path = os.path.join(args.sourcedir, config.Pilot.pandajobdata)
-        if not os.path.exists(path):
-            logger.warning('Job definition file does not exist at %s or at %s' % (_path, path))
+    path = locate_job_definition(args)
 
     # should we run a norma 'real' job or with a 'fake' job?
     if config.Pilot.pandajob == 'fake':
