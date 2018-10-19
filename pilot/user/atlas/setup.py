@@ -12,6 +12,7 @@ import re
 from time import sleep
 
 from pilot.common.errorcodes import ErrorCodes
+from pilot.common.exception import NoSoftwareDir
 from pilot.info import infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
@@ -102,6 +103,7 @@ def get_asetup(asetup=True, alrb=False):
 
     :param asetup: Boolean. True value means that the pilot should include the asetup command.
     :param alrb: Boolean. True value means that the function should return special setup used with ALRB and containers.
+    :raises: NoSoftwareDir if appdir does not exist.
     :return: asetup (string).
     """
 
@@ -118,6 +120,11 @@ def get_asetup(asetup=True, alrb=False):
         if appdir == "":
             appdir = os.environ.get('VO_ATLAS_SW_DIR', '')
         if appdir != "":
+            # make sure that the appdir exists
+            if not os.path.exists(appdir):
+                msg = 'appdir does not exist: %s' % appdir
+                logger.warning(msg)
+                raise NoSoftwareDir(msg)
             if asetup:
                 cmd = "source %s/scripts/asetup.sh" % appdir
 
