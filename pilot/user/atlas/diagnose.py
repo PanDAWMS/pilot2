@@ -88,6 +88,10 @@ def interpret_payload_exit_info(job):
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NFSSQLITE)
         return
 
+    # set a general Pilot error code if the payload error could not be identified
+    if job.transexitcode != 0:
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.UNKNOWNPAYLOADFAILURE)
+
 
 def is_out_of_memory(job):
     """
