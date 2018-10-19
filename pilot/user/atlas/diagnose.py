@@ -13,6 +13,7 @@ import re
 from glob import glob
 
 from pilot.common.errorcodes import ErrorCodes
+from pilot.common.exception import PilotException, BadXML
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 from pilot.util.filehandling import get_guid, tail, grep, open_file, read_file, write_file
@@ -51,7 +52,12 @@ def interpret(job):
         set_error_nousertarball(job)
 
     # extract special information, e.g. number of events
-    extract_special_information(job)
+    try:
+        extract_special_information(job)
+    except PilotException as error:
+        log.error('PilotException caught while extracting special job information: %s' % error)
+        exit_code = error.get_error_code()
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
 
     # interpret the exit info from the payload
     interpret_payload_exit_info(job)
@@ -224,10 +230,16 @@ def find_number_of_events_in_xml(job):
     Try to find the number of events in the metadata.xml file.
 
     :param job: job object.
+    :raises: BadXML exception if metadata cannot be parsed.
     :return:
     """
 
-    metadata = get_metadata_from_xml(job.workdir)
+    try:
+        metadata = get_metadata_from_xml(job.workdir)
+    except Exception as e:
+        msg = "Exception caught while interpreting XML: %s" % e
+        raise BadXML(msg)
+
     if metadata:
         nevents = get_total_number_of_events(metadata)
         if nevents > 0:
