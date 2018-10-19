@@ -796,42 +796,6 @@ def _stage_out_new(job, args):
     return is_success
 
 
-def single_stage_out(args, job, outputs_outfile, fileinfodict):
-    """
-    Perform stage-out for single file and populate the outputs and fileinfodict dictionaries.
-
-    :param args: pilot arguments
-    :param job: job object
-    :param outputs_output: output file dictionary entry
-    :param fileinfodict: file metadata dictionary
-    :return: status (boolean)
-    """
-
-    status = True
-    log = get_logger(job.jobid)
-
-    # this doesn't work since scope is added above, but scope is not present in outFiles
-    # if outfile not in job['outFiles']:
-    #     continue
-    summary = _stage_out(args, outputs_outfile, job)
-    log.info('stage-out finished for %s (summary=%s)' % (outputs_outfile, str(summary)))
-
-    if summary is not None:
-        outputs_outfile['pfn'] = summary['%s:%s' % (outputs_outfile['scope'], outputs_outfile['name'])]['pfn']
-        outputs_outfile['adler32'] = summary['%s:%s' % (outputs_outfile['scope'],
-                                                        outputs_outfile['name'])]['adler32']
-
-        filedict = {'guid': outputs_outfile['guid'],
-                    'fsize': outputs_outfile['bytes'],
-                    'adler32': outputs_outfile['adler32'],
-                    'surl': outputs_outfile['pfn']}
-        fileinfodict[outputs_outfile['name']] = filedict
-    else:
-        status = False
-
-    return status
-
-
 def queue_monitoring(queues, traces, args):
     """
     Monitoring of Data queues.
