@@ -597,10 +597,11 @@ def get_panda_tracer_log(job):
     if os.path.exists(tracerlog):
         # only add if file is not empty
         if os.path.getsize(tracerlog) > 0:
-            message = "PandaID=%s had outbound connections" % (job.jobid)
+            message = "PandaID=%s had outbound connections: " % (job.jobid)
             extracts += message
             message = read_file(tracerlog)
             extracts += message
+            log.warning(message)
         else:
             log.info("PanDA tracer log (%s) has zero size (no outbound connections detected)" % tracerlog)
     else:
