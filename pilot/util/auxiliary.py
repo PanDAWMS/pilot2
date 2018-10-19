@@ -142,7 +142,7 @@ def shell_exit_code(exit_code):
         errors.UNKNOWNEXCEPTION: [70, "Exception caught by pilot"],  # same as ERR_PILOTEXC?
         # errors.QUEUEDATA: [71, "Pilot could not download queuedata"],
         # errors.QUEUEDATANOTOK: [72, "Pilot found non-valid queuedata"],
-        # errors.NOSOFTWAREDIR: [73, "Software directory does not exist"],
+        errors.NOSOFTWAREDIR: [73, "Software directory does not exist"],
         errors.KILLSIGNAL: [137, "General kill signal"],  # Job terminated by unknown kill signal
         errors.SIGTERM: [143, "Job killed by signal: SIGTERM"],  # 128+15
         errors.SIGQUIT: [131, "Job killed by signal: SIGQUIT"],  # 128+3
