@@ -121,65 +121,6 @@ def use_container(cmd):
     return usecontainer
 
 
-def _call(args, executable, job, cwd=os.getcwd(), logger=logger):  ### TO BE DEPRECATED
-
-    log = get_logger(job.jobid)
-    try:
-        # for containers, we can not use a list
-        usecontainer = use_container(executable[1])
-        if usecontainer:
-            executable = ' '.join(executable)
-            executable = prepare_for_container(job.workdir) + executable
-
-        process = execute(executable, workdir=job.workdir, returnproc=True,
-                          usecontainer=usecontainer, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, job=job)
-
-    except Exception as e:
-        log.error('could not execute: %s' % str(e))
-        return False
-
-    log.info('started -- pid=%s executable=%s' % (process.pid, executable))
-
-    breaker = False
-    exit_code = None
-    while True:
-        for i in xrange(10):
-            if args.graceful_stop.is_set():
-                breaker = True
-                log.debug('breaking: sending SIGTERM pid=%s' % process.pid)
-                process.terminate()
-                break
-            time.sleep(0.1)
-        if breaker:
-            log.debug('breaking: sleep 3s before sending SIGKILL pid=%s' % process.pid)
-            time.sleep(3)
-            process.kill()
-            break
-
-        exit_code = process.poll()
-        if exit_code is not None:
-            break
-        else:
-            continue
-
-    log.info('finished -- pid=%s exit_code=%s' % (process.pid, exit_code))
-    stdout, stderr = process.communicate()
-    log.debug('stdout:\n%s' % stdout)
-    log.debug('stderr:\n%s' % stderr)
-
-    # in case of problems, try to identify the error (and set it in the job object)
-    if stderr != "":
-        # rucio stage-out error
-        if "Operation timed out" in stderr:
-            log.warning('rucio stage-in error identified - problem with local storage, stage-in timed out')
-            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINTIMEOUT)
-
-    if exit_code == 0:
-        return True
-    else:
-        return False
-
-
 def _stage_in(args, job):
     """
         :return: True in case of success
