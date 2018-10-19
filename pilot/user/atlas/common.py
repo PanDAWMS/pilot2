@@ -948,8 +948,12 @@ def get_redundants():
                 "madevent",
                 "*proxy",
                 "ckpt*",
-                "runcontainer",
-                "*job.log.tgz"]
+                "*runcontainer*",
+                "*job.log.tgz",
+                "runGen-*",
+                "runAthena-*",
+                "/pandawnutil/*",
+                "/src/*"]
 
     return dir_list
 
