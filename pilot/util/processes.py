@@ -33,6 +33,9 @@ def find_processes_in_group(cpids, pid):
     :return: (updated cpids input parameter list).
     """
 
+    if not pid:
+        return
+
     cpids.append(pid)
 
     cmd = "ps -eo pid,ppid -m | grep %d" % pid
@@ -143,6 +146,9 @@ def kill_processes(pid):
         find_processes_in_group(children, pid)
 
         # reverse the process order so that the athena process is killed first (otherwise the stdout will be truncated)
+        if not children:
+            return
+
         children.reverse()
         logger.info("process IDs to be killed: %s (in reverse order)" % str(children))
 
