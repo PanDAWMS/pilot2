@@ -390,13 +390,17 @@ def get_job_label(args):
     Return a proper job label.
     The function returns a job label that corresponds to the actual pilot version, ie if the pilot is a development
     version (ptest or rc_test2) or production version (managed or user).
+    Example: -i RC -> job_label = rc_test2.
+    NOTE: it should be enough to only use the job label, -j rc_test2 (and not specify -i RC at all).
 
     :param args: pilot args object.
     :return: job_label (string).
     """
 
-    if args.version_tag.startswith('RC'):
+    if args.version_tag == 'RC' and args.job_label == 'ptest':
         job_label = 'rc_test2'
+    elif args.version_tag == 'RCM' and args.job_label == 'ptest':
+        job_label = 'rcm_test2'
     else:
         job_label = args.job_label
 
