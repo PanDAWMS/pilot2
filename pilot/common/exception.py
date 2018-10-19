@@ -310,6 +310,16 @@ class ExceededMaxWaitTime(PilotException):
         self._message = errors.get_error_message(self._errorCode)
 
 
+class BadXML(PilotException):
+    """
+    Badly formed XML.
+    """
+    def __init__(self, *args, **kwargs):
+        super(BadXML, self).__init__(args, kwargs)
+        self._errorCode = errors.BADXML
+        self._message = errors.get_error_message(self._errorCode)
+
+
 class ExcThread(threading.Thread):
     """
     Support class that allows for catching exceptions in threads.
