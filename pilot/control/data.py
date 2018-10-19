@@ -85,20 +85,6 @@ def control(queues, traces, args):
             #abort_jobs_in_queues(queues, args.signal)
 
 
-def prepare_for_container(workdir):
-    """
-    Prepare the executable for using a container.
-    The function adds necessary setup variables to the executable.
-    WARNING: CURRENTLY ATLAS SPECIFIC
-
-    :param workdir: working directory of the job (string).
-    :return: setup string to be prepended to the executable.
-    """
-
-    from pilot.user.atlas.setup import get_asetup
-    return get_asetup(asetup=False) + 'lsetup rucio;'
-
-
 def use_container(cmd):
     """
     Should the pilot use a container for the stage-in/out?
