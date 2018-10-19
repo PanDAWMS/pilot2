@@ -73,6 +73,7 @@ class ErrorCodes:
     CHKSUMNOTSUP = 1242
     NORELEASEFOUND = 1244
     NOUSERTARBALL = 1246
+    BADXML = 1247
 
     # Error code constants (new since Pilot 2)
     NOTIMPLEMENTED = 1300
@@ -142,6 +143,7 @@ class ErrorCodes:
         CHKSUMNOTSUP: "Query checksum is not supported",
         NORELEASEFOUND: "No release candidates found",
         NOUSERTARBALL: "User tarball could not be downloaded from PanDA server",
+        BADXML: "Badly formed XML",
         ESRECOVERABLE: "Event service: recoverable error",
         ESFATAL: "Event service: fatal error",
         EXECUTEDCLONEJOB: "Clone job is already executed",
