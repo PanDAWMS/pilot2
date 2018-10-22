@@ -630,7 +630,7 @@ def locate_job_definition(args):
 
     path = ""
     for _path in paths:
-        if os.path.exists(path):
+        if os.path.exists(_path):
             path = _path
             break
 
