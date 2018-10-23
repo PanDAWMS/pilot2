@@ -364,3 +364,27 @@ def timing_report(job_id, args):
     log.info('.' * 30)
 
     return time_getjob, time_stagein, time_payload, time_stageout, time_total_setup
+
+
+def get_time_stamp(t0=None):
+    """
+    Return a time stamp.
+    The function uses os.times() to get the current time stamp.
+    If t0 is provided, the returned time stamp is relative to t0. t0 is assumed to be an os.times() tuple.
+
+    :param t0: os.times() tuple for the t0 time stamp.
+    :return: time stamp (int).
+    """
+
+    if t0 and type(t0) == tuple:
+        try:
+            _t0 = int(t0[4])
+        except Exception as e:
+            logger.warning('unknown timing format for t0: %s' % e)
+            _t0 = 0
+    else:
+        _t0 = 0
+
+    t = int(os.times()[4])
+
+    return t - _t0
