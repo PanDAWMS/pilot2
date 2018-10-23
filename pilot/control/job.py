@@ -891,7 +891,8 @@ def retrieve(queues, traces, args):
                 time.sleep(1)
         else:
             # it seems the PanDA server returns StatusCode as an int, but the aCT returns it as a string
-            if res['StatusCode'] != '0' and res['StatusCode'] != 0:
+            # note: StatusCode keyword is not available in job definition files from Harvester (not needed)
+            if 'StatusCode' in res and res['StatusCode'] != '0' and res['StatusCode'] != 0:
                 logger.warning('did not get a job -- sleep 60s and repeat -- status: %s' % res['StatusCode'])
                 for i in xrange(60):
                     if args.graceful_stop.is_set():
