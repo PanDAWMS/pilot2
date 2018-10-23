@@ -38,7 +38,7 @@ from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.proxy import get_distinguished_name
-from pilot.util.queuehandling import scan_for_jobs
+from pilot.util.queuehandling import scan_for_jobs, put_to_queue
 from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, is_virtual_machine
 
@@ -909,7 +909,8 @@ def retrieve(queues, traces, args):
 
                 # add the job definition to the jobs queue and increase the job counter,
                 # and wait until the job has finished
-                queues.jobs.put(job)
+                #queues.jobs.put(job)
+                put_to_queue(job, queues.jobs)
 
                 jobnumber += 1
                 while not args.graceful_stop.is_set():
@@ -1425,5 +1426,6 @@ def make_job_report(job):
     log.info('pgrp: %s' % str(job.pgrp))
     log.info('corecount: %d' % job.corecount)
     log.info('event service: %s' % str(job.is_eventservice))
+    log.info('sizes: %s' % str(job.sizes))
     log.info('--------------------------------------------------')
     log.info('')

@@ -13,8 +13,8 @@ The implementation of data structure to host Job definition.
 
 The main reasons for such incapsulation are to
  - apply in one place all data validation actions (for attributes and values)
- - introduce internal information schema (names of attribues) to remove dependency
- with data structrure, formats, names from external source (PanDA)
+ - introduce internal information schema (names of attributes) to remove dependency
+ with data structure, formats, names from external source (PanDA)
 
 :author: Alexey Anisenkov
 :contact: anisyonk@cern.ch
@@ -26,11 +26,13 @@ import re
 import ast
 import shlex
 import pipes
+from sys import getsizeof
 
 from .basedata import BaseData
 from .filespec import FileSpec
 from pilot.util.constants import LOG_TRANSFER_NOT_DONE
 from pilot.util.filehandling import get_guid
+from pilot.util.timing import get_time_stamp
 
 import logging
 logger = logging.getLogger(__name__)
@@ -701,3 +703,21 @@ class JobData(BaseData):
                     self.jobparams = self.jobparams.replace('%s=' % job_option, '')
                 self.jobparams = self.jobparams.replace('--autoConfiguration=everything', '')
                 logger.info("jobparams after processing writeToFile: %s" % self.jobparams)
+
+    def measure_size(self):
+        """
+        Add a size measurement to the sizes field at the current time stamp.
+        A size measurement is in Bytes.
+
+        :return:
+        """
+
+        # is t0 set? if not, set it
+        if not self.t0:
+            self.t0 = os.times()
+
+        # get the current time stamp relative to t0
+        time_stamp = get_time_stamp(t0=self.t0)
+
+        # add a data point to the sizes dictionary
+        self.sizes[time_stamp] = getsizeof(self)

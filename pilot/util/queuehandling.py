@@ -112,3 +112,17 @@ def abort_jobs_in_queues(queues, sig):
         log = get_logger(job.jobid)
         log.info('aborting job %s' % (job.jobid))
         declare_failed_by_kill(job, queues.failed_jobs, sig)
+
+
+def put_to_queue(job, queue):
+    """
+    Put the job object in the given queue.
+    The function also updates the job object size.
+
+    :param job: job object.
+    :param queue: queue object.
+    :return:
+    """
+
+    job.measure_size()
+    queue.put(job)
