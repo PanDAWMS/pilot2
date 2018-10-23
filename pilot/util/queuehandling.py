@@ -114,7 +114,7 @@ def abort_jobs_in_queues(queues, sig):
         declare_failed_by_kill(job, queues.failed_jobs, sig)
 
 
-def put_to_queue(job, queue):
+def put_in_queue(job, queue):
     """
     Put the job object in the given queue.
     The function also updates the job object size.

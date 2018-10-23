@@ -26,12 +26,12 @@ import re
 import ast
 import shlex
 import pipes
-from sys import getsizeof
 
 from .basedata import BaseData
 from .filespec import FileSpec
 from pilot.util.constants import LOG_TRANSFER_NOT_DONE
 from pilot.util.filehandling import get_guid
+from pilot.util.math import get_size
 from pilot.util.timing import get_time_stamp
 
 import logging
@@ -720,4 +720,4 @@ class JobData(BaseData):
         time_stamp = get_time_stamp(t0=self.t0)
 
         # add a data point to the sizes dictionary
-        self.sizes[time_stamp] = getsizeof(self)
+        self.sizes[time_stamp] = get_size(self)

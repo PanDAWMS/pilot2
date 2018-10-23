@@ -38,7 +38,7 @@ from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.proxy import get_distinguished_name
-from pilot.util.queuehandling import scan_for_jobs, put_to_queue
+from pilot.util.queuehandling import scan_for_jobs, put_in_queue
 from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, is_virtual_machine
 
@@ -325,21 +325,23 @@ def validate(queues, traces, args):
                 job.workdir = job_dir
             except Exception as e:
                 log.debug('cannot create working directory: %s' % str(e))
-                queues.failed_jobs.put(job)
+                #queues.failed_jobs.put(job)
+                put_in_queue(job, queues.failed_jobs)
                 break
 
             log.debug('symlinking pilot log')
             try:
                 os.symlink('../pilotlog.txt', os.path.join(job_dir, 'pilotlog.txt'))
             except Exception as e:
-                log.debug('cannot symlink pilot log: %s' % str(e))
-#                queues.failed_jobs.put(job)
-#                break
+                log.warning('cannot symlink pilot log: %s' % str(e))
 
-            queues.validated_jobs.put(job)
+            #queues.validated_jobs.put(job)
+            put_in_queue(job, queues.validated_jobs)
+
         else:
             log.debug('Failed to validate job=%s' % job.jobid)
-            queues.failed_jobs.put(job)
+            #queues.failed_jobs.put(job)
+            put_in_queue(job, queues.failed_jobs)
 
 
 def create_data_payload(queues, traces, args):
@@ -360,12 +362,17 @@ def create_data_payload(queues, traces, args):
 
         if job.indata:
             # if the job has input data, put the job object in the data_in queue which will trigger stage-in
-            queues.data_in.put(job)
+            #queues.data_in.put(job)
+            put_in_queue(job, queues.data_in)
+
         else:
             # if the job does not have any input data, then pretend that stage-in has finished and put the job
             # in the finished_data_in queue
-            queues.finished_data_in.put(job)
-        queues.payloads.put(job)
+            #queues.finished_data_in.put(job)
+            put_in_queue(job, queues.finished_data_in)
+
+        #queues.payloads.put(job)
+        put_in_queue(job, queues.payloads)
 
 
 def get_task_id():
@@ -912,7 +919,7 @@ def retrieve(queues, traces, args):
                 # add the job definition to the jobs queue and increase the job counter,
                 # and wait until the job has finished
                 #queues.jobs.put(job)
-                put_to_queue(job, queues.jobs)
+                put_in_queue(job, queues.jobs)
 
                 jobnumber += 1
                 while not args.graceful_stop.is_set():
@@ -1084,7 +1091,9 @@ def order_log_transfer(args, queues, job):
 
     # add the job object to the data_out queue to have it staged out
     job.stageout = 'log'  # only stage-out log file
-    queues.data_out.put(job)
+    #queues.data_out.put(job)
+    put_in_queue(job, queues.data_out)
+
     log.info('job added to data_out queue')
 
     # wait for the log transfer to finish
@@ -1211,7 +1220,8 @@ def queue_monitor(queues, traces, args):
             else:
                 logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
                 # now ready for the next job (or quit)
-                queues.completed_jobs.put(_job)
+                #queues.completed_jobs.put(_job)
+                put_in_queue(job, queues.completed_jobs)
 
         if abort:
             break
@@ -1351,7 +1361,9 @@ def job_monitor(queues, traces, args):
                 if exit_code != 0:
                     jobs[i].state = 'failed'
                     jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
-                    queues.failed_payloads.put(jobs[i])
+                    #queues.failed_payloads.put(jobs[i])
+                    put_in_queue(jobs[i], queues.failed_payloads)
+
                     log.info('aborting job monitoring since job state=%s' % jobs[i].state)
                     break
 
