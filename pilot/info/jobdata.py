@@ -31,7 +31,6 @@ from .basedata import BaseData
 from .filespec import FileSpec
 from pilot.util.constants import LOG_TRANSFER_NOT_DONE
 from pilot.util.filehandling import get_guid
-from pilot.util.math import get_size
 from pilot.util.timing import get_time_stamp
 
 import logging
@@ -704,7 +703,7 @@ class JobData(BaseData):
                 self.jobparams = self.jobparams.replace('--autoConfiguration=everything', '')
                 logger.info("jobparams after processing writeToFile: %s" % self.jobparams)
 
-    def measure_size(self):
+    def add_size(self, size):
         """
         Add a size measurement to the sizes field at the current time stamp.
         A size measurement is in Bytes.
@@ -720,4 +719,4 @@ class JobData(BaseData):
         time_stamp = get_time_stamp(t0=self.t0)
 
         # add a data point to the sizes dictionary
-        self.sizes[time_stamp] = get_size(self)
+        self.sizes[time_stamp] = size

@@ -11,6 +11,7 @@ import time
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import get_logger
+from pilot.util.math import get_size
 
 import logging
 logger = logging.getLogger(__name__)
@@ -124,5 +125,6 @@ def put_in_queue(job, queue):
     :return:
     """
 
-    job.measure_size()
+    size = get_size(job)
+    job.add_size(size)
     queue.put(job)
