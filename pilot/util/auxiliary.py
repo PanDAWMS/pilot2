@@ -11,7 +11,7 @@ import os
 import sys
 
 from numbers import Number
-from collections import Set, Mapping, deque
+from collections import Set, Mapping, deque, OrderedDict
 
 try: # Python 2
     zero_depth_bases = (basestring, Number, xrange, bytearray)
@@ -172,17 +172,18 @@ def get_size(obj_0):
 
         _seen_ids.add(obj_id)
         size = sys.getsizeof(obj)
-        logger.debug('object type=%s size=%d' % (str(type(obj)), size))
         if isinstance(obj, zero_depth_bases):
             pass # bypass remaining control flow and return
+        elif isinstance(obj, OrderedDict):
+            pass  # can currently not handle this
         elif isinstance(obj, (tuple, list, Set, deque)):
             size += sum(inner(i) for i in obj)
         elif isinstance(obj, Mapping) or hasattr(obj, iteritems):
             try:
                 size += sum(inner(k) + inner(v) for k, v in getattr(obj, iteritems)())
             except Exception as e:
-                logger.debug('exception caught: %s' % e)
-                fail
+                logger.debug('exception caught for obj=%s: %s' % (str(obj), e))
+
         # Check for custom object instances - may subclass above too
         if hasattr(obj, '__dict__'):
             size += inner(vars(obj))

@@ -143,21 +143,12 @@ class StagingClient(object):
 
         try:
             query = bquery.copy()
-            if allow_remoteinput:
-                location = self.detect_client_location()
-                if not location:
-                    raise Exception("Failed to get client location for Rucio")
-                query.update(sort='geoip', client_location=location)
-
-            try:
-                logger.info('Call rucio.list_replicas() with query=%s' % query)
-                replicas = c.list_replicas(**query)
-            except TypeError as e:
-                if query == bquery:
-                    raise
-                logger.warning("Detected outdated Rucio list_replicas(), cannot do geoip-sorting: %s .. fallback to old list_replicas() call" % e)
-                replicas = c.list_replicas(**bquery)
-
+            location = self.detect_client_location()
+            if not location:
+                raise PilotException("Failed to get client location for Rucio")
+            query.update(sort='geoip', client_location=location)
+            logger.info('calling rucio.list_replicas() with query=%s' % query)
+            replicas = c.list_replicas(**query)
         except Exception as e:
             raise PilotException("Failed to get replicas from Rucio: %s" % e)  #, code=ErrorCodes.XX__FAILEDLFCGETREPS)
 
