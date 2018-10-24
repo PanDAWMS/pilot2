@@ -26,6 +26,7 @@ from pilot.util.auxiliary import get_logger
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
 from pilot.util.filehandling import read_file
+from pilot.util.queuehandling import put_in_queue
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
 
@@ -98,9 +99,11 @@ def validate_pre(queues, traces, args):
             continue
 
         if _validate_payload(job):
-            queues.validated_payloads.put(job)
+            #queues.validated_payloads.put(job)
+            put_in_queue(job, queues.validated_payloads)
         else:
-            queues.failed_payloads.put(job)
+            #queues.failed_payloads.put(job)
+            put_in_queue(job, queues.failed_payloads)
 
 
 def _validate_payload(job):
@@ -156,7 +159,8 @@ def execute_payloads(queues, traces, args):
             q_snapshot = list(queues.finished_data_in.queue)
             peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
             if len(peek) == 0:
-                queues.validated_payloads.put(job)
+                #queues.validated_payloads.put(job)
+                put_in_queue(job, queues.validated_payloads)
                 for i in xrange(10):
                     if args.graceful_stop.is_set():
                         break
@@ -164,7 +168,8 @@ def execute_payloads(queues, traces, args):
                 continue
 
             # this job is now to be monitored, so add it to the monitored_payloads queue
-            queues.monitored_payloads.put(job)
+            #queues.monitored_payloads.put(job)
+            put_in_queue(job, queues.monitored_payloads)
 
             log.info('job %s added to monitored payloads queue' % job.jobid)
 
@@ -192,7 +197,8 @@ def execute_payloads(queues, traces, args):
 
             if exit_code == 0:
                 job.transexitcode = 0
-                queues.finished_payloads.put(job)
+                #queues.finished_payloads.put(job)
+                put_in_queue(job, queues.finished_payloads)
             else:
                 stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
                 if stderr != "":
@@ -203,7 +209,8 @@ def execute_payloads(queues, traces, args):
                 if ec != 0:
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
                 job.transexitcode = exit_code % 255
-                queues.failed_payloads.put(job)
+                #queues.failed_payloads.put(job)
+                put_in_queue(job, queues.failed_payloads)
 
         except queue.Empty:
             continue
@@ -211,7 +218,8 @@ def execute_payloads(queues, traces, args):
             logger.fatal('execute payloads caught an exception (cannot recover): %s, %s' % (e, traceback.format_exc()))
             if job:
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADEXECUTIONEXCEPTION)
-                queues.failed_payloads.put(job)
+                #queues.failed_payloads.put(job)
+                put_in_queue(job, queues.failed_payloads)
             while not args.graceful_stop.is_set():
                 # let stage-out of log finish, but stop running payloads as there should be a problem with the pilot
                 time.sleep(5)
@@ -252,10 +260,12 @@ def validate_post(queues, traces, args):
 
         if exit_code != 0:
             log.debug('adding job to failed_payloads queue')
-            queues.failed_payloads.put(job)
+            #queues.failed_payloads.put(job)
+            put_in_queue(job, queues.failed_payloads)
         else:
             log.debug('adding job to data_out queue')
-            queues.data_out.put(job)
+            #queues.data_out.put(job)
+            put_in_queue(job, queues.data_out)
 
     logger.info('validate_post has finished')
 
@@ -281,4 +291,5 @@ def failed_post(queues, traces, args):
         log.debug('adding log for log stageout')
 
         job.stageout = 'log'  # only stage-out log file
-        queues.data_out.put(job)
+        #queues.data_out.put(job)
+        put_in_queue(job, queues.data_out)

@@ -39,7 +39,7 @@ from pilot.util.container import execute
 from pilot.util.filehandling import find_executable, get_guid, get_local_file_size, remove
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.tracereport import TraceReport
-from pilot.util.queuehandling import declare_failed_by_kill
+from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
 
 import logging
 
@@ -382,7 +382,8 @@ def copytool_in(queues, traces, args):
                     declare_failed_by_kill(job, queues.failed_data_in, args.signal)
                     break
 
-                queues.finished_data_in.put(job)
+                #queues.finished_data_in.put(job)
+                put_in_queue(job, queues.finished_data_in)
 
                 # now create input file metadata if required by the payload
                 try:
@@ -398,7 +399,8 @@ def copytool_in(queues, traces, args):
                 log.warning('stage-in failed, adding job object to failed_data_in queue (will take a 1 minute nap)')
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINFAILED)
                 job.state = "failed"
-                queues.failed_data_in.put(job)
+                #queues.failed_data_in.put(job)
+                put_in_queue(job, queues.failed_data_in)
                 time.sleep(60)
                 args.graceful_stop.set()
                 # send_state(job, args, 'failed')
@@ -455,10 +457,12 @@ def copytool_out(queues, traces, args):
                         #declare_failed_by_kill(job, queues.failed_data_out, args.signal)
                         break
 
-                    queues.finished_data_out.put(job)
+                    #queues.finished_data_out.put(job)
+                    put_in_queue(job, queues.finished_data_out)
                     log.debug('job object added to finished_data_out queue')
                 else:
-                    queues.failed_data_out.put(job)
+                    #queues.failed_data_out.put(job)
+                    put_in_queue(job, queues.failed_data_out)
                     log.debug('job object added to failed_data_out queue')
             else:
                 log.debug('no returned job - why no exception?')
@@ -724,10 +728,12 @@ def queue_monitoring(queues, traces, args):
             if not _stage_out_new(job, args):
                 log.info("job %s failed during stage-in and stage-out of log, adding job object to failed_data_outs "
                          "queue" % job.jobid)
-                queues.failed_data_out.put(job)
+                #queues.failed_data_out.put(job)
+                put_in_queue(job, queues.failed_data_out)
             else:
                 log.info("job %s failed during stage-in, adding job object to failed_jobs queue" % job.jobid)
-                queues.failed_jobs.put(job)
+                #queues.failed_jobs.put(job)
+                put_in_queue(job, queues.failed_jobs)
 
         # monitor the finished_data_out queue
         try:
@@ -740,10 +746,12 @@ def queue_monitoring(queues, traces, args):
             # use the payload/transform exitCode from the job report if it exists
             if job.transexitcode == 0 and job.exitcode == 0 and job.piloterrorcodes == []:
                 log.info('finished stage-out for finished payload, adding job to finished_jobs queue')
-                queues.finished_jobs.put(job)
+                #queues.finished_jobs.put(job)
+                put_in_queue(job, queues.finished_jobs)
             else:
                 log.info('finished stage-out (of log) for failed payload')
-                queues.failed_jobs.put(job)
+                #queues.failed_jobs.put(job)
+                put_in_queue(job, queues.failed_jobs)
 
         # monitor the failed_data_out queue
         try:
@@ -763,7 +771,8 @@ def queue_monitoring(queues, traces, args):
                 log.info("job %s failed during stage-out of data file(s) - stage-out of log succeeded, adding job "
                          "object to failed_jobs queue" % job.jobid)
 
-            queues.failed_jobs.put(job)
+            #queues.failed_jobs.put(job)
+            put_in_queue(job, queues.failed_jobs)
 
         if abort:
             break

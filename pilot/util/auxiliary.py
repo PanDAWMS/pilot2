@@ -172,14 +172,16 @@ def get_size(obj_0):
 
         _seen_ids.add(obj_id)
         size = sys.getsizeof(obj)
-
+        logger.debug('object type=%s size=%d' % (str(type(obj)), size))
         if isinstance(obj, zero_depth_bases):
             pass # bypass remaining control flow and return
         elif isinstance(obj, (tuple, list, Set, deque)):
             size += sum(inner(i) for i in obj)
         elif isinstance(obj, Mapping) or hasattr(obj, iteritems):
-            size += sum(inner(k) + inner(v) for k, v in getattr(obj, iteritems)())
-
+            try:
+                size += sum(inner(k) + inner(v) for k, v in getattr(obj, iteritems)())
+            except Exception:
+                pass
         # Check for custom object instances - may subclass above too
         if hasattr(obj, '__dict__'):
             size += inner(vars(obj))
