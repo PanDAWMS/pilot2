@@ -11,10 +11,10 @@ from os import environ
 from os.path import join
 from socket import gethostname
 
-from pilot.util.filehandling import write_json, touch, remove
-from pilot.util.config import config
 from pilot.common.exception import FileHandlingFailure
-from pilot.util.auxiliary import time_stamp
+from pilot.util.config import config
+from pilot.util.filehandling import write_json, touch, remove
+from pilot.util.timing import time_stamp
 
 import logging
 logger = logging.getLogger(__name__)

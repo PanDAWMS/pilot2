@@ -9,7 +9,6 @@
 
 import os
 import sys
-import time
 
 from numbers import Number
 from collections import Set, Mapping, deque
@@ -29,23 +28,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 errors = ErrorCodes()
-
-
-def time_stamp():
-    """
-    Return ISO-8601 compliant date/time format
-
-    :return: time information
-    """
-
-    tmptz = time.timezone
-    sign_str = '+'
-    if tmptz > 0:
-        sign_str = '-'
-    tmptz_hours = int(tmptz / 3600)
-
-    return str("%s%s%02d:%02d" % (time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime()), sign_str, abs(tmptz_hours),
-                                  int(tmptz / 60 - tmptz_hours * 60)))
 
 
 def get_batchsystem_jobid():

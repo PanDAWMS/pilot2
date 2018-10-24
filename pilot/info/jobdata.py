@@ -31,7 +31,7 @@ from .basedata import BaseData
 from .filespec import FileSpec
 from pilot.util.constants import LOG_TRANSFER_NOT_DONE
 from pilot.util.filehandling import get_guid
-from pilot.util.timing import get_time_stamp
+from pilot.util.timing import get_elapsed_real_time
 
 import logging
 logger = logging.getLogger(__name__)
@@ -716,7 +716,7 @@ class JobData(BaseData):
             self.t0 = os.times()
 
         # get the current time stamp relative to t0
-        time_stamp = get_time_stamp(t0=self.t0)
+        time_stamp = get_elapsed_real_time(t0=self.t0)
 
         # add a data point to the sizes dictionary
         self.sizes[time_stamp] = size

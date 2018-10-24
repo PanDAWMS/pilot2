@@ -7,13 +7,14 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
+from pilot.common.errorcodes import ErrorCodes
+from pilot.util.auxiliary import whoami, get_logger
+from pilot.util.config import config
 from pilot.util.container import execute
-from pilot.util.auxiliary import time_stamp, whoami, get_logger
+from pilot.util.filehandling import remove_files
 from pilot.util.parameters import convert_to_int
 from pilot.util.processes import kill_processes
-from pilot.util.filehandling import remove_files
-from pilot.util.config import config
-from pilot.common.errorcodes import ErrorCodes
+from pilot.util.timing import time_stamp
 
 import os
 import time
