@@ -174,7 +174,7 @@ class GenericExecutor(BaseExecutor):
             file_data = {'scope': 'transient',
                          'lfn': os.path.basename(output_file),
                          }
-            file_spec = FileSpec(type='output', **file_data)
+            file_spec = FileSpec(filetype='output', **file_data)
             xdata = [file_spec]
             client = StageOutESClient(job.infosys, logger=log)
             kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)

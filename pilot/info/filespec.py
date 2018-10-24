@@ -53,7 +53,7 @@ class FileSpec(BaseData):
     storage_token = ""  # prodDBlockToken = ""      # moved from Pilot1: suggest proper internal name (storage token?)
 
     ## local keys
-    type = ''          # type of File: input, output of log
+    filetype = ''      # type of File: input, output of log
     replicas = None    # list of resolved input replicas
     protocols = None   # list of preferred protocols for requested activity
     surl = ''          # source url
@@ -69,18 +69,18 @@ class FileSpec(BaseData):
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['filesize', 'mtime', 'status_code'],
              str: ['lfn', 'guid', 'checksum', 'scope', 'dataset', 'ddmendpoint',
-                   'type', 'surl', 'turl', 'status', 'workdir', 'accessmode', 'allowremoteinputs', 'storage_token'],
+                   'filetype', 'surl', 'turl', 'status', 'workdir', 'accessmode', 'allowremoteinputs', 'storage_token'],
              list: ['replicas', 'inputddms'],
              bool: []
              }
 
-    def __init__(self, type='input', **data):  ## FileSpec can be split into FileSpecInput + FileSpecOuput classes in case of significant logic changes
+    def __init__(self, filetype='input', **data):  ## FileSpec can be split into FileSpecInput + FileSpecOuput classes in case of significant logic changes
         """
             :param kwargs: input dictionary of object description
             :param type: type of File: either input, output or log
         """
 
-        self.type = type
+        self.filetype = filetype
         self.load(data)
 
         if True:  # DEBUG

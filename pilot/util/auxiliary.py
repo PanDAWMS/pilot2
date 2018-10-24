@@ -180,8 +180,9 @@ def get_size(obj_0):
         elif isinstance(obj, Mapping) or hasattr(obj, iteritems):
             try:
                 size += sum(inner(k) + inner(v) for k, v in getattr(obj, iteritems)())
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug('exception caught: %s' % e)
+                fail
         # Check for custom object instances - may subclass above too
         if hasattr(obj, '__dict__'):
             size += inner(vars(obj))

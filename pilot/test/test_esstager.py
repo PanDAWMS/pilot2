@@ -68,7 +68,7 @@ class TestStager(unittest.TestCase):
                          #'filesize': None,
                          #'checksum': None
                          }
-            file_spec = FileSpec(type='output', **file_data)
+            file_spec = FileSpec(filetype='output', **file_data)
             xdata = [file_spec]
             workdir = os.path.dirname(output_file)
             client = StageOutESClient(infoservice)
@@ -110,7 +110,7 @@ class TestStager(unittest.TestCase):
                          #'filesize': None,
                          #'checksum': None
                          }
-            file_spec = FileSpec(type='output', **file_data)
+            file_spec = FileSpec(filetype='output', **file_data)
             xdata = [file_spec]
             workdir = os.path.dirname(output_file)
             client = StageOutESClient(infoservice)
@@ -152,7 +152,7 @@ class TestStager(unittest.TestCase):
                          #'filesize': None,
                          #'checksum': None
                          }
-            file_spec = FileSpec(type='output', **file_data)
+            file_spec = FileSpec(filetype='output', **file_data)
             xdata = [file_spec]
             workdir = os.path.dirname(output_file)
             client = StageOutESClient(infoservice)
@@ -194,7 +194,7 @@ class TestStager(unittest.TestCase):
                          #'filesize': None,
                          #'checksum': None
                          }
-            file_spec = FileSpec(type='output', **file_data)
+            file_spec = FileSpec(filetype='output', **file_data)
             xdata = [file_spec]
             workdir = os.path.dirname(output_file)
             client = StageOutESClient(infoservice)
@@ -221,7 +221,7 @@ class TestStager(unittest.TestCase):
                          'lfn': file_spec.lfn,
                          'storage_token': '%s/1000' % storage_id}
         try:
-            new_file_spec = FileSpec(type='input', **new_file_data)
+            new_file_spec = FileSpec(filetype='input', **new_file_data)
 
             xdata = [new_file_spec]
             workdir = os.path.dirname(output_file)
@@ -264,7 +264,7 @@ class TestStager(unittest.TestCase):
                          #'filesize': None,
                          #'checksum': None
                          }
-            file_spec = FileSpec(type='output', **file_data)
+            file_spec = FileSpec(filetype='output', **file_data)
             xdata = [file_spec]
             workdir = os.path.dirname(output_file)
             client = StageOutESClient(infoservice)
@@ -291,7 +291,7 @@ class TestStager(unittest.TestCase):
                          'lfn': file_spec.lfn,
                          'storage_token': '%s/1000' % storage_id}
         try:
-            new_file_spec = FileSpec(type='input', **new_file_data)
+            new_file_spec = FileSpec(filetype='input', **new_file_data)
 
             xdata = [new_file_spec]
             workdir = os.path.dirname(output_file)

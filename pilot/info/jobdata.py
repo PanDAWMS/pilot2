@@ -189,7 +189,7 @@ class JobData(BaseData):
             for attrname, k in kmap.iteritems():
                 idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
             idat['accessmode'] = self.accessmode
-            finfo = FileSpec(type='input', **idat)
+            finfo = FileSpec(filetype='input', **idat)
             logger.info('added file %s' % lfn)
             ret.append(finfo)
 
@@ -251,7 +251,7 @@ class JobData(BaseData):
             elif lfn.endswith('.lib.tgz'):  # build job case, generate a guid for the lib file
                 idat['guid'] = get_guid()
 
-            finfo = FileSpec(type=ftype, **idat)
+            finfo = FileSpec(filetype=ftype, **idat)
             ret.append(finfo)
 
         return ret_output, ret_log
@@ -586,7 +586,7 @@ class JobData(BaseData):
             # job.scopeOut)
 
             for fspec in self.indata + self.outdata:
-                if fspec.type == 'input' and fspec.status != 'transferred':
+                if fspec.filetype == 'input' and fspec.status != 'transferred':
                     continue
                 pfn = os.path.join(self.workdir, fspec.lfn)
                 if not os.path.isfile(pfn):

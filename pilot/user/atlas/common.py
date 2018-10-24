@@ -591,7 +591,7 @@ def update_job_data(job):  # noqa: C901
                           'filesize': fdat['file_size'],
                           'dataset': dat.get('dataset') or job.outdata[0].dataset  ## take value from 1st output file?
                           }
-                    spec = FileSpec(type='output', **kw)
+                    spec = FileSpec(filetype='output', **kw)
                     extra.append(spec)
 
         if extra:

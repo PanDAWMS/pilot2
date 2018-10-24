@@ -226,9 +226,9 @@ def declare_output(job, work_report, worker_stageout_declaration):
         if os.path.exists(outfile):
             file_desc = {}
             if outfile == job.log_file:
-                file_desc['type'] = 'log'
+                file_desc['filetype'] = 'log'
             else:
-                file_desc['type'] = 'output'
+                file_desc['filetype'] = 'output'
             file_desc['path'] = os.path.abspath(outfile)
             file_desc['fsize'] = os.path.getsize(outfile)
             if 'guid' in job.output_files[outfile].keys():

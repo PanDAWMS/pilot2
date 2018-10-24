@@ -41,7 +41,7 @@ class StorageData(BaseData):
 
     pk = 0        # unique identification number
     name = ""     # DDMEndpoint name
-    type = ""     # type of Storage
+    storagetype = ""     # type of Storage
     token = ""    # space token descriptor
 
     is_deterministic = None
@@ -55,7 +55,7 @@ class StorageData(BaseData):
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['pk'],
-             str: ['name', 'state', 'site', 'type', 'token'],
+             str: ['name', 'state', 'site', 'storagetype', 'token'],
              dict: ['copytools', 'acopytools', 'astorages', 'arprotocols', 'rprotocols'],
              bool: ['is_deterministic']
              }
@@ -133,7 +133,7 @@ class StorageData(BaseData):
         if protocol_id is None or str(protocol_id) not in self.rprotocols.keys():
             return None
 
-        if self.type in ['OS_ES', 'OS_LOGS']:
+        if self.storagetype in ['OS_ES', 'OS_LOGS']:
             self.special_setup[protocol_id] = None
 
             settings = self.rprotocols.get(str(protocol_id), {}).get('settings', {})
