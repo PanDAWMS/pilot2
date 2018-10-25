@@ -292,10 +292,12 @@ class Executor(object):
 
         if self.setup_payload(self.__job, self.__out, self.__err):
             log.debug('running payload')
-            self.__job.state = 'running'
-            send_state(self.__job, self.__args, self.__job.state)
             proc = self.run_payload(self.__job, self.__out, self.__err)
             if proc is not None:
+                # the process is now running, update the server
+                self.__job.state = 'running'
+                send_state(self.__job, self.__args, self.__job.state)
+
                 log.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
                 self.__job.state = 'finished' if exit_code == 0 else 'failed'
