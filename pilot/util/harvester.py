@@ -13,7 +13,7 @@ from socket import gethostname
 
 from pilot.common.exception import FileHandlingFailure
 from pilot.util.config import config
-from pilot.util.filehandling import write_json, touch, remove
+from pilot.util.filehandling import write_json, touch, remove, read_json
 from pilot.util.timing import time_stamp
 
 import logging
@@ -132,3 +132,28 @@ def publish_work_report(work_report=None, worker_attributes_file="worker_attribu
             del (work_report["inputfiles"])
         if write_json(worker_attributes_file, work_report):
             logger.info("work report published: {0}".format(work_report))
+
+
+def parse_job_definition_file(filename):
+    """
+    This function parses the Harvester job definition file and re-packages the job definition dictionaries.
+    The format of the Harvester job definition dictionary is:
+    dict = { job_id: { key: value, .. }, .. }
+    The function returns a list of these dictionaries each re-packaged as
+    dict = { key: value } (where the job_id is now one of the key-value pairs: 'jobid': job_id)
+
+    :param filename: file name (string).
+    :return: list of job definition dictionaries.
+    """
+
+    job_definitions_list = []
+
+    # re-package dictionaries
+    job_definitions_dict = read_json(filename)
+    if job_definitions_dict:
+        for job_id in job_definitions_dict:
+            res = {'jobid': job_id}
+            res.update(job_definitions_dict[job_id])
+            job_definitions_list.append(res)
+
+    return job_definitions_list
