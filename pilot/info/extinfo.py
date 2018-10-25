@@ -5,6 +5,7 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 """
 Information provider from external source(s)
@@ -155,7 +156,7 @@ class ExtInfoProvider(DataLoader):
         # list of sources to fetch ddmconf data from
         sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_ddmendpoints.json',
                              'nretry': 1,
-                             'fname': os.path.join(cache_dir, 'agis_ddmendpoints.cvmfs.json')},
+                             'fname': os.path.join(cache_dir, 'agis_ddmendpoints.json')},
                    'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json&'
                                    'state=ACTIVE&preset=dict&ddmendpoint=%s' % ','.join(ddmendpoints),
                             'nretry': 3,
