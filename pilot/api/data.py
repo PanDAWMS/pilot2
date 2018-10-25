@@ -391,6 +391,39 @@ class StageInClient(StagingClient):
 
         return allow_direct_access, direct_access_type
 
+    def set_accessmodes_for_direct_access(self, files, direct_access_type):
+        """
+        Update the FileSpec accessmodes for direct access and sort the files to get candidates for remote_io coming
+        first in order to exclude them from checking of available space for stage-in.
+
+        :param files: FileSpec objects.
+        :param direct_access_type: type of direct access (LAN or WAN) (string).
+        :return:
+        """
+
+        # sort the files
+        files = sorted(files, key=lambda x: x.is_directaccess(ensure_replica=False), reverse=True)
+
+        # populate allowremoteinputs for each FileSpec object
+        for fdata in files:
+            is_directaccess = fdata.is_directaccess(ensure_replica=False)
+            if is_directaccess and direct_access_type == 'WAN':  ## is it the same for ES workflow ?? -- test and verify/FIXME LATER
+                fdata.allowremoteinputs = True
+            self.logger.info("check direct access for lfn=%s: allow_direct_access=true, fdata.is_directaccess()=%s =>"
+                             " is_directaccess=%s, allowremoteinputs=%s" % (fdata.lfn,
+                                                                            fdata.is_directaccess(ensure_replica=False),
+                                                                            is_directaccess, fdata.allowremoteinputs))
+            # must update accessmode for user jobs (it is only set already for production jobs)
+            if fdata.accessmode != 'direct' and is_directaccess:
+                fdata.accessmode = 'direct'
+
+            # reset accessmode if direct access is not to be used
+            if fdata.accessmode == 'direct' and not is_directaccess:
+                fdata.accessmode = ''
+
+            self.logger.info('accessmode for LFN=%s: %s (is_directaccess=%s)' %
+                             (fdata.lfn, fdata.accessmode, is_directaccess))
+
     def transfer_files(self, copytool, files, activity=None, **kwargs):
         """
         Automatically stage in files using the selected copy tool module.
@@ -412,25 +445,7 @@ class StageInClient(StagingClient):
         kwargs['allow_direct_access'] = allow_direct_access
 
         if allow_direct_access:
-            # sort files to get candidates for remote_io coming first in order to exclude them from checking of available space for stage-in
-            files = sorted(files, key=lambda x: x.is_directaccess(ensure_replica=False), reverse=True)
-
-            # populate allowremoteinputs for each fdata
-            for fdata in files:
-                is_directaccess = allow_direct_access and fdata.is_directaccess(ensure_replica=False)
-                if is_directaccess and direct_access_type == 'WAN':  ## is it the same for ES workflow ?? -- test and verify/FIXME LATER
-                    fdata.allowremoteinputs = True
-                self.logger.info("check direct access for lfn=%s: allow_direct_access=%s, fdata.is_directaccess()=%s =>"
-                                 " is_directaccess=%s, allowremoteinputs=%s" % (fdata.lfn, allow_direct_access,
-                                                                                fdata.is_directaccess(ensure_replica=False),
-                                                                                is_directaccess, fdata.allowremoteinputs))
-                # must update accessmode for user jobs (it is only set already for production jobs)
-                if fdata.accessmode != 'direct' and is_directaccess:
-                    fdata.accessmode = 'direct'
-                # reset accessmode if direct access is not to be used
-                if fdata.accessmode == 'direct' and not is_directaccess:
-                    fdata.accessmode = ''
-                self.logger.info('accessmode for LFN=%s: %s (is_directaccess=%s)' % (fdata.lfn, fdata.accessmode, is_directaccess))
+            self.set_accessmodes_for_direct_access(files, direct_access_type)
 
         if getattr(copytool, 'require_replicas', False) and files and files[0].replicas is None:
             files = self.resolve_replicas(files)
@@ -451,7 +466,8 @@ class StageInClient(StagingClient):
                 if r.get('ddmendpoint'):
                     fspec.ddmendpoint = r['ddmendpoint']
 
-                self.logger.info("[stage-in] found replica to be used for lfn=%s: ddmendpoint=%s, pfn=%s" % (fspec.lfn, fspec.ddmendpoint, fspec.turl))
+                self.logger.info("[stage-in] found replica to be used for lfn=%s: ddmendpoint=%s, pfn=%s" %
+                                 (fspec.lfn, fspec.ddmendpoint, fspec.turl))
 
         if not copytool.is_valid_for_copy_in(files):
             self.logger.warning('input is not valid for transfers using copytool=%s' % copytool)
@@ -464,10 +480,8 @@ class StageInClient(StagingClient):
         kwargs['activity'] = activity
 
         # mark direct access files with status=remote_io
-        for fspec in files:
-            if fspec.is_directaccess(ensure_replica=False) and allow_direct_access:
-                fspec.status_code = 0
-                fspec.status = 'remote_io'
+        if allow_direct_access:
+            self.set_status_for_direct_access(files)
 
         # verify file sizes and available space for stage-in
         self.check_availablespace([e for e in files if e.status not in ['remote_io', 'transferred']])
@@ -475,6 +489,19 @@ class StageInClient(StagingClient):
         self.logger.info('ready to transfer (stage-in) files: %s' % files)
 
         return copytool.copy_in(files, **kwargs)
+
+    def set_status_for_direct_access(self, files):
+        """
+        Update the FileSpec status with 'remote_io' for direct access mode.
+
+        :param files: FileSpec objects.
+        :return:
+        """
+
+        for fspec in files:
+            if fspec.is_directaccess(ensure_replica=False):
+                fspec.status_code = 0
+                fspec.status = 'remote_io'
 
     def check_availablespace(self, files):
         """
