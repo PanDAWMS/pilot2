@@ -104,7 +104,7 @@ def get_asetup(asetup=True, alrb=False):
     :param asetup: Boolean. True value means that the pilot should include the asetup command.
     :param alrb: Boolean. True value means that the function should return special setup used with ALRB and containers.
     :raises: NoSoftwareDir if appdir does not exist.
-    :return: asetup (string).
+    :return: source <path>/asetup.sh (string).
     """
 
     cmd = ""

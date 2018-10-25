@@ -49,6 +49,7 @@ class ErrorCodes:
     GETGLOBUSSYSERR = 1180
     PUTGLOBUSSYSERR = 1181
     NOSOFTWAREDIR = 1186
+    NOPAYLOADMETADATA = 1187
     LFNTOOLONG = 1190
     ZEROFILESIZE = 1191
     MKDIR = 1199
@@ -127,6 +128,7 @@ class ErrorCodes:
         GETGLOBUSSYSERR: "Globus system error during stage-in",
         PUTGLOBUSSYSERR: "Globus system error during stage-out",
         NOSOFTWAREDIR: "Software directory does not exist",
+        NOPAYLOADMETADATA: "Payload metadata does not exist",
         LFNTOOLONG: "LFN too long (exceeding limit of 255 characters)",
         ZEROFILESIZE: "File size cannot be zero",
         MKDIR: "Failed to create local directory",

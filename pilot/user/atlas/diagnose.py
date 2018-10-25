@@ -453,6 +453,14 @@ def process_job_report(job):
     if not os.path.exists(path):
         log.warning('job report does not exist: %s (any missing output file guids must be generated)' % path)
 
+        # get the metadata from the xml file instead, which must exist for most production transforms
+        path = os.path.join(job.workdir, config.Payload.metadata)
+        if os.path.exists(path):
+            job.metadata = read_file(path)
+        else:
+            if not job.is_analysis() and job.transformation != 'Archive_tf.py':
+                log.warning('metadata does not exist: %s' % path)
+
         # add missing guids
         for dat in job.outdata:
             if not dat.guid:
