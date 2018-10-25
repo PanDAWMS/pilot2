@@ -12,7 +12,6 @@
 import os
 import logging
 import errno
-import re
 
 from .common import get_copysetup, verify_catalog_checksum, resolve_common_transfer_errors
 from pilot.common.exception import StageInFailure, StageOutFailure, PilotException, ErrorCodes

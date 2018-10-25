@@ -10,7 +10,6 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 import os
-import re
 import json
 import logging
 

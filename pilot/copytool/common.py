@@ -10,6 +10,7 @@
 
 import logging
 import os
+import re
 
 from pilot.common.exception import ErrorCodes
 from pilot.util.filehandling import calculate_checksum, get_checksum_type, get_checksum_value

@@ -12,7 +12,6 @@
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
 
 import copy
-import json
 import os
 import subprocess
 import tarfile
@@ -35,8 +34,7 @@ from pilot.util.common import should_abort
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED
-from pilot.util.container import execute
-from pilot.util.filehandling import find_executable, get_guid, get_local_file_size, remove
+from pilot.util.filehandling import find_executable, remove
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.tracereport import TraceReport
 from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
@@ -146,15 +144,8 @@ def _stage_in(args, job):
     except PilotException as error:
         log.error('PilotException caught: %s' % error)
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())
-        #args.graceful_stop.set()
     except Exception as error:
         log.error('failed to stage-in: error=%s' % error)
-        #if 'pilot exception' in str(error):
-            #log.error('setting graceful stop since a pilot exception was caught')
-            #args.graceful_stop.set()
-        #else:
-            #log.error('did not parse error of type: %s (setting graceful stop anyway)' % type(error))
-            #args.graceful_stop.set()
 
     log.info('summary of transferred files:')
     for e in job.indata:

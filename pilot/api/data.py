@@ -139,7 +139,7 @@ class StagingClient(object):
         bquery = {'schemes': ['srm', 'root', 'davs', 'gsiftp', 'https'],
                   'dids': [dict(scope=e.scope, name=e.lfn) for e in xfiles]}
 
-        allow_remoteinput = True in set(e.allowremoteinputs for e in xfiles)  ## implement direct access later
+        #allow_remoteinput = True in set(e.allowremoteinputs for e in xfiles)  ## implement direct access later
 
         try:
             query = bquery.copy()

@@ -13,10 +13,10 @@ import sys
 from numbers import Number
 from collections import Set, Mapping, deque, OrderedDict
 
-try: # Python 2
+try:  # Python 2
     zero_depth_bases = (basestring, Number, xrange, bytearray)
     iteritems = 'iteritems'
-except NameError: # Python 3
+except NameError:  # Python 3
     zero_depth_bases = (str, bytes, Number, range, bytearray)
     iteritems = 'items'
 
@@ -173,7 +173,7 @@ def get_size(obj_0):
         _seen_ids.add(obj_id)
         size = sys.getsizeof(obj)
         if isinstance(obj, zero_depth_bases):
-            pass # bypass remaining control flow and return
+            pass  # bypass remaining control flow and return
         elif isinstance(obj, OrderedDict):
             pass  # can currently not handle this
         elif isinstance(obj, (tuple, list, Set, deque)):
@@ -187,7 +187,7 @@ def get_size(obj_0):
         # Check for custom object instances - may subclass above too
         if hasattr(obj, '__dict__'):
             size += inner(vars(obj))
-        if hasattr(obj, '__slots__'): # can have __slots__ with __dict__
+        if hasattr(obj, '__slots__'):  # can have __slots__ with __dict__
             size += sum(inner(getattr(obj, s)) for s in obj.__slots__ if hasattr(obj, s))
 
         return size
