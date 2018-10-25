@@ -459,7 +459,11 @@ def process_job_report(job):
             job.metadata = read_file(path)
         else:
             if not job.is_analysis() and job.transformation != 'Archive_tf.py':
-                log.warning('metadata does not exist: %s' % path)
+                diagnostics = 'metadata does not exist: %s' % path
+                log.warning(diagnostics)
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOPAYLOADMETADATA)
+                job.piloterrorcode = errors.NOPAYLOADMETADATA
+                job.piloterrordiag = diagnostics
 
         # add missing guids
         for dat in job.outdata:
