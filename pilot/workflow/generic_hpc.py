@@ -18,6 +18,7 @@ from collections import namedtuple
 from datetime import datetime
 
 from pilot.common.exception import FileHandlingFailure
+from pilot.util.auxiliary import set_pilot_state
 from pilot.util.config import config
 from pilot.util.constants import SUCCESS, FAILURE, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_PRE_SETUP, \
     PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT, PILOT_PRE_FINAL_UPDATE, PILOT_POST_FINAL_UPDATE
@@ -87,7 +88,7 @@ def run(args):
         worker_attributes_file = os.path.join(work_dir, worker_attributes_file)
         logger.debug("Worker attributes will be publeshied in: {0}".format(worker_attributes_file))
 
-        job.state = 'starting'
+        set_pilot_state(job=job, state="starting")
         work_report["jobStatus"] = job.state
         publish_work_report(work_report, worker_attributes_file)
 
@@ -110,7 +111,7 @@ def run(args):
         payloadstderr = open(payload_stderr_file, "w")
 
         add_to_pilot_timing(job.jobid, PILOT_PRE_PAYLOAD, time.time(), args)
-        job.state = 'running'
+        set_pilot_state(job=job, state="running")
         work_report["jobStatus"] = job.state
         work_report["startTime"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         start_time = time.asctime(time.localtime(time.time()))
@@ -131,10 +132,8 @@ def run(args):
         payloadstderr.close()
         add_to_pilot_timing(job.jobid, PILOT_POST_PAYLOAD, time.time(), args)
 
-        if exit_code == 0:
-            job.state = 'finished'
-        else:
-            job.state = 'failed'
+        state = 'finished' if exit_code == 0 else 'failed'
+        set_pilot_state(job=job, state=state)
         job.exitcode = exit_code
 
         work_report["startTime"] = job.startTime
@@ -238,7 +237,7 @@ def declare_output(job, work_report, worker_stageout_declaration):
             out_file_report[job.jobid].append(file_desc)
         else:
             logger.info("Expected output file {0} missed. Job {1} will be failed".format(outfile, job.jobid))
-            job.state = 'failed'
+            set_pilot_state(job=job, state='failed')
 
     if out_file_report[job.jobid]:
         write_json(worker_stageout_declaration, out_file_report)

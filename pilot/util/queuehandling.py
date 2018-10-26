@@ -10,7 +10,7 @@
 import time
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.util.auxiliary import get_logger, get_size
+from pilot.util.auxiliary import get_logger, get_size, set_pilot_state
 
 import logging
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ def declare_failed_by_kill(job, queue, sig):
     :return:
     """
 
-    job.state = 'failed'
+    set_pilot_state(job=job, state="failed")
     error_code = errors.get_kill_signal_error_code(sig)
     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error_code)
 

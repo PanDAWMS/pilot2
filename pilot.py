@@ -34,7 +34,7 @@ from pilot.util.workernode import is_virtual_machine
 RELEASE = '2'   # released number should be fixed at 2 for Pilot 2
 VERSION = '0'   # version number is '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
 REVISION = '0'  # revision number should be reset to '0' for every new version release, increased for small updates
-BUILD = '140'   # build number should be reset to '1' for every new development cycle
+BUILD = '141'   # build number should be reset to '1' for every new development cycle
 
 
 def pilot_version_banner():
@@ -421,6 +421,9 @@ def set_environment_variables(args, mainworkdir):
 
     # set the pilot user (e.g. ATLAS)
     environ['PILOT_USER'] = args.pilot_user  # TODO: replace with singleton
+
+    # internal pilot state
+    environ['PILOT_STATE'] = 'startup'  # TODO: replace with singleton
 
     # set the pilot version
     environ['PILOT_VERSION'] = get_pilot_version()

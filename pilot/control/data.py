@@ -29,7 +29,8 @@ from pilot.api.es_data import StageInESClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
-from pilot.util.auxiliary import get_logger  #, abort_jobs_in_queues
+from pilot.util.auxiliary import get_logger, set_pilot_state  #, abort_jobs_in_queues
+from pilot.util.auxiliary import get_logger, set_pilot_state  #, abort_jobs_in_queues
 from pilot.util.common import should_abort
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
@@ -389,7 +390,7 @@ def copytool_in(queues, traces, args):
             else:
                 log.warning('stage-in failed, adding job object to failed_data_in queue (will take a 1 minute nap)')
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINFAILED)
-                job.state = "failed"
+                set_pilot_state(job=job, state="failed")
                 #queues.failed_data_in.put(job)
                 put_in_queue(job, queues.failed_data_in)
                 time.sleep(60)
@@ -667,7 +668,7 @@ def _stage_out_new(job, args):
     if not is_success:
         # set error code + message (a more precise error code might have been set already)
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEOUTFAILED)
-        job.state = "failed"
+        set_pilot_state(job=job, state="failed")
         log.warning('stage-out failed')  # with error: %d, %s (setting job state to failed)' %
         # log.warning('stage-out failed with error: %d, %s (setting job state to failed)' %
         #  (job['pilotErrorCode'], job['pilotErrorDiag']))
@@ -677,7 +678,7 @@ def _stage_out_new(job, args):
     log.info('stage-out finished correctly')
 
     if not job.state:  # is the job state already set? if so, don't change the state
-        job.state = "finished"
+        set_pilot_state(job=job, state="finished")
 
     # send final server update since all transfers have finished correctly
     # send_state(job, args, 'finished', xml=dumps(fileinfodict))
@@ -754,7 +755,7 @@ def queue_monitoring(queues, traces, args):
 
             # attempt to upload the log in case the previous stage-out failure was not an SE error
             job.stageout = "log"
-            job.state = "failed"
+            set_pilot_state(job=job, state="failed")
             if not _stage_out_new(job, args):
                 log.info("job %s failed during stage-out of data file(s) as well as during stage-out of log, "
                          "adding job object to failed_jobs queue" % job.jobid)

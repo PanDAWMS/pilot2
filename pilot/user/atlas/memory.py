@@ -9,7 +9,7 @@
 
 from .utilities import get_memory_values
 from pilot.common.errorcodes import ErrorCodes
-from pilot.util.auxiliary import get_logger
+from pilot.util.auxiliary import get_logger, set_pilot_state
 from pilot.util.processes import kill_processes
 
 errors = ErrorCodes()
@@ -67,7 +67,7 @@ def memory_usage(job):
 
                             # Kill the job
                             kill_processes(job.pid)
-                            job.state = "failed"
+                            set_pilot_state(job=job, state="failed")
                             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADEXCEEDMAXMEM)
                         else:
                             log.info("max memory (maxPSS) used by the payload is within the allowed limit: "

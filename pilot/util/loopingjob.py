@@ -8,7 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.util.auxiliary import whoami, get_logger
+from pilot.util.auxiliary import whoami, get_logger, set_pilot_state
 from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.filehandling import remove_files
@@ -155,7 +155,7 @@ def kill_looping_job(job):
     else:
         # most likely in the 'running' state, but use the catch-all 'else'
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.LOOPINGJOB)
-    job.state = 'failed'
+    set_pilot_state(job=job, state="failed")
 
     # remove any lingering input files from the work dir
     lfns, guids = job.get_lfns_and_guids()

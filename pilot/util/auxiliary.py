@@ -193,3 +193,20 @@ def get_size(obj_0):
         return size
 
     return inner(obj_0)
+
+
+def set_pilot_state(job=None, state=''):
+    """
+    Set the internal pilot state.
+    Note: this function should update the global/singleton object but currently uses an environmental variable
+    (PILOT_STATE).
+
+    :param job: optional job object.
+    :param state: internal pilot state (string).
+    :return:
+    """
+
+    os.environ['PILOT_STATE'] = state
+
+    if job:
+        job.state = state

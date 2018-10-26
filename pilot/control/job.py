@@ -27,7 +27,7 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
 from pilot.info import infosys, JobData
 from pilot.util import https
-from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
+from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, set_pilot_state
 from pilot.util.config import config
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
@@ -161,7 +161,7 @@ def send_state(job, args, state, xml=None):
                     if res.get('command') == 'tobekilled':
                         log.info('pilot received a panda server signal to kill job %s at %s' %
                                  (job.jobid, time_stamp()))
-                        job.state = 'failed'
+                        set_pilot_state(job=job, state="failed")
                         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL)
                         args.abort_job.set()
                     elif res.get('command') == 'softkill':
@@ -1035,7 +1035,7 @@ def has_job_finished(queues):
     else:
         logger.info("job %s has finished" % job.jobid)
         # make sure that state=finished
-        job.state = 'finished'
+        set_pilot_state(job=job, state="finished")
 
     return job
 
@@ -1055,7 +1055,7 @@ def has_job_failed(queues):
     else:
         logger.info("job %s has failed" % job.jobid)
         # make sure that state=failed
-        job.state = 'failed'
+        set_pilot_state(job=job, state="failed")
 
     return job
 
@@ -1366,7 +1366,7 @@ def job_monitor(queues, traces, args):
                 # perform the monitoring tasks
                 exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
                 if exit_code != 0:
-                    jobs[i].state = 'failed'
+                    set_pilot_state(job=jobs[i], state="failed")
                     jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
                     #queues.failed_payloads.put(jobs[i])
                     put_in_queue(jobs[i], queues.failed_payloads)

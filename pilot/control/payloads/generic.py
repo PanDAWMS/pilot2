@@ -18,7 +18,7 @@ from subprocess import PIPE
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.control.job import send_state
-from pilot.util.auxiliary import get_logger
+from pilot.util.auxiliary import get_logger, set_pilot_state
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED, \
     UTILITY_AFTER_PAYLOAD_FINISHED, PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD
@@ -295,12 +295,13 @@ class Executor(object):
             proc = self.run_payload(self.__job, self.__out, self.__err)
             if proc is not None:
                 # the process is now running, update the server
-                self.__job.state = 'running'
+                set_pilot_state(job=self.__job, state="running")
                 send_state(self.__job, self.__args, self.__job.state)
 
                 log.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
-                self.__job.state = 'finished' if exit_code == 0 else 'failed'
+                state = 'finished' if exit_code == 0 else 'failed'
+                set_pilot_state(job=self.__job, state=state)
                 log.info('finished pid=%s exit_code=%s state=%s' % (proc.pid, exit_code, self.__job.state))
 
                 if exit_code is None:
