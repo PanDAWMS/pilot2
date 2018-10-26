@@ -53,7 +53,7 @@ def copy_in(files, **kwargs):
             continue
 
         dst = fspec.workdir or kwargs.get('workdir') or '.'
-        cmd = ['/usr/bin/env', 'rucio', '-v', 'download', '--no-subdir', '--dir', dst]
+        cmd = ['/usr/bin/env', 'rucio', '-v', 'download', '--no-subdir', '--dir', dst, '--pfn', fspec.turl]
         if require_replicas:
             cmd += ['--rse', fspec.replicas[0][0]]
         cmd += ['%s:%s' % (fspec.scope, fspec.lfn)]
