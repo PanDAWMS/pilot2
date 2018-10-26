@@ -34,7 +34,7 @@ from pilot.util.workernode import is_virtual_machine
 RELEASE = '2'   # released number should be fixed at 2 for Pilot 2
 VERSION = '0'   # version number is '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
 REVISION = '0'  # revision number should be reset to '0' for every new version release, increased for small updates
-BUILD = '141'   # build number should be reset to '1' for every new development cycle
+BUILD = '142'   # build number should be reset to '1' for every new development cycle
 
 
 def pilot_version_banner():
@@ -101,6 +101,9 @@ def main():
     if not args.workflow == "generic_hpc":  # set_location does not work well for hpc workflow
         if not set_location(args):  # ## DEPRECATE ME LATER
             return False
+        else:
+            # set the site name for rucio
+            environ['PILOT_RUCIO_SITENAME'] = args.location.site
 
     # initialize InfoService and populate args.info structure
     set_info(args)

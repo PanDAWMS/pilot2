@@ -234,7 +234,7 @@ class StagingClient(object):
         """
 
         ret = {}
-        site = os.environ.get('PILOT_SITENAME', 'unknown')
+        site = os.environ.get('PILOT_RUCIO_SITENAME', 'unknown')
         try:
             import socket
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
