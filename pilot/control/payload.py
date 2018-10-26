@@ -195,11 +195,10 @@ def execute_payloads(queues, traces, args):
             out.close()
             err.close()
 
-            if exit_code == 0:
-                job.transexitcode = 0
-                #queues.finished_payloads.put(job)
-                put_in_queue(job, queues.finished_payloads)
-            else:
+            job.transexitcode = exit_code % 255
+
+            if exit_code != 0:
+                log.warning('main payload execution returned non-zero exit code: %d' % exit_code)
                 stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
                 if stderr != "":
                     msg = errors.extract_stderr_msg(stderr)
@@ -208,7 +207,27 @@ def execute_payloads(queues, traces, args):
                 ec = errors.resolve_transform_error(exit_code, stderr)
                 if ec != 0:
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
-                job.transexitcode = exit_code % 255
+                else:
+                    log.warning('initial error analysis did not resolve the issue')
+            else:
+                log.info('main payload execution returned zero exit code, but will check it more carefully')
+
+            # analyze and interpret the payload execution output
+            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+            user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
+            try:
+                exit_code_interpret = user.interpret(job)
+            except Exception as e:
+                log.warning('exception caught: %s' % e)
+                exit_code_interpret = -1
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.INTERNALPILOTPROBLEM)
+
+            if exit_code_interpret == 0 and exit_code == 0:
+                log.info('main payload error analysis completed - did not find any errors')
+                # queues.finished_payloads.put(job)
+                put_in_queue(job, queues.finished_payloads)
+            else:
+                log.debug('main payload error analysis completed - adding job to failed_payloads queue')
                 #queues.failed_payloads.put(job)
                 put_in_queue(job, queues.failed_payloads)
 
@@ -248,25 +267,10 @@ def validate_post(queues, traces, args):
 
         # by default, both output and log should be staged out
         job.stageout = 'all'
-
-        # analyze and interpret the payload execution output
-        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-        user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
-        try:
-            exit_code = user.interpret(job)
-        except Exception as e:
-            log.warning('exception caught: %s' % e)
-            exit_code = -1
-
-        if exit_code != 0:
-            log.debug('adding job to failed_payloads queue')
-            #queues.failed_payloads.put(job)
-            put_in_queue(job, queues.failed_payloads)
-        else:
-            log.debug('adding job to data_out queue')
-            #queues.data_out.put(job)
-            set_pilot_state(job=job, state='stageout')
-            put_in_queue(job, queues.data_out)
+        log.debug('adding job to data_out queue')
+        #queues.data_out.put(job)
+        set_pilot_state(job=job, state='stageout')
+        put_in_queue(job, queues.data_out)
 
     logger.info('validate_post has finished')
 
