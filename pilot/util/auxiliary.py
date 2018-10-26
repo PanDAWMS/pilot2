@@ -200,6 +200,7 @@ def set_pilot_state(job=None, state=''):
     Set the internal pilot state.
     Note: this function should update the global/singleton object but currently uses an environmental variable
     (PILOT_STATE).
+    The function does not update job.state if it is already set to finished or failed.
 
     :param job: optional job object.
     :param state: internal pilot state (string).
@@ -208,5 +209,5 @@ def set_pilot_state(job=None, state=''):
 
     os.environ['PILOT_STATE'] = state
 
-    if job:
+    if job and job.state != 'finished' and job.state != 'failed':
         job.state = state

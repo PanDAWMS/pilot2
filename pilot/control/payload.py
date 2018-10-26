@@ -265,6 +265,7 @@ def validate_post(queues, traces, args):
         else:
             log.debug('adding job to data_out queue')
             #queues.data_out.put(job)
+            set_pilot_state(job=job, state='stageout')
             put_in_queue(job, queues.data_out)
 
     logger.info('validate_post has finished')
@@ -292,4 +293,5 @@ def failed_post(queues, traces, args):
 
         job.stageout = 'log'  # only stage-out log file
         #queues.data_out.put(job)
+        set_pilot_state(job=job, state='stageout')
         put_in_queue(job, queues.data_out)

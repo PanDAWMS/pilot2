@@ -363,6 +363,7 @@ def create_data_payload(queues, traces, args):
         if job.indata:
             # if the job has input data, put the job object in the data_in queue which will trigger stage-in
             #queues.data_in.put(job)
+            set_pilot_state(job=job, state='stagein')
             put_in_queue(job, queues.data_in)
 
         else:
@@ -1099,6 +1100,7 @@ def order_log_transfer(args, queues, job):
     # add the job object to the data_out queue to have it staged out
     job.stageout = 'log'  # only stage-out log file
     #queues.data_out.put(job)
+    set_pilot_state(job=job, state='stageout')
     put_in_queue(job, queues.data_out)
 
     log.info('job added to data_out queue')
@@ -1382,10 +1384,12 @@ def job_monitor(queues, traces, args):
                     send_state(jobs[i], args, 'running')
                     update_time = int(time.time())
 
+        elif os.environ.get('PILOT_STATE') == 'stagein':
+            logger.info('job monitoring is waiting for stage-in to finish')
         else:
             waiting_time = int(time.time()) - peeking_time
             msg = 'no jobs in monitored_payloads queue (waited for %d s)' % waiting_time
-            if waiting_time > 120:
+            if waiting_time > 60 * 10:
                 abort = True
                 msg += ' - aborting'
             else:
