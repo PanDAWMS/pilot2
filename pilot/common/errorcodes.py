@@ -30,6 +30,8 @@ class ErrorCodes:
     STDOUTTOOBIG = 1106
     SETUPFAILURE = 1110
     NFSSQLITE = 1115
+    QUEUEDATA = 1116
+    QUEUEDATANOTOK = 1117
     OUTPUTFILETOOLARGE = 1124
     STAGEOUTFAILED = 1137
     PUTMD5MISMATCH = 1141
@@ -109,6 +111,8 @@ class ErrorCodes:
         STDOUTTOOBIG: "Payload log or stdout file too big",
         SETUPFAILURE: "Failed during payload setup",
         NFSSQLITE: "NFS SQLite locking problems",
+        QUEUEDATA: "Pilot could not download queuedata",
+        QUEUEDATANOTOK: "Pilot found non-valid queuedata",
         OUTPUTFILETOOLARGE: "Output file too large",
         STAGEOUTFAILED: "Failed to stage-out file",
         PUTMD5MISMATCH: "md5sum mismatch on output file",
