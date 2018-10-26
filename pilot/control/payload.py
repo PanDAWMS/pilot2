@@ -22,7 +22,7 @@ except Exception:
 
 from pilot.control.payloads import generic, eventservice, eventservicemerge
 from pilot.control.job import send_state
-from pilot.util.auxiliary import get_logger
+from pilot.util.auxiliary import get_logger, set_pilot_state
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
 from pilot.util.filehandling import read_file
