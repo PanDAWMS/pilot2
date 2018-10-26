@@ -263,6 +263,8 @@ class ErrorCodes:
             ec = self.SINGULARITYNOLOOPDEVICES
         elif exit_code == 255 and "Failed to mount image" in stderr:
             ec = self.SINGULARITYIMAGEMOUNTFAILURE
+        elif exit_code == 255 and "Operation not permitted" in stderr:
+            ec = self.SINGULARITYGENERALFAILURE
         elif exit_code == -1:
             ec = self.UNKNOWNTRFFAILURE
         else:
