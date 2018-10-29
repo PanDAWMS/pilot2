@@ -1368,38 +1368,20 @@ def job_monitor(queues, traces, args):
                 # perform the monitoring tasks
                 exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
                 if exit_code != 0:
-                    set_pilot_state(job=jobs[i], state="failed")
-                    jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
-                    #queues.failed_payloads.put(jobs[i])
-                    put_in_queue(jobs[i], queues.failed_payloads)
-
-                    log.info('aborting job monitoring since job state=%s' % jobs[i].state)
+                    fail_monitored_job(jobs[i], exit_code, diagnostics, queues)
                     break
 
                 # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
                 # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
-                period = get_heartbeat_period(jobs[i].debug)
-                now = int(time.time())
-                if now - update_time >= period:
+                if int(time.time()) - update_time >= get_heartbeat_period(jobs[i].debug):
                     send_state(jobs[i], args, 'running')
                     update_time = int(time.time())
 
         elif os.environ.get('PILOT_STATE') == 'stagein':
             logger.info('job monitoring is waiting for stage-in to finish')
         else:
-            waiting_time = int(time.time()) - peeking_time
-            msg = 'no jobs in monitored_payloads queue (waited for %d s)' % waiting_time
-            if waiting_time > 60 * 10:
-                abort = True
-                msg += ' - aborting'
-            else:
-                abort = False
-            if logger:
-                logger.warning(msg)
-            else:
-                print(msg)
-            if abort:
-                args.graceful_stop.set()
+            # check the waiting time in the job monitor. set global graceful_stop if necessary
+            check_job_monitor_waiting_time(args, peeking_time)
 
         n += 1
 
@@ -1407,6 +1389,52 @@ def job_monitor(queues, traces, args):
             break
 
     logger.info('job monitor has finished')
+
+
+def check_job_monitor_waiting_time(args, peeking_time):
+    """
+    Check the waiting time in the job monitor.
+    Set global graceful_stop if necessary.
+
+    :param args: args object.
+    :param peeking_time: time when monitored_payloads queue was peeked into (int).
+    :return:
+    """
+
+    waiting_time = int(time.time()) - peeking_time
+    msg = 'no jobs in monitored_payloads queue (waited for %d s)' % waiting_time
+    if waiting_time > 60 * 10:
+        abort = True
+        msg += ' - aborting'
+    else:
+        abort = False
+    if logger:
+        logger.warning(msg)
+    else:
+        print(msg)
+    if abort:
+        args.graceful_stop.set()
+
+
+def fail_monitored_job(job, exit_code, diagnostics, queues):
+    """
+    Fail a monitored job.
+
+    :param job: job object
+    :param exit_code: exit code from job_monitor_tasks
+    :param diagnostics:
+    :param queues:
+    :return:
+    """
+
+    log = get_logger(jobs[i].jobid)
+
+    set_pilot_state(job=job, state="failed")
+    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
+    job.pilorerrordiag = diagnostics
+    # queues.failed_payloads.put(job)
+    put_in_queue(job, queues.failed_payloads)
+    log.info('aborting job monitoring since job state=%s' % job.state)
 
 
 def make_job_report(job):
