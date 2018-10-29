@@ -230,6 +230,8 @@ def set_cpu_consumption_time(job):
     :return:
     """
 
+    log = get_logger(job.jobid, logger)
+
     cpuconsumptiontime = get_cpu_consumption_time(job.t0)
     job.cpuconsumptiontime = int(round(cpuconsumptiontime))
     job.cpuconsumptionunit = "s"
