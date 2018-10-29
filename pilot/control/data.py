@@ -28,7 +28,7 @@ from pilot.api.data import StageInClient, StageOutClient
 from pilot.api.es_data import StageInESClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import ExcThread, PilotException
+from pilot.common.exception import ExcThread, PilotException, LogFileCreationFailure
 from pilot.util.auxiliary import get_logger, set_pilot_state  #, abort_jobs_in_queues
 from pilot.util.common import should_abort
 from pilot.util.config import config
@@ -514,6 +514,7 @@ def create_log(job, logfile, tarball_name):
     :param job:
     :param logfile:
     :param tarball_name:
+    :raises LogFileCreationFailure: in case of log file creation problem
     :return:
     """
 
@@ -545,8 +546,11 @@ def create_log(job, logfile, tarball_name):
     fullpath = os.path.join(job.workdir, logfile.lfn)  # /some/path/to/dirname/log.tgz
 
     log.info('will create archive %s' % fullpath)
-    with closing(tarfile.open(name=fullpath, mode='w:gz', dereference=True)) as archive:
-        archive.add(os.path.basename(job.workdir), recursive=True)
+    try:
+        with closing(tarfile.open(name=fullpath, mode='w:gz', dereference=True)) as archive:
+            archive.add(os.path.basename(job.workdir), recursive=True)
+    except Exception as e:
+        raise LogFileCreationFailure(e)
 
     log.debug('renaming %s back to %s' % (job.workdir, orgworkdir))
     try:
@@ -571,7 +575,6 @@ def _do_stageout(job, xdata, activity, title):
     :param xdata: list of FileSpec objects.
     :param activity:
     :param title: type of stage-out (output, log) (string).
-    :raise: PilotException in case of controlled error
     :return: True in case of success transfers
     """
 

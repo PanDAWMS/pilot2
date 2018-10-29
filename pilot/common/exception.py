@@ -330,6 +330,16 @@ class NoSoftwareDir(PilotException):
         self._message = errors.get_error_message(self._errorCode)
 
 
+class LogFileCreationFailure(PilotException):
+    """
+    Software applications directory does not exist.
+    """
+    def __init__(self, *args, **kwargs):
+        super(LogFileCreationFailure, self).__init__(args, kwargs)
+        self._errorCode = errors.LOGFILECREATIONFAILURE
+        self._message = errors.get_error_message(self._errorCode)
+
+
 class ExcThread(threading.Thread):
     """
     Support class that allows for catching exceptions in threads.
