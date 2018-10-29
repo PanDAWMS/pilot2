@@ -32,7 +32,7 @@ from pilot.util.config import config
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED
-from pilot.util.filehandling import get_files, tail, is_json
+from pilot.util.filehandling import get_files, tail, is_json, copy, remove
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file
 from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
@@ -590,6 +590,11 @@ def get_job_definition_from_file(path, harvester):
                 logger.warning('no jobs were found in Harvester job definitions file: %s' % path)
                 return {}
             else:
+                # remove the job definition file from the original location, place a renamed copy in the pilot dir
+                new_path = os.path.join(os.environ.get('PILOT_HOME'), 'job_definition.json')
+                copy(path, new_path)
+                remove(path)
+
                 # note: the pilot can only handle one job at the time from Harvester
                 return job_definition_list[0]
 

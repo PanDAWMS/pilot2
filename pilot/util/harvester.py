@@ -8,7 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 from os import environ
-from os.path import join
+from os.path import join, exists
 from socket import gethostname
 
 from pilot.common.exception import FileHandlingFailure
@@ -56,8 +56,11 @@ def remove_job_request_file():
     """
 
     path = get_job_request_file_name()
-    if remove(path) == 0:
-        logger.info('removed %s' % path)
+    if exists(path):
+        if remove(path) == 0:
+            logger.info('removed %s' % path)
+    else:
+        logger.debug('there is no job request file')
 
 
 def request_new_jobs(njobs=1):
