@@ -1427,7 +1427,7 @@ def fail_monitored_job(job, exit_code, diagnostics, queues):
     :return:
     """
 
-    log = get_logger(jobs[i].jobid)
+    log = get_logger(job.jobid)
 
     set_pilot_state(job=job, state="failed")
     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
