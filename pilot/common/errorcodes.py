@@ -100,6 +100,7 @@ class ErrorCodes:
     EXCEEDEDMAXWAITTIME = 1317
     COMMUNICATIONFAILURE = 1318
     INTERNALPILOTPROBLEM = 1319
+    LOGFILECREATIONFAILURE = 1320
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -179,6 +180,7 @@ class ErrorCodes:
         EXCEEDEDMAXWAITTIME: "Exceeded maximum waiting time",
         COMMUNICATIONFAILURE: "Failed to communicate with server",
         INTERNALPILOTPROBLEM: "An internal Pilot problem has occurred (consult Pilot log)",
+        LOGFILECREATIONFAILURE: "Failed during creation of log file",
     }
 
     def get_kill_signal_error_code(self, signal):
