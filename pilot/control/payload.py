@@ -184,35 +184,14 @@ def execute_payloads(queues, traces, args):
             # run the payload and measure the execution time
             job.t0 = os.times()
             exit_code = payload_executor.run()
-
-            cpuconsumptiontime = get_cpu_consumption_time(job.t0)
-            job.cpuconsumptiontime = int(round(cpuconsumptiontime))
-            job.cpuconsumptionunit = "s"
-            job.cpuconversionfactor = 1.0
-            log.info('CPU consumption time: %f %s (rounded to %d %s)' %
-                     (cpuconsumptiontime, job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconsumptionunit))
+            set_cpu_consumption_time(job)
+            job.transexitcode = exit_code % 255
 
             out.close()
             err.close()
 
-            job.transexitcode = exit_code % 255
-
-            if exit_code != 0:
-                log.warning('main payload execution returned non-zero exit code: %d' % exit_code)
-                stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
-                if stderr != "":
-                    msg = errors.extract_stderr_msg(stderr)
-                    if msg != "":
-                        log.warning("extracted message from stderr:\n%s" % msg)
-                ec = errors.resolve_transform_error(exit_code, stderr)
-                if ec != 0:
-                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
-                else:
-                    log.warning('initial error analysis did not resolve the issue')
-            else:
-                log.info('main payload execution returned zero exit code, but will check it more carefully')
-
             # analyze and interpret the payload execution output
+            perform_initial_payload_error_analysis(job, exit_code)
             pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
             user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
             try:
@@ -242,6 +221,51 @@ def execute_payloads(queues, traces, args):
             while not args.graceful_stop.is_set():
                 # let stage-out of log finish, but stop running payloads as there should be a problem with the pilot
                 time.sleep(5)
+
+
+def set_cpu_consumption_time(job):
+    """
+    Set the CPU consumption time.
+    :param job: job object.
+    :return:
+    """
+
+    log = get_logger(job.jobid, logger)
+
+    cpuconsumptiontime = get_cpu_consumption_time(job.t0)
+    job.cpuconsumptiontime = int(round(cpuconsumptiontime))
+    job.cpuconsumptionunit = "s"
+    job.cpuconversionfactor = 1.0
+    log.info('CPU consumption time: %f %s (rounded to %d %s)' %
+             (cpuconsumptiontime, job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconsumptionunit))
+
+
+def perform_initial_payload_error_analysis(job, exit_code):
+    """
+    Perform an initial analysis of the payload.
+    Singularity errors are caught here.
+
+    :param job: job object.
+    :param exit_code: exit code from payload execution.
+    :return:
+    """
+
+    log = get_logger(job.jobid, logger)
+
+    if exit_code != 0:
+        log.warning('main payload execution returned non-zero exit code: %d' % exit_code)
+        stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
+        if stderr != "":
+            msg = errors.extract_stderr_msg(stderr)
+            if msg != "":
+                log.warning("extracted message from stderr:\n%s" % msg)
+        ec = errors.resolve_transform_error(exit_code, stderr)
+        if ec != 0:
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
+        else:
+            log.warning('initial error analysis did not resolve the issue')
+    else:
+        log.info('main payload execution returned zero exit code, but will check it more carefully')
 
 
 def validate_post(queues, traces, args):

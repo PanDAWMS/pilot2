@@ -19,6 +19,7 @@ import time
 from os import getcwd, chdir, environ
 from shutil import rmtree
 
+from pilot.common.exception import QueuedataFailure
 from pilot.info import set_info
 from pilot.util.auxiliary import shell_exit_code
 from pilot.util.config import config
@@ -34,7 +35,7 @@ from pilot.util.workernode import is_virtual_machine
 RELEASE = '2'   # released number should be fixed at 2 for Pilot 2
 VERSION = '0'   # version number is '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
 REVISION = '0'  # revision number should be reset to '0' for every new version release, increased for small updates
-BUILD = '142'   # build number should be reset to '1' for every new development cycle
+BUILD = '144'   # build number should be reset to '1' for every new development cycle
 
 
 def pilot_version_banner():
@@ -106,7 +107,14 @@ def main():
             environ['PILOT_RUCIO_SITENAME'] = args.location.site
 
     # initialize InfoService and populate args.info structure
-    set_info(args)
+    try:
+        set_info(args)
+    except QueuedataFailure as error:
+        logger.fatal(error)
+        return error.get_error_code()
+    except PilotException as error:
+        logger.fatal(error)
+        return error.get_error_code()
 
     # set requested workflow
     logger.info('pilot arguments: %s' % str(args))
@@ -487,9 +495,9 @@ def wrap_up(initdir, mainworkdir, args):
         from pilot.util.harvester import kill_worker
         kill_worker()
 
-    if not trace:
+    if type(trace) != dict:
         logging.critical('pilot startup did not succeed -- aborting')
-        exit_code = FAILURE
+        exit_code = trace
     elif trace.pilot['nr_jobs'] > 0:
         if trace.pilot['nr_jobs'] == 1:
             logging.getLogger(__name__).info('pilot has finished (%d job was processed)' % trace.pilot['nr_jobs'])
@@ -498,19 +506,23 @@ def wrap_up(initdir, mainworkdir, args):
         exit_code = SUCCESS
     elif trace.pilot['state'] == FAILURE:
         logging.critical('pilot workflow failure -- aborting')
-        exit_code = FAILURE
+        if trace.pilot['error_code']:
+            exit_code = trace.pilot['error_code']
+        else:
+            exit_code = FAILURE
     elif trace.pilot['state'] == ERRNO_NOJOBS:
         logging.critical('pilot did not process any events -- aborting')
-        exit_code = ERRNO_NOJOBS
+        if trace.pilot['error_code']:
+            exit_code = trace.pilot['error_code']
+        else:
+            exit_code = ERRNO_NOJOBS
     else:
         logging.info('pilot has finished')
         exit_code = SUCCESS
-
+    logging.critical(exit_code)
     logging.shutdown()
 
-    # exit_code = shell_exit_code(exit_code)
-
-    return exit_code
+    return shell_exit_code(exit_code)
 
 
 if __name__ == '__main__':

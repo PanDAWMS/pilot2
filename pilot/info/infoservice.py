@@ -19,7 +19,7 @@ in a unified structured way via provided high-level API
 
 import inspect
 
-from pilot.common.exception import PilotException, NotDefined
+from pilot.common.exception import PilotException, NotDefined, QueuedataFailure
 
 from .configinfo import PilotConfigProvider
 from .extinfo import ExtInfoProvider
@@ -87,7 +87,7 @@ class InfoService(object):
         self.queuedata = self.resolve_queuedata(self.pandaqueue)
 
         if not self.queuedata:
-            raise PilotException("Failed to resolve queuedata for queue=%s, wrong PandaQueue name?" % self.pandaqueue)
+            raise QueuedataFailure("Failed to resolve queuedata for queue=%s, wrong PandaQueue name?" % self.pandaqueue)
 
         self.resolve_storage_data()  ## prefetch details for all storages
 
