@@ -108,6 +108,7 @@ def run(args):
     traces = namedtuple('traces', ['pilot'])
     traces.pilot = {'state': SUCCESS,
                     'nr_jobs': 0,
+                    'error_code': 0,
                     'command': None}
 
     # define the threads

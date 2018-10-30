@@ -506,14 +506,20 @@ def wrap_up(initdir, mainworkdir, args):
         exit_code = SUCCESS
     elif trace.pilot['state'] == FAILURE:
         logging.critical('pilot workflow failure -- aborting')
-        exit_code = FAILURE
+        if trace.pilot['error_code']:
+            exit_code = trace.pilot['error_code']
+        else:
+            exit_code = FAILURE
     elif trace.pilot['state'] == ERRNO_NOJOBS:
         logging.critical('pilot did not process any events -- aborting')
-        exit_code = ERRNO_NOJOBS
+        if trace.pilot['error_code']:
+            exit_code = trace.pilot['error_code']
+        else:
+            exit_code = ERRNO_NOJOBS
     else:
         logging.info('pilot has finished')
         exit_code = SUCCESS
-
+    logging.critical(exit_code)
     logging.shutdown()
 
     return shell_exit_code(exit_code)

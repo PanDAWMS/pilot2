@@ -325,6 +325,9 @@ def validate(queues, traces, args):
                 job.workdir = job_dir
             except Exception as e:
                 log.debug('cannot create working directory: %s' % str(e))
+                traces.pilot['error_code'] = errors.MKDIR
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(traces.pilot['error_code'])
+                job.piloterrordiag = e
                 #queues.failed_jobs.put(job)
                 put_in_queue(job, queues.failed_jobs)
                 break
