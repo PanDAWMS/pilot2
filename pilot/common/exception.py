@@ -340,6 +340,16 @@ class LogFileCreationFailure(PilotException):
         self._message = errors.get_error_message(self._errorCode)
 
 
+class QueuedataFailure(PilotException):
+    """
+    Failed to download queuedata.
+    """
+    def __init__(self, *args, **kwargs):
+        super(QueuedataFailure, self).__init__(args, kwargs)
+        self._errorCode = errors.QUEUEDATA
+        self._message = errors.get_error_message(self._errorCode)
+
+
 class ExcThread(threading.Thread):
     """
     Support class that allows for catching exceptions in threads.
