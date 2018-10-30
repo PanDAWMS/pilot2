@@ -19,6 +19,7 @@ import time
 from os import getcwd, chdir, environ
 from shutil import rmtree
 
+from pilot.common.exception import QueuedataFailure
 from pilot.info import set_info
 from pilot.util.auxiliary import shell_exit_code
 from pilot.util.config import config
@@ -106,7 +107,14 @@ def main():
             environ['PILOT_RUCIO_SITENAME'] = args.location.site
 
     # initialize InfoService and populate args.info structure
-    set_info(args)
+    try:
+        set_info(args)
+    except QueuedataFailure as error:
+        logger.fatal(error)
+        return error.get_error_code()
+    except PilotException as error:
+        logger.fatal(error)
+        return error.get_error_code()
 
     # set requested workflow
     logger.info('pilot arguments: %s' % str(args))
@@ -487,9 +495,9 @@ def wrap_up(initdir, mainworkdir, args):
         from pilot.util.harvester import kill_worker
         kill_worker()
 
-    if not trace:
+    if type(trace) != dict:
         logging.critical('pilot startup did not succeed -- aborting')
-        exit_code = FAILURE
+        exit_code = trace
     elif trace.pilot['nr_jobs'] > 0:
         if trace.pilot['nr_jobs'] == 1:
             logging.getLogger(__name__).info('pilot has finished (%d job was processed)' % trace.pilot['nr_jobs'])
@@ -508,9 +516,7 @@ def wrap_up(initdir, mainworkdir, args):
 
     logging.shutdown()
 
-    # exit_code = shell_exit_code(exit_code)
-
-    return exit_code
+    return shell_exit_code(exit_code)
 
 
 if __name__ == '__main__':

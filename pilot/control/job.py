@@ -25,7 +25,7 @@ from json import dumps
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
-from pilot.info import infosys, JobData
+from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, set_pilot_state
 from pilot.util.config import config
@@ -874,6 +874,8 @@ def retrieve(queues, traces, args):
     :param queues: internal queues for job handling.
     :param traces: tuple containing internal pilot states.
     :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
+    :raises PilotException: if create_job fails (e.g. because queuedata could not be downloaded).
+    :return:
     """
 
     timefloor = infosys.queuedata.timefloor
@@ -922,7 +924,10 @@ def retrieve(queues, traces, args):
                     time.sleep(1)
             else:
                 # create the job object out of the raw dispatcher job dictionary
-                job = create_job(res, args.queue)
+                try:
+                    job = create_job(res, args.queue)
+                except PilotException as error:
+                    raise error
 
                 # write time stamps to pilot timing file
                 # note: PILOT_POST_GETJOB corresponds to START_TIME in Pilot 1
@@ -965,7 +970,6 @@ def create_job(dispatcher_response, queue):
     """
 
     # initialize (job specific) InfoService instance
-    from pilot.info import InfoService, JobInfoProvider
 
     job = JobData(dispatcher_response)
 
