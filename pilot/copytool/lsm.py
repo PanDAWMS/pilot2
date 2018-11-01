@@ -95,7 +95,7 @@ def copy_in(files, **kwargs):
 
         logger.info("transferring file %s from %s to %s" % (fspec.lfn, source, destination))
 
-        exit_code, stdout, stderr = move(source, destination, dst_in=True, copysetup=copysetup)
+        exit_code, stdout, stderr = 1, "", "No such file or directory"  #move(source, destination, dst_in=True, copysetup=copysetup)
 
         if exit_code != 0:
             logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))

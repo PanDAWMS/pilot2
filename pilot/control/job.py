@@ -482,7 +482,7 @@ def get_dispatcher_dictionary(args):
     return data
 
 
-def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harvester, verify_proxy):
+def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harvester, verify_proxy, traces):
     """
     Can we proceed with getjob?
     We may not proceed if we have run out of time (timefloor limit), if the proxy is too short, if disk space is too
@@ -494,6 +494,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     :param getjob_requests: number of getjob requests
     :param harvester: True if Harvester is used, False otherwise. Affects the max number of getjob reads (from file).
     :param verify_proxy: True if the proxy should be verified. False otherwise.
+    :param traces: traces object (to be able to propagate a proxy error all the way back to the wrapper).
     :return: Boolean.
     """
 
@@ -511,6 +512,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
 
         # is the proxy still valid?
         exit_code, diagnostics = userproxy.verify_proxy()
+        traces.pilot['error_code'] = exit_code
         if exit_code == errors.NOPROXY or exit_code == errors.NOVOMSPROXY:
             logger.warning(diagnostics)
             return False
@@ -893,7 +895,7 @@ def retrieve(queues, traces, args):
 
         getjob_requests += 1
 
-        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester, args.verify_proxy):
+        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester, args.verify_proxy, traces):
             args.graceful_stop.set()
             break
 
