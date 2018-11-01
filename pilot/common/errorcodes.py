@@ -101,6 +101,8 @@ class ErrorCodes:
     COMMUNICATIONFAILURE = 1318
     INTERNALPILOTPROBLEM = 1319
     LOGFILECREATIONFAILURE = 1320
+    RUCIOLOCATIONFAILED = 1321
+    RUCIOLISTREPLICASFAILED = 1322
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -181,6 +183,8 @@ class ErrorCodes:
         COMMUNICATIONFAILURE: "Failed to communicate with server",
         INTERNALPILOTPROBLEM: "An internal Pilot problem has occurred (consult Pilot log)",
         LOGFILECREATIONFAILURE: "Failed during creation of log file",
+        RUCIOLOCATIONFAILED: "Failed to get client location for Rucio",
+        RUCIOLISTREPLICASFAILED: "Failed to get replicas from Rucio",
     }
 
     def get_kill_signal_error_code(self, signal):

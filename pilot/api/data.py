@@ -145,12 +145,12 @@ class StagingClient(object):
             query = bquery.copy()
             location = self.detect_client_location()
             if not location:
-                raise PilotException("Failed to get client location for Rucio")
+                raise PilotException("Failed to get client location for Rucio", code=errors.RUCIOLOCATIONFAILED)
             query.update(sort='geoip', client_location=location)
             logger.info('calling rucio.list_replicas() with query=%s' % query)
             replicas = c.list_replicas(**query)
         except Exception as e:
-            raise PilotException("Failed to get replicas from Rucio: %s" % e)  #, code=ErrorCodes.XX__FAILEDLFCGETREPS)
+            raise PilotException("Failed to get replicas from Rucio: %s" % e, code=errors.RUCIOLISTREPLICASFAILED)
 
         replicas = list(replicas)
         logger.debug("replicas received from Rucio: %s" % replicas)
