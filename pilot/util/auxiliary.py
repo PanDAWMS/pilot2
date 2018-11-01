@@ -114,6 +114,9 @@ def get_logger(job_id, log=None):
 def shell_exit_code(exit_code):
     """
     Translate the pilot exit code to a proper exit code for the shell (wrapper).
+    Any error code that is to be converted by this function, should be added to the traces object like:
+      traces.pilot['error_code'] = errors.<ERRORCODE>
+    The traces object will be checked by the pilot module.
 
     :param exit_code: pilot error code (int).
     :return: standard shell exit code (int).
@@ -127,12 +130,12 @@ def shell_exit_code(exit_code):
 
     error_code_translation_dictionary = {
         -1: [64, "Site offline"],
-        errors.GENERALERROR: [65, "General pilot error, consult batch log"],
-        errors.MKDIR: [66, "Could not create directory"],
-        errors.NOSUCHFILE: [67, "No such file or directory"],
-        errors.NOVOMSPROXY: [68, "Voms proxy not valid"],
+        errors.GENERALERROR: [65, "General pilot error, consult batch log"],  # added to traces object
+        errors.MKDIR: [66, "Could not create directory"],  # added to traces object
+        errors.NOSUCHFILE: [67, "No such file or directory"],  # in progress
+        errors.NOVOMSPROXY: [68, "Voms proxy not valid"],  # added to traces object, note: missing NOPROXY?
         errors.NOLOCALSPACE: [69, "No space left on local disk"],
-        errors.UNKNOWNEXCEPTION: [70, "Exception caught by pilot"],  # same as ERR_PILOTEXC?
+        errors.UNKNOWNEXCEPTION: [70, "Exception caught by pilot"],
         errors.QUEUEDATA: [71, "Pilot could not download queuedata"],
         errors.QUEUEDATANOTOK: [72, "Pilot found non-valid queuedata"],
         errors.NOSOFTWAREDIR: [73, "Software directory does not exist"],

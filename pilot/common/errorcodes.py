@@ -67,7 +67,7 @@ class ErrorCodes:
     PAYLOADOUTOFMEMORY = 1212
     REACHEDMAXTIME = 1213
     UNKNOWNPAYLOADFAILURE = 1220
-    FILEEXITS = 1221
+    FILEEXISTS = 1221
     BADALLOC = 1223
     ESRECOVERABLE = 1224
     ESFATAL = 1228
@@ -149,7 +149,7 @@ class ErrorCodes:
         PAYLOADOUTOFMEMORY: "Payload ran out of memory",
         REACHEDMAXTIME: "Reached batch system time limit",
         UNKNOWNPAYLOADFAILURE: "Job failed due to unknown reason (consult log file)",
-        FILEEXITS: "File already exists",
+        FILEEXISTS: "File already exists",
         BADALLOC: "Transform failed due to bad_alloc",
         CHKSUMNOTSUP: "Query checksum is not supported",
         NORELEASEFOUND: "No release candidates found",
