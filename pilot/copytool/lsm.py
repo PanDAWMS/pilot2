@@ -95,15 +95,16 @@ def copy_in(files, **kwargs):
 
         logger.info("transferring file %s from %s to %s" % (fspec.lfn, source, destination))
 
-        exit_code, stdout, stderr = 1, "", "No such file or directory"  #move(source, destination, dst_in=True, copysetup=copysetup)
+        exit_code, stdout, stderr = move(source, destination, dst_in=True, copysetup=copysetup)
 
         if exit_code != 0:
             logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
 
             error = resolve_common_transfer_errors(stderr, is_stagein=True)
             fspec.status = 'failed'
-            fspec.status_code = error.get('exit_code')
-            raise PilotException(error.get('error'), code=error.get('exit_code'), state=error.get('state'))
+            fspec.status_code = error.get('rcode')
+            logger.warning('error=%d' % error.get('rcode'))
+            raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
         # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
         state, diagnostics = verify_catalog_checksum(fspec, destination)

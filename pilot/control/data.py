@@ -369,7 +369,6 @@ def copytool_in(queues, traces, args):
             if _stage_in(args, job):
                 if args.abort_job.is_set():
                     traces.pilot['command'] = 'abort'
-                    traces.pilot['error_code'] = job.piloterrorcodes[0]
                     log.warning('copytool_in detected a set abort_job post stage-in (due to a kill signal)')
                     declare_failed_by_kill(job, queues.failed_data_in, args.signal)
                     break
@@ -391,6 +390,7 @@ def copytool_in(queues, traces, args):
                 log.warning('stage-in failed, adding job object to failed_data_in queue (will take a 1 minute nap)')
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINFAILED)
                 set_pilot_state(job=job, state="failed")
+                traces.pilot['error_code'] = job.piloterrorcodes[0]
                 #queues.failed_data_in.put(job)
                 put_in_queue(job, queues.failed_data_in)
                 time.sleep(60)

@@ -132,7 +132,7 @@ def shell_exit_code(exit_code):
         -1: [64, "Site offline"],
         errors.GENERALERROR: [65, "General pilot error, consult batch log"],  # added to traces object
         errors.MKDIR: [66, "Could not create directory"],  # added to traces object
-        errors.NOSUCHFILE: [67, "No such file or directory"],  # in progress
+        errors.NOSUCHFILE: [67, "No such file or directory"],  # added to traces object
         errors.NOVOMSPROXY: [68, "Voms proxy not valid"],  # added to traces object, note: missing NOPROXY?
         errors.NOLOCALSPACE: [69, "No space left on local disk"],
         errors.UNKNOWNEXCEPTION: [70, "Exception caught by pilot"],
@@ -185,7 +185,10 @@ def get_size(obj_0):
             try:
                 size += sum(inner(k) + inner(v) for k, v in getattr(obj, iteritems)())
             except Exception as e:
-                logger.debug('exception caught for obj=%s: %s' % (str(obj), e))
+                pass
+                # <class 'collections.OrderedDict'>: unbound method iteritems() must be called
+                # with OrderedDict instance as first argument (got nothing instead)
+                #logger.debug('exception caught for obj=%s: %s' % (str(obj), e))
 
         # Check for custom object instances - may subclass above too
         if hasattr(obj, '__dict__'):
