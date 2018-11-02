@@ -520,6 +520,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # is there enough local space to run a job?
     ec, diagnostics = check_local_space()
     if ec != 0:
+        traces.pilot['error_code'] = errors.NOLOCALSPACE
         return False
 
     if harvester:
@@ -1382,7 +1383,7 @@ def job_monitor(queues, traces, args):
                 # perform the monitoring tasks
                 exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
                 if exit_code != 0:
-                    fail_monitored_job(jobs[i], exit_code, diagnostics, queues)
+                    fail_monitored_job(jobs[i], exit_code, diagnostics, queues, traces)
                     break
 
                 # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
@@ -1430,14 +1431,15 @@ def check_job_monitor_waiting_time(args, peeking_time):
         args.graceful_stop.set()
 
 
-def fail_monitored_job(job, exit_code, diagnostics, queues):
+def fail_monitored_job(job, exit_code, diagnostics, queues, traces):
     """
     Fail a monitored job.
 
     :param job: job object
-    :param exit_code: exit code from job_monitor_tasks
-    :param diagnostics:
-    :param queues:
+    :param exit_code: exit code from job_monitor_tasks (int).
+    :param diagnostics: pilot error diagnostics (string).
+    :param queues: queues object.
+    :param traces: traces object.
     :return:
     """
 
@@ -1446,6 +1448,7 @@ def fail_monitored_job(job, exit_code, diagnostics, queues):
     set_pilot_state(job=job, state="failed")
     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
     job.pilorerrordiag = diagnostics
+    traces.pilot['error_code'] = exit_code
     # queues.failed_payloads.put(job)
     put_in_queue(job, queues.failed_payloads)
     log.info('aborting job monitoring since job state=%s' % job.state)

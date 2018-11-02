@@ -134,7 +134,7 @@ def shell_exit_code(exit_code):
         errors.MKDIR: [66, "Could not create directory"],  # added to traces object
         errors.NOSUCHFILE: [67, "No such file or directory"],  # added to traces object
         errors.NOVOMSPROXY: [68, "Voms proxy not valid"],  # added to traces object, note: missing NOPROXY?
-        errors.NOLOCALSPACE: [69, "No space left on local disk"],
+        errors.NOLOCALSPACE: [69, "No space left on local disk"],  # added to traces object
         errors.UNKNOWNEXCEPTION: [70, "Exception caught by pilot"],
         errors.QUEUEDATA: [71, "Pilot could not download queuedata"],
         errors.QUEUEDATANOTOK: [72, "Pilot found non-valid queuedata"],
