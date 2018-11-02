@@ -499,23 +499,22 @@ def wrap_up(initdir, mainworkdir, args):
         exit_code = trace.pilot['error_code']
     except Exception:
         exit_code = trace
-
-    if exit_code and trace.pilot['nr_jobs'] <= 1:
-        logging.info('an exit code was already set: %d (will be converted to a standard shell code)' % exit_code)
-    elif trace.pilot['nr_jobs'] > 0:
-        if trace.pilot['nr_jobs'] == 1:
-            logging.getLogger(__name__).info('pilot has finished (%d job was processed)' % trace.pilot['nr_jobs'])
-        else:
-            logging.getLogger(__name__).info('pilot has finished (%d jobs were processed)' % trace.pilot['nr_jobs'])
-        exit_code = SUCCESS
-    elif trace.pilot['state'] == FAILURE:
-        logging.critical('pilot workflow failure -- aborting')
-    elif trace.pilot['state'] == ERRNO_NOJOBS:
-        logging.critical('pilot did not process any events -- aborting')
-        exit_code = ERRNO_NOJOBS
     else:
-        logging.info('pilot has finished')
-        exit_code = SUCCESS
+        if trace.pilot['nr_jobs'] <= 1:
+            logging.info('an exit code was already set: %d (will be converted to a standard shell code)' % exit_code)
+        elif trace.pilot['nr_jobs'] > 0:
+            if trace.pilot['nr_jobs'] == 1:
+                logging.getLogger(__name__).info('pilot has finished (%d job was processed)' % trace.pilot['nr_jobs'])
+            else:
+                logging.getLogger(__name__).info('pilot has finished (%d jobs were processed)' % trace.pilot['nr_jobs'])
+            exit_code = SUCCESS
+        elif trace.pilot['state'] == FAILURE:
+            logging.critical('pilot workflow failure -- aborting')
+        elif trace.pilot['state'] == ERRNO_NOJOBS:
+            logging.critical('pilot did not process any events -- aborting')
+            exit_code = ERRNO_NOJOBS
+    logging.info('pilot has finished')
+    logging.info('2. exit_code=%s' % str(exit_code))
     logging.shutdown()
 
     return shell_exit_code(exit_code)

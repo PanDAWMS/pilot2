@@ -323,5 +323,9 @@ class Executor(object):
                             os.killpg(os.getpgid(utproc.pid), sig)
 
                             user.post_utility_command_action(utcmd, self.__job)
+            else:
+                # try to get the failure code
+                if self.__job:
+                    pass
 
         return exit_code

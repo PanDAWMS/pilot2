@@ -107,6 +107,8 @@ def get_asetup(asetup=True, alrb=False):
     :return: source <path>/asetup.sh (string).
     """
 
+    #raise NoSoftwareDir('testing')
+
     cmd = ""
     alrb_cmd = get_alrb_export()
     if alrb_cmd != "":

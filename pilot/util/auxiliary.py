@@ -135,9 +135,9 @@ def shell_exit_code(exit_code):
         errors.NOSUCHFILE: [67, "No such file or directory"],  # added to traces object
         errors.NOVOMSPROXY: [68, "Voms proxy not valid"],  # added to traces object, note: missing NOPROXY?
         errors.NOLOCALSPACE: [69, "No space left on local disk"],  # added to traces object
-        errors.UNKNOWNEXCEPTION: [70, "Exception caught by pilot"],
-        errors.QUEUEDATA: [71, "Pilot could not download queuedata"],
-        errors.QUEUEDATANOTOK: [72, "Pilot found non-valid queuedata"],
+        errors.UNKNOWNEXCEPTION: [70, "Exception caught by pilot"],  # added to traces object
+        errors.QUEUEDATA: [71, "Pilot could not download queuedata"],  # tested
+        errors.QUEUEDATANOTOK: [72, "Pilot found non-valid queuedata"],  # not implemented yet, error code added
         errors.NOSOFTWAREDIR: [73, "Software directory does not exist"],
         errors.KILLSIGNAL: [137, "General kill signal"],  # Job terminated by unknown kill signal
         errors.SIGTERM: [143, "Job killed by signal: SIGTERM"],  # 128+15
@@ -151,7 +151,7 @@ def shell_exit_code(exit_code):
     if exit_code in error_code_translation_dictionary:
         return error_code_translation_dictionary.get(exit_code)[0]  # Only return the shell exit code, not the error meaning
     elif exit_code != 0:
-        logger.warning("no translation to shell exit code for error code %d" % (exit_code))
+        print("no translation to shell exit code for error code %d" % (exit_code))
         return FAILURE
     else:
         return SUCCESS
