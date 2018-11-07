@@ -184,7 +184,7 @@ def get_size(obj_0):
         elif isinstance(obj, Mapping) or hasattr(obj, iteritems):
             try:
                 size += sum(inner(k) + inner(v) for k, v in getattr(obj, iteritems)())
-            except Exception as e:
+            except Exception:  # as e
                 pass
                 # <class 'collections.OrderedDict'>: unbound method iteritems() must be called
                 # with OrderedDict instance as first argument (got nothing instead)

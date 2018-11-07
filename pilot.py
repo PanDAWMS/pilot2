@@ -19,7 +19,7 @@ import time
 from os import getcwd, chdir, environ
 from shutil import rmtree
 
-from pilot.common.exception import QueuedataFailure
+from pilot.common.exception import QueuedataFailure, PilotException
 from pilot.info import set_info
 from pilot.util.auxiliary import shell_exit_code
 from pilot.util.config import config
