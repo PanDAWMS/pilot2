@@ -122,21 +122,23 @@ def _validate_payload(job):
     return True
 
 
-def get_payload_executor(args, job, out, err):
+def get_payload_executor(args, job, out, err, traces):
     """
     Get payload executor function for different payload.
-     :param args:
-    :param job:
+
+    :param args: args object.
+    :param job: job object.
     :param out:
     :param err:
+    :param traces: traces object.
     :return: instance of a payload executor
     """
     if job.is_eventservice:
-        payload_executor = eventservice.Executor(args, job, out, err)
+        payload_executor = eventservice.Executor(args, job, out, err, traces)
     elif job.is_eventservicemerge:
-        payload_executor = eventservicemerge.Executor(args, job, out, err)
+        payload_executor = eventservicemerge.Executor(args, job, out, err, traces)
     else:
-        payload_executor = generic.Executor(args, job, out, err)
+        payload_executor = generic.Executor(args, job, out, err, traces)
     return payload_executor
 
 
@@ -178,12 +180,13 @@ def execute_payloads(queues, traces, args):
 
             send_state(job, args, 'starting')
 
-            payload_executor = get_payload_executor(args, job, out, err)
+            payload_executor = get_payload_executor(args, job, out, err, traces)
             log.info("Got payload executor: %s" % payload_executor)
 
             # run the payload and measure the execution time
             job.t0 = os.times()
             exit_code = payload_executor.run()
+
             set_cpu_consumption_time(job)
             job.transexitcode = exit_code % 255
 

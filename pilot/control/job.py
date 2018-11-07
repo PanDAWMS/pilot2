@@ -512,7 +512,8 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
 
         # is the proxy still valid?
         exit_code, diagnostics = userproxy.verify_proxy()
-        traces.pilot['error_code'] = exit_code
+        if traces.pilot['error_code'] == 0:  # careful so we don't overwrite another error code
+            traces.pilot['error_code'] = exit_code
         if exit_code == errors.NOPROXY or exit_code == errors.NOVOMSPROXY:
             logger.warning(diagnostics)
             return False

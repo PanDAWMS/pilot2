@@ -32,11 +32,12 @@ errors = ErrorCodes()
 
 
 class Executor(object):
-    def __init__(self, args, job, out, err):
+    def __init__(self, args, job, out, err, traces):
         self.__args = args
         self.__job = job
         self.__out = out
         self.__err = err
+        self.__traces = traces
 
     def get_job(self):
         """
@@ -217,7 +218,8 @@ class Executor(object):
             import traceback
             log.error(traceback.format_exc())
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())
-            log.fatal('could not define payload command')
+            self.__traces.pilot['error_code'] = job.piloterrorcodes[0]
+            log.fatal('could not define payload command (traces error set to: %d)' % self.__traces.pilot['error_code'])
             return None
 
         log.info("payload execution command: %s" % cmd)
@@ -323,9 +325,5 @@ class Executor(object):
                             os.killpg(os.getpgid(utproc.pid), sig)
 
                             user.post_utility_command_action(utcmd, self.__job)
-            else:
-                # try to get the failure code
-                if self.__job:
-                    pass
 
         return exit_code

@@ -136,6 +136,6 @@ def run(args):
 
             thread.join(0.1)
 
-    logger.info('end of generic workflow')
+    logger.info('end of generic workflow (traces error code: %d)' % traces.pilot['error_code'])
 
     return traces
