@@ -155,7 +155,7 @@ def get_asetup_options(release, homepackage):
     else:
 
         asetupopt += homepackage.split('/')
-        if release not in homepackage:
+        if release not in homepackage and release not in asetupopt:
             asetupopt.append(release)
 
     # Add the notest,here for all setups (not necessary for late releases but harmless to add)
