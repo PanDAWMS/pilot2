@@ -138,7 +138,7 @@ def shell_exit_code(exit_code):
         errors.UNKNOWNEXCEPTION: [70, "Exception caught by pilot"],  # added to traces object
         errors.QUEUEDATA: [71, "Pilot could not download queuedata"],  # tested
         errors.QUEUEDATANOTOK: [72, "Pilot found non-valid queuedata"],  # not implemented yet, error code added
-        errors.NOSOFTWAREDIR: [73, "Software directory does not exist"],
+        errors.NOSOFTWAREDIR: [73, "Software directory does not exist"],  # added to traces object
         errors.KILLSIGNAL: [137, "General kill signal"],  # Job terminated by unknown kill signal
         errors.SIGTERM: [143, "Job killed by signal: SIGTERM"],  # 128+15
         errors.SIGQUIT: [131, "Job killed by signal: SIGQUIT"],  # 128+3
@@ -184,7 +184,7 @@ def get_size(obj_0):
         elif isinstance(obj, Mapping) or hasattr(obj, iteritems):
             try:
                 size += sum(inner(k) + inner(v) for k, v in getattr(obj, iteritems)())
-            except Exception as e:
+            except Exception:  # as e
                 pass
                 # <class 'collections.OrderedDict'>: unbound method iteritems() must be called
                 # with OrderedDict instance as first argument (got nothing instead)

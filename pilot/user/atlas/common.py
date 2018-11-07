@@ -67,12 +67,12 @@ def get_payload_command(job):
 
         # Normal setup (production and user jobs)
         log.info("preparing normal production/analysis job setup command")
-        cmd += get_normal_payload_command(cmd, job, prepareasetup, userjob)
+        cmd = get_normal_payload_command(cmd, job, prepareasetup, userjob)
 
     else:  # Generic, non-ATLAS specific jobs, or at least a job with undefined swRelease
 
         log.info("generic job (non-ATLAS specific or with undefined swRelease)")
-        cmd += get_generic_payload_command(cmd, job, prepareasetup, userjob)
+        cmd = get_generic_payload_command(cmd, job, prepareasetup, userjob)
 
     # only if not using a user container
     if not job.imagename:
