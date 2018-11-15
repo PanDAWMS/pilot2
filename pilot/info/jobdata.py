@@ -431,6 +431,10 @@ class JobData(BaseData):
         options, ret = self.parse_args(ret, {'--overwriteQueueData': lambda x: ast.literal_eval(x) if x else {}}, remove=True)
         self.overwrite_queuedata = options.get('--overwriteQueueData', {})
 
+        logger.debug('ret(1) = %s' % ret)
+        ret = ret.replace("\'\"\'\"\'", '\\\"')
+        logger.debug('ret(2) = %s' % ret)
+
         # extract zip map  ## TO BE FIXED? better to pass it via dedicated sub-option in jobParams from PanDA side: e.g. using --zipmap "content"
         # so that the zip_map can be handles more gracefully via parse_args
 
