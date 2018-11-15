@@ -74,6 +74,11 @@ def get_payload_command(job):
         log.info("generic job (non-ATLAS specific or with undefined swRelease)")
         cmd = get_generic_payload_command(cmd, job, prepareasetup, userjob)
 
+    # add any missing trailing ;
+    if not cmd.endswith(';'):
+        cmd += '; '
+    log.debug('post cmd: %s' % cmd)
+
     # only if not using a user container
     if not job.imagename:
         site = os.environ.get('PILOT_SITENAME', '')
@@ -151,6 +156,7 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
         else:
             _cmd = job.jobparams
 
+        log.debug('job imagename: %s' % job.imagename)
         if job.imagename == "":
             # if '--containerImage' not in job.jobparams:
             # Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
