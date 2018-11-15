@@ -428,7 +428,7 @@ class JobData(BaseData):
         ret = re.sub(r"--overwriteQueuedata={.*?}", "", value)
 
         ## extract overwrite options
-        options, ret = self.parse_args(ret, {'--overwriteQueueData': lambda x: ast.literal_eval(x) if x else {}}, remove=True)
+        options, _ret = self.parse_args(ret, {'--overwriteQueueData': lambda x: ast.literal_eval(x) if x else {}}, remove=True)
         self.overwrite_queuedata = options.get('--overwriteQueueData', {})
 
         logger.debug('ret(1) = %s' % ret)
