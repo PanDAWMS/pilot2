@@ -372,7 +372,7 @@ def get_payload_environment_variables(cmd, job_id, task_id, processing_type, sit
         log.warning("RUCIO_APPID needs job.processingType but it is not set!")
     else:
         variables.append('export RUCIO_APPID=%s;' % processing_type)
-    variables.append('export RUCIO_ACCOUNT=%";' % os.environ.get('RUCIO_ACCOUNT', 'pilot'))
+    variables.append('export RUCIO_ACCOUNT=%s;' % os.environ.get('RUCIO_ACCOUNT', 'pilot'))
 
     return variables
 
