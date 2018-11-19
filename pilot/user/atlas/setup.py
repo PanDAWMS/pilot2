@@ -350,8 +350,8 @@ def get_payload_environment_variables(cmd, job_id, task_id, processing_type, sit
     log = get_logger(job_id)
 
     variables = []
-    variables.append('export PANDA_RESOURCE=\"%s\";' % site_name)
-    variables.append('export FRONTIER_ID=\"[%s_%s]\";' % (task_id, job_id))
+    variables.append('export PANDA_RESOURCE=%s;' % site_name)
+    variables.append('export FRONTIER_ID=[%s_%s];' % (task_id, job_id))
     variables.append('export CMSSW_VERSION=$FRONTIER_ID;')
 
     # Unset ATHENA_PROC_NUMBER if set for event service Merge jobs
