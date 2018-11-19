@@ -70,7 +70,7 @@ def execute(executable, **kwargs):
             logger.warning('container module could not be imported')
 
     if not mute:
-        if job.is_analysis() and job.imagename == "" and usecontainer:
+        if job and job.is_analysis() and job.imagename == "" and usecontainer:
             # filter the command
             executable = executable.replace("\'", "'")
             executable = executable.replace('\"', '"')
