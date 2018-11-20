@@ -19,6 +19,6 @@ script:
 matrix:
   include:
   - python: 2.7
-    env: FLAKE8_CONFIG=.flake8
+    env: FLAKE8_CONFIG=.flake8 FLAKE8_VERSION="<=3.5.0"
   exclude:
   - python: 2.7
