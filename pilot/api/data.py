@@ -257,7 +257,7 @@ class StagingClient(object):
             :raise: PilotException in case of controlled error
         """
 
-        raise NotImplementedError
+        raise NotImplemented()
 
     def transfer(self, files, activity='default', **kwargs):  # noqa: C901
         """
