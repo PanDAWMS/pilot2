@@ -8,6 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
 import os
+import pipes
 import re
 # for user container test: import urllib
 
@@ -288,16 +289,13 @@ def singularity_wrapper(cmd, workdir, job):
         log.debug("using singularity_options: %s" % singularity_options)
 
         # Get the image path
-        if job.imagename:
-            image_path = job.imagename
-        else:
-            image_path = get_grid_image_for_singularity(job.platform)
+        image_path = job.imagename or get_grid_image_for_singularity(job.platform)
 
         # Does the image exist?
-        if image_path != '':
+        if image_path:
             # Prepend it to the given command
             cmd = "export workdir=" + workdir + "; singularity exec " + singularity_options + " " + image_path + \
-                  " /bin/bash -c \'cd $workdir;pwd;" + cmd.replace("\'", "\\'").replace('\"', '\\"') + "\'"
+                  " /bin/bash -c " + pipes.quote("cd $workdir;pwd;%s" % cmd)
 
             # for testing user containers
             # singularity_options = "-B $PWD:/data --pwd / "
