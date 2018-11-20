@@ -1,5 +1,5 @@
 [flake8]
-ignore = E262,E265,E266,N804,W605,W504
+ignore = E262,E265,E266,N804,W605,W504,F901
 show-source = true
 max-line-length = 160
 select=A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z
