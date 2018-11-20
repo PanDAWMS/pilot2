@@ -72,9 +72,11 @@ def execute(executable, **kwargs):
     if not mute:
         if job and job.is_analysis() and job.imagename == "" and usecontainer:
             # filter the command
-            executable = executable.replace("\'", "'")
-            executable = executable.replace('\"', '"')
-            logger.info('(filtered command)')
+            executable = executable.replace("(", "\(")
+            executable = executable.replace(")", "\)")
+            executable = executable.replace("\'", "\\'")
+            #executable = executable.replace('\"', '\\"')
+        #    logger.info('(filtered command)')
 
         executable_readable = executable
         executables = executable_readable.split(";")
