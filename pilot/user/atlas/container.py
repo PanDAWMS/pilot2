@@ -281,11 +281,11 @@ def singularity_wrapper(cmd, workdir, job):
         log.info("singularity has been requested")
 
         # Get the singularity options
-        singularity_options = queuedata.container_options + ",/cvmfs,${workdir},/home"
-        log.debug("resolved singularity_options from queuedata.container_options: %s" % singularity_options)
-
-        if not singularity_options:
-            log.warning('singularity options not set')
+        singularity_options = queuedata.container_options
+        if singularity_options != "":
+            singularity_options += ","
+        singularity_options += "/cvmfs,${workdir},/home"
+        log.debug("using singularity_options: %s" % singularity_options)
 
         # Get the image path
         if job.imagename:
@@ -306,6 +306,6 @@ def singularity_wrapper(cmd, workdir, job):
         else:
             log.warning("singularity options found but image does not exist")
 
-        log.info("Updated command: %s" % cmd)
+        log.info("updated command: %s" % cmd)
 
     return cmd
