@@ -74,8 +74,8 @@ def execute(executable, **kwargs):
             # filter the command
             executable = executable.replace("(", "\(")
             executable = executable.replace(")", "\)")
-        #    executable = executable.replace("\'", "\\'")
-        #    executable = executable.replace('\"', '\\"')
+            executable = executable.replace("\'", "\\'")
+            executable = executable.replace('\"', '\\"')
         #    logger.info('(filtered command)')
 
         executable_readable = executable
