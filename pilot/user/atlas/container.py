@@ -293,7 +293,7 @@ def singularity_wrapper(cmd, workdir, job):
         if image_path:
             # Prepend it to the given command
             cmd = "export workdir=" + workdir + "; singularity exec " + singularity_options + " " + image_path + \
-                  " /bin/bash -c 'cd $workdir;pwd;" + pipes.quote(cmd) + "'"
+                  " /bin/bash -c " + pipes.quote("cd $workdir;pwd;%s" % cmd)
 
             # for testing user containers
             # singularity_options = "-B $PWD:/data --pwd / "
