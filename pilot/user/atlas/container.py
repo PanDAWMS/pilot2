@@ -286,7 +286,7 @@ def singularity_wrapper(cmd, workdir, job):
         if singularity_options != "":
             singularity_options += ","
         else:
-            singularity_options = "-v -B "
+            singularity_options = "--verbose -B "
         singularity_options += "/cvmfs,${workdir},/home"
         log.debug("using singularity_options: %s" % singularity_options)
 
