@@ -285,6 +285,8 @@ def singularity_wrapper(cmd, workdir, job):
         singularity_options = queuedata.container_options
         if singularity_options != "":
             singularity_options += ","
+        else:
+            singularity_options = "-B "
         singularity_options += "/cvmfs,${workdir},/home"
         log.debug("using singularity_options: %s" % singularity_options)
 
