@@ -286,7 +286,7 @@ def singularity_wrapper(cmd, workdir, job):
         if singularity_options != "":
             singularity_options += ","
         else:
-            singularity_options = "--verbose -B "
+            singularity_options = "-B "
         singularity_options += "/cvmfs,${workdir},/home"
         log.debug("using singularity_options: %s" % singularity_options)
 
@@ -296,7 +296,7 @@ def singularity_wrapper(cmd, workdir, job):
         # Does the image exist?
         if image_path:
             # Prepend it to the given command
-            cmd = "export workdir=" + workdir + "; singularity exec " + singularity_options + " " + image_path + \
+            cmd = "export workdir=" + workdir + "; singularity --verbose exec " + singularity_options + " " + image_path + \
                   " /bin/bash -c " + pipes.quote("cd $workdir;pwd;%s" % cmd)
 
             # for testing user containers
