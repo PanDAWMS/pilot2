@@ -685,7 +685,7 @@ class JobData(BaseData):
                     input_name, input_list = fileinfo.split(":")
                     writetofile_dictionary[input_name] = input_list.split(',')
                 else:
-                    logger.error("writeToFile doesn't have the correct format, expecting a separator ':' for %s" % fileinfo)
+                    logger.error("writeToFile doesn't have the correct format, expecting a separator \':\' for %s" % fileinfo)
 
         if writetofile_dictionary:
             for input_name in writetofile_dictionary:
@@ -694,7 +694,7 @@ class JobData(BaseData):
                 f = open(input_name_full, 'w')
                 job_option = self.get_job_option_for_input_name(input_name)
                 if not job_option:
-                    logger.error("Unknow job option format, expecting to get job option such as '--inputHitsFile' for input file: %s" % input_name)
+                    logger.error("Unknown job option format, expected job options such as \'--inputHitsFile\' for input file: %s" % input_name)
                 else:
                     f.write("%s\n" % job_option)
                 for input_file in writetofile_dictionary[input_name]:
