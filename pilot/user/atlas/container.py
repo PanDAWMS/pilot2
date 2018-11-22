@@ -216,7 +216,7 @@ def alrb_wrapper(cmd, workdir, job):
         #    singularity_options += ' --containall'
         if singularity_options != "":
             _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % singularity_options
-        _cmd += 'export ALRB_CONT_RUNPAYLOAD=\"%s\";' % cmd
+        _cmd += 'export ALRB_CONT_RUNPAYLOAD=%s;' % pipes.quote(cmd)
 
         # this should not be necessary after the extract_container_image() in JobData update
         # containerImage should have been removed already
