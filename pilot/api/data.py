@@ -359,7 +359,8 @@ class StageInClient(StagingClient):
                 break
 
         if not replica:  # replica not found
-            error = 'Failed to find replica for input file=%s, allowed_schemas=%s, fspec=%s' % (fspec.lfn, allowed_schemas if allowed_schemas[0] else 'any', fspec)
+            schemas = 'any' if not allowed_schemas[0] else ','.join(allowed_schemas)
+            error = 'Failed to find replica for input file=%s, allowed_schemas=%s, fspec=%s' % (fspec.lfn, schemas, fspec)
             self.logger.error("resolve_replica: %s" % error)
             raise PilotException(error, code=ErrorCodes.REPLICANOTFOUND)
 
