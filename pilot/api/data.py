@@ -206,7 +206,7 @@ class StagingClient(object):
                                % (fdat.lfn, fdat.filesize, r['bytes'], fdat))
             if not fdat.filesize:
                 fdat.filesize = r['bytes']
-                logger.warning("Filesize value of input file=%s is not defined, assigning info got from Rucio replica: filesize=%s" % (fdat.lfn, r['bytes']))
+                logger.warning("Filesize value for input file=%s is not defined, assigning info from Rucio replica: filesize=%s" % (fdat.lfn, r['bytes']))
 
             for ctype in ['adler32', 'md5']:
                 if fdat.checksum.get(ctype) != r[ctype] and r[ctype]:
