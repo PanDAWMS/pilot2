@@ -105,12 +105,12 @@ class StagingClient(object):
         logger = self.logger  ## the function could be static if logger will be moved outside
 
         xfiles = []
-        ddmconf = self.infosys.resolve_storage_data()
+        #ddmconf = self.infosys.resolve_storage_data()
 
         for fdat in files:
-            ddmdat = ddmconf.get(fdat.ddmendpoint)
-            if not ddmdat:
-                raise Exception("Failed to resolve input ddmendpoint by name=%s (from PanDA), please check configuration. fdat=%s" % (fdat.ddmendpoint, fdat))
+            #ddmdat = ddmconf.get(fdat.ddmendpoint)
+            #if not ddmdat:
+            #    raise Exception("Failed to resolve input ddmendpoint by name=%s (from PanDA), please check configuration. fdat=%s" % (fdat.ddmendpoint, fdat))
 
             ## skip fdat if need for further workflow (e.g. to properly handle OS ddms)
 
@@ -119,6 +119,8 @@ class StagingClient(object):
 
             if not fdat.inputddms and self.infosys.queuedata:
                 fdat.inputddms = self.infosys.queuedata.astorages.get('pr', {})  ## FIX ME LATER: change to proper activity=read_lan
+            if not fdat.inputddms and fdat.ddmendpoint:
+                fdat.inputddms = [fdat.ddmendpoint]
             xfiles.append(fdat)
 
         if not xfiles:  # no files for replica look-up
@@ -196,7 +198,7 @@ class StagingClient(object):
                 logger.info("Consider first/closest replica, accessmode=%s, allowed_schemas=%s" % (fdat.accessmode, allowed_schemas))
                 #logger.debug('rses=%s' % r['rses'])
                 for ddm, pfns in r['rses'].iteritems():
-                    replica = self.get_preferred_replica(pfns, self.allowed_schemas)
+                    replica = self.get_preferred_replica(pfns, allowed_schemas)
                     if not replica:
                         continue
 
@@ -210,7 +212,7 @@ class StagingClient(object):
                                % (fdat.lfn, fdat.filesize, r['bytes'], fdat))
             if not fdat.filesize:
                 fdat.filesize = r['bytes']
-                logger.warning("Filesize value of input file=%s is not defined, assigning info got from Rucio replica: filesize=" % (fdat.lfn, r['bytes']))
+                logger.warning("Filesize value of input file=%s is not defined, assigning info got from Rucio replica: filesize=%s" % (fdat.lfn, r['bytes']))
 
             for ctype in ['adler32', 'md5']:
                 if fdat.checksum.get(ctype) != r[ctype] and r[ctype]:
@@ -338,10 +340,8 @@ class StageInClient(StagingClient):
             :param fspec: input `FileSpec` objects
             :param allowed_schemas: list of allowed schemas or any if None
             :return: dict(surl, ddmendpoint, pfn)
+            :raise PilotException: if replica not found
         """
-
-        if not fspec.replicas:
-            return
 
         allowed_schemas = allowed_schemas or [None]
         replica = None
@@ -359,7 +359,8 @@ class StageInClient(StagingClient):
                 break
 
         if not replica:  # replica not found
-            error = 'Failed to find replica for input file=%s, allowed_schemas=%s, fspec=%s' % (fspec.lfn, allowed_schemas, fspec)
+            schemas = 'any' if not allowed_schemas[0] else ','.join(allowed_schemas)
+            error = 'Failed to find replica for input file=%s, allowed_schemas=%s, fspec=%s' % (fspec.lfn, schemas, fspec)
             self.logger.error("resolve_replica: %s" % error)
             raise PilotException(error, code=ErrorCodes.REPLICANOTFOUND)
 
@@ -457,7 +458,8 @@ class StageInClient(StagingClient):
             raise PilotException('Invalid input data for transfer operation')
 
         if self.infosys:
-            kwargs['copytools'] = self.infosys.queuedata.copytools
+            if self.infosys.queuedata:
+                kwargs['copytools'] = self.infosys.queuedata.copytools
             kwargs['ddmconf'] = self.infosys.resolve_storage_data()
         kwargs['activity'] = activity
 
