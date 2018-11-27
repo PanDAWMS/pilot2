@@ -6,11 +6,11 @@
 # Authors:
 # - Alexey Anisenkov, alexey.anisenkov@cern.ch, 2017
 # - Pavlo Svirin, pavlo.svirin@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 import time
 
 import hashlib
-#import commands
 from pilot.util.container import execute
 
 import socket
@@ -28,8 +28,9 @@ class TraceReport(dict):
 
         defs = {
             'eventType': '',           # sitemover
-            'eventVersion': 'pilot2',  # pilot version
+            'eventVersion': 'pilot2',  # pilot version (to be deprecated)
             'protocol': None,          # set by specific sitemover
+            'client': None,            # specific pilot version + rucio client version
             'clientState': 'INIT_REPORT',
             'localSite': '',           # localsite
             'remoteSite': '',          # equals remotesite (pilot does not do remote copy?)
