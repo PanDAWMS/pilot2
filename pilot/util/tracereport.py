@@ -8,15 +8,14 @@
 # - Pavlo Svirin, pavlo.svirin@cern.ch, 2018
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
-import time
-
 import hashlib
-from pilot.util.container import execute
-
 import socket
-
-import pilot.util.https
+import time
 from sys import exc_info
+
+from pilot.util.config import config
+from pilot.util.container import execute
+from pilot.util.https import request
 
 import logging
 logger = logging.getLogger(__name__)
@@ -63,6 +62,12 @@ class TraceReport(dict):
 
     # sitename, dsname, eventType
     def init(self, job):
+        """
+        Initialization.
+
+        :param job: job object.
+        :return:
+        """
 
         data = {
             'clientState': 'INIT_REPORT',
@@ -77,12 +82,12 @@ class TraceReport(dict):
         try:
             self['hostname'] = socket.gethostbyaddr(socket.gethostname())[0]
         except Exception:
-            logger.debug("Unable to detect hostname for trace report")
+            logger.debug("unable to detect hostname for trace report")
 
         try:
             self['ip'] = socket.gethostbyname(socket.gethostname())
         except Exception:
-            logger.debug("Unable to detect host IP for trace report")
+            logger.debug("unable to detect host IP for trace report")
 
         if job.jobdefinitionid:
             self['uuid'] = hashlib.md5('ppilot_%s' % job.jobdefinitionid).hexdigest()  # hash_pilotid
@@ -93,9 +98,15 @@ class TraceReport(dict):
             self['uuid'] = stdout. replace('-', '')
 
     def send(self):
-        url = 'https://rucio-lb-prod.cern.ch/traces/'
-        logger.info("Tracing server: %s" % url)
-        logger.info("Sending tracing report: %s" % str(self))
+        """
+        Send trace to rucio server using curl.
+
+        :return:
+        """
+
+        url = config.Rucio.url
+        logger.info("tracing server: %s" % url)
+        logger.info("sending tracing report: %s" % str(self))
         try:
             # take care of the encoding
             data = {'API': '0_3_0', 'operation': 'addReport', 'report': self}
@@ -106,13 +117,12 @@ class TraceReport(dict):
 
             # create the command
             #cmd = 'curl --connect-timeout 20 --max-time 120 --cacert %s -v -k -d "%s" %s' % (sslCertificate, data, url)
-            status = pilot.util.https.request(url, data)
-            #logger.info("Executing command: %s" % (cmd))
-            #s, o = commands.getstatusoutput(cmd)
+            status = request(url, data)
             if status is not None:
-                raise Exception(status)
+                logger.warning('failed to send traces to rucio: %s' % status)
+                #raise Exception(status)
         except Exception:
             # if something fails, log it but ignore
             logger.error('tracing failed: %s' % str(exc_info()))
         else:
-            logger.info("Tracing report sent")
+            logger.info("tracing report sent")
