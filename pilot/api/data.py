@@ -110,12 +110,12 @@ class StagingClient(object):
         logger = self.logger  ## the function could be static if logger will be moved outside
 
         xfiles = []
-        ddmconf = self.infosys.resolve_storage_data()
+        #ddmconf = self.infosys.resolve_storage_data()
 
         for fdat in files:
-            ddmdat = ddmconf.get(fdat.ddmendpoint)
-            if not ddmdat:
-                raise Exception("Failed to resolve input ddmendpoint by name=%s (from PanDA), please check configuration. fdat=%s" % (fdat.ddmendpoint, fdat))
+            #ddmdat = ddmconf.get(fdat.ddmendpoint)
+            #if not ddmdat:
+            #    raise Exception("Failed to resolve input ddmendpoint by name=%s (from PanDA), please check configuration. fdat=%s" % (fdat.ddmendpoint, fdat))
 
             ## skip fdat if need for further workflow (e.g. to properly handle OS ddms)
 
@@ -124,6 +124,8 @@ class StagingClient(object):
 
             if not fdat.inputddms and self.infosys.queuedata:
                 fdat.inputddms = self.infosys.queuedata.astorages.get('pr', {})  ## FIX ME LATER: change to proper activity=read_lan
+            if not fdat.inputddms and fdat.ddmendpoint:
+                fdat.inputddms = [fdat.ddmendpoint]
             xfiles.append(fdat)
 
         if not xfiles:  # no files for replica look-up
@@ -346,6 +348,7 @@ class StageInClient(StagingClient):
             :param fspec: input `FileSpec` objects
             :param allowed_schemas: list of allowed schemas or any if None
             :return: dict(surl, ddmendpoint, pfn)
+            :raise PilotException: if replica not found
         """
 
         if not fspec.replicas:
@@ -367,7 +370,8 @@ class StageInClient(StagingClient):
                 break
 
         if not replica:  # replica not found
-            error = 'Failed to find replica for input file=%s, allowed_schemas=%s, fspec=%s' % (fspec.lfn, allowed_schemas, fspec)
+            schemas = 'any' if not allowed_schemas[0] else ','.join(allowed_schemas)
+            error = 'Failed to find replica for input file=%s, allowed_schemas=%s, fspec=%s' % (fspec.lfn, schemas, fspec)
             self.logger.error("resolve_replica: %s" % error)
             raise PilotException(error, code=ErrorCodes.REPLICANOTFOUND)
 
@@ -481,7 +485,8 @@ class StageInClient(StagingClient):
             raise PilotException('invalid input data for transfer operation')
 
         if self.infosys:
-            kwargs['copytools'] = self.infosys.queuedata.copytools
+            if self.infosys.queuedata:
+                kwargs['copytools'] = self.infosys.queuedata.copytools
             kwargs['ddmconf'] = self.infosys.resolve_storage_data()
         kwargs['activity'] = activity
 
