@@ -252,7 +252,7 @@ def get_setup_command(job, prepareasetup):
         asetupoptions = " " + options + " --platform " + job.platform
 
         # Always set the --makeflags option (to prevent asetup from overwriting it)
-        asetupoptions += ' --makeflags=\"$MAKEFLAGS\"'
+        asetupoptions += " --makeflags=\'$MAKEFLAGS\'"
 
         # Verify that the setup works
         # exitcode, output = timedCommand(cmd, timeout=5 * 60)
