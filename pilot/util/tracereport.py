@@ -29,7 +29,6 @@ class TraceReport(dict):
             'eventType': '',           # sitemover
             'eventVersion': 'pilot2',  # pilot version (to be deprecated)
             'protocol': None,          # set by specific sitemover
-            'client': None,            # specific pilot version + rucio client version
             'clientState': 'INIT_REPORT',
             'localSite': '',           # localsite
             'remoteSite': '',          # equals remotesite (pilot does not do remote copy?)
