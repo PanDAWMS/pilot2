@@ -23,6 +23,7 @@ from pilot.util.filehandling import calculate_checksum
 from pilot.util.math import convert_mb_to_b
 from pilot.util.parameters import get_maximum_input_sizes
 from pilot.util.workernode import get_local_disk_space
+from pilot.util.tracereport import TraceReport
 
 errors = ErrorCodes()
 

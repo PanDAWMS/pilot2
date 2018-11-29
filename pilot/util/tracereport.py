@@ -14,6 +14,7 @@ import time
 from sys import exc_info
 
 from pilot.util.config import config
+from pilot.util.constants import get_pilot_version, get_rucio_client_version
 from pilot.util.container import execute
 from pilot.util.https import request
 
@@ -25,14 +26,15 @@ class TraceReport(dict):
 
     def __init__(self, *args, **kwargs):
 
+        event_version = "%s+%s" % (get_pilot_version(), get_rucio_client_version())
         defs = {
-            'eventType': '',           # sitemover
-            'eventVersion': 'pilot2',  # pilot version (to be deprecated)
-            'protocol': None,          # set by specific sitemover
+            'eventType': '',                # sitemover
+            'eventVersion': event_version,  # Pilot+Rucio client version
+            'protocol': None,               # set by specific copy tool
             'clientState': 'INIT_REPORT',
-            'localSite': '',           # localsite
-            'remoteSite': '',          # equals remotesite (pilot does not do remote copy?)
-            'timeStart': None,         # time to start
+            'localSite': '',                # localsite
+            'remoteSite': '',               # equals remotesite
+            'timeStart': None,              # time to start
             'catStart': None,
             'relativeStart': None,
             'transferStart': None,
@@ -92,6 +94,7 @@ class TraceReport(dict):
             self['uuid'] = hashlib.md5('ppilot_%s' % job.jobdefinitionid).hexdigest()  # hash_pilotid
         else:
             #self['uuid'] = commands.getoutput('uuidgen -t 2> /dev/null').replace('-', '')  # all LFNs of one request have the same uuid
+            # note: remove this and use hash function instead:
             cmd = 'uuidgen -t 2> /dev/null'
             exit_code, stdout, stderr = execute(cmd)
             self['uuid'] = stdout. replace('-', '')

@@ -23,7 +23,7 @@ from pilot.common.exception import QueuedataFailure, PilotException
 from pilot.info import set_info
 from pilot.util.auxiliary import shell_exit_code
 from pilot.util.config import config
-from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_START_TIME, PILOT_END_TIME
+from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_START_TIME, PILOT_END_TIME, get_pilot_version
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
@@ -31,12 +31,6 @@ from pilot.util.information import set_location
 from pilot.util.mpi import get_ranks_info
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.workernode import is_virtual_machine
-
-RELEASE = '2'   # released number should be fixed at 2 for Pilot 2
-VERSION = '0'   # version number is '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
-REVISION = '0'  # revision number should be reset to '0' for every new version release, increased for small updates
-BUILD = '183'   # build number should be reset to '1' for every new development cycle
-
 
 def pilot_version_banner():
     """
@@ -47,7 +41,7 @@ def pilot_version_banner():
 
     logger = logging.getLogger(__name__)
 
-    version = '***  PanDA Pilot 2 version %s  ***' % get_pilot_version()
+    version = '***  PanDA Pilot version %s  ***' % get_pilot_version()
     logger.info('*' * len(version))
     logger.info(version)
     logger.info('*' * len(version))
@@ -55,19 +49,6 @@ def pilot_version_banner():
 
     if is_virtual_machine():
         logger.info('pilot is running in a VM')
-
-
-def get_pilot_version():
-    """
-    Return the current Pilot version string with the format <release>.<version>.<revision> (<build>).
-    E.g. pilot_version = '2.1.3 (12)'
-    :return: version string.
-    """
-
-    return '{release}.{version}.{revision} ({build})'.format(release=RELEASE,
-                                                             version=VERSION,
-                                                             revision=REVISION,
-                                                             build=BUILD)
 
 
 def main():
