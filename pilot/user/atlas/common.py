@@ -310,11 +310,11 @@ def add_makeflags(job_core_count, cmd):
         else:
             if core_count >= 1:
                 # Note: the original request (AF) was to use j%d and not -j%d, now using the latter
-                cmd += "export MAKEFLAGS='-j%d QUICK=1 -l1'';" % (core_count)
+                cmd += "export MAKEFLAGS=\'-j%d QUICK=1 -l1\';" % (core_count)
 
     # make sure that MAKEFLAGS is always set
     if "MAKEFLAGS=" not in cmd:
-        cmd += "export MAKEFLAGS='-j1 QUICK=1 -l1';"
+        cmd += "export MAKEFLAGS=\'-j1 QUICK=1 -l1\';"
 
     return cmd
 
