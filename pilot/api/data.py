@@ -15,6 +15,7 @@
 import os
 import hashlib
 import logging
+import time
 
 from pilot.info import infosys
 from pilot.info.storageactivitymaps import get_ddm_activity
@@ -48,7 +49,7 @@ class StagingClient(object):
 
     remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm']  ## list of allowed schemas to be used for transfers from REMOTE sites
 
-    def __init__(self, infosys_instance=None, acopytools=None, logger=None, default_copytools='rucio'):
+    def __init__(self, infosys_instance=None, acopytools=None, logger=None, default_copytools='rucio', trace_report=None):
         """
             If `acopytools` is not specified then it will be automatically resolved via infosys. In this case `infosys` requires initialization.
             :param acopytools: dict of copytool names per activity to be used for transfers. Accepts also list of names or string value without activity passed.
@@ -88,9 +89,8 @@ class StagingClient(object):
             raise PilotException("Failed to resolve acopytools settings")
         logger.info('Configured copytools per activity: acopytools=%s' % self.acopytools)
 
-        # get an initialized trace report (has to be updated for get/put)
-        self.trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''))
-        logger.debug('trace_report[eventVersion]=%s' % self.trace_report.get('eventVersion', 'unknown'))
+        # get an initialized trace report (has to be updated for get/put if not defined before)
+        self.trace_report = trace_report if trace_report else TraceReport(pq=os.environ.get('PILOT_SITENAME', ''))
 
     @classmethod
     def get_preferred_replica(self, replicas, allowed_schemas):
@@ -208,9 +208,14 @@ class StagingClient(object):
                     # break # ignore other remote replicas/sites
 
             # verify filesize and checksum values
+            self.trace_report.update(validateStart=time.time())
+            status = True
+
             if fdat.filesize != r['bytes']:
                 logger.warning("Filesize of input file=%s mismatched with value from Rucio replica: filesize=%s, replica.filesize=%s, fdat=%s"
                                % (fdat.lfn, fdat.filesize, r['bytes'], fdat))
+                status = False
+
             if not fdat.filesize:
                 fdat.filesize = r['bytes']
                 logger.warning("Filesize value for input file=%s is not defined, assigning info from Rucio replica: filesize=%s" % (fdat.lfn, r['bytes']))
@@ -219,8 +224,14 @@ class StagingClient(object):
                 if fdat.checksum.get(ctype) != r[ctype] and r[ctype]:
                     logger.warning("Checksum value of input file=%s mismatched with info got from Rucio replica: checksum=%s, replica.checksum=%s, fdat=%s"
                                    % (fdat.lfn, fdat.checksum, r[ctype], fdat))
+                    status = False
+
                 if not fdat.checksum.get(ctype) and r[ctype]:
                     fdat.checksum[ctype] = r[ctype]
+
+            if not status:
+                logger.info("filesize and checksum verification done")
+                self.trace_report.update(clientState="DONE")
 
         logger.info('Number of resolved replicas:\n' +
                     '\n'.join(["lfn=%s: replicas=%s, allowremoteinputs=%s, is_directaccess=%s"
@@ -276,6 +287,8 @@ class StagingClient(object):
             :raise: PilotException in case of controlled error
             :return: output of copytool transfers (to be clarified)
         """
+
+        self.trace_report.update(relativeStart=time.time(), transferStart=time.time())
 
         if isinstance(activity, basestring):
             activity = [activity]
@@ -450,6 +463,8 @@ class StageInClient(StagingClient):
         :return: the output of the copytool transfer operation
         :raise: PilotException in case of controlled error
         """
+
+        #logger.debug('trace_report[eventVersion]=%s' % self.trace_report.get('eventVersion', 'unknown'))
 
         # sort out direct access logic
         job = kwargs.get('job', None)

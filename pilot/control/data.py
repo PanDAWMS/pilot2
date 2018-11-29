@@ -125,19 +125,20 @@ def _stage_in(args, job):
     #    eventType += '_logs'
     #if special_log_transfer:
     #    eventType += '_logs_os'
-    #if job.isAnalysisJob():
-    #    eventType += "_a"
+    if job.is_analysis():
+        event_type += "_a"
     rse = get_rse(job.indata)
     localsite = remotesite = rse
     trace_report = TraceReport(pq='', localSite=localsite, remoteSite=remotesite, dataset="", eventType=event_type)
     trace_report.init(job)
 
+    error = None
     try:
         if job.is_eventservicemerge:
-            client = StageInESClient(job.infosys, logger=log)
+            client = StageInESClient(job.infosys, logger=log, trace_report=trace_report)
             activity = 'es_events_read'
         else:
-            client = StageInClient(job.infosys, logger=log)
+            client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
             activity = 'pr'
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
         client.transfer(job.indata, activity=activity, **kwargs)
@@ -164,15 +165,20 @@ def _stage_in(args, job):
     else:
         log.info("stage-in failed")
 
+    if error:
+        trace_report.update(clientState=error.state or 'STAGEIN_FAILED', stateReason=error.message, timeEnd=time.time())
+        #trace_report.send()
+
+
     return not remain_files
 
 
-def get_rse(indata, lfn=""):
+def get_rse(data, lfn=""):
     """
     Return the ddmEndPoint corresponding to the given lfn.
     If lfn is not provided, the first ddmEndPoint will be returned.
 
-    :param indata: FileSpec list object.
+    :param data: FileSpec list object.
     :param lfn: local file name (string).
     :return: rse (string)
     """
@@ -181,13 +187,13 @@ def get_rse(indata, lfn=""):
 
     if lfn == "":
         try:
-            return indata[0].ddmendpoint
+            return data[0].ddmendpoint
         except Exception as e:
             logger.warning("exception caught: %s" % e)
             logger.warning("end point is currently unknown")
             return "unknown"
 
-    for fspec in indata:
+    for fspec in data:
         if fspec.lfn == lfn:
             rse = fspec.ddmendpoint
 
@@ -582,8 +588,20 @@ def _do_stageout(job, xdata, activity, title):
     log = get_logger(job.jobid)
     log.info('prepare to stage-out %d %s file(s)' % (len(xdata), title))
 
+    event_type = "put_sm"
+    #if log_transfer:
+    #    eventType += '_logs'
+    #if special_log_transfer:
+    #    eventType += '_logs_os'
+    if job.is_analysis():
+        event_type += "_a"
+    rse = get_rse(job.outdata)
+    localsite = remotesite = rse
+    trace_report = TraceReport(pq='', localSite=localsite, remoteSite=remotesite, dataset="", eventType=event_type)
+    trace_report.init(job)
+
     try:
-        client = StageOutClient(job.infosys, logger=log)
+        client = StageOutClient(job.infosys, logger=log, trace_report=trace_report)
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
         client.transfer(xdata, activity, **kwargs)
     except PilotException as error:

@@ -94,21 +94,38 @@ class TraceReport(dict):
             self['uuid'] = hashlib.md5('ppilot_%s' % job.jobdefinitionid).hexdigest()  # hash_pilotid
         else:
             #self['uuid'] = commands.getoutput('uuidgen -t 2> /dev/null').replace('-', '')  # all LFNs of one request have the same uuid
-            # note: remove this and use hash function instead:
             cmd = 'uuidgen -t 2> /dev/null'
             exit_code, stdout, stderr = execute(cmd)
-            self['uuid'] = stdout. replace('-', '')
+            self['uuid'] = stdout.replace('-', '')
+
+    def verify_trace(self):
+        """
+        Verify the trace consistency.
+        Are all required fields set?
+
+        :return: Boolean.
+        """
+
+        if not self['eventType'] or not self['localSite'] or not self['remoteSite']:
+            return False
+        else:
+            return True
 
     def send(self):
         """
         Send trace to rucio server using curl.
 
-        :return:
+        :return: Boolean.
         """
 
         url = config.Rucio.url
         logger.info("tracing server: %s" % url)
         logger.info("sending tracing report: %s" % str(self))
+
+        if not self.verify_trace():
+            logger.warning('cannot send trace since not all fields are set')
+            return False
+
         try:
             # take care of the encoding
             data = {'API': '0_3_0', 'operation': 'addReport', 'report': self}
@@ -128,3 +145,5 @@ class TraceReport(dict):
             logger.error('tracing failed: %s' % str(exc_info()))
         else:
             logger.info("tracing report sent")
+
+        return True
