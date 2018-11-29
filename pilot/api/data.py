@@ -88,6 +88,10 @@ class StagingClient(object):
             raise PilotException("Failed to resolve acopytools settings")
         logger.info('Configured copytools per activity: acopytools=%s' % self.acopytools)
 
+        # get an initialized trace report (has to be updated for get/put)
+        self.trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''))
+        logger.debug('trace_report[eventVersion]=%s' % self.trace_report.get('eventVersion', 'unknown'))
+
     @classmethod
     def get_preferred_replica(self, replicas, allowed_schemas):
         """
