@@ -166,8 +166,8 @@ def _stage_in(args, job):
         log.info("stage-in failed")
 
     if error:
-        trace_report.update(clientState=error.state or 'STAGEIN_FAILED', stateReason=error.message, timeEnd=time.time())
-        #trace_report.send()
+        trace_report.update(clientState='STAGEIN_FAILED', stateReason=error.message, timeEnd=time.time())
+        trace_report.send()
 
 
     return not remain_files

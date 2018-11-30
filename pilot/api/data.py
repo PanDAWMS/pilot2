@@ -85,9 +85,12 @@ class StagingClient(object):
             self.acopytools['default'] = default_copytools
 
         if not self.acopytools:
-            logger.error('Failed to initilize StagingClient: no acopytools options found, acopytools=%s' % self.acopytools)
-            raise PilotException("Failed to resolve acopytools settings")
-        logger.info('Configured copytools per activity: acopytools=%s' % self.acopytools)
+            msg = 'failed to initilize StagingClient: no acopytools options found, acopytools=%s' % self.acopytools
+            logger.error(msg)
+            self.trace_report.update(clientState='BAD_COPYTOOL', stateReason=msg)
+            self.trace_report.send()
+            raise PilotException("failed to resolve acopytools settings")
+        logger.info('configured copytools per activity: acopytools=%s' % self.acopytools)
 
         # get an initialized trace report (has to be updated for get/put if not defined before)
         self.trace_report = trace_report if trace_report else TraceReport(pq=os.environ.get('PILOT_SITENAME', ''))
@@ -210,7 +213,6 @@ class StagingClient(object):
             # verify filesize and checksum values
             self.trace_report.update(validateStart=time.time())
             status = True
-
             if fdat.filesize != r['bytes']:
                 logger.warning("Filesize of input file=%s mismatched with value from Rucio replica: filesize=%s, replica.filesize=%s, fdat=%s"
                                % (fdat.lfn, fdat.filesize, r['bytes'], fdat))
@@ -499,9 +501,15 @@ class StageInClient(StagingClient):
                 self.logger.info("[stage-in] found replica to be used for lfn=%s: ddmendpoint=%s, pfn=%s" %
                                  (fspec.lfn, fspec.ddmendpoint, fspec.turl))
 
+                self.logger.info("primary copy command for stage-in (activity=%s): %s" % (activity[0], copytool))
+                self.trace_report.update(protocol=copytool, filesize=fspec.filesize)
+
         if not copytool.is_valid_for_copy_in(files):
-            self.logger.warning('input is not valid for transfers using copytool=%s' % copytool)
+            msg = 'input is not valid for transfers using copytool=%s' % copytool
+            self.logger.warning(msg)
             self.logger.debug('input: %s' % files)
+            self.trace_report.update(clientState='NO_REPLICA', stateReason=msg)
+            self.trace_report.send()
             raise PilotException('invalid input data for transfer operation')
 
         if self.infosys:
@@ -509,6 +517,15 @@ class StageInClient(StagingClient):
                 kwargs['copytools'] = self.infosys.queuedata.copytools
             kwargs['ddmconf'] = self.infosys.resolve_storage_data()
         kwargs['activity'] = activity
+
+        # fill trace details
+        localsite = os.environ.get('DQ2_LOCAL_SITE_ID', None)
+        localsite = localsite if localsite else fspec.ddmendpoint
+        self.trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint)
+        self.trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
+        self.trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
+
+        self.logger.debug('new trace_report=%s' % self.trace_report)
 
         # mark direct access files with status=remote_io
         if allow_direct_access:
