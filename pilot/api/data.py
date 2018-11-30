@@ -319,6 +319,8 @@ class StagingClient(object):
                 module = self.copytool_modules[name]['module_name']
                 self.logger.info('trying to use copytool=%s for activity=%s' % (name, activity))
                 copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], -1)
+                self.trace_report.update(protocol=name)
+
             except PilotException as e:
                 caught_errors.append(e)
                 self.logger.debug('error: %s' % e)
@@ -501,9 +503,6 @@ class StageInClient(StagingClient):
                 self.logger.info("[stage-in] found replica to be used for lfn=%s: ddmendpoint=%s, pfn=%s" %
                                  (fspec.lfn, fspec.ddmendpoint, fspec.turl))
 
-                self.logger.info("primary copy command for stage-in (activity=%s): %s" % (activity[0], copytool))
-                self.trace_report.update(protocol=copytool, filesize=fspec.filesize)
-
         if not copytool.is_valid_for_copy_in(files):
             msg = 'input is not valid for transfers using copytool=%s' % copytool
             self.logger.warning(msg)
@@ -518,15 +517,6 @@ class StageInClient(StagingClient):
             kwargs['ddmconf'] = self.infosys.resolve_storage_data()
         kwargs['activity'] = activity
 
-        # fill trace details
-        localsite = os.environ.get('DQ2_LOCAL_SITE_ID', None)
-        localsite = localsite if localsite else fspec.ddmendpoint
-        self.trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint)
-        self.trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
-        self.trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
-
-        self.logger.debug('new trace_report=%s' % self.trace_report)
-
         # mark direct access files with status=remote_io
         if allow_direct_access:
             self.set_status_for_direct_access(files)
@@ -534,6 +524,8 @@ class StageInClient(StagingClient):
         # verify file sizes and available space for stage-in
         self.check_availablespace([e for e in files if e.status not in ['remote_io', 'transferred']])
 
+        # add the trace report
+        kwargs['trace_report'] = self.trace_report
         self.logger.info('ready to transfer (stage-in) files: %s' % files)
 
         return copytool.copy_in(files, **kwargs)
