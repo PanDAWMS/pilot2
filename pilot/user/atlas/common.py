@@ -1260,7 +1260,7 @@ def verify_ncores(corecount):
 
     try:
         athena_proc_number = int(os.environ.get('ATHENA_PROC_NUMBER', None))
-    except:
+    except Exception:
         athena_proc_number = None
 
     # Note: if ATHENA_PROC_NUMBER is set (by the wrapper), then do not overwrite it
