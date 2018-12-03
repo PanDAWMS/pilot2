@@ -96,6 +96,9 @@ def get_payload_command(job):
         lfns, guids = job.get_lfns_and_guids()
         cmd = replace_lfns_with_turls(cmd, job.workdir, "PoolFileCatalog.xml", lfns)
 
+    # Explicitly add the ATHENA_PROC_NUMBER (or JOB value)
+    cmd = add_athena_proc_number(cmd)
+
     log.info('payload run command: %s' % cmd)
 
     return cmd
@@ -225,6 +228,36 @@ def get_generic_payload_command(cmd, job, prepareasetup, userjob):
             cmd = "python %s %s" % (job.transformation, job.jobparams)
         else:
             cmd = job.jobparams
+
+    return cmd
+
+
+def add_athena_proc_number(cmd):
+    """
+    Add the ATHENA_PROC_NUMBER to the payload command if necessary
+
+    :param cmd: payload execution command (string).
+    :return: updated payload execution command (string).
+    """
+
+    if not "ATHENA_PROC_NUMBER" in cmd:
+        if "ATHENA_PROC_NUMBER" in os.environ:
+            cmd = 'export ATHENA_PROC_NUMBER=%s;' % os.environ['ATHENA_PROC_NUMBER'] + cmd
+        elif "ATHENA_PROC_NUMBER_JOB" in os.environ:
+            try:
+                value = int(os.environ['ATHENA_PROC_NUMBER_JOB'])
+            except Exception:
+                logger.warning("failed to convert ATHENA_PROC_NUMBER_JOB=%s to int" %
+                               os.environ['ATHENA_PROC_NUMBER_JOB'])
+            else:
+                if value > 1:
+                    cmd = 'export ATHENA_PROC_NUMBER=%d;' % value + cmd
+                else:
+                    logger.info("will not add ATHENA_PROC_NUMBER to cmd since the value is %d" % value)
+        else:
+            logger.warning("don't know how to set ATHENA_PROC_NUMBER (could not find it in os.environ)")
+    else:
+        logger.info("ATHENA_PROC_NUMBER already in job command")
 
     return cmd
 
@@ -1211,6 +1244,36 @@ def verify_lfn_length(outdata):
     return ec, diagnostics
 
 
+def verify_ncores(corecount):
+    """
+    Verify that nCores settings are correct
+
+    :param corecount: number of cores (int).
+    :return:
+    """
+
+    try:
+        del os.environ['ATHENA_PROC_NUMBER_JOB']
+        tolog("unset existing ATHENA_PROC_NUMBER_JOB")
+    except Exception:
+        pass
+
+    try:
+        athena_proc_number = int(os.environ['ATHENA_PROC_NUMBER'])
+    except:
+        athena_proc_number = None
+
+    # Note: if ATHENA_PROC_NUMBER is set (by the wrapper), then do not overwrite it
+    # Otherwise, set it to the value of job.coreCount
+    # (actually set ATHENA_PROC_NUMBER_JOB and use it if it exists, otherwise use ATHENA_PROC_NUMBER directly;
+    # ATHENA_PROC_NUMBER_JOB will always be the value from the job definition)
+    if athena_proc_number:
+        logger.info("encountered a set ATHENA_PROC_NUMBER (%d), will not overwrite it" % athena_proc_number)
+    else:
+        os.environ['ATHENA_PROC_NUMBER_JOB'] = corecount
+        logger.info("set ATHENA_PROC_NUMBER_JOB to %s (ATHENA_PROC_NUMBER will not be overwritten)" % corecount)
+
+
 def verify_job(job):
     """
     Verify job parameters for specific errors.
@@ -1225,6 +1288,7 @@ def verify_job(job):
     status = False
     log = get_logger(job.jobid)
 
+    # are LFNs of correct lengths?
     ec, diagnostics = verify_lfn_length(job.outdata)
     if ec != 0:
         log.fatal(diagnostics)
@@ -1232,5 +1296,8 @@ def verify_job(job):
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
     else:
         status = True
+
+    # check the ATHENA_PROC_NUMBER settings
+    verify_ncores(job.corecount)
 
     return status
