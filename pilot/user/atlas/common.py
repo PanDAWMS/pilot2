@@ -1254,7 +1254,7 @@ def verify_ncores(corecount):
 
     try:
         del os.environ['ATHENA_PROC_NUMBER_JOB']
-        tolog("unset existing ATHENA_PROC_NUMBER_JOB")
+        logger.debug("unset existing ATHENA_PROC_NUMBER_JOB")
     except Exception:
         pass
 
