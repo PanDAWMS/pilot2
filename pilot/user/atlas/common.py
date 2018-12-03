@@ -1259,7 +1259,7 @@ def verify_ncores(corecount):
         pass
 
     try:
-        athena_proc_number = int(os.environ['ATHENA_PROC_NUMBER'])
+        athena_proc_number = int(os.environ.get('ATHENA_PROC_NUMBER', None))
     except:
         athena_proc_number = None
 
@@ -1270,7 +1270,7 @@ def verify_ncores(corecount):
     if athena_proc_number:
         logger.info("encountered a set ATHENA_PROC_NUMBER (%d), will not overwrite it" % athena_proc_number)
     else:
-        os.environ['ATHENA_PROC_NUMBER_JOB'] = corecount
+        os.environ['ATHENA_PROC_NUMBER_JOB'] = "%s" % corecount
         logger.info("set ATHENA_PROC_NUMBER_JOB to %s (ATHENA_PROC_NUMBER will not be overwritten)" % corecount)
 
 
