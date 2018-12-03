@@ -12,6 +12,7 @@
 import os
 import json
 import logging
+from time import time
 
 from .common import resolve_common_transfer_errors, verify_catalog_checksum
 from pilot.common.exception import PilotException, ErrorCodes
@@ -43,16 +44,28 @@ def copy_in(files, **kwargs):
 
     allow_direct_access = kwargs.get('allow_direct_access')
     ignore_errors = kwargs.get('ignore_errors')
+    trace_report = kwargs.get('trace_report')
 
     # don't spoil the output, we depend on stderr parsing
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
+    localsite = os.environ.get('DQ2_LOCAL_SITE_ID', None)
     for fspec in files:
+        # update the trace report
+        localsite = localsite if localsite else fspec.ddmendpoint
+        trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
+        trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
+        trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
+
         # continue loop for files that are to be accessed directly
         if fspec.is_directaccess(ensure_replica=False) and allow_direct_access:
             fspec.status_code = 0
             fspec.status = 'remote_io'
+            trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
+            trace_report.send()
             continue
+
+        trace_report.update(catStart=time())  ## is this metric still needed? LFC catalog
 
         fspec.status_code = 0
 
@@ -70,6 +83,8 @@ def copy_in(files, **kwargs):
             error = resolve_common_transfer_errors(stderr, is_stagein=True)
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
+            trace_report.update(clientState=error.get('state') or 'STAGEIN_ATTEMPT_FAILED',
+                                stateReason=error.get('error'), timeEnd=time())
             if not ignore_errors:
                 raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
@@ -78,13 +93,19 @@ def copy_in(files, **kwargs):
         if os.path.exists(destination):
             state, diagnostics = verify_catalog_checksum(fspec, destination)
             if diagnostics != "" and not ignore_errors:
+                trace_report.update(clientState='state' or 'STAGEIN_ATTEMPT_FAILED', stateReason=diagnostics,
+                                    timeEnd=time())
+                trace_report.send()
                 raise PilotException(diagnostics, code=fspec.status_code, state=state)
         else:
-            logger.warning('wrong path: %s' % destination)
+            logger.warning('file does not exist: %s (cannot verify catalog checksum)' % destination)
 
         if not fspec.status_code:
             fspec.status_code = 0
             fspec.status = 'transferred'
+            trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
+
+        trace_report.send()
 
     return files
 

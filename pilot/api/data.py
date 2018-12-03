@@ -15,6 +15,7 @@
 import os
 import hashlib
 import logging
+import time
 
 from pilot.info import infosys
 from pilot.info.storageactivitymaps import get_ddm_activity
@@ -23,6 +24,7 @@ from pilot.util.filehandling import calculate_checksum
 from pilot.util.math import convert_mb_to_b
 from pilot.util.parameters import get_maximum_input_sizes
 from pilot.util.workernode import get_local_disk_space
+from pilot.util.tracereport import TraceReport
 
 errors = ErrorCodes()
 
@@ -47,7 +49,7 @@ class StagingClient(object):
 
     remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm']  ## list of allowed schemas to be used for transfers from REMOTE sites
 
-    def __init__(self, infosys_instance=None, acopytools=None, logger=None, default_copytools='rucio'):
+    def __init__(self, infosys_instance=None, acopytools=None, logger=None, default_copytools='rucio', trace_report=None):
         """
             If `acopytools` is not specified then it will be automatically resolved via infosys. In this case `infosys` requires initialization.
             :param acopytools: dict of copytool names per activity to be used for transfers. Accepts also list of names or string value without activity passed.
@@ -83,9 +85,15 @@ class StagingClient(object):
             self.acopytools['default'] = default_copytools
 
         if not self.acopytools:
-            logger.error('Failed to initilize StagingClient: no acopytools options found, acopytools=%s' % self.acopytools)
-            raise PilotException("Failed to resolve acopytools settings")
-        logger.info('Configured copytools per activity: acopytools=%s' % self.acopytools)
+            msg = 'failed to initilize StagingClient: no acopytools options found, acopytools=%s' % self.acopytools
+            logger.error(msg)
+            self.trace_report.update(clientState='BAD_COPYTOOL', stateReason=msg)
+            self.trace_report.send()
+            raise PilotException("failed to resolve acopytools settings")
+        logger.info('configured copytools per activity: acopytools=%s' % self.acopytools)
+
+        # get an initialized trace report (has to be updated for get/put if not defined before)
+        self.trace_report = trace_report if trace_report else TraceReport(pq=os.environ.get('PILOT_SITENAME', ''))
 
     @classmethod
     def get_preferred_replica(self, replicas, allowed_schemas):
@@ -203,9 +211,13 @@ class StagingClient(object):
                     # break # ignore other remote replicas/sites
 
             # verify filesize and checksum values
+            self.trace_report.update(validateStart=time.time())
+            status = True
             if fdat.filesize != r['bytes']:
                 logger.warning("Filesize of input file=%s mismatched with value from Rucio replica: filesize=%s, replica.filesize=%s, fdat=%s"
                                % (fdat.lfn, fdat.filesize, r['bytes'], fdat))
+                status = False
+
             if not fdat.filesize:
                 fdat.filesize = r['bytes']
                 logger.warning("Filesize value for input file=%s is not defined, assigning info from Rucio replica: filesize=%s" % (fdat.lfn, r['bytes']))
@@ -214,8 +226,14 @@ class StagingClient(object):
                 if fdat.checksum.get(ctype) != r[ctype] and r[ctype]:
                     logger.warning("Checksum value of input file=%s mismatched with info got from Rucio replica: checksum=%s, replica.checksum=%s, fdat=%s"
                                    % (fdat.lfn, fdat.checksum, r[ctype], fdat))
+                    status = False
+
                 if not fdat.checksum.get(ctype) and r[ctype]:
                     fdat.checksum[ctype] = r[ctype]
+
+            if not status:
+                logger.info("filesize and checksum verification done")
+                self.trace_report.update(clientState="DONE")
 
         logger.info('Number of resolved replicas:\n' +
                     '\n'.join(["lfn=%s: replicas=%s, allowremoteinputs=%s, is_directaccess=%s"
@@ -272,6 +290,8 @@ class StagingClient(object):
             :return: output of copytool transfers (to be clarified)
         """
 
+        self.trace_report.update(relativeStart=time.time(), transferStart=time.time())
+
         if isinstance(activity, basestring):
             activity = [activity]
         if 'default' not in activity:
@@ -299,6 +319,8 @@ class StagingClient(object):
                 module = self.copytool_modules[name]['module_name']
                 self.logger.info('trying to use copytool=%s for activity=%s' % (name, activity))
                 copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], -1)
+                self.trace_report.update(protocol=name)
+
             except PilotException as e:
                 caught_errors.append(e)
                 self.logger.debug('error: %s' % e)
@@ -446,6 +468,8 @@ class StageInClient(StagingClient):
         :raise: PilotException in case of controlled error
         """
 
+        #logger.debug('trace_report[eventVersion]=%s' % self.trace_report.get('eventVersion', 'unknown'))
+
         # sort out direct access logic
         job = kwargs.get('job', None)
         #job_access_mode = job.accessmode if job else ''
@@ -480,8 +504,11 @@ class StageInClient(StagingClient):
                                  (fspec.lfn, fspec.ddmendpoint, fspec.turl))
 
         if not copytool.is_valid_for_copy_in(files):
-            self.logger.warning('input is not valid for transfers using copytool=%s' % copytool)
+            msg = 'input is not valid for transfers using copytool=%s' % copytool
+            self.logger.warning(msg)
             self.logger.debug('input: %s' % files)
+            self.trace_report.update(clientState='NO_REPLICA', stateReason=msg)
+            self.trace_report.send()
             raise PilotException('invalid input data for transfer operation')
 
         if self.infosys:
@@ -497,6 +524,8 @@ class StageInClient(StagingClient):
         # verify file sizes and available space for stage-in
         self.check_availablespace([e for e in files if e.status not in ['remote_io', 'transferred']])
 
+        # add the trace report
+        kwargs['trace_report'] = self.trace_report
         self.logger.info('ready to transfer (stage-in) files: %s' % files)
 
         return copytool.copy_in(files, **kwargs)

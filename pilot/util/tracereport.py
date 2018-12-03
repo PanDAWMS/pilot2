@@ -14,6 +14,7 @@ import time
 from sys import exc_info
 
 from pilot.util.config import config
+from pilot.util.constants import get_pilot_version, get_rucio_client_version
 from pilot.util.container import execute
 from pilot.util.https import request
 
@@ -25,15 +26,15 @@ class TraceReport(dict):
 
     def __init__(self, *args, **kwargs):
 
+        event_version = "%s+%s" % (get_pilot_version(), get_rucio_client_version())
         defs = {
-            'eventType': '',           # sitemover
-            'eventVersion': 'pilot2',  # pilot version (to be deprecated)
-            'protocol': None,          # set by specific sitemover
-            'client': None,            # specific pilot version + rucio client version
+            'eventType': '',                # sitemover
+            'eventVersion': event_version,  # Pilot+Rucio client version
+            'protocol': None,               # set by specific copy tool
             'clientState': 'INIT_REPORT',
-            'localSite': '',           # localsite
-            'remoteSite': '',          # equals remotesite (pilot does not do remote copy?)
-            'timeStart': None,         # time to start
+            'localSite': '',                # localsite
+            'remoteSite': '',               # equals remotesite
+            'timeStart': None,              # time to start
             'catStart': None,
             'relativeStart': None,
             'transferStart': None,
@@ -95,18 +96,36 @@ class TraceReport(dict):
             #self['uuid'] = commands.getoutput('uuidgen -t 2> /dev/null').replace('-', '')  # all LFNs of one request have the same uuid
             cmd = 'uuidgen -t 2> /dev/null'
             exit_code, stdout, stderr = execute(cmd)
-            self['uuid'] = stdout. replace('-', '')
+            self['uuid'] = stdout.replace('-', '')
+
+    def verify_trace(self):
+        """
+        Verify the trace consistency.
+        Are all required fields set?
+
+        :return: Boolean.
+        """
+
+        if not self['eventType'] or not self['localSite'] or not self['remoteSite']:
+            return False
+        else:
+            return True
 
     def send(self):
         """
         Send trace to rucio server using curl.
 
-        :return:
+        :return: Boolean.
         """
 
         url = config.Rucio.url
         logger.info("tracing server: %s" % url)
         logger.info("sending tracing report: %s" % str(self))
+
+        if not self.verify_trace():
+            logger.warning('cannot send trace since not all fields are set')
+            return False
+
         try:
             # take care of the encoding
             data = {'API': '0_3_0', 'operation': 'addReport', 'report': self}
@@ -117,7 +136,7 @@ class TraceReport(dict):
 
             # create the command
             #cmd = 'curl --connect-timeout 20 --max-time 120 --cacert %s -v -k -d "%s" %s' % (sslCertificate, data, url)
-            status = request(url, data)
+            status = "(just a test)"  #request(url, data)
             if status is not None:
                 logger.warning('failed to send traces to rucio: %s' % status)
                 #raise Exception(status)
@@ -126,3 +145,5 @@ class TraceReport(dict):
             logger.error('tracing failed: %s' % str(exc_info()))
         else:
             logger.info("tracing report sent")
+
+        return True
