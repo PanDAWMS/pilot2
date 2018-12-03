@@ -240,7 +240,7 @@ def add_athena_proc_number(cmd):
     :return: updated payload execution command (string).
     """
 
-    if not "ATHENA_PROC_NUMBER" in cmd:
+    if "ATHENA_PROC_NUMBER" not in cmd:
         if "ATHENA_PROC_NUMBER" in os.environ:
             cmd = 'export ATHENA_PROC_NUMBER=%s;' % os.environ['ATHENA_PROC_NUMBER'] + cmd
         elif "ATHENA_PROC_NUMBER_JOB" in os.environ:
