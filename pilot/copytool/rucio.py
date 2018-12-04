@@ -93,7 +93,7 @@ def copy_in(files, **kwargs):
         if os.path.exists(destination):
             state, diagnostics = verify_catalog_checksum(fspec, destination)
             if diagnostics != "" and not ignore_errors:
-                trace_report.update(clientState='state' or 'STAGEIN_ATTEMPT_FAILED', stateReason=diagnostics,
+                trace_report.update(clientState=state or 'STAGEIN_ATTEMPT_FAILED', stateReason=diagnostics,
                                     timeEnd=time())
                 trace_report.send()
                 raise PilotException(diagnostics, code=fspec.status_code, state=state)
@@ -125,8 +125,12 @@ def copy_out(files, **kwargs):
     no_register = kwargs.pop('no_register', False)
     summary = kwargs.pop('summary', True)
     ignore_errors = kwargs.pop('ignore_errors', False)
+    trace_report = kwargs.get('trace_report')
 
     for fspec in files:
+        trace_report.update(scope=fspec.scope, dataset=fspec.get('dsname_report'), url=surl)
+        trace_report.update(catStart=time(), filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
+
         cmd = ['/usr/bin/env', 'rucio', '-v', 'upload']
         cmd += ['--rse', fspec.ddmendpoint]
 
@@ -156,6 +160,9 @@ def copy_out(files, **kwargs):
             error = resolve_common_transfer_errors(stderr, is_stagein=False)
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
+            trace_report.update(clientState=state or 'STAGEOUT_ATTEMPT_FAILED', stateReason=diagnostics,
+                                timeEnd=time())
+            trace_report.send()
             if not ignore_errors:
                 raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
@@ -173,15 +180,21 @@ def copy_out(files, **kwargs):
                     # the logic should be unified and moved to base layer shared for all the movers
                     adler32 = dat.get('adler32')
                     if fspec.checksum.get('adler32') and adler32 and fspec.checksum.get('adler32') != adler32:
-                        logger.warning('checksum verification failed: local %s != remote %s' %
-                                       (fspec.checksum.get('adler32'), adler32))
+                        msg = 'checksum verification failed: local %s != remote %s' % \
+                              (fspec.checksum.get('adler32'), adler32)
+                        logger.warning(msg)
                         fspec.status = 'failed'
                         fspec.status_code = ErrorCodes.PUTADMISMATCH
+                        trace_report.update(clientState='AD_MISMATCH', stateReason=msg, timeEnd=time())
+                        trace_report.send()
                         if not ignore_errors:
                             raise PilotException("Failed to stageout: CRC mismatched",
                                                  code=ErrorCodes.PUTADMISMATCH, state='AD_MISMATCH')
         if not fspec.status_code:
             fspec.status_code = 0
             fspec.status = 'transferred'
+            trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
+
+        trace_report.send()
 
     return files
