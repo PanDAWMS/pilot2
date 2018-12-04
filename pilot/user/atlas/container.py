@@ -222,7 +222,7 @@ def alrb_wrapper(cmd, workdir, job):
         status = write_file(script_file, cmd, mute=False)
         if status:
             script_cmd = 'sh /srv/' + script_file
-            _cmd += 'export ALRB_CONT_RUNPAYLOAD=%s;' % script_cmd
+            _cmd += "export ALRB_CONT_RUNPAYLOAD=\'%s\';" % script_cmd
         else:
             log.warning('attempting to quote command instead')
             _cmd += 'export ALRB_CONT_RUNPAYLOAD=%s;' % pipes.quote(cmd)
