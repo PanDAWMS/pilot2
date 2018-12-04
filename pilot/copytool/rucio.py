@@ -128,7 +128,7 @@ def copy_out(files, **kwargs):
     trace_report = kwargs.get('trace_report')
 
     for fspec in files:
-        trace_report.update(scope=fspec.scope, dataset=fspec.get('dsname_report'), url=surl)
+        trace_report.update(scope=fspec.scope, dataset=fspec.dataset, url=surl)
         trace_report.update(catStart=time(), filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
 
         cmd = ['/usr/bin/env', 'rucio', '-v', 'upload']
