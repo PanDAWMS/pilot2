@@ -165,11 +165,6 @@ def _stage_in(args, job):
     else:
         log.info("stage-in failed")
 
-    if error:
-        # warning: is .message always defined?
-        trace_report.update(clientState='STAGEIN_FAILED', stateReason=error.message, timeEnd=time.time())
-        trace_report.send()
-
     return not remain_files
 
 

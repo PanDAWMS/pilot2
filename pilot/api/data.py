@@ -331,7 +331,8 @@ class StagingClient(object):
             try:
                 result = self.transfer_files(copytool, files, activity, **kwargs)
             except PilotException as e:
-                self.logger.warning('failed to execute transfer_files(): PilotException caught: %s' % e)
+                msg = 'failed to execute transfer_files(): PilotException caught: %s' % e
+                self.logger.warning(msg)
                 caught_errors.append(e)
             except Exception as e:
                 self.logger.warning('failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
@@ -687,6 +688,8 @@ class StageOutClient(StagingClient):
             if not os.path.isfile(pfn) or not os.access(pfn, os.R_OK):
                 msg = "Error: output pfn file does not exist: %s" % pfn
                 self.logger.error(msg)
+                self.trace_report.update(clientState='NO_REPLICA', stateReason=msg)
+                self.trace_report.send()
                 raise PilotException(msg, code=ErrorCodes.MISSINGOUTPUTFILE, state="FILE_INFO_FAIL")
             if not fspec.filesize:
                 fspec.filesize = os.path.getsize(pfn)
@@ -748,6 +751,9 @@ class StageOutClient(StagingClient):
             msg = 'nothing to stage-out - an internal Pilot error has occurred'
             self.logger.fatal(msg)
             raise PilotException(msg, code=errors.INTERNALPILOTPROBLEM)
+
+        # add the trace report
+        kwargs['trace_report'] = self.trace_report
 
         return copytool.copy_out(files, **kwargs)
 

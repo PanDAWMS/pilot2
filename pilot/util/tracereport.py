@@ -102,10 +102,14 @@ class TraceReport(dict):
     def verify_trace(self):
         """
         Verify the trace consistency.
-        Are all required fields set?
+        Are all required fields set? Remove escape chars from stateReason if present.
 
         :return: Boolean.
         """
+
+        # remove any escape characters that might be present in the stateReason field
+        state_reason = report.get('stateReason', '')
+        self.update(stateReason=state_reason.replace('\\', ''))
 
         if not self['eventType'] or not self['localSite'] or not self['remoteSite']:
             return False

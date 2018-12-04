@@ -221,7 +221,8 @@ def alrb_wrapper(cmd, workdir, job):
         script_file = 'container_script.sh'
         status = write_file(script_file, cmd, mute=False)
         if status:
-            script_cmd = 'sh /srv/' + script_file
+            #script_cmd = 'sh /srv/' + script_file
+            script_cmd = 'sh ./' + script_file
             _cmd += "export ALRB_CONT_RUNPAYLOAD=\'%s\';" % script_cmd
         else:
             log.warning('attempting to quote command instead')
