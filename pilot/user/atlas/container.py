@@ -17,6 +17,7 @@ from pilot.user.atlas.setup import get_file_system_root_path
 from pilot.info import infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
+from pilot.util.filehandling import write_file
 # import pilot.info.infoservice as infosys
 
 import logging
@@ -216,7 +217,15 @@ def alrb_wrapper(cmd, workdir, job):
         #    singularity_options += ' --containall'
         if singularity_options != "":
             _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % singularity_options
-        _cmd += 'export ALRB_CONT_RUNPAYLOAD=%s;' % pipes.quote(cmd)
+
+        script_file = 'container_script.sh'
+        status = write_file(script_file, cmd, mute=False)
+        if status:
+            script_cmd = 'sh /srv/' + script_file
+            _cmd += 'export ALRB_CONT_RUNPAYLOAD=%s;' % script_cmd
+        else:
+            log.warning('attempting to quote command instead')
+            _cmd += 'export ALRB_CONT_RUNPAYLOAD=%s;' % pipes.quote(cmd)
 
         # this should not be necessary after the extract_container_image() in JobData update
         # containerImage should have been removed already
