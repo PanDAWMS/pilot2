@@ -45,7 +45,7 @@ class StagingClient(object):
                         }
 
     direct_remoteinput_allowed_schemas = ['root']   ## list of allowed schemas to be used for direct acccess mode from REMOTE replicas
-    direct_localinput_allowed_schemas = ['root', 'dcache', 'dcap', 'file', 'https']  ## list of schemas to be used for direct acccess mode from LOCAL replicas
+    direct_localinput_allowed_schemas = ['root', 'davs', 'dcache', 'dcap', 'file', 'https']  ## list of schemas to be used for direct acccess mode from LOCAL replicas
 
     remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm']  ## list of allowed schemas to be used for transfers from REMOTE sites
 
