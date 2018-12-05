@@ -134,7 +134,7 @@ class TraceReport(dict):
         try:
             # take care of the encoding
             #data = {'API': '0_3_0', 'operation': 'addReport', 'report': self}
-            data = dumps(self).replace('"', '\\"')
+            #data = dumps(self).replace('"', '\\"')
 
             #sslCertificate = si.getSSLCertificate()
 
