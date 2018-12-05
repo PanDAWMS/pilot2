@@ -218,7 +218,14 @@ def alrb_wrapper(cmd, workdir, job):
         if singularity_options != "":
             _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % singularity_options
 
-        _cmd += 'export ALRB_CONT_RUNPAYLOAD=%s;' % pipes.quote(cmd)
+        script_file = 'container_script.sh'
+        status = write_file(os.path.join(job.workdir, script_file), cmd, mute=False)
+        if status:
+            script_cmd = '. /srv/' + script_file
+            _cmd += "export ALRB_CONT_RUNPAYLOAD=\'%s\';" % script_cmd
+        else:
+            log.warning('attempting to quote command instead')
+            _cmd += 'export ALRB_CONT_RUNPAYLOAD=%s;' % pipes.quote(cmd)
 
         # this should not be necessary after the extract_container_image() in JobData update
         # containerImage should have been removed already
@@ -236,12 +243,6 @@ def alrb_wrapper(cmd, workdir, job):
 
         _cmd = _cmd.replace('  ', ' ')
         cmd = _cmd
-
-        #script_file = 'container_script.sh'
-        #status = write_file(os.path.join(job.workdir, script_file), cmd, mute=False)
-        #if status:
-        #    script_cmd = 'sh /srv/' + script_file
-        #    _cmd += "export ALRB_CONT_RUNPAYLOAD=\'%s\';" % script_cmd
 
         log.info("Updated command: %s" % cmd)
 
