@@ -133,14 +133,14 @@ class TraceReport(dict):
 
         try:
             # take care of the encoding
-            #data = {'API': '0_3_0', 'operation': 'addReport', 'report': self}
-            #data = dumps(self).replace('"', '\\"')
+            data = {'API': '0_3_0', 'operation': 'addReport', 'report': self}
+            data = dumps(data).replace('"', '\\"')
 
             #sslCertificate = si.getSSLCertificate()
 
             # create the command
             #cmd = 'curl --connect-timeout 20 --max-time 120 --cacert %s -v -k -d "%s" %s' % (sslCertificate, data, url)
-            request(url, self)
+            request(url, data)
             if status is not None:
                 logger.warning('failed to send traces to rucio: %s' % status)
                 raise Exception(status)
