@@ -140,7 +140,7 @@ class TraceReport(dict):
 
             # create the command
             #cmd = 'curl --connect-timeout 20 --max-time 120 --cacert %s -v -k -d "%s" %s' % (sslCertificate, data, url)
-            request(url, data)
+            request(url, self)
             if status is not None:
                 logger.warning('failed to send traces to rucio: %s' % status)
                 raise Exception(status)
