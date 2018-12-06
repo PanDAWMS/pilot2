@@ -552,6 +552,9 @@ class StageInClient(StagingClient):
         :raise: PilotException in case of not enough space or total input size too large
         """
 
+        for f in files:
+            logger.debug('lfn=%s filesize=%d accessmode=%s' % (f.lfn, f.filesize, f.accessmode))
+
         maxinputsize = convert_mb_to_b(get_maximum_input_sizes())
         totalsize = reduce(lambda x, y: x + y.filesize, files, 0)
 
