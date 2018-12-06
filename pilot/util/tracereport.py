@@ -12,7 +12,7 @@ import hashlib
 import socket
 import time
 from sys import exc_info
-from json import dumps
+from json import dumps, loads
 
 from pilot.util.config import config
 from pilot.util.constants import get_pilot_version, get_rucio_client_version
@@ -133,14 +133,16 @@ class TraceReport(dict):
 
         try:
             # take care of the encoding
-            data = {'API': '0_3_0', 'operation': 'addReport', 'report': self}
-            data = dumps(data)  #.replace('"', '\\"')
+            //data = {'API': '0_3_0', 'operation': 'addReport', 'report': self}
+            data = dumps(self)  #.replace('"', '\\"')
+            loaded = loads(data)
+            logger.debug('self object converted to json dictionary: %s' % loaded)
 
             #sslCertificate = si.getSSLCertificate()
 
             # create the command
             #cmd = 'curl --connect-timeout 20 --max-time 120 --cacert %s -v -k -d "%s" %s' % (sslCertificate, data, url)
-            request(url, data)
+            request(url, loaded)
             if status is not None:
                 logger.warning('failed to send traces to rucio: %s' % status)
                 raise Exception(status)
