@@ -154,6 +154,10 @@ def resolve_common_transfer_errors(output, is_stagein=True):
         ret['rcode'] = ErrorCodes.NOSUCHFILE
         ret['state'] = 'NO_FILE'
         ret['error'] = output
+    elif "service is not available at the moment" in output:
+        ret['rcode'] = ErrorCodes.SERVICENOTAVAILABLE
+        ret['state'] = 'SERVICE_ERROR'
+        ret['error'] = output
     else:
         for line in output.split('\n'):
             m = re.search("Details\s*:\s*(?P<error>.*)", line)

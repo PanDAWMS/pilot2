@@ -104,6 +104,7 @@ class ErrorCodes:
     RUCIOLOCATIONFAILED = 1321
     RUCIOLISTREPLICASFAILED = 1322
     UNKNOWNCOPYTOOL = 1323
+    SERVICENOTAVAILABLE = 1324
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -187,6 +188,7 @@ class ErrorCodes:
         RUCIOLOCATIONFAILED: "Failed to get client location for Rucio",
         RUCIOLISTREPLICASFAILED: "Failed to get replicas from Rucio",
         UNKNOWNCOPYTOOL: "Unknown copy tool",
+        SERVICENOTAVAILABLE: "Service not available at the moment",
     }
 
     def get_kill_signal_error_code(self, signal):
