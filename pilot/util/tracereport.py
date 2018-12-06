@@ -12,12 +12,13 @@ import hashlib
 import socket
 import time
 from sys import exc_info
-from json import dumps, loads
+from json import dumps  #, loads
+from os import environ, getuid
 
 from pilot.util.config import config
 from pilot.util.constants import get_pilot_version, get_rucio_client_version
 from pilot.util.container import execute
-from pilot.util.https import request
+#from pilot.util.https import request
 
 import logging
 logger = logging.getLogger(__name__)
@@ -134,18 +135,21 @@ class TraceReport(dict):
         try:
             # take care of the encoding
             #data = {'API': '0_3_0', 'operation': 'addReport', 'report': self}
-            data = dumps(self)  #.replace('"', '\\"')
-            loaded = loads(data)
-            logger.debug('self object converted to json dictionary: %s' % loaded)
+            data = dumps(self).replace('"', '\\"')
+            #loaded = loads(data)
+            #logger.debug('self object converted to json dictionary: %s' % loaded)
 
-            #sslCertificate = si.getSSLCertificate()
+            sslCertificate = self.get_ssl_certificate()
 
             # create the command
-            #cmd = 'curl --connect-timeout 20 --max-time 120 --cacert %s -v -k -d "%s" %s' % (sslCertificate, data, url)
-            request(url, loaded)
-            if status is not None:
-                logger.warning('failed to send traces to rucio: %s' % status)
-                raise Exception(status)
+            cmd = 'curl --connect-timeout 20 --max-time 120 --cacert %s -v -k -d "%s" %s' % (sslCertificate, data, url)
+            exit_code, stdout, stderr = execute(cmd)
+            if exit_code:
+                logger.warning('failed to send traces to rucio: %s' % stdout)
+            #request(url, loaded)
+            #if status is not None:
+            #    logger.warning('failed to send traces to rucio: %s' % status)
+            #    raise Exception(status)
         except Exception:
             # if something fails, log it but ignore
             logger.error('tracing failed: %s' % str(exc_info()))
@@ -153,3 +157,13 @@ class TraceReport(dict):
             logger.info("tracing report sent")
 
         return True
+
+
+    def get_ssl_certificate(self):
+        """
+        Return the path to the SSL certificate
+
+        :return: path (string).
+        """
+
+        return environ.get('X509_USER_PROXY', '/tmp/x509up_u%s' % getuid())
