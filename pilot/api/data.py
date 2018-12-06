@@ -447,7 +447,7 @@ class StageInClient(StagingClient):
                                                                             fdata.is_directaccess(ensure_replica=False),
                                                                             is_directaccess, fdata.allowremoteinputs))
             # must update accessmode for user jobs (it is only set already for production jobs)
-            if fdata.accessmode != 'direct' and is_directaccess:
+            if fdata.accessmode != 'direct' and is_directaccess and fdata.accessmode != 'copy':
                 fdata.accessmode = 'direct'
 
             # reset accessmode if direct access is not to be used
