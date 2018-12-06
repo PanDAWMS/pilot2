@@ -162,7 +162,7 @@ class JobData(BaseData):
         # job input options overwrite any Job settings
         if '--accessmode=direct' in self.jobparams:
             self.accessmode = 'direct'
-        if '--accessmode=copy' in self.jobparams:
+        if '--accessmode=copy' in self.jobparams or '--useLocalIO' in self.jobparams:
             self.accessmode = 'copy'
 
         # form raw list data from input comma-separated values for further validataion by FileSpec
