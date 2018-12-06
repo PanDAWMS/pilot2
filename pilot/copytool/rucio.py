@@ -160,7 +160,7 @@ def copy_out(files, **kwargs):
             error = resolve_common_transfer_errors(stderr, is_stagein=False)
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
-            trace_report.update(clientState=state or 'STAGEOUT_ATTEMPT_FAILED', stateReason=diagnostics,
+            trace_report.update(clientState=error.get('state', None) or 'STAGEOUT_ATTEMPT_FAILED', stateReason=diagnostics,
                                 timeEnd=time())
             trace_report.send()
             if not ignore_errors:
