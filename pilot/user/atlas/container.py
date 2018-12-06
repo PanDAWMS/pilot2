@@ -216,7 +216,9 @@ def alrb_wrapper(cmd, workdir, job):
         #if '--containall' not in singularity_options:
         #    singularity_options += ' --containall'
         if singularity_options != "":
-            _cmd += 'export ALRB_CONT_CMDOPTS=\"%s -C\";' % singularity_options
+            _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % singularity_options
+        else:
+            _cmd += 'export ALRB_CONT_CMDOPTS=\"-C\";'
 
         script_file = 'container_script.sh'
         status = write_file(os.path.join(job.workdir, script_file), cmd, mute=False)
