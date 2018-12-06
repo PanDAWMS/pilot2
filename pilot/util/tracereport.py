@@ -133,7 +133,7 @@ class TraceReport(dict):
 
         try:
             # take care of the encoding
-            //data = {'API': '0_3_0', 'operation': 'addReport', 'report': self}
+            #data = {'API': '0_3_0', 'operation': 'addReport', 'report': self}
             data = dumps(self)  #.replace('"', '\\"')
             loaded = loads(data)
             logger.debug('self object converted to json dictionary: %s' % loaded)
