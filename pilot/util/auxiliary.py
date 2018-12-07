@@ -8,7 +8,17 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import os
-import time
+import sys
+
+from numbers import Number
+from collections import Set, Mapping, deque, OrderedDict
+
+try:  # Python 2
+    zero_depth_bases = (basestring, Number, xrange, bytearray)
+    iteritems = 'iteritems'
+except NameError:  # Python 3
+    zero_depth_bases = (str, bytes, Number, range, bytearray)
+    iteritems = 'items'
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.container import execute
@@ -18,23 +28,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 errors = ErrorCodes()
-
-
-def time_stamp():
-    """
-    Return ISO-8601 compliant date/time format
-
-    :return: time information
-    """
-
-    tmptz = time.timezone
-    sign_str = '+'
-    if tmptz > 0:
-        sign_str = '-'
-    tmptz_hours = int(tmptz / 3600)
-
-    return str("%s%s%02d:%02d" % (time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime()), sign_str, abs(tmptz_hours),
-                                  int(tmptz / 60 - tmptz_hours * 60)))
 
 
 def get_batchsystem_jobid():
@@ -121,6 +114,9 @@ def get_logger(job_id, log=None):
 def shell_exit_code(exit_code):
     """
     Translate the pilot exit code to a proper exit code for the shell (wrapper).
+    Any error code that is to be converted by this function, should be added to the traces object like:
+      traces.pilot['error_code'] = errors.<ERRORCODE>
+    The traces object will be checked by the pilot module.
 
     :param exit_code: pilot error code (int).
     :return: standard shell exit code (int).
@@ -134,15 +130,15 @@ def shell_exit_code(exit_code):
 
     error_code_translation_dictionary = {
         -1: [64, "Site offline"],
-        errors.GENERALERROR: [65, "General pilot error, consult batch log"],
-        errors.MKDIR: [66, "Could not create directory"],
-        errors.NOSUCHFILE: [67, "No such file or directory"],
-        errors.NOVOMSPROXY: [68, "Voms proxy not valid"],
-        errors.NOLOCALSPACE: [69, "No space left on local disk"],
-        errors.UNKNOWNEXCEPTION: [70, "Exception caught by pilot"],  # same as ERR_PILOTEXC?
-        # errors.QUEUEDATA: [71, "Pilot could not download queuedata"],
-        # errors.QUEUEDATANOTOK: [72, "Pilot found non-valid queuedata"],
-        # errors.NOSOFTWAREDIR: [73, "Software directory does not exist"],
+        errors.GENERALERROR: [65, "General pilot error, consult batch log"],  # added to traces object
+        errors.MKDIR: [66, "Could not create directory"],  # added to traces object
+        errors.NOSUCHFILE: [67, "No such file or directory"],  # added to traces object
+        errors.NOVOMSPROXY: [68, "Voms proxy not valid"],  # added to traces object, note: missing NOPROXY?
+        errors.NOLOCALSPACE: [69, "No space left on local disk"],  # added to traces object
+        errors.UNKNOWNEXCEPTION: [70, "Exception caught by pilot"],  # added to traces object
+        errors.QUEUEDATA: [71, "Pilot could not download queuedata"],  # tested
+        errors.QUEUEDATANOTOK: [72, "Pilot found non-valid queuedata"],  # not implemented yet, error code added
+        errors.NOSOFTWAREDIR: [73, "Software directory does not exist"],  # added to traces object
         errors.KILLSIGNAL: [137, "General kill signal"],  # Job terminated by unknown kill signal
         errors.SIGTERM: [143, "Job killed by signal: SIGTERM"],  # 128+15
         errors.SIGQUIT: [131, "Job killed by signal: SIGQUIT"],  # 128+3
@@ -155,7 +151,69 @@ def shell_exit_code(exit_code):
     if exit_code in error_code_translation_dictionary:
         return error_code_translation_dictionary.get(exit_code)[0]  # Only return the shell exit code, not the error meaning
     elif exit_code != 0:
-        logger.warning("no translation to shell exit code for error code %d" % (exit_code))
+        print("no translation to shell exit code for error code %d" % (exit_code))
         return FAILURE
     else:
         return SUCCESS
+
+
+def get_size(obj_0):
+    """
+    Recursively iterate to sum size of object & members.
+    Note: for size measurement to work, the object must have set the data members in the __init__().
+
+    :param obj_0: object to be measured.
+    :return: size in Bytes (int).
+    """
+
+    _seen_ids = set()
+
+    def inner(obj):
+        obj_id = id(obj)
+        if obj_id in _seen_ids:
+            return 0
+
+        _seen_ids.add(obj_id)
+        size = sys.getsizeof(obj)
+        if isinstance(obj, zero_depth_bases):
+            pass  # bypass remaining control flow and return
+        elif isinstance(obj, OrderedDict):
+            pass  # can currently not handle this
+        elif isinstance(obj, (tuple, list, Set, deque)):
+            size += sum(inner(i) for i in obj)
+        elif isinstance(obj, Mapping) or hasattr(obj, iteritems):
+            try:
+                size += sum(inner(k) + inner(v) for k, v in getattr(obj, iteritems)())
+            except Exception:  # as e
+                pass
+                # <class 'collections.OrderedDict'>: unbound method iteritems() must be called
+                # with OrderedDict instance as first argument (got nothing instead)
+                #logger.debug('exception caught for obj=%s: %s' % (str(obj), e))
+
+        # Check for custom object instances - may subclass above too
+        if hasattr(obj, '__dict__'):
+            size += inner(vars(obj))
+        if hasattr(obj, '__slots__'):  # can have __slots__ with __dict__
+            size += sum(inner(getattr(obj, s)) for s in obj.__slots__ if hasattr(obj, s))
+
+        return size
+
+    return inner(obj_0)
+
+
+def set_pilot_state(job=None, state=''):
+    """
+    Set the internal pilot state.
+    Note: this function should update the global/singleton object but currently uses an environmental variable
+    (PILOT_STATE).
+    The function does not update job.state if it is already set to finished or failed.
+
+    :param job: optional job object.
+    :param state: internal pilot state (string).
+    :return:
+    """
+
+    os.environ['PILOT_STATE'] = state
+
+    if job and job.state != 'finished' and job.state != 'failed':
+        job.state = state

@@ -20,7 +20,8 @@ from pilot.util.config import config, human2bytes
 from pilot.util.container import execute
 from pilot.util.filehandling import get_directory_size, remove_files, get_local_file_size
 from pilot.util.loopingjob import looping_job
-from pilot.util.parameters import convert_to_int
+from pilot.util.math import convert_mb_to_b
+from pilot.util.parameters import convert_to_int, get_maximum_input_sizes
 from pilot.util.processes import get_current_cpu_consumption_time, kill_processes, get_number_of_child_processes
 from pilot.util.workernode import get_local_disk_space
 
@@ -414,7 +415,7 @@ def check_local_space():
     diagnostics = ""
 
     # is there enough local space to run a job?
-    spaceleft = int(get_local_disk_space(os.getcwd())) * 1024 ** 2  # B (diskspace is in MB)
+    spaceleft = convert_mb_to_b(get_local_disk_space(os.getcwd()))  # B (diskspace is in MB)
     free_space_limit = human2bytes(config.Pilot.free_space_limit)
     if spaceleft <= free_space_limit:
         diagnostics = 'too little space left on local disk to run job: %d B (need > %d B)' %\
@@ -494,7 +495,7 @@ def get_max_allowed_work_dir_size(queuedata):
     """
 
     try:
-        maxwdirsize = int(queuedata.maxwdir) * 1024 ** 2  # from MB to B, e.g. 16336 MB -> 17,129,537,536 B
+        maxwdirsize = convert_mb_to_b(get_maximum_input_sizes())  # from MB to B, e.g. 16336 MB -> 17,129,537,536 B
     except Exception:
         max_input_size = get_max_input_size()
         maxwdirsize = max_input_size + config.Pilot.local_size_limit_stdout * 1024

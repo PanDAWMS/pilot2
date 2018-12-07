@@ -16,7 +16,7 @@
 # Time measurement are time.time() values. The float value will be converted to an int as a last step.
 
 import os
-from time import time
+import time
 
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
@@ -269,7 +269,7 @@ def get_time_since(job_id, timing_constant, args):
             time_measurement = get_time_measurement(timing_constant, time_measurement_dictionary,
                                                     args.timing, job_id)
             if time_measurement:
-                diff = time() - time_measurement
+                diff = time.time() - time_measurement
         else:
             log.warning('failed to extract time measurement dictionary from %s' % str(args.timing))
     else:
@@ -364,3 +364,44 @@ def timing_report(job_id, args):
     log.info('.' * 30)
 
     return time_getjob, time_stagein, time_payload, time_stageout, time_total_setup
+
+
+def time_stamp():
+    """
+    Return ISO-8601 compliant date/time format
+
+    :return: time information
+    """
+
+    tmptz = time.timezone
+    sign_str = '+'
+    if tmptz > 0:
+        sign_str = '-'
+    tmptz_hours = int(tmptz / 3600)
+
+    return str("%s%s%02d:%02d" % (time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime()), sign_str, abs(tmptz_hours),
+                                  int(tmptz / 60 - tmptz_hours * 60)))
+
+
+def get_elapsed_real_time(t0=None):
+    """
+    Return a time stamp corresponding to the elapsed real time (since t0 if requested).
+    The function uses os.times() to get the current time stamp.
+    If t0 is provided, the returned time stamp is relative to t0. t0 is assumed to be an os.times() tuple.
+
+    :param t0: os.times() tuple for the t0 time stamp.
+    :return: time stamp (int).
+    """
+
+    if t0 and type(t0) == tuple:
+        try:
+            _t0 = int(t0[4])
+        except Exception as e:
+            logger.warning('unknown timing format for t0: %s' % e)
+            _t0 = 0
+    else:
+        _t0 = 0
+
+    t = int(os.times()[4])
+
+    return t - _t0

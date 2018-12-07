@@ -22,7 +22,7 @@ def get_maximum_input_sizes():
     This function returns the maximum allowed size for all input files. The sum of all input file sizes should not
     exceed this value.
 
-    :return: maxinputsizes (integer value in GB).
+    :return: maxinputsizes (integer value in MB).
     """
 
     try:

@@ -41,7 +41,7 @@ class StorageData(BaseData):
 
     pk = 0        # unique identification number
     name = ""     # DDMEndpoint name
-    type = ""     # type of Storage
+    type = ""     # type of Storage <- can this be renamed to storagetype without causing any problem with queuedata?
     token = ""    # space token descriptor
 
     is_deterministic = None

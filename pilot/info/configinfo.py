@@ -53,13 +53,13 @@ class PilotConfigProvider(object):
         """
 
         import ast
-        data = {'maxwdir': 10555,  # in MB
-                'maxwdir_broken': self.config.Pilot.maximum_input_file_sizes,  # ## Config API is broken -- FIXME LATER
-                #'container_type': 'singularity:pilot;docker:wrapper',  # ## for testing
-                #'container_options': '-B /cvmfs,/scratch,/etc/grid-security --contain',  ## for testing
-                #'catchall': "singularity_options='-B /cvmfs000' catchx=1",  ## for testing
-                'es_stageout_gap': 601,  # in seconds, for testing: FIXME LATER,
-                }
+        data = {
+            'maxwdir_broken': self.config.Pilot.maximum_input_file_sizes,  # ## Config API is broken -- FIXME LATER
+            #'container_type': 'singularity:pilot;docker:wrapper',  # ## for testing
+            #'container_options': '-B /cvmfs,/scratch,/etc/grid-security --contain',  ## for testing
+            #'catchall': "singularity_options='-B /cvmfs000' catchx=1",  ## for testing
+            'es_stageout_gap': 601,  # in seconds, for testing: FIXME LATER,
+        }
 
         if hasattr(self.config.Information, 'acopytools'):  ## FIX ME LATER: Config API should reimplemented/fixed later
             data['acopytools'] = ast.literal_eval(self.config.Information.acopytools)

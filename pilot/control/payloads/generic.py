@@ -16,8 +16,9 @@ import os
 import signal
 from subprocess import PIPE
 
+from pilot.common.errorcodes import ErrorCodes
 from pilot.control.job import send_state
-from pilot.util.auxiliary import get_logger
+from pilot.util.auxiliary import get_logger, set_pilot_state
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED, \
     UTILITY_AFTER_PAYLOAD_FINISHED, PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD
@@ -27,13 +28,16 @@ from pilot.common.exception import PilotException
 import logging
 logger = logging.getLogger(__name__)
 
+errors = ErrorCodes()
+
 
 class Executor(object):
-    def __init__(self, args, job, out, err):
+    def __init__(self, args, job, out, err, traces):
         self.__args = args
         self.__job = job
         self.__out = out
         self.__err = err
+        self.__traces = traces
 
     def get_job(self):
         """
@@ -210,9 +214,12 @@ class Executor(object):
         # for testing looping job:    cmd = user.get_payload_command(job) + ';sleep 240'
         try:
             cmd = user.get_payload_command(job)
-            #cmd = user.get_payload_command(job) + ';sleep 240'
-        except PilotException as e:
-            log.fatal('could not define payload command')
+        except PilotException as error:
+            import traceback
+            log.error(traceback.format_exc())
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())
+            self.__traces.pilot['error_code'] = job.piloterrorcodes[0]
+            log.fatal('could not define payload command (traces error set to: %d)' % self.__traces.pilot['error_code'])
             return None
 
         log.info("payload execution command: %s" % cmd)
@@ -287,13 +294,16 @@ class Executor(object):
 
         if self.setup_payload(self.__job, self.__out, self.__err):
             log.debug('running payload')
-            self.__job.state = 'running'
-            send_state(self.__job, self.__args, self.__job.state)
             proc = self.run_payload(self.__job, self.__out, self.__err)
             if proc is not None:
+                # the process is now running, update the server
+                set_pilot_state(job=self.__job, state="running")
+                send_state(self.__job, self.__args, self.__job.state)
+
                 log.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
-                self.__job.state = 'finished' if exit_code == 0 else 'failed'
+                state = 'finished' if exit_code == 0 else 'failed'
+                set_pilot_state(job=self.__job, state=state)
                 log.info('finished pid=%s exit_code=%s state=%s' % (proc.pid, exit_code, self.__job.state))
 
                 if exit_code is None:

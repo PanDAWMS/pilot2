@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
 
@@ -15,11 +15,18 @@
 import os
 import hashlib
 import logging
+import time
 
 from pilot.info import infosys
 from pilot.info.storageactivitymaps import get_ddm_activity
-from pilot.common.exception import PilotException, ErrorCodes
+from pilot.common.exception import PilotException, ErrorCodes, SizeTooLarge, NoLocalSpace
 from pilot.util.filehandling import calculate_checksum
+from pilot.util.math import convert_mb_to_b
+from pilot.util.parameters import get_maximum_input_sizes
+from pilot.util.workernode import get_local_disk_space
+from pilot.util.tracereport import TraceReport
+
+errors = ErrorCodes()
 
 
 class StagingClient(object):
@@ -37,12 +44,14 @@ class StagingClient(object):
                         'lsm': {'module_name': 'lsm'}
                         }
 
-    direct_remoteinput_allowed_schemas = ['root']   ## list of allowed schemas to be used for direct acccess mode from REMOTE replicas
-    direct_localinput_allowed_schemas = ['root', 'dcache', 'dcap', 'file', 'https']  ## list of schemas to be used for direct acccess mode from LOCAL replicas
+    # list of allowed schemas to be used for direct acccess mode from REMOTE replicas
+    direct_remoteinput_allowed_schemas = ['root']
+    # list of schemas to be used for direct acccess mode from LOCAL replicas
+    direct_localinput_allowed_schemas = ['root', 'davs', 'dcache', 'dcap', 'file', 'https']
+    # list of allowed schemas to be used for transfers from REMOTE sites
+    remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm']
 
-    remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm']  ## list of allowed schemas to be used for transfers from REMOTE sites
-
-    def __init__(self, infosys_instance=None, acopytools=None, logger=None, default_copytools='rucio'):
+    def __init__(self, infosys_instance=None, acopytools=None, logger=None, default_copytools='rucio', trace_report=None):
         """
             If `acopytools` is not specified then it will be automatically resolved via infosys. In this case `infosys` requires initialization.
             :param acopytools: dict of copytool names per activity to be used for transfers. Accepts also list of names or string value without activity passed.
@@ -78,9 +87,15 @@ class StagingClient(object):
             self.acopytools['default'] = default_copytools
 
         if not self.acopytools:
-            logger.error('Failed to initilize StagingClient: no acopytools options found, acopytools=%s' % self.acopytools)
-            raise PilotException("Failed to resolve acopytools settings")
-        logger.info('Configured copytools per activity: acopytools=%s' % self.acopytools)
+            msg = 'failed to initilize StagingClient: no acopytools options found, acopytools=%s' % self.acopytools
+            logger.error(msg)
+            self.trace_report.update(clientState='BAD_COPYTOOL', stateReason=msg)
+            self.trace_report.send()
+            raise PilotException("failed to resolve acopytools settings")
+        logger.info('configured copytools per activity: acopytools=%s' % self.acopytools)
+
+        # get an initialized trace report (has to be updated for get/put if not defined before)
+        self.trace_report = trace_report if trace_report else TraceReport(pq=os.environ.get('PILOT_SITENAME', ''))
 
     @classmethod
     def get_preferred_replica(self, replicas, allowed_schemas):
@@ -137,27 +152,18 @@ class StagingClient(object):
         bquery = {'schemes': ['srm', 'root', 'davs', 'gsiftp', 'https'],
                   'dids': [dict(scope=e.scope, name=e.lfn) for e in xfiles]}
 
-        allow_remoteinput = True in set(e.allowremoteinputs for e in xfiles)  ## implement direct access later
+        #allow_remoteinput = True in set(e.allowremoteinputs for e in xfiles)  ## implement direct access later
 
         try:
             query = bquery.copy()
-            if allow_remoteinput:
-                location = self.detect_client_location()
-                if not location:
-                    raise Exception("Failed to get client location for Rucio")
-                query.update(sort='geoip', client_location=location)
-
-            try:
-                logger.info('Call rucio.list_replicas() with query=%s' % query)
-                replicas = c.list_replicas(**query)
-            except TypeError as e:
-                if query == bquery:
-                    raise
-                logger.warning("Detected outdated Rucio list_replicas(), cannot do geoip-sorting: %s .. fallback to old list_replicas() call" % e)
-                replicas = c.list_replicas(**bquery)
-
+            location = self.detect_client_location()
+            if not location:
+                raise PilotException("Failed to get client location for Rucio", code=errors.RUCIOLOCATIONFAILED)
+            query.update(sort='geoip', client_location=location)
+            logger.info('calling rucio.list_replicas() with query=%s' % query)
+            replicas = c.list_replicas(**query)
         except Exception as e:
-            raise PilotException("Failed to get replicas from Rucio: %s" % e)  #, code=ErrorCodes.XX__FAILEDLFCGETREPS)
+            raise PilotException("Failed to get replicas from Rucio: %s" % e, code=errors.RUCIOLISTREPLICASFAILED)
 
         replicas = list(replicas)
         logger.debug("replicas received from Rucio: %s" % replicas)
@@ -207,19 +213,29 @@ class StagingClient(object):
                     # break # ignore other remote replicas/sites
 
             # verify filesize and checksum values
+            self.trace_report.update(validateStart=time.time())
+            status = True
             if fdat.filesize != r['bytes']:
                 logger.warning("Filesize of input file=%s mismatched with value from Rucio replica: filesize=%s, replica.filesize=%s, fdat=%s"
                                % (fdat.lfn, fdat.filesize, r['bytes'], fdat))
+                status = False
+
             if not fdat.filesize:
                 fdat.filesize = r['bytes']
-                logger.warning("Filesize value of input file=%s is not defined, assigning info got from Rucio replica: filesize=%s" % (fdat.lfn, r['bytes']))
+                logger.warning("Filesize value for input file=%s is not defined, assigning info from Rucio replica: filesize=%s" % (fdat.lfn, r['bytes']))
 
             for ctype in ['adler32', 'md5']:
                 if fdat.checksum.get(ctype) != r[ctype] and r[ctype]:
                     logger.warning("Checksum value of input file=%s mismatched with info got from Rucio replica: checksum=%s, replica.checksum=%s, fdat=%s"
                                    % (fdat.lfn, fdat.checksum, r[ctype], fdat))
+                    status = False
+
                 if not fdat.checksum.get(ctype) and r[ctype]:
                     fdat.checksum[ctype] = r[ctype]
+
+            if not status:
+                logger.info("filesize and checksum verification done")
+                self.trace_report.update(clientState="DONE")
 
         logger.info('Number of resolved replicas:\n' +
                     '\n'.join(["lfn=%s: replicas=%s, allowremoteinputs=%s, is_directaccess=%s"
@@ -241,7 +257,7 @@ class StagingClient(object):
         """
 
         ret = {}
-        site = os.environ.get('PILOT_SITENAME', 'unknown')
+        site = os.environ.get('PILOT_RUCIO_SITENAME', 'unknown')
         try:
             import socket
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -264,7 +280,7 @@ class StagingClient(object):
             :raise: PilotException in case of controlled error
         """
 
-        raise NotImplementedError
+        raise NotImplemented()
 
     def transfer(self, files, activity='default', **kwargs):  # noqa: C901
         """
@@ -275,6 +291,8 @@ class StagingClient(object):
             :raise: PilotException in case of controlled error
             :return: output of copytool transfers (to be clarified)
         """
+
+        self.trace_report.update(relativeStart=time.time(), transferStart=time.time())
 
         if isinstance(activity, basestring):
             activity = [activity]
@@ -288,45 +306,60 @@ class StagingClient(object):
                 break
 
         if not copytools:
-            raise PilotException('Failed to resolve copytool by preferred activities=%s, acopytools=%s' % (activity, self.acopytools))
+            raise PilotException('failed to resolve copytool by preferred activities=%s, acopytools=%s' %
+                                 (activity, self.acopytools))
 
-        result, errors = None, []
+        result, caught_errors = None, []
 
         for name in copytools:
 
             try:
                 if name not in self.copytool_modules:
-                    raise PilotException('passed unknown copytool with name=%s .. skipped' % name)
+                    raise PilotException('passed unknown copytool with name=%s .. skipped' % name,
+                                         code=ErrorCodes.UNKNOWNCOPYTOOL)
+
                 module = self.copytool_modules[name]['module_name']
-                self.logger.info('Trying to use copytool=%s for activity=%s' % (name, activity))
+                self.logger.info('trying to use copytool=%s for activity=%s' % (name, activity))
                 copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], -1)
+                self.trace_report.update(protocol=name)
+
             except PilotException as e:
-                errors.append(e)
-                self.logger.debug('Error: %s' % e)
+                caught_errors.append(e)
+                self.logger.debug('error: %s' % e)
                 continue
             except Exception as e:
-                self.logger.warning('Failed to import copytool module=%s, error=%s' % (module, e))
-                self.logger.debug('Error: %s' % e)
+                self.logger.warning('failed to import copytool module=%s, error=%s' % (module, e))
                 continue
             try:
                 result = self.transfer_files(copytool, files, activity, **kwargs)
             except PilotException as e:
-                errors.append(e)
-                self.logger.debug('Error: %s' % e)
+                msg = 'failed to execute transfer_files(): PilotException caught: %s' % e
+                self.logger.warning(msg)
+                caught_errors.append(e)
             except Exception as e:
-                self.logger.warning('Failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
+                self.logger.warning('failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
                 import traceback
                 self.logger.error(traceback.format_exc())
-                errors.append(e)
+                caught_errors.append(e)
+            else:
+                self.logger.debug('transfer_files() completed with result=%s' % str(result))
 
-            if errors and isinstance(errors[-1], PilotException) and errors[-1].get_error_code() == ErrorCodes.MISSINGOUTPUTFILE:
-                raise errors[-1]
+            if caught_errors and isinstance(caught_errors[-1], PilotException) and \
+                    caught_errors[-1].get_error_code() == ErrorCodes.MISSINGOUTPUTFILE:
+                raise caught_errors[-1]
 
             if result:
                 break
 
         if not result:
-            raise PilotException('Failed to transfer files using copytools=%s, error=%s' % (copytools, errors))
+            if caught_errors and isinstance(caught_errors[-1], PilotException):
+                code = caught_errors[0].get_error_code()
+            else:
+                code = None
+            self.logger.fatal('caught_errors=%s' % str(caught_errors))
+            self.logger.fatal('code=%s' % str(code))
+            raise PilotException('failed to transfer files using copytools=%s, error=%s' % (copytools, caught_errors),
+                                 code=code)
 
         return result
 
@@ -342,6 +375,9 @@ class StageInClient(StagingClient):
             :return: dict(surl, ddmendpoint, pfn)
             :raise PilotException: if replica not found
         """
+
+        if not fspec.replicas:
+            return
 
         allowed_schemas = allowed_schemas or [None]
         replica = None
@@ -390,6 +426,39 @@ class StageInClient(StagingClient):
 
         return allow_direct_access, direct_access_type
 
+    def set_accessmodes_for_direct_access(self, files, direct_access_type):
+        """
+        Update the FileSpec accessmodes for direct access and sort the files to get candidates for remote_io coming
+        first in order to exclude them from checking of available space for stage-in.
+
+        :param files: FileSpec objects.
+        :param direct_access_type: type of direct access (LAN or WAN) (string).
+        :return:
+        """
+
+        # sort the files
+        files = sorted(files, key=lambda x: x.is_directaccess(ensure_replica=False), reverse=True)
+
+        # populate allowremoteinputs for each FileSpec object
+        for fdata in files:
+            is_directaccess = fdata.is_directaccess(ensure_replica=False)
+            if is_directaccess and direct_access_type == 'WAN':  ## is it the same for ES workflow ?? -- test and verify/FIXME LATER
+                fdata.allowremoteinputs = True
+            self.logger.info("check direct access for lfn=%s: allow_direct_access=true, fdata.is_directaccess()=%s =>"
+                             " is_directaccess=%s, allowremoteinputs=%s" % (fdata.lfn,
+                                                                            fdata.is_directaccess(ensure_replica=False),
+                                                                            is_directaccess, fdata.allowremoteinputs))
+            # must update accessmode for user jobs (it is only set already for production jobs)
+            if fdata.accessmode != 'direct' and is_directaccess and fdata.accessmode != 'copy':
+                fdata.accessmode = 'direct'
+
+            # reset accessmode if direct access is not to be used
+            if fdata.accessmode == 'direct' and not is_directaccess:
+                fdata.accessmode = ''
+
+            self.logger.info('accessmode for LFN=%s: %s (is_directaccess=%s)' %
+                             (fdata.lfn, fdata.accessmode, is_directaccess))
+
     def transfer_files(self, copytool, files, activity=None, **kwargs):
         """
         Automatically stage in files using the selected copy tool module.
@@ -402,6 +471,8 @@ class StageInClient(StagingClient):
         :raise: PilotException in case of controlled error
         """
 
+        #logger.debug('trace_report[eventVersion]=%s' % self.trace_report.get('eventVersion', 'unknown'))
+
         # sort out direct access logic
         job = kwargs.get('job', None)
         #job_access_mode = job.accessmode if job else ''
@@ -411,25 +482,7 @@ class StageInClient(StagingClient):
         kwargs['allow_direct_access'] = allow_direct_access
 
         if allow_direct_access:
-            # sort files to get candidates for remote_io coming first in order to exclude them from checking of available space for stage-in
-            files = sorted(files, key=lambda x: x.is_directaccess(ensure_replica=False), reverse=True)
-
-            # populate allowremoteinputs for each fdata
-            for fdata in files:
-                is_directaccess = allow_direct_access and fdata.is_directaccess(ensure_replica=False)
-                if is_directaccess and direct_access_type == 'WAN':  ## is it the same for ES workflow ?? -- test and verify/FIXME LATER
-                    fdata.allowremoteinputs = True
-                self.logger.info("check direct access for lfn=%s: allow_direct_access=%s, fdata.is_directaccess()=%s =>"
-                                 " is_directaccess=%s, allowremoteinputs=%s" % (fdata.lfn, allow_direct_access,
-                                                                                fdata.is_directaccess(ensure_replica=False),
-                                                                                is_directaccess, fdata.allowremoteinputs))
-                # must update accessmode for user jobs (it is only set already for production jobs)
-                if fdata.accessmode != 'direct' and is_directaccess:
-                    fdata.accessmode = 'direct'
-                # reset accessmode if direct access is not to be used
-                if fdata.accessmode == 'direct' and not is_directaccess:
-                    fdata.accessmode = ''
-                self.logger.info('accessmode for LFN=%s: %s (is_directaccess=%s)' % (fdata.lfn, fdata.accessmode, is_directaccess))
+            self.set_accessmodes_for_direct_access(files, direct_access_type)
 
         if getattr(copytool, 'require_replicas', False) and files and files[0].replicas is None:
             files = self.resolve_replicas(files)
@@ -450,12 +503,16 @@ class StageInClient(StagingClient):
                 if r.get('ddmendpoint'):
                     fspec.ddmendpoint = r['ddmendpoint']
 
-                self.logger.info("[stage-in] found replica to be used for lfn=%s: ddmendpoint=%s, pfn=%s" % (fspec.lfn, fspec.ddmendpoint, fspec.turl))
+                self.logger.info("[stage-in] found replica to be used for lfn=%s: ddmendpoint=%s, pfn=%s" %
+                                 (fspec.lfn, fspec.ddmendpoint, fspec.turl))
 
         if not copytool.is_valid_for_copy_in(files):
-            self.logger.warning('Input is not valid for transfers using copytool=%s' % copytool)
-            self.logger.debug('Input: %s' % files)
-            raise PilotException('Invalid input data for transfer operation')
+            msg = 'input is not valid for transfers using copytool=%s' % copytool
+            self.logger.warning(msg)
+            self.logger.debug('input: %s' % files)
+            self.trace_report.update(clientState='NO_REPLICA', stateReason=msg)
+            self.trace_report.send()
+            raise PilotException('invalid input data for transfer operation')
 
         if self.infosys:
             if self.infosys.queuedata:
@@ -463,9 +520,64 @@ class StageInClient(StagingClient):
             kwargs['ddmconf'] = self.infosys.resolve_storage_data()
         kwargs['activity'] = activity
 
-        self.logger.info('Ready to transfer (stage-in) files: %s' % files)
+        # mark direct access files with status=remote_io
+        if allow_direct_access:
+            self.set_status_for_direct_access(files)
+
+        # verify file sizes and available space for stage-in
+        self.check_availablespace([e for e in files if e.status not in ['remote_io', 'transferred']])
+
+        # add the trace report
+        kwargs['trace_report'] = self.trace_report
+        self.logger.info('ready to transfer (stage-in) files: %s' % files)
 
         return copytool.copy_in(files, **kwargs)
+
+    def set_status_for_direct_access(self, files):
+        """
+        Update the FileSpec status with 'remote_io' for direct access mode.
+
+        :param files: FileSpec objects.
+        :return:
+        """
+
+        for fspec in files:
+            if fspec.is_directaccess(ensure_replica=False):
+                fspec.status_code = 0
+                fspec.status = 'remote_io'
+
+    def check_availablespace(self, files):
+        """
+        Verify that enough local space is available to stage in and run the job
+
+        :param files: list of FileSpec objects.
+        :raise: PilotException in case of not enough space or total input size too large
+        """
+
+        for f in files:
+            self.logger.debug('lfn=%s filesize=%d accessmode=%s' % (f.lfn, f.filesize, f.accessmode))
+
+        maxinputsize = convert_mb_to_b(get_maximum_input_sizes())
+        totalsize = reduce(lambda x, y: x + y.filesize, files, 0)
+
+        # verify total filesize
+        if maxinputsize and totalsize > maxinputsize:
+            error = "too many/too large input files (%s). total file size=%s B > maxinputsize=%s B" % \
+                    (len(files), totalsize, maxinputsize)
+            raise SizeTooLarge(error)
+
+        self.logger.info("total input file size=%s B within allowed limit=%s B (zero value means unlimited)" %
+                         (totalsize, maxinputsize))
+
+        # get available space
+        available_space = convert_mb_to_b(get_local_disk_space(os.getcwd()))
+        self.logger.info("locally available space: %d B" % available_space)
+
+        # are we within the limit?
+        if totalsize > available_space:
+            error = "not enough local space for staging input files and run the job (need %d B, but only have %d B)" % \
+                    (totalsize, available_space)
+            raise NoLocalSpace(error)
 
 
 class StageOutClient(StagingClient):
@@ -581,9 +693,17 @@ class StageOutClient(StagingClient):
             if not os.path.isfile(pfn) or not os.access(pfn, os.R_OK):
                 msg = "Error: output pfn file does not exist: %s" % pfn
                 self.logger.error(msg)
+                self.trace_report.update(clientState='NO_REPLICA', stateReason=msg)
+                self.trace_report.send()
                 raise PilotException(msg, code=ErrorCodes.MISSINGOUTPUTFILE, state="FILE_INFO_FAIL")
             if not fspec.filesize:
                 fspec.filesize = os.path.getsize(pfn)
+
+            if fspec.filesize == 0:
+                msg = 'output file has size zero: %s' % fspec.lfn
+                self.logger.fatal(msg)
+                raise PilotException(msg, code=ErrorCodes.ZEROFILESIZE, state="ZERO_FILE_SIZE")
+
             fspec.surl = pfn
             fspec.activity = activity
             if not fspec.checksum.get('adler32'):
@@ -607,7 +727,7 @@ class StageOutClient(StagingClient):
                 # take first available protocol for copytool: FIX ME LATER if need (do iterate over all allowed protocols?)
                 protocol = protocols[0]
 
-                self.logger.info("Resolved protocol to be used for transfer: data=%s" % protocol)
+                self.logger.info("resolved protocol to be used for transfer: data=%s" % protocol)
 
                 resolve_surl = getattr(copytool, 'resolve_surl', None)
                 if not callable(resolve_surl):
@@ -624,13 +744,21 @@ class StageOutClient(StagingClient):
             self.logger.debug('Input: %s' % files)
             raise PilotException('Invalid input for transfer operation')
 
-        self.logger.info('Ready to transfer (stage-out) files: %s' % files)
+        self.logger.info('ready to transfer (stage-out) files: %s' % files)
 
         if self.infosys:
             kwargs['copytools'] = self.infosys.queuedata.copytools
 
             # some copytools will need to know endpoint specifics (e.g. the space token) stored in ddmconf, add it
             kwargs['ddmconf'] = self.infosys.resolve_storage_data()
+
+        if files == []:
+            msg = 'nothing to stage-out - an internal Pilot error has occurred'
+            self.logger.fatal(msg)
+            raise PilotException(msg, code=errors.INTERNALPILOTPROBLEM)
+
+        # add the trace report
+        kwargs['trace_report'] = self.trace_report
 
         return copytool.copy_out(files, **kwargs)
 

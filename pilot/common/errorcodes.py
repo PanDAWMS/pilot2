@@ -30,6 +30,8 @@ class ErrorCodes:
     STDOUTTOOBIG = 1106
     SETUPFAILURE = 1110
     NFSSQLITE = 1115
+    QUEUEDATA = 1116
+    QUEUEDATANOTOK = 1117
     OUTPUTFILETOOLARGE = 1124
     STAGEOUTFAILED = 1137
     PUTMD5MISMATCH = 1141
@@ -42,10 +44,16 @@ class ErrorCodes:
     STAGEOUTTIMEOUT = 1152  # called PUTTIMEOUT in Pilot 1
     NOPROXY = 1163
     MISSINGOUTPUTFILE = 1165
-
+    SIZETOOLARGE = 1168
     GETADMISMATCH = 1171
     PUTADMISMATCH = 1172
     NOVOMSPROXY = 1177
+    GETGLOBUSSYSERR = 1180
+    PUTGLOBUSSYSERR = 1181
+    NOSOFTWAREDIR = 1186
+    NOPAYLOADMETADATA = 1187
+    LFNTOOLONG = 1190
+    ZEROFILESIZE = 1191
     MKDIR = 1199
     KILLSIGNAL = 1200
     SIGTERM = 1201
@@ -55,21 +63,22 @@ class ErrorCodes:
     USERKILL = 1205  # reserved error code, currently not used by pilot
     SIGBUS = 1206
     SIGUSR1 = 1207
-
     MISSINGINSTALLATION = 1211
     PAYLOADOUTOFMEMORY = 1212
     REACHEDMAXTIME = 1213
+    UNKNOWNPAYLOADFAILURE = 1220
+    FILEEXISTS = 1221
     BADALLOC = 1223
-
     ESRECOVERABLE = 1224
     ESFATAL = 1228
     EXECUTEDCLONEJOB = 1234
     PAYLOADEXCEEDMAXMEM = 1235
     ESNOEVENTS = 1238
     MESSAGEHANDLINGFAILURE = 1240
-
     CHKSUMNOTSUP = 1242
+    NORELEASEFOUND = 1244
     NOUSERTARBALL = 1246
+    BADXML = 1247
 
     # Error code constants (new since Pilot 2)
     NOTIMPLEMENTED = 1300
@@ -90,6 +99,12 @@ class ErrorCodes:
     RUCIOSERVICEUNAVAILABLE = 1316
     EXCEEDEDMAXWAITTIME = 1317
     COMMUNICATIONFAILURE = 1318
+    INTERNALPILOTPROBLEM = 1319
+    LOGFILECREATIONFAILURE = 1320
+    RUCIOLOCATIONFAILED = 1321
+    RUCIOLISTREPLICASFAILED = 1322
+    UNKNOWNCOPYTOOL = 1323
+    SERVICENOTAVAILABLE = 1324
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -101,6 +116,8 @@ class ErrorCodes:
         STDOUTTOOBIG: "Payload log or stdout file too big",
         SETUPFAILURE: "Failed during payload setup",
         NFSSQLITE: "NFS SQLite locking problems",
+        QUEUEDATA: "Pilot could not download queuedata",
+        QUEUEDATANOTOK: "Pilot found non-valid queuedata",
         OUTPUTFILETOOLARGE: "Output file too large",
         STAGEOUTFAILED: "Failed to stage-out file",
         PUTMD5MISMATCH: "md5sum mismatch on output file",
@@ -108,6 +125,7 @@ class ErrorCodes:
         CHMODTRF: "Failed to chmod transform",
         PANDAKILL: "This job was killed by panda server",
         MISSINGOUTPUTFILE: "Local output file is missing",
+        SIZETOOLARGE: "Total file size too large",
         TRFDOWNLOADFAILURE: "Transform could not be downloaded",
         LOOPINGJOB: "Looping job killed by pilot",
         STAGEINTIMEOUT: "File transfer timed out during stage-in",
@@ -116,6 +134,12 @@ class ErrorCodes:
         GETADMISMATCH: "adler32 mismatch on input file",
         PUTADMISMATCH: "adler32 mismatch on output file",
         NOVOMSPROXY: "Voms proxy not valid",
+        GETGLOBUSSYSERR: "Globus system error during stage-in",
+        PUTGLOBUSSYSERR: "Globus system error during stage-out",
+        NOSOFTWAREDIR: "Software directory does not exist",
+        NOPAYLOADMETADATA: "Payload metadata does not exist",
+        LFNTOOLONG: "LFN too long (exceeding limit of 255 characters)",
+        ZEROFILESIZE: "File size cannot be zero",
         MKDIR: "Failed to create local directory",
         KILLSIGNAL: "Job terminated by unknown kill signal",
         SIGTERM: "Job killed by signal: SIGTERM",
@@ -128,9 +152,13 @@ class ErrorCodes:
         MISSINGINSTALLATION: "Missing installation",
         PAYLOADOUTOFMEMORY: "Payload ran out of memory",
         REACHEDMAXTIME: "Reached batch system time limit",
+        UNKNOWNPAYLOADFAILURE: "Job failed due to unknown reason (consult log file)",
+        FILEEXISTS: "File already exists",
         BADALLOC: "Transform failed due to bad_alloc",
-        CHKSUMNOTSUP: "Mover error: query checksum is not supported",
+        CHKSUMNOTSUP: "Query checksum is not supported",
+        NORELEASEFOUND: "No release candidates found",
         NOUSERTARBALL: "User tarball could not be downloaded from PanDA server",
+        BADXML: "Badly formed XML",
         ESRECOVERABLE: "Event service: recoverable error",
         ESFATAL: "Event service: fatal error",
         EXECUTEDCLONEJOB: "Clone job is already executed",
@@ -155,6 +183,12 @@ class ErrorCodes:
         RUCIOSERVICEUNAVAILABLE: "Rucio: Service unavailable",
         EXCEEDEDMAXWAITTIME: "Exceeded maximum waiting time",
         COMMUNICATIONFAILURE: "Failed to communicate with server",
+        INTERNALPILOTPROBLEM: "An internal Pilot problem has occurred (consult Pilot log)",
+        LOGFILECREATIONFAILURE: "Failed during creation of log file",
+        RUCIOLOCATIONFAILED: "Failed to get client location for Rucio",
+        RUCIOLISTREPLICASFAILED: "Failed to get replicas from Rucio",
+        UNKNOWNCOPYTOOL: "Unknown copy tool",
+        SERVICENOTAVAILABLE: "Service not available at the moment",
     }
 
     def get_kill_signal_error_code(self, signal):
@@ -243,6 +277,8 @@ class ErrorCodes:
             ec = self.SINGULARITYNOLOOPDEVICES
         elif exit_code == 255 and "Failed to mount image" in stderr:
             ec = self.SINGULARITYIMAGEMOUNTFAILURE
+        elif exit_code == 255 and "Operation not permitted" in stderr:
+            ec = self.SINGULARITYGENERALFAILURE
         elif exit_code == -1:
             ec = self.UNKNOWNTRFFAILURE
         else:

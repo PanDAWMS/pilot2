@@ -13,6 +13,7 @@
 import os
 import logging
 
+from .common import resolve_common_transfer_errors
 from pilot.util.container import execute
 from pilot.common.exception import PilotException, ErrorCodes
 
@@ -102,7 +103,7 @@ def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, *
     rcode, stdout, stderr = execute(cmd, **kwargs)
 
     if rcode:  ## error occurred
-        error = resolve_transfer_error(stdout + stderr, is_stagein=is_stagein)
+        error = resolve_common_transfer_errors(stdout + stderr, is_stagein=is_stagein)
 
         #rcode = error.get('rcode')  ## TO BE IMPLEMENTED
         #if not is_stagein and rcode == PilotErrors.ERR_CHKSUMNOTSUP: ## stage-out, on fly checksum verification is not supported .. ignore
@@ -181,34 +182,3 @@ def copy_out(files, **kwargs):
             raise
 
     return files
-
-
-def resolve_transfer_error(output, is_stagein):
-    """
-        Resolve error code, client state and defined error mesage from the output of transfer command
-        :return: dict {'rcode', 'state, 'error'}
-    """
-
-    ret = {'rcode': ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
-           'state': 'COPY_ERROR', 'error': 'Copy operation failed [is_stagein=%s]: %s' % (is_stagein, output)}
-
-    ## VERIFY ME LATER
-    if "timeout" in output:
-        ret['rcode'] = ErrorCodes.STAGEINTIMEOUT if is_stagein else ErrorCodes.STAGEOUTTIMEOUT
-        ret['state'] = 'CP_TIMEOUT'
-        ret['error'] = 'copy command timed out: %s' % output
-    elif "does not match the checksum" in output:
-        if 'adler32' in output:
-            state = 'AD_MISMATCH'
-            rcode = ErrorCodes.GETADMISMATCH if is_stagein else ErrorCodes.PUTADMISMATCH
-        else:
-            state = 'MD5_MISMATCH'
-            rcode = ErrorCodes.GETMD5MISMATCH if is_stagein else ErrorCodes.PUTMD5MISMATCH
-        ret['rcode'] = rcode
-        ret['state'] = state
-    elif "query chksum is not supported" in output or "Unable to checksum" in output:
-        ret['rcode'] = ErrorCodes.CHKSUMNOTSUP
-        ret['state'] = 'CHKSUM_NOTSUP'
-        ret['error'] = output
-
-    return ret

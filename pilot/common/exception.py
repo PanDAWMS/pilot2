@@ -30,19 +30,23 @@ class PilotException(Exception):
 
     def __init__(self, *args, **kwargs):
         super(PilotException, self).__init__(args, kwargs)
-        self._errorCode = errors.UNKNOWNEXCEPTION
-        self._message = errors.get_error_message(self._errorCode)
         self.args = args
         self.kwargs = kwargs
+        code = self.kwargs.get('code', None)
+        if code:
+            self._errorCode = code
+        else:
+            self._errorCode = errors.UNKNOWNEXCEPTION
+        self._message = errors.get_error_message(self._errorCode)
         self._error_string = None
         self._stack_trace = "%s" % traceback.format_exc()
 
     def __str__(self):
         try:
-            self._error_string = "Error code: %s, message: %s" % (self._errorCode, self._message % self.kwargs)
+            self._error_string = "error code: %s, message: %s" % (self._errorCode, self._message % self.kwargs)
         except Exception:
             # at least get the core message out if something happened
-            self._error_string = "Error code: %s, message: %s" % (self._errorCode, self._message)
+            self._error_string = "error code: %s, message: %s" % (self._errorCode, self._message)
 
         if len(self.args) > 0:
             # If there is a non-kwarg parameter, assume it's the error
@@ -50,17 +54,17 @@ class PilotException(Exception):
             # of the exception message
             # Convert all arguments into their string representations...
             args = ["%s" % arg for arg in self.args if arg]
-            self._error_string = (self._error_string + "\nDetails: %s" % '\n'.join(args))
+            self._error_string = (self._error_string + "\ndetails: %s" % '\n'.join(args))
         return self._error_string.strip()
 
     def get_detail(self):
         try:
-            self._error_string = "Error code: %s, message: %s" % (self._errorCode, self._message % self.kwargs)
+            self._error_string = "error code: %s, message: %s" % (self._errorCode, self._message % self.kwargs)
         except Exception:
             # at least get the core message out if something happened
-            self._error_string = "Error code: %s, message: %s" % (self._errorCode, self._message)
+            self._error_string = "error code: %s, message: %s" % (self._errorCode, self._message)
 
-        return self._error_string + "\nStacktrace: %s" % self._stack_trace
+        return self._error_string + "\nstacktrace: %s" % self._stack_trace
 
     def get_error_code(self):
         return self._errorCode
@@ -93,6 +97,16 @@ class NoLocalSpace(PilotException):
     def __init__(self, *args, **kwargs):
         super(NoLocalSpace, self).__init__(args, kwargs)
         self._errorCode = errors.NOLOCALSPACE
+        self._message = errors.get_error_message(self._errorCode)
+
+
+class SizeTooLarge(PilotException):
+    """
+    Too large input files.
+    """
+    def __init__(self, *args, **kwargs):
+        super(SizeTooLarge, self).__init__(args, kwargs)
+        self._errorCode = errors.SIZETOOLARGE
         self._message = errors.get_error_message(self._errorCode)
 
 
@@ -246,42 +260,42 @@ class NotSameLength(PilotException):
         self._message = errors.get_error_message(self._errorCode)
 
 
-class ESRECOVERABLE(PilotException):
+class ESRecoverable(PilotException):
     """
     Eventservice recoverable exception.
     """
     def __init__(self, *args, **kwargs):
-        super(ESRECOVERABLE, self).__init__(args, kwargs)
+        super(ESRecoverable, self).__init__(args, kwargs)
         self._errorCode = errors.ESRECOVERABLE
         self._message = errors.get_error_message(self._errorCode)
 
 
-class ESFATAL(PilotException):
+class ESFatal(PilotException):
     """
     Eventservice fatal exception.
     """
     def __init__(self, *args, **kwargs):
-        super(ESFATAL, self).__init__(args, kwargs)
+        super(ESFatal, self).__init__(args, kwargs)
         self._errorCode = errors.ESFATAL
         self._message = errors.get_error_message(self._errorCode)
 
 
-class EXECUTEDCLONEJOB(PilotException):
+class ExecutedCloneJob(PilotException):
     """
-    Clone job excuted exception.
+    Clone job executed exception.
     """
     def __init__(self, *args, **kwargs):
-        super(EXECUTEDCLONEJOB, self).__init__(args, kwargs)
+        super(ExecutedCloneJob, self).__init__(args, kwargs)
         self._errorCode = errors.EXECUTEDCLONEJOB
         self._message = errors.get_error_message(self._errorCode)
 
 
-class ESNOEVENTS(PilotException):
+class ESNoEvents(PilotException):
     """
     Eventservice no events exception.
     """
     def __init__(self, *args, **kwargs):
-        super(ESNOEVENTS, self).__init__(args, kwargs)
+        super(ESNoEvents, self).__init__(args, kwargs)
         self._errorCode = errors.ESNOEVENTS
         self._message = errors.get_error_message(self._errorCode)
 
@@ -293,6 +307,56 @@ class ExceededMaxWaitTime(PilotException):
     def __init__(self, *args, **kwargs):
         super(ExceededMaxWaitTime, self).__init__(args, kwargs)
         self._errorCode = errors.EXCEEDEDMAXWAITTIME
+        self._message = errors.get_error_message(self._errorCode)
+
+
+class BadXML(PilotException):
+    """
+    Badly formed XML.
+    """
+    def __init__(self, *args, **kwargs):
+        super(BadXML, self).__init__(args, kwargs)
+        self._errorCode = errors.BADXML
+        self._message = errors.get_error_message(self._errorCode)
+
+
+class NoSoftwareDir(PilotException):
+    """
+    Software applications directory does not exist.
+    """
+    def __init__(self, *args, **kwargs):
+        super(NoSoftwareDir, self).__init__(args, kwargs)
+        self._errorCode = errors.NOSOFTWAREDIR
+        self._message = errors.get_error_message(self._errorCode)
+
+
+class LogFileCreationFailure(PilotException):
+    """
+    Software applications directory does not exist.
+    """
+    def __init__(self, *args, **kwargs):
+        super(LogFileCreationFailure, self).__init__(args, kwargs)
+        self._errorCode = errors.LOGFILECREATIONFAILURE
+        self._message = errors.get_error_message(self._errorCode)
+
+
+class QueuedataFailure(PilotException):
+    """
+    Failed to download queuedata.
+    """
+    def __init__(self, *args, **kwargs):
+        super(QueuedataFailure, self).__init__(args, kwargs)
+        self._errorCode = errors.QUEUEDATA
+        self._message = errors.get_error_message(self._errorCode)
+
+
+class QueuedataNotOK(PilotException):
+    """
+    Corrupt queuedata.
+    """
+    def __init__(self, *args, **kwargs):
+        super(QueuedataNotOK, self).__init__(args, kwargs)
+        self._errorCode = errors.QUEUEDATANOTOK
         self._message = errors.get_error_message(self._errorCode)
 
 

@@ -13,8 +13,8 @@ The implementation of data structure to host Job definition.
 
 The main reasons for such incapsulation are to
  - apply in one place all data validation actions (for attributes and values)
- - introduce internal information schema (names of attribues) to remove dependency
- with data structrure, formats, names from external source (PanDA)
+ - introduce internal information schema (names of attributes) to remove dependency
+ with data structure, formats, names from external source (PanDA)
 
 :author: Alexey Anisenkov
 :contact: anisyonk@cern.ch
@@ -31,6 +31,7 @@ from .basedata import BaseData
 from .filespec import FileSpec
 from pilot.util.constants import LOG_TRANSFER_NOT_DONE
 from pilot.util.filehandling import get_guid
+from pilot.util.timing import get_elapsed_real_time
 
 import logging
 logger = logging.getLogger(__name__)
@@ -45,114 +46,92 @@ class JobData(BaseData):
     # ## FIX ME LATER: use proper doc format
     # ## incomplete list of attributes .. to be extended once becomes used
 
-    jobid = None                # Unique Job  identifier (forced to be a string)
-    taskid = None               # Unique Task identifier, the task that this job belongs to (forced to be a string)
-
-    jobparams = ""         # Job parameters defining the execution of the job
-    transformation = ""    # Script execution name
-
-    state = ""            # Current job state
-    status = {'LOG_TRANSFER': LOG_TRANSFER_NOT_DONE}  # Current job status; format = {key: value, ..} e.g. key='LOG_TRANSFER', value='DONE'
-    workdir = ""          # Working directoty for this job
-
-    corecount = 1   # Number of cores as requested by the task
-    platform = ""   # cmtconfig value from the task definition
-
+    jobid = None                   # unique Job identifier (forced to be a string)
+    taskid = None                  # unique Task identifier, the task that this job belongs to (forced to be a string)
+    jobparams = ""                 # job parameters defining the execution of the job
+    transformation = ""            # script execution name
+    state = ""                     # current job state
+    status = {'LOG_TRANSFER': LOG_TRANSFER_NOT_DONE}  # current job status; format = {key: value, ..} e.g. key='LOG_TRANSFER', value='DONE'
+    corecount = 1                  # Number of cores as requested by the task
+    platform = ""                  # cmtconfig value from the task definition
     is_eventservice = False        # True for event service jobs
     is_eventservicemerge = False   # True for event service merge jobs
-
-    transfertype = ""  # direct access instruction from server
-    accessmode = ""  # direct access instruction from jobparams
-    processingtype = ""  # e.g. nightlies
+    transfertype = ""              # direct access instruction from server
+    accessmode = ""                # direct access instruction from jobparams
+    processingtype = ""            # e.g. nightlies
+    maxcpucount = 0                # defines what is a looping job (seconds)
 
     # set by the pilot (not from job definition)
-    workdirsizes = []  # time ordered list of work dir sizes
-    fileinfo = {}
-    piloterrorcode = 0  # current pilot error code
-    piloterrorcodes = []  # ordered list of stored pilot error codes
-    piloterrordiag = ""  # current pilot error diagnostics
-    piloterrordiags = []  # ordered list of stored pilot error diagnostics
-    transexitcode = 0
-    exeerrorcode = 0
-    exeerrordiag = ""
-    exitcode = 0
-    exitmsg = ""
-    state = ""  # internal pilot state; running, failed, finished, holding
-    stageout = ""  # stage-out identifier, e.g. log
-    metadata = {}  # payload metadata (job report)
-    cpuconsumptionunit = ""
-    cpuconsumptiontime = -1
-    cpuconversionfactor = 1
-    nevents = 0  # number of events
-    neventsw = 0  # number of events written
-    dbtime = None
-    dbdata = None
-    payload = ""  # payload name
-    utilities = {}  # utility processes { <name>: [<process handle>, number of launches, command string], .. }
-    pid = None  # payload pid
-    pgrp = None  # process group
+    workdir = ""                   # working directoty for this job
+    workdirsizes = []              # time ordered list of work dir sizes
+    fileinfo = {}                  #
+    piloterrorcode = 0             # current pilot error code
+    piloterrorcodes = []           # ordered list of stored pilot error codes
+    piloterrordiag = ""            # current pilot error diagnostics
+    piloterrordiags = []           # ordered list of stored pilot error diagnostics
+    transexitcode = 0              # payload/trf exit code
+    exeerrorcode = 0               #
+    exeerrordiag = ""              #
+    exitcode = 0                   #
+    exitmsg = ""                   #
+    state = ""                     # internal pilot state; running, failed, finished, holding
+    stageout = ""                  # stage-out identifier, e.g. log
+    metadata = {}                  # payload metadata (job report)
+    cpuconsumptionunit = ""        #
+    cpuconsumptiontime = -1        #
+    cpuconversionfactor = 1        #
+    nevents = 0                    # number of events
+    neventsw = 0                   # number of events written
+    dbtime = None                  #
+    dbdata = None                  #
+    payload = ""                   # payload name
+    utilities = {}                 # utility processes { <name>: [<process handle>, number of launches, command string], .. }
+    pid = None                     # payload pid
+    pgrp = None                    # payload process group
+    sizes = {}                     # job object sizes { timestamp: size, .. }
 
     # time variable used for on-the-fly cpu consumption time measurements done by job monitoring
-    t0 = None  # payload startup time
+    t0 = None                      # payload startup time
 
-    overwrite_queuedata = {}  # Custom settings extracted from job parameters (--overwriteQueueData) to be used as master values for `QueueData`
-    zipmap = ""               # ZIP MAP values extracted from jobparameters
-    imagename = ""            # user defined container image name extracted from job parameters
+    overwrite_queuedata = {}       # custom settings extracted from job parameters (--overwriteQueueData) to be used as master values for `QueueData`
+    zipmap = ""                    # ZIP MAP values extracted from jobparameters
+    imagename = ""                 # user defined container image name extracted from job parameters
 
     # from job definition
-    attemptnr = 0  # job attempt number
-    #ddmendpointin = ""  # comma-separated list (string) of ddm endpoints for input    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-    #ddmendpointout = ""  # comma-separated list (string) of ddm endpoints for output  ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
-    destinationdblock = ""  ## to be moved to FileSpec (job.outdata)
-    datasetin = ""  ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-    #datasetout = ""
-    debug = False
-    produserid = ""  # the user DN (added to trace report)
-    jobdefinitionid = ""  # the job definition id (added to trace report)
-
-    # infiles = ""  # comma-separated list (string) of input files  ## TO BE DEPRECATED: moved to FileSpec (use job.indata instead)
-    infilesguids = ""
-
-    indata = []   # list of `FileSpec` objects for input files (aggregated inFiles, ddmEndPointIn, scopeIn, filesizeIn, etc)
-    outdata = []  # list of `FileSpec` objects for output files
-    logdata = []  # list of `FileSpec` objects for log file(s)
+    attemptnr = 0                  # job attempt number
+    destinationdblock = ""         ## to be moved to FileSpec (job.outdata)
+    datasetin = ""                 ## TO BE DEPRECATED: moved to FileSpec (job.indata)
+    debug = False                  #
+    produserid = ""                # the user DN (added to trace report)
+    jobdefinitionid = ""           # the job definition id (added to trace report)
+    infilesguids = ""              #
+    indata = []                    # list of `FileSpec` objects for input files (aggregated inFiles, ddmEndPointIn, scopeIn, filesizeIn, etc)
+    outdata = []                   # list of `FileSpec` objects for output files
+    logdata = []                   # list of `FileSpec` objects for log file(s)
 
     # home package string with additional payload release information; does not need to be added to
     # the conversion function since it's already lower case
-    homepackage = ""
-
-    jobsetid = ""  # job set id
-    #logfile = ""  #  file name for log                                   ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
-    #logguid = ""  # unique guid for log file                             ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
-    noexecstrcnv = None  # server instruction to the pilot if it should take payload setup from job parameters
-    #outfiles = ""  # comma-separated list (string) of output files       ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
-    #scopein = ""  # comma-separated list (string) of input file scopes   ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-    #scopelog = ""  # scope for log file                                  ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
-    #scopeout = ""  # comma-separated list (string) of output file scopes ## TO BE DEPRECATED: moved to FileSpec (use job.logdata instead)
-    swrelease = ""  # software release string
-    writetofile = ""  # writeToFile
+    homepackage = ""               #
+    jobsetid = ""                  # job set id
+    noexecstrcnv = None            # server instruction to the pilot if it should take payload setup from job parameters
+    swrelease = ""                 # software release string
+    writetofile = ""               #
 
     # RAW data to keep backward compatible behavior for a while ## TO BE REMOVED once all job attributes will be covered
     _rawdata = {}
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['corecount', 'piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
-                   'attemptnr', 'nevents', 'neventsw', 'pid', 'cpuconsumptiontime'],
+                   'attemptnr', 'nevents', 'neventsw', 'pid', 'cpuconsumptiontime', 'maxcpucount'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
                    'state', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg', 'produserid', 'jobdefinitionid', 'writetofile',
-                   #'infiles',         ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-                   #'scopein',        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-                   #'outfiles', 'ddmendpointin',   ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-                   #'scopeout', 'ddmendpointout',    ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
-                   #'scopelog', 'logfile', 'logguid',            ## TO BE DEPRECATED: moved to FileSpec (job.logdata)
                    'cpuconsumptionunit', 'homepackage', 'jobsetid', 'payload', 'processingtype',
                    'swrelease', 'zipmap', 'imagename', 'accessmode', 'transfertype',
                    'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-                   #'datasetout',  ## TO BE DEPRECATED: moved to FileSpec (job.outdata)
                    'infilesguids'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
-             dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata'],
+             dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes'],
              bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug']
              }
 
@@ -169,9 +148,6 @@ class JobData(BaseData):
         self.indata = self.prepare_infiles(data)
         self.outdata, self.logdata = self.prepare_outfiles(data)
 
-        # DEBUG
-        #import pprint
-        #logger.debug('Initialize Job from raw:\n%s' % pprint.pformat(data))
         logger.debug('Final parsed Job content:\n%s' % self)
 
     def prepare_infiles(self, data):
@@ -186,7 +162,7 @@ class JobData(BaseData):
         # job input options overwrite any Job settings
         if '--accessmode=direct' in self.jobparams:
             self.accessmode = 'direct'
-        if '--accessmode=copy' in self.jobparams:
+        if '--accessmode=copy' in self.jobparams or '--useLocalIO' in self.jobparams:
             self.accessmode = 'copy'
 
         # form raw list data from input comma-separated values for further validataion by FileSpec
@@ -213,7 +189,7 @@ class JobData(BaseData):
             for attrname, k in kmap.iteritems():
                 idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
             idat['accessmode'] = self.accessmode
-            finfo = FileSpec(type='input', **idat)
+            finfo = FileSpec(filetype='input', **idat)
             logger.info('added file %s' % lfn)
             ret.append(finfo)
 
@@ -275,7 +251,7 @@ class JobData(BaseData):
             elif lfn.endswith('.lib.tgz'):  # build job case, generate a guid for the lib file
                 idat['guid'] = get_guid()
 
-            finfo = FileSpec(type=ftype, **idat)
+            finfo = FileSpec(filetype=ftype, **idat)
             ret.append(finfo)
 
         return ret_output, ret_log
@@ -338,19 +314,9 @@ class JobData(BaseData):
             'jobparams': 'jobPars',
             'corecount': 'coreCount',
             'platform': 'cmtConfig',
-            #'scopein': 'scopeIn',                        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-            #'scopeout': 'scopeOut',                      ## TO BE DEPRECATED: moved to FileSpec
-            #'scopelog': 'scopeLog',                      ## TO BE DEPRECATED: moved to FileSpec
-            #'logfile': 'logFile',                        ## TO BE DEPRECATED: moved to FileSpec
-            #'infiles': 'inFiles',                        ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-            #'outfiles': 'outFiles',                      ## TO BE DEPRECATED: moved to FileSpec
-            #'logguid': 'logGUID',                        ## TO BE DEPRECATED: moved to FileSpec
             'infilesguids': 'GUID',                      ## TO BE DEPRECATED: moved to FileSpec
             'attemptnr': 'attemptNr',
-            #'ddmendpointin': 'ddmEndPointIn',            ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-            #'ddmendpointout': 'ddmEndPointOut',          ## TO BE DEPRECATED: moved to FileSpec
             'datasetin': 'realDatasetsIn',               ## TO BE DEPRECATED: moved to FileSpec
-            #'datasetout': 'realDatasets',                ## TO BE DEPRECATED: moved to FileSpec
             'processingtype': 'processingType',
             'transfertype': 'transferType',
             'destinationdblock': 'destinationDblock',
@@ -362,6 +328,7 @@ class JobData(BaseData):
             'writetofile': 'writeToFile',
             'is_eventservice': 'eventService',
             'is_eventservicemerge': 'eventServiceMerge',
+            'maxcpucount': 'maxCpuCount',
         }
 
         self._load_data(data, kmap)
@@ -463,6 +430,10 @@ class JobData(BaseData):
         ## extract overwrite options
         options, ret = self.parse_args(ret, {'--overwriteQueueData': lambda x: ast.literal_eval(x) if x else {}}, remove=True)
         self.overwrite_queuedata = options.get('--overwriteQueueData', {})
+
+        #logger.debug('ret(1) = %s' % ret)
+        #ret = ret.replace("\'\"\'\"\'", '\\\"')
+        #logger.debug('ret(2) = %s' % ret)
 
         # extract zip map  ## TO BE FIXED? better to pass it via dedicated sub-option in jobParams from PanDA side: e.g. using --zipmap "content"
         # so that the zip_map can be handles more gracefully via parse_args
@@ -619,7 +590,7 @@ class JobData(BaseData):
             # job.scopeOut)
 
             for fspec in self.indata + self.outdata:
-                if fspec.type == 'input' and fspec.status != 'transferred':
+                if fspec.filetype == 'input' and fspec.status != 'transferred':
                     continue
                 pfn = os.path.join(self.workdir, fspec.lfn)
                 if not os.path.isfile(pfn):
@@ -714,7 +685,7 @@ class JobData(BaseData):
                     input_name, input_list = fileinfo.split(":")
                     writetofile_dictionary[input_name] = input_list.split(',')
                 else:
-                    logger.error("writeToFile doesn't have the correct format, expecting a separator ':' for %s" % fileinfo)
+                    logger.error("writeToFile doesn't have the correct format, expecting a separator \':\' for %s" % fileinfo)
 
         if writetofile_dictionary:
             for input_name in writetofile_dictionary:
@@ -723,7 +694,7 @@ class JobData(BaseData):
                 f = open(input_name_full, 'w')
                 job_option = self.get_job_option_for_input_name(input_name)
                 if not job_option:
-                    logger.error("Unknow job option format, expecting to get job option such as '--inputHitsFile' for input file: %s" % input_name)
+                    logger.error("Unknown job option format, expected job options such as \'--inputHitsFile\' for input file: %s" % input_name)
                 else:
                     f.write("%s\n" % job_option)
                 for input_file in writetofile_dictionary[input_name]:
@@ -735,3 +706,21 @@ class JobData(BaseData):
                     self.jobparams = self.jobparams.replace('%s=' % job_option, '')
                 self.jobparams = self.jobparams.replace('--autoConfiguration=everything', '')
                 logger.info("jobparams after processing writeToFile: %s" % self.jobparams)
+
+    def add_size(self, size):
+        """
+        Add a size measurement to the sizes field at the current time stamp.
+        A size measurement is in Bytes.
+
+        :return:
+        """
+
+        # is t0 set? if not, set it
+        if not self.t0:
+            self.t0 = os.times()
+
+        # get the current time stamp relative to t0
+        time_stamp = get_elapsed_real_time(t0=self.t0)
+
+        # add a data point to the sizes dictionary
+        self.sizes[time_stamp] = size

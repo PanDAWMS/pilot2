@@ -12,6 +12,7 @@ import re
 from time import sleep
 
 from pilot.common.errorcodes import ErrorCodes
+from pilot.common.exception import NoSoftwareDir
 from pilot.info import infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
@@ -102,7 +103,8 @@ def get_asetup(asetup=True, alrb=False):
 
     :param asetup: Boolean. True value means that the pilot should include the asetup command.
     :param alrb: Boolean. True value means that the function should return special setup used with ALRB and containers.
-    :return: asetup (string).
+    :raises: NoSoftwareDir if appdir does not exist.
+    :return: source <path>/asetup.sh (string).
     """
 
     cmd = ""
@@ -118,6 +120,11 @@ def get_asetup(asetup=True, alrb=False):
         if appdir == "":
             appdir = os.environ.get('VO_ATLAS_SW_DIR', '')
         if appdir != "":
+            # make sure that the appdir exists
+            if not os.path.exists(appdir):
+                msg = 'appdir does not exist: %s' % appdir
+                logger.warning(msg)
+                raise NoSoftwareDir(msg)
             if asetup:
                 cmd = "source %s/scripts/asetup.sh" % appdir
 
@@ -148,7 +155,7 @@ def get_asetup_options(release, homepackage):
     else:
 
         asetupopt += homepackage.split('/')
-        if release not in homepackage:
+        if release not in homepackage and release not in asetupopt:
             asetupopt.append(release)
 
     # Add the notest,here for all setups (not necessary for late releases but harmless to add)
@@ -343,7 +350,7 @@ def get_payload_environment_variables(cmd, job_id, task_id, processing_type, sit
     log = get_logger(job_id)
 
     variables = []
-    variables.append('export PANDA_RESOURCE=\"%s\";' % site_name)
+    variables.append('export PANDA_RESOURCE=\'%s\';' % site_name)
     variables.append('export FRONTIER_ID=\"[%s_%s]\";' % (task_id, job_id))
     variables.append('export CMSSW_VERSION=$FRONTIER_ID;')
 
@@ -364,8 +371,8 @@ def get_payload_environment_variables(cmd, job_id, task_id, processing_type, sit
     if processing_type == "":
         log.warning("RUCIO_APPID needs job.processingType but it is not set!")
     else:
-        variables.append('export RUCIO_APPID=\"%s\";' % processing_type)
-    variables.append('export RUCIO_ACCOUNT=\"%s\";' % os.environ.get('RUCIO_ACCOUNT', 'pilot'))
+        variables.append('export RUCIO_APPID=\'%s\';' % processing_type)
+    variables.append('export RUCIO_ACCOUNT=\'%s\';' % os.environ.get('RUCIO_ACCOUNT', 'pilot'))
 
     return variables
 

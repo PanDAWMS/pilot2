@@ -12,10 +12,9 @@
 import os
 import logging
 import errno
-import re
 
+from .common import get_copysetup, verify_catalog_checksum, resolve_common_transfer_errors
 from pilot.common.exception import StageInFailure, StageOutFailure, PilotException, ErrorCodes
-from pilot.copytool.common import get_copysetup, verify_catalog_checksum
 from pilot.util.container import execute
 
 
@@ -82,14 +81,11 @@ def copy_in(files, **kwargs):
     stderr = ""
 
     copytools = kwargs.get('copytools') or []
-    allow_direct_access = kwargs.get('allow_direct_access') or False
     copysetup = get_copysetup(copytools, 'lsm')
 
     for fspec in files:
         # continue loop for files that are to be accessed directly
-        if fspec.is_directaccess(ensure_replica=False) and allow_direct_access:
-            fspec.status_code = 0
-            fspec.status = 'remote_io'
+        if fspec.status == 'remote_io':
             continue
 
         dst = fspec.workdir or kwargs.get('workdir') or '.'
@@ -104,10 +100,11 @@ def copy_in(files, **kwargs):
         if exit_code != 0:
             logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
 
-            error = resolve_transfer_error(stderr, is_stagein=True)
+            error = resolve_common_transfer_errors(stderr, is_stagein=True)
             fspec.status = 'failed'
-            fspec.status_code = error.get('exit_code')
-            raise PilotException(error.get('error'), code=error.get('exit_code'), state=error.get('state'))
+            fspec.status_code = error.get('rcode')
+            logger.warning('error=%d' % error.get('rcode'))
+            raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
         # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
         state, diagnostics = verify_catalog_checksum(fspec, destination)
@@ -118,26 +115,6 @@ def copy_in(files, **kwargs):
         fspec.status = 'transferred'
 
     return files
-
-
-def resolve_transfer_error(output, is_stagein=True):
-    """
-    Resolve error code, client state and defined error mesage from the output of transfer command
-
-    :param output: command output (string).
-    :param is_stagein: boolean, True for stage-in.
-    :return: dict {'rcode', 'state, 'error'}
-    """
-
-    ret = {'rcode': ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
-           'state': 'COPY_ERROR', 'error': 'Copy operation failed [is_stagein=%s]: %s' % (is_stagein, output)}
-
-    for line in output.split('\n'):
-        m = re.search("Details\s*:\s*(?P<error>.*)", line)
-        if m:
-            ret['error'] = m.group('error')
-
-    return ret
 
 
 def copy_out(files, **kwargs):
@@ -188,7 +165,7 @@ def copy_out(files, **kwargs):
             exit_code, stdout, stderr = move(source, destination, dst_in=False, copysetup=copysetup, options=opts)
 
             if exit_code != 0:
-                error = resolve_transfer_error(stderr, is_stagein=False)
+                error = resolve_common_transfer_errors(stderr, is_stagein=False)
                 fspec.status = 'failed'
                 fspec.status_code = error.get('exit_code')
                 raise PilotException(error.get('error'), code=error.get('exit_code'), state=error.get('state'))
