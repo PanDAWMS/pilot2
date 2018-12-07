@@ -553,7 +553,7 @@ class StageInClient(StagingClient):
         """
 
         for f in files:
-            logger.debug('lfn=%s filesize=%d accessmode=%s' % (f.lfn, f.filesize, f.accessmode))
+            self.logger.debug('lfn=%s filesize=%d accessmode=%s' % (f.lfn, f.filesize, f.accessmode))
 
         maxinputsize = convert_mb_to_b(get_maximum_input_sizes())
         totalsize = reduce(lambda x, y: x + y.filesize, files, 0)
