@@ -136,7 +136,7 @@ def move_all_files(files, copy_type, workdir):
     for fspec in files:  # entry = {'name':<filename>, 'source':<dir>, 'destination':<dir>}
 
         name = fspec.lfn
-        if fspec.type == 'input':
+        if fspec.filetype == 'input':
             # Assumes pilot runs in subdir one level down from working dir
             source = os.path.join(os.path.dirname(workdir), name)
             destination = os.path.join(workdir, name)
@@ -150,7 +150,7 @@ def move_all_files(files, copy_type, workdir):
         if exit_code != 0:
             logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
             fspec.status = 'failed'
-            if fspec.type == 'input':
+            if fspec.filetype == 'input':
                 fspec.status_code = ErrorCodes.STAGEINFAILED
             else:
                 fspec.status_code = ErrorCodes.STAGEOUTFAILED

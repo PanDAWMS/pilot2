@@ -41,7 +41,7 @@ class FileSpec(BaseData):
     scope = ""       # file scope
 
     dataset = ""
-    ddmendpoint = ""    ## DDMEndpoint name (input or output depending on FileSpec.type)
+    ddmendpoint = ""    ## DDMEndpoint name (input or output depending on FileSpec.filetype)
 
     accessmode = ""
     allowremoteinputs = False
