@@ -139,10 +139,11 @@ class TraceReport(dict):
             #loaded = loads(data)
             #logger.debug('self object converted to json dictionary: %s' % loaded)
 
-            sslCertificate = self.get_ssl_certificate()
+            ssl_certificate = self.get_ssl_certificate()
 
             # create the command
-            cmd = 'curl --connect-timeout 20 --max-time 120 --cacert %s -v -k -d "%s" %s' % (sslCertificate, data, url)
+            cmd = 'curl --connect-timeout 20 --max-time 120 --cacert %s -v -k -d \"%s\" %s' % \
+                  (ssl_certificate, data, url)
             exit_code, stdout, stderr = execute(cmd)
             if exit_code:
                 logger.warning('failed to send traces to rucio: %s' % stdout)
@@ -157,7 +158,6 @@ class TraceReport(dict):
             logger.info("tracing report sent")
 
         return True
-
 
     def get_ssl_certificate(self):
         """

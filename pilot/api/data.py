@@ -44,10 +44,12 @@ class StagingClient(object):
                         'lsm': {'module_name': 'lsm'}
                         }
 
-    direct_remoteinput_allowed_schemas = ['root']   ## list of allowed schemas to be used for direct acccess mode from REMOTE replicas
-    direct_localinput_allowed_schemas = ['root', 'davs', 'dcache', 'dcap', 'file', 'https']  ## list of schemas to be used for direct acccess mode from LOCAL replicas
-
-    remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm']  ## list of allowed schemas to be used for transfers from REMOTE sites
+    # list of allowed schemas to be used for direct acccess mode from REMOTE replicas
+    direct_remoteinput_allowed_schemas = ['root']
+    # list of schemas to be used for direct acccess mode from LOCAL replicas
+    direct_localinput_allowed_schemas = ['root', 'davs', 'dcache', 'dcap', 'file', 'https']
+    # list of allowed schemas to be used for transfers from REMOTE sites
+    remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm']
 
     def __init__(self, infosys_instance=None, acopytools=None, logger=None, default_copytools='rucio', trace_report=None):
         """
