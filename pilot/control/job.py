@@ -32,7 +32,7 @@ from pilot.util.config import config
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED
-from pilot.util.filehandling import get_files, tail, is_json, copy, remove
+from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_json
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file
 from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
@@ -1206,7 +1206,6 @@ def queue_monitor(queues, traces, args):
     if not scan_for_jobs(queues):
         logger.warning('queues are still empty of jobs - will begin queue monitoring anyway')
 
-    abort = False
     while True:  # will abort when graceful_stop has been set
         if traces.pilot['command'] == 'abort':
             logger.warning('job queue monitor received an abort instruction')
@@ -1230,7 +1229,14 @@ def queue_monitor(queues, traces, args):
                 wait_for_aborted_job_stageout(args, queues, job)
 
             # send final server update
-            if job.fileinfo:
+            path = os.path.join(job.workdir, config.Payload.jobreport)
+            if os.path.exists(path):
+                js = read_json(path)
+                if not js:
+                    send_state(job, args, job.state)
+                else:
+                    send_state(job, args, job.state, xml=js)
+            elif job.fileinfo:
                 send_state(job, args, job.state, xml=dumps(job.fileinfo))
             else:
                 send_state(job, args, job.state)
