@@ -61,6 +61,7 @@ def copy_in(files, **kwargs):
     """
 
     allow_direct_access = kwargs.get('allow_direct_access') or False
+    trace_report = kwargs.get('trace_report')
 
     if not check_for_gfal():
         raise StageInFailure("No GFAL2 tools found")
@@ -114,6 +115,8 @@ def copy_out(files, **kwargs):
 
     if not check_for_gfal():
         raise StageOutFailure("No GFAL2 tools found")
+
+    trace_report = kwargs.get('trace_report')
 
     for fspec in files:
 

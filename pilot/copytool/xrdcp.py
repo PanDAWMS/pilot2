@@ -137,6 +137,7 @@ def copy_in(files, **kwargs):
     allow_direct_access = kwargs.get('allow_direct_access') or False
     setup = kwargs.pop('copytools', {}).get('xrdcp', {}).get('setup')
     coption = _resolve_checksum_option(setup, **kwargs)
+    trace_report = kwargs.get('trace_report')
 
     for fspec in files:
         # continue loop for files that are to be accessed directly
@@ -169,6 +170,7 @@ def copy_out(files, **kwargs):
 
     setup = kwargs.pop('copytools', {}).get('xrdcp', {}).get('setup')
     coption = _resolve_checksum_option(setup, **kwargs)
+    trace_report = kwargs.get('trace_report')
 
     for fspec in files:
 

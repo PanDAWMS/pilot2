@@ -100,6 +100,7 @@ def copy_in(files, **kwargs):
 
     ddmconf = kwargs.pop('ddmconf', {})
     activity = kwargs.pop('activity', None)
+    trace_report = kwargs.get('trace_report')
 
     for fspec in files:
         cmd = []
@@ -152,6 +153,7 @@ def copy_out(files, **kwargs):
     no_register = kwargs.pop('no_register', True)
     summary = kwargs.pop('summary', False)
     ddmconf = kwargs.pop('ddmconf', {})
+    trace_report = kwargs.get('trace_report')
 
     for fspec in files:
         cmd = []

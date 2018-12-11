@@ -82,6 +82,7 @@ def copy_in(files, **kwargs):
 
     copytools = kwargs.get('copytools') or []
     copysetup = get_copysetup(copytools, 'lsm')
+    trace_report = kwargs.get('trace_report')
 
     for fspec in files:
         # continue loop for files that are to be accessed directly
@@ -127,6 +128,7 @@ def copy_out(files, **kwargs):
 
     copytools = kwargs.get('copytools') or []
     copysetup = get_copysetup(copytools, 'lsm')
+    trace_report = kwargs.get('trace_report')
     ddmconf = kwargs.get('ddmconf', None)
     if not ddmconf:
         raise PilotException("copy_out() failed to resolve ddmconf from function arguments",
