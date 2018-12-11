@@ -1233,12 +1233,16 @@ def queue_monitor(queues, traces, args):
             if os.path.exists(path):
                 js = read_json(path)
                 if not js:
+                    log.debug('xml:will not send jobReport')
                     send_state(job, args, job.state)
                 else:
+                    log.debug('xml:will send jobReport')
                     send_state(job, args, job.state, xml=js)
             elif job.fileinfo:
+                log.debug('xml:will send fileinfo')
                 send_state(job, args, job.state, xml=dumps(job.fileinfo))
             else:
+                log.debug('will not send fileinfo')
                 send_state(job, args, job.state)
 
             # we can now stop monitoring this job, so remove it from the monitored_payloads queue and add it to the
