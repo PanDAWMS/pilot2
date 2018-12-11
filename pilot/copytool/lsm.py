@@ -159,13 +159,19 @@ def copy_out(files, **kwargs):
                              state='COPY_ERROR')
 
     for fspec in files:
+        trace_report.update(scope=fspec.scope, dataset=fspec.dataset, url=fspec.surl, filesize=fspec.filesize)
+        trace_report.update(catStart=time(), filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
 
         # resolve token value from fspec.ddmendpoint
         ddm = ddmconf.get(fspec.ddmendpoint)
         token = ddm.token
         if not token:
-            raise PilotException("copy_out() failed to resolve token value for ddmendpoint=%s" % (fspec.ddmendpoint),
-                                 code=ErrorCodes.STAGEOUTFAILED, state='COPY_ERROR')
+            diagnostics = "copy_out() failed to resolve token value for ddmendpoint=%s" % (fspec.ddmendpoint)
+            trace_report.update(clientState='STAGEOUT_ATTEMPT_FAILED',
+                                stateReason=diagnostics,
+                                timeEnd=time())
+            trace_report.send()
+            raise PilotException(diagnostics, code=ErrorCodes.STAGEOUTFAILED, state='COPY_ERROR')
 
         src = fspec.workdir or kwargs.get('workdir') or '.'
         #timeout = get_timeout(fspec.filesize)
@@ -193,6 +199,10 @@ def copy_out(files, **kwargs):
                 error = resolve_common_transfer_errors(stderr, is_stagein=False)
                 fspec.status = 'failed'
                 fspec.status_code = error.get('exit_code')
+                trace_report.update(clientState=error.get('state', None) or 'STAGEOUT_ATTEMPT_FAILED',
+                                    stateReason=error.get('error', 'unknown error'),
+                                    timeEnd=time())
+                trace_report.send()
                 raise PilotException(error.get('error'), code=error.get('exit_code'), state=error.get('state'))
             else:  # all successful
                 logger.info('all successful')
@@ -200,6 +210,8 @@ def copy_out(files, **kwargs):
 
         fspec.status_code = 0
         fspec.status = 'transferred'
+        trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
+        trace_report.send()
 
     return files
 

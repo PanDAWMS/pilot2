@@ -137,6 +137,8 @@ def copy_out(files, **kwargs):
     trace_report = kwargs.get('trace_report')
 
     for fspec in files:
+        trace_report.update(scope=fspec.scope, dataset=fspec.dataset, url=fspec.surl, filesize=fspec.filesize)
+        trace_report.update(catStart=time(), filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
 
         src = fspec.workdir or kwargs.get('workdir') or '.'
 
@@ -163,10 +165,16 @@ def copy_out(files, **kwargs):
                 error = resolve_common_transfer_errors(stdout + stderr, is_stagein=False)
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
+            trace_report.update(clientState=error.get('state', None) or 'STAGEOUT_ATTEMPT_FAILED',
+                                stateReason=error.get('error', 'unknown error'),
+                                timeEnd=time())
+            trace_report.send()
             raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
         fspec.status_code = 0
         fspec.status = 'transferred'
+        trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
+        trace_report.send()
 
     return files
 

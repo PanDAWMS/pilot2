@@ -192,14 +192,22 @@ def copy_out(files, **kwargs):
     trace_report = kwargs.get('trace_report')
 
     for fspec in files:
+        trace_report.update(scope=fspec.scope, dataset=fspec.dataset, url=fspec.surl, filesize=fspec.filesize)
+        trace_report.update(catStart=time(), filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
 
         try:
             _stagefile(coption, fspec.surl, fspec.turl, fspec.filesize, is_stagein=False, setup=setup, **kwargs)
             fspec.status_code = 0
             fspec.status = 'transferred'
+            trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
+            trace_report.send()
         except Exception as error:
             fspec.status = 'failed'
             fspec.status_code = error.get_error_code() if isinstance(error, PilotException) else ErrorCodes.STAGEOUTFAILED
+            trace_report.update(clientState=error.get('state', None) or 'STAGEOUT_ATTEMPT_FAILED',
+                                stateReason=error.get('error', 'unknown error'),
+                                timeEnd=time())
+            trace_report.send()
             raise
 
     return files

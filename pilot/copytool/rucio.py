@@ -164,8 +164,8 @@ def copy_out(files, **kwargs):
             trace_report.update(clientState=error.get('state', None) or 'STAGEOUT_ATTEMPT_FAILED',
                                 stateReason=error.get('error', 'unknown error'),
                                 timeEnd=time())
-            trace_report.send()
             if not ignore_errors:
+                trace_report.send()
                 raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
         if summary:  # resolve final pfn (turl) from the summary JSON
