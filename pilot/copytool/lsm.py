@@ -12,6 +12,7 @@
 import os
 import logging
 import errno
+from time import time
 
 from .common import get_copysetup, verify_catalog_checksum, resolve_common_transfer_errors
 from pilot.common.exception import StageInFailure, StageOutFailure, PilotException, ErrorCodes
@@ -83,11 +84,25 @@ def copy_in(files, **kwargs):
     copytools = kwargs.get('copytools') or []
     copysetup = get_copysetup(copytools, 'lsm')
     trace_report = kwargs.get('trace_report')
+    allow_direct_access = kwargs.get('allow_direct_access')
+    localsite = os.environ.get('DQ2_LOCAL_SITE_ID', None)
 
     for fspec in files:
+        # update the trace report
+        localsite = localsite if localsite else fspec.ddmendpoint
+        trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
+        trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
+        trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
+
         # continue loop for files that are to be accessed directly
-        if fspec.status == 'remote_io':
+        if fspec.is_directaccess(ensure_replica=False) and allow_direct_access and fspec.accessmode == 'direct':
+            fspec.status_code = 0
+            fspec.status = 'remote_io'
+            trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
+            trace_report.send()
             continue
+
+        trace_report.update(catStart=time())
 
         dst = fspec.workdir or kwargs.get('workdir') or '.'
         #timeout = get_timeout(fspec.filesize)
@@ -105,15 +120,23 @@ def copy_in(files, **kwargs):
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
             logger.warning('error=%d' % error.get('rcode'))
+            trace_report.update(clientState=error.get('state') or 'STAGEIN_ATTEMPT_FAILED',
+                                stateReason=error.get('error'), timeEnd=time())
+            trace_report.send()
             raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
         # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
         state, diagnostics = verify_catalog_checksum(fspec, destination)
         if diagnostics != "":
+            trace_report.update(clientState=state or 'STAGEIN_ATTEMPT_FAILED', stateReason=diagnostics,
+                                timeEnd=time())
+            trace_report.send()
             raise PilotException(diagnostics, code=fspec.status_code, state=state)
 
         fspec.status_code = 0
         fspec.status = 'transferred'
+        trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
+        trace_report.send()
 
     return files
 

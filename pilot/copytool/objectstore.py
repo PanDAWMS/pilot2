@@ -103,6 +103,7 @@ def copy_in(files, **kwargs):
     trace_report = kwargs.get('trace_report')
 
     for fspec in files:
+
         cmd = []
         logger.info("To transfer file: %s" % fspec)
         ddm = ddmconf.get(fspec.ddmendpoint)

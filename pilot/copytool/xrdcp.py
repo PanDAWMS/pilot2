@@ -12,6 +12,7 @@
 
 import os
 import logging
+from time import time
 
 from .common import resolve_common_transfer_errors
 from pilot.util.container import execute
@@ -139,12 +140,23 @@ def copy_in(files, **kwargs):
     coption = _resolve_checksum_option(setup, **kwargs)
     trace_report = kwargs.get('trace_report')
 
+    localsite = os.environ.get('DQ2_LOCAL_SITE_ID', None)
     for fspec in files:
+        # update the trace report
+        localsite = localsite if localsite else fspec.ddmendpoint
+        trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
+        trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
+        trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
+
         # continue loop for files that are to be accessed directly
         if fspec.is_directaccess(ensure_replica=False) and allow_direct_access:
             fspec.status_code = 0
             fspec.status = 'remote_io'
+            trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
+            trace_report.send()
             continue
+
+        trace_report.update(catStart=time())
 
         dst = fspec.workdir or kwargs.get('workdir') or '.'
         destination = os.path.join(dst, fspec.lfn)
@@ -155,7 +167,14 @@ def copy_in(files, **kwargs):
         except Exception as error:
             fspec.status = 'failed'
             fspec.status_code = error.get_error_code() if isinstance(error, PilotException) else ErrorCodes.STAGEINFAILED
-            raise
+            diagnostics = error.get_detail() if isinstance(error, PilotException) else "(consult log)"
+            state = 'STAGEIN_ATTEMPT_FAILED'
+            trace_report.update(clientState=state, stateReason=diagnostics, timeEnd=time())
+            trace_report.send()
+            raise PilotException(diagnostics, code=fspec.status_code, state=state)
+
+        trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
+        trace_report.send()
 
     return files
 
