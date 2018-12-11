@@ -116,7 +116,7 @@ def _validate_job(job):
     return status
 
 
-def send_state(job, args, state, xml=None):
+def send_state(job, args, state, xml=None, metadata=None):
     """
     Update the server (send heartbeat message).
     Interpret and handle any server instructions arriving with the updateJob backchannel.
@@ -141,7 +141,7 @@ def send_state(job, args, state, xml=None):
         log.info('job %s has state \'%s\' - sending heartbeat' % (job.jobid, state))
 
     # build the data structure needed for getJob, updateJob
-    data = get_data_structure(job, state, args, xml=xml)
+    data = get_data_structure(job, state, args, xml=xml, metadata=metadata)
 
     try:
         if args.url != '' and args.port != 0:
@@ -189,7 +189,7 @@ def send_state(job, args, state, xml=None):
     return False
 
 
-def get_data_structure(job, state, args, xml=None):
+def get_data_structure(job, state, args, xml=None, metadata=None):
     """
     Build the data structure needed for getJob, updateJob.
 
@@ -259,6 +259,8 @@ def get_data_structure(job, state, args, xml=None):
 
     if xml is not None:
         data['xml'] = xml
+    if metadata is not None:
+        data['metaData'] = metadata
 
     # in debug mode, also send a tail of the latest log file touched by the payload
     if job.debug:
@@ -1231,19 +1233,15 @@ def queue_monitor(queues, traces, args):
             # send final server update
             path = os.path.join(job.workdir, config.Payload.jobreport)
             if os.path.exists(path):
-                js = read_json(path)
-                if not js:
-                    log.debug('xml:will not send jobReport')
-                    send_state(job, args, job.state)
-                else:
-                    log.debug('xml:will send jobReport')
-                    send_state(job, args, job.state, xml=js)
-            elif job.fileinfo:
+                metadata = read_json(path)
+            else:
+                metadata = None
+            if job.fileinfo:
                 log.debug('xml:will send fileinfo')
-                send_state(job, args, job.state, xml=dumps(job.fileinfo))
+                send_state(job, args, job.state, xml=dumps(job.fileinfo), metadata=metadata)
             else:
                 log.debug('will not send fileinfo')
-                send_state(job, args, job.state)
+                send_state(job, args, job.state, metadata=metadata)
 
             # we can now stop monitoring this job, so remove it from the monitored_payloads queue and add it to the
             # completed_jobs queue which will tell retrieve() that it can download another job
