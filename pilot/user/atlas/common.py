@@ -992,7 +992,8 @@ def get_redundants():
                 "runGen-*",
                 "runAthena-*",
                 "/pandawnutil/*",
-                "/src/*"]
+                "/src/*",
+                "singularity_cachedir"]
 
     return dir_list
 
