@@ -13,6 +13,7 @@ from pilot.api import data
 from pilot.info import FileSpec
 
 client = data.StageInClient()
-files = [{'scope':'mc16_13TeV', 'lfn': 'EVNT.11320990._003958.pool.root.1', 'workdir': '.', 'ddmendpoint':'RRC-KI-T1_DATADISK'}]
+files = [{'scope': 'mc16_13TeV', 'lfn': 'EVNT.11320990._003958.pool.root.1', 'workdir': '.',
+          'ddmendpoint': 'RRC-KI-T1_DATADISK'}]
 xfiles = [FileSpec(type='input', **f) for f in files]
 r = client.transfer(xfiles)
