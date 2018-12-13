@@ -32,7 +32,7 @@ from pilot.util.config import config
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED
-from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_json
+from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file  #, read_json
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file
 from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
@@ -125,6 +125,7 @@ def send_state(job, args, state, xml=None, metadata=None):
     :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :param state: job state (string).
     :param xml: optional metadata xml (string).
+    :param metadata: job report metadata read as a string.
     :return: boolean (True if successful, False otherwise).
     """
 
@@ -197,6 +198,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     :param state: state of the job (string).
     :param args:
     :param xml: optional XML string.
+    :param metadata: job report metadata read as a string.
     :return: data structure (dictionary).
     """
 
@@ -1233,7 +1235,7 @@ def queue_monitor(queues, traces, args):
             # send final server update
             path = os.path.join(job.workdir, config.Payload.jobreport)
             if os.path.exists(path):
-                metadata = read_json(path)
+                metadata = read_file(path)  #read_json(path)
             else:
                 metadata = None
             if job.fileinfo:
