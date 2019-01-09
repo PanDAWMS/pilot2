@@ -32,7 +32,7 @@ from pilot.util.config import config
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED
-from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file  #, read_json
+from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file
 from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
@@ -133,16 +133,27 @@ def send_state(job, args, state, xml=None, metadata=None):
 
     # should the pilot make any server updates?
     if not args.update_server:
-        log.info('pilot will not update the server')
-        return True
+        log.info('pilot will not update the server (heartbeat message will be written to file)')
+        tag = 'writing'
+    else:
+        tag = 'sending'
 
     if state == 'finished' or state == 'failed':
-        log.info('job %s has %s - sending final server update' % (job.jobid, state))
+        log.info('job %s has %s - %s final server update' % (job.jobid, state, tag))
     else:
-        log.info('job %s has state \'%s\' - sending heartbeat' % (job.jobid, state))
+        log.info('job %s has state \'%s\' - %s heartbeat' % (job.jobid, state, tag))
 
     # build the data structure needed for getJob, updateJob
     data = get_data_structure(job, state, args, xml=xml, metadata=metadata)
+
+    # write the heartbeat message to file if the server is not to be updated by the pilot (Nordugrid mode)
+    if not args.update_server:
+        # store the file one level above the job workdir, in the pilot workdir
+        filename = os.path.join(os.path.dirname(job.workdir), config.Pilot.heartbeat_message)
+        if write_json(filename, data):
+            return True
+        else:
+            return False
 
     try:
         if args.url != '' and args.port != 0:
