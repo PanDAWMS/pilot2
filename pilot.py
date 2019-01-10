@@ -247,7 +247,7 @@ def get_args():
 
     arg_parser.add_argument('-z',
                             dest='update_server',
-                            action='store_true',
+                            action='store_false',
                             default=True,
                             help='Disable server updates')
 
