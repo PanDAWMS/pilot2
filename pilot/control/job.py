@@ -148,9 +148,10 @@ def send_state(job, args, state, xml=None, metadata=None):
 
     # write the heartbeat message to file if the server is not to be updated by the pilot (Nordugrid mode)
     if not args.update_server:
-        # store the file one level above the job workdir, in the pilot workdir
-        filename = os.path.join(os.path.dirname(job.workdir), config.Pilot.heartbeat_message)
-        if write_json(filename, data):
+        # store the file in the main workdir
+        path = os.path.join(os.environ.get('PILOT_HOME'), config.Pilot.heartbeat_message)
+        if write_json(path, data):
+            log.debug('wrote heartbeat to file %s' % path)
             return True
         else:
             return False
