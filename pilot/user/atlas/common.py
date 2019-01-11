@@ -993,7 +993,9 @@ def get_redundants():
                 "runAthena-*",
                 "/pandawnutil/*",
                 "/src/*",
-                "singularity_cachedir"]
+                "singularity_cachedir",
+                "_joproxy15",
+                "HAHM_*"]
 
     return dir_list
 
