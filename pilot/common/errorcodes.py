@@ -105,6 +105,7 @@ class ErrorCodes:
     RUCIOLISTREPLICASFAILED = 1322
     UNKNOWNCOPYTOOL = 1323
     SERVICENOTAVAILABLE = 1324
+    SINGULARITYNOTINSTALLED = 1325
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -174,6 +175,7 @@ class ErrorCodes:
         SINGULARITYNOLOOPDEVICES: "Singularity: No more available loop devices",
         SINGULARITYBINDPOINTFAILURE: "Singularity: Not mounting requested bind point",
         SINGULARITYIMAGEMOUNTFAILURE: "Singularity: Failed to mount image",
+        SINGULARITYNOTINSTALLED: "Singularity: not installed",
         PAYLOADEXECUTIONEXCEPTION: "Exception caught during payload execution",
         NOTDEFINED: "Not defined",
         NOTSAMELENGTH: "Not same length",
@@ -279,6 +281,8 @@ class ErrorCodes:
             ec = self.SINGULARITYIMAGEMOUNTFAILURE
         elif exit_code == 255 and "Operation not permitted" in stderr:
             ec = self.SINGULARITYGENERALFAILURE
+        elif exit_code == 64 and "Singularity is not installed" in stderr:
+            ec = self.SINGULARITYNOTINSTALLED
         elif exit_code == -1:
             ec = self.UNKNOWNTRFFAILURE
         else:
