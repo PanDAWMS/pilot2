@@ -49,7 +49,7 @@ def _resolve_checksum_option(setup, **kwargs):
 
     cmd = "%s --version" % copy_command
     if setup:
-        cmd = "%s; %s" % (setup, cmd)
+        cmd = "source %s; %s" % (setup, cmd)
 
     logger.info("Execute command (%s) to check xrdcp client version" % cmd)
 
