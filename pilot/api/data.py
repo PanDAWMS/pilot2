@@ -665,7 +665,7 @@ class StageOutClient(StagingClient):
             raise PilotException('Failed to resolve ddmendpoint by name=%s' % fspec.ddmendpoint)
 
         path = protocol.get('path', '').rstrip('/')
-        if not (ddm.is_deterministic or (path and path.endswith('/rucio')))
+        if not (ddm.is_deterministic or (path and path.endswith('/rucio'))):
             raise PilotException('resolve_surl(): Failed to construct SURL for non deterministic ddm=%s: NOT IMPLEMENTED', fspec.ddmendpoint)
 
         surl = protocol.get('endpoint', '') + os.path.join(protocol.get('path', ''), self.get_path(fspec.scope, fspec.lfn))
