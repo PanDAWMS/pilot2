@@ -19,7 +19,7 @@ import time
 
 from pilot.info import infosys
 from pilot.info.storageactivitymaps import get_ddm_activity
-from pilot.common.exception import PilotException, ErrorCodes, SizeTooLarge, NoLocalSpace
+from pilot.common.exception import PilotException, ErrorCodes, SizeTooLarge, NoLocalSpace, ReplicasNotFound
 from pilot.util.filehandling import calculate_checksum
 from pilot.util.math import convert_mb_to_b
 from pilot.util.parameters import get_maximum_input_sizes
@@ -375,6 +375,7 @@ class StageInClient(StagingClient):
         """
 
         if not fspec.replicas:
+            self.logger.warning('resolve_replicas() recevied no fspec.replicas')
             return
 
         allowed_schemas = allowed_schemas or [None]
@@ -493,6 +494,8 @@ class StageInClient(StagingClient):
                 ## prepare schemas which will be used to look up first the replicas allowed for direct access mode
                 primary_schemas = self.direct_localinput_allowed_schemas if fspec.accessmode == 'direct' else None
                 r = resolve_replica(fspec, primary_schemas, allowed_schemas)
+                if not r:
+                    raise ReplicasNotFound('resolve_replica() returned no replicas')
 
                 if r.get('pfn'):
                     fspec.turl = r['pfn']
