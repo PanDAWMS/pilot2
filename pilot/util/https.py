@@ -179,7 +179,17 @@ def request(url, data=None, plain=False):
             logger.warn('request failed (%s): %s' % (status, output))
             return None
 
-        return output if plain else json.loads(output)
+        if plain:
+            return output
+        else:
+            try:
+                ret = json.loads(output)
+            except Exception as e:
+                logger.warning('json.loads() failed to parse output=%s: %s' % (output, e))
+                return None
+            else:
+                return ret
+        # return output if plain else json.loads(output)
     else:
         req = urllib2.Request(url, urllib.urlencode(data))
         if not plain:
