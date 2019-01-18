@@ -1234,7 +1234,14 @@ def queue_monitor(queues, traces, args):
             pause_queue_monitor(20)
 
         # check if the job has finished
-        job = check_job(args, queues)
+        imax = 3
+        i = 0
+        while i < imax:
+            job = check_job(args, queues)
+            if job:
+                break
+            i += 1
+            pause_queue_monitor(10)
 
         # job has not been defined if it's still running
         if job:
@@ -1285,8 +1292,7 @@ def pause_queue_monitor(delay):
     :return:
     """
 
-    logger.warning('since job:queue_monitor is responsible for sending job updates, we sleep until log has been'
-                   ' transferred (or a maximum of %d s)' % delay)
+    logger.warning('since job:queue_monitor is responsible for sending job updates, we sleep for %d s' % delay)
     time.sleep(delay)
 
 
@@ -1301,15 +1307,22 @@ def check_job(args, queues):
     """
 
     job = has_job_finished(queues)
-    if not job:
+    if job:
+        logger.info('check_job: job has finished')
+    else:
+        logger.info('check_job: job has not finished')
         job = has_job_failed(queues)
+        if job:
+            logger.info('check_job: job has failed')
 
-        # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
-        log_transfer = get_job_status(job, 'LOG_TRANSFER')
+            # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
+            log_transfer = get_job_status(job, 'LOG_TRANSFER')
 
-        if job and log_transfer == LOG_TRANSFER_NOT_DONE:
-            # order a log transfer for a failed job
-            order_log_transfer(args, queues, job)
+            if log_transfer == LOG_TRANSFER_NOT_DONE:
+                # order a log transfer for a failed job
+                order_log_transfer(args, queues, job)
+        else:
+            logger.warning('job has neither finished nor finished?')
 
     # check if the job has failed
     if job and job.state == 'failed':
