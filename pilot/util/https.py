@@ -174,20 +174,29 @@ def request(url, data=None, plain=False):
                                "-H " + pipes.quote('Accept: application/json') if not plain else '',
                                pipes.quote(url + '?' + urllib.urlencode(data) if data else ''))
         logger.info('request: %s' % req)
-        status, output = commands.getstatusoutput(req)
+        try:
+            status, output = commands.getstatusoutput(req)
+        except Exception as e:
+            logger.warning('exception: %s' % e)
+        else:
+            logger.debug('request ok')
         if status != 0:
             logger.warn('request failed (%s): %s' % (status, output))
             return None
 
+        logger.debug('request ok2')
         if plain:
+            logger.debug('request ok3')
             return output
         else:
+            logger.debug('request ok3')
             try:
                 ret = json.loads(output)
             except Exception as e:
                 logger.warning('json.loads() failed to parse output=%s: %s' % (output, e))
                 return None
             else:
+                logger.debug('request ok4')
                 return ret
         # return output if plain else json.loads(output)
     else:
