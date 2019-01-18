@@ -33,11 +33,11 @@ def get_job(harvesterpath):
     """
     rank = 0
     job = None
-    logger.info("Going to read job defenition from file")
+    logger.info("Going to read job definition from file")
 
     pandaids_list_filename = os.path.join(harvesterpath, config.Harvester.jobs_list_file)
     if not os.path.isfile(pandaids_list_filename):
-        logger.info("File with PanDA IDs is missed. Nothing to execute.")
+        logger.info("File with PanDA IDs are missing. Nothing to execute.")
         return job, rank
     harvesterpath = os.path.abspath(harvesterpath)
     rank, max_ranks = get_ranks_info()
@@ -131,7 +131,7 @@ def set_scratch_workdir(job, work_dir, args):
     if os.path.exists(scratch_path):
         try:
             add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN, time.time(), args)
-            logger.debug("Prepare 'tmp' dir in scratch ")
+            logger.debug("Prepare \'tmp\' dir in scratch ")
             if not os.path.exists(scratch_path + tmp_path):
                 os.makedirs(scratch_path + tmp_path)
             logger.debug("Prepare dst and copy sqlite db files")
@@ -141,14 +141,14 @@ def set_scratch_workdir(job, work_dir, args):
             shutil.copyfile(src_file, scratch_path + dst_db_path + dst_db_filename)
             logger.debug("")
             sql_cp_time = time.time() - t0
-            logger.debug("Copy of squlite files took: {0}".format(sql_cp_time))
-            logger.debug("Prepare dst and copy geomDB  files")
+            logger.debug("Copy of sqlite files took: {0}".format(sql_cp_time))
+            logger.debug("Prepare dst and copy geomDB files")
             t0 = time.time()
             if not os.path.exists(scratch_path + dst_db_path_2):
                 os.makedirs(scratch_path + dst_db_path_2)
             shutil.copyfile(src_file_2, scratch_path + dst_db_path_2 + dst_db_filename_2)
             geomdb_cp_time = time.time() - t0
-            logger.debug("Copy of geomDB files took: {0}".format(geomdb_cp_time))
+            logger.debug("Copy of geomDB files took: {0} s".format(geomdb_cp_time))
             logger.debug("Prepare job scratch dir")
             t0 = time.time()
             if not os.path.exists(job_scratch_dir):
@@ -160,15 +160,15 @@ def set_scratch_workdir(job, work_dir, args):
                 shutil.copyfile(os.path.join(work_dir, inp_file),
                                 os.path.join(job.input_files[inp_file]["scratch_path"], inp_file))
             input_cp_time = time.time() - t0
-            logger.debug("Copy of input files took: {0}".format(input_cp_time))
+            logger.debug("Copy of input files took: {0} s".format(input_cp_time))
         except IOError as e:
             logger.error("I/O error({0}): {1}".format(e.errno, e.strerror))
-            logger.error("Copy to scratch failed, execution terminated':  \n %s " % (sys.exc_info()[1]))
+            logger.error("Copy to scratch failed, execution terminated': \n %s " % (sys.exc_info()[1]))
             raise FileHandlingFailure("Copy to RAM disk failed")
         finally:
             add_to_pilot_timing(job.jobid, PILOT_POST_STAGEIN, time.time(), args)
     else:
-        logger.info('Scratch directory (%s) dose not exist' % scratch_path)
+        logger.info('Scratch directory (%s) dos not exist' % scratch_path)
         return work_dir
 
     os.chdir(job_scratch_dir)
