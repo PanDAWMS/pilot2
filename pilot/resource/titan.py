@@ -28,8 +28,8 @@ logger = logging.getLogger(__name__)
 
 def get_job(harvesterpath):
     """
-    Return job description in dictonary and MPI rank (if aplicable)
-    :return: job - dictonary with job description, rank
+    Return job description in dictionary and MPI rank (if applicable)
+    :return: job - dictionary with job description, rank
     """
     rank = 0
     job = None
@@ -90,10 +90,10 @@ def get_setup(job=None):
 
 def set_job_workdir(job, path):
     """
-    Point pilot to job working directory (job id)
+    Point pilot to job working directory (job id).
 
     :param job: job object
-    :param path: local path to harvester acceess point
+    :param path: local path to harvester access point
     :return: job working directory
     """
     work_dir = os.path.join(path, str(job.jobid))
@@ -104,11 +104,11 @@ def set_job_workdir(job, path):
 
 def set_scratch_workdir(job, work_dir, args):
     """
-    Copy input files and some db files to RAM disk
+    Copy input files and some db files to RAM disk.
 
     :param job: job object
     :param work_dir: job working directory (permanent FS)
-    :param args:  args dictionary to collect timing metrics
+    :param args: args dictionary to collect timing metrics
     :return: job working directory in scratch
     """
 
@@ -184,7 +184,8 @@ def set_scratch_workdir(job, work_dir, args):
 
 def process_jobreport(payload_report_file, job_scratch_path, job_communication_point):
     """
-    Copy job report file to be aaccesible by Harvester. Shrink job report file
+    Copy job report file to make it accessible by Harvester. Shrink job report file.
+
     :param payload_report_file:
     :param job_scratch_path:
     :param job_communication_point:
@@ -211,7 +212,7 @@ def process_jobreport(payload_report_file, job_scratch_path, job_communication_p
 
 def postprocess_workdir(workdir):
     """
-    Postprocesing of working directory. Unlink pathes
+    Post-processing of working directory. Unlink paths.
 
     :param workdir: path to directory to be processed
     """
@@ -225,7 +226,7 @@ def postprocess_workdir(workdir):
 
 def command_fix(command, job_scratch_dir):
     """
-    Modifing of payload parameters, to be executed on Titan on RAM disk. Clenup of some
+    Modification of payload parameters, to be executed on Titan on RAM disk. Some cleanup.
 
     :param command:
     :param job_scratch_dir:
