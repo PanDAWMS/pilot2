@@ -96,7 +96,7 @@ def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, *
 
     cmd = '%s -np -f %s %s %s' % (copy_command, coption, source, destination)
     if setup:
-        cmd = "%s; %s" % (setup, cmd)
+        cmd = "source %s; %s" % (setup, cmd)
 
     #timeout = get_timeout(filesize)
     #logger.info("Executing command: %s, timeout=%s" % (cmd, timeout))
