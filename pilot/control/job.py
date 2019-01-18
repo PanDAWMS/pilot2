@@ -195,7 +195,7 @@ def send_state(job, args, state, xml=None, metadata=None):
             log.info('skipping job update for fake test job')
             return True
     except Exception as e:
-        log.warning('while setting job state, Exception caught: %s' % str(e.message))
+        log.warning('while setting job state, Exception caught: %s' % e)
         pass
 
     log.warning('set job state=%s failed' % state)

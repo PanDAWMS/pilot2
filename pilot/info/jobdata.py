@@ -515,7 +515,7 @@ class JobData(BaseData):
         try:
             args = shlex.split(data)
         except ValueError as e:
-            logger.error('Failed to parse input arguments from data=%s, error=%s .. skipped.' % (data, e.message))
+            logger.error('Failed to parse input arguments from data=%s, error=%s .. skipped.' % (data, e))
             return {}, data
 
         opts, curopt, pargs = {}, None, []

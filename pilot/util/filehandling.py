@@ -267,7 +267,7 @@ def read_json(filename):
                 try:
                     dictionary = convert(dictionary)
                 except Exception as e:
-                    raise ConversionFailure(e.message)
+                    raise ConversionFailure(e)
 
     return dictionary
 
