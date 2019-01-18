@@ -195,7 +195,8 @@ def send_state(job, args, state, xml=None, metadata=None):
             log.info('skipping job update for fake test job')
             return True
     except Exception as e:
-        log.warning('while setting job state, Exception caught: %s' % e)
+        log.warning('exception caught while sending https request: %s' % e)
+        log.warning('possibly offending data: %s' % data)
         pass
 
     log.warning('set job state=%s failed' % state)
@@ -259,7 +260,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
         if batchsystem_type:
             data['pilotID'] = "%s|%s|%s|%s" % \
                               (pilotid, batchsystem_type, args.version_tag, pilotversion)
-            data['batchID'] = batchsystem_id,
+            data['batchID'] = batchsystem_id
         else:
             data['pilotID'] = "%s|%s|%s" % (pilotid, args.version_tag, pilotversion)
 
