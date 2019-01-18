@@ -59,7 +59,7 @@ def _resolve_checksum_option(setup, **kwargs):
 
     cmd = "%s -h" % copy_command
     if setup:
-        cmd = "%s; %s" % (setup, cmd)
+        cmd = "source %s; %s" % (setup, cmd)
 
     logger.info("Execute command (%s) to decide which option should be used to calc/verify file checksum.." % cmd)
 
