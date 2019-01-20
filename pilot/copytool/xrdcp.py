@@ -12,9 +12,10 @@
 
 import os
 import logging
+import re
 from time import time
 
-from .common import resolve_common_transfer_errors
+from .common import resolve_common_transfer_errors, verify_catalog_checksum
 from pilot.util.container import execute
 from pilot.common.exception import PilotException, ErrorCodes
 
@@ -102,6 +103,7 @@ def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, *
     #logger.info("Executing command: %s, timeout=%s" % (cmd, timeout))
 
     rcode, stdout, stderr = execute(cmd, **kwargs)
+    logger.info('rcode=%d, stdout=%s, stderr=%s' % (rcode, stdout, stderr))
 
     if rcode:  ## error occurred
         error = resolve_common_transfer_errors(stdout + stderr, is_stagein=is_stagein)
@@ -114,8 +116,7 @@ def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, *
         raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
     # extract filesize and checksum values from output
-    #checksum, checksum_type = self.getRemoteFileChecksumFromOutput(output)
-    #return checksum, checksum_type
+    checksum, checksum_type = get_file_checksum_from_output(stdout)
 
     ## verify transfer by returned checksum or call remote checksum calculation
     ## to be moved at the base level
@@ -211,3 +212,32 @@ def copy_out(files, **kwargs):
             raise
 
     return files
+
+
+def get_file_checksum_from_output(output):
+    """
+    Extract checksum value from xrdcp --chksum command output
+
+    :return: (checksum, checksum_type) or (None, None) in case of failure
+    """
+
+    if not output:
+        return None, None
+
+    if not ("xrootd" in output or "XRootD" in output or "adler32" in output):
+        logger.warning("WARNING: Failed to extract checksum: Unexpected output: %s" % output)
+        return None, None
+
+    pattern = "(?P<type>md5|adler32): (?P<checksum>[a-zA-Z0-9]+)"
+    checksum, checksum_type = None, None
+
+    m = re.search(pattern, output)
+    if m:
+        checksum_type = m.group('type')
+        checksum = m.group('checksum')
+        checksum = checksum.zfill(8)  # make it at least 8 chars length (adler32 xrdcp fix)
+        #self.log("Copy command returned checksum: %s" % checksum)
+    else:
+        logger.warning("WARNING: Checksum info not found in output: failed to match pattern=%s in output=%s" % (pattern, output))
+
+    return checksum, checksum_type
