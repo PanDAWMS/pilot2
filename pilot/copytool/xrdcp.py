@@ -116,7 +116,8 @@ def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, *
         raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
     # extract filesize and checksum values from output
-    checksum, checksum_type = get_file_checksum_from_output(stdout)
+    if coption != "":
+        filesize_output, checksum_output, checksum_type = get_file_info_from_output(stdout)
 
     ## verify transfer by returned checksum or call remote checksum calculation
     ## to be moved at the base level
@@ -214,11 +215,11 @@ def copy_out(files, **kwargs):
     return files
 
 
-def get_file_checksum_from_output(output):
+def get_file_info_from_output(output):
     """
-    Extract checksum value from xrdcp --chksum command output
+    Extract file size, checksum value from xrdcp --chksum command output
 
-    :return: (checksum, checksum_type) or (None, None) in case of failure
+    :return: (filesize [int/None], checksum, checksum_type) or (None, None, None) in case of failure
     """
 
     if not output:
@@ -228,16 +229,22 @@ def get_file_checksum_from_output(output):
         logger.warning("WARNING: Failed to extract checksum: Unexpected output: %s" % output)
         return None, None
 
-    pattern = "(?P<type>md5|adler32): (?P<checksum>[a-zA-Z0-9]+)"
-    checksum, checksum_type = None, None
+    pattern = "(?P<type>md5|adler32):\ (?P<checksum>[a-zA-Z0-9]+)\ \S+\ (?P<filesize>[0-9]+)"
+    filesize, checksum, checksum_type = None, None, None
 
     m = re.search(pattern, output)
     if m:
         checksum_type = m.group('type')
         checksum = m.group('checksum')
-        checksum = checksum.zfill(8)  # make it at least 8 chars length (adler32 xrdcp fix)
-        #self.log("Copy command returned checksum: %s" % checksum)
+        checksum = checksum.zfill(8)  # make it 8 chars length (adler32 xrdcp fix)
+        filesize = m.group('filesize')
+        if filesize:
+            try:
+                filesize = int(filesize)
+            except ValueError as e:
+                logger.warning('failed to convert filesize to int: %s' % e)
+                filesize = None
     else:
-        logger.warning("WARNING: Checksum info not found in output: failed to match pattern=%s in output=%s" % (pattern, output))
+        logger.warning("WARNING: Checksum/file size info not found in output: failed to match pattern=%s in output=%s" % (pattern, output))
 
-    return checksum, checksum_type
+    return filesize, checksum, checksum_type
