@@ -170,7 +170,7 @@ def request(url, data=None, plain=False):
     strdata = ""
     for key in data:
         strdata += 'data="%s"\n' % urllib.urlencode({key: data[key]})
-    jobId = ''
+    jobid = ''
     if 'jobId' in data.keys():
         jobid = '_%s' % data['jobId']
     # write data to temporary config file
