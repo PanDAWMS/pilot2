@@ -107,6 +107,7 @@ class ErrorCodes:
     SERVICENOTAVAILABLE = 1324
     SINGULARITYNOTINSTALLED = 1325
     NOREPLICAS = 1326
+    UNREACHABLENETWORK = 1327
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -193,6 +194,7 @@ class ErrorCodes:
         UNKNOWNCOPYTOOL: "Unknown copy tool",
         SERVICENOTAVAILABLE: "Service not available at the moment",
         NOREPLICAS: "No matching replicas were found in list_replicas() output",
+        UNREACHABLENETWORK: "Unable to stage-in file since network is unreachable"
     }
 
     def get_kill_signal_error_code(self, signal):

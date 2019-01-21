@@ -158,6 +158,10 @@ def resolve_common_transfer_errors(output, is_stagein=True):
         ret['rcode'] = ErrorCodes.SERVICENOTAVAILABLE
         ret['state'] = 'SERVICE_ERROR'
         ret['error'] = output
+    elif "Network is unreachable" in output:
+        ret['rcode'] = ErrorCodes.UNREACHABLENETWORK
+        ret['state'] = 'NETWORK_UNREACHABLE'
+        ret['error'] = output
     else:
         for line in output.split('\n'):
             m = re.search("Details\s*:\s*(?P<error>.*)", line)
