@@ -20,6 +20,8 @@ import urllib
 import urllib2
 import pipes
 
+from .filehandling import write_file
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -165,14 +167,30 @@ def request(url, data=None, plain=False):
 
     logger.debug('server update dictionary = \n%s' % str(data))
 
+    strdata = ""
+    for key in data:
+        strdata += 'data="%s"\n' % urllib.urlencode({key: data[key]})
+    jobId = ''
+    if 'jobId' in data.keys():
+        jobid = '_%s' % data['jobId']
+    # write data to temporary config file
+    tmpname = '%s/curl_%s%s.config' % (os.getenv('PILOT_HOME'), os.path.basename(url), jobid)
+    s = write_file(tmpname, strdata)
+    if not s:
+        logger.warning('failed to create curl config file (will attempt to urlencode data directly)')
+        dat = pipes.quote(url + '?' + urllib.urlencode(data) if data else '')
+    else:
+        dat = '--config %s' % tmpname
+
     if _ctx.ssl_context is None:
         req = 'curl -sS --compressed --connect-timeout %s --max-time %s '\
               '--capath %s --cert %s --cacert %s --key %s '\
               '-H %s %s %s' % (100, 120,
-                               pipes.quote(_ctx.capath or ''), pipes.quote(_ctx.cacert or ''), pipes.quote(_ctx.cacert or ''), pipes.quote(_ctx.cacert or ''),
+                               pipes.quote(_ctx.capath or ''), pipes.quote(_ctx.cacert or ''),
+                               pipes.quote(_ctx.cacert or ''), pipes.quote(_ctx.cacert or ''),
                                pipes.quote('User-Agent: %s' % _ctx.user_agent),
                                "-H " + pipes.quote('Accept: application/json') if not plain else '',
-                               pipes.quote(url + '?' + urllib.urlencode(data) if data else ''))
+                               dat)
         logger.info('request: %s' % req)
         try:
             status, output = commands.getstatusoutput(req)
