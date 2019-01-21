@@ -202,7 +202,7 @@ def copy_out(files, **kwargs):
             fspec.status = 'transferred'
             trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
             trace_report.send()
-        except Exception as error:
+        except PilotException as error:
             fspec.status = 'failed'
             fspec.status_code = error.get_error_code() if isinstance(error, PilotException) else ErrorCodes.STAGEOUTFAILED
             trace_report.update(clientState=error.get('state', None) or 'STAGEOUT_ATTEMPT_FAILED',
