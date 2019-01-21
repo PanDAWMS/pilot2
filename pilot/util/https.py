@@ -180,7 +180,7 @@ def request(url, data=None, plain=False):
         logger.warning('failed to create curl config file (will attempt to urlencode data directly)')
         dat = pipes.quote(url + '?' + urllib.urlencode(data) if data else '')
     else:
-        dat = '--config %s' % tmpname
+        dat = '--config %s %s' % (tmpname, url)
 
     if _ctx.ssl_context is None:
         req = 'curl -sS --compressed --connect-timeout %s --max-time %s '\
