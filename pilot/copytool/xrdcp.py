@@ -117,7 +117,7 @@ def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, *
 
     # extract filesize and checksum values from output
     if coption != "":
-        filesize_output, checksum_output, checksum_type = get_file_info_from_output(stdout)
+        filesize_output, checksum_output, checksum_type = get_file_info_from_output(stdout + stderr)
 
     ## verify transfer by returned checksum or call remote checksum calculation
     ## to be moved at the base level
@@ -223,11 +223,11 @@ def get_file_info_from_output(output):
     """
 
     if not output:
-        return None, None
+        return None, None, None
 
     if not ("xrootd" in output or "XRootD" in output or "adler32" in output):
         logger.warning("WARNING: Failed to extract checksum: Unexpected output: %s" % output)
-        return None, None
+        return None, None, None
 
     pattern = "(?P<type>md5|adler32):\ (?P<checksum>[a-zA-Z0-9]+)\ \S+\ (?P<filesize>[0-9]+)"
     filesize, checksum, checksum_type = None, None, None
