@@ -41,10 +41,10 @@ def verify_catalog_checksum(fspec, path):
         state = 'UNKNOWN_CHECKSUM_TYPE'
     else:
         checksum_local = calculate_checksum(path, algorithm=checksum_type)
-        logger.info('checksum(catalog)=%s (type: %s)' % (checksum_catalog, checksum_type))
-        logger.info('checksum(local)=%s' % checksum_local)
+        logger.info('checksum (catalog): %s (type: %s)' % (checksum_catalog, checksum_type))
+        logger.info('checksum (local): %s' % checksum_local)
         if checksum_local and checksum_local != '' and checksum_local != checksum_catalog:
-            diagnostics = 'checksum verification failed: checksum(catalog)=%s != checsum(local)=%s' % \
+            diagnostics = 'checksum verification failed: checksum (catalog)=%s != checksum (local)=%s' % \
                           (checksum_catalog, checksum_local)
             logger.warning(diagnostics)
             fspec.status_code = ErrorCodes.GETADMISMATCH if checksum_type == 'ad32' else ErrorCodes.GETMD5MISMATCH

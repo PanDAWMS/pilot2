@@ -15,7 +15,7 @@ import logging
 import re
 from time import time
 
-from .common import resolve_common_transfer_errors, verify_catalog_checksum
+from .common import resolve_common_transfer_errors, verify_catalog_checksum, get_checksum_value, get_checksum_type
 from pilot.util.container import execute
 from pilot.common.exception import PilotException, ErrorCodes
 
@@ -95,6 +95,8 @@ def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, *
         :raise: PilotException in case of controlled error
     """
 
+    filesize_cmd, checksum_cmd, checksum_type = None, None, None
+
     cmd = '%s -np -f %s %s %s' % (copy_command, coption, source, destination)
     if setup:
         cmd = "source %s; %s" % (setup, cmd)
@@ -117,7 +119,7 @@ def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, *
 
     # extract filesize and checksum values from output
     if coption != "":
-        filesize_output, checksum_output, checksum_type = get_file_info_from_output(stdout + stderr)
+        filesize_cmd, checksum_cmd, checksum_type = get_file_info_from_output(stdout + stderr)
 
     ## verify transfer by returned checksum or call remote checksum calculation
     ## to be moved at the base level
@@ -127,6 +129,8 @@ def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, *
     if not is_verified:
         rcode = ErrorCodes.GETADMISMATCH if is_stagein else ErrorCodes.PUTADMISMATCH
         raise PilotException("Copy command failed", code=rcode, state='AD_MISMATCH')
+
+    return filesize_cmd, checksum_cmd, checksum_type
 
 
 def copy_in(files, **kwargs):
@@ -163,7 +167,8 @@ def copy_in(files, **kwargs):
         dst = fspec.workdir or kwargs.get('workdir') or '.'
         destination = os.path.join(dst, fspec.lfn)
         try:
-            _stagefile(coption, fspec.turl, destination, fspec.filesize, is_stagein=True, setup=setup, **kwargs)
+            filesize_cmd, checksum_cmd, checksum_type = _stagefile(coption, fspec.turl, destination, fspec.filesize,
+                                                                   is_stagein=True, setup=setup, **kwargs)
             fspec.status_code = 0
             fspec.status = 'transferred'
         except Exception as error:
@@ -174,6 +179,15 @@ def copy_in(files, **kwargs):
             trace_report.update(clientState=state, stateReason=diagnostics, timeEnd=time())
             trace_report.send()
             raise PilotException(diagnostics, code=fspec.status_code, state=state)
+        else:
+            # compare checksums
+            fspec.checksum[checksum_type] = checksum_cmd  # remote checksum
+            state, diagnostics = verify_catalog_checksum(fspec, destination)
+            if diagnostics != "":
+                trace_report.update(clientState=state or 'STAGEIN_ATTEMPT_FAILED', stateReason=diagnostics,
+                                    timeEnd=time())
+                trace_report.send()
+                raise PilotException(diagnostics, code=fspec.status_code, state=state)
 
         trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
         trace_report.send()
@@ -198,7 +212,8 @@ def copy_out(files, **kwargs):
         trace_report.update(catStart=time(), filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
 
         try:
-            _stagefile(coption, fspec.surl, fspec.turl, fspec.filesize, is_stagein=False, setup=setup, **kwargs)
+            filesize_cmd, checksum_cmd, checksum_type = _stagefile(coption, fspec.surl, fspec.turl, fspec.filesize,
+                                                                   is_stagein=False, setup=setup, **kwargs)
             fspec.status_code = 0
             fspec.status = 'transferred'
             trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
@@ -211,6 +226,15 @@ def copy_out(files, **kwargs):
                                 timeEnd=time())
             trace_report.send()
             raise
+        else:
+            # compare checksums
+            fspec.checksum[checksum_type] = checksum_cmd  # remote checksum
+            state, diagnostics = verify_catalog_checksum(fspec, fspec.surl)
+            if diagnostics != "":
+                trace_report.update(clientState=state or 'STAGEIN_ATTEMPT_FAILED', stateReason=diagnostics,
+                                    timeEnd=time())
+                trace_report.send()
+                raise PilotException(diagnostics, code=fspec.status_code, state=state)
 
     return files
 
