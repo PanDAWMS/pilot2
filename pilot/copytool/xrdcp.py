@@ -171,10 +171,10 @@ def copy_in(files, **kwargs):
                                                                    is_stagein=True, setup=setup, **kwargs)
             fspec.status_code = 0
             fspec.status = 'transferred'
-        except Exception as error:
+        except PilotException as error:
             fspec.status = 'failed'
-            fspec.status_code = error.get_error_code() if isinstance(error, PilotException) else ErrorCodes.STAGEINFAILED
-            diagnostics = error.get_detail() if isinstance(error, PilotException) else "(consult log)"
+            fspec.status_code = error.get_error_code()
+            diagnostics = error.get_detail()
             state = 'STAGEIN_ATTEMPT_FAILED'
             trace_report.update(clientState=state, stateReason=diagnostics, timeEnd=time())
             trace_report.send()
@@ -220,12 +220,12 @@ def copy_out(files, **kwargs):
             trace_report.send()
         except PilotException as error:
             fspec.status = 'failed'
-            fspec.status_code = error.get_error_code() if isinstance(error, PilotException) else ErrorCodes.STAGEOUTFAILED
-            trace_report.update(clientState=error.get('state', None) or 'STAGEOUT_ATTEMPT_FAILED',
-                                stateReason=error.get('error', 'unknown error'),
-                                timeEnd=time())
+            fspec.status_code = error.get_error_code()
+            state = 'STAGEOUT_ATTEMPT_FAILED'
+            diagnostics = error.get_detail()
+            trace_report.update(clientState=state, stateReason=diagnostics, timeEnd=time())
             trace_report.send()
-            raise
+            raise PilotException(diagnostics, code=fspec.status_code, state=state)
         else:
             # compare checksums
             fspec.checksum[checksum_type] = checksum_cmd  # remote checksum
