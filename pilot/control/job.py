@@ -1331,8 +1331,6 @@ def check_job(args, queues):
             if log_transfer == LOG_TRANSFER_NOT_DONE:
                 # order a log transfer for a failed job
                 order_log_transfer(args, queues, job)
-        else:
-            logger.warning('job has neither finished nor finished?')
 
     # check if the job has failed
     if job and job.state == 'failed':

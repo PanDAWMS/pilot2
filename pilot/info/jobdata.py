@@ -713,6 +713,7 @@ class JobData(BaseData):
         Add a size measurement to the sizes field at the current time stamp.
         A size measurement is in Bytes.
 
+        :param size: size of object in Bytes (int).
         :return:
         """
 
