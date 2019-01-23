@@ -421,6 +421,9 @@ def set_environment_variables(args, mainworkdir):
     # set the pilot version
     environ['PILOT_VERSION'] = get_pilot_version()
 
+    # set the default wrap-up/finish instruction
+    environ['PILOT_WRAP_UP'] = 'NORMAL'
+
 
 def establish_logging(args):
     """

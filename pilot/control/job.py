@@ -559,6 +559,9 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     if getjob_requests > int(maximum_getjob_requests):
         logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' %
                        config.Pilot.maximum_getjob_requests)
+        # use singleton:
+        # instruct the pilot to wrap up quickly
+        os.environ['PILOT_WRAP_UP'] = 'QUICKLY'
         return False
 
     if timefloor == 0 and jobnumber > 0:
@@ -1240,14 +1243,14 @@ def queue_monitor(queues, traces, args):
         # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
         # (abort at the end of the loop)
         abort = should_abort(args, label='job:queue_monitor')
-        if abort:
+        if abort and os.environ.get('PILOT_WRAP_UP', '') == 'NORMAL':
             pause_queue_monitor(20)
 
         # check if the job has finished
         imax = 10
         i = 0
         job = None
-        while i < imax and abort:
+        while i < imax and abort and os.environ.get('PILOT_WRAP_UP', '') == 'NORMAL':
             job = check_job(args, queues)
             if job:
                 break
