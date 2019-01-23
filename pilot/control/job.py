@@ -1246,6 +1246,7 @@ def queue_monitor(queues, traces, args):
         # check if the job has finished
         imax = 10
         i = 0
+        job = None
         while i < imax and abort:
             job = check_job(args, queues)
             if job:
