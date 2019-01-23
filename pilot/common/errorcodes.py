@@ -108,6 +108,7 @@ class ErrorCodes:
     SINGULARITYNOTINSTALLED = 1325
     NOREPLICAS = 1326
     UNREACHABLENETWORK = 1327
+    PAYLOADSIGSEGV = 1328
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -194,7 +195,8 @@ class ErrorCodes:
         UNKNOWNCOPYTOOL: "Unknown copy tool",
         SERVICENOTAVAILABLE: "Service not available at the moment",
         NOREPLICAS: "No matching replicas were found in list_replicas() output",
-        UNREACHABLENETWORK: "Unable to stage-in file since network is unreachable"
+        UNREACHABLENETWORK: "Unable to stage-in file since network is unreachable",
+        PAYLOADSIGSEGV: "SIGSEGV: Invalid memory reference or a segmentation fault"
     }
 
     def get_kill_signal_error_code(self, signal):
