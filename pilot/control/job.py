@@ -1244,14 +1244,14 @@ def queue_monitor(queues, traces, args):
             pause_queue_monitor(20)
 
         # check if the job has finished
-        imax = 3
+        imax = 10
         i = 0
-        while i < imax:
+        while i < imax and abort:
             job = check_job(args, queues)
             if job:
                 break
             i += 1
-            pause_queue_monitor(10)
+            pause_queue_monitor(60)
 
         # job has not been defined if it's still running
         if job:
