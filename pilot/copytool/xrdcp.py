@@ -15,7 +15,7 @@ import logging
 import re
 from time import time
 
-from .common import resolve_common_transfer_errors, verify_catalog_checksum, get_checksum_value, get_checksum_type
+from .common import resolve_common_transfer_errors, verify_catalog_checksum
 from pilot.util.container import execute
 from pilot.common.exception import PilotException, ErrorCodes
 
