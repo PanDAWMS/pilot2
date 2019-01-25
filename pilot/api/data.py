@@ -670,7 +670,8 @@ class StageOutClient(StagingClient):
         # path = protocol.get('path', '').rstrip('/')
         # if not (ddm.is_deterministic or (path and path.endswith('/rucio'))):
         if not ddm.is_deterministic:
-            raise PilotException('resolve_surl(): Failed to construct SURL for non deterministic ddm=%s: NOT IMPLEMENTED', fspec.ddmendpoint)
+            raise PilotException('resolve_surl(): Failed to construct SURL for non deterministic ddm=%s: '
+                                 'NOT IMPLEMENTED' % fspec.ddmendpoint, code=ErrorCodes.NONDETERMINISTICDDM)
 
         surl = protocol.get('endpoint', '') + os.path.join(protocol.get('path', ''), self.get_path(fspec.scope, fspec.lfn))
         return {'surl': surl}

@@ -109,6 +109,7 @@ class ErrorCodes:
     NOREPLICAS = 1326
     UNREACHABLENETWORK = 1327
     PAYLOADSIGSEGV = 1328
+    NONDETERMINISTICDDM = 1329
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -196,7 +197,8 @@ class ErrorCodes:
         SERVICENOTAVAILABLE: "Service not available at the moment",
         NOREPLICAS: "No matching replicas were found in list_replicas() output",
         UNREACHABLENETWORK: "Unable to stage-in file since network is unreachable",
-        PAYLOADSIGSEGV: "SIGSEGV: Invalid memory reference or a segmentation fault"
+        PAYLOADSIGSEGV: "SIGSEGV: Invalid memory reference or a segmentation fault",
+        NONDETERMINISTICDDM: "Failed to construct SURL for non-deterministic ddm (update AGIS)"
     }
 
     def get_kill_signal_error_code(self, signal):
