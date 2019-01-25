@@ -29,8 +29,11 @@ logger = logging.getLogger(__name__)
 def get_job(harvesterpath):
     """
     Return job description in dictionary and MPI rank (if applicable)
-    :return: job - dictionary with job description, rank
+
+    :param harvesterpath: path to config.Harvester.jobs_list_file (string).
+    :return: job object, rank (int).
     """
+
     rank = 0
     job = None
     logger.info("Going to read job definition from file")
@@ -39,8 +42,10 @@ def get_job(harvesterpath):
     if not os.path.isfile(pandaids_list_filename):
         logger.info("File with PanDA IDs are missing. Nothing to execute.")
         return job, rank
+
     harvesterpath = os.path.abspath(harvesterpath)
     rank, max_ranks = get_ranks_info()
+
     pandaids = read_json(pandaids_list_filename)
     logger.info('Got {0} job ids'.format(len(pandaids)))
     pandaid = pandaids[rank]
@@ -92,9 +97,9 @@ def set_job_workdir(job, path):
     """
     Point pilot to job working directory (job id).
 
-    :param job: job object
-    :param path: local path to harvester access point
-    :return: job working directory
+    :param job: job object.
+    :param path: local path to Harvester access point (string).
+    :return: job working directory (string).
     """
     work_dir = os.path.join(path, str(job.jobid))
     os.chdir(work_dir)
@@ -106,10 +111,10 @@ def set_scratch_workdir(job, work_dir, args):
     """
     Copy input files and some db files to RAM disk.
 
-    :param job: job object
-    :param work_dir: job working directory (permanent FS)
-    :param args: args dictionary to collect timing metrics
-    :return: job working directory in scratch
+    :param job: job object.
+    :param work_dir: job working directory (permanent FS) (string).
+    :param args: args dictionary to collect timing metrics.
+    :return: job working directory in scratch (string).
     """
 
     scratch_path = config.HPC.scratch
@@ -186,10 +191,12 @@ def process_jobreport(payload_report_file, job_scratch_path, job_communication_p
     """
     Copy job report file to make it accessible by Harvester. Shrink job report file.
 
-    :param payload_report_file:
-    :param job_scratch_path:
-    :param job_communication_point:
+    :param payload_report_file: name of job report (string).
+    :param job_scratch_path: path to scratch directory (string).
+    :param job_communication_point: path to updated job report accessible by Harvester (string).
+    :raises FileHandlingFailure: in case of IOError.
     """
+
     src_file = os.path.join(job_scratch_path, payload_report_file)
     dst_file = os.path.join(job_communication_point, payload_report_file)
 
@@ -214,8 +221,10 @@ def postprocess_workdir(workdir):
     """
     Post-processing of working directory. Unlink paths.
 
-    :param workdir: path to directory to be processed
+    :param workdir: path to directory to be processed (string).
+    :raises FileHandlingFailure: in case of IOError.
     """
+
     pseudo_dir = "poolcond"
     try:
         if os.path.exists(pseudo_dir):
@@ -228,9 +237,9 @@ def command_fix(command, job_scratch_dir):
     """
     Modification of payload parameters, to be executed on Titan on RAM disk. Some cleanup.
 
-    :param command:
-    :param job_scratch_dir:
-    :return:
+    :param command: payload command (string).
+    :param job_scratch_dir: local path to input files (string).
+    :return: updated/fixed payload command (string).
     """
 
     subs_a = command.split()

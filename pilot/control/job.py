@@ -1236,6 +1236,7 @@ def queue_monitor(queues, traces, args):
     if not scan_for_jobs(queues):
         logger.warning('queues are still empty of jobs - will begin queue monitoring anyway')
 
+    job = None
     while True:  # will abort when graceful_stop has been set
         if traces.pilot['command'] == 'abort':
             logger.warning('job queue monitor received an abort instruction')
@@ -1249,13 +1250,13 @@ def queue_monitor(queues, traces, args):
         # check if the job has finished
         imax = 10
         i = 0
-        job = None
-        while i < imax and abort and os.environ.get('PILOT_WRAP_UP', '') == 'NORMAL':
+        while i < imax and os.environ.get('PILOT_WRAP_UP', '') == 'NORMAL':
             job = check_job(args, queues)
             if job:
                 break
             i += 1
-            pause_queue_monitor(60)
+            if abort:
+                pause_queue_monitor(60)
 
         # job has not been defined if it's still running
         if job:
