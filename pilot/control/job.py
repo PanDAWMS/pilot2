@@ -1325,7 +1325,7 @@ def check_job(args, queues):
     if job:
         logger.info('check_job: job has finished')
     else:
-        logger.info('check_job: job has not finished')
+        # logger.info('check_job: job has not finished')
         job = has_job_failed(queues)
         if job:
             logger.info('check_job: job has failed')
