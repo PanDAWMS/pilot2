@@ -940,6 +940,7 @@ def retrieve(queues, traces, args):
 
         if res is None:
             logger.fatal('fatal error in job download loop - cannot continue')
+            args.graceful_stop.set()
             break
 
         if not res:
