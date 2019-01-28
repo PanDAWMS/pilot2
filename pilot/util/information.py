@@ -24,6 +24,7 @@ from datetime import datetime, timedelta
 from pilot.util.config import config
 from pilot.util.filehandling import write_json, read_json
 # from pilot.common.exception import FileHandlingFailure
+from pilot.util.timer import timeout
 
 import logging
 logger = logging.getLogger(__name__)
@@ -147,6 +148,7 @@ def get_schedconfig_queuedata(queue):
     return queuedata
 
 
+@timeout(seconds=120)
 def retrieve_json(url):
     """
     Retrieve JSON from an URL or from a local cache.
