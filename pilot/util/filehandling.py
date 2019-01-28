@@ -16,7 +16,7 @@ import tarfile
 import time
 import uuid
 from json import load, dump
-from shutil import copy2
+from shutil import copy2, rmtree
 from zlib import adler32
 
 from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile, \
@@ -346,6 +346,21 @@ def remove(path):
         os.remove(path)
     except OSError as e:
         logger.warning("failed to remove file: %s (%s, %s)" % (path, e.errno, e.strerror))
+        return -1
+    return 0
+
+
+def remove_dir_tree(path):
+    """
+    Remove directory tree.
+    :param path: path to directory (string).
+    :return: 0 if successful, -1 if failed (int)
+    """
+
+    try:
+        rmtree(path)
+    except OSError as e:
+        logger.warning("failed to remove directory: %s (%s, %s)" % (path, e.errno, e.strerror))
         return -1
     return 0
 

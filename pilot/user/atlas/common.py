@@ -26,7 +26,7 @@ from pilot.util.auxiliary import get_logger
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
     UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
-from pilot.util.filehandling import remove, get_guid
+from pilot.util.filehandling import remove, get_guid, remove_dir_tree
 
 from pilot.info import FileSpec
 
@@ -1100,7 +1100,10 @@ def remove_redundant_files(workdir, outputfiles=[]):
         exclude_files.append(os.path.join(workdir, of))
     for f in to_delete:
         if f not in exclude_files:
-            remove(f)
+            if os.path.isfile(f):
+                remove(f)
+            else:
+                remove_dir_tree(f)
 
     # run a second pass to clean up any broken links
     cleanup_broken_links(workdir)
