@@ -111,6 +111,7 @@ class ErrorCodes:
     PAYLOADSIGSEGV = 1328
     NONDETERMINISTICDDM = 1329
     JSONRETRIEVALTIMEOUT = 1330
+    MISSINGINPUTFILE = 1331
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -200,7 +201,8 @@ class ErrorCodes:
         UNREACHABLENETWORK: "Unable to stage-in file since network is unreachable",
         PAYLOADSIGSEGV: "SIGSEGV: Invalid memory reference or a segmentation fault",
         NONDETERMINISTICDDM: "Failed to construct SURL for non-deterministic ddm (update AGIS)",
-        JSONRETRIEVALTIMEOUT: "JSON retrieval timed out"
+        JSONRETRIEVALTIMEOUT: "JSON retrieval timed out",
+        MISSINGINPUTFILE: "Input file is missing in storage element"
     }
 
     def get_kill_signal_error_code(self, signal):

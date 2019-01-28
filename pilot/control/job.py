@@ -171,36 +171,26 @@ def send_state(job, args, state, xml=None, metadata=None):
 
                 # does the server update contain any backchannel information? if so, update the job object
                 if 'command' in res and res.get('command') != 'NULL':
-                    log.debug("if statement")
                     # look for 'tobekilled', 'softkill', 'debug', 'debugoff'
                     if res.get('command') == 'tobekilled':
-                        log.debug("if statement1")
                         log.info('pilot received a panda server signal to kill job %s at %s' %
                                  (job.jobid, time_stamp()))
                         set_pilot_state(job=job, state="failed")
                         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL)
                         args.abort_job.set()
                     elif res.get('command') == 'softkill':
-                        log.debug("if statement2")
                         log.info('pilot received a panda server signal to softkill job %s at %s' %
                                  (job.jobid, time_stamp()))
                         # event service kill instruction
                     elif res.get('command') == 'debug':
-                        log.debug("if statement3")
                         log.info('pilot received a command to turn on debug mode from the server')
                         job.debug = True
                     elif res.get('command') == 'debugoff':
-                        log.debug("if statement4")
                         log.info('pilot received a command to turn off debug mode from the server')
                         job.debug = False
                     else:
                         log.warning('received unknown server command via backchannel: %s' % res.get('command'))
-
-                log.debug("if statement ok")
-
                 return True
-            else:
-                log.debug("no res")
         else:
             log.info('skipping job update for fake test job')
             return True

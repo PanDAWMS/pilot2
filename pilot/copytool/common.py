@@ -162,6 +162,10 @@ def resolve_common_transfer_errors(output, is_stagein=True):
         ret['rcode'] = ErrorCodes.UNREACHABLENETWORK
         ret['state'] = 'NETWORK_UNREACHABLE'
         ret['error'] = output
+    elif "No such file or directory" in output and is_stagein:
+        ret['rcode'] = ErrorCodes.MISSINGINPUTFILE
+        ret['state'] = 'MISSING_INPUT'
+        ret['error'] = output
     else:
         for line in output.split('\n'):
             m = re.search("Details\s*:\s*(?P<error>.*)", line)
