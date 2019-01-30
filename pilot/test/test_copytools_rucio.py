@@ -13,7 +13,7 @@ from pilot.copytool.rucio import copy_in
 # from pilot.control.job import get_fake_job
 # from pilot.info import JobData
 from pilot.info.filespec import FileSpec
-
+from pilot.util.tracereport import TraceReport
 
 class TestCopytoolRucio(unittest.TestCase):
     """
@@ -53,7 +53,9 @@ class TestCopytoolRucio(unittest.TestCase):
         self.outdata = []  # jdata.prepare_outfiles(data)
 
     def test_copy_in_rucio(self):
-        copy_in(self.indata, trace_report={'eventType': 'unit test'})
+        trace_report = TraceReport()
+        trace_report.data = {'eventType': 'pilot unit test'}
+        copy_in(self.indata, trace_report=trace_report)
 
 
 if __name__ == '__main__':
