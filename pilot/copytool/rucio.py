@@ -9,8 +9,6 @@
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
-from __future__ import absolute_import
-
 import os
 import json
 import logging
@@ -19,12 +17,15 @@ from time import time
 from .common import resolve_common_transfer_errors, verify_catalog_checksum
 from pilot.common.exception import PilotException, ErrorCodes
 from pilot.util.container import execute
+from os.path import dirname
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
-# can be disable for Rucio if allowed to use all RSE for input
-require_replicas = True    ## indicates if given copytool requires input replicas to be resolved
-require_protocols = False  ## indicates if given copytool requires protocols to be resolved first for stage-out
+# can be disabled for Rucio if allowed to use all RSE for input
+require_replicas = True    # indicates if given copytool requires input replicas to be resolved
+require_protocols = False  # indicates if given copytool requires protocols to be resolved first for stage-out
+tracing_rucio = False      # should Rucio send the trace?
 
 
 def is_valid_for_copy_in(files):
@@ -68,27 +69,26 @@ def copy_in(files, **kwargs):
             continue
 
         trace_report.update(catStart=time())  ## is this metric still needed? LFC catalog
-
         fspec.status_code = 0
-
         dst = fspec.workdir or kwargs.get('workdir') or '.'
-        cmd = ['/usr/bin/env', 'rucio', '-v', 'download', '--no-subdir', '--dir', dst, '--pfn', fspec.turl]
-        if require_replicas and fspec.replicas:
-            cmd += ['--rse', fspec.replicas[0][0]]
-        cmd += ['%s:%s' % (fspec.scope, fspec.lfn)]
 
-        rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
-        logger.info('stdout = %s' % stdout)
-        logger.info('stderr = %s' % stderr)
+        error_msg = None
+        rucio_state = None
+        try:
+            rucio_state = _stage_in_api(dst, fspec, trace_report)
+        except Exception as error:
+            error_msg = str(error)
 
-        if rcode:  ## error occurred
-            error = resolve_common_transfer_errors(stderr, is_stagein=True)
+        logger.info('stderr = %s' % error_msg)
+
+        if error_msg:  ## error occurred
+            error = resolve_common_transfer_errors(error_msg, is_stagein=True)
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
-            trace_report.update(clientState=error.get('state') or 'STAGEIN_ATTEMPT_FAILED',
-                                stateReason=error.get('error'), timeEnd=time())
+            trace_report.update(clientState=rucio_state or 'STAGEIN_ATTEMPT_FAILED',
+                                stateReason=error_msg, timeEnd=time())
             if not ignore_errors:
-                raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
+                raise PilotException(error_msg, code=error.get('rcode'), state='FAILED')
 
         # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
         destination = os.path.join(dst, fspec.lfn)
@@ -165,7 +165,7 @@ def copy_out(files, **kwargs):
             trace_report.update(clientState=error.get('state', None) or 'STAGEOUT_ATTEMPT_FAILED',
                                 stateReason=error.get('error', 'unknown error'),
                                 timeEnd=time())
-            trace_report.send()
+            #trace_report.send()
             if not ignore_errors:
                 raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
@@ -189,7 +189,7 @@ def copy_out(files, **kwargs):
                         fspec.status = 'failed'
                         fspec.status_code = ErrorCodes.PUTADMISMATCH
                         trace_report.update(clientState='AD_MISMATCH', stateReason=msg, timeEnd=time())
-                        trace_report.send()
+                        #trace_report.send()
                         if not ignore_errors:
                             raise PilotException("Failed to stageout: CRC mismatched",
                                                  code=ErrorCodes.PUTADMISMATCH, state='AD_MISMATCH')
@@ -198,6 +198,46 @@ def copy_out(files, **kwargs):
             fspec.status = 'transferred'
             trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
 
-        trace_report.send()
+        #trace_report.send()
 
     return files
+
+
+# stageIn using rucio api.
+def _stage_in_api(dst, fspec, trace_report):
+
+    # init. download client
+    from rucio.client.downloadclient import DownloadClient
+    download_client = DownloadClient(logger=logger)
+
+    # traces are switched off
+    if hasattr(download_client, 'tracing'):
+        download_client.tracing = tracing_rucio
+
+    # file specifications before the actual download
+    f = {}
+    f['did_scope'] = fspec.scope
+    f['did_name'] = fspec.lfn
+    f['did'] = '%s:%s' % (fspec.scope, fspec.lfn)
+    f['rse'] = fspec.ddmendpoint
+    f['base_dir'] = dirname(dst)
+    f['no_subdir'] = True
+    if fspec.turl:
+        f['pfn'] = fspec.turl
+
+    # proceed with the download
+    logger.info('_stage_in_api file: %s' % str(f))
+    trace_pattern = {}
+    if trace_report:
+        trace_pattern = trace_report
+    result = []
+    if fspec.turl:
+        result = download_client.download_pfns([f], 1, trace_custom_fields=trace_pattern)
+    else:
+        result = download_client.download_dids([f], trace_custom_fields=trace_pattern)
+
+    client_state = 'FAILED'
+    if result:
+        client_state = result[0].get('clientState', 'FAILED')
+
+    return client_state
