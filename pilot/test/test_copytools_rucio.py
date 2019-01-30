@@ -23,7 +23,7 @@ from pilot.info.filespec import FileSpec
 class TestCopytoolRucio(unittest.TestCase):
     """
     Unit tests for rucio copytool.
-    """4
+    """
 
     def setUp(self):
 
