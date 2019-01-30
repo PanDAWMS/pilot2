@@ -7,13 +7,8 @@
 # Authors: Pavlo Svirin <pavlo.svirin@gmail.com>
 
 import unittest
-import string
-import tempfile
-import random
-import os.path
 
 from pilot.copytool.rucio import copy_in
-from pilot.util.container import execute
 
 # from pilot.control.job import get_fake_job
 # from pilot.info import JobData
