@@ -27,8 +27,8 @@ class TestCopytoolMv(unittest.TestCase):
     """
 
     #filelist = []
-    numFiles = 10
-    maxFileSize = 100 * 1024
+    numfiles = 10
+    maxfilesize = 100 * 1024
 
     def setUp(self):
 
@@ -53,7 +53,7 @@ class TestCopytoolMv(unittest.TestCase):
         ddmendpointin = ""
         turl = ""
         """ Create temp files in source dir """
-        for i in range(0, self.numFiles):
+        for i in range(0, self.numfiles):
                 # generate random name
                 fname = ''.join(random.choice(string.lowercase) for x in range(20))
                 if infiles == "":
@@ -61,7 +61,7 @@ class TestCopytoolMv(unittest.TestCase):
                 else:
                     infiles += "," + fname
                 # generate random data and write
-                filesize = random.randint(1, self.maxFileSize)
+                filesize = random.randint(1, self.maxfilesize)
                 if fsize == "":
                     fsize = str(filesize)
                 else:
@@ -128,7 +128,7 @@ class TestCopytoolMv(unittest.TestCase):
         self.assertEqual(self.__dirs_content_equal(self.tmp_src_dir, self.tmp_dst_dir), 0)
         # check dst files are links
         _, stdout, _ = execute('find %s -type l -exec echo -n l \;' % self.tmp_dst_dir)
-        self.assertEqual(stdout, ''.join('l' for i in range(self.numFiles)))
+        self.assertEqual(stdout, ''.join('l' for i in range(self.numfiles)))
 
     def test_copy_in_invalid(self):
         self.assertRaises(StageInFailure, copy_in, self.indata, **{'copy_type': ''})

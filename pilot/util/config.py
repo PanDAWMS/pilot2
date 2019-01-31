@@ -14,8 +14,8 @@ import collections
 
 try:
     import ConfigParser
-except Exception:
-    import configparser as ConfigParser  # python 3
+except Exception:  # python 3
+    import configparser as ConfigParser  # noqa: N812
 
 _section_internal = collections.namedtuple('config', 'conf name')
 

@@ -16,7 +16,7 @@ import time
 import traceback
 
 try:
-    import Queue as queue
+    import Queue as queue  # noqa: N813
 except Exception:
     import queue  # python 3
 
@@ -206,6 +206,10 @@ def execute_payloads(queues, traces, args):
 
             if exit_code_interpret == 0 and exit_code == 0:
                 log.info('main payload error analysis completed - did not find any errors')
+
+                # update output lists if zipmaps were used
+                #job.add_archives_to_output_lists()
+
                 # queues.finished_payloads.put(job)
                 put_in_queue(job, queues.finished_payloads)
             else:

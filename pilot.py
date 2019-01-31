@@ -22,6 +22,7 @@ from shutil import rmtree
 from pilot.common.exception import QueuedataFailure, PilotException
 from pilot.info import set_info
 from pilot.util.auxiliary import shell_exit_code
+from pilot.common.errorcodes import ErrorCodes
 from pilot.util.config import config
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_START_TIME, PILOT_END_TIME, get_pilot_version
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
@@ -29,6 +30,7 @@ from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
 from pilot.util.information import set_location
 from pilot.util.mpi import get_ranks_info
+from pilot.util.timer import TimeoutException
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.workernode import is_virtual_machine
 
@@ -82,11 +84,15 @@ def main():
     https_setup(args, get_pilot_version())
 
     if not args.workflow == "generic_hpc":  # set_location does not work well for hpc workflow
-        if not set_location(args):  # ## DEPRECATE ME LATER
-            return False
-        else:
-            # set the site name for rucio
-            environ['PILOT_RUCIO_SITENAME'] = args.location.site
+        try:
+            if not set_location(args):  # ## DEPRECATE ME LATER
+                return False
+            else:
+                # set the site name for rucio
+                environ['PILOT_RUCIO_SITENAME'] = args.location.site
+        except TimeoutException as e:
+            logger.fatal(e)
+            return ErrorCodes.JSONRETRIEVALTIMEOUT
 
     # initialize InfoService and populate args.info structure
     try:
@@ -247,7 +253,7 @@ def get_args():
 
     arg_parser.add_argument('-z',
                             dest='update_server',
-                            action='store_true',
+                            action='store_false',
                             default=True,
                             help='Disable server updates')
 
@@ -420,6 +426,9 @@ def set_environment_variables(args, mainworkdir):
 
     # set the pilot version
     environ['PILOT_VERSION'] = get_pilot_version()
+
+    # set the default wrap-up/finish instruction
+    environ['PILOT_WRAP_UP'] = 'NORMAL'
 
 
 def establish_logging(args):

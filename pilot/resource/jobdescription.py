@@ -490,10 +490,10 @@ class JobDescription(object):
         tb = list(reversed(traceback.extract_stack()))
 
         tb_str = '\n'
-        for I in enumerate(tb):
-            if I[0] < 3:
+        for ii in enumerate(tb):
+            if ii[0] < 3:
                 continue  # we don't need inner scopes of this and subsequent calls
-            i = I[1]
+            i = ii[1]
             tb_str += '{file}:{line} (in {module}): {call}\n'.format(file=i[0],
                                                                      line=i[1],
                                                                      module=i[2],

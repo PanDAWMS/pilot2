@@ -17,7 +17,7 @@ import time
 import hashlib
 
 try:
-    import Queue as queue
+    import Queue as queue  # noqa: N813
 except Exception:
     import queue  # python 3
 
@@ -32,7 +32,7 @@ from pilot.util.config import config
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED
-from pilot.util.filehandling import get_files, tail, is_json, copy, remove
+from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file
 from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
@@ -116,7 +116,7 @@ def _validate_job(job):
     return status
 
 
-def send_state(job, args, state, xml=None):
+def send_state(job, args, state, xml=None, metadata=None):
     """
     Update the server (send heartbeat message).
     Interpret and handle any server instructions arriving with the updateJob backchannel.
@@ -125,6 +125,7 @@ def send_state(job, args, state, xml=None):
     :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :param state: job state (string).
     :param xml: optional metadata xml (string).
+    :param metadata: job report metadata read as a string.
     :return: boolean (True if successful, False otherwise).
     """
 
@@ -132,25 +133,38 @@ def send_state(job, args, state, xml=None):
 
     # should the pilot make any server updates?
     if not args.update_server:
-        log.info('pilot will not update the server')
-        return True
+        log.info('pilot will not update the server (heartbeat message will be written to file)')
+        tag = 'writing'
+    else:
+        tag = 'sending'
 
     if state == 'finished' or state == 'failed':
-        log.info('job %s has %s - sending final server update' % (job.jobid, state))
+        log.info('job %s has %s - %s final server update' % (job.jobid, state, tag))
     else:
-        log.info('job %s has state \'%s\' - sending heartbeat' % (job.jobid, state))
+        log.info('job %s has state \'%s\' - %s heartbeat' % (job.jobid, state, tag))
 
     # build the data structure needed for getJob, updateJob
-    data = get_data_structure(job, state, args, xml=xml)
+    data = get_data_structure(job, state, args, xml=xml, metadata=metadata)
+
+    # write the heartbeat message to file if the server is not to be updated by the pilot (Nordugrid mode)
+    if not args.update_server:
+        # store the file in the main workdir
+        path = os.path.join(os.environ.get('PILOT_HOME'), config.Pilot.heartbeat_message)
+        if write_json(path, data):
+            log.debug('wrote heartbeat to file %s' % path)
+            return True
+        else:
+            return False
 
     try:
         if args.url != '' and args.port != 0:
             pandaserver = args.url + ':' + str(args.port)
         else:
             pandaserver = config.Pilot.pandaserver
-
+        log.debug('pandaserver=%s' % pandaserver)
         if config.Pilot.pandajob == 'real':
             res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver), data=data)
+            log.debug("res=%s" % str(res))
             if res is not None:
                 log.info('server updateJob request completed for job %s' % job.jobid)
                 log.info('res = %s' % str(res))
@@ -176,20 +190,20 @@ def send_state(job, args, state, xml=None):
                         job.debug = False
                     else:
                         log.warning('received unknown server command via backchannel: %s' % res.get('command'))
-
                 return True
         else:
             log.info('skipping job update for fake test job')
             return True
     except Exception as e:
-        log.warning('while setting job state, Exception caught: %s' % str(e.message))
+        log.warning('exception caught while sending https request: %s' % e)
+        log.warning('possibly offending data: %s' % data)
         pass
 
     log.warning('set job state=%s failed' % state)
     return False
 
 
-def get_data_structure(job, state, args, xml=None):
+def get_data_structure(job, state, args, xml=None, metadata=None):
     """
     Build the data structure needed for getJob, updateJob.
 
@@ -197,6 +211,7 @@ def get_data_structure(job, state, args, xml=None):
     :param state: state of the job (string).
     :param args:
     :param xml: optional XML string.
+    :param metadata: job report metadata read as a string.
     :return: data structure (dictionary).
     """
 
@@ -245,7 +260,7 @@ def get_data_structure(job, state, args, xml=None):
         if batchsystem_type:
             data['pilotID'] = "%s|%s|%s|%s" % \
                               (pilotid, batchsystem_type, args.version_tag, pilotversion)
-            data['batchID'] = batchsystem_id,
+            data['batchID'] = batchsystem_id
         else:
             data['pilotID'] = "%s|%s|%s" % (pilotid, args.version_tag, pilotversion)
 
@@ -259,6 +274,8 @@ def get_data_structure(job, state, args, xml=None):
 
     if xml is not None:
         data['xml'] = xml
+    if metadata is not None:
+        data['metaData'] = metadata
 
     # in debug mode, also send a tail of the latest log file touched by the payload
     if job.debug:
@@ -532,6 +549,9 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     if getjob_requests > int(maximum_getjob_requests):
         logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' %
                        config.Pilot.maximum_getjob_requests)
+        # use singleton:
+        # instruct the pilot to wrap up quickly
+        os.environ['PILOT_WRAP_UP'] = 'QUICKLY'
         return False
 
     if timefloor == 0 and jobnumber > 0:
@@ -910,6 +930,7 @@ def retrieve(queues, traces, args):
 
         if res is None:
             logger.fatal('fatal error in job download loop - cannot continue')
+            args.graceful_stop.set()
             break
 
         if not res:
@@ -1206,7 +1227,7 @@ def queue_monitor(queues, traces, args):
     if not scan_for_jobs(queues):
         logger.warning('queues are still empty of jobs - will begin queue monitoring anyway')
 
-    abort = False
+    job = None
     while True:  # will abort when graceful_stop has been set
         if traces.pilot['command'] == 'abort':
             logger.warning('job queue monitor received an abort instruction')
@@ -1214,11 +1235,19 @@ def queue_monitor(queues, traces, args):
         # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
         # (abort at the end of the loop)
         abort = should_abort(args, label='job:queue_monitor')
-        if abort:
+        if abort and os.environ.get('PILOT_WRAP_UP', '') == 'NORMAL':
             pause_queue_monitor(20)
 
         # check if the job has finished
-        job = check_job(args, queues)
+        imax = 10
+        i = 0
+        while i < imax and os.environ.get('PILOT_WRAP_UP', '') == 'NORMAL':
+            job = check_job(args, queues)
+            if job:
+                break
+            i += 1
+            if abort:
+                pause_queue_monitor(60)
 
         # job has not been defined if it's still running
         if job:
@@ -1230,10 +1259,17 @@ def queue_monitor(queues, traces, args):
                 wait_for_aborted_job_stageout(args, queues, job)
 
             # send final server update
-            if job.fileinfo:
-                send_state(job, args, job.state, xml=dumps(job.fileinfo))
+            path = os.path.join(job.workdir, config.Payload.jobreport)
+            if os.path.exists(path):
+                metadata = read_file(path)  #read_json(path)
             else:
-                send_state(job, args, job.state)
+                metadata = None
+            if job.fileinfo:
+                log.debug('xml:will send fileinfo')
+                send_state(job, args, job.state, xml=dumps(job.fileinfo), metadata=metadata)
+            else:
+                log.debug('will not send fileinfo')
+                send_state(job, args, job.state, metadata=metadata)
 
             # we can now stop monitoring this job, so remove it from the monitored_payloads queue and add it to the
             # completed_jobs queue which will tell retrieve() that it can download another job
@@ -1262,8 +1298,7 @@ def pause_queue_monitor(delay):
     :return:
     """
 
-    logger.warning('since job:queue_monitor is responsible for sending job updates, we sleep until log has been'
-                   ' transferred (or a maximum of %d s)' % delay)
+    logger.warning('since job:queue_monitor is responsible for sending job updates, we sleep for %d s' % delay)
     time.sleep(delay)
 
 
@@ -1278,15 +1313,20 @@ def check_job(args, queues):
     """
 
     job = has_job_finished(queues)
-    if not job:
+    if job:
+        logger.info('check_job: job has finished')
+    else:
+        # logger.info('check_job: job has not finished')
         job = has_job_failed(queues)
+        if job:
+            logger.info('check_job: job has failed')
 
-        # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
-        log_transfer = get_job_status(job, 'LOG_TRANSFER')
+            # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
+            log_transfer = get_job_status(job, 'LOG_TRANSFER')
 
-        if job and log_transfer == LOG_TRANSFER_NOT_DONE:
-            # order a log transfer for a failed job
-            order_log_transfer(args, queues, job)
+            if log_transfer == LOG_TRANSFER_NOT_DONE:
+                # order a log transfer for a failed job
+                order_log_transfer(args, queues, job)
 
     # check if the job has failed
     if job and job.state == 'failed':

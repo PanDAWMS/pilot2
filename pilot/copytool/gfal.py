@@ -13,6 +13,7 @@
 import os
 import logging
 import errno
+from time import time
 
 from .common import resolve_common_transfer_errors
 from pilot.common.exception import PilotException, ErrorCodes, StageInFailure, StageOutFailure
@@ -61,16 +62,28 @@ def copy_in(files, **kwargs):
     """
 
     allow_direct_access = kwargs.get('allow_direct_access') or False
+    trace_report = kwargs.get('trace_report')
 
     if not check_for_gfal():
         raise StageInFailure("No GFAL2 tools found")
 
+    localsite = os.environ.get('DQ2_LOCAL_SITE_ID', None)
     for fspec in files:
+        # update the trace report
+        localsite = localsite if localsite else fspec.ddmendpoint
+        trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
+        trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
+        trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
+
         # continue loop for files that are to be accessed directly
         if fspec.is_directaccess(ensure_replica=False) and allow_direct_access:
             fspec.status_code = 0
             fspec.status = 'remote_io'
+            trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
+            trace_report.send()
             continue
+
+        trace_report.update(catStart=time())
 
         dst = fspec.workdir or kwargs.get('workdir') or '.'
 
@@ -96,10 +109,16 @@ def copy_in(files, **kwargs):
                 error = resolve_common_transfer_errors(stdout + stderr, is_stagein=True)
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
+            trace_report.update(clientState=error.get('state') or 'STAGEIN_ATTEMPT_FAILED',
+                                stateReason=error.get('error'), timeEnd=time())
+            trace_report.send()
+
             raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
         fspec.status_code = 0
         fspec.status = 'transferred'
+        trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
+        trace_report.send()
 
     return files
 
@@ -115,7 +134,11 @@ def copy_out(files, **kwargs):
     if not check_for_gfal():
         raise StageOutFailure("No GFAL2 tools found")
 
+    trace_report = kwargs.get('trace_report')
+
     for fspec in files:
+        trace_report.update(scope=fspec.scope, dataset=fspec.dataset, url=fspec.surl, filesize=fspec.filesize)
+        trace_report.update(catStart=time(), filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
 
         src = fspec.workdir or kwargs.get('workdir') or '.'
 
@@ -142,10 +165,16 @@ def copy_out(files, **kwargs):
                 error = resolve_common_transfer_errors(stdout + stderr, is_stagein=False)
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
+            trace_report.update(clientState=error.get('state', None) or 'STAGEOUT_ATTEMPT_FAILED',
+                                stateReason=error.get('error', 'unknown error'),
+                                timeEnd=time())
+            trace_report.send()
             raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
         fspec.status_code = 0
         fspec.status = 'transferred'
+        trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
+        trace_report.send()
 
     return files
 

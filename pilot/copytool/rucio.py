@@ -67,7 +67,7 @@ def copy_in(files, **kwargs):
             trace_report.send()
             continue
 
-        trace_report.update(catStart=time())  ## is this metric still needed? LFC catalog
+        trace_report.update(catStart=time())
 
         fspec.status_code = 0
 
@@ -88,6 +88,7 @@ def copy_in(files, **kwargs):
             trace_report.update(clientState=error.get('state') or 'STAGEIN_ATTEMPT_FAILED',
                                 stateReason=error.get('error'), timeEnd=time())
             if not ignore_errors:
+                trace_report.send()
                 raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
         # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
@@ -165,8 +166,8 @@ def copy_out(files, **kwargs):
             trace_report.update(clientState=error.get('state', None) or 'STAGEOUT_ATTEMPT_FAILED',
                                 stateReason=error.get('error', 'unknown error'),
                                 timeEnd=time())
-            trace_report.send()
             if not ignore_errors:
+                trace_report.send()
                 raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
         if summary:  # resolve final pfn (turl) from the summary JSON

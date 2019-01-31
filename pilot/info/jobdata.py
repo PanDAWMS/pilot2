@@ -446,6 +446,7 @@ class JobData(BaseData):
             self.zipmap = result[0]
             # remove zip map from final jobparams
             ret = re.sub(pattern, '', ret)
+        logger.debug('xxx zipmap=%s' % str(self.zipmap))
 
         # extract and remove any present --containerimage XYZ options
         ret, imagename = self.extract_container_image(ret)
@@ -514,7 +515,7 @@ class JobData(BaseData):
         try:
             args = shlex.split(data)
         except ValueError as e:
-            logger.error('Failed to parse input arguments from data=%s, error=%s .. skipped.' % (data, e.message))
+            logger.error('Failed to parse input arguments from data=%s, error=%s .. skipped.' % (data, e))
             return {}, data
 
         opts, curopt, pargs = {}, None, []
@@ -594,7 +595,7 @@ class JobData(BaseData):
                     continue
                 pfn = os.path.join(self.workdir, fspec.lfn)
                 if not os.path.isfile(pfn):
-                    msg = "Error: pfn file=%s does not exist (skip from wordir size calculation)" % pfn
+                    msg = "pfn file=%s does not exist (skip from wordir size calculation)" % pfn
                     logger.info(msg)
                 else:
                     total_size += os.path.getsize(pfn)
@@ -712,6 +713,7 @@ class JobData(BaseData):
         Add a size measurement to the sizes field at the current time stamp.
         A size measurement is in Bytes.
 
+        :param size: size of object in Bytes (int).
         :return:
         """
 
