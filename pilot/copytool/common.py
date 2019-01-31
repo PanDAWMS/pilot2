@@ -102,22 +102,36 @@ def get_copysetup(copytools, copytool_name):
     return copysetup
 
 
+def get_error_info(rcode, state, error_msg):
+    """
+    Return an error info dictionary specific to transfer errors.
+    Helper function to resolve_common_transfer_errors().
+
+    :param rcode: return code (int).
+    :param state: state string used in Rucio traces.
+    :param error_msg: transfer command stdout (string).
+    :return: dictionary with format {'rcode': rcode, 'state': state, 'error': error_msg}.
+    """
+
+    return {'rcode': rcode, 'state': state, 'error': error_msg}
+
+
 def resolve_common_transfer_errors(output, is_stagein=True):
     """
     Resolve any common transfer related errors.
 
     :param output: stdout from transfer command (string).
     :param is_stagein: optional (boolean).
-    :return: dict {'rcode', 'state, 'error'}
+    :return: dict {'rcode': rcode, 'state': state, 'error': error_msg}.
     """
 
-    ret = {'rcode': ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
-           'state': 'COPY_ERROR', 'error': 'Copy operation failed [is_stagein=%s]: %s' % (is_stagein, output)}
+    # default to make sure dictionary exists and all fields are populated (some of which might be overwritten below)
+    ret = get_error_info(ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
+                         'COPY_ERROR', 'Copy operation failed [is_stagein=%s]: %s' % (is_stagein, output))
 
     if "timeout" in output:
-        ret['rcode'] = ErrorCodes.STAGEINTIMEOUT if is_stagein else ErrorCodes.STAGEOUTTIMEOUT
-        ret['state'] = 'CP_TIMEOUT'
-        ret['error'] = 'copy command timed out: %s' % output
+        ret = get_error_info(ErrorCodes.STAGEINTIMEOUT if is_stagein else ErrorCodes.STAGEOUTTIMEOUT,
+                             'CP_TIMEOUT', 'copy command timed out: %s' % output)
     elif "does not match the checksum" in output:
         if 'adler32' in output:
             state = 'AD_MISMATCH'
@@ -125,48 +139,28 @@ def resolve_common_transfer_errors(output, is_stagein=True):
         else:
             state = 'MD5_MISMATCH'
             rcode = ErrorCodes.GETMD5MISMATCH if is_stagein else ErrorCodes.PUTMD5MISMATCH
-        ret['rcode'] = rcode
-        ret['state'] = state
+        ret = get_error_info(rcode, state, output)
     elif "globus_xio:" in output:
-        if is_stagein:
-            ret['rcode'] = ErrorCodes.GETGLOBUSSYSERR
-        else:
-            ret['rcode'] = ErrorCodes.PUTGLOBUSSYSERR
-        ret['state'] = 'GLOBUS_FAIL'
-        ret['error'] = "Globus system error: %s" % output
+        ret = get_error_info(ErrorCodes.GETGLOBUSSYSERR if is_stagein else ErrorCodes.PUTGLOBUSSYSERR,
+                             'GLOBUS_FAIL', "Globus system error: %s" % output)
     elif "File exists" in output or 'SRM_FILE_BUSY' in output or 'file already exists' in output:
-        ret['rcode'] = ErrorCodes.FILEEXISTS
-        ret['state'] = 'FILE_EXISTS'
-        ret['error'] = "File already exists in the destination: %s" % output
-
+        ret = get_error_info(ErrorCodes.FILEEXISTS, 'FILE_EXISTS',
+                             "File already exists in the destination: %s" % output)
     elif "No such file or directory" in output and is_stagein:
-        ret['rcode'] = ErrorCodes.MISSINGINPUTFILE
-        ret['state'] = 'MISSING_INPUT'
-        ret['error'] = output
+        ret = get_error_info(ErrorCodes.MISSINGINPUTFILE, 'MISSING_INPUT', output)
     elif "query chksum is not supported" in output or "Unable to checksum" in output:
-        ret['rcode'] = ErrorCodes.CHKSUMNOTSUP
-        ret['state'] = 'CHKSUM_NOTSUP'
-        ret['error'] = output
+        ret = get_error_info(ErrorCodes.CHKSUMNOTSUP, 'CHKSUM_NOTSUP', output)
     elif "Could not establish context" in output:
-        ret['rcode'] = ErrorCodes.NOPROXY
-        ret['state'] = 'CONTEXT_FAIL'
-        ret['error'] = "Could not establish context: Proxy / VO extension of proxy has probably expired: %s" % output
+        error_msg = "Could not establish context: Proxy / VO extension of proxy has probably expired: %s" % output
+        ret = get_error_info(ErrorCodes.NOPROXY, 'CONTEXT_FAIL', error_msg)
     elif "No space left on device" in output:
-        ret['rcode'] = ErrorCodes.NOLOCALSPACE
-        ret['state'] = 'NO_SPACE'
-        ret['error'] = "No available space left on local disk: %s" % output
+        ret = get_error_info(ErrorCodes.NOLOCALSPACE, 'NO_SPACE', "No available space left on local disk: %s" % output)
     elif "No such file or directory" in output:
-        ret['rcode'] = ErrorCodes.NOSUCHFILE
-        ret['state'] = 'NO_FILE'
-        ret['error'] = output
+        ret = get_error_info(ErrorCodes.NOSUCHFILE, 'NO_FILE', output)
     elif "service is not available at the moment" in output:
-        ret['rcode'] = ErrorCodes.SERVICENOTAVAILABLE
-        ret['state'] = 'SERVICE_ERROR'
-        ret['error'] = output
+        ret = get_error_info(ErrorCodes.SERVICENOTAVAILABLE, 'SERVICE_ERROR', output)
     elif "Network is unreachable" in output:
-        ret['rcode'] = ErrorCodes.UNREACHABLENETWORK
-        ret['state'] = 'NETWORK_UNREACHABLE'
-        ret['error'] = output
+        ret = get_error_info(ErrorCodes.UNREACHABLENETWORK, 'NETWORK_UNREACHABLE', output)
     else:
         for line in output.split('\n'):
             m = re.search("Details\s*:\s*(?P<error>.*)", line)
