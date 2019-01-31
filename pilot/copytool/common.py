@@ -116,6 +116,27 @@ def get_error_info(rcode, state, error_msg):
     return {'rcode': rcode, 'state': state, 'error': error_msg}
 
 
+def output_line_scan(ret, output):
+    """
+    Do some reg exp on the transfer command output to search for special errors.
+    Helper function to resolve_common_transfer_errors().
+
+    :param ret: pre-filled error info dictionary with format {'rcode': rcode, 'state': state, 'error': error_msg}
+    :param output: transfer command stdout (string).
+    :return: updated error info dictionary.
+    """
+
+    for line in output.split('\n'):
+        m = re.search("Details\s*:\s*(?P<error>.*)", line)
+        if m:
+            ret['error'] = m.group('error')
+        elif 'service_unavailable' in line:
+            ret['error'] = 'service_unavailable'
+            ret['rcode'] = ErrorCodes.RUCIOSERVICEUNAVAILABLE
+
+    return ret
+
+
 def resolve_common_transfer_errors(output, is_stagein=True):
     """
     Resolve any common transfer related errors.
@@ -160,12 +181,7 @@ def resolve_common_transfer_errors(output, is_stagein=True):
     elif "Network is unreachable" in output:
         ret = get_error_info(ErrorCodes.UNREACHABLENETWORK, 'NETWORK_UNREACHABLE', output)
     else:
-        for line in output.split('\n'):
-            m = re.search("Details\s*:\s*(?P<error>.*)", line)
-            if m:
-                ret['error'] = m.group('error')
-            elif 'service_unavailable' in line:
-                ret['error'] = 'service_unavailable'
-                ret['rcode'] = ErrorCodes.RUCIOSERVICEUNAVAILABLE
+        # reg exp the output
+        ret = output_line_scan(ret, output)
 
     return ret
