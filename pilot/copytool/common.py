@@ -132,14 +132,12 @@ def resolve_common_transfer_errors(output, is_stagein=True):
     if "timeout" in output:
         ret = get_error_info(ErrorCodes.STAGEINTIMEOUT if is_stagein else ErrorCodes.STAGEOUTTIMEOUT,
                              'CP_TIMEOUT', 'copy command timed out: %s' % output)
-    elif "does not match the checksum" in output:
-        if 'adler32' in output:
-            state = 'AD_MISMATCH'
-            rcode = ErrorCodes.GETADMISMATCH if is_stagein else ErrorCodes.PUTADMISMATCH
-        else:
-            state = 'MD5_MISMATCH'
-            rcode = ErrorCodes.GETMD5MISMATCH if is_stagein else ErrorCodes.PUTMD5MISMATCH
-        ret = get_error_info(rcode, state, output)
+    elif "does not match the checksum" in output and 'adler32' in output:
+        ret = get_error_info(ErrorCodes.GETADMISMATCH if is_stagein else ErrorCodes.PUTADMISMATCH,
+                             'AD_MISMATCH', output)
+    elif "does not match the checksum" in output and 'adler32' not in output:
+        ret = get_error_info(ErrorCodes.GETMD5MISMATCH if is_stagein else ErrorCodes.PUTMD5MISMATCH,
+                             'MD5_MISMATCH', output)
     elif "globus_xio:" in output:
         ret = get_error_info(ErrorCodes.GETGLOBUSSYSERR if is_stagein else ErrorCodes.PUTGLOBUSSYSERR,
                              'GLOBUS_FAIL', "Globus system error: %s" % output)
