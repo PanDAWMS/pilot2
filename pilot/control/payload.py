@@ -16,7 +16,7 @@ import time
 import traceback
 
 try:
-    import Queue as queue
+    import Queue as queue  # noqa: N813
 except Exception:
     import queue  # python 3
 
