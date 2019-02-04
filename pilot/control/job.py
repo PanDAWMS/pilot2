@@ -425,6 +425,11 @@ def get_job_label(args):
     :return: job_label (string).
     """
 
+    # PQ status
+    status = infosys.queuedata.status
+    if status == 'test' and args.job_label != 'ptest':
+        job_label = 'test'
+
     if args.version_tag == 'RC' and args.job_label == 'ptest':
         job_label = 'rc_test2'
     elif args.version_tag == 'RCM' and args.job_label == 'ptest':

@@ -54,7 +54,7 @@ class QueueData(BaseData):
     aprotocols = None
 
     state = None  # AGIS PQ state, e.g. ACTIVE
-    status = ""   # PQ status, e.g. ONLINE
+    status = ""   # PQ status, e.g. online
     site = None   # ATLAS Site name
 
     direct_access_lan = False
