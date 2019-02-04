@@ -556,10 +556,16 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
 
     if timefloor == 0 and jobnumber > 0:
         logger.warning("since timefloor is set to 0, pilot was only allowed to run one job")
+        # use singleton:
+        # instruct the pilot to wrap up quickly
+        os.environ['PILOT_WRAP_UP'] = 'QUICKLY'
         return False
 
     if (currenttime - starttime > timefloor) and jobnumber > 0:
         logger.warning("the pilot has run out of time (timefloor=%d has been passed)" % timefloor)
+        # use singleton:
+        # instruct the pilot to wrap up quickly
+        os.environ['PILOT_WRAP_UP'] = 'QUICKLY'
         return False
 
     # timefloor not relevant for the first job
