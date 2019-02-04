@@ -427,13 +427,15 @@ def get_job_label(args):
 
     # PQ status
     status = infosys.queuedata.status
-    if status == 'test' and args.job_label != 'ptest':
-        job_label = 'test'
 
     if args.version_tag == 'RC' and args.job_label == 'ptest':
         job_label = 'rc_test2'
     elif args.version_tag == 'RCM' and args.job_label == 'ptest':
         job_label = 'rcm_test2'
+    elif args.version_tag == 'ALRB':
+        job_label = 'rc_alrb'
+    elif status == 'test' and args.job_label != 'ptest':
+        job_label = 'test'
     else:
         job_label = args.job_label
 
