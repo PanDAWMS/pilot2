@@ -41,6 +41,7 @@ class QueueData(BaseData):
     # ## incomplete list of attributes .. to be extended once becomes used
 
     name = ""       # Name of Panda Queue
+    resource = ""   # Name of Panda Resource
     appdir = ""     #
     catchall = ""   #
 
@@ -73,7 +74,7 @@ class QueueData(BaseData):
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['timefloor', 'maxwdir', 'pledgedcpu', 'es_stageout_gap',
                    'corecount', 'maxrss', 'maxtime'],
-             str: ['name', 'appdir', 'catchall', 'platform', 'container_options', 'container_type',
+             str: ['name', 'resource', 'appdir', 'catchall', 'platform', 'container_options', 'container_type',
                    'state', 'site'],
              dict: ['copytools', 'acopytools', 'astorages', 'aprotocols'],
              bool: ['direct_access_lan', 'direct_access_wan']
@@ -107,6 +108,7 @@ class QueueData(BaseData):
 
         kmap = {
             'name': 'nickname',
+            'resource': 'panda_resource',
             'platform': 'cmtconfig',
             'site': ('atlas_site', 'gstat'),
             'es_stageout_gap': 'zip_time_gap',

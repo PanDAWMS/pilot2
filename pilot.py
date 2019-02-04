@@ -19,18 +19,15 @@ import time
 from os import getcwd, chdir, environ
 from shutil import rmtree
 
-from pilot.common.exception import QueuedataFailure, PilotException
-from pilot.info import set_info
+from pilot.common.exception import PilotException
+from pilot.info import infosys
 from pilot.util.auxiliary import shell_exit_code
-from pilot.common.errorcodes import ErrorCodes
 from pilot.util.config import config
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_START_TIME, PILOT_END_TIME, get_pilot_version
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
-from pilot.util.information import set_location
 from pilot.util.mpi import get_ranks_info
-from pilot.util.timer import TimeoutException
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.workernode import is_virtual_machine
 
@@ -83,26 +80,19 @@ def main():
     # perform https setup
     https_setup(args, get_pilot_version())
 
-    if not args.workflow == "generic_hpc":  # set_location does not work well for hpc workflow
-        try:
-            if not set_location(args):  # ## DEPRECATE ME LATER
-                return False
-            else:
-                # set the site name for rucio
-                environ['PILOT_RUCIO_SITENAME'] = args.location.site
-        except TimeoutException as e:
-            logger.fatal(e)
-            return ErrorCodes.JSONRETRIEVALTIMEOUT
-
-    # initialize InfoService and populate args.info structure
+    # initialize InfoService
     try:
-        set_info(args)
-    except QueuedataFailure as error:
-        logger.fatal(error)
-        return error.get_error_code()
+        infosys.init(args.queue)
+        # check if queue is ACTIVE
+        if infosys.queuedata.state != 'ACTIVE':
+            logger.critical('specified queue is NOT ACTIVE: %s -- aborting' % infosys.queuedata.name)
+            raise PilotException("Panda Queue is NOT ACTIVE")
     except PilotException as error:
         logger.fatal(error)
         return error.get_error_code()
+
+    # set the site name for rucio  ## is it really used?
+    environ['PILOT_RUCIO_SITENAME'] = infosys.queuedata.site
 
     # set requested workflow
     logger.info('pilot arguments: %s' % str(args))
@@ -236,7 +226,7 @@ def get_args():
                             help='MANDATORY: resource name (e.g., AGLT2_TEST')
     arg_parser.add_argument('-s',
                             dest='site',
-                            required=True,  # it is needed by the dispatcher (only)
+                            required=True,  # it is needed by the dispatcher (only) -- same as '-r'? is it PandaSite or ATLAS Site?
                             help='MANDATORY: site name (e.g., AGLT2_TEST')
 
     # graciously stop pilot process after hard limit
