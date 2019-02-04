@@ -94,7 +94,7 @@ def get_payload_command(job):
                                                                             job.infosys.queuedata)
     if not userjob and use_direct_access and job.transfertype == 'direct':
         lfns, guids = job.get_lfns_and_guids()
-        cmd = replace_lfns_with_turls(cmd, job.workdir, "PoolFileCatalog.xml", lfns)
+        cmd = replace_lfns_with_turls(cmd, job.workdir, "PoolFileCatalog.xml", lfns, writetofile=job.writetofile)
 
     # Explicitly add the ATHENA_PROC_NUMBER (or JOB value)
     cmd = add_athena_proc_number(cmd)
