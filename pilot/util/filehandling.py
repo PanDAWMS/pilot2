@@ -149,10 +149,13 @@ def tail(filename, nlines=10):
 
     :param filename: name of file to do the tail on (string).
     :param nlines: number of lines (int).
-    :return: file tail (list)
+    :return: file tail (str).
     """
 
     exit_code, stdout, stderr = execute('tail -n %d %s' % (nlines, filename))
+    # protection
+    if type(stdout) != str:
+        stdout = ""
     return stdout
 
 
