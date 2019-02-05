@@ -126,6 +126,7 @@ class ExtInfoProvider(DataLoader):
                    # FIX ME LATER: move hardcoded urls to the Config?
                    'PANDA': {'url': 'http://pandaserver.cern.ch:25085/cache/schedconfig/%s.all.json' % pandaqueues[0],
                              'nretry': 3,
+                             'sleep_time': lambda: 15 + random.randint(0, 30),  # max sleep time 45 seconds between retries
                              'cache_time': 3 * 60 * 60,  # 3 hours,
                              'fname': os.path.join(cache_dir, 'queuedata.json'),
                              'parser': jsonparser_panda
