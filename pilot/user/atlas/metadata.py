@@ -55,6 +55,11 @@ def create_input_file_metadata(file_dictionary, workdir, filename="PoolFileCatal
     # create a new XML file with the results
     xml = ElementTree.tostring(data, encoding='utf8')
     xml = minidom.parseString(xml).toprettyxml(indent="  ")
+
+    # add escape character for & (needed for google turls)
+    if '&' in xml:
+        xml = xml.replace('&', '&#038;')
+
     write_file(os.path.join(workdir, filename), xml, mute=False)
 
     return xml

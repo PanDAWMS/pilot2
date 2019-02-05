@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
 from os import environ
 
