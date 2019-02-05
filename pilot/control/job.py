@@ -494,22 +494,18 @@ def get_dispatcher_dictionary(args):
     :returns: dictionary prepared for the dispatcher getJob operation.
     """
 
-    #_diskspace = get_disk_space(args.location.queuedata)
-
-    ## passing here the queuedata is redundant since it's available
-    ## globally via pilot.info.infosys
-    ## kept for a while as "wrong" example .. to be cleaned soon
-    _diskspace = get_disk_space(args.info.infoservice.queuedata)
+    _diskspace = get_disk_space(infosys.queuedata)
 
     _mem, _cpu, _disk = collect_workernode_info()
+
     _nodename = get_node_name()
 
     # override for RC dev pilots
     job_label = get_job_label(args)
 
     data = {
-        'siteName': args.resource,
-        'computingElement': args.location.queue,
+        'siteName': args.resource,   ## replace it with `infosys.queuedata.resource` to remove redundant '-r' option of pilot.py
+        'computingElement': args.queue,
         'prodSourceLabel': job_label,
         'diskSpace': _diskspace,
         'workingGroup': args.working_group,

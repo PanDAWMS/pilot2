@@ -86,7 +86,7 @@ class InfoService(object):
 
         self.queuedata = self.resolve_queuedata(self.pandaqueue)
 
-        if not self.queuedata:
+        if not self.queuedata or not self.queuedata.name:
             raise QueuedataFailure("Failed to resolve queuedata for queue=%s, wrong PandaQueue name?" % self.pandaqueue)
 
         self.resolve_storage_data()  ## prefetch details for all storages
