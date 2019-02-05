@@ -145,8 +145,8 @@ def copy_out(files, **kwargs):
         if no_register:
             cmd.append('--no-register')
 
-        #if summary:
-        cmd.append('--summary')
+        if summary:
+            cmd.append('--summary')
 
         if fspec.turl:
             cmd.extend(['--pfn', fspec.turl])
@@ -174,7 +174,8 @@ def copy_out(files, **kwargs):
             cwd = fspec.workdir or kwargs.get('workdir') or '.'
             path = os.path.join(cwd, 'rucio_upload.json')
             if not os.path.exists(path):
-                logger.error('Failed to resolve Rucio summary JSON, wrong path? file=%s' % path)
+                logger.error('Failed to resolve Rucio summary JSON, wrong path? file=%s (checksum cannot be verified)' %
+                             path)
             else:
                 with open(path, 'rb') as f:
                     summary = json.load(f)
@@ -183,9 +184,10 @@ def copy_out(files, **kwargs):
                     # quick transfer verification:
                     # the logic should be unified and moved to base layer shared for all the movers
                     adler32 = dat.get('adler32')
-                    if fspec.checksum.get('adler32') and adler32 and fspec.checksum.get('adler32') != adler32:
+                    local_checksum = fspec.checksum.get('adler32')
+                    if local_checksum and adler32 and local_checksum != adler32:
                         msg = 'checksum verification failed: local %s != remote %s' % \
-                              (fspec.checksum.get('adler32'), adler32)
+                              (local_checksum, adler32)
                         logger.warning(msg)
                         fspec.status = 'failed'
                         fspec.status_code = ErrorCodes.PUTADMISMATCH
@@ -194,6 +196,13 @@ def copy_out(files, **kwargs):
                         if not ignore_errors:
                             raise PilotException("Failed to stageout: CRC mismatched",
                                                  code=ErrorCodes.PUTADMISMATCH, state='AD_MISMATCH')
+                    else:
+                        if local_checksum and adler32 and local_checksum == adler32:
+                            logger.info('local checksum (%s) = remote checksum (%s)' % (local_checksum, adler32))
+                        else:
+                            logger.warning('checksum could not be verified: local checksum (%s), remote checksum (%s)' %
+                                           str(local_checksum), str(adler32))
+
         if not fspec.status_code:
             fspec.status_code = 0
             fspec.status = 'transferred'
