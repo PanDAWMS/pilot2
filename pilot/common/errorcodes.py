@@ -205,6 +205,9 @@ class ErrorCodes:
         MISSINGINPUTFILE: "Input file is missing in storage element"
     }
 
+    put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
+    recoverable_error_codes = [0] + put_error_codes
+
     def get_kill_signal_error_code(self, signal):
         """
         Match a kill signal with a corresponding Pilot error code.
@@ -322,3 +325,14 @@ class ErrorCodes:
                 msg = found[0]
 
         return msg
+
+    @classmethod
+    def is_recoverable(self, code=0):
+        """
+        Determine whether code is a recoverable error code or not.
+
+        :param code: Pilot error code (int).
+        :return: boolean.
+        """
+
+        return code in self.recoverable_error_codes

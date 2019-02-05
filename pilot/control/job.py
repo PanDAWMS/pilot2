@@ -116,6 +116,35 @@ def _validate_job(job):
     return status
 
 
+def verify_error_code(job):
+    """
+    Make sure an error code is properly set.
+    This makes sure that job.piloterrorcode is always set for a failed/holding job, that not only
+    job.piloterrorcodes are set but not job.piloterrorcode. This function also negates the sign of the error code
+    and sets job state 'holding' (instead of 'failed') if the error is found to be recoverable by a later job (user
+    jobs only).
+
+    :param job: job object.
+    :return:
+    """
+
+    log = get_logger(job.jobid, logger)
+
+    if job.piloterrorcode == 0 and len(job.piloterrorcodes) > 0:
+        log.warning('piloterrorcode set to first piloterrorcodes list entry: %s' % str(job.piloterrorcodes))
+        job.piloterrorcode = job.piloterrorcode[0]
+
+    if job.piloterrorcode != 0 and job.is_analysis():
+        if errors.is_recoverable(code=job.piloterrorcode):
+            job.piloterrorcode = -abs(job.piloterrorcode)
+            job.state = 'failed'
+            log.info('failed user job is recoverable (error code=%s)' % job.piloterrorcode)
+        else:
+            log.info('failed user job is not recoverable')
+    else:
+        log.info('verified error code')
+
+
 def send_state(job, args, state, xml=None, metadata=None):
     """
     Update the server (send heartbeat message).
@@ -138,8 +167,12 @@ def send_state(job, args, state, xml=None, metadata=None):
     else:
         tag = 'sending'
 
-    if state == 'finished' or state == 'failed':
+    if state == 'finished' or state == 'failed' or state == 'holding':
         log.info('job %s has %s - %s final server update' % (job.jobid, state, tag))
+
+        # make sure an error code is properly set
+        if state != 'finished':
+            verify_error_code(job)
     else:
         log.info('job %s has state \'%s\' - %s heartbeat' % (job.jobid, state, tag))
 
@@ -1537,7 +1570,10 @@ def make_job_report(job):
     for key in job.status:
         info += key + " = " + job.status[key] + " "
     log.info('status: %s' % info)
-    log.info('pilot state: %s' % job.state)
+    s = ""
+    if job.is_analysis() and job.state != 'finished':
+        s = '(user job is recoverable)' if errors.is_recoverable(code=job.piloterrorcode) else '(user job is not recoverable)'
+    log.info('pilot state: %s %s' % (job.state, s))
     log.info('transexitcode: %d' % job.transexitcode)
     log.info('exeerrorcode: %d' % job.exeerrorcode)
     log.info('exeerrordiag: %s' % job.exeerrordiag)
