@@ -132,7 +132,7 @@ def verify_error_code(job):
 
     if job.piloterrorcode == 0 and len(job.piloterrorcodes) > 0:
         log.warning('piloterrorcode set to first piloterrorcodes list entry: %s' % str(job.piloterrorcodes))
-        job.piloterrorcode = job.piloterrorcode[0]
+        job.piloterrorcode = job.piloterrorcodes[0]
 
     if job.piloterrorcode != 0 and job.is_analysis():
         if errors.is_recoverable(code=job.piloterrorcode):
