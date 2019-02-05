@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def verify_catalog_checksum(fspec, path):
     """
-    Verify that the local and catalog checksum values are the same.
+    Verify that the local and remote (fspec) checksum values are the same.
     The function will update the fspec object.
 
     :param fspec: FileSpec object for a given file.

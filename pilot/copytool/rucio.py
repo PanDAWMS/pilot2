@@ -145,8 +145,8 @@ def copy_out(files, **kwargs):
         if no_register:
             cmd.append('--no-register')
 
-        if summary:
-            cmd.append('--summary')
+        #if summary:
+        cmd.append('--summary')
 
         if fspec.turl:
             cmd.extend(['--pfn', fspec.turl])
