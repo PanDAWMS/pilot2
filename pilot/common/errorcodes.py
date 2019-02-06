@@ -112,6 +112,7 @@ class ErrorCodes:
     NONDETERMINISTICDDM = 1329
     JSONRETRIEVALTIMEOUT = 1330
     MISSINGINPUTFILE = 1331
+    BLACKHOLE = 1332
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -202,7 +203,8 @@ class ErrorCodes:
         PAYLOADSIGSEGV: "SIGSEGV: Invalid memory reference or a segmentation fault",
         NONDETERMINISTICDDM: "Failed to construct SURL for non-deterministic ddm (update AGIS)",
         JSONRETRIEVALTIMEOUT: "JSON retrieval timed out",
-        MISSINGINPUTFILE: "Input file is missing in storage element"
+        MISSINGINPUTFILE: "Input file is missing in storage element",
+        BLACKHOLE: "Black hole detected in file system (consult Pilot log)"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
