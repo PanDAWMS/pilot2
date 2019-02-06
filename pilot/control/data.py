@@ -561,12 +561,11 @@ def create_log(job, logfile, tarball_name):
         log.debug('exception caught: %s' % e)
     job.workdir = orgworkdir
 
-    fullpath = os.path.join(job.workdir, logfile.lfn)  # reset fullpath since workdir has changed since above
-
-    return {'scope': logfile.scope,
-            'name': logfile.lfn,
-            'guid': logfile.guid,
-            'bytes': os.stat(fullpath).st_size}
+    #fullpath = os.path.join(job.workdir, logfile.lfn)  # reset fullpath since workdir has changed since above
+    #return {'scope': logfile.scope,
+    #        'name': logfile.lfn,
+    #        'guid': logfile.guid,
+    #        'bytes': os.stat(fullpath).st_size}
 
 
 def _do_stageout(job, xdata, activity, title):
