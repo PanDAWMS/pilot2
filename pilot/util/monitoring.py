@@ -173,9 +173,12 @@ def verify_looping_job(current_time, mt, job):
         try:
             exit_code, diagnostics = looping_job(job, mt)
         except Exception as e:
-            exit_code = errors.UNKNOWNEXCEPTION
             diagnostics = 'exception caught in looping job algorithm: %s' % e
             log.warning(diagnostics)
+            if "No module named" in diagnostics:
+                exit_code = errors.BLACKHOLE
+            else:
+                exit_code = errors.UNKNOWNEXCEPTION
             return exit_code, diagnostics
         else:
             if exit_code != 0:
