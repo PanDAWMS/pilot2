@@ -31,7 +31,8 @@ class StagingESClient(StagingClient):
             "param default_activity: default activity name
         """
 
-        super(StagingESClient, self).__init__(infosys_instance=infosys_instance, acopytools=acopytools, logger=None, default_copytools=default_copytools, trace_report=trace_report)
+        super(StagingESClient, self).__init__(infosys_instance=infosys_instance, acopytools=acopytools, logger=None, default_copytools=default_copytools,
+                                              trace_report=trace_report)
 
         self.copytool_modules['objectstore'] = {'module_name': 'objectstore'}
 
