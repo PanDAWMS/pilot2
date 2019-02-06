@@ -14,6 +14,8 @@
 # sites, storages, and queues from AGIS and tries to locally cache them.
 # No cache update is involved, just remove the .cache files.
 
+## THIS FILE CAN BE COMPLETELY REMOVED
+
 import collections
 import hashlib
 import json
@@ -24,12 +26,13 @@ from datetime import datetime, timedelta
 from pilot.util.config import config
 from pilot.util.filehandling import write_json, read_json
 # from pilot.common.exception import FileHandlingFailure
+from pilot.util.timer import timeout
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-def set_location(args, site=None):
+def set_location(args, site=None):  ## TO BE DEPRECATED -- not used
     """
     Set up all necessary site information.
     Resolve everything from the specified queue name, and fill extra lookup structure.
@@ -147,6 +150,7 @@ def get_schedconfig_queuedata(queue):
     return queuedata
 
 
+@timeout(seconds=120)
 def retrieve_json(url):
     """
     Retrieve JSON from an URL or from a local cache.
@@ -272,7 +276,7 @@ def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
                                (url, e, fname))
                 # will try to use old cache below
                 if trial < nretry - 1:
-                    logger.info("will try again after %ss.." % sleeptime)
+                    logger.info(" -- DEPRECATED-- will try again after %ss.." % sleeptime)
                     from time import sleep
                     sleep(sleeptime)
 

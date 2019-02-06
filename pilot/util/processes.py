@@ -301,9 +301,11 @@ def get_number_of_child_processes(pid):
     except Exception as e:
         logger.warning("exception caught in find_processes_in_group: %s" % e)
     else:
-        n = len(children)
-        logger.info("number of running child processes to parent process %d: %d" % (pid, n))
-
+        if pid:
+            n = len(children)
+            logger.info("number of running child processes to parent process %d: %d" % (pid, n))
+        else:
+            logger.debug("pid not yet set")
     return n
 
 

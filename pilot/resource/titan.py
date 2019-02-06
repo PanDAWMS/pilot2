@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 # - Danila Oleynik danila.oleynik@cern.ch, 2018
 
 import logging
@@ -28,19 +28,24 @@ logger = logging.getLogger(__name__)
 
 def get_job(harvesterpath):
     """
-    Return job description in dictonary and MPI rank (if aplicable)
-    :return: job - dictonary with job description, rank
+    Return job description in dictionary and MPI rank (if applicable)
+
+    :param harvesterpath: path to config.Harvester.jobs_list_file (string).
+    :return: job object, rank (int).
     """
+
     rank = 0
     job = None
-    logger.info("Going to read job defenition from file")
+    logger.info("Going to read job definition from file")
 
     pandaids_list_filename = os.path.join(harvesterpath, config.Harvester.jobs_list_file)
     if not os.path.isfile(pandaids_list_filename):
-        logger.info("File with PanDA IDs is missed. Nothing to execute.")
+        logger.info("File with PanDA IDs are missing. Nothing to execute.")
         return job, rank
+
     harvesterpath = os.path.abspath(harvesterpath)
     rank, max_ranks = get_ranks_info()
+
     pandaids = read_json(pandaids_list_filename)
     logger.info('Got {0} job ids'.format(len(pandaids)))
     pandaid = pandaids[rank]
@@ -90,11 +95,11 @@ def get_setup(job=None):
 
 def set_job_workdir(job, path):
     """
-    Point pilot to job working directory (job id)
+    Point pilot to job working directory (job id).
 
-    :param job: job object
-    :param path: local path to harvester acceess point
-    :return: job working directory
+    :param job: job object.
+    :param path: local path to Harvester access point (string).
+    :return: job working directory (string).
     """
     work_dir = os.path.join(path, str(job.jobid))
     os.chdir(work_dir)
@@ -104,12 +109,12 @@ def set_job_workdir(job, path):
 
 def set_scratch_workdir(job, work_dir, args):
     """
-    Copy input files and some db files to RAM disk
+    Copy input files and some db files to RAM disk.
 
-    :param job: job object
-    :param work_dir: job working directory (permanent FS)
-    :param args:  args dictionary to collect timing metrics
-    :return: job working directory in scratch
+    :param job: job object.
+    :param work_dir: job working directory (permanent FS) (string).
+    :param args: args dictionary to collect timing metrics.
+    :return: job working directory in scratch (string).
     """
 
     scratch_path = config.HPC.scratch
@@ -131,7 +136,7 @@ def set_scratch_workdir(job, work_dir, args):
     if os.path.exists(scratch_path):
         try:
             add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN, time.time(), args)
-            logger.debug("Prepare 'tmp' dir in scratch ")
+            logger.debug("Prepare \'tmp\' dir in scratch ")
             if not os.path.exists(scratch_path + tmp_path):
                 os.makedirs(scratch_path + tmp_path)
             logger.debug("Prepare dst and copy sqlite db files")
@@ -141,14 +146,14 @@ def set_scratch_workdir(job, work_dir, args):
             shutil.copyfile(src_file, scratch_path + dst_db_path + dst_db_filename)
             logger.debug("")
             sql_cp_time = time.time() - t0
-            logger.debug("Copy of squlite files took: {0}".format(sql_cp_time))
-            logger.debug("Prepare dst and copy geomDB  files")
+            logger.debug("Copy of sqlite files took: {0}".format(sql_cp_time))
+            logger.debug("Prepare dst and copy geomDB files")
             t0 = time.time()
             if not os.path.exists(scratch_path + dst_db_path_2):
                 os.makedirs(scratch_path + dst_db_path_2)
             shutil.copyfile(src_file_2, scratch_path + dst_db_path_2 + dst_db_filename_2)
             geomdb_cp_time = time.time() - t0
-            logger.debug("Copy of geomDB files took: {0}".format(geomdb_cp_time))
+            logger.debug("Copy of geomDB files took: {0} s".format(geomdb_cp_time))
             logger.debug("Prepare job scratch dir")
             t0 = time.time()
             if not os.path.exists(job_scratch_dir):
@@ -160,15 +165,15 @@ def set_scratch_workdir(job, work_dir, args):
                 shutil.copyfile(os.path.join(work_dir, inp_file),
                                 os.path.join(job.input_files[inp_file]["scratch_path"], inp_file))
             input_cp_time = time.time() - t0
-            logger.debug("Copy of input files took: {0}".format(input_cp_time))
+            logger.debug("Copy of input files took: {0} s".format(input_cp_time))
         except IOError as e:
             logger.error("I/O error({0}): {1}".format(e.errno, e.strerror))
-            logger.error("Copy to scratch failed, execution terminated':  \n %s " % (sys.exc_info()[1]))
+            logger.error("Copy to scratch failed, execution terminated': \n %s " % (sys.exc_info()[1]))
             raise FileHandlingFailure("Copy to RAM disk failed")
         finally:
             add_to_pilot_timing(job.jobid, PILOT_POST_STAGEIN, time.time(), args)
     else:
-        logger.info('Scratch directory (%s) dose not exist' % scratch_path)
+        logger.info('Scratch directory (%s) dos not exist' % scratch_path)
         return work_dir
 
     os.chdir(job_scratch_dir)
@@ -184,11 +189,14 @@ def set_scratch_workdir(job, work_dir, args):
 
 def process_jobreport(payload_report_file, job_scratch_path, job_communication_point):
     """
-    Copy job report file to be aaccesible by Harvester. Shrink job report file
-    :param payload_report_file:
-    :param job_scratch_path:
-    :param job_communication_point:
+    Copy job report file to make it accessible by Harvester. Shrink job report file.
+
+    :param payload_report_file: name of job report (string).
+    :param job_scratch_path: path to scratch directory (string).
+    :param job_communication_point: path to updated job report accessible by Harvester (string).
+    :raises FileHandlingFailure: in case of IOError.
     """
+
     src_file = os.path.join(job_scratch_path, payload_report_file)
     dst_file = os.path.join(job_communication_point, payload_report_file)
 
@@ -211,10 +219,12 @@ def process_jobreport(payload_report_file, job_scratch_path, job_communication_p
 
 def postprocess_workdir(workdir):
     """
-    Postprocesing of working directory. Unlink pathes
+    Post-processing of working directory. Unlink paths.
 
-    :param workdir: path to directory to be processed
+    :param workdir: path to directory to be processed (string).
+    :raises FileHandlingFailure: in case of IOError.
     """
+
     pseudo_dir = "poolcond"
     try:
         if os.path.exists(pseudo_dir):
@@ -225,11 +235,11 @@ def postprocess_workdir(workdir):
 
 def command_fix(command, job_scratch_dir):
     """
-    Modifing of payload parameters, to be executed on Titan on RAM disk. Clenup of some
+    Modification of payload parameters, to be executed on Titan on RAM disk. Some cleanup.
 
-    :param command:
-    :param job_scratch_dir:
-    :return:
+    :param command: payload command (string).
+    :param job_scratch_dir: local path to input files (string).
+    :return: updated/fixed payload command (string).
     """
 
     subs_a = command.split()

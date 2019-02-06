@@ -68,7 +68,12 @@ def copy_in(files, **kwargs):
             trace_report.send()
             continue
 
+<<<<<<< HEAD
         trace_report.update(catStart=time())  ## is this metric still needed? LFC catalog
+=======
+        trace_report.update(catStart=time())
+
+>>>>>>> upstream/next
         fspec.status_code = 0
         dst = fspec.workdir or kwargs.get('workdir') or '.'
 
@@ -88,7 +93,12 @@ def copy_in(files, **kwargs):
             trace_report.update(clientState=rucio_state or 'STAGEIN_ATTEMPT_FAILED',
                                 stateReason=error_msg, timeEnd=time())
             if not ignore_errors:
+<<<<<<< HEAD
                 raise PilotException(error_msg, code=error.get('rcode'), state='FAILED')
+=======
+                trace_report.send()
+                raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
+>>>>>>> upstream/next
 
         # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
         destination = os.path.join(dst, fspec.lfn)
@@ -165,8 +175,12 @@ def copy_out(files, **kwargs):
             trace_report.update(clientState=error.get('state', None) or 'STAGEOUT_ATTEMPT_FAILED',
                                 stateReason=error.get('error', 'unknown error'),
                                 timeEnd=time())
+<<<<<<< HEAD
             #trace_report.send()
+=======
+>>>>>>> upstream/next
             if not ignore_errors:
+                trace_report.send()
                 raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
         if summary:  # resolve final pfn (turl) from the summary JSON

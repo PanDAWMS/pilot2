@@ -213,6 +213,10 @@ def alrb_wrapper(cmd, workdir, job):
         _cmd = asetup
         if job.platform:
             _cmd += 'export thePlatform=\"%s\";' % job.platform
+        elif '--containerImage' in job.jobparams:
+            # set a default platform for user defined containers
+            _cmd += 'export thePlatform=\"centos7\";'
+
         #if '--containall' not in singularity_options:
         #    singularity_options += ' --containall'
         if singularity_options != "":
@@ -235,13 +239,19 @@ def alrb_wrapper(cmd, workdir, job):
             job.jobparams, container_path = remove_container_string(job.jobparams)
             if container_path != "":
                 _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % container_path
+
+                if not job.platform:
+                    # add the default platform if not set by the job definition
+                    _cmd += ' $thePlatform'
             else:
                 log.warning('failed to extract container path from %s' % job.jobparams)
                 _cmd = ""
         else:
-            _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c images'
+            # _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c images'
+            _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c '
             if job.platform:
-                _cmd += '+$thePlatform'
+                # _cmd += '+$thePlatform'
+                _cmd += '$thePlatform'
 
         _cmd = _cmd.replace('  ', ' ')
         cmd = _cmd

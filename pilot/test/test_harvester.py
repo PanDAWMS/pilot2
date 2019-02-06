@@ -18,7 +18,7 @@ from pilot.api import data
 
 
 class TestHarvesterStageIn(unittest.TestCase):
-    '''
+    """
     Automatic stage-in tests for Harvester.
 
         from pilot.api import data
@@ -42,7 +42,7 @@ class TestHarvesterStageIn(unittest.TestCase):
           mc15_14TeV:HITS.10075481._000451.pool.root.1
           mc15_14TeV:HITS.10075481._000454.pool.root.1
           mc15_14TeV:HITS.10075481._000455.pool.root.1
-    '''
+    """
 
     def setUp(self):
         # skip tests if running through Travis -- github does not have working rucio

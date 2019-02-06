@@ -34,7 +34,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def set_info(args):
+def set_info(args):   ## should be DEPRECATED: use `infosys.init(queuename)`
     """
     Set up all necessary site information for given PandaQueue name.
     Resolve everything from the specified queue name (passed via `args.queue`)

@@ -495,7 +495,16 @@ def process_job_report(job):
                             '(will be set to empty string)' % e)
                 job.exitmsg = ""
             else:
-                log.info('extracted exit message from job report: %s' % job.exitmsg)
+                # assign special payload error code
+                if "got a SIGSEGV signal" in job.exitmsg:
+                    diagnostics = 'Invalid memory reference or a segmentation fault in payload: %s (job report)' % \
+                                  job.exitmsg
+                    log.warning(diagnostics)
+                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADSIGSEGV)
+                    job.piloterrorcode = errors.PAYLOADSIGSEGV
+                    job.piloterrordiag = diagnostics
+                else:
+                    log.info('extracted exit message from job report: %s' % job.exitmsg)
 
             if job.exitcode != 0:
                 # get list with identified errors in job report

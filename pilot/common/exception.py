@@ -360,6 +360,16 @@ class QueuedataNotOK(PilotException):
         self._message = errors.get_error_message(self._errorCode)
 
 
+class ReplicasNotFound(PilotException):
+    """
+    No matching replicas were found in list_replicas() output.
+    """
+    def __init__(self, *args, **kwargs):
+        super(ReplicasNotFound, self).__init__(args, kwargs)
+        self._errorCode = errors.NOREPLICAS
+        self._message = errors.get_error_message(self._errorCode)
+
+
 class ExcThread(threading.Thread):
     """
     Support class that allows for catching exceptions in threads.
