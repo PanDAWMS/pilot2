@@ -649,11 +649,23 @@ def update_job_data(job):  # noqa: C901
 
 
 def get_outfiles_records(subfiles):
+    """
+    Extract file info from job report JSON subfiles entry.
+
+    :param subfiles: list of subfiles.
+    :return: file info dictionary with format { 'guid': .., 'size': .., 'nentries': .. (optional)}
+    """
+
     res = {}
     for f in subfiles:
         res[f['name']] = {'guid': f['file_guid'],
-                          'nentries': f['nentries'],
                           'size': f['file_size']}
+        nentries = f.get('nentries', 'UNDEFINED')
+        if type(nentries) == int:
+            res[f['name']]['nentries'] = nentries
+        else:
+            logger.warning("nentries is undefined in job report")
+
     return res
 
 
