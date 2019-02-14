@@ -22,7 +22,7 @@ class StagingESClient(StagingClient):
         Base ES Staging Client
     """
 
-    def __init__(self, infosys_instance=None, acopytools=None, logger=logger, default_copytools='rucio', default_activity='default'):
+    def __init__(self, infosys_instance=None, acopytools=None, logger=logger, default_copytools='rucio', default_activity='default', trace_report=None):
         """
             If `acopytools` is not specified then it will be automatically resolved via infosys. In this case `infosys` requires initialization.
             :param acopytools: dict of copytool names per activity to be used for transfers. Accepts also list of names or string value without activity passed.
@@ -31,7 +31,8 @@ class StagingESClient(StagingClient):
             "param default_activity: default activity name
         """
 
-        super(StagingESClient, self).__init__(infosys_instance=infosys_instance, acopytools=acopytools, logger=None, default_copytools=default_copytools)
+        super(StagingESClient, self).__init__(infosys_instance=infosys_instance, acopytools=acopytools, logger=None, default_copytools=default_copytools,
+                                              trace_report=trace_report)
 
         self.copytool_modules['objectstore'] = {'module_name': 'objectstore'}
 
