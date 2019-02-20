@@ -48,7 +48,7 @@ def get_batchsystem_jobid():
 
     for key, value in batchsystem_dict.iteritems():
         if key in os.environ:
-            return value, key
+            return value, os.environ.get(key, '')
 
     # Condor (get jobid from classad file)
     if '_CONDOR_JOB_AD' in os.environ:
