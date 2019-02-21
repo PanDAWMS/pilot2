@@ -332,7 +332,7 @@ class NoSoftwareDir(PilotException):
 
 class LogFileCreationFailure(PilotException):
     """
-    Software applications directory does not exist.
+    Log file could not be created.
     """
     def __init__(self, *args, **kwargs):
         super(LogFileCreationFailure, self).__init__(args, kwargs)
