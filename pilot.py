@@ -153,6 +153,7 @@ def import_module(**kwargs):
                            '--harvester-datadir': kwargs.get('harvester_datadir', ''),
                            '--harvester-eventstatusdump': kwargs.get('harvester_eventstatusdump', ''),
                            '--harvester-workerattributes': kwargs.get('harvester_workerattributes', ''),
+                           '--harvester-submitmode': kwargs.get('harvester_submitmode', ''),
                            '--resource-type': kwargs.get('resource_type', '')
                            }
 
@@ -332,6 +333,10 @@ def get_args():
                             dest='harvester_workerattributes',
                             default='',
                             help='Harvester worker attributes json file containing job status')
+    arg_parser.add_argument('--harvester-submit-mode',
+                            dest='harvester_submitmode',
+                            default='PULL',
+                            help='Harvester submit mode (PUSH or PULL [default])')
     arg_parser.add_argument('--resource-type',
                             dest='resource_type',
                             default='',

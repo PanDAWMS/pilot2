@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 def is_harvester_mode(args):
     """
     Determine if the pilot is running in Harvester mode.
-    :param args:
-    :return:
+    :param args: Pilot arguments object.
+    :return: Boolean.
     """
 
     if (args.harvester_workdir != '' or args.harvester_datadir != '' or args.harvester_eventstatusdump != '' or

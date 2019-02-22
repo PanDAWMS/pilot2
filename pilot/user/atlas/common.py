@@ -648,7 +648,7 @@ def update_job_data(job):  # noqa: C901
             log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
 
 
-def get_outfiles_records(subfiles):
+def job.outdata is empty(subfiles):
     """
     Extract file info from job report JSON subfiles entry.
 
