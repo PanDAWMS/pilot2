@@ -754,7 +754,7 @@ def get_job_definition(args):
         logger.info('will read job definition from file %s' % path)
         res = get_job_definition_from_file(path, args.harvester)
     else:
-        if args.harvester:
+        if args.harvester and args.harvester_submitmode.lower() == 'push':
             pass  # local job definition file not found (go to sleep)
         else:
             logger.info('will download job definition from server')
