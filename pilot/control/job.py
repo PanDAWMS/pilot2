@@ -468,6 +468,7 @@ def get_job_label(args):
     elif args.version_tag == 'ALRB':
         job_label = 'rc_alrb'
     elif status == 'test' and args.job_label != 'ptest':
+        logger.warning('PQ status set to test - will use job label / prodSourceLabel test')
         job_label = 'test'
     else:
         job_label = args.job_label
