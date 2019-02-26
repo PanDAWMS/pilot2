@@ -312,22 +312,8 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
 
     # in debug mode, also send a tail of the latest log file touched by the payload
     if job.debug:
-        # find the latest updated log file
-        list_of_files = get_list_of_log_files()
-        if not list_of_files:
-            log.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
-            list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]  # get_files(pattern=config.Payload.payloadstdout)
-
-        try:
-            latest_file = max(list_of_files, key=os.path.getmtime)
-            log.info('tail of file %s will be added to heartbeat' % latest_file)
-
-            # now get the tail of the found log file and protect against potentially large tails
-            stdout_tail = latest_file + "\n" + tail(latest_file)
-            stdout_tail = stdout_tail[-2048:]
-        except Exception as e:
-            log.warning('failed to get payload stdout tail: %s' % e)
-        else:
+        stdout_tail = get_stdout_tail()
+        if stdout_tail:
             data['stdout'] = stdout_tail
 
     if state == 'finished' or state == 'failed':
@@ -358,6 +344,37 @@ def get_list_of_log_files():
         list_of_files = get_files(pattern="log.*")
 
     return list_of_files
+
+
+def get_payload_log_tail(job):
+    """
+    Return the tail of the payload stdout or its latest updated log file.
+
+    :param job: job object.
+    :return: tail of stdout (string).
+    """
+
+    log = get_logger(job.jobid, logger)
+    stdout_tail = ""
+
+    # find the latest updated log file
+    list_of_files = get_list_of_log_files(job)
+    if not list_of_files:
+        log.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
+        list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]  # get_files(pattern=config.Payload.payloadstdout)
+
+    try:
+        latest_file = max(list_of_files, key=os.path.getmtime)
+        log.info('tail of file %s will be added to heartbeat' % latest_file)
+
+        # now get the tail of the found log file and protect against potentially large tails
+        stdout_tail = latest_file + "\n" + tail(latest_file)
+        stdout_tail = stdout_tail[-2048:]
+    except Exception as e:
+        log.warning('failed to get payload stdout tail: %s' % e)
+
+    return stdout_tail
+
 
 def validate(queues, traces, args):
     """
