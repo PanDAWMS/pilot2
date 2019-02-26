@@ -320,13 +320,17 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
             log.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
             list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]  # get_files(pattern=config.Payload.payloadstdout)
 
-        latest_file = max(list_of_files, key=os.path.getmtime)
-        log.info('tail of file %s will be added to heartbeat' % latest_file)
+        try:
+            latest_file = max(list_of_files, key=os.path.getmtime)
+            log.info('tail of file %s will be added to heartbeat' % latest_file)
 
-        # now get the tail of the found log file and protect against potentially large tails
-        stdout_tail = tail(latest_file)
-        stdout_tail = stdout_tail[-2048:]
-        data['stdout'] = stdout_tail
+            # now get the tail of the found log file and protect against potentially large tails
+            stdout_tail = latest_file + "\n" + tail(latest_file)
+            stdout_tail = stdout_tail[-2048:]
+        except Exception as e:
+            log.warning('failed to get payload stdout tail: %s' % e)
+        else:
+            data['stdout'] = stdout_tail
 
     if state == 'finished' or state == 'failed':
         time_getjob, time_stagein, time_payload, time_stageout, time_total_setup = timing_report(job.jobid, args)
