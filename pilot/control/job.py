@@ -312,7 +312,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
 
     # in debug mode, also send a tail of the latest log file touched by the payload
     if job.debug:
-        stdout_tail = get_stdout_tail()
+        stdout_tail = get_payload_log_tail()
         if stdout_tail:
             data['stdout'] = stdout_tail
 
