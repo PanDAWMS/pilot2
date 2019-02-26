@@ -314,6 +314,8 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     if job.debug:
         # find the latest updated log file
         list_of_files = get_files()
+        if not list_of_files:  # some TRFs produce logs with different naming scheme
+            list_of_files = get_files(pattern="log.*")
         if not list_of_files:
             log.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
             list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]  # get_files(pattern=config.Payload.payloadstdout)
