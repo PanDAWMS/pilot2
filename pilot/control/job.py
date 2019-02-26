@@ -313,9 +313,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     # in debug mode, also send a tail of the latest log file touched by the payload
     if job.debug:
         # find the latest updated log file
-        list_of_files = get_files()
-        if not list_of_files:  # some TRFs produce logs with different naming scheme
-            list_of_files = get_files(pattern="log.*")
+        list_of_files = get_list_of_log_files()
         if not list_of_files:
             log.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
             list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]  # get_files(pattern=config.Payload.payloadstdout)
@@ -347,6 +345,19 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
 
     return data
 
+
+def get_list_of_log_files():
+    """
+    Return a list of log files produced by the payload.
+
+    :return: list of log files.
+    """
+
+    list_of_files = get_files()
+    if not list_of_files:  # some TRFs produce logs with different naming scheme
+        list_of_files = get_files(pattern="log.*")
+
+    return list_of_files
 
 def validate(queues, traces, args):
     """
