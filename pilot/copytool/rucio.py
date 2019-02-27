@@ -125,7 +125,7 @@ def copy_out(files, **kwargs):
     # don't spoil the output, we depend on stderr parsing
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
-    no_register = kwargs.pop('no_register', False)
+    no_register = kwargs.pop('no_register', True)
     summary = kwargs.pop('summary', True)
     ignore_errors = kwargs.pop('ignore_errors', False)
     trace_report = kwargs.get('trace_report')
