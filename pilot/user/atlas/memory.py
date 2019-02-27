@@ -37,13 +37,25 @@ def get_ucore_scale_factor(job):
 
     try:
         job_corecount = float(job.corecount)
-        schedconfig_corecount = float(job.infosys.queuedata.corecount)
-        log.debug('job.corecount=%f' % job_corecount)
-        log.debug('schedconfig.corecount=%f' % schedconfig_corecount)
-        scale = job_corecount / schedconfig_corecount
-        log.debug('scale=%f' % scale)
     except Exception as e:
-        log.warning('exception caught: %s (using scale factor 1)' % e)
+        log.warning('exception caught: %s (job.corecount=%s)' % (e, str(job.corecount)))
+        job_corecount = None
+
+    try:
+        schedconfig_corecount = float(job.infosys.queuedata.corecount)
+    except Exception as e:
+        log.warning('exception caught: %s (job.infosys.queuedata.corecount=%s)' % (e, str(job.infosys.queuedata.corecount)))
+        schedconfig_corecount = None
+
+    if job_corecount and schedconfig_corecount:
+        try:
+            scale = job_corecount / schedconfig_corecount
+            log.debug('scale=%f' % scale)
+        except Exception as e:
+            log.warning('exception caught: %s (using scale factor 1)' % e)
+            scale = 1
+    else:
+        log.debug('will use scale factor 1')
         scale = 1
 
     return scale
