@@ -158,8 +158,7 @@ def copy_out(files, **kwargs):
 
         cmd += [fspec.surl]
 
-        timeoutlimit = get_timeout(fspec.filesize)
-        @timeout(seconds=timeoutlimit)
+        kwargs['timeout'] = get_timeout(fspec.filesize)
         rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
         logger.info('stdout = %s' % stdout)
         logger.info('stderr = %s' % stderr)
