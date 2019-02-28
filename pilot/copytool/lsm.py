@@ -17,6 +17,7 @@ from time import time
 from .common import get_copysetup, verify_catalog_checksum, resolve_common_transfer_errors  #, get_timeout
 from pilot.common.exception import StageInFailure, StageOutFailure, PilotException, ErrorCodes
 from pilot.util.container import execute
+from pilot.util.timer import timeout
 
 
 logger = logging.getLogger(__name__)
@@ -309,6 +310,8 @@ def move(source, destination, dst_in=True, copysetup="", options=None):
         cmd += "lsm-put %s" % args
 
     try:
+        #timeoutlimit = get_timeout(fspec.filesize)
+        @timeout(seconds=0.001)
         exit_code, stdout, stderr = execute(cmd)
     except Exception as e:
         if dst_in:

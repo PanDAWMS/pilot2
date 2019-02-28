@@ -358,7 +358,8 @@ class StagingClient(object):
             if caught_errors and isinstance(caught_errors[-1], PilotException):
                 code = caught_errors[0].get_error_code()
             elif caught_errors and isinstance(caught_errors[-1], TimeoutException):
-                code = 0  # is it stage-in/out?
+                code = errors.STAGEINTIMEOUT  # is it stage-in/out?
+                self.logger.warning('caught time-out exceptino: %s' % caught_errors[0])
             else:
                 code = None
             self.logger.fatal('caught_errors=%s' % str(caught_errors))
