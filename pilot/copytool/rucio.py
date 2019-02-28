@@ -16,9 +16,10 @@ import json
 import logging
 from time import time
 
-from .common import resolve_common_transfer_errors, verify_catalog_checksum
+from .common import resolve_common_transfer_errors, verify_catalog_checksum, get_timeout
 from pilot.common.exception import PilotException, ErrorCodes
 from pilot.util.container import execute
+from pilot.util.timer import timeout
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,10 @@ def copy_in(files, **kwargs):
             cmd += ['--rse', fspec.replicas[0][0]]
         cmd += ['%s:%s' % (fspec.scope, fspec.lfn)]
 
+        timeoutlimit = get_timeout(fspec.filesize)
+        @timeout(seconds=timeoutlimit)
         rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
+
         logger.info('stdout = %s' % stdout)
         logger.info('stderr = %s' % stderr)
 
@@ -153,6 +157,8 @@ def copy_out(files, **kwargs):
 
         cmd += [fspec.surl]
 
+        timeoutlimit = get_timeout(fspec.filesize)
+        @timeout(seconds=timeoutlimit)
         rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
         logger.info('stdout = %s' % stdout)
         logger.info('stderr = %s' % stderr)

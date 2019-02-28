@@ -26,12 +26,13 @@ from Queue import Empty
 from functools import wraps
 
 
+# move this class to exception.py
 class TimeoutException(Exception):
 
     def __init__(self, message, timeout=None, *args):
         self.timeout = timeout
         self.message = message
-
+        self._errorCode = 1334
         super(TimeoutException, self).__init__(*args)
 
     def __str__(self):

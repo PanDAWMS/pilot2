@@ -24,6 +24,7 @@ from pilot.util.filehandling import calculate_checksum
 from pilot.util.math import convert_mb_to_b
 from pilot.util.parameters import get_maximum_input_sizes
 from pilot.util.workernode import get_local_disk_space
+from pilot.util.timer import TimeoutException
 from pilot.util.tracereport import TraceReport
 
 errors = ErrorCodes()
@@ -334,6 +335,10 @@ class StagingClient(object):
                 msg = 'failed to execute transfer_files(): PilotException caught: %s' % e
                 self.logger.warning(msg)
                 caught_errors.append(e)
+            except TimeoutException as e:
+                msg = 'function timed out: %s' % e
+                self.logger.warning(msg)
+                caught_errors.append(e)
             except Exception as e:
                 self.logger.warning('failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
                 import traceback
@@ -352,6 +357,8 @@ class StagingClient(object):
         if not result:
             if caught_errors and isinstance(caught_errors[-1], PilotException):
                 code = caught_errors[0].get_error_code()
+            elif caught_errors and isinstance(caught_errors[-1], TimeoutException):
+                code = 0  # is it stage-in/out?
             else:
                 code = None
             self.logger.fatal('caught_errors=%s' % str(caught_errors))

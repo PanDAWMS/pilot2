@@ -18,6 +18,22 @@ from pilot.util.filehandling import calculate_checksum, get_checksum_type, get_c
 logger = logging.getLogger(__name__)
 
 
+def get_timeout(filesize):
+    """
+    Get a proper time-out limit based on the file size.
+
+    :param filesize: file size (int).
+    :return:
+    """
+
+    timeout_max = 3 * 3600  # 3 hours
+    timeout_min = 300  # self.timeout
+
+    timeout = timeout_min + int(filesize / 0.5e6)  # approx < 0.5 Mb/sec
+
+    return min(timeout, timeout_max)
+
+
 def verify_catalog_checksum(fspec, path):
     """
     Verify that the local and remote (fspec) checksum values are the same.
