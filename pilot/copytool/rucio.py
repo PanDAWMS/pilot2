@@ -36,7 +36,7 @@ def is_valid_for_copy_out(files):
     return True  ## FIX ME LATER
 
 
-@timeout(seconds=600)
+# @timeout(seconds=600)
 def copy_in(files, **kwargs):
     """
         Download given files using rucio copytool.
@@ -77,9 +77,11 @@ def copy_in(files, **kwargs):
         cmd = ['/usr/bin/env', 'rucio', '-v', 'download', '--no-subdir', '--dir', dst, '--pfn', fspec.turl]
         if require_replicas and fspec.replicas:
             cmd += ['--rse', fspec.replicas[0][0]]
+
+        cmd.extend(['timeout', get_timeout(fspec.filesize)])
         cmd += ['%s:%s' % (fspec.scope, fspec.lfn)]
 
-        kwargs['timeout'] = get_timeout(fspec.filesize)
+        # kwargs['timeout'] = get_timeout(fspec.filesize)
         rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
 
         logger.info('stdout = %s' % stdout)
@@ -117,7 +119,7 @@ def copy_in(files, **kwargs):
     return files
 
 
-@timeout(seconds=600)
+# @timeout(seconds=600)
 def copy_out(files, **kwargs):
     """
         Upload given files using rucio copytool.
@@ -156,9 +158,10 @@ def copy_out(files, **kwargs):
         if fspec.turl:
             cmd.extend(['--pfn', fspec.turl])
 
+        cmd.extend(['timeout', get_timeout(fspec.filesize)])
         cmd += [fspec.surl]
 
-        kwargs['timeout'] = get_timeout(fspec.filesize)
+        # kwargs['timeout'] = get_timeout(fspec.filesize)
         rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
         logger.info('stdout = %s' % stdout)
         logger.info('stderr = %s' % stderr)

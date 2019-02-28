@@ -284,7 +284,7 @@ def move_all_files_out(files, nretries=1):
     return exit_code, stdout, stderr
 
 
-@timeout(seconds=1)
+@timeout(seconds=600)
 def move(source, destination, dst_in=True, copysetup="", options=None):
     """
     Use lsm-get or lsm-put to transfer the file.
