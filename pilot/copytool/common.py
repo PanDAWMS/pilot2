@@ -173,7 +173,8 @@ def resolve_common_transfer_errors(output, is_stagein=True):
         error_msg = "Could not establish context: Proxy / VO extension of proxy has probably expired: %s" % output
         ret = get_error_info(ErrorCodes.NOPROXY, 'CONTEXT_FAIL', error_msg)
     elif "No space left on device" in output:
-        ret = get_error_info(ErrorCodes.NOLOCALSPACE, 'NO_SPACE', "No available space left on local disk: %s" % output)
+        ret = get_error_info(ErrorCodes.NOLOCALSPACE if is_stagein else ErrorCodes.NOREMOTESPACE,
+                             'NO_SPACE', "No available space left on disk: %s" % output)
     elif "No such file or directory" in output:
         ret = get_error_info(ErrorCodes.NOSUCHFILE, 'NO_FILE', output)
     elif "service is not available at the moment" in output:
