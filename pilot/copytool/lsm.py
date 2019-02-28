@@ -284,6 +284,7 @@ def move_all_files_out(files, nretries=1):
     return exit_code, stdout, stderr
 
 
+@timeout(seconds=1)
 def move(source, destination, dst_in=True, copysetup="", options=None):
     """
     Use lsm-get or lsm-put to transfer the file.
@@ -310,9 +311,7 @@ def move(source, destination, dst_in=True, copysetup="", options=None):
         cmd += "lsm-put %s" % args
 
     try:
-        #timeoutlimit = get_timeout(fspec.filesize)
-        @timeout(seconds=0.001)
-        exit_code, stdout, stderr = execute(cmd)
+        exit_code, stdout, stderr = execute(cmd, timeout=get_timeout(fspec.filesize))
     except Exception as e:
         if dst_in:
             exit_code = ErrorCodes.STAGEINFAILED

@@ -36,6 +36,7 @@ def is_valid_for_copy_out(files):
     return True  ## FIX ME LATER
 
 
+@timeout(seconds=600)
 def copy_in(files, **kwargs):
     """
         Download given files using rucio copytool.
@@ -78,8 +79,7 @@ def copy_in(files, **kwargs):
             cmd += ['--rse', fspec.replicas[0][0]]
         cmd += ['%s:%s' % (fspec.scope, fspec.lfn)]
 
-        timeoutlimit = get_timeout(fspec.filesize)
-        @timeout(seconds=timeoutlimit)
+        kwargs['timeout'] = get_timeout(fspec.filesize)
         rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
 
         logger.info('stdout = %s' % stdout)
@@ -117,6 +117,7 @@ def copy_in(files, **kwargs):
     return files
 
 
+@timeout(seconds=600)
 def copy_out(files, **kwargs):
     """
         Upload given files using rucio copytool.

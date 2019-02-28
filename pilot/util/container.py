@@ -28,7 +28,7 @@ def execute(executable, **kwargs):
     cwd = kwargs.get('cwd', getcwd())
     stdout = kwargs.get('stdout', subprocess.PIPE)
     stderr = kwargs.get('stderr', subprocess.PIPE)
-    timeout = kwargs.get('timeout', 120)
+    timeout = kwargs.get('timeout', None)
     usecontainer = kwargs.get('usecontainer', False)
     returnproc = kwargs.get('returnproc', False)
     mute = kwargs.get('mute', False)
