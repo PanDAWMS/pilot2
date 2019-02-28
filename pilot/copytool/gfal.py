@@ -18,6 +18,7 @@ from time import time
 from .common import resolve_common_transfer_errors, get_timeout
 from pilot.common.exception import PilotException, ErrorCodes, StageInFailure, StageOutFailure
 from pilot.util.container import execute
+from pilot.util.timer import timeout
 
 logger = logging.getLogger(__name__)
 
@@ -233,6 +234,7 @@ def move_all_files_out(files, nretries=1):  ### NOT USED -- TO BE DEPRECATED
     return exit_code, stdout, stderr
 
 
+@timeout(seconds=600)
 def move(source, destination, recursive=False):
     cmd = None
     if recursive:
