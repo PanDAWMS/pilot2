@@ -607,12 +607,20 @@ def _do_stageout(job, xdata, activity, title):
         log.error(traceback.format_exc())
         # do not raise the exception since that will prevent also the log from being staged out
         # error = PilotException("stageOut failed with error=%s" % e, code=ErrorCodes.STAGEOUTFAILED)
+    else:
+        log.debug('stage-out client completed')
 
     log.info('summary of transferred files:')
     for e in xdata:
-        log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
+        if not e.status:
+            status = "(not transferred)"
+        else:
+            status = e.status
+        log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, status))
 
     remain_files = [e for e in xdata if e.status not in ['transferred']]
+    log.debug('remain_files=%s' % str(remain_files))
+    log.debug('xdata=%s' % str(xdata))
 
     return not remain_files
 

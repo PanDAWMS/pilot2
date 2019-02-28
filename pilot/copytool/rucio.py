@@ -19,7 +19,7 @@ from time import time
 from .common import resolve_common_transfer_errors, verify_catalog_checksum, get_timeout
 from pilot.common.exception import PilotException, ErrorCodes
 from pilot.util.container import execute
-# from pilot.util.timer import timeout
+from pilot.util.timer import timeout
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ def is_valid_for_copy_out(files):
     return True  ## FIX ME LATER
 
 
-# @timeout(seconds=600)
+@timeout(seconds=600)
 def copy_in(files, **kwargs):
     """
         Download given files using rucio copytool.
@@ -119,7 +119,7 @@ def copy_in(files, **kwargs):
     return files
 
 
-# @timeout(seconds=600)
+@timeout(seconds=600)
 def copy_out(files, **kwargs):
     """
         Upload given files using rucio copytool.

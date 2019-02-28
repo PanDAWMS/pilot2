@@ -370,6 +370,7 @@ class StagingClient(object):
             raise PilotException('failed to transfer files using copytools=%s, error=%s' % (copytools, caught_errors),
                                  code=code)
 
+        self.logger.debug('result=%s' % str(result))
         return result
 
 
