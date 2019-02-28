@@ -19,7 +19,7 @@ from time import time
 from .common import resolve_common_transfer_errors, verify_catalog_checksum, get_timeout
 from pilot.common.exception import PilotException, ErrorCodes
 from pilot.util.container import execute
-from pilot.util.timer import timeout
+# from pilot.util.timer import timeout
 
 logger = logging.getLogger(__name__)
 
