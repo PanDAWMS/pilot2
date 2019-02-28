@@ -14,7 +14,7 @@ import logging
 import errno
 from time import time
 
-from .common import get_copysetup, verify_catalog_checksum, resolve_common_transfer_errors  #, get_timeout
+from .common import get_copysetup, verify_catalog_checksum, resolve_common_transfer_errors, get_timeout
 from pilot.common.exception import StageInFailure, StageOutFailure, PilotException, ErrorCodes
 from pilot.util.container import execute
 from pilot.util.timer import timeout
