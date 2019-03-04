@@ -78,7 +78,7 @@ def copy_in(files, **kwargs):
         if require_replicas and fspec.replicas:
             cmd += ['--rse', fspec.replicas[0][0]]
 
-        cmd.extend(['timeout', get_timeout(fspec.filesize)])
+        cmd.extend(['timeout', str(get_timeout(fspec.filesize)]))
         cmd += ['%s:%s' % (fspec.scope, fspec.lfn)]
 
         # kwargs['timeout'] = get_timeout(fspec.filesize)
@@ -158,7 +158,7 @@ def copy_out(files, **kwargs):
         if fspec.turl:
             cmd.extend(['--pfn', fspec.turl])
 
-        cmd.extend(['timeout', get_timeout(fspec.filesize)])
+        cmd.extend(['timeout', str(get_timeout(fspec.filesize)]))
         cmd += [fspec.surl]
 
         # kwargs['timeout'] = get_timeout(fspec.filesize)
