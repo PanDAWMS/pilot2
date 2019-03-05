@@ -74,11 +74,10 @@ def copy_in(files, **kwargs):
         fspec.status_code = 0
 
         dst = fspec.workdir or kwargs.get('workdir') or '.'
-        cmd = ['/usr/bin/env', 'rucio', '-v', 'download', '--no-subdir', '--dir', dst, '--pfn', fspec.turl]
+        cmd = ['/usr/bin/env', 'rucio', '-v', '--transfer-timeout', str(get_timeout(fspec.filesize)), 'download', '--no-subdir', '--dir', dst, '--pfn', fspec.turl]
         if require_replicas and fspec.replicas:
             cmd += ['--rse', fspec.replicas[0][0]]
 
-        # cmd.extend(['-T', str(get_timeout(fspec.filesize))])
         cmd += ['%s:%s' % (fspec.scope, fspec.lfn)]
 
         # kwargs['timeout'] = get_timeout(fspec.filesize)
@@ -141,7 +140,7 @@ def copy_out(files, **kwargs):
         trace_report.update(scope=fspec.scope, dataset=fspec.dataset, url=fspec.surl, filesize=fspec.filesize)
         trace_report.update(catStart=time(), filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
 
-        cmd = ['/usr/bin/env', 'rucio', '-v', 'upload']
+        cmd = ['/usr/bin/env', 'rucio', '-v', '--transfer-timeout', str(get_timeout(fspec.filesize)), 'upload']
         cmd += ['--rse', fspec.ddmendpoint]
 
         if fspec.scope:
@@ -158,7 +157,6 @@ def copy_out(files, **kwargs):
         if fspec.turl:
             cmd.extend(['--pfn', fspec.turl])
 
-        # cmd.extend(['-T', str(get_timeout(fspec.filesize))])
         cmd += [fspec.surl]
 
         # kwargs['timeout'] = get_timeout(fspec.filesize)
