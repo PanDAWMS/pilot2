@@ -1308,6 +1308,7 @@ def queue_monitor(queues, traces, args):
         logger.warning('queues are still empty of jobs - will begin queue monitoring anyway')
 
     job = None
+    sentfinal = False
     while True:  # will abort when graceful_stop has been set
         if traces.pilot['command'] == 'abort':
             logger.warning('job queue monitor received an abort instruction')
@@ -1339,17 +1340,20 @@ def queue_monitor(queues, traces, args):
                 wait_for_aborted_job_stageout(args, queues, job)
 
             # send final server update
-            path = os.path.join(job.workdir, config.Payload.jobreport)
-            if os.path.exists(path):
-                metadata = read_file(path)  #read_json(path)
-            else:
-                metadata = None
-            if job.fileinfo:
-                log.debug('xml:will send fileinfo')
-                send_state(job, args, job.state, xml=dumps(job.fileinfo), metadata=metadata)
-            else:
-                log.debug('will not send fileinfo')
-                send_state(job, args, job.state, metadata=metadata)
+            if not sentfinal:
+                path = os.path.join(job.workdir, config.Payload.jobreport)
+                if os.path.exists(path):
+                    metadata = read_file(path)  #read_json(path)
+                else:
+                    metadata = None
+                log.debug('metadata=%s' % str(metadata)
+                if job.fileinfo:
+                    log.debug('xml:will send fileinfo')
+                    send_state(job, args, job.state, xml=dumps(job.fileinfo), metadata=metadata)
+                else:
+                    log.debug('will not send fileinfo')
+                    send_state(job, args, job.state, metadata=metadata)
+                sentfinal = True
 
             # we can now stop monitoring this job, so remove it from the monitored_payloads queue and add it to the
             # completed_jobs queue which will tell retrieve() that it can download another job
