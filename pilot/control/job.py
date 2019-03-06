@@ -203,26 +203,8 @@ def send_state(job, args, state, xml=None, metadata=None):
                 log.info('res = %s' % str(res))
 
                 # does the server update contain any backchannel information? if so, update the job object
-                if 'command' in res and res.get('command') != 'NULL':
-                    # look for 'tobekilled', 'softkill', 'debug', 'debugoff'
-                    if res.get('command') == 'tobekilled':
-                        log.info('pilot received a panda server signal to kill job %s at %s' %
-                                 (job.jobid, time_stamp()))
-                        set_pilot_state(job=job, state="failed")
-                        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL)
-                        args.abort_job.set()
-                    elif res.get('command') == 'softkill':
-                        log.info('pilot received a panda server signal to softkill job %s at %s' %
-                                 (job.jobid, time_stamp()))
-                        # event service kill instruction
-                    elif res.get('command') == 'debug':
-                        log.info('pilot received a command to turn on debug mode from the server')
-                        job.debug = True
-                    elif res.get('command') == 'debugoff':
-                        log.info('pilot received a command to turn off debug mode from the server')
-                        job.debug = False
-                    else:
-                        log.warning('received unknown server command via backchannel: %s' % res.get('command'))
+                handle_backchannel_command(res, job, args)
+
                 return True
         else:
             log.info('skipping job update for fake test job')
@@ -234,6 +216,40 @@ def send_state(job, args, state, xml=None, metadata=None):
 
     log.warning('set job state=%s failed' % state)
     return False
+
+
+def handle_backchannel_command(res, job, args):
+    """
+    Does the server update contain any backchannel information? if so, update the job object.
+
+    :param res: server response (dictionary).
+    :param job: job object.
+    :param args: pilot args object.
+    :return:
+    """
+
+    log = get_logger(job.jobid, logger)
+
+    if 'command' in res and res.get('command') != 'NULL':
+        # look for 'tobekilled', 'softkill', 'debug', 'debugoff'
+        if res.get('command') == 'tobekilled':
+            log.info('pilot received a panda server signal to kill job %s at %s' %
+                     (job.jobid, time_stamp()))
+            set_pilot_state(job=job, state="failed")
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL)
+            args.abort_job.set()
+        elif res.get('command') == 'softkill':
+            log.info('pilot received a panda server signal to softkill job %s at %s' %
+                     (job.jobid, time_stamp()))
+            # event service kill instruction
+        elif res.get('command') == 'debug':
+            log.info('pilot received a command to turn on debug mode from the server')
+            job.debug = True
+        elif res.get('command') == 'debugoff':
+            log.info('pilot received a command to turn off debug mode from the server')
+            job.debug = False
+        else:
+            log.warning('received unknown server command via backchannel: %s' % res.get('command'))
 
 
 def get_data_structure(job, state, args, xml=None, metadata=None):
