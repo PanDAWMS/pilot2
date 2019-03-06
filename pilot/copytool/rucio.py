@@ -13,11 +13,9 @@ import os
 import json
 import logging
 from time import time
-from StringIO import StringIO
 
 from .common import resolve_common_transfer_errors, verify_catalog_checksum, get_timeout
 from pilot.common.exception import PilotException, ErrorCodes
-from pilot.util.container import execute
 from pilot.util.tracereport import TraceReport
 from os.path import dirname
 
@@ -28,6 +26,7 @@ logger.setLevel(logging.DEBUG)
 require_replicas = True    ## indicates if given copytool requires input replicas to be resolved
 require_protocols = False  ## indicates if given copytool requires protocols to be resolved first for stage-out
 tracing_rucio = False      ## should Rucio send the trace?
+
 
 def is_valid_for_copy_in(files):
     return True  ## FIX ME LATER
@@ -133,7 +132,6 @@ def copy_out(files, **kwargs):
     # don't spoil the output, we depend on stderr parsing
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
-    no_register = kwargs.pop('no_register', False)
     summary = kwargs.pop('summary', True)
     ignore_errors = kwargs.pop('ignore_errors', False)
     trace_report = kwargs.get('trace_report')
@@ -152,7 +150,7 @@ def copy_out(files, **kwargs):
         rucio_state = None
         error_msg = None
         try:
-            rucio_state = _stage_out_api(fspec, summary_file_path, race_report)
+            rucio_state = _stage_out_api(fspec, summary_file_path, trace_report)
         except Exception as error:
             error_msg = str(error)
 
@@ -176,7 +174,7 @@ def copy_out(files, **kwargs):
 
         if summary:  # resolve final pfn (turl) from the summary JSON
             if not os.path.exists(summary_file_path):
-                logger.error('Failed to resolve Rucio summary JSON, wrong path? file=%s' % path)
+                logger.error('Failed to resolve Rucio summary JSON, wrong path? file=%s' % summary_file_path)
             else:
                 with open(summary_file_path, 'rb') as f:
                     summary = json.load(f)
@@ -201,7 +199,7 @@ def copy_out(files, **kwargs):
                         if local_checksum and adler32 and local_checksum == adler32:
                             logger.info('local checksum (%s) = remote checksum (%s)' % (local_checksum, adler32))
                         else:
-                            logger.warning('checksum could not be verified: local checksum (%s), remote checksum (%s)' % 
+                            logger.warning('checksum could not be verified: local checksum (%s), remote checksum (%s)' %
                                            str(local_checksum), str(adler32))
         if not fspec.status_code:
             fspec.status_code = 0
@@ -219,7 +217,7 @@ def _stage_in_api(dst, fspec, trace_report):
     # init. download client
     from rucio.client.downloadclient import DownloadClient
     download_client = DownloadClient(logger=logger)
- 
+
     # traces are switched off
     if hasattr(download_client, 'tracing'):
         download_client.tracing = tracing_rucio
@@ -235,8 +233,8 @@ def _stage_in_api(dst, fspec, trace_report):
     if fspec.turl:
         f['pfn'] = fspec.turl
 
-    # if fspec.filesize:
-    #     f['transfer_timeout'] = get_timeout(fspec.filesize)
+    if fspec.filesize:
+        f['transfer_timeout'] = get_timeout(fspec.filesize)
 
     # proceed with the download
     logger.info('_stage_in_api file: %s' % str(f))
@@ -260,7 +258,7 @@ def _stage_out_api(fspec, summary_file_path, trace_report):
 
     # init. download client
     from rucio.client.uploadclient import UploadClient
-    upload_client = UploadClient(logger=rucio_logger)
+    upload_client = UploadClient(logger=logger)
 
     # traces are turned off
     if hasattr(upload_client, 'tracing'):
@@ -275,11 +273,11 @@ def _stage_out_api(fspec, summary_file_path, trace_report):
     f['did_scope'] = fspec.scope
     f['no_register'] = True
 
-    # if fspec.filesize:
-    #     f['transfer_timeout'] = get_timeout(fspec.filesize)
+    if fspec.filesize:
+        f['transfer_timeout'] = get_timeout(fspec.filesize)
 
     if fspec.storageId and int(fspec.storageId) > 0:
-        if not self.isDeterministic(fspec.ddmendpoint):
+        if fspec.turl and not fspec.is_deterministic:
             f['pfn'] = fspec.turl
     elif fspec.lfn and '.root' in fspec.lfn:
         f['guid'] = fspec.guid
