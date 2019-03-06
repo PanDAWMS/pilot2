@@ -1,5 +1,5 @@
 ..
-    Pilot 2 documentation pilot.resource index
+    Pilot 2 pilot.resource.summit doc file
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -7,17 +7,13 @@
     http://www.apache.org/licenses/LICENSE-2.0
 
     Authors:
-     - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
+     - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
-resource components
-===================
+summit
+======
 
-.. toctree::
-    :maxdepth: 2
-
-    alcf
-    bnl
-    generic
-    nersc
-    summit
-    titan
+.. automodule:: pilot.resource.summit
+    :members:
+    :private-members:
+    :special-members:
+    :undoc-members:

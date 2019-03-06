@@ -14,9 +14,10 @@ import logging
 import errno
 from time import time
 
-from .common import get_copysetup, verify_catalog_checksum, resolve_common_transfer_errors
+from .common import get_copysetup, verify_catalog_checksum, resolve_common_transfer_errors  #, get_timeout
 from pilot.common.exception import StageInFailure, StageOutFailure, PilotException, ErrorCodes
 from pilot.util.container import execute
+from pilot.util.timer import timeout
 
 
 logger = logging.getLogger(__name__)
@@ -55,17 +56,6 @@ def copy_in_old(files):
     if exit_code != 0:
         # raise failure
         raise StageInFailure(stdout)
-
-
-def get_timeout(filesize):   ## ISOLATE ME LATER
-    """ Get a proper time-out limit based on the file size """
-
-    timeout_max = 3 * 3600  # 3 hours
-    timeout_min = 300  # self.timeout
-
-    timeout = timeout_min + int(filesize / 0.5e6)  # approx < 0.5 Mb/sec
-
-    return min(timeout, timeout_max)
 
 
 def copy_in(files, **kwargs):
@@ -294,6 +284,7 @@ def move_all_files_out(files, nretries=1):
     return exit_code, stdout, stderr
 
 
+@timeout(seconds=600)
 def move(source, destination, dst_in=True, copysetup="", options=None):
     """
     Use lsm-get or lsm-put to transfer the file.
@@ -320,7 +311,7 @@ def move(source, destination, dst_in=True, copysetup="", options=None):
         cmd += "lsm-put %s" % args
 
     try:
-        exit_code, stdout, stderr = execute(cmd)
+        exit_code, stdout, stderr = execute(cmd)  #, timeout=get_timeout(fspec.filesize))
     except Exception as e:
         if dst_in:
             exit_code = ErrorCodes.STAGEINFAILED

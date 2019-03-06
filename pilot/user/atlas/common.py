@@ -94,7 +94,7 @@ def get_payload_command(job):
                                                                             job.infosys.queuedata)
     if not userjob and use_direct_access and job.transfertype == 'direct':
         lfns, guids = job.get_lfns_and_guids()
-        cmd = replace_lfns_with_turls(cmd, job.workdir, "PoolFileCatalog.xml", lfns)
+        cmd = replace_lfns_with_turls(cmd, job.workdir, "PoolFileCatalog.xml", lfns, writetofile=job.writetofile)
 
     # Explicitly add the ATHENA_PROC_NUMBER (or JOB value)
     cmd = add_athena_proc_number(cmd)
@@ -145,9 +145,9 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
         set_inds(job.datasetin)  # realDatasetsIn
 
         # Try to download the trf (skip when user container is to be used)
-        if job.imagename != "" or "--containerImage" in job.jobparams:
-            job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
-            log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
+        #if job.imagename != "" or "--containerImage" in job.jobparams:
+        #    job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
+        #    log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
         ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
         if ec != 0:
             raise TrfDownloadFailure(diagnostics)
@@ -197,9 +197,9 @@ def get_generic_payload_command(cmd, job, prepareasetup, userjob):
 
     if userjob:
         # Try to download the trf
-        if job.imagename != "" or "--containerImage" in job.jobparams:
-            job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
-            log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
+        #if job.imagename != "" or "--containerImage" in job.jobparams:
+        #    job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
+        #    log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
         ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
         if ec != 0:
             raise TrfDownloadFailure(diagnostics)
@@ -649,11 +649,23 @@ def update_job_data(job):  # noqa: C901
 
 
 def get_outfiles_records(subfiles):
+    """
+    Extract file info from job report JSON subfiles entry.
+
+    :param subfiles: list of subfiles.
+    :return: file info dictionary with format { 'guid': .., 'size': .., 'nentries': .. (optional)}
+    """
+
     res = {}
     for f in subfiles:
         res[f['name']] = {'guid': f['file_guid'],
-                          'nentries': f['nentries'],
                           'size': f['file_size']}
+        nentries = f.get('nentries', 'UNDEFINED')
+        if type(nentries) == int:
+            res[f['name']]['nentries'] = nentries
+        else:
+            logger.warning("nentries is undefined in job report")
+
     return res
 
 

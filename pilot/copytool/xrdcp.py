@@ -15,9 +15,10 @@ import logging
 import re
 from time import time
 
-from .common import resolve_common_transfer_errors, verify_catalog_checksum
+from .common import resolve_common_transfer_errors, verify_catalog_checksum  #, get_timeout
 from pilot.util.container import execute
 from pilot.common.exception import PilotException, ErrorCodes
+from pilot.util.timer import timeout
 
 logger = logging.getLogger(__name__)
 
@@ -33,17 +34,6 @@ def is_valid_for_copy_in(files):
 
 def is_valid_for_copy_out(files):
     return True  ## FIX ME LATER
-
-
-def get_timeout(filesize):   ## ISOLATE ME LATER
-    """ Get a proper time-out limit based on the file size """
-
-    timeout_max = 3 * 3600  # 3 hours
-    timeout_min = 300  # self.timeout
-
-    timeout = timeout_min + int(filesize / 0.5e6)  # approx < 0.5 Mb/sec
-
-    return min(timeout, timeout_max)
 
 
 def _resolve_checksum_option(setup, **kwargs):
@@ -133,6 +123,7 @@ def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, *
     return filesize_cmd, checksum_cmd, checksum_type
 
 
+@timeout(seconds=600)
 def copy_in(files, **kwargs):
     """
         Download given files using xrdcp command.
@@ -195,6 +186,7 @@ def copy_in(files, **kwargs):
     return files
 
 
+@timeout(seconds=600)
 def copy_out(files, **kwargs):
     """
         Upload given files using xrdcp command.

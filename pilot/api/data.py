@@ -24,6 +24,7 @@ from pilot.util.filehandling import calculate_checksum
 from pilot.util.math import convert_mb_to_b
 from pilot.util.parameters import get_maximum_input_sizes
 from pilot.util.workernode import get_local_disk_space
+from pilot.util.timer import TimeoutException
 from pilot.util.tracereport import TraceReport
 
 errors = ErrorCodes()
@@ -45,7 +46,7 @@ class StagingClient(object):
     # list of allowed schemas to be used for direct acccess mode from REMOTE replicas
     direct_remoteinput_allowed_schemas = ['root']
     # list of schemas to be used for direct acccess mode from LOCAL replicas
-    direct_localinput_allowed_schemas = ['root', 'davs', 'dcache', 'dcap', 'file', 'https']
+    direct_localinput_allowed_schemas = ['root', 'dcache', 'dcap', 'file', 'https']
     # list of allowed schemas to be used for transfers from REMOTE sites
     remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm']
 
@@ -297,6 +298,9 @@ class StagingClient(object):
         if 'default' not in activity:
             activity.append('default')
 
+        # stage-in/out?
+        mode = kwargs.get('mode', '')
+
         copytools = None
         for aname in activity:
             copytools = self.acopytools.get(aname)
@@ -334,6 +338,10 @@ class StagingClient(object):
                 msg = 'failed to execute transfer_files(): PilotException caught: %s' % e
                 self.logger.warning(msg)
                 caught_errors.append(e)
+            except TimeoutException as e:
+                msg = 'function timed out: %s' % e
+                self.logger.warning(msg)
+                caught_errors.append(e)
             except Exception as e:
                 self.logger.warning('failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
                 import traceback
@@ -352,6 +360,9 @@ class StagingClient(object):
         if not result:
             if caught_errors and isinstance(caught_errors[-1], PilotException):
                 code = caught_errors[0].get_error_code()
+            elif caught_errors and isinstance(caught_errors[-1], TimeoutException):
+                code = errors.STAGEINTIMEOUT if mode == 'stage-in' else errors.STAGEOUTTIMEOUT  # is it stage-in/out?
+                self.logger.warning('caught time-out exception: %s' % caught_errors[0])
             else:
                 code = None
             self.logger.fatal('caught_errors=%s' % str(caught_errors))
@@ -359,6 +370,7 @@ class StagingClient(object):
             raise PilotException('failed to transfer files using copytools=%s, error=%s' % (copytools, caught_errors),
                                  code=code)
 
+        self.logger.debug('result=%s' % str(result))
         return result
 
 

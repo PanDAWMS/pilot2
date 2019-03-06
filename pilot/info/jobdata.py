@@ -446,7 +446,6 @@ class JobData(BaseData):
             self.zipmap = result[0]
             # remove zip map from final jobparams
             ret = re.sub(pattern, '', ret)
-        logger.debug('xxx zipmap=%s' % str(self.zipmap))
 
         # extract and remove any present --containerimage XYZ options
         ret, imagename = self.extract_container_image(ret)

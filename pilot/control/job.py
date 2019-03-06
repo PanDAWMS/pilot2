@@ -116,6 +116,35 @@ def _validate_job(job):
     return status
 
 
+def verify_error_code(job):
+    """
+    Make sure an error code is properly set.
+    This makes sure that job.piloterrorcode is always set for a failed/holding job, that not only
+    job.piloterrorcodes are set but not job.piloterrorcode. This function also negates the sign of the error code
+    and sets job state 'holding' (instead of 'failed') if the error is found to be recoverable by a later job (user
+    jobs only).
+
+    :param job: job object.
+    :return:
+    """
+
+    log = get_logger(job.jobid, logger)
+
+    if job.piloterrorcode == 0 and len(job.piloterrorcodes) > 0:
+        log.warning('piloterrorcode set to first piloterrorcodes list entry: %s' % str(job.piloterrorcodes))
+        job.piloterrorcode = job.piloterrorcodes[0]
+
+    if job.piloterrorcode != 0 and job.is_analysis():
+        if errors.is_recoverable(code=job.piloterrorcode):
+            job.piloterrorcode = -abs(job.piloterrorcode)
+            job.state = 'failed'
+            log.info('failed user job is recoverable (error code=%s)' % job.piloterrorcode)
+        else:
+            log.info('failed user job is not recoverable')
+    else:
+        log.info('verified error code')
+
+
 def send_state(job, args, state, xml=None, metadata=None):
     """
     Update the server (send heartbeat message).
@@ -138,8 +167,12 @@ def send_state(job, args, state, xml=None, metadata=None):
     else:
         tag = 'sending'
 
-    if state == 'finished' or state == 'failed':
+    if state == 'finished' or state == 'failed' or state == 'holding':
         log.info('job %s has %s - %s final server update' % (job.jobid, state, tag))
+
+        # make sure an error code is properly set
+        if state != 'finished':
+            verify_error_code(job)
     else:
         log.info('job %s has state \'%s\' - %s heartbeat' % (job.jobid, state, tag))
 
@@ -170,26 +203,8 @@ def send_state(job, args, state, xml=None, metadata=None):
                 log.info('res = %s' % str(res))
 
                 # does the server update contain any backchannel information? if so, update the job object
-                if 'command' in res and res.get('command') != 'NULL':
-                    # look for 'tobekilled', 'softkill', 'debug', 'debugoff'
-                    if res.get('command') == 'tobekilled':
-                        log.info('pilot received a panda server signal to kill job %s at %s' %
-                                 (job.jobid, time_stamp()))
-                        set_pilot_state(job=job, state="failed")
-                        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL)
-                        args.abort_job.set()
-                    elif res.get('command') == 'softkill':
-                        log.info('pilot received a panda server signal to softkill job %s at %s' %
-                                 (job.jobid, time_stamp()))
-                        # event service kill instruction
-                    elif res.get('command') == 'debug':
-                        log.info('pilot received a command to turn on debug mode from the server')
-                        job.debug = True
-                    elif res.get('command') == 'debugoff':
-                        log.info('pilot received a command to turn off debug mode from the server')
-                        job.debug = False
-                    else:
-                        log.warning('received unknown server command via backchannel: %s' % res.get('command'))
+                handle_backchannel_command(res, job, args)
+
                 return True
         else:
             log.info('skipping job update for fake test job')
@@ -201,6 +216,40 @@ def send_state(job, args, state, xml=None, metadata=None):
 
     log.warning('set job state=%s failed' % state)
     return False
+
+
+def handle_backchannel_command(res, job, args):
+    """
+    Does the server update contain any backchannel information? if so, update the job object.
+
+    :param res: server response (dictionary).
+    :param job: job object.
+    :param args: pilot args object.
+    :return:
+    """
+
+    log = get_logger(job.jobid, logger)
+
+    if 'command' in res and res.get('command') != 'NULL':
+        # look for 'tobekilled', 'softkill', 'debug', 'debugoff'
+        if res.get('command') == 'tobekilled':
+            log.info('pilot received a panda server signal to kill job %s at %s' %
+                     (job.jobid, time_stamp()))
+            set_pilot_state(job=job, state="failed")
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL)
+            args.abort_job.set()
+        elif res.get('command') == 'softkill':
+            log.info('pilot received a panda server signal to softkill job %s at %s' %
+                     (job.jobid, time_stamp()))
+            # event service kill instruction
+        elif res.get('command') == 'debug':
+            log.info('pilot received a command to turn on debug mode from the server')
+            job.debug = True
+        elif res.get('command') == 'debugoff':
+            log.info('pilot received a command to turn off debug mode from the server')
+            job.debug = False
+        else:
+            log.warning('received unknown server command via backchannel: %s' % res.get('command'))
 
 
 def get_data_structure(job, state, args, xml=None, metadata=None):
@@ -279,19 +328,9 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
 
     # in debug mode, also send a tail of the latest log file touched by the payload
     if job.debug:
-        # find the latest updated log file
-        list_of_files = get_files()
-        if not list_of_files:
-            log.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
-            list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]  # get_files(pattern=config.Payload.payloadstdout)
-
-        latest_file = max(list_of_files, key=os.path.getmtime)
-        log.info('tail of file %s will be added to heartbeat' % latest_file)
-
-        # now get the tail of the found log file and protect against potentially large tails
-        stdout_tail = tail(latest_file)
-        stdout_tail = stdout_tail[-2048:]
-        data['stdout'] = stdout_tail
+        stdout_tail = get_payload_log_tail()
+        if stdout_tail:
+            data['stdout'] = stdout_tail
 
     if state == 'finished' or state == 'failed':
         time_getjob, time_stagein, time_payload, time_stageout, time_total_setup = timing_report(job.jobid, args)
@@ -307,6 +346,50 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
             data['pilotLog'] = extracts
 
     return data
+
+
+def get_list_of_log_files():
+    """
+    Return a list of log files produced by the payload.
+
+    :return: list of log files.
+    """
+
+    list_of_files = get_files()
+    if not list_of_files:  # some TRFs produce logs with different naming scheme
+        list_of_files = get_files(pattern="log.*")
+
+    return list_of_files
+
+
+def get_payload_log_tail(job):
+    """
+    Return the tail of the payload stdout or its latest updated log file.
+
+    :param job: job object.
+    :return: tail of stdout (string).
+    """
+
+    log = get_logger(job.jobid, logger)
+    stdout_tail = ""
+
+    # find the latest updated log file
+    list_of_files = get_list_of_log_files(job)
+    if not list_of_files:
+        log.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
+        list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]  # get_files(pattern=config.Payload.payloadstdout)
+
+    try:
+        latest_file = max(list_of_files, key=os.path.getmtime)
+        log.info('tail of file %s will be added to heartbeat' % latest_file)
+
+        # now get the tail of the found log file and protect against potentially large tails
+        stdout_tail = latest_file + "\n" + tail(latest_file)
+        stdout_tail = stdout_tail[-2048:]
+    except Exception as e:
+        log.warning('failed to get payload stdout tail: %s' % e)
+
+    return stdout_tail
 
 
 def validate(queues, traces, args):
@@ -425,10 +508,18 @@ def get_job_label(args):
     :return: job_label (string).
     """
 
+    # PQ status
+    status = infosys.queuedata.status
+
     if args.version_tag == 'RC' and args.job_label == 'ptest':
         job_label = 'rc_test2'
     elif args.version_tag == 'RCM' and args.job_label == 'ptest':
         job_label = 'rcm_test2'
+    elif args.version_tag == 'ALRB':
+        job_label = 'rc_alrb'
+    elif status == 'test' and args.job_label != 'ptest':
+        logger.warning('PQ status set to test - will use job label / prodSourceLabel test')
+        job_label = 'test'
     else:
         job_label = args.job_label
 
@@ -462,6 +553,9 @@ def get_dispatcher_dictionary(args):
 
     # override for RC dev pilots
     job_label = get_job_label(args)
+
+    logger.debug('infosys.queuedata.resource=%s' % infosys.queuedata.resource)
+    logger.debug('args.resource=%s' % args.resource)
 
     data = {
         'siteName': args.resource,   ## replace it with `infosys.queuedata.resource` to remove redundant '-r' option of pilot.py
@@ -552,10 +646,16 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
 
     if timefloor == 0 and jobnumber > 0:
         logger.warning("since timefloor is set to 0, pilot was only allowed to run one job")
+        # use singleton:
+        # instruct the pilot to wrap up quickly
+        os.environ['PILOT_WRAP_UP'] = 'QUICKLY'
         return False
 
     if (currenttime - starttime > timefloor) and jobnumber > 0:
         logger.warning("the pilot has run out of time (timefloor=%d has been passed)" % timefloor)
+        # use singleton:
+        # instruct the pilot to wrap up quickly
+        os.environ['PILOT_WRAP_UP'] = 'QUICKLY'
         return False
 
     # timefloor not relevant for the first job
@@ -704,7 +804,7 @@ def get_job_definition(args):
         logger.info('will read job definition from file %s' % path)
         res = get_job_definition_from_file(path, args.harvester)
     else:
-        if args.harvester:
+        if args.harvester and args.harvester_submitmode.lower() == 'push':
             pass  # local job definition file not found (go to sleep)
         else:
             logger.info('will download job definition from server')
@@ -1224,6 +1324,7 @@ def queue_monitor(queues, traces, args):
         logger.warning('queues are still empty of jobs - will begin queue monitoring anyway')
 
     job = None
+    sentfinal = False
     while True:  # will abort when graceful_stop has been set
         if traces.pilot['command'] == 'abort':
             logger.warning('job queue monitor received an abort instruction')
@@ -1255,17 +1356,9 @@ def queue_monitor(queues, traces, args):
                 wait_for_aborted_job_stageout(args, queues, job)
 
             # send final server update
-            path = os.path.join(job.workdir, config.Payload.jobreport)
-            if os.path.exists(path):
-                metadata = read_file(path)  #read_json(path)
-            else:
-                metadata = None
-            if job.fileinfo:
-                log.debug('xml:will send fileinfo')
-                send_state(job, args, job.state, xml=dumps(job.fileinfo), metadata=metadata)
-            else:
-                log.debug('will not send fileinfo')
-                send_state(job, args, job.state, metadata=metadata)
+            if not sentfinal:
+                update_server(job, args)
+                sentfinal = True
 
             # we can now stop monitoring this job, so remove it from the monitored_payloads queue and add it to the
             # completed_jobs queue which will tell retrieve() that it can download another job
@@ -1284,6 +1377,31 @@ def queue_monitor(queues, traces, args):
             break
 
     logger.info('[job] queue monitor has finished')
+
+
+def update_server(job, args):
+    """
+    Update the server (wrapper for send_state() that also prepares the metadata).
+
+    :param job: job object.
+    :param args: pilot args object.
+    :return:
+    """
+
+    log = get_logger(job.jobid)
+
+    path = os.path.join(job.workdir, config.Payload.jobreport)
+    if os.path.exists(path):
+        metadata = read_file(path)  # read_json(path)
+    else:
+        metadata = None
+    log.debug('metadata=%s' % str(metadata))
+    if job.fileinfo:
+        log.debug('xml:will send fileinfo')
+        send_state(job, args, job.state, xml=dumps(job.fileinfo), metadata=metadata)
+    else:
+        log.debug('will not send fileinfo')
+        send_state(job, args, job.state, metadata=metadata)
 
 
 def pause_queue_monitor(delay):
@@ -1520,7 +1638,10 @@ def make_job_report(job):
     for key in job.status:
         info += key + " = " + job.status[key] + " "
     log.info('status: %s' % info)
-    log.info('pilot state: %s' % job.state)
+    s = ""
+    if job.is_analysis() and job.state != 'finished':
+        s = '(user job is recoverable)' if errors.is_recoverable(code=job.piloterrorcode) else '(user job is not recoverable)'
+    log.info('pilot state: %s %s' % (job.state, s))
     log.info('transexitcode: %d' % job.transexitcode)
     log.info('exeerrorcode: %d' % job.exeerrorcode)
     log.info('exeerrordiag: %s' % job.exeerrordiag)

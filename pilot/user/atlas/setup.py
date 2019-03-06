@@ -16,6 +16,7 @@ from pilot.common.exception import NoSoftwareDir
 from pilot.info import infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
+from pilot.util.filehandling import read_file, write_file
 
 from .metadata import get_file_info_from_xml
 
@@ -377,7 +378,28 @@ def get_payload_environment_variables(cmd, job_id, task_id, processing_type, sit
     return variables
 
 
-def replace_lfns_with_turls(cmd, workdir, filename, infiles):
+def get_writetoinput_filenames(writetofile):
+    """
+    Extract the writeToFile file name(s).
+    writeToFile='tmpin_mc16_13TeV.345935.PhPy8EG_A14_ttbarMET100_200_hdamp258p75_nonallhad.merge.AOD.e6620_e5984_s3126_r10724_r10726_tid15760866_00:AOD.15760866._000002.pool.root.1'
+    -> return 'tmpin_mc16_13TeV.345935.PhPy8EG_A14_ttbarMET100_200_hdamp258p75_nonallhad.merge.AOD.e6620_e5984_s3126_r10724_r10726_tid15760866_00'
+
+    :param writetofile: string containing file name information.
+    :return: list of file names
+    """
+
+    filenames = []
+    entries = writetofile.split('^')
+    for entry in entries:
+        if ':' in entry:
+            name = entry.split(":")[0]
+            name = name.replace('.pool.root.', '.txt.')  # not necessary?
+            filenames.append(name)
+
+    return filenames
+
+
+def replace_lfns_with_turls(cmd, workdir, filename, infiles, writetofile=""):
     """
     Replace all LFNs with full TURLs in the payload execution command.
 
@@ -387,19 +409,47 @@ def replace_lfns_with_turls(cmd, workdir, filename, infiles):
     :param workdir: location of metadata file (string).
     :param filename: metadata file name (string).
     :param infiles: list of input files.
+    :param writetofile:
     :return: updated cmd (string).
     """
 
+    turl_dictionary = {}  # { LFN: TURL, ..}
     path = os.path.join(workdir, filename)
     if os.path.exists(path):
         file_info_dictionary = get_file_info_from_xml(workdir, filename=filename)
         for inputfile in infiles:
             if inputfile in cmd:
                 turl = file_info_dictionary[inputfile][0]
+                turl_dictionary[inputfile] = turl
                 # if turl.startswith('root://') and turl not in cmd:
                 if turl not in cmd:
                     cmd = cmd.replace(inputfile, turl)
                     logger.info("replaced '%s' with '%s' in the run command" % (inputfile, turl))
+
+        # replace the LFNs with TURLs in the writetofile input file list (if it exists)
+        if writetofile and turl_dictionary:
+            filenames = get_writetoinput_filenames(writetofile)
+            logger.info("filenames=%s" % filenames)
+            for fname in filenames:
+                new_lines = []
+                path = os.path.join(workdir, fname)
+                if os.path.exists(path):
+                    f = read_file(path)
+                    for line in f.split('\n'):
+                        fname = os.path.basename(line)
+                        if fname in turl_dictionary:
+                            turl = turl_dictionary[fname]
+                            new_lines.append(turl)
+                        else:
+                            if line:
+                                new_lines.append(line)
+
+                    lines = '\n'.join(new_lines)
+                    if lines:
+                        write_file(path, lines)
+                        logger.info("lines=%s" % lines)
+                else:
+                    logger.warning("file does not exist: %s" % path)
     else:
         logger.warning("could not find file: %s (cannot locate TURLs for direct access)" % filename)
 
