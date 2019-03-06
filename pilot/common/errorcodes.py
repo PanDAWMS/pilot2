@@ -112,6 +112,8 @@ class ErrorCodes:
     NONDETERMINISTICDDM = 1329
     JSONRETRIEVALTIMEOUT = 1330
     MISSINGINPUTFILE = 1331
+    BLACKHOLE = 1332
+    NOREMOTESPACE = 1333
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -202,8 +204,13 @@ class ErrorCodes:
         PAYLOADSIGSEGV: "SIGSEGV: Invalid memory reference or a segmentation fault",
         NONDETERMINISTICDDM: "Failed to construct SURL for non-deterministic ddm (update AGIS)",
         JSONRETRIEVALTIMEOUT: "JSON retrieval timed out",
-        MISSINGINPUTFILE: "Input file is missing in storage element"
+        MISSINGINPUTFILE: "Input file is missing in storage element",
+        BLACKHOLE: "Black hole detected in file system (consult Pilot log)",
+        NOREMOTESPACE: "No space left on device"
     }
+
+    put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
+    recoverable_error_codes = [0] + put_error_codes
 
     def get_kill_signal_error_code(self, signal):
         """
@@ -322,3 +329,14 @@ class ErrorCodes:
                 msg = found[0]
 
         return msg
+
+    @classmethod
+    def is_recoverable(self, code=0):
+        """
+        Determine whether code is a recoverable error code or not.
+
+        :param code: Pilot error code (int).
+        :return: boolean.
+        """
+
+        return code in self.recoverable_error_codes

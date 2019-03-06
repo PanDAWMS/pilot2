@@ -54,7 +54,8 @@ class QueueData(BaseData):
     astorages = None
     aprotocols = None
 
-    state = None
+    state = None  # AGIS PQ state, e.g. ACTIVE
+    status = ""   # PQ status, e.g. online
     site = None   # ATLAS Site name
 
     direct_access_lan = False
@@ -74,8 +75,8 @@ class QueueData(BaseData):
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['timefloor', 'maxwdir', 'pledgedcpu', 'es_stageout_gap',
                    'corecount', 'maxrss', 'maxtime'],
-             str: ['name', 'resource', 'appdir', 'catchall', 'platform', 'container_options', 'container_type',
-                   'state', 'site'],
+             str: ['name', 'appdir', 'catchall', 'platform', 'container_options', 'container_type',
+                   'resource', 'state', 'status', 'site'],
              dict: ['copytools', 'acopytools', 'astorages', 'aprotocols'],
              bool: ['direct_access_lan', 'direct_access_wan']
              }

@@ -140,7 +140,7 @@ def _stage_in(args, job):
         else:
             client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
             activity = 'pr'
-        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
+        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job, mode='stage-in')
         client.transfer(job.indata, activity=activity, **kwargs)
     except PilotException as error:
         log.error('PilotException caught: %s' % error)
@@ -561,12 +561,11 @@ def create_log(job, logfile, tarball_name):
         log.debug('exception caught: %s' % e)
     job.workdir = orgworkdir
 
-    fullpath = os.path.join(job.workdir, logfile.lfn)  # reset fullpath since workdir has changed since above
-
-    return {'scope': logfile.scope,
-            'name': logfile.lfn,
-            'guid': logfile.guid,
-            'bytes': os.stat(fullpath).st_size}
+    #fullpath = os.path.join(job.workdir, logfile.lfn)  # reset fullpath since workdir has changed since above
+    #return {'scope': logfile.scope,
+    #        'name': logfile.lfn,
+    #        'guid': logfile.guid,
+    #        'bytes': os.stat(fullpath).st_size}
 
 
 def _do_stageout(job, xdata, activity, title):
@@ -597,7 +596,7 @@ def _do_stageout(job, xdata, activity, title):
 
     try:
         client = StageOutClient(job.infosys, logger=log, trace_report=trace_report)
-        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
+        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job, mode='stage-out')
         client.transfer(xdata, activity, **kwargs)
     except PilotException as error:
         import traceback
@@ -608,12 +607,20 @@ def _do_stageout(job, xdata, activity, title):
         log.error(traceback.format_exc())
         # do not raise the exception since that will prevent also the log from being staged out
         # error = PilotException("stageOut failed with error=%s" % e, code=ErrorCodes.STAGEOUTFAILED)
+    else:
+        log.debug('stage-out client completed')
 
     log.info('summary of transferred files:')
     for e in xdata:
-        log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
+        if not e.status:
+            status = "(not transferred)"
+        else:
+            status = e.status
+        log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, status))
 
     remain_files = [e for e in xdata if e.status not in ['transferred']]
+    log.debug('remain_files=%s' % str(remain_files))
+    log.debug('xdata=%s' % str(xdata))
 
     return not remain_files
 
@@ -639,7 +646,7 @@ def _stage_out_new(job, args):
 
     is_success = True
 
-    if not job.outdata:
+    if not job.outdata or job.is_eventservice:
         log.info('this job does not have any output files, only stage-out log file')
         job.stageout = 'log'
 

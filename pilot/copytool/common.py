@@ -18,9 +18,25 @@ from pilot.util.filehandling import calculate_checksum, get_checksum_type, get_c
 logger = logging.getLogger(__name__)
 
 
+def get_timeout(filesize):
+    """
+    Get a proper time-out limit based on the file size.
+
+    :param filesize: file size (int).
+    :return:
+    """
+
+    timeout_max = 3 * 3600  # 3 hours
+    timeout_min = 300  # self.timeout
+
+    timeout = timeout_min + int(filesize / 0.5e6)  # approx < 0.5 Mb/sec
+
+    return min(timeout, timeout_max)
+
+
 def verify_catalog_checksum(fspec, path):
     """
-    Verify that the local and catalog checksum values are the same.
+    Verify that the local and remote (fspec) checksum values are the same.
     The function will update the fspec object.
 
     :param fspec: FileSpec object for a given file.
@@ -173,7 +189,8 @@ def resolve_common_transfer_errors(output, is_stagein=True):
         error_msg = "Could not establish context: Proxy / VO extension of proxy has probably expired: %s" % output
         ret = get_error_info(ErrorCodes.NOPROXY, 'CONTEXT_FAIL', error_msg)
     elif "No space left on device" in output:
-        ret = get_error_info(ErrorCodes.NOLOCALSPACE, 'NO_SPACE', "No available space left on local disk: %s" % output)
+        ret = get_error_info(ErrorCodes.NOLOCALSPACE if is_stagein else ErrorCodes.NOREMOTESPACE,
+                             'NO_SPACE', "No available space left on disk: %s" % output)
     elif "No such file or directory" in output:
         ret = get_error_info(ErrorCodes.NOSUCHFILE, 'NO_FILE', output)
     elif "service is not available at the moment" in output:

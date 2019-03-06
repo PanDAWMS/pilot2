@@ -48,7 +48,7 @@ def get_batchsystem_jobid():
 
     for key, value in batchsystem_dict.iteritems():
         if key in os.environ:
-            return value, key
+            return value, os.environ.get(key, '')
 
     # Condor (get jobid from classad file)
     if '_CONDOR_JOB_AD' in os.environ:
@@ -140,6 +140,7 @@ def shell_exit_code(exit_code):
         errors.QUEUEDATANOTOK: [72, "Pilot found non-valid queuedata"],  # not implemented yet, error code added
         errors.NOSOFTWAREDIR: [73, "Software directory does not exist"],  # added to traces object
         errors.JSONRETRIEVALTIMEOUT: [74, "JSON retrieval timed out"],  # ..
+        errors.BLACKHOLE: [75, "Black hole detected in file system"],  # ..
         errors.KILLSIGNAL: [137, "General kill signal"],  # Job terminated by unknown kill signal
         errors.SIGTERM: [143, "Job killed by signal: SIGTERM"],  # 128+15
         errors.SIGQUIT: [131, "Job killed by signal: SIGQUIT"],  # 128+3
