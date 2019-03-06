@@ -1346,7 +1346,7 @@ def queue_monitor(queues, traces, args):
                     metadata = read_file(path)  #read_json(path)
                 else:
                     metadata = None
-                log.debug('metadata=%s' % str(metadata)
+                log.debug('metadata=%s' % str(metadata))
                 if job.fileinfo:
                     log.debug('xml:will send fileinfo')
                     send_state(job, args, job.state, xml=dumps(job.fileinfo), metadata=metadata)
