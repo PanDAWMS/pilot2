@@ -1357,18 +1357,7 @@ def queue_monitor(queues, traces, args):
 
             # send final server update
             if not sentfinal:
-                path = os.path.join(job.workdir, config.Payload.jobreport)
-                if os.path.exists(path):
-                    metadata = read_file(path)  #read_json(path)
-                else:
-                    metadata = None
-                log.debug('metadata=%s' % str(metadata))
-                if job.fileinfo:
-                    log.debug('xml:will send fileinfo')
-                    send_state(job, args, job.state, xml=dumps(job.fileinfo), metadata=metadata)
-                else:
-                    log.debug('will not send fileinfo')
-                    send_state(job, args, job.state, metadata=metadata)
+                update_server(job, args)
                 sentfinal = True
 
             # we can now stop monitoring this job, so remove it from the monitored_payloads queue and add it to the
@@ -1388,6 +1377,31 @@ def queue_monitor(queues, traces, args):
             break
 
     logger.info('[job] queue monitor has finished')
+
+
+def update_server(job, args):
+    """
+    Update the server (wrapper for send_state() that also prepares the metadata).
+
+    :param job: job object.
+    :param args: pilot args object.
+    :return:
+    """
+
+    log = get_logger(job.jobid)
+
+    path = os.path.join(job.workdir, config.Payload.jobreport)
+    if os.path.exists(path):
+        metadata = read_file(path)  # read_json(path)
+    else:
+        metadata = None
+    log.debug('metadata=%s' % str(metadata))
+    if job.fileinfo:
+        log.debug('xml:will send fileinfo')
+        send_state(job, args, job.state, xml=dumps(job.fileinfo), metadata=metadata)
+    else:
+        log.debug('will not send fileinfo')
+        send_state(job, args, job.state, metadata=metadata)
 
 
 def pause_queue_monitor(delay):
