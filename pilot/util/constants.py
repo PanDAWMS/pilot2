@@ -6,8 +6,72 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
+
+from os import environ
+
+# Pilot version
+RELEASE = '2'   # released number should be fixed at 2 for Pilot 2
+VERSION = '1'   # version number is '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
+REVISION = '0'  # revision number should be reset to '0' for every new version release, increased for small updates
+BUILD = '1'   # build number should be reset to '1' for every new development cycle
 
 SUCCESS = 0
 FAILURE = 1
 
 ERRNO_NOJOBS = 20
+
+# Sorting order constants
+UTILITY_BEFORE_PAYLOAD = 0
+UTILITY_WITH_PAYLOAD = 1
+UTILITY_AFTER_PAYLOAD_STARTED = 2
+UTILITY_AFTER_PAYLOAD_FINISHED = 3
+UTILITY_WITH_STAGEIN = 4
+
+# Timing constants that allow for additional constants to be defined for values before the pilot is started, ie for
+# wrapper timing purposes.
+PILOT_START_TIME = 'PILOT_START_TIME'
+PILOT_PRE_GETJOB = 'PILOT_PRE_GETJOB'
+PILOT_POST_GETJOB = 'PILOT_POST_GETJOB'  # note: PILOT_POST_GETJOB corresponds to START_TIME in Pilot 1
+PILOT_PRE_SETUP = 'PILOT_PRE_SETUP'
+PILOT_POST_SETUP = 'PILOT_POST_SETUP'
+PILOT_PRE_STAGEIN = 'PILOT_PRE_STAGEIN'
+PILOT_POST_STAGEIN = 'PILOT_POST_STAGEIN'
+PILOT_PRE_PAYLOAD = 'PILOT_PRE_PAYLOAD'
+PILOT_POST_PAYLOAD = 'PILOT_POST_PAYLOAD'
+PILOT_PRE_STAGEOUT = 'PILOT_PRE_STAGEOUT'
+PILOT_POST_STAGEOUT = 'PILOT_POST_STAGEOUT'
+PILOT_PRE_FINAL_UPDATE = 'PILOT_PRE_FINAL_UPDATE'
+PILOT_POST_FINAL_UPDATE = 'PILOT_POST_FINAL_UPDATE'
+PILOT_END_TIME = 'PILOT_END_TIME'
+PILOT_KILL_SIGNAL = 'PILOT_KILL_SIGNAL'
+
+# Keep track of log transfers
+LOG_TRANSFER_NOT_DONE = 'NOT_DONE'
+LOG_TRANSFER_IN_PROGRESS = 'IN_PROGRESS'
+LOG_TRANSFER_DONE = 'DONE'
+LOG_TRANSFER_FAILED = 'FAILED'
+
+
+def get_pilot_version():
+    """
+    Return the current Pilot version string with the format <release>.<version>.<revision> (<build>).
+    E.g. pilot_version = '2.1.3 (12)'
+    :return: version string.
+    """
+
+    return '{release}.{version}.{revision} ({build})'.format(release=RELEASE,
+                                                             version=VERSION,
+                                                             revision=REVISION,
+                                                             build=BUILD)
+
+
+def get_rucio_client_version():
+    """
+    Return the current Rucio client version string using the environmental variable ATLAS_LOCAL_RUCIOCLIENTS_VERSION.
+    If the environmental variable is not set, then an empty string will be returned.
+
+    :return: $ATLAS_LOCAL_RUCIOCLIENTS_VERSION (string).
+    """
+
+    return environ.get('ATLAS_LOCAL_RUCIOCLIENTS_VERSION', '')

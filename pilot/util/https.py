@@ -7,6 +7,7 @@
 # Authors:
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import collections
 import commands
@@ -19,6 +20,8 @@ import urllib
 import urllib2
 import pipes
 
+from .filehandling import write_file
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -27,7 +30,12 @@ _ctx = collections.namedtuple('_ctx', 'ssl_context user_agent capath cacert')
 
 def _tester(func, *args):
     """
-    Tests function on arguments and returns first positive.
+    Tests function ``func`` on arguments and returns first positive.
+
+    >>> _tester(lambda x: x%3 == 0, 1, 2, 3, 4, 5, 6)
+    3
+    >>> _tester(lambda x: x%3 == 0, 1, 2)
+    None
 
     :param func: function(arg)->boolean
     :param args: other arguments
@@ -141,27 +149,68 @@ def request(url, data=None, plain=False):
     :param dict data: data to send
     :param boolean plain: if true, treats the response as a plain text.
 
+    Usage:
+
+    .. code-block:: python
+        :emphasize-lines: 2
+
+        https_setup(args, PILOT_VERSION)  # sets up ssl and other stuff
+        response = request('https://some.url', {'some':'data'})
+
     Returns:
         - :keyword:`dict` -- if everything went OK
         - `str` -- if ``plain`` parameter is `True`
         - `None` -- if something went wrong
     """
 
-    # _ctx.ssl_context = None  # no time to deal with this now
+    _ctx.ssl_context = None  # certificates are not available on the grid, use curl
+
+    logger.debug('server update dictionary = \n%s' % str(data))
+
+    strdata = ""
+    for key in data:
+        strdata += 'data="%s"\n' % urllib.urlencode({key: data[key]})
+    jobid = ''
+    if 'jobId' in data.keys():
+        jobid = '_%s' % data['jobId']
+    # write data to temporary config file
+    tmpname = '%s/curl_%s%s.config' % (os.getenv('PILOT_HOME'), os.path.basename(url), jobid)
+    s = write_file(tmpname, strdata)
+    if not s:
+        logger.warning('failed to create curl config file (will attempt to urlencode data directly)')
+        dat = pipes.quote(url + '?' + urllib.urlencode(data) if data else '')
+    else:
+        dat = '--config %s %s' % (tmpname, url)
 
     if _ctx.ssl_context is None:
         req = 'curl -sS --compressed --connect-timeout %s --max-time %s '\
               '--capath %s --cert %s --cacert %s --key %s '\
-              '-H %s %s %s' % (1, 3,
-                               pipes.quote(_ctx.capath), pipes.quote(_ctx.cacert), pipes.quote(_ctx.cacert), pipes.quote(_ctx.cacert),
+              '-H %s %s %s' % (100, 120,
+                               pipes.quote(_ctx.capath or ''), pipes.quote(_ctx.cacert or ''),
+                               pipes.quote(_ctx.cacert or ''), pipes.quote(_ctx.cacert or ''),
                                pipes.quote('User-Agent: %s' % _ctx.user_agent),
                                "-H " + pipes.quote('Accept: application/json') if not plain else '',
-                               pipes.quote(url + '?' + urllib.urlencode(data) if data else ''))
-        logger.debug('request: %s' % req)
-        status, output = commands.getstatusoutput(req)
+                               dat)
+        logger.info('request: %s' % req)
+        try:
+            status, output = commands.getstatusoutput(req)
+        except Exception as e:
+            logger.warning('exception: %s' % e)
         if status != 0:
             logger.warn('request failed (%s): %s' % (status, output))
             return None
+
+        if plain:
+            return output
+        else:
+            try:
+                ret = json.loads(output)
+            except Exception as e:
+                logger.warning('json.loads() failed to parse output=%s: %s' % (output, e))
+                return None
+            else:
+                return ret
+        # return output if plain else json.loads(output)
     else:
         req = urllib2.Request(url, urllib.urlencode(data))
         if not plain:
@@ -176,4 +225,4 @@ def request(url, data=None, plain=False):
             logger.warn('connection error: %s' % e.reason)
             return None
 
-    return output if plain else json.loads(output)
+        return output.read() if plain else json.load(output)

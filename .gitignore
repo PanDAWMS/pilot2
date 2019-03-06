@@ -10,3 +10,5 @@ pilotlog.txt
 job-*
 build
 .idea*
+rucio_upload.json
+tools

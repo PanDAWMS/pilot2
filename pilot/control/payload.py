@@ -8,53 +8,111 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Wen Guan, wen.guan@cern.ch, 2017-2018
 
-import Queue
-import json
 import os
-import subprocess
-import threading
 import time
+import traceback
 
+try:
+    import Queue as queue  # noqa: N813
+except Exception:
+    import queue  # python 3
+
+from pilot.control.payloads import generic, eventservice, eventservicemerge
 from pilot.control.job import send_state
+from pilot.util.auxiliary import get_logger, set_pilot_state
+from pilot.util.processes import get_cpu_consumption_time
+from pilot.util.config import config
+from pilot.util.filehandling import read_file
+from pilot.util.queuehandling import put_in_queue
+from pilot.common.errorcodes import ErrorCodes
+from pilot.common.exception import ExcThread
 
 import logging
 logger = logging.getLogger(__name__)
 
+errors = ErrorCodes()
+
 
 def control(queues, traces, args):
+    """
+    (add description)
 
-    threads = [threading.Thread(target=validate_pre,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=execute,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args}),
-               threading.Thread(target=validate_post,
-                                kwargs={'queues': queues,
-                                        'traces': traces,
-                                        'args': args})]
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
 
-    [t.start() for t in threads]
+    targets = {'validate_pre': validate_pre, 'execute_payloads': execute_payloads, 'validate_post': validate_post,
+               'failed_post': failed_post}
+    threads = [ExcThread(bucket=queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
+                         name=name) for name, target in targets.items()]
+
+    [thread.start() for thread in threads]
+
+    # if an exception is thrown, the graceful_stop will be set by the ExcThread class run() function
+    while not args.graceful_stop.is_set():
+        for thread in threads:
+            bucket = thread.get_bucket()
+            try:
+                exc = bucket.get(block=False)
+            except queue.Empty:
+                pass
+            else:
+                exc_type, exc_obj, exc_trace = exc
+                logger.warning("thread \'%s\' received an exception from bucket: %s" % (thread.name, exc_obj))
+
+                # deal with the exception
+                # ..
+
+            thread.join(0.1)
+            time.sleep(0.1)
+
+    logger.debug('payload control ending since graceful_stop has been set')
+    if args.abort_job.is_set():
+        if traces.pilot['command'] == 'aborting':
+            logger.warning('jobs are aborting')
+        elif traces.pilot['command'] == 'abort':
+            logger.warning('data control detected a set abort_job (due to a kill signal)')
+            traces.pilot['command'] = 'aborting'
+
+            # find all running jobs and stop them, find all jobs in queues relevant to this module
+            #abort_jobs_in_queues(queues, args.signal)
 
 
 def validate_pre(queues, traces, args):
+    """
+    (add description)
 
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
     while not args.graceful_stop.is_set():
         try:
             job = queues.payloads.get(block=True, timeout=1)
-        except Queue.Empty:
+        except queue.Empty:
             continue
 
         if _validate_payload(job):
-            queues.validated_payloads.put(job)
+            #queues.validated_payloads.put(job)
+            put_in_queue(job, queues.validated_payloads)
         else:
-            queues.failed_payloads.put(job)
+            #queues.failed_payloads.put(job)
+            put_in_queue(job, queues.failed_payloads)
 
 
 def _validate_payload(job):
+    """
+    (add description)
+
+    :param job:
+    :return:
+    """
     # valid = random.uniform(0, 100)
     # if valid > 99:
     #     logger.warning('payload did not validate correctly -- skipping')
@@ -64,137 +122,211 @@ def _validate_payload(job):
     return True
 
 
-def setup_payload(job, out, err):
-    log = logger.getChild(str(job['PandaID']))
+def get_payload_executor(args, job, out, err, traces):
+    """
+    Get payload executor function for different payload.
 
-    try:
-        # create symbolic link for sqlite200 and geomDB in job dir
-        for db_name in ['sqlite200', 'geomDB']:
-            src = '/cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/%s' % db_name
-            link_name = 'job-%s/%s' % (job['PandaID'], db_name)
-            os.symlink(src, link_name)
-    except Exception as e:
-        log.error('could not create symbolic links to database files: %s' % e)
-        return False
-
-    return True
-
-
-def run_payload(job, out, err):
-    log = logger.getChild(str(job['PandaID']))
-
-    athena_version = job['homepackage'].split('/')[1]
-
-    asetup = 'source $ATLAS_LOCAL_ROOT_BASE/user/atlasLocalSetup.sh --quiet; '\
-             'source $AtlasSetup/scripts/asetup.sh %s,here; ' % athena_version
-
-    cmd = job['transformation'] + ' ' + job['jobPars']
-
-    log.debug('executable=%s' % asetup + cmd)
-
-    try:
-        proc = subprocess.Popen(asetup + cmd,
-                                bufsize=-1,
-                                stdout=out,
-                                stderr=err,
-                                cwd=job['working_dir'],
-                                shell=True)
-    except Exception as e:
-        log.error('could not execute: %s' % str(e))
-        return None
-
-    log.info('started -- pid=%s executable=%s' % (proc.pid, asetup + cmd))
-
-    return proc
+    :param args: args object.
+    :param job: job object.
+    :param out:
+    :param err:
+    :param traces: traces object.
+    :return: instance of a payload executor
+    """
+    if job.is_eventservice:
+        payload_executor = eventservice.Executor(args, job, out, err, traces)
+    elif job.is_eventservicemerge:
+        payload_executor = eventservicemerge.Executor(args, job, out, err, traces)
+    else:
+        payload_executor = generic.Executor(args, job, out, err, traces)
+    return payload_executor
 
 
-def wait_graceful(args, proc, job):
-    log = logger.getChild(str(job['PandaID']))
+def execute_payloads(queues, traces, args):
+    """
+    Execute queued payloads.
 
-    breaker = False
-    exit_code = None
-    while True:
-        for i in xrange(100):
-            if args.graceful_stop.is_set():
-                breaker = True
-                log.debug('breaking -- sending SIGTERM pid=%s' % proc.pid)
-                proc.terminate()
-                break
-            time.sleep(0.1)
-        if breaker:
-            log.debug('breaking -- sleep 3s before sending SIGKILL pid=%s' % proc.pid)
-            time.sleep(3)
-            proc.kill()
-            break
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
 
-        exit_code = proc.poll()
-        log.info('running: pid=%s exit_code=%s' % (proc.pid, exit_code))
-        if exit_code is not None:
-            break
-        else:
-            send_state(job, 'running')
-            continue
-
-    return exit_code
-
-
-def execute(queues, traces, args):
-
+    job = None
     while not args.graceful_stop.is_set():
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
-            log = logger.getChild(str(job['PandaID']))
+            log = get_logger(job.jobid, logger)
 
             q_snapshot = list(queues.finished_data_in.queue)
-            peek = [s_job for s_job in q_snapshot if job['PandaID'] == s_job['PandaID']]
+            peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
             if len(peek) == 0:
-                queues.validated_payloads.put(job)
+                #queues.validated_payloads.put(job)
+                put_in_queue(job, queues.validated_payloads)
                 for i in xrange(10):
                     if args.graceful_stop.is_set():
-                            break
+                        break
                     time.sleep(0.1)
                 continue
 
-            log.debug('opening payload stdout/err logs')
-            out = open(os.path.join(job['working_dir'], 'payload.stdout'), 'wb')
-            err = open(os.path.join(job['working_dir'], 'payload.stderr'), 'wb')
+            # this job is now to be monitored, so add it to the monitored_payloads queue
+            #queues.monitored_payloads.put(job)
+            put_in_queue(job, queues.monitored_payloads)
 
-            log.debug('setting up payload environment')
-            send_state(job, 'starting')
+            log.info('job %s added to monitored payloads queue' % job.jobid)
 
-            exit_code = 1
-            if setup_payload(job, out, err):
-                log.debug('running payload')
-                send_state(job, 'running')
-                proc = run_payload(job, out, err)
-                if proc is not None:
-                    exit_code = wait_graceful(args, proc, job)
-                    log.info('finished pid=%s exit_code=%s' % (proc.pid, exit_code))
+            out = open(os.path.join(job.workdir, config.Payload.payloadstdout), 'wb')
+            err = open(os.path.join(job.workdir, config.Payload.payloadstderr), 'wb')
 
-            log.debug('closing payload stdout/err logs')
+            send_state(job, args, 'starting')
+
+            payload_executor = get_payload_executor(args, job, out, err, traces)
+            log.info("Got payload executor: %s" % payload_executor)
+
+            # run the payload and measure the execution time
+            job.t0 = os.times()
+            exit_code = payload_executor.run()
+
+            set_cpu_consumption_time(job)
+            job.transexitcode = exit_code % 255
+
             out.close()
             err.close()
 
-            if exit_code == 0:
-                queues.finished_payloads.put(job)
-            else:
-                queues.failed_payloads.put(job)
+            # analyze and interpret the payload execution output
+            perform_initial_payload_error_analysis(job, exit_code)
+            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+            user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
+            try:
+                exit_code_interpret = user.interpret(job)
+            except Exception as e:
+                log.warning('exception caught: %s' % e)
+                exit_code_interpret = -1
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.INTERNALPILOTPROBLEM)
 
-        except Queue.Empty:
+            if exit_code_interpret == 0 and exit_code == 0:
+                log.info('main payload error analysis completed - did not find any errors')
+
+                # update output lists if zipmaps were used
+                #job.add_archives_to_output_lists()
+
+                # queues.finished_payloads.put(job)
+                put_in_queue(job, queues.finished_payloads)
+            else:
+                log.debug('main payload error analysis completed - adding job to failed_payloads queue')
+                #queues.failed_payloads.put(job)
+                put_in_queue(job, queues.failed_payloads)
+
+        except queue.Empty:
             continue
+        except Exception as e:
+            logger.fatal('execute payloads caught an exception (cannot recover): %s, %s' % (e, traceback.format_exc()))
+            if job:
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADEXECUTIONEXCEPTION)
+                #queues.failed_payloads.put(job)
+                put_in_queue(job, queues.failed_payloads)
+            while not args.graceful_stop.is_set():
+                # let stage-out of log finish, but stop running payloads as there should be a problem with the pilot
+                time.sleep(5)
+
+
+def set_cpu_consumption_time(job):
+    """
+    Set the CPU consumption time.
+    :param job: job object.
+    :return:
+    """
+
+    log = get_logger(job.jobid, logger)
+
+    cpuconsumptiontime = get_cpu_consumption_time(job.t0)
+    job.cpuconsumptiontime = int(round(cpuconsumptiontime))
+    job.cpuconsumptionunit = "s"
+    job.cpuconversionfactor = 1.0
+    log.info('CPU consumption time: %f %s (rounded to %d %s)' %
+             (cpuconsumptiontime, job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconsumptionunit))
+
+
+def perform_initial_payload_error_analysis(job, exit_code):
+    """
+    Perform an initial analysis of the payload.
+    Singularity errors are caught here.
+
+    :param job: job object.
+    :param exit_code: exit code from payload execution.
+    :return:
+    """
+
+    log = get_logger(job.jobid, logger)
+
+    if exit_code != 0:
+        log.warning('main payload execution returned non-zero exit code: %d' % exit_code)
+        stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
+        if stderr != "":
+            msg = errors.extract_stderr_msg(stderr)
+            if msg != "":
+                log.warning("extracted message from stderr:\n%s" % msg)
+        ec = errors.resolve_transform_error(exit_code, stderr)
+        if ec != 0:
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
+        else:
+            log.warning('initial error analysis did not resolve the issue')
+    else:
+        log.info('main payload execution returned zero exit code, but will check it more carefully')
 
 
 def validate_post(queues, traces, args):
+    """
+    Validate finished payloads.
+    If payload finished correctly, add the job to the data_out queue. If it failed, add it to the data_out queue as
+    well but only for log stage-out (in failed_post() below).
+
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
 
     while not args.graceful_stop.is_set():
+        # finished payloads
         try:
             job = queues.finished_payloads.get(block=True, timeout=1)
-        except Queue.Empty:
+        except queue.Empty:
+            time.sleep(0.1)
             continue
-        log = logger.getChild(str(job['PandaID']))
+        log = get_logger(job.jobid, logger)
 
-        log.debug('adding job report for stageout')
-        with open(os.path.join(job['working_dir'], 'jobReport.json')) as data_file:
-            job['job_report'] = json.load(data_file)
+        # by default, both output and log should be staged out
+        job.stageout = 'all'
+        log.debug('adding job to data_out queue')
+        #queues.data_out.put(job)
+        set_pilot_state(job=job, state='stageout')
+        put_in_queue(job, queues.data_out)
 
-        queues.data_out.put(job)
+    logger.info('validate_post has finished')
+
+
+def failed_post(queues, traces, args):
+    """
+    (add description)
+
+    :param queues:
+    :param traces:
+    :param args:
+    :return:
+    """
+
+    while not args.graceful_stop.is_set():
+        # finished payloads
+        try:
+            job = queues.failed_payloads.get(block=True, timeout=1)
+        except queue.Empty:
+            continue
+        log = get_logger(job.jobid, logger)
+
+        log.debug('adding log for log stageout')
+
+        job.stageout = 'log'  # only stage-out log file
+        #queues.data_out.put(job)
+        set_pilot_state(job=job, state='stageout')
+        put_in_queue(job, queues.data_out)

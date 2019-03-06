@@ -1,0 +1,164 @@
+#!/usr/bin/env python
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Authors:
+# - Alexey Anisenkov, anisyonk@cern.ch, 2018
+
+"""
+Standalone implementation of time-out check on function call.
+Timer stops execution of wrapped function if it reaches the limit of provided time. Supports decorator feature.
+
+:author: Alexey Anisenkov
+:contact: anisyonk@cern.ch
+:date: March 2018
+"""
+
+import os
+import signal
+
+import threading
+import multiprocessing
+
+from Queue import Empty
+from functools import wraps
+
+
+# move this class to exception.py
+class TimeoutException(Exception):
+
+    def __init__(self, message, timeout=None, *args):
+        self.timeout = timeout
+        self.message = message
+        self._errorCode = 1334
+        super(TimeoutException, self).__init__(*args)
+
+    def __str__(self):
+        return "%s: %s, timeout=%s seconds%s" % (self.__class__.__name__, self.message, self.timeout, ' : %s' % repr(self.args) if self.args else '')
+
+
+class TimedThread(object):
+    """
+        Thread-based Timer implementation (`threading` module)
+        (shared memory space, GIL limitations, no way to kill thread, Windows compatible)
+    """
+
+    def __init__(self, timeout):
+        """
+            :param timeout: timeout value for operation in seconds.
+        """
+
+        self.timeout = timeout
+        self.is_timeout = False
+
+    def execute(self, func, args, kwargs):
+
+        try:
+            ret = (True, func(*args, **kwargs))
+        except Exception as e:
+            ret = (False, e)
+        self.result = ret
+
+        return ret
+
+    def run(self, func, args, kwargs, timeout=None):
+        """
+            :raise: TimeoutException if timeout value is reached before function finished
+        """
+
+        thread = threading.Thread(target=self.execute, args=(func, args, kwargs))
+        thread.daemon = True
+
+        thread.start()
+
+        timeout = timeout if timeout is not None else self.timeout
+
+        thread.join(timeout)
+
+        if thread.is_alive():
+            self.is_timeout = True
+            raise TimeoutException("Timeout reached", timeout=timeout)
+
+        ret = self.result
+
+        if ret[0]:
+            return ret[1]
+        else:
+            raise ret[1]
+
+
+class TimedProcess(object):
+    """
+        Process-based Timer implementation (`multiprocessing` module). Uses shared Queue to keep result.
+        (completely isolated memory space)
+        In default python implementation multiprocessing considers (c)pickle as serialization backend
+        which is not able properly (requires a hack) to pickle local and decorated functions (affects Windows only)
+    """
+
+    def __init__(self, timeout):
+        """
+            :param timeout: timeout value for operation in seconds.
+        """
+
+        self.timeout = timeout
+        self.is_timeout = False
+
+    def run(self, func, args, kwargs, timeout=None):
+
+        def _execute(func, args, kwargs, queue):  ## will fail on Windows
+            try:
+                ret = func(*args, **kwargs)
+                queue.put((True, ret))
+            except Exception as e:
+                queue.put((False, e))
+
+        queue = multiprocessing.Queue(1)
+        process = multiprocessing.Process(target=_execute, args=(func, args, kwargs, queue))
+        process.daemon = True
+        process.start()
+
+        timeout = timeout if timeout is not None else self.timeout
+
+        try:
+            ret = queue.get(block=True, timeout=timeout)
+        except Empty:
+            self.is_timeout = True
+            raise TimeoutException("Timeout reached", timeout=timeout)
+        finally:
+            while process.is_alive():
+                process.terminate()
+                process.join(1)
+                if process.is_alive() and process.pid:
+                    os.kill(process.pid, signal.SIGKILL)
+
+            multiprocessing.active_children()
+
+        if ret[0]:
+            return ret[1]
+        else:
+            raise ret[1]
+
+
+if getattr(os, 'fork', None):
+    Timer = TimedProcess
+else:  ## Windows
+    Timer = TimedThread
+
+
+def timeout(seconds):
+    """
+    Decorator for a function which causes it to timeout (stop execution) once passed given number of seconds.
+    :raise: TimeoutException in case of timeout interrupt
+    """
+
+    def decorate(function):
+
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            return Timer(seconds).run(function, args, kwargs)
+
+        return wrapper
+
+    return decorate
