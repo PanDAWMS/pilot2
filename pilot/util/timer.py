@@ -140,7 +140,7 @@ class TimedProcess(object):
         if ret[0]:
             return ret[1]
         else:
-            raise ret[1]
+            raise ret[1][0], ret[1][1], ret[1][2]
 
 
 if getattr(os, 'fork', None):
