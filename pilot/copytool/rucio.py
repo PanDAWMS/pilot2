@@ -8,6 +8,9 @@
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Tomas Javurek, tomas.javurek@cern.ch, 2019
+
+from __future__ import absolute_import
 
 import os
 import json
@@ -16,7 +19,6 @@ from time import time
 
 from .common import resolve_common_transfer_errors, verify_catalog_checksum, get_timeout
 from pilot.common.exception import PilotException, ErrorCodes
-from pilot.util.tracereport import TraceReport
 from os.path import dirname
 
 logger = logging.getLogger(__name__)
@@ -45,7 +47,6 @@ def copy_in(files, **kwargs):
         :raise: PilotException in case of controlled error
     """
 
-    trace_object = TraceReport()
     allow_direct_access = kwargs.get('allow_direct_access')
     ignore_errors = kwargs.get('ignore_errors')
     trace_report = kwargs.get('trace_report')
@@ -55,7 +56,7 @@ def copy_in(files, **kwargs):
 
     localsite = os.environ.get('DQ2_LOCAL_SITE_ID', None)
     for fspec in files:
-        logger.info('rucio copytool, downloading file with scope:%s lfn:%s' % (str(fspec.sope), str(fspec.lfn)))
+        logger.info('rucio copytool, downloading file with scope:%s lfn:%s' % (str(fspec.scope), str(fspec.lfn)))
         # update the trace report
         localsite = localsite if localsite else fspec.ddmendpoint
         trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
@@ -67,8 +68,7 @@ def copy_in(files, **kwargs):
             fspec.status_code = 0
             fspec.status = 'remote_io'
             trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
-            trace_object.data = trace_report
-            trace_object.send()
+            trace_report.send()
             continue
 
         trace_report.update(catStart=time())  ## is this metric still needed? LFC catalog
@@ -145,8 +145,8 @@ def copy_out(files, **kwargs):
         cwd = fspec.workdir or kwargs.get('workdir') or '.'
         if summary:
             summary_file_path = os.path.join(cwd, 'rucio_upload.json')
-        logger.info('the file will be uploaded to %s' % str(fspec.ddmendpoint))
 
+        logger.info('the file will be uploaded to %s' % str(fspec.ddmendpoint))
         rucio_state = None
         error_msg = None
         try:
@@ -177,8 +177,8 @@ def copy_out(files, **kwargs):
                 logger.error('Failed to resolve Rucio summary JSON, wrong path? file=%s' % summary_file_path)
             else:
                 with open(summary_file_path, 'rb') as f:
-                    summary = json.load(f)
-                    dat = summary.get("%s:%s" % (fspec.scope, fspec.lfn)) or {}
+                    summary_json = json.load(f)
+                    dat = summary_json.get("%s:%s" % (fspec.scope, fspec.lfn)) or {}
                     fspec.turl = dat.get('pfn')
                     # quick transfer verification:
                     # the logic should be unified and moved to base layer shared for all the movers
@@ -276,15 +276,22 @@ def _stage_out_api(fspec, summary_file_path, trace_report):
     if fspec.filesize:
         f['transfer_timeout'] = get_timeout(fspec.filesize)
 
-    if fspec.storageId and int(fspec.storageId) > 0:
-        if fspec.turl and not fspec.is_deterministic:
-            f['pfn'] = fspec.turl
-    elif fspec.lfn and '.root' in fspec.lfn:
+    # if fspec.storageId and int(fspec.storageId) > 0:
+    #     if fspec.turl and fspec.is_nondeterministic:
+    #         f['pfn'] = fspec.turl
+    # elif fspec.lfn and '.root' in fspec.lfn:
+    #     f['guid'] = fspec.guid
+    if fspec.lfn and '.root' in fspec.lfn:
         f['guid'] = fspec.guid
 
     # process the upload
     logger.info('_stage_out_api: %s' % str(f))
-    result = upload_client.upload([f], summary_file_path)
+    result = None
+    try:
+        result = upload_client.upload([f], summary_file_path)
+    except UnboundLocalError:
+        print('rucio needs a bug fix')
+        result = 0
 
     clientState = 'FAILED'
     if result == 0:

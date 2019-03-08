@@ -7,8 +7,9 @@
 # Authors: Pavlo Svirin <pavlo.svirin@gmail.com>
 
 import unittest
+import os
 
-from pilot.copytool.rucio import copy_in
+from pilot.copytool.rucio import copy_out
 
 # from pilot.control.job import get_fake_job
 # from pilot.info import JobData
@@ -21,42 +22,21 @@ class TestCopytoolRucio(unittest.TestCase):
     """
 
     def setUp(self):
+        test_file = open('test.txt', 'w')
+        test_file.write('For test purposes only.')
+        fspec_out = FileSpec()
+        fspec_out.lfn = 'test.txt'
+        fspec_out.scope = 'user.tjavurek'
+        fspec_out.checksum = {'adler32':'682c08b9'}
+        fspec_out.pfn = os.getcwd() + '/' + 'test.txt'
+        fspec_out.ddmendpoint = 'UNI-FREIBURG_SCRATCHDISK'
+        self.outdata = [fspec_out]
 
-        data = {'did_scope': 'mc16_13TeV',
-                'did': 'mc16_13TeV:EVNT.16337107._000147.pool.root.1',
-                'rse': 'IFIC-LCG2_DATADISK',
-                'pfn': 'root://t2fax.ific.uv.es:1094//lustre/ific.uv.es/grid/atlas/atlasdatadisk/rucio/mc16_13TeV/59/29/EVNT.16337107._000147.pool.root.1',
-                'did_name': 'EVNT.16337107._000147.pool.root.1',
-                'dataset': 'mc16_13TeV:mc16_13TeV.410431.PhPy8EG_A14_ttbar_hdamp517p5_allhad_HT1k_1k5.merge.EVNT.e6735_e5984_tid16337107_00',
-                'filesize': 490891918,
-                'guid': '1048c73e4cf60442baf3be58fb711928',
-                'checksum': '3684d24c',
-                'base_dir': '/var/lib/torque/tmpdir/76952314.ce05.ific.uv.es/condorg_QFWCLP24/Panda_Pilot_19263_1544445888/PandaJob'}
-        fspec = FileSpec()
-        fspec.lfn = data['did_name']
-        fspec.scope = data['did_scope']
-        fspec.did = data['did']
-        fspec.ddmendpoint = data['rse']
-        fspec.dataset = data['dataset']
-        fspec.turl = data['pfn']
-        fspec.filesize = data['filesize']
-        fspec.guid = data['guid']
-        fspec.checksum = data['checksum']
-        fspec.no_subdir = False
-        # fspec.is_directaccess = False
-
-        self.indata = [fspec]
-        # for f in self.indata:
-        #     f.workdir = self.tmp_dst_dir
-        #     f.turl = os.path.join(self.tmp_src_dir, f.lfn)
-
-        self.outdata = []  # jdata.prepare_outfiles(data)
-
-    def test_copy_in_rucio(self):
+    def test_copy_out_rucio(self):
         trace_report = TraceReport()
-        trace_report.data = {'eventType': 'pilot unit test'}
-        copy_in(self.indata, trace_report=trace_report)
-
+        trace_report.update(eventType='unit test')
+        copy_out(self.outdata, trace_report=trace_report)
+        os.remove(fspec_out.pfn)
 
 if __name__ == '__main__':
     unittest.main()
