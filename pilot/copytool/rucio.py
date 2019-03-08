@@ -38,6 +38,7 @@ def is_valid_for_copy_out(files):
     return True  ## FIX ME LATER
 
 
+# @timeout(seconds=600)
 def copy_in(files, **kwargs):
     """
         Download given files using rucio copytool.
@@ -120,6 +121,7 @@ def copy_in(files, **kwargs):
     return files
 
 
+# @timeout(seconds=600)
 def copy_out(files, **kwargs):
     """
         Upload given files using rucio copytool.
@@ -186,7 +188,7 @@ def copy_out(files, **kwargs):
                     local_checksum = fspec.checksum.get('adler32')
                     if local_checksum and adler32 and local_checksum != adler32:
                         msg = 'checksum verification failed: local %s != remote %s' % \
-                              (fspec.checksum.get('adler32'), adler32)
+                              (local_checksum, adler32)
                         logger.warning(msg)
                         fspec.status = 'failed'
                         fspec.status_code = ErrorCodes.PUTADMISMATCH
@@ -290,7 +292,7 @@ def _stage_out_api(fspec, summary_file_path, trace_report):
     try:
         result = upload_client.upload([f], summary_file_path)
     except UnboundLocalError:
-        print('rucio needs a bug fix')
+        logger.warning('rucio still needs a bug fix of the summary in the uploadclient')
         result = 0
 
     clientState = 'FAILED'

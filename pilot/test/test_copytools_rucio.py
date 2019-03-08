@@ -16,6 +16,7 @@ from pilot.copytool.rucio import copy_out
 from pilot.info.filespec import FileSpec
 from pilot.util.tracereport import TraceReport
 
+
 class TestCopytoolRucio(unittest.TestCase):
     """
     Unit tests for rucio copytool.
@@ -27,7 +28,7 @@ class TestCopytoolRucio(unittest.TestCase):
         fspec_out = FileSpec()
         fspec_out.lfn = 'test.txt'
         fspec_out.scope = 'user.tjavurek'
-        fspec_out.checksum = {'adler32':'682c08b9'}
+        fspec_out.checksum = {'adler32': '682c08b9'}
         fspec_out.pfn = os.getcwd() + '/' + 'test.txt'
         fspec_out.ddmendpoint = 'UNI-FREIBURG_SCRATCHDISK'
         self.outdata = [fspec_out]
@@ -36,7 +37,8 @@ class TestCopytoolRucio(unittest.TestCase):
         trace_report = TraceReport()
         trace_report.update(eventType='unit test')
         copy_out(self.outdata, trace_report=trace_report)
-        os.remove(fspec_out.pfn)
+        os.remove(self.outdata[0].pfn)
+
 
 if __name__ == '__main__':
     unittest.main()
