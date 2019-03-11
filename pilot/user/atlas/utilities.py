@@ -83,7 +83,7 @@ def get_memory_monitor_output_filename():
     return "memory_monitor_output.txt"
 
 
-def get_memory_monitor_setup(pid, workdir):
+def get_memory_monitor_setup(pid, workdir, setup=""):
     """
     Return the proper setup for the memory monitor.
     If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the
@@ -91,16 +91,20 @@ def get_memory_monitor_setup(pid, workdir):
     to use a fixed version for the setup. Currently, release 21.0.22 is used.
 
     :param pid: job process id (int).
+    :param workdir: job work directory (string).
+    :param setup: optional setup in case asetup can not be used, which uses infosys (string).
     :return: job work directory (string).
     """
 
     release = "21.0.22"
     platform = "x86_64-slc6-gcc62-opt"
-    setup = get_asetup() + " Athena," + release + " --platform " + platform
+    if not setup:
+        setup = get_asetup() + " Athena," + release + " --platform " + platform
     interval = 60
-
+    if not setup.endswith(';'):
+        setup += ';'
     # Now add the MemoryMonitor command
-    cmd = "%s; MemoryMonitor --pid %d --filename %s --json-summary %s --interval %d" %\
+    cmd = "%sMemoryMonitor --pid %d --filename %s --json-summary %s --interval %d" %\
           (setup, pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
     cmd = "cd " + workdir + ";" + cmd
 
