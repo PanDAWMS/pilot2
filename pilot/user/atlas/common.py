@@ -1161,7 +1161,7 @@ def get_utility_command_setup(name, job, setup=None):
     """
 
     if name == 'MemoryMonitor':
-        return get_memory_monitor_setup(job)
+        return get_memory_monitor_setup(job.pid, job.workdir)
     elif name == 'NetworkMonitor' and setup:
         return get_network_monitor_setup(setup, job)
     elif name == 'Prefetcher':

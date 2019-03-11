@@ -7,6 +7,7 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
+from os import getcwd
 from .services import Services
 
 import logging
@@ -18,8 +19,10 @@ class MemoryMonitoring(Services):
     Memory monitoring service class.
     """
 
-    user = ""  # Pilot user, e.g. 'ATLAS'
-    _cmd = ""  # Memory monitoring command (full path, all options)
+    user = ""     # Pilot user, e.g. 'ATLAS'
+    pid = 0       # Job process id
+    workdir = ""  # Job work directory
+    _cmd = ""     # Memory monitoring command (full path, all options)
 
     def __init__(self, **kwargs):
         """
@@ -31,9 +34,12 @@ class MemoryMonitoring(Services):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
+        if not self.workdir:
+            self.workdir = getcwd()
+
         if self.user:
             user_utility = __import__('pilot.user.%s.utilities' % self.user, globals(), locals(), [self.user], -1)
-            self._cmd = user_utility.get_memory_monitor_setup()
+            self._cmd = user_utility.get_memory_monitor_setup(self.pid, self.workdir)
 
     def get_command(self):
         """
