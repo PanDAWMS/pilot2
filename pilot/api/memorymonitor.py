@@ -29,5 +29,5 @@ class MemoryMonitoring(Services):
 
         self._mode = kwargs.get('mode', '')
 
-    def print(self):
+    def print1(self):
         print(self.mode)
