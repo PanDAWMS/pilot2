@@ -18,11 +18,16 @@ class MemoryMonitoring(Services):
     Memory monitoring service class.
     """
 
-    def __init__(self, *args):
+    _mode = ""
+
+    def __init__(self, **kwargs):
         """
         Init function.
 
-        :param args:
+        :param kwargs:
         """
 
-        pass
+        self._mode = kwargs.get('mode', '')
+
+    def print(self):
+        print(self.mode)
