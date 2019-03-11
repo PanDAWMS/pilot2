@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
 from .services import Services
 
@@ -18,7 +18,8 @@ class MemoryMonitoring(Services):
     Memory monitoring service class.
     """
 
-    mode = ""
+    user = ""  # Pilot user, e.g. 'ATLAS'
+    _cmd = ""  # Memory monitoring command (full path, all options)
 
     def __init__(self, **kwargs):
         """
@@ -30,5 +31,29 @@ class MemoryMonitoring(Services):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
-    def print1(self):
-        print(self.mode)
+    def get_command(self):
+        """
+        Return the full command for the memory monitor.
+
+        :return: command string.
+        """
+
+        return self._cmd
+
+    def get_filename(self):
+        """
+        ..
+
+        :return:
+        """
+
+        return ""
+
+    def get_results(self):
+        """
+        ..
+
+        :return:
+        """
+
+        return None
