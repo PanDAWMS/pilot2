@@ -32,7 +32,7 @@ class MemoryMonitoring(Services):
             setattr(self, key, kwargs[key])
 
         if self.user:
-            user_utility = __import__('pilot.user.%s.utilities' % user, globals(), locals(), [user], -1)
+            user_utility = __import__('pilot.user.%s.utilities' % self.user, globals(), locals(), [self.user], -1)
             self._cmd = user_utility.get_memory_monitor_setup()
 
     def get_command(self):
