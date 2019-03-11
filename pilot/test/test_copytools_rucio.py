@@ -25,6 +25,7 @@ class TestCopytoolRucio(unittest.TestCase):
     def setUp(self):
         test_file = open('test.txt', 'w')
         test_file.write('For test purposes only.')
+        test_file.close()
         fspec_out = FileSpec()
         fspec_out.lfn = 'test.txt'
         fspec_out.scope = 'user.tjavurek'
