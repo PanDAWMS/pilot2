@@ -27,7 +27,8 @@ class MemoryMonitoring(Services):
         :param kwargs:
         """
 
-        self._mode = kwargs.get('mode', '')
+        for key in kwargs:
+            setattr(self, key, kwargs[key])
 
     def print1(self):
         print(self._mode)
