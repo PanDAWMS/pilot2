@@ -249,11 +249,11 @@ def _stage_in_api(dst, fspec, trace_report):
     else:
         result = download_client.download_dids([f], trace_custom_fields=trace_pattern)
 
-    clientState = 'FAILED'
+    client_state = 'FAILED'
     if result:
-        clientState = result[0].get('clientState', 'FAILED')
+        client_state = result[0].get('clientState', 'FAILED')
 
-    return clientState
+    return client_state
 
 
 def _stage_out_api(fspec, summary_file_path, trace_report):
@@ -295,8 +295,8 @@ def _stage_out_api(fspec, summary_file_path, trace_report):
         logger.warning('rucio still needs a bug fix of the summary in the uploadclient')
         result = 0
 
-    clientState = 'FAILED'
+    client_state = 'FAILED'
     if result == 0:
-        clientState = 'DONE'
+        client_state = 'DONE'
 
-    return clientState
+    return client_state
