@@ -18,7 +18,7 @@ class MemoryMonitoring(Services):
     Memory monitoring service class.
     """
 
-    _mode = ""
+    mode = ""
 
     def __init__(self, **kwargs):
         """
@@ -31,4 +31,4 @@ class MemoryMonitoring(Services):
             setattr(self, key, kwargs[key])
 
     def print1(self):
-        print(self._mode)
+        print(self.mode)
