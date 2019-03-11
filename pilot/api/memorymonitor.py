@@ -31,6 +31,10 @@ class MemoryMonitoring(Services):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
+        if self.user:
+            user_utility = __import__('pilot.user.%s.utilities' % user, globals(), locals(), [user], -1)
+            self._cmd = user_utility.get_memory_monitor_setup()
+
     def get_command(self):
         """
         Return the full command for the memory monitor.
@@ -39,6 +43,16 @@ class MemoryMonitoring(Services):
         """
 
         return self._cmd
+
+    def execute(self):
+        """
+        Execute the memory monitor command.
+        Return the process.
+
+        :return: process.
+        """
+
+        return None
 
     def get_filename(self):
         """
