@@ -16,7 +16,6 @@ import os
 import hashlib
 import logging
 import time
-import socket
 
 from pilot.info import infosys
 from pilot.info.storageactivitymaps import get_ddm_activity
@@ -255,6 +254,7 @@ class StagingClient(object):
 
         ip = '0.0.0.0'
         try:
+            import socket
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.connect(("8.8.8.8", 80))
             ip = s.getsockname()[0]
@@ -269,10 +269,11 @@ class StagingClient(object):
         except Exception:
             pass
 
-        site = os.environ.get('SITE_NAME',
-                              os.environ.get('ATLAS_SITE_NAME',
-                                             os.environ.get('OSG_SITE_NAME',
-                                                            'ROAMING')))
+        site = os.environ.get('PILOT_RUCIO_SITENAME', 'unknown')
+#        site = os.environ.get('SITE_NAME',
+#                              os.environ.get('ATLAS_SITE_NAME',
+#                                             os.environ.get('OSG_SITE_NAME',
+#                                                            'ROAMING')))
 
         return {'ip': ip,
                 'ip6': ip6,
