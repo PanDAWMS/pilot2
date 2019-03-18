@@ -35,6 +35,7 @@ class StagingClient(object):
         Base Staging Client
     """
 
+    mode = ""  # stage-in/out, set by the inheritor of the class
     copytool_modules = {'rucio': {'module_name': 'rucio'},
                         'gfal': {'module_name': 'gfal'},
                         'gfalcopy': {'module_name': 'gfal'},
@@ -336,7 +337,7 @@ class StagingClient(object):
             activity.append('default')
 
         # stage-in/out?
-        mode = kwargs.get('mode', '')
+        #mode = kwargs.get('mode', '')
 
         copytools = None
         for aname in activity:
@@ -398,7 +399,7 @@ class StagingClient(object):
             if caught_errors and isinstance(caught_errors[-1], PilotException):
                 code = caught_errors[0].get_error_code()
             elif caught_errors and isinstance(caught_errors[-1], TimeoutException):
-                code = errors.STAGEINTIMEOUT if mode == 'stage-in' else errors.STAGEOUTTIMEOUT  # is it stage-in/out?
+                code = errors.STAGEINTIMEOUT if self.mode == 'stage-in' else errors.STAGEOUTTIMEOUT  # is it stage-in/out?
                 self.logger.warning('caught time-out exception: %s' % caught_errors[0])
             else:
                 code = None
@@ -412,6 +413,8 @@ class StagingClient(object):
 
 
 class StageInClient(StagingClient):
+
+    mode = "stage-in"
 
     def resolve_replica(self, fspec, primary_schemas=None, allowed_schemas=None):
         """
@@ -631,6 +634,8 @@ class StageInClient(StagingClient):
 
 
 class StageOutClient(StagingClient):
+
+    mode = "stage-out"
 
     def resolve_protocols(self, files, activity):
         """
