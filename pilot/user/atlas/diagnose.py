@@ -83,6 +83,11 @@ def interpret_payload_exit_info(job):
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGINSTALLATION)
         return
 
+    # did AtlasSetup fail?
+    if is_atlassetup_error(job):
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.ATLASSETUPFATAL)
+        return
+
     # look for specific errors in the stdout (full)
     if is_nfssqlite_locking_problem(job):
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NFSSQLITE)
@@ -136,6 +141,23 @@ def is_installation_error(job):
     _tail = tail(stdout)
     res_tmp = _tail[:1024]
     if res_tmp[0:3] == "sh:" and 'setup.sh' in res_tmp and 'No such file or directory' in res_tmp:
+        return True
+    else:
+        return False
+
+
+def is_atlassetup_error(job):
+    """
+    Did AtlasSetup fail with a fatal error?
+
+    :param job: job object.
+    :return: Boolean. (note: True means the error was found)
+    """
+
+    stdout = os.path.join(job.workdir, config.Payload.payloadstdout)
+    _tail = tail(stdout)
+    res_tmp = _tail[:1024]
+    if "AtlasSetup(FATAL): Fatal exception" in res_tmp:
         return True
     else:
         return False
