@@ -97,6 +97,8 @@ class StagingClient(object):
         # get an initialized trace report (has to be updated for get/put if not defined before)
         self.trace_report = trace_report if trace_report else TraceReport(pq=os.environ.get('PILOT_SITENAME', ''))
 
+    def get_mode(self): return self.mode
+
     @classmethod
     def get_preferred_replica(self, replicas, allowed_schemas):
         """
