@@ -280,32 +280,6 @@ class StagingClient(object):
                 'fqdn': socket.getfqdn(),
                 'site': site}
 
-    @classmethod
-    def detect_client_location_old(self):  ## TO BE DEPRECATED ONCE RUCIO BUG IS FIXED
-        """
-        Open a UDP socket to a machine on the internet, to get the local IP address
-        of the requesting client.
-        Try to determine the sitename automatically from common environment variables,
-        in this order: SITE_NAME, ATLAS_SITE_NAME, OSG_SITE_NAME. If none of these exist
-        use the fixed string 'ROAMING'.
-        Note: this is a modified Rucio function.  ## TO BE DEPRECATED ONCE RUCIO BUG IS FIXED
-
-        :return: expected location dict for Rucio functions: dict(ip, fqdn, site)
-        """
-
-        ret = {}
-        site = os.environ.get('PILOT_RUCIO_SITENAME', 'unknown')
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(("8.8.8.8", 80))
-            ip = s.getsockname()[0]
-            ret = {'ip': ip, 'fqdn': socket.getfqdn(), 'site': site}
-        except Exception as e:
-            #self.log('socket() failed to lookup local IP')
-            print('socket() failed to lookup local IP: %s' % e)
-
-        return ret
-
     def transfer_files(self, copytool, files, **kwargs):
         """
             Apply transfer of given `files` using passed `copytool` module
