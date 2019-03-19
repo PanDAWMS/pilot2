@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 from __future__ import print_function
@@ -1336,20 +1336,23 @@ def queue_monitor(queues, traces, args):
             pause_queue_monitor(20)
 
         # check if the job has finished
-        imax = 10
+        imax = 20
         i = 0
         while i < imax and os.environ.get('PILOT_WRAP_UP', '') == 'NORMAL':
             job = check_job(args, queues)
             if job:
                 break
             i += 1
-            if abort:
+            if job.state != 'stage-out':
+                logger.info("no need to wait since job state=\'%s\'" % job.state)
+                break
+            if abort and job.state == 'stage-out':
                 pause_queue_monitor(60)
 
         # job has not been defined if it's still running
         if job:
             log = get_logger(job.jobid)
-            log.info('preparing for final server update for job %s' % job.jobid)
+            log.info("preparing for final server update for job %s (state=\'%s\')" % (job.jobid, job.state))
 
             if args.job_aborted.is_set():
                 # wait for stage-out to finish for aborted job
