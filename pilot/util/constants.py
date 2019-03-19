@@ -14,7 +14,7 @@ from os import environ
 RELEASE = '2'   # released number should be fixed at 2 for Pilot 2
 VERSION = '2'   # version number is '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
 REVISION = '0'  # revision number should be reset to '0' for every new version release, increased for small updates
-BUILD = '4'   # build number should be reset to '1' for every new development cycle
+BUILD = '5'   # build number should be reset to '1' for every new development cycle
 
 SUCCESS = 0
 FAILURE = 1
@@ -51,14 +51,6 @@ LOG_TRANSFER_NOT_DONE = 'NOT_DONE'
 LOG_TRANSFER_IN_PROGRESS = 'IN_PROGRESS'
 LOG_TRANSFER_DONE = 'DONE'
 LOG_TRANSFER_FAILED = 'FAILED'
-
-# Keep track of job state (INITIALIZING, SETUP, STAGEIN, RUNNING, STAGEOUT, FINALIZING)
-JOB_INIT_STATE = 'INITIALIZING'
-JOB_SETUP_STATE = 'SETUP'
-JOB_STAGEIN_STATE = 'STAGEIN'
-JOB_RUNNING_STATE = 'RUNNING'
-JOB_STAGEOUT_STATE = 'STAGEOUT'
-JOB_FINALIZING_STATE = 'FINALIZING'
 
 def get_pilot_version():
     """
