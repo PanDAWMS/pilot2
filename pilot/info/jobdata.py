@@ -29,7 +29,7 @@ import pipes
 
 from .basedata import BaseData
 from .filespec import FileSpec
-from pilot.util.constants import LOG_TRANSFER_NOT_DONE, JOB_INIT_STATE
+from pilot.util.constants import LOG_TRANSFER_NOT_DONE
 from pilot.util.filehandling import get_guid
 from pilot.util.timing import get_elapsed_real_time
 
@@ -52,7 +52,7 @@ class JobData(BaseData):
     transformation = ""            # script execution name
     state = ""                     # current job state
     # current job status; format = {key: value, ..} e.g. key='LOG_TRANSFER', value='DONE'
-    status = {'LOG_TRANSFER': LOG_TRANSFER_NOT_DONE, 'STATE': JOB_INIT_STATE}
+    status = {'LOG_TRANSFER': LOG_TRANSFER_NOT_DONE}
     corecount = 1                  # Number of cores as requested by the task
     platform = ""                  # cmtconfig value from the task definition
     is_eventservice = False        # True for event service jobs
