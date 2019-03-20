@@ -429,7 +429,6 @@ def validate(queues, traces, args):
                 traces.pilot['error_code'] = errors.MKDIR
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(traces.pilot['error_code'])
                 job.piloterrordiag = e
-                #queues.failed_jobs.put(job)
                 put_in_queue(job, queues.failed_jobs)
                 break
 
@@ -439,12 +438,10 @@ def validate(queues, traces, args):
             except Exception as e:
                 log.warning('cannot symlink pilot log: %s' % str(e))
 
-            #queues.validated_jobs.put(job)
             put_in_queue(job, queues.validated_jobs)
 
         else:
             log.debug('Failed to validate job=%s' % job.jobid)
-            #queues.failed_jobs.put(job)
             put_in_queue(job, queues.failed_jobs)
 
 
@@ -466,17 +463,14 @@ def create_data_payload(queues, traces, args):
 
         if job.indata:
             # if the job has input data, put the job object in the data_in queue which will trigger stage-in
-            #queues.data_in.put(job)
             set_pilot_state(job=job, state='stagein')
             put_in_queue(job, queues.data_in)
 
         else:
             # if the job does not have any input data, then pretend that stage-in has finished and put the job
             # in the finished_data_in queue
-            #queues.finished_data_in.put(job)
             put_in_queue(job, queues.finished_data_in)
 
-        #queues.payloads.put(job)
         put_in_queue(job, queues.payloads)
 
 
@@ -1061,7 +1055,6 @@ def retrieve(queues, traces, args):
 
                 # add the job definition to the jobs queue and increase the job counter,
                 # and wait until the job has finished
-                #queues.jobs.put(job)
                 put_in_queue(job, queues.jobs)
 
                 jobnumber += 1
@@ -1233,7 +1226,6 @@ def order_log_transfer(args, queues, job):
 
     # add the job object to the data_out queue to have it staged out
     job.stageout = 'log'  # only stage-out log file
-    #queues.data_out.put(job)
     set_pilot_state(job=job, state='stageout')
     put_in_queue(job, queues.data_out)
 
@@ -1375,7 +1367,6 @@ def queue_monitor(queues, traces, args):
             else:
                 logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
                 # now ready for the next job (or quit)
-                #queues.completed_jobs.put(_job)
                 put_in_queue(job, queues.completed_jobs)
 
         if abort:
@@ -1609,7 +1600,6 @@ def fail_monitored_job(job, exit_code, diagnostics, queues, traces):
     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
     job.pilorerrordiag = diagnostics
     traces.pilot['error_code'] = exit_code
-    # queues.failed_payloads.put(job)
     put_in_queue(job, queues.failed_payloads)
     log.info('aborting job monitoring since job state=%s' % job.state)
 
