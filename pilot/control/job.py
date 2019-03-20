@@ -27,7 +27,8 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException
 from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
-from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, set_pilot_state
+from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, set_pilot_state, \
+    get_pilot_state
 from pilot.util.config import config
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
@@ -1343,10 +1344,11 @@ def queue_monitor(queues, traces, args):
             if job:
                 break
             i += 1
-            if job.state != 'stage-out':
-                logger.info("no need to wait since job state=\'%s\'" % job.state)
+            state = get_pilot_state()  # the job object is not available, but the state is also kept in PILOT_JOB_STATE
+            if state != 'stage-out':
+                logger.info("no need to wait since job state=\'%s\'" % state)
                 break
-            if abort and job.state == 'stage-out':
+            if abort and state == 'stage-out':
                 pause_queue_monitor(60)
 
         # job has not been defined if it's still running

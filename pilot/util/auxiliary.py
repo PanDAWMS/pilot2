@@ -203,19 +203,32 @@ def get_size(obj_0):
     return inner(obj_0)
 
 
+def get_pilot_state(job=None):
+    """
+    Return the current pilot (job) state.
+    If the job object does not exist, the environmental variable PILOT_JOB_STATE will be queried instead.
+
+    :param job:
+    :return: pilot (job) state (string).
+    """
+
+    return job.state if job else os.environ.get('PILOT_JOB_STATE', 'unknown')
+
+
 def set_pilot_state(job=None, state=''):
     """
     Set the internal pilot state.
     Note: this function should update the global/singleton object but currently uses an environmental variable
     (PILOT_STATE).
     The function does not update job.state if it is already set to finished or failed.
+    The environmental variable PILOT_JOB_STATE will always be set, in case the job object does not exist.
 
     :param job: optional job object.
     :param state: internal pilot state (string).
     :return:
     """
 
-    os.environ['PILOT_STATE'] = state
+    os.environ['PILOT_JOB_STATE'] = state
 
     if job and job.state != 'finished' and job.state != 'failed':
         job.state = state

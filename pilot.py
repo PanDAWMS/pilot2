@@ -394,7 +394,7 @@ def create_main_work_dir(args):
 def set_environment_variables(args, mainworkdir):
     """
     Set environment variables. To be replaced with singleton implementation.
-    This function sets PILOT_WORK_DIR, PILOT_HOME, PILOT_SITENAME, PILOT_USER and PILOT_VERSION.
+    This function sets PILOT_WORK_DIR, PILOT_HOME, PILOT_SITENAME, PILOT_USER and PILOT_VERSION and others.
 
     :param args:
     :param mainworkdir:
@@ -424,6 +424,9 @@ def set_environment_variables(args, mainworkdir):
 
     # set the default wrap-up/finish instruction
     environ['PILOT_WRAP_UP'] = 'NORMAL'
+
+    # set the job state (job object does not exist yet, so set this to initializing)
+    environ['PILOT_JOB_STATE'] = 'initializing'
 
 
 def establish_logging(args):

@@ -12,9 +12,9 @@ from os import environ
 
 # Pilot version
 RELEASE = '2'   # released number should be fixed at 2 for Pilot 2
-VERSION = '2'   # version number is '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
-REVISION = '0'  # revision number should be reset to '0' for every new version release, increased for small updates
-BUILD = '6'   # build number should be reset to '1' for every new development cycle
+VERSION = '1'   # version number is '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
+REVISION = '1'  # revision number should be reset to '0' for every new version release, increased for small updates
+BUILD = '7'   # build number should be reset to '1' for every new development cycle
 
 SUCCESS = 0
 FAILURE = 1
@@ -51,6 +51,7 @@ LOG_TRANSFER_NOT_DONE = 'NOT_DONE'
 LOG_TRANSFER_IN_PROGRESS = 'IN_PROGRESS'
 LOG_TRANSFER_DONE = 'DONE'
 LOG_TRANSFER_FAILED = 'FAILED'
+
 
 def get_pilot_version():
     """
