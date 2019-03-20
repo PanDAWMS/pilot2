@@ -1346,9 +1346,9 @@ def queue_monitor(queues, traces, args):
             i += 1
             state = get_pilot_state()  # the job object is not available, but the state is also kept in PILOT_JOB_STATE
             if state != 'stage-out':
-                logger.info("no need to wait since job state=\'%s\'" % state)
+                # logger.info("no need to wait since job state=\'%s\'" % state)
                 break
-            if abort and state == 'stage-out':
+            if abort:
                 pause_queue_monitor(60)
 
         # job has not been defined if it's still running
