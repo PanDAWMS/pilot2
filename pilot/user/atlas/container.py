@@ -211,11 +211,14 @@ def alrb_wrapper(cmd, workdir, job):
             "resolved singularity_options from queuedata.container_options: %s" % singularity_options)
 
         _cmd = asetup
-        if job.platform:
+        if job.platform and not job.alrbuserplatform:
             _cmd += 'export thePlatform=\"%s\";' % job.platform
         elif '--containerImage' in job.jobparams:
-            # set a default platform for user defined containers
-            _cmd += 'export thePlatform=\"centos7\";'
+            if job.alrbuserplatform:
+                _cmd += 'export thePlatform=\"%s\";' % job.alrbuserplatform
+            else:
+                # set a default platform for user defined containers
+                _cmd += 'export thePlatform=\"centos7\";'
 
         #if '--containall' not in singularity_options:
         #    singularity_options += ' --containall'

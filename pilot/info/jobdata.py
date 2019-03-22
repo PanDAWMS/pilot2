@@ -418,7 +418,7 @@ class JobData(BaseData):
         """
 
         v = value if value.lower() not in ['null', 'none'] else ''
-        # handle encoded alrb_user_platform in cmtconfig/platform string
+        # handle encoded alrbuserplatform in cmtconfig/platform string
         if '@' in v:
             self.alrbuserplatform = v.split('@')[1]  # ALRB_USER_PLATFORM value
             v = v.split('@')[0]  # cmtconfig value
