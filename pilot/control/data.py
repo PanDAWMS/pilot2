@@ -141,8 +141,6 @@ def _stage_in(args, job):
             activity = 'pr'
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)  #, mode='stage-in')
 
-        log.debug('staging mode=%s' % client.get_mode())
-
         client.transfer(job.indata, activity=activity, **kwargs)
     except PilotException as error:
         log.error('PilotException caught: %s' % error)
@@ -599,8 +597,6 @@ def _do_stageout(job, xdata, activity, title):
     try:
         client = StageOutClient(job.infosys, logger=log, trace_report=trace_report)
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)  #, mode='stage-out')
-
-        log.debug('staging mode=%s' % client.get_mode())
 
         client.transfer(xdata, activity, **kwargs)
     except PilotException as error:
