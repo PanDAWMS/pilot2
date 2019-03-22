@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 # - Wen Guan, wen.guan, 2018
 
 import re
@@ -114,6 +114,7 @@ class ErrorCodes:
     MISSINGINPUTFILE = 1331
     BLACKHOLE = 1332
     NOREMOTESPACE = 1333
+    ATLASSETUPFATAL = 1334
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -206,7 +207,8 @@ class ErrorCodes:
         JSONRETRIEVALTIMEOUT: "JSON retrieval timed out",
         MISSINGINPUTFILE: "Input file is missing in storage element",
         BLACKHOLE: "Black hole detected in file system (consult Pilot log)",
-        NOREMOTESPACE: "No space left on device"
+        NOREMOTESPACE: "No space left on device",
+        ATLASSETUPFATAL: "AtlasSetup failed with a fatal exception (consult Payload log)"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]

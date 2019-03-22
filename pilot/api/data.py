@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
 
@@ -35,6 +35,7 @@ class StagingClient(object):
         Base Staging Client
     """
 
+    mode = ""  # stage-in/out, set by the inheritor of the class
     copytool_modules = {'rucio': {'module_name': 'rucio'},
                         'gfal': {'module_name': 'gfal'},
                         'gfalcopy': {'module_name': 'gfal'},
@@ -243,31 +244,42 @@ class StagingClient(object):
         return files
 
     @classmethod
-    def detect_client_location(self):  ## TO BE DEPRECATED ONCE RUCIO BUG IS FIXED
+    def detect_client_location(self):
         """
-        Open a UDP socket to a machine on the internet, to get the local IP address
-        of the requesting client.
+        Open a UDP socket to a machine on the internet, to get the local IPv4 and IPv6
+        addresses of the requesting client.
         Try to determine the sitename automatically from common environment variables,
         in this order: SITE_NAME, ATLAS_SITE_NAME, OSG_SITE_NAME. If none of these exist
         use the fixed string 'ROAMING'.
-        Note: this is a modified Rucio function.  ## TO BE DEPRECATED ONCE RUCIO BUG IS FIXED
-
-        :return: expected location dict for Rucio functions: dict(ip, fqdn, site)
         """
 
-        ret = {}
-        site = os.environ.get('PILOT_RUCIO_SITENAME', 'unknown')
+        ip = '0.0.0.0'
         try:
             import socket
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.connect(("8.8.8.8", 80))
             ip = s.getsockname()[0]
-            ret = {'ip': ip, 'fqdn': socket.getfqdn(), 'site': site}
-        except Exception as e:
-            #self.log('socket() failed to lookup local IP')
-            print('socket() failed to lookup local IP: %s' % e)
+        except Exception:
+            pass
 
-        return ret
+        ip6 = '::'
+        try:
+            s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+            s.connect(("2001:4860:4860:0:0:0:0:8888", 80))
+            ip6 = s.getsockname()[0]
+        except Exception:
+            pass
+
+        site = os.environ.get('PILOT_RUCIO_SITENAME', 'unknown')
+#        site = os.environ.get('SITE_NAME',
+#                              os.environ.get('ATLAS_SITE_NAME',
+#                                             os.environ.get('OSG_SITE_NAME',
+#                                                            'ROAMING')))
+
+        return {'ip': ip,
+                'ip6': ip6,
+                'fqdn': socket.getfqdn(),
+                'site': site}
 
     def transfer_files(self, copytool, files, **kwargs):
         """
@@ -299,7 +311,7 @@ class StagingClient(object):
             activity.append('default')
 
         # stage-in/out?
-        mode = kwargs.get('mode', '')
+        #mode = kwargs.get('mode', '')
 
         copytools = None
         for aname in activity:
@@ -361,7 +373,7 @@ class StagingClient(object):
             if caught_errors and isinstance(caught_errors[-1], PilotException):
                 code = caught_errors[0].get_error_code()
             elif caught_errors and isinstance(caught_errors[-1], TimeoutException):
-                code = errors.STAGEINTIMEOUT if mode == 'stage-in' else errors.STAGEOUTTIMEOUT  # is it stage-in/out?
+                code = errors.STAGEINTIMEOUT if self.mode == 'stage-in' else errors.STAGEOUTTIMEOUT  # is it stage-in/out?
                 self.logger.warning('caught time-out exception: %s' % caught_errors[0])
             else:
                 code = None
@@ -375,6 +387,8 @@ class StagingClient(object):
 
 
 class StageInClient(StagingClient):
+
+    mode = "stage-in"
 
     def resolve_replica(self, fspec, primary_schemas=None, allowed_schemas=None):
         """
@@ -594,6 +608,8 @@ class StageInClient(StagingClient):
 
 
 class StageOutClient(StagingClient):
+
+    mode = "stage-out"
 
     def resolve_protocols(self, files, activity):
         """

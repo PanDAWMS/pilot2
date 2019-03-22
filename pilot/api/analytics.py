@@ -32,8 +32,6 @@ class Analytics(Services):
 
         self._fit = None
 
-        pass
-
     def fit(self, x, y, model='linear'):
         """
         Fitting function.
