@@ -9,14 +9,29 @@
 import unittest
 import os
 
-from pilot.copytool.rucio import copy_out
-
 # from pilot.control.job import get_fake_job
 # from pilot.info import JobData
 from pilot.info.filespec import FileSpec
 from pilot.util.tracereport import TraceReport
 
 
+def check_env():
+    """
+    Function to check whether rucio copytool is loaded correctly.
+    To be used to decide whether to skip some test functions.
+    :returns True: if rucio copytool is available. Otherwise False.
+    """
+    aval = False
+    #try:
+    #    from pilot.copytool.rucio import copy_out
+    #    aval =True
+    #except:
+    #    pass
+
+    return aval
+
+
+@unittest.skipIf(not check_env(), "No Rucio copytool")
 class TestCopytoolRucio(unittest.TestCase):
     """
     Unit tests for rucio copytool.
@@ -35,6 +50,7 @@ class TestCopytoolRucio(unittest.TestCase):
         self.outdata = [fspec_out]
 
     def test_copy_out_rucio(self):
+        from pilot.copytool.rucio import copy_out
         trace_report = TraceReport()
         trace_report.update(eventType='unit test')
         copy_out(self.outdata, trace_report=trace_report)
