@@ -22,12 +22,6 @@ def check_env():
     :returns True: if rucio copytool is available. Otherwise False.
     """
     aval = False
-    # try:
-    #     from pilot.copytool.rucio import copy_out
-    #     aval =True
-    # except:
-    #     pass
-
     return aval
 
 
