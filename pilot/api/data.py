@@ -180,9 +180,17 @@ class StagingClient(object):
             fdat.replicas = []  # reset replicas list
             has_direct_localinput_replicas = False
 
+            # manually sort replicas by priority value since Rucio has a bug in ordering
+            # .. can be removed once Rucio server-side fix will be delivered
+            ordered_replicas = {}
+            for pfn, xdat in sorted(r.get('pfns', {}).iteritems(), key=lambda x: x[1]['priority']):
+                ordered_replicas.setdefault(xdat.get('rse'), []).append(pfn)
+
             # local replicas
             for ddm in fdat.inputddms:  ## iterate over local ddms and check if replica is exist here
-                pfns = r.get('rses', {}).get(ddm)
+                #pfns = r.get('rses', {}).get(ddm)  ## use me once Rucio bug is resolved
+                pfns = ordered_replicas.get(ddm)    ## quick workaround of Rucio bug: use manually sorted pfns
+
                 if not pfns:  # no replica found for given local ddm
                     continue
 
