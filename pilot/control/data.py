@@ -647,7 +647,7 @@ def _stage_out_new(job, args):
 
     is_success = True
 
-    if not job.outdata:
+    if not job.outdata or job.is_eventservice:
         log.info('this job does not have any output files, only stage-out log file')
         job.stageout = 'log'
 
