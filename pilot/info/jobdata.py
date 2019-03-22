@@ -118,6 +118,9 @@ class JobData(BaseData):
     swrelease = ""                 # software release string
     writetofile = ""               #
 
+    # cmtconfig encoded info
+    alrbuserplatform = ""          # ALRB_USER_PLATFORM encoded in platform/cmtconfig value
+
     # RAW data to keep backward compatible behavior for a while ## TO BE REMOVED once all job attributes will be covered
     _rawdata = {}
 
@@ -406,10 +409,21 @@ class JobData(BaseData):
 
     def clean__platform(self, raw, value):
         """
-            Verify and validate value for the platform key
+        Verify and validate value for the platform key.
+        Set the alrbuserplatform value if encoded in platform/cmtconfig string.
+
+        :param raw: (unused).
+        :param value: platform (string).
+        :return: updated platform (string).
         """
 
-        return value if value.lower() not in ['null', 'none'] else ''
+        v = value if value.lower() not in ['null', 'none'] else ''
+        # handle encoded alrb_user_platform in cmtconfig/platform string
+        if '@' in v:
+            self.alrbuserplatform = v.split('@')[1]  # ALRB_USER_PLATFORM value
+            v = v.split('@')[0]  # cmtconfig value
+
+        return v
 
     def clean__jobparams(self, raw, value):
         """
