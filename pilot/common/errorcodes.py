@@ -246,7 +246,7 @@ class ErrorCodes:
         else:
             return "Unknown error code: %d" % errorcode
 
-    def add_error_code(self, errorcode, pilot_error_codes=[], pilot_error_diags=[]):
+    def add_error_code(self, errorcode, pilot_error_codes=[], pilot_error_diags=[], priority=False):
         """
         Add pilot error code to list of error codes.
         This function adds the given error code to the list of all errors that have occurred. This is needed since
@@ -257,13 +257,18 @@ class ErrorCodes:
         :param errorcode: pilot error code (integer)
         :param pilot_error_codes: list of pilot error codes (list of integers)
         :param pilot_error_diags: list of pilot error diags (list of strings)
+        :param priority: if set to True, the new errorcode will be added to the error code list first (highest priority)
         :return: pilotErrorCodes, pilotErrorDiags
         """
 
         # do nothing if the error code has already been added
         if errorcode not in pilot_error_codes:
-            pilot_error_codes.append(errorcode)
-            pilot_error_diags.append(self.get_error_message(errorcode))
+            if priority:
+                pilot_error_codes.insert(0, errorcode)
+                pilot_error_diags.insert(0, self.get_error_message(errorcode))
+            else:
+                pilot_error_codes.append(errorcode)
+                pilot_error_diags.append(self.get_error_message(errorcode))
 
         return pilot_error_codes, pilot_error_diags
 

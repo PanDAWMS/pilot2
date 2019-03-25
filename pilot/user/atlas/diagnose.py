@@ -41,9 +41,7 @@ def interpret(job):
     # extract errors from job report
     process_job_report(job)
 
-    if job.exitcode == 0:
-        pass
-    else:
+    if job.exitcode != 0:
         exit_code = job.exitcode
 
     # check for special errors
@@ -75,27 +73,27 @@ def interpret_payload_exit_info(job):
 
     # try to identify out of memory errors in the stderr
     if is_out_of_memory(job):
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADOUTOFMEMORY)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADOUTOFMEMORY, priority=True)
         return
 
     # look for specific errors in the stdout (tail)
     if is_installation_error(job):
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGINSTALLATION)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGINSTALLATION, priority=True)
         return
 
     # did AtlasSetup fail?
     if is_atlassetup_error(job):
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.ATLASSETUPFATAL)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.ATLASSETUPFATAL, priority=True)
         return
 
     # look for specific errors in the stdout (full)
     if is_nfssqlite_locking_problem(job):
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NFSSQLITE)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NFSSQLITE, priority=True)
         return
 
     # set a general Pilot error code if the payload error could not be identified
     if job.transexitcode != 0:
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.UNKNOWNPAYLOADFAILURE)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.UNKNOWNPAYLOADFAILURE, priority=True)
 
 
 def is_out_of_memory(job):
@@ -158,6 +156,8 @@ def is_atlassetup_error(job):
     _tail = tail(stdout)
     res_tmp = _tail[:1024]
     if "AtlasSetup(FATAL): Fatal exception" in res_tmp:
+        log = get_logger(job.jobid)
+        log.warning('AtlasSetup FATAL failure detected')
         return True
     else:
         return False
