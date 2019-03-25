@@ -26,6 +26,7 @@ def check_env():
     """
     return False
 
+
 @unittest.skipIf(not check_env(), "This unit test is broken")
 class TestHarvesterStageIn(unittest.TestCase):
     """
