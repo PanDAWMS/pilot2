@@ -286,7 +286,7 @@ def _stage_out_api(fspec, summary_file_path, trace_report):
     if fspec.lfn and '.root' in fspec.lfn:
         f['guid'] = fspec.guid
 
-    # process the upload
+    # process with the upload
     logger.info('_stage_out_api: %s' % str(f))
     result = None
     try:
