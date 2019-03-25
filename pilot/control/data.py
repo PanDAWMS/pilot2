@@ -574,7 +574,7 @@ def _do_stageout(job, xdata, activity, title):
 
     :param job: job object.
     :param xdata: list of FileSpec objects.
-    :param activity:
+    :param activity: copytool activity or preferred list of activities to resolve copytools
     :param title: type of stage-out (output, log) (string).
     :return: True in case of success transfers
     """
@@ -597,7 +597,7 @@ def _do_stageout(job, xdata, activity, title):
     try:
         client = StageOutClient(job.infosys, logger=log, trace_report=trace_report)
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)  #, mode='stage-out')
-
+        client.prepare_destinations(xdata, activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
         client.transfer(xdata, activity, **kwargs)
     except PilotException as error:
         import traceback
@@ -652,7 +652,7 @@ def _stage_out_new(job, args):
         job.stageout = 'log'
 
     if job.stageout != 'log':  ## do stage-out output files
-        if not _do_stageout(job, job.outdata, ['pw', 'w'], 'output'):
+        if not _do_stageout(job, job.outdata, ['pw', 'w'], title='output'):
             is_success = False
             log.warning('transfer of output file(s) failed')
 
@@ -667,7 +667,7 @@ def _stage_out_new(job, args):
         logfile = job.logdata[0]
         create_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
 
-        if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], 'log'):
+        if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], title='log'):
             is_success = False
             log.warning('log transfer failed')
             job.status['LOG_TRANSFER'] = LOG_TRANSFER_FAILED

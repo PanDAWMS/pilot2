@@ -180,9 +180,17 @@ class StagingClient(object):
             fdat.replicas = []  # reset replicas list
             has_direct_localinput_replicas = False
 
+            # manually sort replicas by priority value since Rucio has a bug in ordering
+            # .. can be removed once Rucio server-side fix will be delivered
+            ordered_replicas = {}
+            for pfn, xdat in sorted(r.get('pfns', {}).iteritems(), key=lambda x: x[1]['priority']):
+                ordered_replicas.setdefault(xdat.get('rse'), []).append(pfn)
+
             # local replicas
             for ddm in fdat.inputddms:  ## iterate over local ddms and check if replica is exist here
-                pfns = r.get('rses', {}).get(ddm)
+                #pfns = r.get('rses', {}).get(ddm)  ## use me once Rucio bug is resolved
+                pfns = ordered_replicas.get(ddm)    ## quick workaround of Rucio bug: use manually sorted pfns
+
                 if not pfns:  # no replica found for given local ddm
                     continue
 
@@ -661,6 +669,57 @@ class StageOutClient(StagingClient):
                     protocols.append(pdat)
 
         return protocols
+
+    def prepare_destinations(self, files, activities):
+        """
+            Resolve destination RSE (filespec.ddmendpoint) for each entry from `files` according to requested `activities`
+            Apply Pilot-side logic to choose proper destination
+            :param files: list of FileSpec objects to be processed
+            :param activities: ordered list of activities to be used to resolve astorages
+            :return: updated fspec entries
+        """
+
+        if not self.infosys.queuedata:  ## infosys is not initialized: not able to fix destination if need, nothing to do
+            return files
+
+        if isinstance(activities, (str, unicode)):
+            activities = [activities]
+
+        if not activities:
+            raise PilotException("Failed to resolve destination: passed empty activity list. Internal error.",
+                                 code=ErrorCodes.INTERNALPILOTPROBLEM, state='INTERNAL_ERROR')
+
+        astorages = self.infosys.queuedata.astorages or {}
+
+        storages = None
+        activity = activities[0]
+        for a in activities:
+            storages = astorages.get(a, {})
+            if storages:
+                break
+
+        if not storages:
+            raise PilotException("Failed to resolve destination: no associated storages defined for activity=%s (%s)"
+                                 % (activity, ','.join(activities)), code=ErrorCodes.NOSTORAGE, state='NO_ASTORAGES_DEFINED')
+
+        # take the fist choice for now, extend the logic later if need
+        ddm = storages[0]
+
+        self.logger.info("[prepare_destinations][%s]: allowed (local) destinations: %s" % (activity, storages))
+        self.logger.info("[prepare_destinations][%s]: resolved default destination ddm=%s" % (activity, ddm))
+
+        for e in files:
+            if not e.ddmendpoint:  ## no preferences => use default destination
+                self.logger.info("[prepare_destinations][%s]: fspec.ddmendpoint is not set for lfn=%s"
+                                 " .. will use default ddm=%s as (local) destination" % (activity, e.lfn, ddm))
+                e.ddmendpoint = ddm
+            elif e.ddmendpoint not in storages:  ## fspec.ddmendpoint is not in associated storages => assume it as final (non local) alternative destination
+                self.logger.info("[prepare_destinations][%s]: Requested fspec.ddmendpoint=%s is not in the list of allowed (local) destinations"
+                                 " .. will consider default ddm=%s for transfer and tag %s as alt. location" % (activity, e.ddmendpoint, ddm, e.ddmendpoint))
+                e.ddmendpoint = ddm
+                e.ddmendpoint_alt = e.ddmendpoint  ###  consider me later
+
+        return files
 
     @classmethod
     def get_path(self, scope, lfn, prefix='rucio'):

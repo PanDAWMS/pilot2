@@ -33,6 +33,7 @@ class ErrorCodes:
     QUEUEDATA = 1116
     QUEUEDATANOTOK = 1117
     OUTPUTFILETOOLARGE = 1124
+    NOSTORAGE = 1133
     STAGEOUTFAILED = 1137
     PUTMD5MISMATCH = 1141
     CHMODTRF = 1143
@@ -129,6 +130,7 @@ class ErrorCodes:
         QUEUEDATA: "Pilot could not download queuedata",
         QUEUEDATANOTOK: "Pilot found non-valid queuedata",
         OUTPUTFILETOOLARGE: "Output file too large",
+        NOSTORAGE: "Fetching default storage failed: no activity related storage defined",
         STAGEOUTFAILED: "Failed to stage-out file",
         PUTMD5MISMATCH: "md5sum mismatch on output file",
         GETMD5MISMATCH: "md5sum mismatch on input file",
