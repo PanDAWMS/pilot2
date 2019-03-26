@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
 
@@ -35,6 +35,7 @@ class StagingClient(object):
         Base Staging Client
     """
 
+    mode = ""  # stage-in/out, set by the inheritor of the class
     copytool_modules = {'rucio': {'module_name': 'rucio'},
                         'gfal': {'module_name': 'gfal'},
                         'gfalcopy': {'module_name': 'gfal'},
@@ -179,9 +180,17 @@ class StagingClient(object):
             fdat.replicas = []  # reset replicas list
             has_direct_localinput_replicas = False
 
+            # manually sort replicas by priority value since Rucio has a bug in ordering
+            # .. can be removed once Rucio server-side fix will be delivered
+            ordered_replicas = {}
+            for pfn, xdat in sorted(r.get('pfns', {}).iteritems(), key=lambda x: x[1]['priority']):
+                ordered_replicas.setdefault(xdat.get('rse'), []).append(pfn)
+
             # local replicas
             for ddm in fdat.inputddms:  ## iterate over local ddms and check if replica is exist here
-                pfns = r.get('rses', {}).get(ddm)
+                #pfns = r.get('rses', {}).get(ddm)  ## use me once Rucio bug is resolved
+                pfns = ordered_replicas.get(ddm)    ## quick workaround of Rucio bug: use manually sorted pfns
+
                 if not pfns:  # no replica found for given local ddm
                     continue
 
@@ -243,31 +252,42 @@ class StagingClient(object):
         return files
 
     @classmethod
-    def detect_client_location(self):  ## TO BE DEPRECATED ONCE RUCIO BUG IS FIXED
+    def detect_client_location(self):
         """
-        Open a UDP socket to a machine on the internet, to get the local IP address
-        of the requesting client.
+        Open a UDP socket to a machine on the internet, to get the local IPv4 and IPv6
+        addresses of the requesting client.
         Try to determine the sitename automatically from common environment variables,
         in this order: SITE_NAME, ATLAS_SITE_NAME, OSG_SITE_NAME. If none of these exist
         use the fixed string 'ROAMING'.
-        Note: this is a modified Rucio function.  ## TO BE DEPRECATED ONCE RUCIO BUG IS FIXED
-
-        :return: expected location dict for Rucio functions: dict(ip, fqdn, site)
         """
 
-        ret = {}
-        site = os.environ.get('PILOT_RUCIO_SITENAME', 'unknown')
+        ip = '0.0.0.0'
         try:
             import socket
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.connect(("8.8.8.8", 80))
             ip = s.getsockname()[0]
-            ret = {'ip': ip, 'fqdn': socket.getfqdn(), 'site': site}
-        except Exception as e:
-            #self.log('socket() failed to lookup local IP')
-            print('socket() failed to lookup local IP: %s' % e)
+        except Exception:
+            pass
 
-        return ret
+        ip6 = '::'
+        try:
+            s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+            s.connect(("2001:4860:4860:0:0:0:0:8888", 80))
+            ip6 = s.getsockname()[0]
+        except Exception:
+            pass
+
+        site = os.environ.get('PILOT_RUCIO_SITENAME', 'unknown')
+#        site = os.environ.get('SITE_NAME',
+#                              os.environ.get('ATLAS_SITE_NAME',
+#                                             os.environ.get('OSG_SITE_NAME',
+#                                                            'ROAMING')))
+
+        return {'ip': ip,
+                'ip6': ip6,
+                'fqdn': socket.getfqdn(),
+                'site': site}
 
     def transfer_files(self, copytool, files, **kwargs):
         """
@@ -299,7 +319,7 @@ class StagingClient(object):
             activity.append('default')
 
         # stage-in/out?
-        mode = kwargs.get('mode', '')
+        #mode = kwargs.get('mode', '')
 
         copytools = None
         for aname in activity:
@@ -361,7 +381,7 @@ class StagingClient(object):
             if caught_errors and isinstance(caught_errors[-1], PilotException):
                 code = caught_errors[0].get_error_code()
             elif caught_errors and isinstance(caught_errors[-1], TimeoutException):
-                code = errors.STAGEINTIMEOUT if mode == 'stage-in' else errors.STAGEOUTTIMEOUT  # is it stage-in/out?
+                code = errors.STAGEINTIMEOUT if self.mode == 'stage-in' else errors.STAGEOUTTIMEOUT  # is it stage-in/out?
                 self.logger.warning('caught time-out exception: %s' % caught_errors[0])
             else:
                 code = None
@@ -375,6 +395,8 @@ class StagingClient(object):
 
 
 class StageInClient(StagingClient):
+
+    mode = "stage-in"
 
     def resolve_replica(self, fspec, primary_schemas=None, allowed_schemas=None):
         """
@@ -595,6 +617,8 @@ class StageInClient(StagingClient):
 
 class StageOutClient(StagingClient):
 
+    mode = "stage-out"
+
     def resolve_protocols(self, files, activity):
         """
             Populates filespec.protocols for each entry from `files` according to requested `activity`
@@ -645,6 +669,57 @@ class StageOutClient(StagingClient):
                     protocols.append(pdat)
 
         return protocols
+
+    def prepare_destinations(self, files, activities):
+        """
+            Resolve destination RSE (filespec.ddmendpoint) for each entry from `files` according to requested `activities`
+            Apply Pilot-side logic to choose proper destination
+            :param files: list of FileSpec objects to be processed
+            :param activities: ordered list of activities to be used to resolve astorages
+            :return: updated fspec entries
+        """
+
+        if not self.infosys.queuedata:  ## infosys is not initialized: not able to fix destination if need, nothing to do
+            return files
+
+        if isinstance(activities, (str, unicode)):
+            activities = [activities]
+
+        if not activities:
+            raise PilotException("Failed to resolve destination: passed empty activity list. Internal error.",
+                                 code=ErrorCodes.INTERNALPILOTPROBLEM, state='INTERNAL_ERROR')
+
+        astorages = self.infosys.queuedata.astorages or {}
+
+        storages = None
+        activity = activities[0]
+        for a in activities:
+            storages = astorages.get(a, {})
+            if storages:
+                break
+
+        if not storages:
+            raise PilotException("Failed to resolve destination: no associated storages defined for activity=%s (%s)"
+                                 % (activity, ','.join(activities)), code=ErrorCodes.NOSTORAGE, state='NO_ASTORAGES_DEFINED')
+
+        # take the fist choice for now, extend the logic later if need
+        ddm = storages[0]
+
+        self.logger.info("[prepare_destinations][%s]: allowed (local) destinations: %s" % (activity, storages))
+        self.logger.info("[prepare_destinations][%s]: resolved default destination ddm=%s" % (activity, ddm))
+
+        for e in files:
+            if not e.ddmendpoint:  ## no preferences => use default destination
+                self.logger.info("[prepare_destinations][%s]: fspec.ddmendpoint is not set for lfn=%s"
+                                 " .. will use default ddm=%s as (local) destination" % (activity, e.lfn, ddm))
+                e.ddmendpoint = ddm
+            elif e.ddmendpoint not in storages:  ## fspec.ddmendpoint is not in associated storages => assume it as final (non local) alternative destination
+                self.logger.info("[prepare_destinations][%s]: Requested fspec.ddmendpoint=%s is not in the list of allowed (local) destinations"
+                                 " .. will consider default ddm=%s for transfer and tag %s as alt. location" % (activity, e.ddmendpoint, ddm, e.ddmendpoint))
+                e.ddmendpoint = ddm
+                e.ddmendpoint_alt = e.ddmendpoint  ###  consider me later
+
+        return files
 
     @classmethod
     def get_path(self, scope, lfn, prefix='rucio'):

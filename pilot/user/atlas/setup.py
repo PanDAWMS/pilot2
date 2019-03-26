@@ -117,7 +117,10 @@ def get_asetup(asetup=True, alrb=False):
             if asetup:
                 cmd += "source $AtlasSetup/scripts/asetup.sh"
     else:
-        appdir = infosys.queuedata.appdir
+        try:  # use try in case infosys has not been initiated
+            appdir = infosys.queuedata.appdir
+        except Exception:
+            appdir = ""
         if appdir == "":
             appdir = os.environ.get('VO_ATLAS_SW_DIR', '')
         if appdir != "":

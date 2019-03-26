@@ -78,6 +78,7 @@ def _resolve_checksum_option(setup, **kwargs):
     return coption
 
 
+@timeout(seconds=600)
 def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, **kwargs):
     """
         Stage the file (stagein or stageout)
@@ -123,7 +124,7 @@ def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, *
     return filesize_cmd, checksum_cmd, checksum_type
 
 
-@timeout(seconds=600)
+# @timeout(seconds=600)
 def copy_in(files, **kwargs):
     """
         Download given files using xrdcp command.
@@ -186,7 +187,7 @@ def copy_in(files, **kwargs):
     return files
 
 
-@timeout(seconds=600)
+# @timeout(seconds=600)
 def copy_out(files, **kwargs):
     """
         Upload given files using xrdcp command.

@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 # - Wen Guan, wen.guan@cern.ch, 2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
 
@@ -132,7 +132,6 @@ def _stage_in(args, job):
     trace_report = TraceReport(pq='', localSite=localsite, remoteSite=remotesite, dataset="", eventType=event_type)
     trace_report.init(job)
 
-    error = None
     try:
         if job.is_eventservicemerge:
             client = StageInESClient(job.infosys, logger=log, trace_report=trace_report)
@@ -140,7 +139,8 @@ def _stage_in(args, job):
         else:
             client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
             activity = 'pr'
-        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job, mode='stage-in')
+        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)  #, mode='stage-in')
+
         client.transfer(job.indata, activity=activity, **kwargs)
     except PilotException as error:
         log.error('PilotException caught: %s' % error)
@@ -574,7 +574,7 @@ def _do_stageout(job, xdata, activity, title):
 
     :param job: job object.
     :param xdata: list of FileSpec objects.
-    :param activity:
+    :param activity: copytool activity or preferred list of activities to resolve copytools
     :param title: type of stage-out (output, log) (string).
     :return: True in case of success transfers
     """
@@ -596,7 +596,8 @@ def _do_stageout(job, xdata, activity, title):
 
     try:
         client = StageOutClient(job.infosys, logger=log, trace_report=trace_report)
-        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job, mode='stage-out')
+        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)  #, mode='stage-out')
+        client.prepare_destinations(xdata, activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
         client.transfer(xdata, activity, **kwargs)
     except PilotException as error:
         import traceback
@@ -651,7 +652,7 @@ def _stage_out_new(job, args):
         job.stageout = 'log'
 
     if job.stageout != 'log':  ## do stage-out output files
-        if not _do_stageout(job, job.outdata, ['pw', 'w'], 'output'):
+        if not _do_stageout(job, job.outdata, ['pw', 'w'], title='output'):
             is_success = False
             log.warning('transfer of output file(s) failed')
 
@@ -666,7 +667,7 @@ def _stage_out_new(job, args):
         logfile = job.logdata[0]
         create_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
 
-        if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], 'log'):
+        if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], title='log'):
             is_success = False
             log.warning('log transfer failed')
             job.status['LOG_TRANSFER'] = LOG_TRANSFER_FAILED
