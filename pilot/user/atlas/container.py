@@ -211,14 +211,14 @@ def alrb_wrapper(cmd, workdir, job):
             "resolved singularity_options from queuedata.container_options: %s" % singularity_options)
 
         _cmd = asetup
-        if job.platform and not job.alrbuserplatform:
+        if job.platform and not job.alrbuserplatform and '--containerImage' not in job.jobparams:
             _cmd += 'export thePlatform=\"%s\";' % job.platform
-        elif '--containerImage' in job.jobparams:
-            if job.alrbuserplatform:
-                _cmd += 'export thePlatform=\"%s\";' % job.alrbuserplatform
-            else:
-                # set a default platform for user defined containers
-                _cmd += 'export thePlatform=\"centos7\";'
+        #elif '--containerImage' in job.jobparams:
+        #    if job.alrbuserplatform:
+        #        _cmd += 'export thePlatform=\"%s\";' % job.alrbuserplatform
+        #    else:
+        #        # set a default platform for user defined containers
+        #        _cmd += 'export thePlatform=\"centos7\";'
 
         #if '--containall' not in singularity_options:
         #    singularity_options += ' --containall'
@@ -240,12 +240,14 @@ def alrb_wrapper(cmd, workdir, job):
         # containerImage should have been removed already
         if '--containerImage' in job.jobparams:
             job.jobparams, container_path = remove_container_string(job.jobparams)
-            if container_path != "":
+            if job.alrbuserplatform:
+                _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % job.alrbuserplatform
+            elif container_path != "":
                 _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % container_path
 
-                if not job.platform:
-                    # add the default platform if not set by the job definition
-                    _cmd += ' $thePlatform'
+                #if not job.platform:
+                #    # add the default platform if not set by the job definition
+                #    _cmd += ' $thePlatform'
             else:
                 log.warning('failed to extract container path from %s' % job.jobparams)
                 _cmd = ""
