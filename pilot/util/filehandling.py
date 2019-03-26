@@ -19,6 +19,7 @@ from json import load, dump
 from shutil import copy2, rmtree
 from zlib import adler32
 
+from pilot.util.auxiliary import get_logger
 from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile, \
     NotImplemented
 from pilot.util.container import execute
@@ -756,3 +757,28 @@ def get_checksum_type(checksum):
             checksum_type = 'md5'
 
     return checksum_type
+
+
+def scan_file(path, error_messages, jobid, warning_message=None):
+    """
+    Scan file for known error messages.
+
+    :param path: path to file (string).
+    :param error_messages: list of error messages.
+    :param jobid: job id (int).
+    :param warning_message: optional warning message to printed with any of the error_messages have been found (string).
+    :return: Boolean. (note: True means the error was found)
+    """
+
+    found_problem = False
+
+    matched_lines = grep(error_messages, path)
+    if len(matched_lines) > 0:
+        log = get_logger(jobid)
+        if warning_message:
+            log.warning(warning_message)
+        for line in matched_lines:
+            log.info(line)
+        found_problem = True
+
+    return found_problem
