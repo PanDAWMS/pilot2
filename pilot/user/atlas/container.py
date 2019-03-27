@@ -213,7 +213,7 @@ def alrb_wrapper(cmd, workdir, job):
         _cmd = asetup
         if job.alrbuserplatform:
             _cmd += 'export thePlatform=\"%s\";' % job.alrbuserplatform
-        elif job.platform and not job.alrbuserplatform and '--containerImage' not in job.jobparams:
+        elif job.platform:
             _cmd += 'export thePlatform=\"%s\";' % job.platform
         #elif '--containerImage' in job.jobparams:
         #    if job.alrbuserplatform:
