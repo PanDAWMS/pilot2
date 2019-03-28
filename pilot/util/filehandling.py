@@ -782,3 +782,22 @@ def scan_file(path, error_messages, jobid, warning_message=None):
         found_problem = True
 
     return found_problem
+
+
+def find_latest_modified_file(list_of_files):
+    """
+    Find the most recently modified file among the list of given files.
+    In case int conversion of getmtime() fails, int(time.time()) will be returned instead.
+
+    :param list_of_files: list of files with full paths.
+    :return: most recently updated file (string), modification time (int).
+    """
+
+    latest_file = max(list_of_files, key=os.path.getctime)
+    try:
+        mtime = int(os.path.getmtime(latest_file))
+    except Exception as e:
+        logger.warning("int conversion failed for mod time: %s (will use time.time() value instead)" % e)
+        mtime = int(time())
+
+    return latest_file, mtime

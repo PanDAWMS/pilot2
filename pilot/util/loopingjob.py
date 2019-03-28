@@ -11,7 +11,7 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import whoami, get_logger, set_pilot_state
 from pilot.util.config import config
 from pilot.util.container import execute
-from pilot.util.filehandling import remove_files
+from pilot.util.filehandling import remove_files, find_latest_modified_file
 from pilot.util.parameters import convert_to_int
 from pilot.util.processes import kill_processes
 from pilot.util.timing import time_stamp
