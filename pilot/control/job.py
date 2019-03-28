@@ -1181,9 +1181,9 @@ def has_job_failed(queues):
         # logger.info("(job still running)")
         job = None
     else:
-        logger.info("job %s has failed" % job.jobid)
         # make sure that state=failed
         set_pilot_state(job=job, state="failed")
+        logger.info("job %s has state=%s" % (job.jobid, job.state))
 
     return job
 
@@ -1334,6 +1334,7 @@ def queue_monitor(queues, traces, args):
         while i < imax and os.environ.get('PILOT_WRAP_UP', '') == 'NORMAL':
             job = check_job(args, queues)
             if job:
+                logger.debug('check_job returned job with state=%s' % job.state)
                 break
             i += 1
             state = get_pilot_state()  # the job object is not available, but the state is also kept in PILOT_JOB_STATE
@@ -1429,7 +1430,7 @@ def check_job(args, queues):
         # logger.info('check_job: job has not finished')
         job = has_job_failed(queues)
         if job:
-            logger.info('check_job: job has failed')
+            logger.debug('check_job: job has failed')
 
             # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
             log_transfer = get_job_status(job, 'LOG_TRANSFER')

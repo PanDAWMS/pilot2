@@ -54,49 +54,49 @@ class TestCopytoolMv(unittest.TestCase):
         turl = ""
         """ Create temp files in source dir """
         for i in range(0, self.numfiles):
-                # generate random name
-                fname = ''.join(random.choice(string.lowercase) for x in range(20))
-                if infiles == "":
-                    infiles = fname
-                else:
-                    infiles += "," + fname
-                # generate random data and write
-                filesize = random.randint(1, self.maxfilesize)
-                if fsize == "":
-                    fsize = str(filesize)
-                else:
-                    fsize += "," + str(filesize)
-                if realdatasetsin == "":
-                    realdatasetsin = "dataset1"
-                else:
-                    realdatasetsin += ",dataset1"
-                if guid == "":
-                    guid = "abcdefaaaaaa"
-                else:
-                    guid += ",abcdefaaaaaa"
-                if checksum == "":
-                    checksum = "abcdef"
-                else:
-                    checksum += ",abcdef"
-                if scope == "":
-                    scope = "scope1"
-                else:
-                    scope += ",scope1"
-                if ddmendpointin == "":
-                    ddmendpointin = "ep1"
-                else:
-                    ddmendpointin = ",ep1"
-                _data = [random.randint(0, 255) for x in range(0, filesize)]
-                fname = os.path.join(self.tmp_src_dir, fname)
-                if turl == "":
-                    turl = fname
-                else:
-                    turl = "," + fname
-                new_file = open(fname, "wb")
-                new_file.write(str(_data))
-                new_file.close()
-                # add to list
-                #self.filelist.append({'name': fname, 'source': self.tmp_src_dir, 'destination': self.tmp_dst_dir})
+            # generate random name
+            fname = ''.join(random.choice(string.lowercase) for x in range(20))
+            if infiles == "":
+                infiles = fname
+            else:
+                infiles += "," + fname
+            # generate random data and write
+            filesize = random.randint(1, self.maxfilesize)
+            if fsize == "":
+                fsize = str(filesize)
+            else:
+                fsize += "," + str(filesize)
+            if realdatasetsin == "":
+                realdatasetsin = "dataset1"
+            else:
+                realdatasetsin += ",dataset1"
+            if guid == "":
+                guid = "abcdefaaaaaa"
+            else:
+                guid += ",abcdefaaaaaa"
+            if checksum == "":
+                checksum = "abcdef"
+            else:
+                checksum += ",abcdef"
+            if scope == "":
+                scope = "scope1"
+            else:
+                scope += ",scope1"
+            if ddmendpointin == "":
+                ddmendpointin = "ep1"
+            else:
+                ddmendpointin = ",ep1"
+            _data = [random.randint(0, 255) for x in range(0, filesize)]
+            fname = os.path.join(self.tmp_src_dir, fname)
+            if turl == "":
+                turl = fname
+            else:
+                turl = "," + fname
+            new_file = open(fname, "wb")
+            new_file.write(str(_data))
+            new_file.close()
+            # add to list
+            #self.filelist.append({'name': fname, 'source': self.tmp_src_dir, 'destination': self.tmp_dst_dir})
 
         # overwrite
         #data = {'inFiles': infiles, 'realDatasetsIn': realdatasetsin, 'GUID': guid,

@@ -11,7 +11,7 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import whoami, get_logger, set_pilot_state
 from pilot.util.config import config
 from pilot.util.container import execute
-from pilot.util.filehandling import remove_files
+from pilot.util.filehandling import remove_files, find_latest_modified_file
 from pilot.util.parameters import convert_to_int
 from pilot.util.processes import kill_processes
 from pilot.util.timing import time_stamp
@@ -102,12 +102,15 @@ def get_time_for_last_touch(job, mt, looping_limit):
 
             # remove unwanted list items (*.py, *.pyc, workdir, ...)
             files = loopingjob_definitions.remove_unwanted_files(job.workdir, files)
-            if files != []:
-                log.info('found %d files that were recently updated (e.g. file \"%s\"' % (len(files), files[0]))
-                log.info(str(files))
+            if files:
+                log.info('found %d files that were recently updated' % len(files))
 
-                # update the current system time
-                mt.update('ct_looping_last_touched')
+                # now get the mod times for these file, and identify the most recently update file
+                latest_modified_file, mtime = find_latest_modified_file(files)
+                log.info("File %s is the most recently updated file (at time=%d)" % (latest_modified_file, mtime))
+
+                # store the time of the last file modification
+                mt.update('ct_looping_last_touched', modtime=mtime)
             else:
                 log.warning("found no recently updated files!")
         else:

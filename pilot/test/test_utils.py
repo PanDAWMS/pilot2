@@ -21,7 +21,7 @@ class TestUtils(unittest.TestCase):
     def setUp(self):
         # skip tests if running on a Mac -- Macs don't have /proc
         self.mac = False
-        if os.environ.get('MACOSX') == 'true':
+        if os.environ.get('MACOSX') == 'true' or not os.path.exists('/proc/meminfo'):
             self.mac = True
 
         from pilot.info import infosys

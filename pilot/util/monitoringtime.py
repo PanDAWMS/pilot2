@@ -33,17 +33,18 @@ class MonitoringTime(object):
         self.ct_heartbeat = ct
         # add more here
 
-    def update(self, key):
+    def update(self, key, modtime=None):
         """
-        Update a given key with the current time.
+        Update a given key with the current time or given time.
         Usage: mt=MonitoringTime()
                mt.update('ct_proxy')
 
         :param key: name of key (string).
+        :param modtime: modification time (int).
         :return:
         """
 
-        ct = int(time.time())
+        ct = int(time.time()) if not modtime else modtime
         if hasattr(self, key):
             setattr(self, key, ct)
 
