@@ -51,7 +51,8 @@ class JobData(BaseData):
     jobparams = ""                 # job parameters defining the execution of the job
     transformation = ""            # script execution name
     state = ""                     # current job state
-    status = {'LOG_TRANSFER': LOG_TRANSFER_NOT_DONE}  # current job status; format = {key: value, ..} e.g. key='LOG_TRANSFER', value='DONE'
+    # current job status; format = {key: value, ..} e.g. key='LOG_TRANSFER', value='DONE'
+    status = {'LOG_TRANSFER': LOG_TRANSFER_NOT_DONE}
     corecount = 1                  # Number of cores as requested by the task
     platform = ""                  # cmtconfig value from the task definition
     is_eventservice = False        # True for event service jobs
@@ -116,6 +117,9 @@ class JobData(BaseData):
     noexecstrcnv = None            # server instruction to the pilot if it should take payload setup from job parameters
     swrelease = ""                 # software release string
     writetofile = ""               #
+
+    # cmtconfig encoded info
+    alrbuserplatform = ""          # ALRB_USER_PLATFORM encoded in platform/cmtconfig value
 
     # RAW data to keep backward compatible behavior for a while ## TO BE REMOVED once all job attributes will be covered
     _rawdata = {}
@@ -405,10 +409,21 @@ class JobData(BaseData):
 
     def clean__platform(self, raw, value):
         """
-            Verify and validate value for the platform key
+        Verify and validate value for the platform key.
+        Set the alrbuserplatform value if encoded in platform/cmtconfig string.
+
+        :param raw: (unused).
+        :param value: platform (string).
+        :return: updated platform (string).
         """
 
-        return value if value.lower() not in ['null', 'none'] else ''
+        v = value if value.lower() not in ['null', 'none'] else ''
+        # handle encoded alrbuserplatform in cmtconfig/platform string
+        if '@' in v:
+            self.alrbuserplatform = v.split('@')[1]  # ALRB_USER_PLATFORM value
+            v = v.split('@')[0]  # cmtconfig value
+
+        return v
 
     def clean__jobparams(self, raw, value):
         """
@@ -594,7 +609,7 @@ class JobData(BaseData):
                     continue
                 pfn = os.path.join(self.workdir, fspec.lfn)
                 if not os.path.isfile(pfn):
-                    msg = "pfn file=%s does not exist (skip from wordir size calculation)" % pfn
+                    msg = "pfn file=%s does not exist (skip from workdir size calculation)" % pfn
                     logger.info(msg)
                 else:
                     total_size += os.path.getsize(pfn)
