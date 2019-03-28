@@ -419,7 +419,9 @@ def check_local_space():
     diagnostics = ""
 
     # is there enough local space to run a job?
-    spaceleft = convert_mb_to_b(get_local_disk_space(os.getcwd()))  # B (diskspace is in MB)
+    cwd = os.getcwd()
+    logger.debug('checking local space on %s' % cwd)
+    spaceleft = convert_mb_to_b(get_local_disk_space(cwd))  # B (diskspace is in MB)
     free_space_limit = human2bytes(config.Pilot.free_space_limit)
     if spaceleft <= free_space_limit:
         diagnostics = 'too little space left on local disk to run job: %d B (need > %d B)' %\
