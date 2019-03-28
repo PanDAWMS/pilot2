@@ -341,8 +341,8 @@ def get_args():
                             dest='resource_type',
                             default='',
                             type=str,
-                            choices=['MCORE', 'SCORE'],
-                            help='Resource type; MSCORE or SCORE')
+                            choices=['SCORE', 'MCORE', 'SCORE_HIMEM', 'MCORE_HIMEM'],
+                            help='Resource type; MCORE, SCORE, SCORE_HIMEM or MCORE_HIMEM')
 
     # Harvester and Nordugrid specific options
     arg_parser.add_argument('--input-dir',
