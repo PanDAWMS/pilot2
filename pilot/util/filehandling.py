@@ -793,11 +793,12 @@ def find_latest_modified_file(list_of_files):
     :return: most recently updated file (string), modification time (int).
     """
 
-    latest_file = max(list_of_files, key=os.path.getctime)
     try:
+        latest_file = max(list_of_files, key=os.path.getctime)
         mtime = int(os.path.getmtime(latest_file))
     except Exception as e:
         logger.warning("int conversion failed for mod time: %s (will use time.time() value instead)" % e)
+        latest_file = ""
         mtime = int(time())
 
     return latest_file, mtime
