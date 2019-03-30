@@ -417,16 +417,13 @@ def set_environment_variables(args, mainworkdir):
     environ['PILOT_USER'] = args.pilot_user  # TODO: replace with singleton
 
     # internal pilot state
-    environ['PILOT_STATE'] = 'startup'  # TODO: replace with singleton
+    environ['PILOT_JOB_STATE'] = 'startup'  # TODO: replace with singleton
 
     # set the pilot version
     environ['PILOT_VERSION'] = get_pilot_version()
 
     # set the default wrap-up/finish instruction
     environ['PILOT_WRAP_UP'] = 'NORMAL'
-
-    # set the job state (job object does not exist yet, so set this to initializing)
-    environ['PILOT_JOB_STATE'] = 'initializing'
 
 
 def establish_logging(args):

@@ -1544,7 +1544,7 @@ def job_monitor(queues, traces, args):
                     send_state(jobs[i], args, 'running')
                     update_time = int(time.time())
 
-        elif os.environ.get('PILOT_STATE') == 'stagein':
+        elif os.environ.get('PILOT_JOB_STATE') == 'stagein':
             logger.info('job monitoring is waiting for stage-in to finish')
         else:
             # check the waiting time in the job monitor. set global graceful_stop if necessary
@@ -1570,7 +1570,7 @@ def check_job_monitor_waiting_time(args, peeking_time):
 
     waiting_time = int(time.time()) - peeking_time
     msg = 'no jobs in monitored_payloads queue (waited for %d s)' % waiting_time
-    if waiting_time > 60 * 10:
+    if waiting_time > 60 * 60:
         abort = True
         msg += ' - aborting'
     else:
