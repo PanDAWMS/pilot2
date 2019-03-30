@@ -11,7 +11,7 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import whoami, get_logger, set_pilot_state
 from pilot.util.config import config
 from pilot.util.container import execute
-from pilot.util.filehandling import remove_files, find_latest_modified_file
+from pilot.util.filehandling import remove_files, find_latest_modified_file, verify_file_list
 from pilot.util.parameters import convert_to_int
 from pilot.util.processes import kill_processes
 from pilot.util.timing import time_stamp
@@ -105,12 +105,16 @@ def get_time_for_last_touch(job, mt, looping_limit):
             if files:
                 log.info('found %d files that were recently updated' % len(files))
 
+                updated_files = verify_file_list(files)
+
                 # now get the mod times for these file, and identify the most recently update file
-                latest_modified_file, mtime = find_latest_modified_file(files)
+                latest_modified_file, mtime = find_latest_modified_file(updated_files)
                 if latest_modified_file:
                     log.info("file %s is the most recently updated file (at time=%d)" % (latest_modified_file, mtime))
                 else:
                     log.warning('looping job algorithm failed to identify latest updated file')
+                    return mt.ct_looping_last_touched
+
                 # store the time of the last file modification
                 mt.update('ct_looping_last_touched', modtime=mtime)
             else:
