@@ -1389,6 +1389,8 @@ def queue_monitor(queues, traces, args):
                 logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
                 # now ready for the next job (or quit)
                 put_in_queue(job, queues.completed_jobs)
+                # reset the sentfinal since we will now get another job
+                sentfinal = False
 
         if abort:
             break
