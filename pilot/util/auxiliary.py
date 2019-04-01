@@ -238,7 +238,7 @@ def set_pilot_state(job=None, state=''):
 def check_for_final_server_update(update_server):
     """
     Do not set graceful stop if pilot has not finished sending the final job update
-    i.e. wait until SERVER_UPDATE is FINAL_DONE. This function sleeps for a maximum
+    i.e. wait until SERVER_UPDATE is DONE_FINAL. This function sleeps for a maximum
     of 20*10 s until SERVER_UPDATE env variable has been set to SERVER_UPDATE_FINAL.
 
     :param update_server: args.update_server boolean.
@@ -248,8 +248,9 @@ def check_for_final_server_update(update_server):
     max_i = 20
     i = 0
 
-    # abort if in startup stage
-    if os.environ.get('SERVER_UPDATE', '') == SERVER_UPDATE_NOT_DONE:
+    # abort if in startup stage or if in final update stage
+    server_update = os.environ.get('SERVER_UPDATE', '')
+    if server_update == SERVER_UPDATE_NOT_DONE:
         return
 
     while i < max_i and update_server:
