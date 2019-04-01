@@ -222,7 +222,7 @@ def send_state(job, args, state, xml=None, metadata=None):
         pass
 
     if final:
-        job.status['SERVER_UPDATE'] = SERVER_UPDATE_TROUBLE
+        os.environ['SERVER_UPDATE'] = SERVER_UPDATE_TROUBLE
 
     log.warning('set job state=%s failed' % state)
     return False
@@ -673,11 +673,11 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
         logger.info('asking Harvester for another job')
         request_new_jobs()
 
-    if environ.get('SERVER_UPDATE', '') == SERVER_UPDATE_UPDATING:
+    if os.environ.get('SERVER_UPDATE', '') == SERVER_UPDATE_UPDATING:
         logger.info('still updating previous job, will not ask for a new job yet')
         return False
 
-    environ['SERVER_UPDATE'] = SERVER_UPDATE_NOT_DONE
+    os.environ['SERVER_UPDATE'] = SERVER_UPDATE_NOT_DONE
     return True
 
 
