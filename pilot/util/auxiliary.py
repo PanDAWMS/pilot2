@@ -23,7 +23,7 @@ except NameError:  # Python 3
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.container import execute
-from pilot.util.constants import SUCCESS, FAILURE, SERVER_UPDATE_FINAL
+from pilot.util.constants import SUCCESS, FAILURE, SERVER_UPDATE_FINAL, SERVER_UPDATE_NOT_DONE
 
 import logging
 logger = logging.getLogger(__name__)
@@ -247,6 +247,11 @@ def check_for_final_server_update(update_server):
 
     max_i = 20
     i = 0
+
+    # abort if in startup stage
+    if os.environ.get('SERVER_UPDATE', '') == SERVER_UPDATE_NOT_DONE:
+        return
+
     while i < max_i and update_server:
         if os.environ.get('SERVER_UPDATE', '') == SERVER_UPDATE_FINAL:
             logger.info('server update done, finishing')

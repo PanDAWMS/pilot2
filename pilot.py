@@ -23,7 +23,8 @@ from pilot.common.exception import PilotException
 from pilot.info import infosys
 from pilot.util.auxiliary import shell_exit_code
 from pilot.util.config import config
-from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_START_TIME, PILOT_END_TIME, get_pilot_version
+from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_START_TIME, PILOT_END_TIME, get_pilot_version, \
+    SERVER_UPDATE_NOT_DONE
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
@@ -426,7 +427,7 @@ def set_environment_variables(args, mainworkdir):
     environ['PILOT_WRAP_UP'] = 'NORMAL'
 
     # keep track of the server updates, if any
-    environ['SERVER_UPDATE'] = 'startup'
+    environ['SERVER_UPDATE'] = SERVER_UPDATE_NOT_DONE
 
 
 def establish_logging(args):
