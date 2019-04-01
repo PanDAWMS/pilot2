@@ -28,7 +28,7 @@ from pilot.common.exception import ExcThread, PilotException
 from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
-    set_pilot_state, get_pilot_state
+    set_pilot_state, get_pilot_state, check_for_final_server_update
 from pilot.util.config import config
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
@@ -1018,15 +1018,7 @@ def retrieve(queues, traces, args):
         if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester, args.verify_proxy, traces):
             # do not set graceful stop if pilot has not finished sending the final job update
             # i.e. wait until SERVER_UPDATE is FINAL_DONE
-            max_i = 20
-            i = 0
-            while i < max_i and args.update_server:
-                if os.environ.get('SERVER_UPDATE', '') == SERVER_UPDATE_FINAL:
-                    logger.info('server update done, finishing')
-                    break
-                logger.info('server update not finished (#%d/#%d)' % (i + 1, max_i))
-                time.sleep(10)
-                i += 1
+            check_for_final_server_update(args.update_server)
             args.graceful_stop.set()
             break
 
@@ -1039,6 +1031,9 @@ def retrieve(queues, traces, args):
 
         if res is None:
             logger.fatal('fatal error in job download loop - cannot continue')
+            # do not set graceful stop if pilot has not finished sending the final job update
+            # i.e. wait until SERVER_UPDATE is FINAL_DONE
+            check_for_final_server_update(args.update_server)
             args.graceful_stop.set()
             break
 
@@ -1462,6 +1457,9 @@ def check_job(args, queues):
         # set job_aborted in case of kill signals
         if args.abort_job.is_set():
             logger.warning('queue monitor detected a set abort_job (due to a kill signal), setting job_aborted')
+            # do not set graceful stop if pilot has not finished sending the final job update
+            # i.e. wait until SERVER_UPDATE is FINAL_DONE
+            check_for_final_server_update(args.update_server)
             args.job_aborted.set()
 
     return job
@@ -1598,6 +1596,9 @@ def check_job_monitor_waiting_time(args, peeking_time):
     else:
         print(msg)
     if abort:
+        # do not set graceful stop if pilot has not finished sending the final job update
+        # i.e. wait until SERVER_UPDATE is FINAL_DONE
+        check_for_final_server_update(args.update_server)
         args.graceful_stop.set()
 
 

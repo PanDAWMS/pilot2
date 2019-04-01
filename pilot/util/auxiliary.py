@@ -10,8 +10,9 @@
 import os
 import sys
 
-from numbers import Number
 from collections import Set, Mapping, deque, OrderedDict
+from numbers import Number
+from time import sleep
 
 try:  # Python 2
     zero_depth_bases = (basestring, Number, xrange, bytearray)
@@ -22,7 +23,7 @@ except NameError:  # Python 3
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.container import execute
-from pilot.util.constants import SUCCESS, FAILURE
+from pilot.util.constants import SUCCESS, FAILURE, SERVER_UPDATE_FINAL
 
 import logging
 logger = logging.getLogger(__name__)
@@ -232,3 +233,24 @@ def set_pilot_state(job=None, state=''):
 
     if job and job.state != 'finished' and job.state != 'failed':
         job.state = state
+
+
+def check_for_final_server_update(update_server):
+    """
+    Do not set graceful stop if pilot has not finished sending the final job update
+    i.e. wait until SERVER_UPDATE is FINAL_DONE. This function sleeps for a maximum
+    of 20*10 s until SERVER_UPDATE env variable has been set to SERVER_UPDATE_FINAL.
+
+    :param update_server: args.update_server boolean.
+    :return:
+    """
+
+    max_i = 20
+    i = 0
+    while i < max_i and update_server:
+        if os.environ.get('SERVER_UPDATE', '') == SERVER_UPDATE_FINAL:
+            logger.info('server update done, finishing')
+            break
+        logger.info('server update not finished (#%d/#%d)' % (i + 1, max_i))
+        sleep(10)
+        i += 1
