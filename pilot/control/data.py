@@ -33,7 +33,7 @@ from pilot.util.auxiliary import get_logger, set_pilot_state  #, abort_jobs_in_q
 from pilot.util.common import should_abort
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
-    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED
+    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING
 from pilot.util.filehandling import find_executable, remove
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.tracereport import TraceReport
@@ -357,8 +357,9 @@ def copytool_in(queues, traces, args):
         try:
             job = queues.data_in.get(block=True, timeout=1)
 
+            # ready to set the job in running state
             send_state(job, args, 'running')
-
+            os.environ['SERVER_UPDATE'] = SERVER_UPDATE_RUNNING
             log = get_logger(job.jobid)
 
             if args.abort_job.is_set():

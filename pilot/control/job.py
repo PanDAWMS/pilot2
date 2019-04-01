@@ -32,7 +32,7 @@ from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, ge
 from pilot.util.config import config
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
-    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED
+    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL
 from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file
 from pilot.util.jobmetrics import get_job_metrics
@@ -161,20 +161,22 @@ def send_state(job, args, state, xml=None, metadata=None):
 
     log = get_logger(job.jobid, logger)
 
+    # _state = get_job_status(job, 'SERVER_UPDATE')
+
     # should the pilot make any server updates?
     if not args.update_server:
         log.info('pilot will not update the server (heartbeat message will be written to file)')
-        tag = 'writing'
-    else:
-        tag = 'sending'
+    tag = 'sending' if args.update_server else 'writing'
 
     if state == 'finished' or state == 'failed' or state == 'holding':
+        final = True
         log.info('job %s has %s - %s final server update' % (job.jobid, state, tag))
 
         # make sure an error code is properly set
         if state != 'finished':
             verify_error_code(job)
     else:
+        final = False
         log.info('job %s has state \'%s\' - %s heartbeat' % (job.jobid, state, tag))
 
     # build the data structure needed for getJob, updateJob
@@ -206,6 +208,8 @@ def send_state(job, args, state, xml=None, metadata=None):
                 # does the server update contain any backchannel information? if so, update the job object
                 handle_backchannel_command(res, job, args)
 
+                if final:
+                    os.environ['SERVER_UPDATE'] = SERVER_UPDATE_FINAL
                 return True
         else:
             log.info('skipping job update for fake test job')
@@ -214,6 +218,9 @@ def send_state(job, args, state, xml=None, metadata=None):
         log.warning('exception caught while sending https request: %s' % e)
         log.warning('possibly offending data: %s' % data)
         pass
+
+    if final:
+        job.status['SERVER_UPDATE'] = SERVER_UPDATE_TROUBLE
 
     log.warning('set job state=%s failed' % state)
     return False
@@ -1009,6 +1016,17 @@ def retrieve(queues, traces, args):
         getjob_requests += 1
 
         if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester, args.verify_proxy, traces):
+            # do not set graceful stop if pilot has not finished sending the final job update
+            # i.e. wait until SERVER_UPDATE is FINAL_DONE
+            max_i = 20
+            i = 0
+            while i < max_i and args.update_server:
+                if os.environ.get('SERVER_UPDATE', '') == SERVER_UPDATE_FINAL:
+                    logger.info('server update done, finishing')
+                    break
+                logger.info('server update not finished (#%d/#%d)' % (i + 1, max_i))
+                time.sleep(10)
+                i += 1
             args.graceful_stop.set()
             break
 

@@ -425,6 +425,9 @@ def set_environment_variables(args, mainworkdir):
     # set the default wrap-up/finish instruction
     environ['PILOT_WRAP_UP'] = 'NORMAL'
 
+    # keep track of the server updates, if any
+    environ['SERVER_UPDATE'] = 'startup'
+
 
 def establish_logging(args):
     """
