@@ -798,7 +798,7 @@ def verify_file_list(list_of_files):
 
     diff = diff_lists(list_of_files, filtered_list)
     if diff:
-        logger.debug('found %d file(s) that do not exist (e.g. %d)' % (len(diff), diff[0]))
+        logger.debug('found %d file(s) that do not exist (e.g. %s)' % (len(diff), diff[0]))
 
     return filtered_list
 
