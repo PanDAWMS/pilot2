@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 
 # NOTE: this module should deal with non-job related monitoring, such as thread monitoring. Job monitoring is
 #       a task for the job_monitor thread in the Job component.
@@ -17,6 +17,7 @@ import time
 from os import environ
 
 from pilot.common.exception import PilotException, ExceededMaxWaitTime
+from pilot.util.auxiliary import check_for_final_server_update
 from pilot.util.config import config
 from pilot.util.queuehandling import get_queuedata_from_job, abort_jobs_in_queues
 from pilot.util.timing import get_time_since_start
@@ -65,6 +66,9 @@ def control(queues, traces, args):
                              (max_running_time, grace_time))
                 logger.info('setting REACHED_MAXTIME and graceful stop')
                 environ['REACHED_MAXTIME'] = 'REACHED_MAXTIME'  # TODO: use singleton instead
+                # do not set graceful stop if pilot has not finished sending the final job update
+                # i.e. wait until SERVER_UPDATE is FINAL_DONE
+                check_for_final_server_update(args.update_server)
                 args.graceful_stop.set()
                 break
             else:
