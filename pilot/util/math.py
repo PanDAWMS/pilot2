@@ -184,3 +184,15 @@ def convert_mb_to_b(size):
         raise ValueError('cannot convert %s to int: %s' % (str(size), e))
 
     return size * 1024 ** 2
+
+
+def diff_lists(list_a, list_b):
+    """
+    Return the difference between list_a and list_b.
+
+    :param list_a: input list a.
+    :param list_b: input list b.
+    :return: difference (list).
+    """
+
+    return list(set(list_a) - set(list_b))

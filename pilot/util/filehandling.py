@@ -19,10 +19,11 @@ from json import load, dump
 from shutil import copy2, rmtree
 from zlib import adler32
 
-from pilot.util.auxiliary import get_logger
 from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile, \
     NotImplemented
-from pilot.util.container import execute
+from .auxiliary import get_logger
+from .container import execute
+from .math import diff_lists
 
 import logging
 logger = logging.getLogger(__name__)
@@ -784,6 +785,24 @@ def scan_file(path, error_messages, jobid, warning_message=None):
     return found_problem
 
 
+def verify_file_list(list_of_files):
+    """
+    Make sure that the files in the given list exist, return the list of files that does exist.
+
+    :param list_of_files: file list.
+    :return: list of existing files.
+    """
+
+    # remove any non-existent files from the input file list
+    filtered_list = [f for f in list_of_files if os.path.exists(f)]
+
+    diff = diff_lists(list_of_files, filtered_list)
+    if diff:
+        logger.debug('found %d file(s) that do not exist (e.g. %s)' % (len(diff), diff[0]))
+
+    return filtered_list
+
+
 def find_latest_modified_file(list_of_files):
     """
     Find the most recently modified file among the list of given files.
@@ -793,11 +812,16 @@ def find_latest_modified_file(list_of_files):
     :return: most recently updated file (string), modification time (int).
     """
 
-    latest_file = max(list_of_files, key=os.path.getctime)
+    if not list_of_files:
+        logger.warning('there were no files to check mod time for')
+        return None, None
+
     try:
+        latest_file = max(list_of_files, key=os.path.getctime)
         mtime = int(os.path.getmtime(latest_file))
     except Exception as e:
-        logger.warning("int conversion failed for mod time: %s (will use time.time() value instead)" % e)
-        mtime = int(time())
+        logger.warning("int conversion failed for mod time: %s" % e)
+        latest_file = ""
+        mtime = None
 
     return latest_file, mtime

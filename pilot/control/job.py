@@ -28,11 +28,12 @@ from pilot.common.exception import ExcThread, PilotException
 from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
-    set_pilot_state, get_pilot_state
+    set_pilot_state, get_pilot_state, check_for_final_server_update
 from pilot.util.config import config
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
-    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED
+    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
+    SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
 from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file
 from pilot.util.jobmetrics import get_job_metrics
@@ -161,20 +162,23 @@ def send_state(job, args, state, xml=None, metadata=None):
 
     log = get_logger(job.jobid, logger)
 
+    # _state = get_job_status(job, 'SERVER_UPDATE')
+
     # should the pilot make any server updates?
     if not args.update_server:
         log.info('pilot will not update the server (heartbeat message will be written to file)')
-        tag = 'writing'
-    else:
-        tag = 'sending'
+    tag = 'sending' if args.update_server else 'writing'
 
     if state == 'finished' or state == 'failed' or state == 'holding':
+        final = True
+        os.environ['SERVER_UPDATE'] = SERVER_UPDATE_UPDATING
         log.info('job %s has %s - %s final server update' % (job.jobid, state, tag))
 
         # make sure an error code is properly set
         if state != 'finished':
             verify_error_code(job)
     else:
+        final = False
         log.info('job %s has state \'%s\' - %s heartbeat' % (job.jobid, state, tag))
 
     # build the data structure needed for getJob, updateJob
@@ -195,17 +199,17 @@ def send_state(job, args, state, xml=None, metadata=None):
             pandaserver = args.url + ':' + str(args.port)
         else:
             pandaserver = config.Pilot.pandaserver
-        log.debug('pandaserver=%s' % pandaserver)
         if config.Pilot.pandajob == 'real':
             res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver), data=data)
-            log.debug("res=%s" % str(res))
+            log.info("res = %s" % str(res))
             if res is not None:
                 log.info('server updateJob request completed for job %s' % job.jobid)
-                log.info('res = %s' % str(res))
 
                 # does the server update contain any backchannel information? if so, update the job object
                 handle_backchannel_command(res, job, args)
 
+                if final:
+                    os.environ['SERVER_UPDATE'] = SERVER_UPDATE_FINAL
                 return True
         else:
             log.info('skipping job update for fake test job')
@@ -215,7 +219,9 @@ def send_state(job, args, state, xml=None, metadata=None):
         log.warning('possibly offending data: %s' % data)
         pass
 
-    log.warning('set job state=%s failed' % state)
+    if final:
+        os.environ['SERVER_UPDATE'] = SERVER_UPDATE_TROUBLE
+
     return False
 
 
@@ -664,6 +670,11 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
         logger.info('asking Harvester for another job')
         request_new_jobs()
 
+    if os.environ.get('SERVER_UPDATE', '') == SERVER_UPDATE_UPDATING:
+        logger.info('still updating previous job, will not ask for a new job yet')
+        return False
+
+    os.environ['SERVER_UPDATE'] = SERVER_UPDATE_NOT_DONE
     return True
 
 
@@ -1009,6 +1020,9 @@ def retrieve(queues, traces, args):
         getjob_requests += 1
 
         if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester, args.verify_proxy, traces):
+            # do not set graceful stop if pilot has not finished sending the final job update
+            # i.e. wait until SERVER_UPDATE is DONE_FINAL
+            check_for_final_server_update(args.update_server)
             args.graceful_stop.set()
             break
 
@@ -1021,6 +1035,9 @@ def retrieve(queues, traces, args):
 
         if res is None:
             logger.fatal('fatal error in job download loop - cannot continue')
+            # do not set graceful stop if pilot has not finished sending the final job update
+            # i.e. wait until SERVER_UPDATE is DONE_FINAL
+            check_for_final_server_update(args.update_server)
             args.graceful_stop.set()
             break
 
@@ -1369,6 +1386,8 @@ def queue_monitor(queues, traces, args):
                 logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
                 # now ready for the next job (or quit)
                 put_in_queue(job, queues.completed_jobs)
+                # reset the sentfinal since we will now get another job
+                sentfinal = False
 
         if abort:
             break
@@ -1444,6 +1463,9 @@ def check_job(args, queues):
         # set job_aborted in case of kill signals
         if args.abort_job.is_set():
             logger.warning('queue monitor detected a set abort_job (due to a kill signal), setting job_aborted')
+            # do not set graceful stop if pilot has not finished sending the final job update
+            # i.e. wait until SERVER_UPDATE is DONE_FINAL
+            check_for_final_server_update(args.update_server)
             args.job_aborted.set()
 
     return job
@@ -1544,7 +1566,7 @@ def job_monitor(queues, traces, args):
                     send_state(jobs[i], args, 'running')
                     update_time = int(time.time())
 
-        elif os.environ.get('PILOT_STATE') == 'stagein':
+        elif os.environ.get('PILOT_JOB_STATE') == 'stagein':
             logger.info('job monitoring is waiting for stage-in to finish')
         else:
             # check the waiting time in the job monitor. set global graceful_stop if necessary
@@ -1570,7 +1592,7 @@ def check_job_monitor_waiting_time(args, peeking_time):
 
     waiting_time = int(time.time()) - peeking_time
     msg = 'no jobs in monitored_payloads queue (waited for %d s)' % waiting_time
-    if waiting_time > 60 * 10:
+    if waiting_time > 60 * 60:
         abort = True
         msg += ' - aborting'
     else:
@@ -1580,6 +1602,9 @@ def check_job_monitor_waiting_time(args, peeking_time):
     else:
         print(msg)
     if abort:
+        # do not set graceful stop if pilot has not finished sending the final job update
+        # i.e. wait until SERVER_UPDATE is DONE_FINAL
+        check_for_final_server_update(args.update_server)
         args.graceful_stop.set()
 
 
