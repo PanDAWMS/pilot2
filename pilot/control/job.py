@@ -199,13 +199,11 @@ def send_state(job, args, state, xml=None, metadata=None):
             pandaserver = args.url + ':' + str(args.port)
         else:
             pandaserver = config.Pilot.pandaserver
-        log.debug('pandaserver=%s' % pandaserver)
         if config.Pilot.pandajob == 'real':
             res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver), data=data)
-            log.debug("res=%s" % str(res))
+            log.info("res = %s" % str(res))
             if res is not None:
                 log.info('server updateJob request completed for job %s' % job.jobid)
-                log.info('res = %s' % str(res))
 
                 # does the server update contain any backchannel information? if so, update the job object
                 handle_backchannel_command(res, job, args)
@@ -224,7 +222,6 @@ def send_state(job, args, state, xml=None, metadata=None):
     if final:
         os.environ['SERVER_UPDATE'] = SERVER_UPDATE_TROUBLE
 
-    log.warning('set job state=%s failed' % state)
     return False
 
 
