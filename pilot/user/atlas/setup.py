@@ -338,13 +338,14 @@ def get_valid_base_urls(order=None):
     return valid_base_urls
 
 
-def get_payload_environment_variables(cmd, job_id, task_id, processing_type, site_name, analysis_job):
+def get_payload_environment_variables(cmd, job_id, task_id, attempt_nr, processing_type, site_name, analysis_job):
     """
     Return an array with enviroment variables needed by the payload.
 
     :param cmd: payload execution command (string).
     :param job_id: PanDA job id (string).
     :param task_id: PanDA task id (string).
+    :param attempt_nr: PanDA job attempt number (int).
     :param processing_type: processing type (string).
     :param site_name: site name (string).
     :param analysis_job: True for user analysis jobs, False otherwise (boolean).
@@ -359,6 +360,7 @@ def get_payload_environment_variables(cmd, job_id, task_id, processing_type, sit
     variables.append('export CMSSW_VERSION=$FRONTIER_ID;')
     variables.append('export PandaID=%s' % os.environ.get('PandaID', 'unknown'))
     variables.append('export PanDA_TaskID=%s' % os.environ.get('PanDA_TaskID', 'unknown'))
+    variables.append('export PanDA_AttemptNr=%s' % attempt_nr)
 
     # Unset ATHENA_PROC_NUMBER if set for event service Merge jobs
     if "Merge_tf" in cmd and 'ATHENA_PROC_NUMBER' in os.environ:

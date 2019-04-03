@@ -82,7 +82,7 @@ def get_payload_command(job):
     # only if not using a user container
     if not job.imagename:
         site = os.environ.get('PILOT_SITENAME', '')
-        variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
+        variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.attemptnr, job.processingtype, site, userjob)
         cmd = ''.join(variables) + cmd
 
     cmd = cmd.replace(';;', ';')
