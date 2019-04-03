@@ -174,9 +174,15 @@ def send_state(job, args, state, xml=None, metadata=None):
         os.environ['SERVER_UPDATE'] = SERVER_UPDATE_UPDATING
         log.info('job %s has %s - %s final server update' % (job.jobid, state, tag))
 
+        # make sure that job.state is 'failed' if there's a set error code
+        if job.piloterrorcode or job.piloterrorcodes:
+            log.warning('making sure that job.state is set to failed since a pilot error code is set')
+            state = 'failed'
+            job.state = state
         # make sure an error code is properly set
-        if state != 'finished':
+        elif state != 'finished':
             verify_error_code(job)
+
     else:
         final = False
         log.info('job %s has state \'%s\' - %s heartbeat' % (job.jobid, state, tag))

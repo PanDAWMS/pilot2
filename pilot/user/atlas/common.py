@@ -621,9 +621,9 @@ def update_job_data(job):  # noqa: C901
                     data[lfn].guid = fdat['file_guid']
                     logger.info('set guid=%s for lfn=%s (value taken from job report)' % (data[lfn].guid, lfn))
                 else:  # found new entry, create filespec
-                    #if not job.outdata:
-                    #    raise PilotException("job.outdata is empty, will not be able to construct FileSpecs",
-                    #                         code=errors.INTERNALPILOTPROBLEM)
+                    if not job.outdata:
+                        raise PilotException("job.outdata is empty, will not be able to construct FileSpecs",
+                                             code=errors.INTERNALPILOTPROBLEM)
                     if job.outdata:
                         kw = {'lfn': lfn,
                               'scope': job.outdata[0].scope,  ## take value from 1st output file?
