@@ -108,17 +108,17 @@ def validate_pre(queues, traces, args):
 
 def _validate_payload(job):
     """
-    (add description)
+    Perform validation tests for the payload.
+    Currently, only some job info is dumped to the log.
 
-    :param job:
-    :return:
+    :param job: job object.
+    :return: boolean.
     """
-    # valid = random.uniform(0, 100)
-    # if valid > 99:
-    #     logger.warning('payload did not validate correctly -- skipping')
-    #     job['errno'] = random.randint(0, 100)
-    #     job['errmsg'] = 'payload failed random validation'
-    #     return False
+
+    log = get_logger(job.jobid, logger)
+    log.debug('PandaID = %s' % os.environ.get('PandaID', 'unknown'))
+    log.debug('PanDA_TaskID = %s' % os.environ.get('PanDA_TaskID', 'unknown'))
+
     return True
 
 
