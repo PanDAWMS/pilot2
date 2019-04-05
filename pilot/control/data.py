@@ -34,6 +34,7 @@ from pilot.util.common import should_abort
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING
+from pilot.util.container import execute
 from pilot.util.filehandling import find_executable, remove
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.tracereport import TraceReport
@@ -553,15 +554,16 @@ def create_log(job, logfile, tarball_name):
     log.info('will create archive %s' % fullpath)
     try:
         newdirnm = "tarball_PandaJob_%s" % job.jobid
-        tarballnm = "%s.tar.gz" % job.newdirnm
+        #tarballnm = "%s.tar.gz" % newdirnm
         os.rename(job.workdir, newdirnm)
-        cmd = "pwd;tar cvfz %s %s --dereference --one-file-system; echo $?" % (tarballnm, newdirnm)
-
-        with closing(tarfile.open(name=fullpath, mode='w:gz', dereference=True)) as archive:
-            archive.add(os.path.basename(job.workdir), recursive=True)
+        cmd = "pwd;tar cvfz %s %s --dereference --one-file-system; echo $?" % (fullpath, newdirnm)
+        exit_code, stdout, stderr = execute(cmd)
+        #with closing(tarfile.open(name=fullpath, mode='w:gz', dereference=True)) as archive:
+        #    archive.add(os.path.basename(job.workdir), recursive=True)
     except Exception as e:
         raise LogFileCreationFailure(e)
-
+    else:
+        log.debug('stdout = %s' % stdout)
     log.debug('renaming %s back to %s' % (job.workdir, orgworkdir))
     try:
         os.rename(job.workdir, orgworkdir)
