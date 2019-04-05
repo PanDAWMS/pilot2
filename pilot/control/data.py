@@ -554,7 +554,7 @@ def create_log(job, logfile, tarball_name):
     try:
         newdirnm = "tarball_PandaJob_%s" % job.jobid
         tarballnm = "%s.tar.gz" % job.newdirnm
-        cmd = "mv %s %s" % (job.workdir, newdirnm)
+        os.rename(job.workdir, newdirnm)
         cmd = "pwd;tar cvfz %s %s --dereference --one-file-system; echo $?" % (tarballnm, newdirnm)
 
         with closing(tarfile.open(name=fullpath, mode='w:gz', dereference=True)) as archive:
