@@ -668,7 +668,14 @@ def _stage_out_new(job, args):
 
         job.status['LOG_TRANSFER'] = LOG_TRANSFER_IN_PROGRESS
         logfile = job.logdata[0]
-        create_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
+
+        try:
+            create_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
+        except LogFileCreationFailure as e:
+            log.warning('failed to create tar file: %s' % e)
+            set_pilot_state(job=job, state="failed")
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.LOGFILECREATIONFAILURE)
+            return False
 
         if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], title='log'):
             is_success = False
