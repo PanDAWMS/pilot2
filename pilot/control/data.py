@@ -553,10 +553,10 @@ def create_log(job, logfile, tarball_name):
 
     log.info('will create archive %s' % fullpath)
     try:
-        newdirnm = "tarball_PandaJob_%s" % job.jobid
+        #newdirnm = "tarball_PandaJob_%s" % job.jobid
         #tarballnm = "%s.tar.gz" % newdirnm
-        os.rename(job.workdir, newdirnm)
-        cmd = "pwd;tar cvfz %s %s --dereference --one-file-system; echo $?" % (fullpath, newdirnm)
+        #os.rename(job.workdir, newdirnm)
+        cmd = "pwd;tar cvfz %s %s --dereference --one-file-system; echo $?" % (fullpath, tarball_name)
         exit_code, stdout, stderr = execute(cmd)
         #with closing(tarfile.open(name=fullpath, mode='w:gz', dereference=True)) as archive:
         #    archive.add(os.path.basename(job.workdir), recursive=True)
