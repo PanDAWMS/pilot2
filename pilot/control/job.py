@@ -603,6 +603,12 @@ def get_dispatcher_dictionary(args):
     if args.resource_type != "":
         data['resourceType'] = args.resource_type
 
+    # add harvester fields
+    if 'HARVESTER_ID' in environ:
+        data['harvesterID'] = os.environ.get('HARVESTER_ID')
+    if 'HARVESTER_WORKER_ID' in environ:
+        data['harvesterWorkerID'] = os.environ.get('HARVESTER_WORKER_ID')
+
     return data
 
 

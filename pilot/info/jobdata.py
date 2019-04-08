@@ -372,7 +372,7 @@ class JobData(BaseData):
         """
 
         for fspec in self.indata:
-            if fspec.storage_token == 'local':
+            if fspec.storage_token == 'local' and '.lib.' not in fspec.lfn:
                 return True
 
     def clean(self):
