@@ -90,6 +90,7 @@ class JobData(BaseData):
     pid = None                     # payload pid
     pgrp = None                    # payload process group
     sizes = {}                     # job object sizes { timestamp: size, .. }
+    maxpss = None                  # maxPSS value from memory monitor, reported to server
 
     # time variable used for on-the-fly cpu consumption time measurements done by job monitoring
     t0 = None                      # payload startup time
@@ -126,7 +127,7 @@ class JobData(BaseData):
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['corecount', 'piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
-                   'attemptnr', 'nevents', 'neventsw', 'pid', 'cpuconsumptiontime', 'maxcpucount'],
+                   'attemptnr', 'nevents', 'neventsw', 'pid', 'cpuconsumptiontime', 'maxcpucount', 'maxpss'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
                    'state', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg', 'produserid', 'jobdefinitionid', 'writetofile',
