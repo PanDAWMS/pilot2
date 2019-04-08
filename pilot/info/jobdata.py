@@ -90,7 +90,6 @@ class JobData(BaseData):
     pid = None                     # payload pid
     pgrp = None                    # payload process group
     sizes = {}                     # job object sizes { timestamp: size, .. }
-    memory = {}                    # memory dictionary from memory monitor
 
     # time variable used for on-the-fly cpu consumption time measurements done by job monitoring
     t0 = None                      # payload startup time
@@ -136,7 +135,7 @@ class JobData(BaseData):
                    'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    'infilesguids'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
-             dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes', 'memory'],
+             dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes'],
              bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug']
              }
 
