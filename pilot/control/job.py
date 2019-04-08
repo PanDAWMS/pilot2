@@ -604,9 +604,9 @@ def get_dispatcher_dictionary(args):
         data['resourceType'] = args.resource_type
 
     # add harvester fields
-    if 'HARVESTER_ID' in environ:
+    if 'HARVESTER_ID' in os.environ:
         data['harvesterID'] = os.environ.get('HARVESTER_ID')
-    if 'HARVESTER_WORKER_ID' in environ:
+    if 'HARVESTER_WORKER_ID' in os.environ:
         data['harvesterWorkerID'] = os.environ.get('HARVESTER_WORKER_ID')
 
     return data
