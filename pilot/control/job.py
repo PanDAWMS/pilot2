@@ -605,9 +605,9 @@ def get_dispatcher_dictionary(args):
 
     # add harvester fields
     if 'HARVESTER_ID' in os.environ:
-        data['harvesterID'] = os.environ.get('HARVESTER_ID')
+        data['harvester_id'] = os.environ.get('HARVESTER_ID')
     if 'HARVESTER_WORKER_ID' in os.environ:
-        data['harvesterWorkerID'] = os.environ.get('HARVESTER_WORKER_ID')
+        data['worker_id'] = os.environ.get('HARVESTER_WORKER_ID')
 
     return data
 
