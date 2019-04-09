@@ -14,7 +14,7 @@
 import copy
 import os
 import subprocess
-import tarfile
+#import tarfile
 import time
 
 try:
@@ -22,7 +22,7 @@ try:
 except Exception:
     import queue  # python 3
 
-from contextlib import closing  # for Python 2.6 compatibility - to fix a problem with tarfile
+#from contextlib import closing  # for Python 2.6 compatibility - to fix a problem with tarfile
 
 from pilot.api.data import StageInClient, StageOutClient
 from pilot.api.es_data import StageInESClient
