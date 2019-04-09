@@ -346,7 +346,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
             data['stdout'] = stdout_tail
 
     # add memory information if available
-    add_memory_info(data)
+    add_memory_info(data, job.workdir)
 
     if state == 'finished' or state == 'failed':
         add_timing_and_extracts(job, state, args)
@@ -379,19 +379,20 @@ def add_timing_and_extracts(data, job, state, args):
         data['pilotLog'] = extracts
 
 
-def add_memory_info(data):
+def add_memory_info(data, workdir):
     """
     Add memory information (if available) to the data structure that will be sent to the server with job updates
     Note: this function updates the data dictionary.
 
     :param data: data structure (dictionary).
+    :param workdir: working directory of the job (string).
     :return:
     """
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user], -1)
     try:
-        utility_node = utilities.get_memory_monitor_info(job.workdir)
+        utility_node = utilities.get_memory_monitor_info(workdir)
         data.update(utility_node)
     except Exception as e:
         logger.info('memory information not available: %s' % e)
