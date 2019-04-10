@@ -361,6 +361,7 @@ def get_payload_environment_variables(cmd, job_id, task_id, attempt_nr, processi
     variables.append('export PandaID=\'%s\';' % os.environ.get('PandaID', 'unknown'))
     variables.append('export PanDA_TaskID=\'%s\';' % os.environ.get('PanDA_TaskID', 'unknown'))
     variables.append('export PanDA_AttemptNr=\'%d\';' % attempt_nr)
+    variables.append('export INDS=\'%d\';' % os.environ.get('INDS', 'unknown'))
 
     # Unset ATHENA_PROC_NUMBER if set for event service Merge jobs
     if "Merge_tf" in cmd and 'ATHENA_PROC_NUMBER' in os.environ:
