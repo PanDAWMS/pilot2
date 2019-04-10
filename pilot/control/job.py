@@ -349,7 +349,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     add_memory_info(data, job.workdir)
 
     if state == 'finished' or state == 'failed':
-        add_timing_and_extracts(job, state, args)
+        add_timing_and_extracts(data, job, state, args)
 
     return data
 
