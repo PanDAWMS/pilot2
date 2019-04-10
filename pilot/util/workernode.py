@@ -118,6 +118,11 @@ def get_disk_space(queuedata):
     _maxinputsize = queuedata.maxwdir
     logger.debug("resolved value: queuedata.maxwdir=%s" % _maxinputsize)
 
+    # grace margin, as discussed in https://its.cern.ch/jira/browse/ATLASPANDA-482
+    #margin = 10.0  # percent, read later from somewhere
+    #_maxinputsize = int(_maxinputsize * (1 - margin / 100.0))
+    #logger.info("applied a %d% margin to maxwdir: %d" % (margin, _maxinputsize))
+
     try:
         du = disk_usage(os.path.abspath("."))
         _diskspace = int(du[2] / (1024 * 1024))  # need to convert from B to MB

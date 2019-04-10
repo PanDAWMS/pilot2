@@ -294,6 +294,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     else:
         data['pilotErrorCode'] = pilot_error_code
 
+    # add error info
     pilot_error_diag = job.piloterrordiag
     pilot_error_diags = job.piloterrordiags
     if pilot_error_diags != []:
@@ -301,7 +302,6 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
         data['pilotErrorDiag'] = pilot_error_diags[0]
     else:
         data['pilotErrorDiag'] = pilot_error_diag
-
     data['transExitCode'] = job.transexitcode
     data['exeErrorCode'] = job.exeerrorcode
     data['exeErrorDiag'] = job.exeerrordiag
@@ -345,20 +345,58 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
         if stdout_tail:
             data['stdout'] = stdout_tail
 
-    if state == 'finished' or state == 'failed':
-        time_getjob, time_stagein, time_payload, time_stageout, time_total_setup = timing_report(job.jobid, args)
-        data['pilotTiming'] = "%s|%s|%s|%s|%s" % \
-                              (time_getjob, time_stagein, time_payload, time_stageout, time_total_setup)
+    # add memory information if available
+    add_memory_info(data, job.workdir)
 
-        # add log extracts (for failed/holding jobs or for jobs with outbound connections)
-        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-        user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
-        extracts = user.get_log_extracts(job, state)
-        if extracts != "":
-            log.warning('pilot log extracts:\n%s' % extracts)
-            data['pilotLog'] = extracts
+    if state == 'finished' or state == 'failed':
+        add_timing_and_extracts(data, job, state, args)
 
     return data
+
+
+def add_timing_and_extracts(data, job, state, args):
+    """
+    Add timing info and log extracts to data structure for a completed job (finished or failed) to be sent to server.
+    Note: this function updates the data dictionary.
+
+    :param data: data structure (dictionary).
+    :param job: job object.
+    :param state: state of the job (string).
+    :param args: pilot args.
+    :return:
+    """
+
+    time_getjob, time_stagein, time_payload, time_stageout, time_total_setup = timing_report(job.jobid, args)
+    data['pilotTiming'] = "%s|%s|%s|%s|%s" % \
+                          (time_getjob, time_stagein, time_payload, time_stageout, time_total_setup)
+
+    # add log extracts (for failed/holding jobs or for jobs with outbound connections)
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
+    extracts = user.get_log_extracts(job, state)
+    if extracts != "":
+        logger.warning('pilot log extracts:\n%s' % extracts)
+        data['pilotLog'] = extracts
+
+
+def add_memory_info(data, workdir):
+    """
+    Add memory information (if available) to the data structure that will be sent to the server with job updates
+    Note: this function updates the data dictionary.
+
+    :param data: data structure (dictionary).
+    :param workdir: working directory of the job (string).
+    :return:
+    """
+
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user], -1)
+    try:
+        utility_node = utilities.get_memory_monitor_info(workdir)
+        data.update(utility_node)
+    except Exception as e:
+        logger.info('memory information not available: %s' % e)
+        pass
 
 
 def get_list_of_log_files():
@@ -592,6 +630,12 @@ def get_dispatcher_dictionary(args):
 
     if args.resource_type != "":
         data['resourceType'] = args.resource_type
+
+    # add harvester fields
+    if 'HARVESTER_ID' in os.environ:
+        data['harvester_id'] = os.environ.get('HARVESTER_ID')
+    if 'HARVESTER_WORKER_ID' in os.environ:
+        data['worker_id'] = os.environ.get('HARVESTER_WORKER_ID')
 
     return data
 
