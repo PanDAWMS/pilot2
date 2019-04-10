@@ -1121,6 +1121,11 @@ def remove_redundant_files(workdir, outputfiles=[]):
     # run a second pass to clean up any broken links
     cleanup_broken_links(workdir)
 
+    # remove any present user workDir
+    path = os.path.join(workdir, 'workDir')
+    if os.path.exists(path):
+        remove_dir_tree(path)
+
 
 def get_utility_commands_list(order=None):
     """
