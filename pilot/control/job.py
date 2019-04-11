@@ -663,6 +663,8 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
 
     currenttime = time.time()
 
+    logger.debug('proceed_with_getjob called with getjob_requests=%d' % getjob_requests)
+
     # should the proxy be verified?
     if verify_proxy:
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -1069,6 +1071,7 @@ def retrieve(queues, traces, args):
 
         getjob_requests += 1
 
+        logger.debug('getjob_requests=%d' % getjob_requests)
         if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester, args.verify_proxy, traces):
             # do not set graceful stop if pilot has not finished sending the final job update
             # i.e. wait until SERVER_UPDATE is DONE_FINAL
