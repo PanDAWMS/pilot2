@@ -114,7 +114,7 @@ class Analytics(Services):
 
         return get_table_from_file(filename, header=header, separator=separator, convert_to_float=convert_to_float)
 
-    def get_fitted_data(self, filename, x_value='Time', y_value='PSS', precision=2):
+    def get_fitted_data(self, filename, x_value='Time', y_value='VMEM', precision=2):
         """
         Return a properly formatted job metrics string with analytics data.
         Currently the function returns a fit for PSS vs time, whose slope measures memory leaks.
@@ -131,8 +131,8 @@ class Analytics(Services):
 
         if table:
             # extract data to be fitted
-            x = table.get('Time', [])
-            y = table.get('PSS', [])
+            x = table.get(x_value, [])
+            y = table.get(y_value, [])
 
             if len(x) >= 2 and len(y) >= 2:
                 try:
