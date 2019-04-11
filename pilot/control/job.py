@@ -1131,6 +1131,7 @@ def retrieve(queues, traces, args):
                 while not args.graceful_stop.is_set():
                     if has_job_completed(queues):
                         logger.info('ready for new job')
+                        getjob_requests = 0
                         break
                     time.sleep(0.5)
 
