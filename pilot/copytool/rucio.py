@@ -270,7 +270,7 @@ def _stage_out_api(fspec, summary_file_path, trace_report):
 
     # file specifications before the upload
     f = {}
-    f['path'] = fspec.pfn if fspec.pfn else fspec.lfn
+    f['path'] = fspec.surl or getattr(fspec, 'pfn', None) or os.path.join(fspec.workdir, fspec.lfn)
     f['rse'] = fspec.ddmendpoint
     f['did_scope'] = fspec.scope
     f['no_register'] = True
