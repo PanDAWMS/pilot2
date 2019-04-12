@@ -141,11 +141,11 @@ class Analytics(Services):
             if not tails and len(x) > 2 and len(y) > 2:
                 logger.debug('removing tails from data to be fitted')
                 x = x[1:]
-                x = x[:-1]
+                #x = x[:-1]
                 y = y[1:]
-                y = y[:-1]
+                #y = y[:-1]
 
-            if len(x) >= 2 and len(y) >= 2:
+            if len(x) > 2 and len(y) > 2:
                 try:
                     fit = self.fit(x, y)
                     _slope = self.slope()
