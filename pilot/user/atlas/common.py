@@ -140,10 +140,10 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
 
     log = get_logger(job.jobid)
 
-    if userjob:
-        # set the INDS env variable (used by runAthena)
-        set_inds(job.datasetin)  # realDatasetsIn
+    # set the INDS env variable (used by runAthena but also for EventIndex production jobs)
+    set_inds(job.datasetin)  # realDatasetsIn
 
+    if userjob:
         # Try to download the trf (skip when user container is to be used)
         #if job.imagename != "" or "--containerImage" in job.jobparams:
         #    job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
