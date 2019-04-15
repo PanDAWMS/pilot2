@@ -82,7 +82,7 @@ def get_payload_command(job):
     # only if not using a user container
     if not job.imagename:
         site = os.environ.get('PILOT_SITENAME', '')
-        variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
+        variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.attemptnr, job.processingtype, site, userjob)
         cmd = ''.join(variables) + cmd
 
     cmd = cmd.replace(';;', ';')
@@ -621,17 +621,18 @@ def update_job_data(job):  # noqa: C901
                     data[lfn].guid = fdat['file_guid']
                     logger.info('set guid=%s for lfn=%s (value taken from job report)' % (data[lfn].guid, lfn))
                 else:  # found new entry, create filespec
-                    if not job.outdata:
-                        raise PilotException("job.outdata is empty, will not be able to construct FileSpecs",
-                                             code=errors.INTERNALPILOTPROBLEM)
-                    kw = {'lfn': lfn,
-                          'scope': job.outdata[0].scope,  ## take value from 1st output file?
-                          'guid': fdat['file_guid'],
-                          'filesize': fdat['file_size'],
-                          'dataset': dat.get('dataset') or job.outdata[0].dataset  ## take value from 1st output file?
-                          }
-                    spec = FileSpec(filetype='output', **kw)
-                    extra.append(spec)
+                    #if not job.outdata:
+                    #    raise PilotException("job.outdata is empty, will not be able to construct FileSpecs",
+                    #                         code=errors.INTERNALPILOTPROBLEM)
+                    if job.outdata:
+                        kw = {'lfn': lfn,
+                              'scope': job.outdata[0].scope,  ## take value from 1st output file?
+                              'guid': fdat['file_guid'],
+                              'filesize': fdat['file_size'],
+                              'dataset': dat.get('dataset') or job.outdata[0].dataset  ## take value from 1st output file?
+                              }
+                        spec = FileSpec(filetype='output', **kw)
+                        extra.append(spec)
 
         if extra:
             log.info('found extra output files to be added for stage-out: extra=%s' % extra)
@@ -1119,6 +1120,11 @@ def remove_redundant_files(workdir, outputfiles=[]):
 
     # run a second pass to clean up any broken links
     cleanup_broken_links(workdir)
+
+    # remove any present user workDir
+    path = os.path.join(workdir, 'workDir')
+    if os.path.exists(path):
+        remove_dir_tree(path)
 
 
 def get_utility_commands_list(order=None):

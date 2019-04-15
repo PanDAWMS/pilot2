@@ -21,7 +21,9 @@ from zlib import adler32
 
 from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile, \
     NotImplemented
-from pilot.util.container import execute
+from .auxiliary import get_logger
+from .container import execute
+from .math import diff_lists
 
 import logging
 logger = logging.getLogger(__name__)
@@ -756,3 +758,70 @@ def get_checksum_type(checksum):
             checksum_type = 'md5'
 
     return checksum_type
+
+
+def scan_file(path, error_messages, jobid, warning_message=None):
+    """
+    Scan file for known error messages.
+
+    :param path: path to file (string).
+    :param error_messages: list of error messages.
+    :param jobid: job id (int).
+    :param warning_message: optional warning message to printed with any of the error_messages have been found (string).
+    :return: Boolean. (note: True means the error was found)
+    """
+
+    found_problem = False
+
+    matched_lines = grep(error_messages, path)
+    if len(matched_lines) > 0:
+        log = get_logger(jobid)
+        if warning_message:
+            log.warning(warning_message)
+        for line in matched_lines:
+            log.info(line)
+        found_problem = True
+
+    return found_problem
+
+
+def verify_file_list(list_of_files):
+    """
+    Make sure that the files in the given list exist, return the list of files that does exist.
+
+    :param list_of_files: file list.
+    :return: list of existing files.
+    """
+
+    # remove any non-existent files from the input file list
+    filtered_list = [f for f in list_of_files if os.path.exists(f)]
+
+    diff = diff_lists(list_of_files, filtered_list)
+    if diff:
+        logger.debug('found %d file(s) that do not exist (e.g. %s)' % (len(diff), diff[0]))
+
+    return filtered_list
+
+
+def find_latest_modified_file(list_of_files):
+    """
+    Find the most recently modified file among the list of given files.
+    In case int conversion of getmtime() fails, int(time.time()) will be returned instead.
+
+    :param list_of_files: list of files with full paths.
+    :return: most recently updated file (string), modification time (int).
+    """
+
+    if not list_of_files:
+        logger.warning('there were no files to check mod time for')
+        return None, None
+
+    try:
+        latest_file = max(list_of_files, key=os.path.getctime)
+        mtime = int(os.path.getmtime(latest_file))
+    except Exception as e:
+        logger.warning("int conversion failed for mod time: %s" % e)
+        latest_file = ""
+        mtime = None
+
+    return latest_file, mtime

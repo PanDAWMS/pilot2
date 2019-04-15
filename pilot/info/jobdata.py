@@ -5,7 +5,7 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 """
@@ -372,7 +372,7 @@ class JobData(BaseData):
         """
 
         for fspec in self.indata:
-            if fspec.storage_token == 'local':
+            if fspec.storage_token == 'local' and '.lib.' not in fspec.lfn:
                 return True
 
     def clean(self):
@@ -609,7 +609,7 @@ class JobData(BaseData):
                     continue
                 pfn = os.path.join(self.workdir, fspec.lfn)
                 if not os.path.isfile(pfn):
-                    msg = "pfn file=%s does not exist (skip from wordir size calculation)" % pfn
+                    msg = "pfn file=%s does not exist (skip from workdir size calculation)" % pfn
                     logger.info(msg)
                 else:
                     total_size += os.path.getsize(pfn)

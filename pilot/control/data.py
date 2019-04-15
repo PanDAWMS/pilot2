@@ -14,7 +14,7 @@
 import copy
 import os
 import subprocess
-import tarfile
+#import tarfile
 import time
 
 try:
@@ -22,18 +22,19 @@ try:
 except Exception:
     import queue  # python 3
 
-from contextlib import closing  # for Python 2.6 compatibility - to fix a problem with tarfile
+#from contextlib import closing  # for Python 2.6 compatibility - to fix a problem with tarfile
 
 from pilot.api.data import StageInClient, StageOutClient
 from pilot.api.es_data import StageInESClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException, LogFileCreationFailure
-from pilot.util.auxiliary import get_logger, set_pilot_state  #, abort_jobs_in_queues
+from pilot.util.auxiliary import get_logger, set_pilot_state, check_for_final_server_update  #, abort_jobs_in_queues
 from pilot.util.common import should_abort
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
-    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED
+    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING
+from pilot.util.container import execute
 from pilot.util.filehandling import find_executable, remove
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.tracereport import TraceReport
@@ -357,8 +358,9 @@ def copytool_in(queues, traces, args):
         try:
             job = queues.data_in.get(block=True, timeout=1)
 
+            # ready to set the job in running state
             send_state(job, args, 'running')
-
+            os.environ['SERVER_UPDATE'] = SERVER_UPDATE_RUNNING
             log = get_logger(job.jobid)
 
             if args.abort_job.is_set():
@@ -388,13 +390,15 @@ def copytool_in(queues, traces, args):
                 except Exception as e:
                     pass
             else:
-                log.warning('stage-in failed, adding job object to failed_data_in queue (will take a 1 minute nap)')
+                log.warning('stage-in failed, adding job object to failed_data_in queue')
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINFAILED)
                 set_pilot_state(job=job, state="failed")
                 traces.pilot['error_code'] = job.piloterrorcodes[0]
                 #queues.failed_data_in.put(job)
                 put_in_queue(job, queues.failed_data_in)
-                time.sleep(60)
+                # do not set graceful stop if pilot has not finished sending the final job update
+                # i.e. wait until SERVER_UPDATE is DONE_FINAL
+                check_for_final_server_update(args.update_server)
                 args.graceful_stop.set()
                 # send_state(job, args, 'failed')
 
@@ -549,11 +553,17 @@ def create_log(job, logfile, tarball_name):
 
     log.info('will create archive %s' % fullpath)
     try:
-        with closing(tarfile.open(name=fullpath, mode='w:gz', dereference=True)) as archive:
-            archive.add(os.path.basename(job.workdir), recursive=True)
+        #newdirnm = "tarball_PandaJob_%s" % job.jobid
+        #tarballnm = "%s.tar.gz" % newdirnm
+        #os.rename(job.workdir, newdirnm)
+        cmd = "pwd;tar cvfz %s %s --dereference --one-file-system; echo $?" % (fullpath, tarball_name)
+        exit_code, stdout, stderr = execute(cmd)
+        #with closing(tarfile.open(name=fullpath, mode='w:gz', dereference=True)) as archive:
+        #    archive.add(os.path.basename(job.workdir), recursive=True)
     except Exception as e:
         raise LogFileCreationFailure(e)
-
+    else:
+        log.debug('stdout = %s' % stdout)
     log.debug('renaming %s back to %s' % (job.workdir, orgworkdir))
     try:
         os.rename(job.workdir, orgworkdir)
@@ -665,7 +675,14 @@ def _stage_out_new(job, args):
 
         job.status['LOG_TRANSFER'] = LOG_TRANSFER_IN_PROGRESS
         logfile = job.logdata[0]
-        create_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
+
+        try:
+            create_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
+        except LogFileCreationFailure as e:
+            log.warning('failed to create tar file: %s' % e)
+            set_pilot_state(job=job, state="failed")
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.LOGFILECREATIONFAILURE)
+            return False
 
         if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], title='log'):
             is_success = False

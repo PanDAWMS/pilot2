@@ -16,7 +16,9 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import PilotException, BadXML
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
-from pilot.util.filehandling import get_guid, tail, grep, open_file, read_file, write_file
+from pilot.util.filehandling import get_guid, tail, grep, open_file, read_file, write_file, scan_file
+from pilot.util.math import convert_mb_to_b
+from pilot.util.workernode import get_local_disk_space
 
 from .common import update_job_data, parse_jobreport_data
 from .metadata import get_metadata_from_xml, get_total_number_of_events
@@ -41,9 +43,7 @@ def interpret(job):
     # extract errors from job report
     process_job_report(job)
 
-    if job.exitcode == 0:
-        pass
-    else:
+    if job.exitcode != 0:
         exit_code = job.exitcode
 
     # check for special errors
@@ -75,27 +75,36 @@ def interpret_payload_exit_info(job):
 
     # try to identify out of memory errors in the stderr
     if is_out_of_memory(job):
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADOUTOFMEMORY)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADOUTOFMEMORY, priority=True)
         return
 
     # look for specific errors in the stdout (tail)
     if is_installation_error(job):
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGINSTALLATION)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGINSTALLATION, priority=True)
         return
 
     # did AtlasSetup fail?
     if is_atlassetup_error(job):
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.ATLASSETUPFATAL)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.ATLASSETUPFATAL, priority=True)
+        return
+
+    # did the payload run out of space?
+    if is_out_of_space(job):
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOLOCALSPACE, priority=True)
+
+        # double check local space
+        spaceleft = convert_mb_to_b(get_local_disk_space(os.getcwd()))  # B (diskspace is in MB)
+        logger.info('verifying local space: %d B' % spaceleft)
         return
 
     # look for specific errors in the stdout (full)
     if is_nfssqlite_locking_problem(job):
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NFSSQLITE)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NFSSQLITE, priority=True)
         return
 
     # set a general Pilot error code if the payload error could not be identified
     if job.transexitcode != 0:
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.UNKNOWNPAYLOADFAILURE)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.UNKNOWNPAYLOADFAILURE, priority=True)
 
 
 def is_out_of_memory(job):
@@ -129,6 +138,23 @@ def is_out_of_memory(job):
     return out_of_memory
 
 
+def is_out_of_space(job):
+    """
+    Did the disk run out of space?
+
+    :param job: job object.
+    :return: Boolean. (note: True means the error was found)
+    """
+
+    stderr = os.path.join(job.workdir, config.Payload.payloadstderr)
+    error_messages = ["No space left on device"]
+
+    return scan_file(stderr,
+                     error_messages,
+                     job.jobid,
+                     warning_message="identified a \'No space left on device\' message in %s" % os.path.basename(stderr))
+
+
 def is_installation_error(job):
     """
     Did the payload fail to run? (Due to faulty/missing installation).
@@ -156,8 +182,10 @@ def is_atlassetup_error(job):
 
     stdout = os.path.join(job.workdir, config.Payload.payloadstdout)
     _tail = tail(stdout)
-    res_tmp = _tail[:1024]
+    res_tmp = _tail[:2048]
     if "AtlasSetup(FATAL): Fatal exception" in res_tmp:
+        log = get_logger(job.jobid)
+        log.warning('AtlasSetup FATAL failure detected')
         return True
     else:
         return False
@@ -171,19 +199,13 @@ def is_nfssqlite_locking_problem(job):
     :return: Boolean. (note: True means the error was found)
     """
 
-    locking_problem = False
-
     stdout = os.path.join(job.workdir, config.Payload.payloadstdout)
-    errormsgs = ["prepare 5 database is locked", "Error SQLiteStatement"]
-    matched_lines = grep(errormsgs, stdout)
-    if len(matched_lines) > 0:
-        log = get_logger(job.jobid)
-        log.warning("identified an NFS/Sqlite locking problem in %s" % os.path.basename(stdout))
-        for line in matched_lines:
-            log.info(line)
-        locking_problem = True
+    error_messages = ["prepare 5 database is locked", "Error SQLiteStatement"]
 
-    return locking_problem
+    return scan_file(stdout,
+                     error_messages,
+                     job.jobid,
+                     warning_message="identified an NFS/Sqlite locking problem in %s" % os.path.basename(stdout))
 
 
 def extract_special_information(job):
