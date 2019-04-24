@@ -635,8 +635,8 @@ def update_job_data(job):  # noqa: C901
                         extra.append(spec)
 
         if extra:
-            log.info('found extra output files to be added for stage-out: extra=%s' % extra)
-            job.outdata.extend(extra)
+            log.info('found extra output files in job report, will overwrite output file list: extra=%s' % extra)
+            job.outdata = extra
     else:
         log.warning('job.metadata not set')
 
