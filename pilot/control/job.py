@@ -556,7 +556,7 @@ def get_job_label(args):
     # PQ status
     status = infosys.queuedata.status
 
-    if args.version_tag == 'RC' and args.job_label == 'ptest':
+    if args.version_tag == 'RC' and (args.job_label == 'ptest' or args.job_label == 'rc_test2'):
         job_label = 'rc_test2'
     elif args.version_tag == 'RCM' and args.job_label == 'ptest':
         job_label = 'rcm_test2'
@@ -662,6 +662,8 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # raise NoLocalSpace('testing exception from proceed_with_getjob')
 
     currenttime = time.time()
+
+    logger.debug('proceed_with_getjob called with getjob_requests=%d' % getjob_requests)
 
     # should the proxy be verified?
     if verify_proxy:
@@ -1069,6 +1071,7 @@ def retrieve(queues, traces, args):
 
         getjob_requests += 1
 
+        logger.debug('getjob_requests=%d' % getjob_requests)
         if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester, args.verify_proxy, traces):
             # do not set graceful stop if pilot has not finished sending the final job update
             # i.e. wait until SERVER_UPDATE is DONE_FINAL
@@ -1128,6 +1131,7 @@ def retrieve(queues, traces, args):
                 while not args.graceful_stop.is_set():
                     if has_job_completed(queues):
                         logger.info('ready for new job')
+                        getjob_requests = 0
                         break
                     time.sleep(0.5)
 

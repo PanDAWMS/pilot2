@@ -383,7 +383,7 @@ def copytool_in(queues, traces, args):
                 try:
                     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
                     user = __import__('pilot.user.%s.metadata' % pilot_user, globals(), locals(), [pilot_user], -1)
-                    file_dictionary = get_input_file_dictionary(job.indata)
+                    file_dictionary = get_input_file_dictionary(job.indata, job.workdir)
                     log.debug('file_dictionary=%s' % str(file_dictionary))
                     xml = user.create_input_file_metadata(file_dictionary, job.workdir)
                     log.info('created input file metadata:\n%s' % xml)
@@ -478,20 +478,23 @@ def copytool_out(queues, traces, args):
     logger.debug('copytool_out has finished')
 
 
-def get_input_file_dictionary(indata):
+def get_input_file_dictionary(indata, workdir):
     """
     Return an input file dictionary.
     Format: {'guid': 'pfn', ..}
     Normally use_turl would be set to True if direct access is used.
 
     :param indata: FileSpec object.
+    :param workdir: job.workdir (string).
     :return: file dictionary.
     """
 
     file_dictionary = {}
 
     for e in indata:
-        file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else e.surl
+        dst = e.workdir or workdir or '.'
+        file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else os.path.join(dst, e.lfn)
+        # file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else e.surl
 
     return file_dictionary
 
