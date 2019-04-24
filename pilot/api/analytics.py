@@ -114,7 +114,7 @@ class Analytics(Services):
 
         return get_table_from_file(filename, header=header, separator=separator, convert_to_float=convert_to_float)
 
-    def get_fitted_data(self, filename, x_value='Time', y_value='PSS', precision=2):
+    def get_fitted_data(self, filename, x_value='Time', y_value='VMEM', precision=2, tails=True):
         """
         Return a properly formatted job metrics string with analytics data.
         Currently the function returns a fit for PSS vs time, whose slope measures memory leaks.
@@ -123,6 +123,7 @@ class Analytics(Services):
         :param x_value: optional string, name selector for table column.
         :param y_value: optional string, name selector for table column.
         :param precision: optional precision for fitted slope parameter, default 2.
+        :param tails: should tails (first and last values) be used? (boolean).
         :return: slope (float string with desired precision).
         """
 
@@ -131,10 +132,20 @@ class Analytics(Services):
 
         if table:
             # extract data to be fitted
-            x = table.get('Time', [])
-            y = table.get('PSS', [])
+            x = table.get(x_value, [])
+            y = table.get(y_value, [])
 
-            if len(x) >= 2 and len(y) >= 2:
+            # remove tails if desired
+            # this is useful e.g. for memory monitor data where the first and last values
+            # represent allocation and de-allocation, ie not interesting
+            if not tails and len(x) > 2 and len(y) > 2:
+                logger.debug('removing tails from data to be fitted')
+                x = x[1:]
+                x = x[:-1]
+                y = y[1:]
+                y = y[:-1]
+
+            if len(x) > 2 and len(y) > 2:
                 try:
                     fit = self.fit(x, y)
                     _slope = self.slope()
