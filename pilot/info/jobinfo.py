@@ -50,6 +50,7 @@ class JobInfoProvider(object):
             :return: dict of settings for given PandaQueue as a key
         """
 
+        # use following keys from job definition
         # keys format: [(inputkey, outputkey), inputkey2]
         # outputkey is the name of external source attribute
         keys = [('platform', 'cmtconfig')]
@@ -69,3 +70,19 @@ class JobInfoProvider(object):
         logger.info('queuedata: following keys will be overwritten by Job values: %s' % data)
 
         return {pandaqueue: data}
+
+    def resolve_storage_data(self, ddmendpoints=[], **kwargs):
+        """
+            Resolve Job specific settings for storage data (including data passed via --overwriteStorageData)
+            :return: dict of settings for requested DDMEndpoints with ddmendpoin as a key
+        """
+
+        data = {}
+
+        ## use job.overwrite_storagedata as a master source
+        master_data = self.job.overwrite_storagedata or {}
+        data.update((k, v) for k, v in master_data.iteritems() if k in set(ddmendpoints or master_data) & set(master_data))
+
+        logger.info('storagedata: following data extracted from Job definition will be used: %s' % data)
+
+        return data

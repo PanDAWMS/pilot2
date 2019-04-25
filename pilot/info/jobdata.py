@@ -95,6 +95,8 @@ class JobData(BaseData):
     t0 = None                      # payload startup time
 
     overwrite_queuedata = {}       # custom settings extracted from job parameters (--overwriteQueueData) to be used as master values for `QueueData`
+    overwrite_storagedata = {}     # custom settings extracted from job parameters (--overwriteStorageData) to be used as master values for `StorageData`
+
     zipmap = ""                    # ZIP MAP values extracted from jobparameters
     imagename = ""                 # user defined container image name extracted from job parameters
 
@@ -443,8 +445,10 @@ class JobData(BaseData):
         ret = re.sub(r"--overwriteQueuedata={.*?}", "", value)
 
         ## extract overwrite options
-        options, ret = self.parse_args(ret, {'--overwriteQueueData': lambda x: ast.literal_eval(x) if x else {}}, remove=True)
+        options, ret = self.parse_args(ret, {'--overwriteQueueData': lambda x: ast.literal_eval(x) if x else {},
+                                             '--overwriteStorageData': lambda x: ast.literal_eval(x) if x else {}}, remove=True)
         self.overwrite_queuedata = options.get('--overwriteQueueData', {})
+        self.overwrite_storagedata = options.get('--overwriteStorageData', {})
 
         #logger.debug('ret(1) = %s' % ret)
         #ret = ret.replace("\'\"\'\"\'", '\\\"')
