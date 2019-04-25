@@ -197,7 +197,6 @@ class ExtInfoProvider(DataLoader):
     def resolve_storage_data(self, ddmendpoints=[]):
         """
             Resolve final DDM Storages details by given names (DDMEndpoint)
-            (primary data provided by PanDA merged with overall queue details from AGIS)
 
             :param ddmendpoints: list of ddmendpoint names
             :return: dict of settings for given DDMEndpoint as a key
