@@ -114,14 +114,9 @@ def get_disk_space(queuedata):
     # --- non Job related queue data
     # jobinfo provider is required to consider overwriteAGIS data coming from Job
     _maxinputsize = infosys.queuedata.maxwdir
-    logger.debug("resolved value from global infosys.queuedata instance: infosys.queuedata.maxwdir=%s" % _maxinputsize)
+    logger.debug("resolved value from global infosys.queuedata instance: infosys.queuedata.maxwdir=%s B" % _maxinputsize)
     _maxinputsize = queuedata.maxwdir
-    logger.debug("resolved value: queuedata.maxwdir=%s" % _maxinputsize)
-
-    # grace margin, as discussed in https://its.cern.ch/jira/browse/ATLASPANDA-482
-    #margin = 10.0  # percent, read later from somewhere
-    #_maxinputsize = int(_maxinputsize * (1 - margin / 100.0))
-    #logger.info("applied a %d% margin to maxwdir: %d" % (margin, _maxinputsize))
+    logger.debug("resolved value: queuedata.maxwdir=%s B" % _maxinputsize)
 
     try:
         du = disk_usage(os.path.abspath("."))
