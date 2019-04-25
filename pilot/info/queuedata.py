@@ -51,6 +51,11 @@ class QueueData(BaseData):
 
     copytools = None
     acopytools = None
+    acopytools_schemas = {}  ## allowed protocol schemas for requested copytool/activity
+                             ## if dict value (key=activity) is a list, then schemas considered the same for all allowed copytools
+                             ## in case of dict-based value, it specifies allowed schemas per copytool for given activity
+                             ## e.g. {'pr':['root', 'srm'], 'pw':['webdav'], 'default':['root']}
+                             ##      {'pr': {'gfalcopy':['webdav'], 'pw':{'lsm':['root']}}}
     astorages = None
     aprotocols = None
 
@@ -77,7 +82,7 @@ class QueueData(BaseData):
                    'corecount', 'maxrss', 'maxtime'],
              str: ['name', 'appdir', 'catchall', 'platform', 'container_options', 'container_type',
                    'resource', 'state', 'status', 'site'],
-             dict: ['copytools', 'acopytools', 'astorages', 'aprotocols'],
+             dict: ['copytools', 'acopytools', 'astorages', 'aprotocols', 'acopytools_schemas'],
              bool: ['direct_access_lan', 'direct_access_wan']
              }
 
@@ -116,6 +121,37 @@ class QueueData(BaseData):
         }
 
         self._load_data(data, kmap)
+
+    def resolve_allowed_schemas(self, activity, copytool=None):
+        """
+            Resolve list of allowed schemas for given activity and requested copytool based on `acopytools_schemas` settings
+            :param activity: ordered list of activity names to look up data
+            :return: list of protocol schemes
+        """
+
+        if not activity:
+            activity = 'default'
+        if isinstance(activity, basestring):
+            activity = [activity]
+
+        if 'default' not in activity:
+            activity = activity + ['default']
+
+        adat = {}
+        for aname in activity:
+            adat = self.acopytools_schemas.get(aname)
+            if adat:
+                break
+        if not adat:
+            return []
+
+        if not isinstance(adat, dict):
+            adat = {'default': adat}
+
+        if not copytool or copytool not in adat:
+            copytool = 'default'
+
+        return adat.get(copytool) or []
 
     def clean(self):
         """

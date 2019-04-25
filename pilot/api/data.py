@@ -520,6 +520,11 @@ class StageInClient(StagingClient):
         if getattr(copytool, 'require_replicas', False) and files and files[0].replicas is None:
             files = self.resolve_replicas(files)
             allowed_schemas = getattr(copytool, 'allowed_schemas', None)
+
+            if self.infosys and self.infosys.queuedata:
+                copytool_name = copytool.__name__.rsplit('.', 1)[-1]
+                allowed_schemas = self.infosys.queuedata.resolve_allowed_schemas(activity, copytool_name) or allowed_schemas
+
             for fspec in files:
                 resolve_replica = getattr(copytool, 'resolve_replica', None)
                 if not callable(resolve_replica):
@@ -789,7 +794,7 @@ class StageOutClient(StagingClient):
             if not fspec.filesize:
                 fspec.filesize = os.path.getsize(pfn)
 
-            if fspec.filesize == 0:
+            if not fspec.filesize:
                 msg = 'output file has size zero: %s' % fspec.lfn
                 self.logger.fatal(msg)
                 raise PilotException(msg, code=ErrorCodes.ZEROFILESIZE, state="ZERO_FILE_SIZE")
@@ -804,6 +809,11 @@ class StageOutClient(StagingClient):
 
             ddmconf = self.infosys.resolve_storage_data()
             allowed_schemas = getattr(copytool, 'allowed_schemas', None)
+
+            if self.infosys and self.infosys.queuedata:
+                copytool_name = copytool.__name__.rsplit('.', 1)[-1]
+                allowed_schemas = self.infosys.queuedata.resolve_allowed_schemas(activity, copytool_name) or allowed_schemas
+
             files = self.resolve_protocols(files, activity)
 
             for fspec in files:
@@ -842,7 +852,7 @@ class StageOutClient(StagingClient):
             # some copytools will need to know endpoint specifics (e.g. the space token) stored in ddmconf, add it
             kwargs['ddmconf'] = self.infosys.resolve_storage_data()
 
-        if files == []:
+        if not files:
             msg = 'nothing to stage-out - an internal Pilot error has occurred'
             self.logger.fatal(msg)
             raise PilotException(msg, code=errors.INTERNALPILOTPROBLEM)
