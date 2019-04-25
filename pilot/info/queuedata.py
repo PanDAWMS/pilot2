@@ -51,11 +51,14 @@ class QueueData(BaseData):
 
     copytools = None
     acopytools = None
-    acopytools_schemas = {}  ## allowed protocol schemas for requested copytool/activity
-                             ## if dict value (key=activity) is a list, then schemas considered the same for all allowed copytools
-                             ## in case of dict-based value, it specifies allowed schemas per copytool for given activity
-                             ## e.g. {'pr':['root', 'srm'], 'pw':['webdav'], 'default':['root']}
-                             ##      {'pr': {'gfalcopy':['webdav'], 'pw':{'lsm':['root']}}}
+
+    ## allowed protocol schemas for requested copytool/activity
+    ## if passed value (per activity) is a list, then given schemas will be used for all allowed copytools
+    ## in case of dict-based value, it specifies allowed schemas per copytool for given activity
+    ## e.g. {'pr':['root', 'srm'], 'pw':['webdav'], 'default':['root']}
+    ##      {'pr': {'gfalcopy':['webdav'], 'pw':{'lsm':['root']}}}
+    acopytools_schemas = {}
+
     astorages = None
     aprotocols = None
 

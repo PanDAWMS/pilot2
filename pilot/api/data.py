@@ -768,7 +768,7 @@ class StageOutClient(StagingClient):
         surl = protocol.get('endpoint', '') + os.path.join(protocol.get('path', ''), self.get_path(fspec.scope, fspec.lfn))
         return {'surl': surl}
 
-    def transfer_files(self, copytool, files, activity, **kwargs):
+    def transfer_files(self, copytool, files, activity, **kwargs):  # noqa: C901
         """
             Automatically stage out files using the selected copy tool module.
 
