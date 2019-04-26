@@ -230,6 +230,20 @@ def send_state(job, args, state, xml=None, metadata=None):
     return False
 
 
+def get_job_status(job, args):
+    """
+
+    :param job: job object.
+    :param args: job args object.
+    :return:
+    """
+
+    # port from Pilot 1
+    # jobStatus, jobAttemptNr, jobStatusCode = pUtil.getJobStatus(newJob.jobId, env['pshttpurl'], env['psport'], env['pilot_initdir'])
+
+    return ""
+
+
 def get_panda_server(url, port):
     """
     Get the URL for the PanDA server.
