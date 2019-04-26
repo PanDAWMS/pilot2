@@ -201,10 +201,9 @@ def send_state(job, args, state, xml=None, metadata=None):
             return False
 
     try:
-        if args.url != '' and args.port != 0:
-            pandaserver = args.url + ':' + str(args.port)
-        else:
-            pandaserver = config.Pilot.pandaserver
+        # get the URL for the PanDA server from pilot options or from config
+        pandaserver = get_panda_server(args.url, args.port)
+
         if config.Pilot.pandajob == 'real':
             res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver), data=data)
             log.info("res = %s" % str(res))
@@ -229,6 +228,23 @@ def send_state(job, args, state, xml=None, metadata=None):
         os.environ['SERVER_UPDATE'] = SERVER_UPDATE_TROUBLE
 
     return False
+
+
+def get_panda_server(url, port):
+    """
+    Get the URL for the PanDA server.
+
+    :param url: URL string, if set in pilot option (port not included).
+    :param port: port number, if set in pilot option (int).
+    :return: full URL (either from pilot options or from config file)
+    """
+
+    if url != '' and port != 0:
+        pandaserver = '%s:%s' % (url, port)
+    else:
+        pandaserver = config.Pilot.pandaserver
+
+    return pandaserver
 
 
 def handle_backchannel_command(res, job, args):
