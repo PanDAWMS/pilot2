@@ -197,8 +197,7 @@ def display_architecture_info():
 
     logger.info("architecture information:")
 
-    cmd = "lsb_release -a"
-    exit_code, stdout, stderr = execute(cmd)
+    exit_code, stdout, stderr = execute("lsb_release -a")
     if "Command not found" in stdout or "Command not found" in stderr:
         # Dump standard architecture info files if available
         dump("/etc/lsb-release")

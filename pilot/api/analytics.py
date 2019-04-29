@@ -186,7 +186,7 @@ class Analytics(Services):
                 y = []
             else:
                 # create new list with added values (1,2,3) + (4,5,6) = (5,7,9)
-                y = [x + y for x, y in zip(y1_value, y2_value)]
+                y = [x0 + y0 for x0, y0 in zip(y1_value, y2_value)]
 
         return x, y
 

@@ -232,6 +232,13 @@ def send_state(job, args, state, xml=None, metadata=None):
 
 def get_job_status(job, args):
     """
+    Return the current status of job <jobId> from the dispatcher.
+    typical dispatcher response: 'status=finished&StatusCode=0'
+    StatusCode  0: succeeded
+               10: time-out
+               20: general error
+               30: failed
+    In the case of time-out, the dispatcher will be asked one more time after 10 s.
 
     :param job: job object.
     :param args: job args object.
@@ -240,6 +247,20 @@ def get_job_status(job, args):
 
     # port from Pilot 1
     # jobStatus, jobAttemptNr, jobStatusCode = pUtil.getJobStatus(newJob.jobId, env['pshttpurl'], env['psport'], env['pilot_initdir'])
+
+    status = 'unknown'
+    statuscode = -1
+    nod = {}
+    nod['ids'] = job.jobid
+
+    # get the URL for the PanDA server from pilot options or from config
+    pandaserver = get_panda_server(args.url, args.port)
+
+    url = "%s/server/panda/getStatus" % pandaserver
+
+    # ask dispatcher about lost job status
+    trial = 1
+    max_trials = 2
 
     return ""
 
