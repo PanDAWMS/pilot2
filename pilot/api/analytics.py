@@ -145,7 +145,7 @@ class Analytics(Services):
                 #y = y[:-1]
 
             if len(x) > 2 and len(y) > 2:
-                logger.info('fitting %s vs %s' % (x_name, y_name))
+                logger.info('fitting %s vs %s' % (y_name, x_name))
                 try:
                     fit = self.fit(x, y)
                     _slope = self.slope()
