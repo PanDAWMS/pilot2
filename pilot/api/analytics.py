@@ -139,10 +139,10 @@ class Analytics(Services):
             # represent allocation and de-allocation, ie not interesting
             if not tails and len(x) > 2 and len(y) > 2:
                 logger.debug('removing tails from data to be fitted')
-                #x = x[1:]
-                #x = x[:-1]
-                #y = y[1:]
-                #y = y[:-1]
+                x = x[1:]
+                x = x[:-1]
+                y = y[1:]
+                y = y[:-1]
 
             if len(x) > 2 and len(y) > 2:
                 logger.info('fitting %s vs %s' % (y_name, x_name))
