@@ -825,3 +825,20 @@ def find_latest_modified_file(list_of_files):
         mtime = None
 
     return latest_file, mtime
+
+
+def dump(path, cmd="cat"):
+    """
+    Dump the content of the file in the given path to the log.
+
+    :param path: file path (string).
+    :param cmd: optional command (string).
+    :return: cat (string).
+    """
+
+    if os.path.exists(path) or cmd == "echo":
+        _cmd = "%s %s" % (cmd, path)
+        exit_code, stdout, stderr = execute(_cmd)
+        logger.info("%s:\n%s" % (_cmd, stdout + stderr))
+    else:
+        logger.info("path %s does not exist" % path)

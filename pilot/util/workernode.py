@@ -10,7 +10,9 @@
 import os
 from string import find
 
+from pilot.util.container import execute
 from pilot.util.disk import disk_usage
+from pilot.util.filehandling import dump
 from pilot.info import infosys
 
 import logging
@@ -182,3 +184,28 @@ def is_virtual_machine():
                 break
 
     return status
+
+
+def display_architecture_info():
+    """
+    Display OS/architecture information.
+    The function attempts to use the lsb_release -a command if available. If that is not available,
+    it will dump the contents of
+
+    :return:
+    """
+
+    logger.info("architecture information:")
+
+    cmd = "lsb_release -a"
+    exit_code, stdout, stderr = execute(cmd)
+    if "Command not found" in stdout or "Command not found" in stderr:
+        # Dump standard architecture info files if available
+        dump("/etc/lsb-release")
+        dump("/etc/SuSE-release")
+        dump("/etc/redhat-release")
+        dump("/etc/debian_version")
+        dump("/etc/issue")
+        dump("$MACHTYPE", cmd="echo")
+    else:
+        logger.info("\n%s" % stdout)
