@@ -10,7 +10,9 @@
 import os
 from string import find
 
+from pilot.util.container import execute
 from pilot.util.disk import disk_usage
+from pilot.util.filehandling import dump
 from pilot.info import infosys
 
 import logging
@@ -114,14 +116,9 @@ def get_disk_space(queuedata):
     # --- non Job related queue data
     # jobinfo provider is required to consider overwriteAGIS data coming from Job
     _maxinputsize = infosys.queuedata.maxwdir
-    logger.debug("resolved value from global infosys.queuedata instance: infosys.queuedata.maxwdir=%s" % _maxinputsize)
+    logger.debug("resolved value from global infosys.queuedata instance: infosys.queuedata.maxwdir=%s B" % _maxinputsize)
     _maxinputsize = queuedata.maxwdir
-    logger.debug("resolved value: queuedata.maxwdir=%s" % _maxinputsize)
-
-    # grace margin, as discussed in https://its.cern.ch/jira/browse/ATLASPANDA-482
-    #margin = 10.0  # percent, read later from somewhere
-    #_maxinputsize = int(_maxinputsize * (1 - margin / 100.0))
-    #logger.info("applied a %d% margin to maxwdir: %d" % (margin, _maxinputsize))
+    logger.debug("resolved value: queuedata.maxwdir=%s B" % _maxinputsize)
 
     try:
         du = disk_usage(os.path.abspath("."))
@@ -187,3 +184,27 @@ def is_virtual_machine():
                 break
 
     return status
+
+
+def display_architecture_info():
+    """
+    Display OS/architecture information.
+    The function attempts to use the lsb_release -a command if available. If that is not available,
+    it will dump the contents of
+
+    :return:
+    """
+
+    logger.info("architecture information:")
+
+    exit_code, stdout, stderr = execute("lsb_release -a", mute=True)
+    if "Command not found" in stdout or "Command not found" in stderr:
+        # Dump standard architecture info files if available
+        dump("/etc/lsb-release")
+        dump("/etc/SuSE-release")
+        dump("/etc/redhat-release")
+        dump("/etc/debian_version")
+        dump("/etc/issue")
+        dump("$MACHTYPE", cmd="echo")
+    else:
+        logger.info("\n%s" % stdout)

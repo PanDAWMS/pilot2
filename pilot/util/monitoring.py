@@ -502,13 +502,17 @@ def get_max_allowed_work_dir_size(queuedata):
 
     try:
         maxwdirsize = convert_mb_to_b(get_maximum_input_sizes())  # from MB to B, e.g. 16336 MB -> 17,129,537,536 B
-    except Exception:
+    except Exception as e:
         max_input_size = get_max_input_size()
         maxwdirsize = max_input_size + config.Pilot.local_size_limit_stdout * 1024
         logger.info("work directory size check will use %d B as a max limit (maxinputsize [%d B] + local size limit for"
                     " stdout [%d B])" % (maxwdirsize, max_input_size, config.Pilot.local_size_limit_stdout * 1024))
+        logger.warning('conversion caught exception: %s' % e)
     else:
-        logger.info("work directory size check will use %d B as a max limit" % maxwdirsize)
+        # grace margin, as discussed in https://its.cern.ch/jira/browse/ATLASPANDA-482
+        margin = 10.0  # percent, read later from somewhere
+        maxwdirsize = int(maxwdirsize * (1 + margin / 100.0))
+        logger.info("work directory size check will use %d B as a max limit (10%% grace limit added)" % maxwdirsize)
 
     return maxwdirsize
 
