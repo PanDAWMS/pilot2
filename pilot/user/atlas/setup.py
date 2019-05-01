@@ -64,23 +64,6 @@ def should_pilot_prepare_asetup(noexecstrcnv, jobpars):
     return prepareasetup
 
 
-def is_user_analysis_job(trf):  ## DEPRECATED: consider job.is_analysis()
-    """
-    Determine whether the job is an analysis job or not.
-    The trf name begins with a protocol for user analysis jobs.
-
-    :param trf:
-    :return:
-    """
-
-    if (trf.startswith('https://') or trf.startswith('http://')):
-        analysisjob = True
-    else:
-        analysisjob = False
-
-    return analysisjob
-
-
 def get_alrb_export():
     """
     Return the export command for the ALRB path if it exists.

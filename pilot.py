@@ -30,7 +30,7 @@ from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
 from pilot.util.mpi import get_ranks_info
 from pilot.util.timing import add_to_pilot_timing
-from pilot.util.workernode import is_virtual_machine
+from pilot.util.workernode import is_virtual_machine, display_architecture_info
 
 
 def pilot_version_banner():
@@ -50,6 +50,9 @@ def pilot_version_banner():
 
     if is_virtual_machine():
         logger.info('pilot is running in a VM')
+
+    display_architecture_info()
+    logger.info('*' * len(version))
 
 
 def main():

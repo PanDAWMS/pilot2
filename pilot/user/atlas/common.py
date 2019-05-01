@@ -939,7 +939,7 @@ def cleanup_payload(workdir, outputfiles=[]):
     for ampdir in glob('%s/athenaMP-workers-*' % (workdir)):
         for (p, d, f) in os.walk(ampdir):
             for filename in f:
-                if 'core' in filename or 'tmp.' in filename:
+                if 'core' in filename or 'pool.root' in filename or 'tmp.' in filename:
                     path = os.path.join(p, filename)
                     path = os.path.abspath(path)
                     remove(path)
