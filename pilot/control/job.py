@@ -390,7 +390,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
 
     # get the CU consumption time
     constime = get_cpu_consumption_time(job.cpuconsumptiontime)
-    if constime:
+    if constime and constime != -1:
         data['cpuConsumptionTime'] = constime
         data['cpuConsumptionUnit'] = job.cpuconsumptionunit + "+" + get_cpu_model()
         data['cpuConversionFactor'] = job.cpuconversionfactor
