@@ -68,6 +68,7 @@ class QueueData(BaseData):
 
     direct_access_lan = False
     direct_access_wan = False
+    use_pcache = False
 
     maxwdir = 0    # in MB
     maxrss = 0
@@ -86,7 +87,7 @@ class QueueData(BaseData):
              str: ['name', 'appdir', 'catchall', 'platform', 'container_options', 'container_type',
                    'resource', 'state', 'status', 'site'],
              dict: ['copytools', 'acopytools', 'astorages', 'aprotocols', 'acopytools_schemas'],
-             bool: ['direct_access_lan', 'direct_access_wan']
+             bool: ['direct_access_lan', 'direct_access_wan', 'use_pcache']
              }
 
     def __init__(self, data):
