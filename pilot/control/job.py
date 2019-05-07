@@ -400,29 +400,42 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
 
     if state == 'finished' or state == 'failed':
         add_timing_and_extracts(data, job, state, args)
-
-        # error codes
-        pilot_error_code = job.piloterrorcode
-        pilot_error_codes = job.piloterrorcodes
-        if pilot_error_codes != []:
-            log.warning('pilotErrorCodes = %s (will report primary/first error code)' % str(pilot_error_codes))
-            data['pilotErrorCode'] = pilot_error_codes[0]
-        else:
-            data['pilotErrorCode'] = pilot_error_code
-
-        # add error info
-        pilot_error_diag = job.piloterrordiag
-        pilot_error_diags = job.piloterrordiags
-        if pilot_error_diags != []:
-            log.warning('pilotErrorDiags = %s (will report primary/first error diag)' % str(pilot_error_diags))
-            data['pilotErrorDiag'] = pilot_error_diags[0]
-        else:
-            data['pilotErrorDiag'] = pilot_error_diag
-        data['transExitCode'] = job.transexitcode
-        data['exeErrorCode'] = job.exeerrorcode
-        data['exeErrorDiag'] = job.exeerrordiag
+        add_error_codes(data, job)
 
     return data
+
+
+def add_error_codes(data, job):
+    """
+    Add error codes to data structure.
+
+    :param data: data dictionary.
+    :param job: job object.
+    :return:
+    """
+
+    log = get_logger(job.jobid, logger)
+
+    # error codes
+    pilot_error_code = job.piloterrorcode
+    pilot_error_codes = job.piloterrorcodes
+    if pilot_error_codes != []:
+        log.warning('pilotErrorCodes = %s (will report primary/first error code)' % str(pilot_error_codes))
+        data['pilotErrorCode'] = pilot_error_codes[0]
+    else:
+        data['pilotErrorCode'] = pilot_error_code
+
+    # add error info
+    pilot_error_diag = job.piloterrordiag
+    pilot_error_diags = job.piloterrordiags
+    if pilot_error_diags != []:
+        log.warning('pilotErrorDiags = %s (will report primary/first error diag)' % str(pilot_error_diags))
+        data['pilotErrorDiag'] = pilot_error_diags[0]
+    else:
+        data['pilotErrorDiag'] = pilot_error_diag
+    data['transExitCode'] = job.transexitcode
+    data['exeErrorCode'] = job.exeerrorcode
+    data['exeErrorDiag'] = job.exeerrordiag
 
 
 def get_cpu_consumption_time(cpuconsumptiontime):
