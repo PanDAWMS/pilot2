@@ -42,7 +42,8 @@ from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.queuehandling import scan_for_jobs, put_in_queue
 from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since, time_stamp
-from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, is_virtual_machine
+from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, is_virtual_machine, \
+    get_cpu_model
 
 import logging
 logger = logging.getLogger(__name__)
@@ -337,27 +338,6 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
             'siteName': args.site,
             'node': get_node_name()}
 
-    # error codes
-    pilot_error_code = job.piloterrorcode
-    pilot_error_codes = job.piloterrorcodes
-    if pilot_error_codes != []:
-        log.warning('pilotErrorCodes = %s (will report primary/first error code)' % str(pilot_error_codes))
-        data['pilotErrorCode'] = pilot_error_codes[0]
-    else:
-        data['pilotErrorCode'] = pilot_error_code
-
-    # add error info
-    pilot_error_diag = job.piloterrordiag
-    pilot_error_diags = job.piloterrordiags
-    if pilot_error_diags != []:
-        log.warning('pilotErrorDiags = %s (will report primary/first error diag)' % str(pilot_error_diags))
-        data['pilotErrorDiag'] = pilot_error_diags[0]
-    else:
-        data['pilotErrorDiag'] = pilot_error_diag
-    data['transExitCode'] = job.transexitcode
-    data['exeErrorCode'] = job.exeerrorcode
-    data['exeErrorDiag'] = job.exeerrordiag
-
     data['attemptNr'] = job.attemptnr
 
     schedulerid = get_job_scheduler_id()
@@ -397,13 +377,87 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
         if stdout_tail:
             data['stdout'] = stdout_tail
 
+    # add the core count
+    if job.corecount and job.corecount != 'null' and job.corecount != 'NULL':
+        data['coreCount'] = job.corecount
+
+    # get the number of events, should report in heartbeat in case of preempted.
+    if job.nevents != 0:
+        data['nEvents'] = job.nevents
+        log.info("total number of processed events: %d (read)" % job.nevents)
+    else:
+        log.info("payload/TRF did not report the number of read events")
+
+    # get the CU consumption time
+    constime = get_cpu_consumption_time(job.cpuconsumptiontime)
+    if constime and constime != -1:
+        data['cpuConsumptionTime'] = constime
+        data['cpuConsumptionUnit'] = job.cpuconsumptionunit + "+" + get_cpu_model()
+        data['cpuConversionFactor'] = job.cpuconversionfactor
+
     # add memory information if available
     add_memory_info(data, job.workdir)
 
     if state == 'finished' or state == 'failed':
         add_timing_and_extracts(data, job, state, args)
+        add_error_codes(data, job)
 
     return data
+
+
+def add_error_codes(data, job):
+    """
+    Add error codes to data structure.
+
+    :param data: data dictionary.
+    :param job: job object.
+    :return:
+    """
+
+    log = get_logger(job.jobid, logger)
+
+    # error codes
+    pilot_error_code = job.piloterrorcode
+    pilot_error_codes = job.piloterrorcodes
+    if pilot_error_codes != []:
+        log.warning('pilotErrorCodes = %s (will report primary/first error code)' % str(pilot_error_codes))
+        data['pilotErrorCode'] = pilot_error_codes[0]
+    else:
+        data['pilotErrorCode'] = pilot_error_code
+
+    # add error info
+    pilot_error_diag = job.piloterrordiag
+    pilot_error_diags = job.piloterrordiags
+    if pilot_error_diags != []:
+        log.warning('pilotErrorDiags = %s (will report primary/first error diag)' % str(pilot_error_diags))
+        data['pilotErrorDiag'] = pilot_error_diags[0]
+    else:
+        data['pilotErrorDiag'] = pilot_error_diag
+    data['transExitCode'] = job.transexitcode
+    data['exeErrorCode'] = job.exeerrorcode
+    data['exeErrorDiag'] = job.exeerrordiag
+
+
+def get_cpu_consumption_time(cpuconsumptiontime):
+    """
+    Get the CPU consumption time.
+    The function makes sure that the value exists and is within allowed limits (< 10^9).
+
+    :param cpuconsumptiontime: CPU consumption time (int/None).
+    :return: properly set CPU consumption time (int/None).
+    """
+
+    constime = None
+
+    try:
+        constime = int(cpuconsumptiontime)
+    except Exception:
+        constime = None
+    if constime and constime > 10 ** 9:
+        logger.warning("unrealistic cpuconsumptiontime: %d (reset to -1)" % constime)
+        constime = -1
+
+    return constime
 
 
 def add_timing_and_extracts(data, job, state, args):

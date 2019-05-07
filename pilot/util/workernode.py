@@ -8,6 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import os
+import re
 from string import find
 
 from pilot.util.container import execute
@@ -208,3 +209,52 @@ def display_architecture_info():
         dump("$MACHTYPE", cmd="echo")
     else:
         logger.info("\n%s" % stdout)
+
+
+def get_cpu_model():
+    """
+    Get cpu model and cache size from /proc/cpuinfo.
+
+    Example.
+      model name      : Intel(R) Xeon(TM) CPU 2.40GHz
+      cache size      : 512 KB
+
+    gives the return string "Intel(R) Xeon(TM) CPU 2.40GHz 512 KB".
+
+    :return: cpu model (string).
+    """
+
+    cpumodel = ""
+    cpucache = ""
+    modelstring = ""
+
+    re_model = re.compile('^model name\s+:\s+(\w.+)')
+    re_cache = re.compile('^cache size\s+:\s+(\d+ KB)')
+
+    with open("/proc/cpuinfo", "r") as f:
+
+        # loop over all lines in cpuinfo
+        for line in f.readlines():
+            # try to grab cpumodel from current line
+            model = re_model.search(line)
+            if model:
+                # found cpu model
+                cpumodel = model.group(1)
+
+            # try to grab cache size from current line
+            cache = re_cache.search(line)
+            if cache:
+                # found cache size
+                cpucache = cache.group(1)
+
+            # stop after 1st pair found - can be multiple cpus
+            if cpumodel and cpucache:
+                # create return string
+                modelstring = cpumodel + " " + cpucache
+                break
+
+    # default return string if no info was found
+    if not modelstring:
+        modelstring = "UNKNOWN"
+
+    return modelstring
