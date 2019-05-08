@@ -249,22 +249,69 @@ def get_job_status_from_server(job, args):
     # port from Pilot 1
     # jobStatus, jobAttemptNr, jobStatusCode = pUtil.getJobStatus(newJob.jobId, env['pshttpurl'], env['psport'], env['pilot_initdir'])
 
-    pass
-    #status = 'unknown'
-    #statuscode = -1
-    #nod = {}
-    #nod['ids'] = job.jobid
+    status = 'unknown'
+    attempt_nr = 0
+    status_code = 0
+    if config.Pilot.pandajob == 'fake':
+        return status, attempt_nr, status_code
+
+    data = {}
+    data['ids'] = job.jobid
 
     # get the URL for the PanDA server from pilot options or from config
-    #pandaserver = get_panda_server(args.url, args.port)
-
-    #url = "%s/server/panda/getStatus" % pandaserver
+    pandaserver = get_panda_server(args.url, args.port)
 
     # ask dispatcher about lost job status
-    #trial = 1
-    #max_trials = 2
+    trial = 1
+    max_trials = 2
 
-    #return ""
+    while trial <= max_trials:
+        try:
+            # open connection
+            ret = https.request('{pandaserver}/server/panda/getStatus'.format(pandaserver=pandaserver), data=data)
+            response = ret[1]
+            logger.info("response: %s" % str(response))
+            if response:
+                try:
+                    # decode the response
+                    # eg. var = ['status=notfound', 'attemptNr=0', 'StatusCode=0']
+                    # = response
+
+                    status = response['status']  # e.g. 'holding'
+                    attempt_nr = int(response['attemptNr'])  # e.g. '0'
+                    status_code = int(response['StatusCode'])  # e.g. '0'
+                except Exception as e:
+                    logger.warning(
+                        "exception: dispatcher did not return allowed values: %s, %s" % (str(ret), e))
+                    status = "unknown"
+                    attempt_nr = -1
+                    status_code = 20
+            else:
+                logger.warning("dispatcher did not return allowed values: %s" % str(ret))
+                status = "unknown"
+                attempt_nr = -1
+                status_code = 20
+        except Exception as e:
+            logger.warning("could not interpret job status from dispatcher: %s" % e)
+            status = 'unknown'
+            attempt_nr = -1
+            status_code = -1
+            break
+        else:
+            if status_code == 0:  # success
+                break
+            elif status_code == 10:  # time-out
+                trial += 1
+                time.sleep(10)
+                continue
+            elif status_code == 20:  # other error
+                if ret[0] == 13056 or ret[0] == '13056':
+                    logger.warning("wrong certificate used with curl operation? (encountered error 13056)")
+                break
+            else:  # general error
+                break
+
+    return status, attempt_nr, status_code
 
 
 def get_panda_server(url, port):
