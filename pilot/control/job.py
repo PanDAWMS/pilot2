@@ -24,7 +24,7 @@ except Exception:
 from json import dumps
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import ExcThread, PilotException
+from pilot.common.exception import ExcThread, PilotException, JobAlreadyRunning
 from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
@@ -231,7 +231,7 @@ def send_state(job, args, state, xml=None, metadata=None):
     return False
 
 
-def get_job_status_from_server(job, args):
+def get_job_status_from_server(job_id, url, port):
     """
     Return the current status of job <jobId> from the dispatcher.
     typical dispatcher response: 'status=finished&StatusCode=0'
@@ -241,13 +241,11 @@ def get_job_status_from_server(job, args):
                30: failed
     In the case of time-out, the dispatcher will be asked one more time after 10 s.
 
-    :param job: job object.
-    :param args: job args object.
-    :return:
+    :param job_id: PanDA job id (int).
+    :param url: PanDA server URL (string).
+    :param port: PanDA server port (int).
+    :return: status (string; e.g. holding), attempt_nr (int), status_code (int)
     """
-
-    # port from Pilot 1
-    # jobStatus, jobAttemptNr, jobStatusCode = pUtil.getJobStatus(newJob.jobId, env['pshttpurl'], env['psport'], env['pilot_initdir'])
 
     status = 'unknown'
     attempt_nr = 0
@@ -256,10 +254,10 @@ def get_job_status_from_server(job, args):
         return status, attempt_nr, status_code
 
     data = {}
-    data['ids'] = job.jobid
+    data['ids'] = job_id
 
     # get the URL for the PanDA server from pilot options or from config
-    pandaserver = get_panda_server(args.url, args.port)
+    pandaserver = get_panda_server(url, port)
 
     # ask dispatcher about lost job status
     trial = 1
@@ -286,6 +284,8 @@ def get_job_status_from_server(job, args):
                     status = "unknown"
                     attempt_nr = -1
                     status_code = 20
+                else:
+                    logger.debug('server job status=%s, attempt_nr=%d, status_code=%d' % (status, attempt_nr, status_code))
             else:
                 logger.warning("dispatcher did not return allowed values: %s" % str(ret))
                 status = "unknown"
@@ -1270,6 +1270,13 @@ def retrieve(queues, traces, args):
                     job = create_job(res, args.queue)
                 except PilotException as error:
                     raise error
+                else:
+                    # verify the job status on the server
+                    job_status, job_attempt_nr, job_status_code = get_job_status_from_server(job.jobid, args.url, args.port)
+                    if job_status == "running" or True:
+                        pilot_error_diag = "job %s is already running elsewhere - aborting" % (job.jobid)
+                        logger.warning(pilot_error_diag)
+                        raise JobAlreadyRunning(pilot_error_diag)
 
                 # write time stamps to pilot timing file
                 # note: PILOT_POST_GETJOB corresponds to START_TIME in Pilot 1
