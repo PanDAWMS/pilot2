@@ -1272,12 +1272,14 @@ def retrieve(queues, traces, args):
                     raise error
                 else:
                     # verify the job status on the server
-                    job_status, job_attempt_nr, job_status_code = get_job_status_from_server(job.jobid, args.url, args.port)
-                    if job_status == "running":
-                        pilot_error_diag = "job %s is already running elsewhere - aborting" % (job.jobid)
-                        logger.warning(pilot_error_diag)
-                        raise JobAlreadyRunning(pilot_error_diag)
-
+                    try:
+                        job_status, job_attempt_nr, job_status_code = get_job_status_from_server(job.jobid, args.url, args.port)
+                        if job_status == "running":
+                            pilot_error_diag = "job %s is already running elsewhere - aborting" % (job.jobid)
+                            logger.warning(pilot_error_diag)
+                            raise JobAlreadyRunning(pilot_error_diag)
+                    except Exception as e:
+                        logger.warning("%s" % e)
                 # write time stamps to pilot timing file
                 # note: PILOT_POST_GETJOB corresponds to START_TIME in Pilot 1
                 add_to_pilot_timing(job.jobid, PILOT_PRE_GETJOB, time_pre_getjob, args)
