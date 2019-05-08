@@ -482,7 +482,7 @@ def add_timing_and_extracts(data, job, state, args):
     extracts = user.get_log_extracts(job, state)
     if extracts != "":
         logger.warning('pilot log extracts:\n%s' % extracts)
-        data['pilotLog'] = extracts
+        data['pilotLog'] = extracts[:1024]
 
 
 def add_memory_info(data, workdir):
