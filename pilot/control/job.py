@@ -1273,7 +1273,7 @@ def retrieve(queues, traces, args):
                 else:
                     # verify the job status on the server
                     job_status, job_attempt_nr, job_status_code = get_job_status_from_server(job.jobid, args.url, args.port)
-                    if job_status == "running" or True:
+                    if job_status == "running":
                         pilot_error_diag = "job %s is already running elsewhere - aborting" % (job.jobid)
                         logger.warning(pilot_error_diag)
                         raise JobAlreadyRunning(pilot_error_diag)
