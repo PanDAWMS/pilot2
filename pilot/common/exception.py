@@ -370,6 +370,16 @@ class ReplicasNotFound(PilotException):
         self._message = errors.get_error_message(self._errorCode)
 
 
+class JobAlreadyRunning(PilotException):
+    """
+    Job is already running elsewhere.
+    """
+    def __init__(self, *args, **kwargs):
+        super(JobAlreadyRunning, self).__init__(args, kwargs)
+        self._errorCode = errors.JOBALREADYRUNNING
+        self._message = errors.get_error_message(self._errorCode)
+
+
 class ExcThread(threading.Thread):
     """
     Support class that allows for catching exceptions in threads.
