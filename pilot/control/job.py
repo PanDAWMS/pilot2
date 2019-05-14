@@ -24,7 +24,7 @@ except Exception:
 from json import dumps
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import ExcThread, PilotException
+from pilot.common.exception import ExcThread, PilotException  #, JobAlreadyRunning
 from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
@@ -231,7 +231,7 @@ def send_state(job, args, state, xml=None, metadata=None):
     return False
 
 
-def get_job_status_from_server(job, args):
+def get_job_status_from_server(job_id, url, port):
     """
     Return the current status of job <jobId> from the dispatcher.
     typical dispatcher response: 'status=finished&StatusCode=0'
@@ -241,30 +241,77 @@ def get_job_status_from_server(job, args):
                30: failed
     In the case of time-out, the dispatcher will be asked one more time after 10 s.
 
-    :param job: job object.
-    :param args: job args object.
-    :return:
+    :param job_id: PanDA job id (int).
+    :param url: PanDA server URL (string).
+    :param port: PanDA server port (int).
+    :return: status (string; e.g. holding), attempt_nr (int), status_code (int)
     """
 
-    # port from Pilot 1
-    # jobStatus, jobAttemptNr, jobStatusCode = pUtil.getJobStatus(newJob.jobId, env['pshttpurl'], env['psport'], env['pilot_initdir'])
+    status = 'unknown'
+    attempt_nr = 0
+    status_code = 0
+    if config.Pilot.pandajob == 'fake':
+        return status, attempt_nr, status_code
 
-    pass
-    #status = 'unknown'
-    #statuscode = -1
-    #nod = {}
-    #nod['ids'] = job.jobid
+    data = {}
+    data['ids'] = job_id
 
     # get the URL for the PanDA server from pilot options or from config
-    #pandaserver = get_panda_server(args.url, args.port)
-
-    #url = "%s/server/panda/getStatus" % pandaserver
+    pandaserver = get_panda_server(url, port)
 
     # ask dispatcher about lost job status
-    #trial = 1
-    #max_trials = 2
+    trial = 1
+    max_trials = 2
 
-    #return ""
+    while trial <= max_trials:
+        try:
+            # open connection
+            ret = https.request('{pandaserver}/server/panda/getStatus'.format(pandaserver=pandaserver), data=data)
+            response = ret[1]
+            logger.info("response: %s" % str(response))
+            if response:
+                try:
+                    # decode the response
+                    # eg. var = ['status=notfound', 'attemptNr=0', 'StatusCode=0']
+                    # = response
+
+                    status = response['status']  # e.g. 'holding'
+                    attempt_nr = int(response['attemptNr'])  # e.g. '0'
+                    status_code = int(response['StatusCode'])  # e.g. '0'
+                except Exception as e:
+                    logger.warning(
+                        "exception: dispatcher did not return allowed values: %s, %s" % (str(ret), e))
+                    status = "unknown"
+                    attempt_nr = -1
+                    status_code = 20
+                else:
+                    logger.debug('server job status=%s, attempt_nr=%d, status_code=%d' % (status, attempt_nr, status_code))
+            else:
+                logger.warning("dispatcher did not return allowed values: %s" % str(ret))
+                status = "unknown"
+                attempt_nr = -1
+                status_code = 20
+        except Exception as e:
+            logger.warning("could not interpret job status from dispatcher: %s" % e)
+            status = 'unknown'
+            attempt_nr = -1
+            status_code = -1
+            break
+        else:
+            if status_code == 0:  # success
+                break
+            elif status_code == 10:  # time-out
+                trial += 1
+                time.sleep(10)
+                continue
+            elif status_code == 20:  # other error
+                if ret[0] == 13056 or ret[0] == '13056':
+                    logger.warning("wrong certificate used with curl operation? (encountered error 13056)")
+                break
+            else:  # general error
+                break
+
+    return status, attempt_nr, status_code
 
 
 def get_panda_server(url, port):
@@ -482,7 +529,7 @@ def add_timing_and_extracts(data, job, state, args):
     extracts = user.get_log_extracts(job, state)
     if extracts != "":
         logger.warning('pilot log extracts:\n%s' % extracts)
-        data['pilotLog'] = extracts
+        data['pilotLog'] = extracts[:1024]
 
 
 def add_memory_info(data, workdir):
@@ -1223,7 +1270,17 @@ def retrieve(queues, traces, args):
                     job = create_job(res, args.queue)
                 except PilotException as error:
                     raise error
-
+                else:
+                    pass
+                    # verify the job status on the server
+                    #try:
+                    #    job_status, job_attempt_nr, job_status_code = get_job_status_from_server(job.jobid, args.url, args.port)
+                    #    if job_status == "running":
+                    #        pilot_error_diag = "job %s is already running elsewhere - aborting" % (job.jobid)
+                    #        logger.warning(pilot_error_diag)
+                    #        raise JobAlreadyRunning(pilot_error_diag)
+                    #except Exception as e:
+                    #    logger.warning("%s" % e)
                 # write time stamps to pilot timing file
                 # note: PILOT_POST_GETJOB corresponds to START_TIME in Pilot 1
                 add_to_pilot_timing(job.jobid, PILOT_PRE_GETJOB, time_pre_getjob, args)
@@ -1835,6 +1892,6 @@ def make_job_report(job):
     log.info('pgrp: %s' % str(job.pgrp))
     log.info('corecount: %d' % job.corecount)
     log.info('event service: %s' % str(job.is_eventservice))
-    log.info('sizes: %s' % str(job.sizes))
+    #log.info('sizes: %s' % str(job.sizes))
     log.info('--------------------------------------------------')
     log.info('')

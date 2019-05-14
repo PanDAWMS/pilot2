@@ -134,7 +134,8 @@ def shell_exit_code(exit_code):
         errors.GENERALERROR: [65, "General pilot error, consult batch log"],  # added to traces object
         errors.MKDIR: [66, "Could not create directory"],  # added to traces object
         errors.NOSUCHFILE: [67, "No such file or directory"],  # added to traces object
-        errors.NOVOMSPROXY: [68, "Voms proxy not valid"],  # added to traces object, note: missing NOPROXY?
+        errors.NOVOMSPROXY: [68, "Voms proxy not valid"],  # added to traces object
+        errors.NOPROXY: [68, "Proxy not valid"],  # added to traces object
         errors.NOLOCALSPACE: [69, "No space left on local disk"],  # added to traces object
         errors.UNKNOWNEXCEPTION: [70, "Exception caught by pilot"],  # added to traces object
         errors.QUEUEDATA: [71, "Pilot could not download queuedata"],  # tested
