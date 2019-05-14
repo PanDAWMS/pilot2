@@ -24,7 +24,7 @@ except Exception:
 from json import dumps
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import ExcThread, PilotException #, JobAlreadyRunning
+from pilot.common.exception import ExcThread, PilotException  #, JobAlreadyRunning
 from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
