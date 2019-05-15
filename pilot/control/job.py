@@ -1755,6 +1755,9 @@ def job_monitor(queues, traces, args):
                     if int(time.time()) - update_time >= get_heartbeat_period(jobs[i].debug):
                         send_state(jobs[i], args, 'running')
                         update_time = int(time.time())
+                # sleep for a while if stage-in has not completed
+                time.sleep(1)
+                continue
         elif queues.finished_data_in.empty():
             # sleep for a while if stage-in has not completed
             time.sleep(1)
