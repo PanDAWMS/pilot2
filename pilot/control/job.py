@@ -1743,6 +1743,18 @@ def job_monitor(queues, traces, args):
             logger.warning('job monitor detected an abort_job request (signal=%s)' % args.signal)
             logger.warning('in case pilot is running more than one job, all jobs will be aborted')
             abort_job = True
+        elif not queues.data_in.empty():
+            # make sure to send heartbeat regularly if stage-in takes a long time
+            jobs = queues.data_in.queue
+            if jobs:
+                # update the peeking time
+                peeking_time = int(time.time())
+                for i in range(len(jobs)):
+                    # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
+                    # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
+                    if int(time.time()) - update_time >= get_heartbeat_period(jobs[i].debug):
+                        send_state(jobs[i], args, 'running')
+                        update_time = int(time.time())
         elif queues.finished_data_in.empty():
             # sleep for a while if stage-in has not completed
             time.sleep(1)
