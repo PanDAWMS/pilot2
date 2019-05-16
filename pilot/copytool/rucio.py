@@ -14,7 +14,7 @@ from __future__ import absolute_import
 import os
 import json
 import logging
-from time import time
+from time import time, sleep
 
 from .common import resolve_common_transfer_errors, verify_catalog_checksum, get_timeout
 from pilot.common.exception import PilotException, ErrorCodes
@@ -89,7 +89,7 @@ def copy_in(files, **kwargs):
         logger.info('stderr = %s' % stderr)
 
         logger.info('taking a long nap')
-        time.sleep(35*60)
+        sleep(35*60)
         logger.info('took a long nap')
 
         if rcode:  ## error occurred
