@@ -88,6 +88,10 @@ def copy_in(files, **kwargs):
         logger.info('stdout = %s' % stdout)
         logger.info('stderr = %s' % stderr)
 
+        logger.info('taking a long nap')
+        time.sleep(35*60)
+        logger.info('took a long nap')
+
         if rcode:  ## error occurred
             error = resolve_common_transfer_errors(stderr, is_stagein=True)
             fspec.status = 'failed'
