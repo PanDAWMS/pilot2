@@ -211,6 +211,14 @@ def alrb_wrapper(cmd, workdir, job):
             "resolved singularity_options from queuedata.container_options: %s" % singularity_options)
 
         _cmd = asetup
+
+        # do not include the X509_USER_PROXY in the command the container will execute
+        x509 = os.environ.get('X509_USER_PROXY')
+        if x509 != "":
+            cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, "")
+            # add it instead to the container setup command
+            _cmd = "export X509_USER_PROXY=%s;" % x509 + _cmd
+
         if job.alrbuserplatform:
             _cmd += 'export thePlatform=\"%s\";' % job.alrbuserplatform
         elif job.platform:

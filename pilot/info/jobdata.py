@@ -718,6 +718,7 @@ class JobData(BaseData):
                     f.write("%s\n" % job_option)
                 for input_file in writetofile_dictionary[input_name]:
                     f.write("%s\n" % os.path.join(self.workdir, input_file))
+                f.close()
                 logger.info("Wrote input file list to file %s: %s" % (input_name_full, writetofile_dictionary[input_name]))
 
                 self.jobparams = self.jobparams.replace(input_name, input_name_full)

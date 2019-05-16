@@ -24,7 +24,7 @@ except Exception:
 from json import dumps
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import ExcThread, PilotException, JobAlreadyRunning
+from pilot.common.exception import ExcThread, PilotException  #, JobAlreadyRunning
 from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
@@ -1271,15 +1271,16 @@ def retrieve(queues, traces, args):
                 except PilotException as error:
                     raise error
                 else:
+                    pass
                     # verify the job status on the server
-                    try:
-                        job_status, job_attempt_nr, job_status_code = get_job_status_from_server(job.jobid, args.url, args.port)
-                        if job_status == "running":
-                            pilot_error_diag = "job %s is already running elsewhere - aborting" % (job.jobid)
-                            logger.warning(pilot_error_diag)
-                            raise JobAlreadyRunning(pilot_error_diag)
-                    except Exception as e:
-                        logger.warning("%s" % e)
+                    #try:
+                    #    job_status, job_attempt_nr, job_status_code = get_job_status_from_server(job.jobid, args.url, args.port)
+                    #    if job_status == "running":
+                    #        pilot_error_diag = "job %s is already running elsewhere - aborting" % (job.jobid)
+                    #        logger.warning(pilot_error_diag)
+                    #        raise JobAlreadyRunning(pilot_error_diag)
+                    #except Exception as e:
+                    #    logger.warning("%s" % e)
                 # write time stamps to pilot timing file
                 # note: PILOT_POST_GETJOB corresponds to START_TIME in Pilot 1
                 add_to_pilot_timing(job.jobid, PILOT_PRE_GETJOB, time_pre_getjob, args)
@@ -1742,6 +1743,21 @@ def job_monitor(queues, traces, args):
             logger.warning('job monitor detected an abort_job request (signal=%s)' % args.signal)
             logger.warning('in case pilot is running more than one job, all jobs will be aborted')
             abort_job = True
+        elif not queues.data_in.empty():
+            # make sure to send heartbeat regularly if stage-in takes a long time
+            jobs = queues.data_in.queue
+            if jobs:
+                # update the peeking time
+                peeking_time = int(time.time())
+                for i in range(len(jobs)):
+                    # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
+                    # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
+                    if int(time.time()) - update_time >= get_heartbeat_period(jobs[i].debug):
+                        send_state(jobs[i], args, 'running')
+                        update_time = int(time.time())
+                # sleep for a while if stage-in has not completed
+                time.sleep(1)
+                continue
         elif queues.finished_data_in.empty():
             # sleep for a while if stage-in has not completed
             time.sleep(1)
