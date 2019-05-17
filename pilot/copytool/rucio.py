@@ -82,10 +82,6 @@ def copy_in(files, **kwargs):
 
         cmd += ['%s:%s' % (fspec.scope, fspec.lfn)]
 
-        logger.info('taking a long nap')
-        sleep(4*60)
-        logger.info('took a long nap')
-
         # kwargs['timeout'] = get_timeout(fspec.filesize)
         rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
 

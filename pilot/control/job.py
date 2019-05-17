@@ -1747,12 +1747,6 @@ def job_monitor(queues, traces, args):
         elif not queues.current_data_in.empty():
             # make sure to send heartbeat regularly if stage-in takes a long time
             jobs = queues.current_data_in.queue
-            if int(time.time()) - update_time2 >= 60:
-                if jobs:
-                    logger.debug('waiting: jobs in queue')
-                else:
-                    logger.debug('waiting: no jobs in queue')
-                time.sleep(5)
             if jobs:
                 for i in range(len(jobs)):
                     # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
