@@ -19,7 +19,7 @@ in a unified structured way via provided high-level API
 
 import inspect
 
-from pilot.common.exception import PilotException, NotDefined
+from pilot.common.exception import PilotException, NotDefined, QueuedataFailure
 
 from .configinfo import PilotConfigProvider
 from .extinfo import ExtInfoProvider
@@ -86,8 +86,8 @@ class InfoService(object):
 
         self.queuedata = self.resolve_queuedata(self.pandaqueue)
 
-        if not self.queuedata:
-            raise PilotException("Failed to resolve queuedata for queue=%s, wrong PandaQueue name?" % self.pandaqueue)
+        if not self.queuedata or not self.queuedata.name:
+            raise QueuedataFailure("Failed to resolve queuedata for queue=%s, wrong PandaQueue name?" % self.pandaqueue)
 
         self.resolve_storage_data()  ## prefetch details for all storages
 
@@ -211,9 +211,14 @@ class InfoService(object):
         if not ddmendpoint or ddmendpoint not in self.ddmendpoint2storage_id:
             storages = self.resolve_storage_data(ddmendpoint)
             for storage_name in storages:
-                storage_id = storages[storage_name].pk
+                storage = storages[storage_name]
+                storage_id = storage.pk
                 self.ddmendpoint2storage_id[storage_name] = storage_id
                 self.storage_id2ddmendpoint[storage_id] = storage_name
+                if storage.resource:
+                    bucket_id = storage.resource.get('bucket_id', None)
+                    if bucket_id:
+                        self.storage_id2ddmendpoint[bucket_id] = storage_name
 
     def get_storage_id(self, ddmendpoint):
         """

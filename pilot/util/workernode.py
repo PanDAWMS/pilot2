@@ -8,9 +8,12 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import os
+import re
 from string import find
 
+from pilot.util.container import execute
 from pilot.util.disk import disk_usage
+from pilot.util.filehandling import dump
 from pilot.info import infosys
 
 import logging
@@ -114,9 +117,9 @@ def get_disk_space(queuedata):
     # --- non Job related queue data
     # jobinfo provider is required to consider overwriteAGIS data coming from Job
     _maxinputsize = infosys.queuedata.maxwdir
-    logger.debug("resolved value from global infosys.queuedata instance: infosys.queuedata.maxwdir=%s" % _maxinputsize)
+    logger.debug("resolved value from global infosys.queuedata instance: infosys.queuedata.maxwdir=%s B" % _maxinputsize)
     _maxinputsize = queuedata.maxwdir
-    logger.debug("resolved value: queuedata.maxwdir=%s" % _maxinputsize)
+    logger.debug("resolved value: queuedata.maxwdir=%s B" % _maxinputsize)
 
     try:
         du = disk_usage(os.path.abspath("."))
@@ -182,3 +185,76 @@ def is_virtual_machine():
                 break
 
     return status
+
+
+def display_architecture_info():
+    """
+    Display OS/architecture information.
+    The function attempts to use the lsb_release -a command if available. If that is not available,
+    it will dump the contents of
+
+    :return:
+    """
+
+    logger.info("architecture information:")
+
+    exit_code, stdout, stderr = execute("lsb_release -a", mute=True)
+    if "Command not found" in stdout or "Command not found" in stderr:
+        # Dump standard architecture info files if available
+        dump("/etc/lsb-release")
+        dump("/etc/SuSE-release")
+        dump("/etc/redhat-release")
+        dump("/etc/debian_version")
+        dump("/etc/issue")
+        dump("$MACHTYPE", cmd="echo")
+    else:
+        logger.info("\n%s" % stdout)
+
+
+def get_cpu_model():
+    """
+    Get cpu model and cache size from /proc/cpuinfo.
+
+    Example.
+      model name      : Intel(R) Xeon(TM) CPU 2.40GHz
+      cache size      : 512 KB
+
+    gives the return string "Intel(R) Xeon(TM) CPU 2.40GHz 512 KB".
+
+    :return: cpu model (string).
+    """
+
+    cpumodel = ""
+    cpucache = ""
+    modelstring = ""
+
+    re_model = re.compile('^model name\s+:\s+(\w.+)')
+    re_cache = re.compile('^cache size\s+:\s+(\d+ KB)')
+
+    with open("/proc/cpuinfo", "r") as f:
+
+        # loop over all lines in cpuinfo
+        for line in f.readlines():
+            # try to grab cpumodel from current line
+            model = re_model.search(line)
+            if model:
+                # found cpu model
+                cpumodel = model.group(1)
+
+            # try to grab cache size from current line
+            cache = re_cache.search(line)
+            if cache:
+                # found cache size
+                cpucache = cache.group(1)
+
+            # stop after 1st pair found - can be multiple cpus
+            if cpumodel and cpucache:
+                # create return string
+                modelstring = cpumodel + " " + cpucache
+                break
+
+    # default return string if no info was found
+    if not modelstring:
+        modelstring = "UNKNOWN"
+
+    return modelstring

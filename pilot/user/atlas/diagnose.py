@@ -13,9 +13,12 @@ import re
 from glob import glob
 
 from pilot.common.errorcodes import ErrorCodes
+from pilot.common.exception import PilotException, BadXML
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
-from pilot.util.filehandling import get_guid, tail, grep, open_file
+from pilot.util.filehandling import get_guid, tail, grep, open_file, read_file, write_file, scan_file
+from pilot.util.math import convert_mb_to_b
+from pilot.util.workernode import get_local_disk_space
 
 from .common import update_job_data, parse_jobreport_data
 from .metadata import get_metadata_from_xml, get_total_number_of_events
@@ -40,9 +43,7 @@ def interpret(job):
     # extract errors from job report
     process_job_report(job)
 
-    if job.exitcode == 0:
-        pass
-    else:
+    if job.exitcode != 0:
         exit_code = job.exitcode
 
     # check for special errors
@@ -51,12 +52,15 @@ def interpret(job):
         set_error_nousertarball(job)
 
     # extract special information, e.g. number of events
-    extract_special_information(job)
+    try:
+        extract_special_information(job)
+    except PilotException as error:
+        log.error('PilotException caught while extracting special job information: %s' % error)
+        exit_code = error.get_error_code()
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
 
     # interpret the exit info from the payload
     interpret_payload_exit_info(job)
-
-    log.debug('payload interpret function ended with exit_code: %d' % exit_code)
 
     return exit_code
 
@@ -71,18 +75,41 @@ def interpret_payload_exit_info(job):
 
     # try to identify out of memory errors in the stderr
     if is_out_of_memory(job):
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADOUTOFMEMORY)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADOUTOFMEMORY, priority=True)
         return
 
     # look for specific errors in the stdout (tail)
     if is_installation_error(job):
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGINSTALLATION)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGINSTALLATION, priority=True)
+        return
+
+    # did AtlasSetup fail?
+    if is_atlassetup_error(job):
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.ATLASSETUPFATAL, priority=True)
+        return
+
+    # did the payload run out of space?
+    if is_out_of_space(job):
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOLOCALSPACE, priority=True)
+
+        # double check local space
+        spaceleft = convert_mb_to_b(get_local_disk_space(os.getcwd()))  # B (diskspace is in MB)
+        logger.info('verifying local space: %d B' % spaceleft)
         return
 
     # look for specific errors in the stdout (full)
     if is_nfssqlite_locking_problem(job):
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NFSSQLITE)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NFSSQLITE, priority=True)
         return
+
+    # is the user tarball missing on the server?
+    if is_user_code_missing(job):
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGUSERCODE, priority=True)
+        return
+
+    # set a general Pilot error code if the payload error could not be identified
+    if job.transexitcode != 0:
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.UNKNOWNPAYLOADFAILURE, priority=True)
 
 
 def is_out_of_memory(job):
@@ -116,6 +143,40 @@ def is_out_of_memory(job):
     return out_of_memory
 
 
+def is_user_code_missing(job):
+    """
+    Is the user code (tarball) missing on the server?
+
+    :param job: job object.
+    :return: Boolean. (note: True means the error was found)
+    """
+
+    stdout = os.path.join(job.workdir, config.Payload.payloadstdout)
+    error_messages = ["ERROR: unable to fetch source tarball from web"]
+
+    return scan_file(stdout,
+                     error_messages,
+                     job.jobid,
+                     warning_message="identified an \'%s\' message in %s" % (error_messages[0], os.path.basename(stdout)))
+
+
+def is_out_of_space(job):
+    """
+    Did the disk run out of space?
+
+    :param job: job object.
+    :return: Boolean. (note: True means the error was found)
+    """
+
+    stderr = os.path.join(job.workdir, config.Payload.payloadstderr)
+    error_messages = ["No space left on device"]
+
+    return scan_file(stderr,
+                     error_messages,
+                     job.jobid,
+                     warning_message="identified a \'%s\' message in %s" % (error_messages[0], os.path.basename(stderr)))
+
+
 def is_installation_error(job):
     """
     Did the payload fail to run? (Due to faulty/missing installation).
@@ -133,6 +194,25 @@ def is_installation_error(job):
         return False
 
 
+def is_atlassetup_error(job):
+    """
+    Did AtlasSetup fail with a fatal error?
+
+    :param job: job object.
+    :return: Boolean. (note: True means the error was found)
+    """
+
+    stdout = os.path.join(job.workdir, config.Payload.payloadstdout)
+    _tail = tail(stdout)
+    res_tmp = _tail[:2048]
+    if "AtlasSetup(FATAL): Fatal exception" in res_tmp:
+        log = get_logger(job.jobid)
+        log.warning('AtlasSetup FATAL failure detected')
+        return True
+    else:
+        return False
+
+
 def is_nfssqlite_locking_problem(job):
     """
     Were there any NFS SQLite locking problems?
@@ -141,19 +221,13 @@ def is_nfssqlite_locking_problem(job):
     :return: Boolean. (note: True means the error was found)
     """
 
-    locking_problem = False
-
     stdout = os.path.join(job.workdir, config.Payload.payloadstdout)
-    errormsgs = ["prepare 5 database is locked", "Error SQLiteStatement"]
-    matched_lines = grep(errormsgs, stdout)
-    if len(matched_lines) > 0:
-        log = get_logger(job.jobid)
-        log.warning("identified an NFS/Sqlite locking problem in %s" % os.path.basename(stdout))
-        for line in matched_lines:
-            log.info(line)
-        locking_problem = True
+    error_messages = ["prepare 5 database is locked", "Error SQLiteStatement"]
 
-    return locking_problem
+    return scan_file(stdout,
+                     error_messages,
+                     job.jobid,
+                     warning_message="identified an NFS/Sqlite locking problem in %s" % os.path.basename(stdout))
 
 
 def extract_special_information(job):
@@ -212,9 +286,9 @@ def find_number_of_events_in_jobreport(job):
     """
 
     work_attributes = parse_jobreport_data(job.metadata)
-    if 'n_events' in work_attributes:
+    if 'nevents' in work_attributes:
         try:
-            n_events = work_attributes.get('n_events')
+            n_events = work_attributes.get('nevents')
             if n_events:
                 job.nevents = int(n_events)
         except ValueError as e:
@@ -226,13 +300,20 @@ def find_number_of_events_in_xml(job):
     Try to find the number of events in the metadata.xml file.
 
     :param job: job object.
+    :raises: BadXML exception if metadata cannot be parsed.
     :return:
     """
 
-    metadata = get_metadata_from_xml(job.workdir)
-    nevents = get_total_number_of_events(metadata)
-    if nevents > 0:
-        job.nevents = nevents
+    try:
+        metadata = get_metadata_from_xml(job.workdir)
+    except Exception as e:
+        msg = "Exception caught while interpreting XML: %s" % e
+        raise BadXML(msg)
+
+    if metadata:
+        nevents = get_total_number_of_events(metadata)
+        if nevents > 0:
+            job.nevents = nevents
 
 
 def process_athena_summary(job):
@@ -438,6 +519,18 @@ def process_job_report(job):
     if not os.path.exists(path):
         log.warning('job report does not exist: %s (any missing output file guids must be generated)' % path)
 
+        # get the metadata from the xml file instead, which must exist for most production transforms
+        path = os.path.join(job.workdir, config.Payload.metadata)
+        if os.path.exists(path):
+            job.metadata = read_file(path)
+        else:
+            if not job.is_analysis() and job.transformation != 'Archive_tf.py':
+                diagnostics = 'metadata does not exist: %s' % path
+                log.warning(diagnostics)
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOPAYLOADMETADATA)
+                job.piloterrorcode = errors.NOPAYLOADMETADATA
+                job.piloterrordiag = diagnostics
+
         # add missing guids
         for dat in job.outdata:
             if not dat.guid:
@@ -468,7 +561,16 @@ def process_job_report(job):
                             '(will be set to empty string)' % e)
                 job.exitmsg = ""
             else:
-                log.info('extracted exit message from job report: %s' % job.exitmsg)
+                # assign special payload error code
+                if "got a SIGSEGV signal" in job.exitmsg:
+                    diagnostics = 'Invalid memory reference or a segmentation fault in payload: %s (job report)' % \
+                                  job.exitmsg
+                    log.warning(diagnostics)
+                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADSIGSEGV)
+                    job.piloterrorcode = errors.PAYLOADSIGSEGV
+                    job.piloterrordiag = diagnostics
+                else:
+                    log.info('extracted exit message from job report: %s' % job.exitmsg)
 
             if job.exitcode != 0:
                 # get list with identified errors in job report
@@ -534,3 +636,103 @@ def is_bad_alloc(job_report_errors, log):
             break
 
     return bad_alloc, diagnostics
+
+
+def get_log_extracts(job, state):
+    """
+    Extract special warnings and other other info from special logs.
+    This function also discovers if the payload had any outbound connections.
+
+    :param job: job object.
+    :param state: job state (string).
+    :return: log extracts (string).
+    """
+
+    log = get_logger(job.jobid)
+    log.info("building log extracts (sent to the server as \'pilotLog\')")
+
+    # did the job have any outbound connections?
+    # look for the pandatracerlog.txt file, produced if the user payload attempted any outgoing connections
+    extracts = get_panda_tracer_log(job)
+
+    # for failed/holding jobs, add extracts from the pilot log file, but always add it to the pilot log itself
+    _extracts = get_pilot_log_extracts(job)
+    if _extracts != "":
+        log.warning('detected the following tail of warning/fatal messages in the pilot log:\n%s' % _extracts)
+        if state == 'failed' or state == 'holding':
+            extracts += _extracts
+
+    # add extracts from payload logs
+    # (see buildLogExtracts in Pilot 1)
+
+    return extracts
+
+
+def get_panda_tracer_log(job):
+    """
+    Return the contents of the PanDA tracer log if it exists.
+    This file will contain information about outbound connections.
+
+    :param job: job object.
+    :return: log extracts from pandatracerlog.txt (string).
+    """
+
+    extracts = ""
+    log = get_logger(job.jobid)
+
+    tracerlog = os.path.join(job.workdir, "pandatracerlog.txt")
+    if os.path.exists(tracerlog):
+        # only add if file is not empty
+        if os.path.getsize(tracerlog) > 0:
+            message = "PandaID=%s had outbound connections: " % (job.jobid)
+            extracts += message
+            message = read_file(tracerlog)
+            extracts += message
+            log.warning(message)
+        else:
+            log.info("PanDA tracer log (%s) has zero size (no outbound connections detected)" % tracerlog)
+    else:
+        log.debug("PanDA tracer log does not exist: %s (ignoring)" % tracerlog)
+
+    return extracts
+
+
+def get_pilot_log_extracts(job):
+    """
+    Get the extracts from the pilot log (warning/fatal messages, as well as tail of the log itself).
+
+    :param job: job object.
+    :return: tail of pilot log (string).
+    """
+
+    log = get_logger(job.jobid)
+    extracts = ""
+
+    path = os.path.join(job.workdir, config.Pilot.pilotlog)
+    if os.path.exists(path):
+        # get the last 20 lines of the pilot log in case it contains relevant error information
+        _tail = tail(path, nlines=20)
+        if _tail != "":
+            if extracts != "":
+                extracts += "\n"
+            extracts += "- Log from %s -" % config.Pilot.pilotlog
+            extracts += _tail
+
+        # grep for fatal/critical errors in the pilot log
+        errormsgs = ["FATAL", "CRITICAL", "ERROR"]
+        matched_lines = grep(errormsgs, path)
+        _extracts = ""
+        if len(matched_lines) > 0:
+            log.debug("dumping warning messages from %s:\n" % os.path.basename(path))
+            for line in matched_lines:
+                _extracts += line + "\n"
+        if _extracts != "":
+            if config.Pilot.error_log != "":
+                path = os.path.join(job.workdir, config.Pilot.error_log)
+                write_file(path, _extracts)
+            extracts += "\n- Error messages from %s -\n" % config.Pilot.pilotlog
+            extracts += _extracts
+    else:
+        log.warning('pilot log file does not exist: %s' % path)
+
+    return extracts

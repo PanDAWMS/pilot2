@@ -20,17 +20,20 @@ from .setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, 
 from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
     get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
 
+from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import get_logger
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
     UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
-from pilot.util.filehandling import remove, get_guid
+from pilot.util.filehandling import remove, get_guid, remove_dir_tree
 
 from pilot.info import FileSpec
 
 import logging
 logger = logging.getLogger(__name__)
+
+errors = ErrorCodes()
 
 
 def get_payload_command(job):
@@ -54,23 +57,32 @@ def get_payload_command(job):
     # Is it a user job or not?
     userjob = job.is_analysis()
 
+    # get the general setup command and then verify it
     cmd = get_setup_command(job, prepareasetup)
+    ec, diagnostics = verify_setup_command(cmd)
+    if ec != 0:
+        raise PilotException(diagnostics, code=ec)
 
     if is_standard_atlas_job(job.swrelease):
 
         # Normal setup (production and user jobs)
         log.info("preparing normal production/analysis job setup command")
-        cmd += get_normal_payload_command(cmd, job, prepareasetup, userjob)
+        cmd = get_normal_payload_command(cmd, job, prepareasetup, userjob)
 
     else:  # Generic, non-ATLAS specific jobs, or at least a job with undefined swRelease
 
         log.info("generic job (non-ATLAS specific or with undefined swRelease)")
-        cmd += get_generic_payload_command(cmd, job, prepareasetup, userjob)
+        cmd = get_generic_payload_command(cmd, job, prepareasetup, userjob)
+
+    # add any missing trailing ;
+    if not cmd.endswith(';'):
+        cmd += '; '
+    log.debug('post cmd: %s' % cmd)
 
     # only if not using a user container
     if not job.imagename:
         site = os.environ.get('PILOT_SITENAME', '')
-        variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.processingtype, site, userjob)
+        variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.attemptnr, job.processingtype, site, userjob)
         cmd = ''.join(variables) + cmd
 
     cmd = cmd.replace(';;', ';')
@@ -82,11 +94,37 @@ def get_payload_command(job):
                                                                             job.infosys.queuedata)
     if not userjob and use_direct_access and job.transfertype == 'direct':
         lfns, guids = job.get_lfns_and_guids()
-        cmd = replace_lfns_with_turls(cmd, job.workdir, "PoolFileCatalog.xml", lfns)
+        cmd = replace_lfns_with_turls(cmd, job.workdir, "PoolFileCatalog.xml", lfns, writetofile=job.writetofile)
+
+    # Explicitly add the ATHENA_PROC_NUMBER (or JOB value)
+    cmd = add_athena_proc_number(cmd)
 
     log.info('payload run command: %s' % cmd)
 
     return cmd
+
+
+def verify_setup_command(cmd):
+    """
+    Verify the setup command.
+
+    :param cmd: command string to be verified (string).
+    :return: pilot error code (int), diagnostics (string).
+    """
+
+    ec = 0
+    diagnostics = ""
+
+    exit_code, stdout, stderr = execute(cmd, timeout=5 * 60)
+    if exit_code != 0:
+        if "No release candidates found" in stdout:
+            logger.info('exit_code=%d' % exit_code)
+            logger.info('stdout=%s' % stdout)
+            logger.info('stderr=%s' % stderr)
+            ec = errors.NORELEASEFOUND
+            diagnostics = stdout + stderr
+
+    return ec, diagnostics
 
 
 def get_normal_payload_command(cmd, job, prepareasetup, userjob):
@@ -102,14 +140,14 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
 
     log = get_logger(job.jobid)
 
-    if userjob:
-        # set the INDS env variable (used by runAthena)
-        set_inds(job.datasetin)  # realDatasetsIn
+    # set the INDS env variable (used by runAthena but also for EventIndex production jobs)
+    set_inds(job.datasetin)  # realDatasetsIn
 
+    if userjob:
         # Try to download the trf (skip when user container is to be used)
-        if job.imagename != "" or "--containerImage" in job.jobparams:
-            job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
-            log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
+        #if job.imagename != "" or "--containerImage" in job.jobparams:
+        #    job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
+        #    log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
         ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
         if ec != 0:
             raise TrfDownloadFailure(diagnostics)
@@ -121,6 +159,7 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
         else:
             _cmd = job.jobparams
 
+        log.debug('job imagename: %s' % job.imagename)
         if job.imagename == "":
             # if '--containerImage' not in job.jobparams:
             # Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
@@ -158,9 +197,9 @@ def get_generic_payload_command(cmd, job, prepareasetup, userjob):
 
     if userjob:
         # Try to download the trf
-        if job.imagename != "" or "--containerImage" in job.jobparams:
-            job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
-            log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
+        #if job.imagename != "" or "--containerImage" in job.jobparams:
+        #    job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
+        #    log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
         ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
         if ec != 0:
             raise TrfDownloadFailure(diagnostics)
@@ -193,6 +232,36 @@ def get_generic_payload_command(cmd, job, prepareasetup, userjob):
     return cmd
 
 
+def add_athena_proc_number(cmd):
+    """
+    Add the ATHENA_PROC_NUMBER to the payload command if necessary
+
+    :param cmd: payload execution command (string).
+    :return: updated payload execution command (string).
+    """
+
+    if "ATHENA_PROC_NUMBER" not in cmd:
+        if "ATHENA_PROC_NUMBER" in os.environ:
+            cmd = 'export ATHENA_PROC_NUMBER=%s;' % os.environ['ATHENA_PROC_NUMBER'] + cmd
+        elif "ATHENA_PROC_NUMBER_JOB" in os.environ:
+            try:
+                value = int(os.environ['ATHENA_PROC_NUMBER_JOB'])
+            except Exception:
+                logger.warning("failed to convert ATHENA_PROC_NUMBER_JOB=%s to int" %
+                               os.environ['ATHENA_PROC_NUMBER_JOB'])
+            else:
+                if value > 1:
+                    cmd = 'export ATHENA_PROC_NUMBER=%d;' % value + cmd
+                else:
+                    logger.info("will not add ATHENA_PROC_NUMBER to cmd since the value is %d" % value)
+        else:
+            logger.warning("don't know how to set ATHENA_PROC_NUMBER (could not find it in os.environ)")
+    else:
+        logger.info("ATHENA_PROC_NUMBER already in job command")
+
+    return cmd
+
+
 def get_setup_command(job, prepareasetup):
     """
     Return the path to asetup command, the asetup command itself and add the options (if desired).
@@ -216,7 +285,7 @@ def get_setup_command(job, prepareasetup):
         asetupoptions = " " + options + " --platform " + job.platform
 
         # Always set the --makeflags option (to prevent asetup from overwriting it)
-        asetupoptions += ' --makeflags=\"$MAKEFLAGS\"'
+        asetupoptions += " --makeflags=\'$MAKEFLAGS\'"
 
         # Verify that the setup works
         # exitcode, output = timedCommand(cmd, timeout=5 * 60)
@@ -274,11 +343,11 @@ def add_makeflags(job_core_count, cmd):
         else:
             if core_count >= 1:
                 # Note: the original request (AF) was to use j%d and not -j%d, now using the latter
-                cmd += 'export MAKEFLAGS="-j%d QUICK=1 -l1";' % (core_count)
+                cmd += "export MAKEFLAGS=\'-j%d QUICK=1 -l1\';" % (core_count)
 
     # make sure that MAKEFLAGS is always set
     if "MAKEFLAGS=" not in cmd:
-        cmd += 'export MAKEFLAGS="-j1 QUICK=1 -l1";'
+        cmd += "export MAKEFLAGS=\'-j1 QUICK=1 -l1\';"
 
     return cmd
 
@@ -322,10 +391,11 @@ def get_analysis_run_command(job, trf_name):
         cmd += ' --containerImage=%s' % job.imagename
 
     # add control options for PFC turl and direct access
-    if use_pfc_turl and '--usePFCTurl' not in cmd:
-        cmd += ' --usePFCTurl'
-    if use_direct_access and '--directIn' not in cmd:
-        cmd += ' --directIn'
+    if job.indata != []:
+        if use_pfc_turl and '--usePFCTurl' not in cmd:
+            cmd += ' --usePFCTurl'
+        if use_direct_access and '--directIn' not in cmd:
+            cmd += ' --directIn'
 
     # update the payload command for forced accessmode
     cmd = update_forced_accessmode(log, cmd, job.transfertype, job.jobparams, trf_name)
@@ -551,20 +621,22 @@ def update_job_data(job):  # noqa: C901
                     data[lfn].guid = fdat['file_guid']
                     logger.info('set guid=%s for lfn=%s (value taken from job report)' % (data[lfn].guid, lfn))
                 else:  # found new entry, create filespec
-                    if not job.outdata:
-                        raise PilotException("job.outdata is empty, will not be able to construct filespecs")
-                    kw = {'lfn': lfn,
-                          'scope': job.outdata[0].scope,  ## take value from 1st output file?
-                          'guid': fdat['file_guid'],
-                          'filesize': fdat['file_size'],
-                          'dataset': dat.get('dataset') or job.outdata[0].dataset  ## take value from 1st output file?
-                          }
-                    spec = FileSpec(type='output', **kw)
-                    extra.append(spec)
+                    #if not job.outdata:
+                    #    raise PilotException("job.outdata is empty, will not be able to construct FileSpecs",
+                    #                         code=errors.INTERNALPILOTPROBLEM)
+                    if job.outdata:
+                        kw = {'lfn': lfn,
+                              'scope': job.outdata[0].scope,  ## take value from 1st output file?
+                              'guid': fdat['file_guid'],
+                              'filesize': fdat['file_size'],
+                              'dataset': dat.get('dataset') or job.outdata[0].dataset  ## take value from 1st output file?
+                              }
+                        spec = FileSpec(filetype='output', **kw)
+                        extra.append(spec)
 
         if extra:
-            log.info('found extra output files to be added for stage-out: extra=%s' % extra)
-            job.outdata.extend(extra)
+            log.info('found extra output files in job report, will overwrite output file list: extra=%s' % extra)
+            job.outdata = extra
     else:
         log.warning('job.metadata not set')
 
@@ -578,11 +650,23 @@ def update_job_data(job):  # noqa: C901
 
 
 def get_outfiles_records(subfiles):
+    """
+    Extract file info from job report JSON subfiles entry.
+
+    :param subfiles: list of subfiles.
+    :return: file info dictionary with format { 'guid': .., 'size': .., 'nentries': .. (optional)}
+    """
+
     res = {}
     for f in subfiles:
         res[f['name']] = {'guid': f['file_guid'],
-                          'nentries': f['nentries'],
                           'size': f['file_size']}
+        nentries = f.get('nentries', 'UNDEFINED')
+        if type(nentries) == int:
+            res[f['name']]['nentries'] = nentries
+        else:
+            logger.warning("nentries is undefined in job report")
+
     return res
 
 
@@ -855,7 +939,7 @@ def cleanup_payload(workdir, outputfiles=[]):
     for ampdir in glob('%s/athenaMP-workers-*' % (workdir)):
         for (p, d, f) in os.walk(ampdir):
             for filename in f:
-                if 'core' in filename or 'tmp.' in filename:
+                if 'core' in filename or 'pool.root' in filename or 'tmp.' in filename:
                     path = os.path.join(p, filename)
                     path = os.path.abspath(path)
                     remove(path)
@@ -915,7 +999,16 @@ def get_redundants():
                 "*PROC*",
                 "madevent",
                 "*proxy",
-                "ckpt*"]
+                "ckpt*",
+                "*runcontainer*",
+                "*job.log.tgz",
+                "runGen-*",
+                "runAthena-*",
+                "/pandawnutil/*",
+                "/src/*",
+                "singularity_cachedir",
+                "_joproxy15",
+                "HAHM_*"]
 
     return dir_list
 
@@ -1020,10 +1113,18 @@ def remove_redundant_files(workdir, outputfiles=[]):
         exclude_files.append(os.path.join(workdir, of))
     for f in to_delete:
         if f not in exclude_files:
-            remove(f)
+            if os.path.isfile(f):
+                remove(f)
+            else:
+                remove_dir_tree(f)
 
     # run a second pass to clean up any broken links
     cleanup_broken_links(workdir)
+
+    # remove any present user workDir
+    path = os.path.join(workdir, 'workDir')
+    if os.path.exists(path):
+        remove_dir_tree(path)
 
 
 def get_utility_commands_list(order=None):
@@ -1066,7 +1167,7 @@ def get_utility_command_setup(name, job, setup=None):
     """
 
     if name == 'MemoryMonitor':
-        return get_memory_monitor_setup(job)
+        return get_memory_monitor_setup(job.pid, job.workdir)
     elif name == 'NetworkMonitor' and setup:
         return get_network_monitor_setup(setup, job)
     elif name == 'Prefetcher':
@@ -1142,3 +1243,85 @@ def get_utility_command_output_filename(name, selector=None):
         filename = ""
 
     return filename
+
+
+def verify_lfn_length(outdata):
+    """
+    Make sure that the LFNs are all within the allowed length.
+
+    :param outdata: FileSpec object.
+    :return: error code (int), diagnostics (string).
+    """
+
+    ec = 0
+    diagnostics = ""
+    max_length = 255
+
+    # loop over all output files
+    for fspec in outdata:
+        if len(fspec.lfn) > max_length:
+            diagnostics = "LFN too long (length: %d, must be less than %d characters): %s" % \
+                          (len(fspec.lfn), max_length, fspec.lfn)
+            ec = errors.LFNTOOLONG
+            break
+
+    return ec, diagnostics
+
+
+def verify_ncores(corecount):
+    """
+    Verify that nCores settings are correct
+
+    :param corecount: number of cores (int).
+    :return:
+    """
+
+    try:
+        del os.environ['ATHENA_PROC_NUMBER_JOB']
+        logger.debug("unset existing ATHENA_PROC_NUMBER_JOB")
+    except Exception:
+        pass
+
+    try:
+        athena_proc_number = int(os.environ.get('ATHENA_PROC_NUMBER', None))
+    except Exception:
+        athena_proc_number = None
+
+    # Note: if ATHENA_PROC_NUMBER is set (by the wrapper), then do not overwrite it
+    # Otherwise, set it to the value of job.coreCount
+    # (actually set ATHENA_PROC_NUMBER_JOB and use it if it exists, otherwise use ATHENA_PROC_NUMBER directly;
+    # ATHENA_PROC_NUMBER_JOB will always be the value from the job definition)
+    if athena_proc_number:
+        logger.info("encountered a set ATHENA_PROC_NUMBER (%d), will not overwrite it" % athena_proc_number)
+    else:
+        os.environ['ATHENA_PROC_NUMBER_JOB'] = "%s" % corecount
+        logger.info("set ATHENA_PROC_NUMBER_JOB to %s (ATHENA_PROC_NUMBER will not be overwritten)" % corecount)
+
+
+def verify_job(job):
+    """
+    Verify job parameters for specific errors.
+    Note:
+      in case of problem, the function should set the corresponding pilot error code using
+      job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())
+
+    :param job: job object
+    :return: Boolean.
+    """
+
+    status = False
+    log = get_logger(job.jobid)
+
+    # are LFNs of correct lengths?
+    ec, diagnostics = verify_lfn_length(job.outdata)
+    if ec != 0:
+        log.fatal(diagnostics)
+        job.piloterrordiag = diagnostics
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
+    else:
+        status = True
+
+    # check the ATHENA_PROC_NUMBER settings
+    verify_ncores(job.corecount)
+
+    return status

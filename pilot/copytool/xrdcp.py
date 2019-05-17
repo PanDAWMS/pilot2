@@ -12,9 +12,13 @@
 
 import os
 import logging
+import re
+from time import time
 
+from .common import resolve_common_transfer_errors, verify_catalog_checksum  #, get_timeout
 from pilot.util.container import execute
 from pilot.common.exception import PilotException, ErrorCodes
+from pilot.util.timer import timeout
 
 logger = logging.getLogger(__name__)
 
@@ -32,22 +36,11 @@ def is_valid_for_copy_out(files):
     return True  ## FIX ME LATER
 
 
-def get_timeout(filesize):   ## ISOLATE ME LATER
-    """ Get a proper time-out limit based on the file size """
-
-    timeout_max = 3 * 3600  # 3 hours
-    timeout_min = 300  # self.timeout
-
-    timeout = timeout_min + int(filesize / 0.5e6)  # approx < 0.5 Mb/sec
-
-    return min(timeout, timeout_max)
-
-
 def _resolve_checksum_option(setup, **kwargs):
 
     cmd = "%s --version" % copy_command
     if setup:
-        cmd = "%s; %s" % (setup, cmd)
+        cmd = "source %s; %s" % (setup, cmd)
 
     logger.info("Execute command (%s) to check xrdcp client version" % cmd)
 
@@ -57,7 +50,7 @@ def _resolve_checksum_option(setup, **kwargs):
 
     cmd = "%s -h" % copy_command
     if setup:
-        cmd = "%s; %s" % (setup, cmd)
+        cmd = "source %s; %s" % (setup, cmd)
 
     logger.info("Execute command (%s) to decide which option should be used to calc/verify file checksum.." % cmd)
 
@@ -85,6 +78,7 @@ def _resolve_checksum_option(setup, **kwargs):
     return coption
 
 
+@timeout(seconds=600)
 def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, **kwargs):
     """
         Stage the file (stagein or stageout)
@@ -92,17 +86,20 @@ def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, *
         :raise: PilotException in case of controlled error
     """
 
+    filesize_cmd, checksum_cmd, checksum_type = None, None, None
+
     cmd = '%s -np -f %s %s %s' % (copy_command, coption, source, destination)
     if setup:
-        cmd = "%s; %s" % (setup, cmd)
+        cmd = "source %s; %s" % (setup, cmd)
 
     #timeout = get_timeout(filesize)
     #logger.info("Executing command: %s, timeout=%s" % (cmd, timeout))
 
     rcode, stdout, stderr = execute(cmd, **kwargs)
+    logger.info('rcode=%d, stdout=%s, stderr=%s' % (rcode, stdout, stderr))
 
     if rcode:  ## error occurred
-        error = resolve_transfer_error(stdout + stderr, is_stagein=is_stagein)
+        error = resolve_common_transfer_errors(stdout + stderr, is_stagein=is_stagein)
 
         #rcode = error.get('rcode')  ## TO BE IMPLEMENTED
         #if not is_stagein and rcode == PilotErrors.ERR_CHKSUMNOTSUP: ## stage-out, on fly checksum verification is not supported .. ignore
@@ -112,8 +109,8 @@ def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, *
         raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
     # extract filesize and checksum values from output
-    #checksum, checksum_type = self.getRemoteFileChecksumFromOutput(output)
-    #return checksum, checksum_type
+    if coption != "":
+        filesize_cmd, checksum_cmd, checksum_type = get_file_info_from_output(stdout + stderr)
 
     ## verify transfer by returned checksum or call remote checksum calculation
     ## to be moved at the base level
@@ -124,7 +121,10 @@ def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, *
         rcode = ErrorCodes.GETADMISMATCH if is_stagein else ErrorCodes.PUTADMISMATCH
         raise PilotException("Copy command failed", code=rcode, state='AD_MISMATCH')
 
+    return filesize_cmd, checksum_cmd, checksum_type
 
+
+# @timeout(seconds=600)
 def copy_in(files, **kwargs):
     """
         Download given files using xrdcp command.
@@ -136,28 +136,58 @@ def copy_in(files, **kwargs):
     allow_direct_access = kwargs.get('allow_direct_access') or False
     setup = kwargs.pop('copytools', {}).get('xrdcp', {}).get('setup')
     coption = _resolve_checksum_option(setup, **kwargs)
+    trace_report = kwargs.get('trace_report')
 
+    localsite = os.environ.get('DQ2_LOCAL_SITE_ID', None)
     for fspec in files:
+        # update the trace report
+        localsite = localsite if localsite else fspec.ddmendpoint
+        trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
+        trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
+        trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
+
         # continue loop for files that are to be accessed directly
         if fspec.is_directaccess(ensure_replica=False) and allow_direct_access:
             fspec.status_code = 0
             fspec.status = 'remote_io'
+            trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
+            trace_report.send()
             continue
+
+        trace_report.update(catStart=time())
 
         dst = fspec.workdir or kwargs.get('workdir') or '.'
         destination = os.path.join(dst, fspec.lfn)
         try:
-            _stagefile(coption, fspec.turl, destination, fspec.filesize, is_stagein=True, setup=setup, **kwargs)
+            filesize_cmd, checksum_cmd, checksum_type = _stagefile(coption, fspec.turl, destination, fspec.filesize,
+                                                                   is_stagein=True, setup=setup, **kwargs)
             fspec.status_code = 0
             fspec.status = 'transferred'
-        except Exception as error:
+        except PilotException as error:
             fspec.status = 'failed'
-            fspec.status_code = error.get_error_code() if isinstance(error, PilotException) else ErrorCodes.STAGEINFAILED
-            raise
+            fspec.status_code = error.get_error_code()
+            diagnostics = error.get_detail()
+            state = 'STAGEIN_ATTEMPT_FAILED'
+            trace_report.update(clientState=state, stateReason=diagnostics, timeEnd=time())
+            trace_report.send()
+            raise PilotException(diagnostics, code=fspec.status_code, state=state)
+        else:
+            # compare checksums
+            fspec.checksum[checksum_type] = checksum_cmd  # remote checksum
+            state, diagnostics = verify_catalog_checksum(fspec, destination)
+            if diagnostics != "":
+                trace_report.update(clientState=state or 'STAGEIN_ATTEMPT_FAILED', stateReason=diagnostics,
+                                    timeEnd=time())
+                trace_report.send()
+                raise PilotException(diagnostics, code=fspec.status_code, state=state)
+
+        trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
+        trace_report.send()
 
     return files
 
 
+# @timeout(seconds=600)
 def copy_out(files, **kwargs):
     """
         Upload given files using xrdcp command.
@@ -168,47 +198,70 @@ def copy_out(files, **kwargs):
 
     setup = kwargs.pop('copytools', {}).get('xrdcp', {}).get('setup')
     coption = _resolve_checksum_option(setup, **kwargs)
+    trace_report = kwargs.get('trace_report')
 
     for fspec in files:
+        trace_report.update(scope=fspec.scope, dataset=fspec.dataset, url=fspec.surl, filesize=fspec.filesize)
+        trace_report.update(catStart=time(), filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
 
         try:
-            _stagefile(coption, fspec.surl, fspec.turl, fspec.filesize, is_stagein=False, setup=setup, **kwargs)
+            filesize_cmd, checksum_cmd, checksum_type = _stagefile(coption, fspec.surl, fspec.turl, fspec.filesize,
+                                                                   is_stagein=False, setup=setup, **kwargs)
             fspec.status_code = 0
             fspec.status = 'transferred'
-        except Exception as error:
+            trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
+            trace_report.send()
+        except PilotException as error:
             fspec.status = 'failed'
-            fspec.status_code = error.get_error_code() if isinstance(error, PilotException) else ErrorCodes.STAGEOUTFAILED
-            raise
+            fspec.status_code = error.get_error_code()
+            state = 'STAGEOUT_ATTEMPT_FAILED'
+            diagnostics = error.get_detail()
+            trace_report.update(clientState=state, stateReason=diagnostics, timeEnd=time())
+            trace_report.send()
+            raise PilotException(diagnostics, code=fspec.status_code, state=state)
+        else:
+            # compare checksums
+            fspec.checksum[checksum_type] = checksum_cmd  # remote checksum
+            state, diagnostics = verify_catalog_checksum(fspec, fspec.surl)
+            if diagnostics != "":
+                trace_report.update(clientState=state or 'STAGEIN_ATTEMPT_FAILED', stateReason=diagnostics,
+                                    timeEnd=time())
+                trace_report.send()
+                raise PilotException(diagnostics, code=fspec.status_code, state=state)
 
     return files
 
 
-def resolve_transfer_error(output, is_stagein):
+def get_file_info_from_output(output):
     """
-        Resolve error code, client state and defined error mesage from the output of transfer command
-        :return: dict {'rcode', 'state, 'error'}
+    Extract file size, checksum value from xrdcp --chksum command output
+
+    :return: (filesize [int/None], checksum, checksum_type) or (None, None, None) in case of failure
     """
 
-    ret = {'rcode': ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
-           'state': 'COPY_ERROR', 'error': 'Copy operation failed [is_stagein=%s]: %s' % (is_stagein, output)}
+    if not output:
+        return None, None, None
 
-    ## VERIFY ME LATER
-    if "timeout" in output:
-        ret['rcode'] = ErrorCodes.STAGEINTIMEOUT if is_stagein else ErrorCodes.STAGEOUTTIMEOUT
-        ret['state'] = 'CP_TIMEOUT'
-        ret['error'] = 'copy command timed out: %s' % output
-    elif "does not match the checksum" in output:
-        if 'adler32' in output:
-            state = 'AD_MISMATCH'
-            rcode = ErrorCodes.GETADMISMATCH if is_stagein else ErrorCodes.PUTADMISMATCH
-        else:
-            state = 'MD5_MISMATCH'
-            rcode = ErrorCodes.GETMD5MISMATCH if is_stagein else ErrorCodes.PUTMD5MISMATCH
-        ret['rcode'] = rcode
-        ret['state'] = state
-    elif "query chksum is not supported" in output or "Unable to checksum" in output:
-        ret['rcode'] = ErrorCodes.CHKSUMNOTSUP
-        ret['state'] = 'CHKSUM_NOTSUP'
-        ret['error'] = output
+    if not ("xrootd" in output or "XRootD" in output or "adler32" in output):
+        logger.warning("WARNING: Failed to extract checksum: Unexpected output: %s" % output)
+        return None, None, None
 
-    return ret
+    pattern = "(?P<type>md5|adler32):\ (?P<checksum>[a-zA-Z0-9]+)\ \S+\ (?P<filesize>[0-9]+)"
+    filesize, checksum, checksum_type = None, None, None
+
+    m = re.search(pattern, output)
+    if m:
+        checksum_type = m.group('type')
+        checksum = m.group('checksum')
+        checksum = checksum.zfill(8)  # make it 8 chars length (adler32 xrdcp fix)
+        filesize = m.group('filesize')
+        if filesize:
+            try:
+                filesize = int(filesize)
+            except ValueError as e:
+                logger.warning('failed to convert filesize to int: %s' % e)
+                filesize = None
+    else:
+        logger.warning("WARNING: Checksum/file size info not found in output: failed to match pattern=%s in output=%s" % (pattern, output))
+
+    return filesize, checksum, checksum_type

@@ -14,8 +14,8 @@ import sys
 import time
 
 from pilot.eventservice.communicationmanager.communicationmanager import CommunicationRequest, CommunicationResponse, CommunicationManager
-from pilot.util.auxiliary import time_stamp
 from pilot.util.https import https_setup
+from pilot.util.timing import time_stamp
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest

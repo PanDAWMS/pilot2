@@ -5,6 +5,7 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 """
 Information provider from external source(s)
@@ -125,6 +126,7 @@ class ExtInfoProvider(DataLoader):
                    # FIX ME LATER: move hardcoded urls to the Config?
                    'PANDA': {'url': 'http://pandaserver.cern.ch:25085/cache/schedconfig/%s.all.json' % pandaqueues[0],
                              'nretry': 3,
+                             'sleep_time': lambda: 15 + random.randint(0, 30),  # max sleep time 45 seconds between retries
                              'cache_time': 3 * 60 * 60,  # 3 hours,
                              'fname': os.path.join(cache_dir, 'queuedata.json'),
                              'parser': jsonparser_panda
@@ -155,7 +157,7 @@ class ExtInfoProvider(DataLoader):
         # list of sources to fetch ddmconf data from
         sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_ddmendpoints.json',
                              'nretry': 1,
-                             'fname': os.path.join(cache_dir, 'agis_ddmendpoints.cvmfs.json')},
+                             'fname': os.path.join(cache_dir, 'agis_ddmendpoints.json')},
                    'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json&'
                                    'state=ACTIVE&preset=dict&ddmendpoint=%s' % ','.join(ddmendpoints),
                             'nretry': 3,
@@ -195,7 +197,6 @@ class ExtInfoProvider(DataLoader):
     def resolve_storage_data(self, ddmendpoints=[]):
         """
             Resolve final DDM Storages details by given names (DDMEndpoint)
-            (primary data provided by PanDA merged with overall queue details from AGIS)
 
             :param ddmendpoints: list of ddmendpoint names
             :return: dict of settings for given DDMEndpoint as a key

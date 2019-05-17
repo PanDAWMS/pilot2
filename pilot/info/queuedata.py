@@ -41,6 +41,7 @@ class QueueData(BaseData):
     # ## incomplete list of attributes .. to be extended once becomes used
 
     name = ""       # Name of Panda Queue
+    resource = ""   # Name of Panda Resource
     appdir = ""     #
     catchall = ""   #
 
@@ -50,14 +51,24 @@ class QueueData(BaseData):
 
     copytools = None
     acopytools = None
+
+    ## allowed protocol schemas for requested copytool/activity
+    ## if passed value (per activity) is a list, then given schemas will be used for all allowed copytools
+    ## in case of dict-based value, it specifies allowed schemas per copytool for given activity
+    ## e.g. {'pr':['root', 'srm'], 'pw':['webdav'], 'default':['root']}
+    ##      {'pr': {'gfalcopy':['webdav'], 'pw':{'lsm':['root']}}}
+    acopytools_schemas = {}
+
     astorages = None
     aprotocols = None
 
-    state = None
+    state = None  # AGIS PQ state, e.g. ACTIVE
+    status = ""   # PQ status, e.g. online
     site = None   # ATLAS Site name
 
     direct_access_lan = False
     direct_access_wan = False
+    use_pcache = False
 
     maxwdir = 0    # in MB
     maxrss = 0
@@ -74,9 +85,9 @@ class QueueData(BaseData):
     _keys = {int: ['timefloor', 'maxwdir', 'pledgedcpu', 'es_stageout_gap',
                    'corecount', 'maxrss', 'maxtime'],
              str: ['name', 'appdir', 'catchall', 'platform', 'container_options', 'container_type',
-                   'state', 'site'],
-             dict: ['copytools', 'acopytools', 'astorages', 'aprotocols'],
-             bool: ['direct_access_lan', 'direct_access_wan']
+                   'resource', 'state', 'status', 'site'],
+             dict: ['copytools', 'acopytools', 'astorages', 'aprotocols', 'acopytools_schemas'],
+             bool: ['direct_access_lan', 'direct_access_wan', 'use_pcache']
              }
 
     def __init__(self, data):
@@ -107,12 +118,44 @@ class QueueData(BaseData):
 
         kmap = {
             'name': 'nickname',
+            'resource': 'panda_resource',
             'platform': 'cmtconfig',
             'site': ('atlas_site', 'gstat'),
             'es_stageout_gap': 'zip_time_gap',
         }
 
         self._load_data(data, kmap)
+
+    def resolve_allowed_schemas(self, activity, copytool=None):
+        """
+            Resolve list of allowed schemas for given activity and requested copytool based on `acopytools_schemas` settings
+            :param activity: ordered list of activity names to look up data
+            :return: list of protocol schemes
+        """
+
+        if not activity:
+            activity = 'default'
+        if isinstance(activity, basestring):
+            activity = [activity]
+
+        if 'default' not in activity:
+            activity = activity + ['default']
+
+        adat = {}
+        for aname in activity:
+            adat = self.acopytools_schemas.get(aname)
+            if adat:
+                break
+        if not adat:
+            return []
+
+        if not isinstance(adat, dict):
+            adat = {'default': adat}
+
+        if not copytool or copytool not in adat:
+            copytool = 'default'
+
+        return adat.get(copytool) or []
 
     def clean(self):
         """

@@ -12,11 +12,12 @@
 import os
 import logging
 import errno
-import re
+from time import time
 
+from .common import get_copysetup, verify_catalog_checksum, resolve_common_transfer_errors  #, get_timeout
 from pilot.common.exception import StageInFailure, StageOutFailure, PilotException, ErrorCodes
-from pilot.copytool.common import get_copysetup, verify_catalog_checksum
 from pilot.util.container import execute
+from pilot.util.timer import timeout
 
 
 logger = logging.getLogger(__name__)
@@ -57,17 +58,6 @@ def copy_in_old(files):
         raise StageInFailure(stdout)
 
 
-def get_timeout(filesize):   ## ISOLATE ME LATER
-    """ Get a proper time-out limit based on the file size """
-
-    timeout_max = 3 * 3600  # 3 hours
-    timeout_min = 300  # self.timeout
-
-    timeout = timeout_min + int(filesize / 0.5e6)  # approx < 0.5 Mb/sec
-
-    return min(timeout, timeout_max)
-
-
 def copy_in(files, **kwargs):
     """
     Download given files using the lsm-get command.
@@ -82,15 +72,27 @@ def copy_in(files, **kwargs):
     stderr = ""
 
     copytools = kwargs.get('copytools') or []
-    allow_direct_access = kwargs.get('allow_direct_access') or False
     copysetup = get_copysetup(copytools, 'lsm')
+    trace_report = kwargs.get('trace_report')
+    allow_direct_access = kwargs.get('allow_direct_access')
+    localsite = os.environ.get('DQ2_LOCAL_SITE_ID', None)
 
     for fspec in files:
+        # update the trace report
+        localsite = localsite if localsite else fspec.ddmendpoint
+        trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
+        trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
+        trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
+
         # continue loop for files that are to be accessed directly
-        if fspec.is_directaccess(ensure_replica=False) and allow_direct_access:
+        if fspec.is_directaccess(ensure_replica=False) and allow_direct_access and fspec.accessmode == 'direct':
             fspec.status_code = 0
             fspec.status = 'remote_io'
+            trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
+            trace_report.send()
             continue
+
+        trace_report.update(catStart=time())
 
         dst = fspec.workdir or kwargs.get('workdir') or '.'
         #timeout = get_timeout(fspec.filesize)
@@ -104,40 +106,29 @@ def copy_in(files, **kwargs):
         if exit_code != 0:
             logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
 
-            error = resolve_transfer_error(stderr, is_stagein=True)
+            error = resolve_common_transfer_errors(stderr, is_stagein=True)
             fspec.status = 'failed'
-            fspec.status_code = error.get('exit_code')
-            raise PilotException(error.get('error'), code=error.get('exit_code'), state=error.get('state'))
+            fspec.status_code = error.get('rcode')
+            logger.warning('error=%d' % error.get('rcode'))
+            trace_report.update(clientState=error.get('state') or 'STAGEIN_ATTEMPT_FAILED',
+                                stateReason=error.get('error'), timeEnd=time())
+            trace_report.send()
+            raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
         # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
         state, diagnostics = verify_catalog_checksum(fspec, destination)
         if diagnostics != "":
+            trace_report.update(clientState=state or 'STAGEIN_ATTEMPT_FAILED', stateReason=diagnostics,
+                                timeEnd=time())
+            trace_report.send()
             raise PilotException(diagnostics, code=fspec.status_code, state=state)
 
         fspec.status_code = 0
         fspec.status = 'transferred'
+        trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
+        trace_report.send()
 
     return files
-
-
-def resolve_transfer_error(output, is_stagein=True):
-    """
-    Resolve error code, client state and defined error mesage from the output of transfer command
-
-    :param output: command output (string).
-    :param is_stagein: boolean, True for stage-in.
-    :return: dict {'rcode', 'state, 'error'}
-    """
-
-    ret = {'rcode': ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
-           'state': 'COPY_ERROR', 'error': 'Copy operation failed [is_stagein=%s]: %s' % (is_stagein, output)}
-
-    for line in output.split('\n'):
-        m = re.search("Details\s*:\s*(?P<error>.*)", line)
-        if m:
-            ret['error'] = m.group('error')
-
-    return ret
 
 
 def copy_out(files, **kwargs):
@@ -150,6 +141,7 @@ def copy_out(files, **kwargs):
 
     copytools = kwargs.get('copytools') or []
     copysetup = get_copysetup(copytools, 'lsm')
+    trace_report = kwargs.get('trace_report')
     ddmconf = kwargs.get('ddmconf', None)
     if not ddmconf:
         raise PilotException("copy_out() failed to resolve ddmconf from function arguments",
@@ -157,13 +149,19 @@ def copy_out(files, **kwargs):
                              state='COPY_ERROR')
 
     for fspec in files:
+        trace_report.update(scope=fspec.scope, dataset=fspec.dataset, url=fspec.surl, filesize=fspec.filesize)
+        trace_report.update(catStart=time(), filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
 
         # resolve token value from fspec.ddmendpoint
         ddm = ddmconf.get(fspec.ddmendpoint)
         token = ddm.token
         if not token:
-            raise PilotException("copy_out() failed to resolve token value for ddmendpoint=%s" % (fspec.ddmendpoint),
-                                 code=ErrorCodes.STAGEOUTFAILED, state='COPY_ERROR')
+            diagnostics = "copy_out() failed to resolve token value for ddmendpoint=%s" % (fspec.ddmendpoint)
+            trace_report.update(clientState='STAGEOUT_ATTEMPT_FAILED',
+                                stateReason=diagnostics,
+                                timeEnd=time())
+            trace_report.send()
+            raise PilotException(diagnostics, code=ErrorCodes.STAGEOUTFAILED, state='COPY_ERROR')
 
         src = fspec.workdir or kwargs.get('workdir') or '.'
         #timeout = get_timeout(fspec.filesize)
@@ -188,9 +186,13 @@ def copy_out(files, **kwargs):
             exit_code, stdout, stderr = move(source, destination, dst_in=False, copysetup=copysetup, options=opts)
 
             if exit_code != 0:
-                error = resolve_transfer_error(stderr, is_stagein=False)
+                error = resolve_common_transfer_errors(stderr, is_stagein=False)
                 fspec.status = 'failed'
                 fspec.status_code = error.get('exit_code')
+                trace_report.update(clientState=error.get('state', None) or 'STAGEOUT_ATTEMPT_FAILED',
+                                    stateReason=error.get('error', 'unknown error'),
+                                    timeEnd=time())
+                trace_report.send()
                 raise PilotException(error.get('error'), code=error.get('exit_code'), state=error.get('state'))
             else:  # all successful
                 logger.info('all successful')
@@ -198,6 +200,8 @@ def copy_out(files, **kwargs):
 
         fspec.status_code = 0
         fspec.status = 'transferred'
+        trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
+        trace_report.send()
 
     return files
 
@@ -280,6 +284,7 @@ def move_all_files_out(files, nretries=1):
     return exit_code, stdout, stderr
 
 
+@timeout(seconds=600)
 def move(source, destination, dst_in=True, copysetup="", options=None):
     """
     Use lsm-get or lsm-put to transfer the file.
@@ -306,7 +311,7 @@ def move(source, destination, dst_in=True, copysetup="", options=None):
         cmd += "lsm-put %s" % args
 
     try:
-        exit_code, stdout, stderr = execute(cmd)
+        exit_code, stdout, stderr = execute(cmd)  #, timeout=get_timeout(fspec.filesize))
     except Exception as e:
         if dst_in:
             exit_code = ErrorCodes.STAGEINFAILED

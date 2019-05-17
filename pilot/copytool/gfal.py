@@ -13,9 +13,12 @@
 import os
 import logging
 import errno
+from time import time
 
+from .common import resolve_common_transfer_errors, get_timeout
 from pilot.common.exception import PilotException, ErrorCodes, StageInFailure, StageOutFailure
 from pilot.util.container import execute
+from pilot.util.timer import timeout
 
 logger = logging.getLogger(__name__)
 
@@ -40,17 +43,6 @@ def is_valid_for_copy_out(files):
     #return True
 
 
-def get_timeout(filesize):   ## ISOLATE ME LATER
-    """ Get a proper time-out limit based on the file size """
-
-    timeout_max = 3 * 3600  # 3 hours
-    timeout_min = 300  # self.timeout
-
-    timeout = timeout_min + int(filesize / 0.5e6)  # approx < 0.5 Mb/sec
-
-    return min(timeout, timeout_max)
-
-
 def copy_in(files, **kwargs):
     """
         Download given files using gfal-copy command.
@@ -60,16 +52,28 @@ def copy_in(files, **kwargs):
     """
 
     allow_direct_access = kwargs.get('allow_direct_access') or False
+    trace_report = kwargs.get('trace_report')
 
     if not check_for_gfal():
         raise StageInFailure("No GFAL2 tools found")
 
+    localsite = os.environ.get('DQ2_LOCAL_SITE_ID', None)
     for fspec in files:
+        # update the trace report
+        localsite = localsite if localsite else fspec.ddmendpoint
+        trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
+        trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
+        trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
+
         # continue loop for files that are to be accessed directly
         if fspec.is_directaccess(ensure_replica=False) and allow_direct_access:
             fspec.status_code = 0
             fspec.status = 'remote_io'
+            trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
+            trace_report.send()
             continue
+
+        trace_report.update(catStart=time())
 
         dst = fspec.workdir or kwargs.get('workdir') or '.'
 
@@ -92,42 +96,21 @@ def copy_in(files, **kwargs):
                          'state': 'CP_TIMEOUT',
                          'error': 'Copy command timed out: %s' % stderr}
             else:
-                error = resolve_transfer_error(stdout + stderr, is_stagein=True)
+                error = resolve_common_transfer_errors(stdout + stderr, is_stagein=True)
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
+            trace_report.update(clientState=error.get('state') or 'STAGEIN_ATTEMPT_FAILED',
+                                stateReason=error.get('error'), timeEnd=time())
+            trace_report.send()
+
             raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
         fspec.status_code = 0
         fspec.status = 'transferred'
+        trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
+        trace_report.send()
 
     return files
-
-
-def resolve_transfer_error(output, is_stagein):
-    """
-        Resolve error code, client state and defined error mesage from the output of transfer command
-        :return: dict {'rcode', 'state, 'error'}
-    """
-
-    ret = {'rcode': ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
-           'state': 'COPY_ERROR', 'error': 'Copy operation failed [is_stagein=%s]: %s' % (is_stagein, output)}
-
-    ## VERIFY ME LATER
-    if "timeout" in output:
-        ret['rcode'] = ErrorCodes.STAGEINTIMEOUT if is_stagein else ErrorCodes.STAGEOUTTIMEOUT
-        ret['state'] = 'CP_TIMEOUT'
-        ret['error'] = 'copy command timed out: %s' % output
-    elif "does not match the checksum" in output:
-        if 'adler32' in output:
-            state = 'AD_MISMATCH'
-            rcode = ErrorCodes.GETADMISMATCH if is_stagein else ErrorCodes.PUTADMISMATCH
-        else:
-            state = 'MD5_MISMATCH'
-            rcode = ErrorCodes.GETMD5MISMATCH if is_stagein else ErrorCodes.PUTMD5MISMATCH
-        ret['rcode'] = rcode
-        ret['state'] = state
-
-    return ret
 
 
 def copy_out(files, **kwargs):
@@ -141,7 +124,11 @@ def copy_out(files, **kwargs):
     if not check_for_gfal():
         raise StageOutFailure("No GFAL2 tools found")
 
+    trace_report = kwargs.get('trace_report')
+
     for fspec in files:
+        trace_report.update(scope=fspec.scope, dataset=fspec.dataset, url=fspec.surl, filesize=fspec.filesize)
+        trace_report.update(catStart=time(), filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
 
         src = fspec.workdir or kwargs.get('workdir') or '.'
 
@@ -165,13 +152,19 @@ def copy_out(files, **kwargs):
                          'state': 'CP_TIMEOUT',
                          'error': 'Copy command timed out: %s' % stderr}
             else:
-                error = resolve_transfer_error(stdout + stderr, is_stagein=False)
+                error = resolve_common_transfer_errors(stdout + stderr, is_stagein=False)
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
+            trace_report.update(clientState=error.get('state', None) or 'STAGEOUT_ATTEMPT_FAILED',
+                                stateReason=error.get('error', 'unknown error'),
+                                timeEnd=time())
+            trace_report.send()
             raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
 
         fspec.status_code = 0
         fspec.status = 'transferred'
+        trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
+        trace_report.send()
 
     return files
 
@@ -241,6 +234,7 @@ def move_all_files_out(files, nretries=1):  ### NOT USED -- TO BE DEPRECATED
     return exit_code, stdout, stderr
 
 
+@timeout(seconds=600)
 def move(source, destination, recursive=False):
     cmd = None
     if recursive:

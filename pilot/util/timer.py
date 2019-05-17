@@ -18,6 +18,7 @@ Timer stops execution of wrapped function if it reaches the limit of provided ti
 
 import os
 import signal
+import sys
 
 import threading
 import multiprocessing
@@ -26,12 +27,13 @@ from Queue import Empty
 from functools import wraps
 
 
+# move this class to exception.py
 class TimeoutException(Exception):
 
     def __init__(self, message, timeout=None, *args):
         self.timeout = timeout
         self.message = message
-
+        self._errorCode = 1334
         super(TimeoutException, self).__init__(*args)
 
     def __str__(self):
@@ -56,8 +58,9 @@ class TimedThread(object):
 
         try:
             ret = (True, func(*args, **kwargs))
-        except Exception as e:
-            ret = (False, e)
+        except Exception:
+            ret = (False, sys.exc_info())
+
         self.result = ret
 
         return ret
@@ -85,7 +88,7 @@ class TimedThread(object):
         if ret[0]:
             return ret[1]
         else:
-            raise ret[1]
+            raise ret[1][0], ret[1][1], ret[1][2]
 
 
 class TimedProcess(object):
@@ -137,7 +140,7 @@ class TimedProcess(object):
         if ret[0]:
             return ret[1]
         else:
-            raise ret[1]
+            raise ret[1][0], ret[1][1], ret[1][2]
 
 
 if getattr(os, 'fork', None):

@@ -20,7 +20,8 @@ from pilot.util.config import config, human2bytes
 from pilot.util.container import execute
 from pilot.util.filehandling import get_directory_size, remove_files, get_local_file_size
 from pilot.util.loopingjob import looping_job
-from pilot.util.parameters import convert_to_int
+from pilot.util.math import convert_mb_to_b
+from pilot.util.parameters import convert_to_int, get_maximum_input_sizes
 from pilot.util.processes import get_current_cpu_consumption_time, kill_processes, get_number_of_child_processes
 from pilot.util.workernode import get_local_disk_space
 
@@ -84,9 +85,10 @@ def job_monitor_tasks(job, mt, args):
         return exit_code, diagnostics
 
     # is it time to verify the number of running processes?
-    exit_code, diagnostics = verify_running_processes(current_time, mt, job.pid)
-    if exit_code != 0:
-        return exit_code, diagnostics
+    if job.pid:
+        exit_code, diagnostics = verify_running_processes(current_time, mt, job.pid)
+        if exit_code != 0:
+            return exit_code, diagnostics
 
     # make sure that any utility commands are still running
     if job.utilities != {}:
@@ -171,9 +173,12 @@ def verify_looping_job(current_time, mt, job):
         try:
             exit_code, diagnostics = looping_job(job, mt)
         except Exception as e:
-            exit_code = errors.UNKNOWNEXCEPTION
             diagnostics = 'exception caught in looping job algorithm: %s' % e
             log.warning(diagnostics)
+            if "No module named" in diagnostics:
+                exit_code = errors.BLACKHOLE
+            else:
+                exit_code = errors.UNKNOWNEXCEPTION
             return exit_code, diagnostics
         else:
             if exit_code != 0:
@@ -414,7 +419,9 @@ def check_local_space():
     diagnostics = ""
 
     # is there enough local space to run a job?
-    spaceleft = int(get_local_disk_space(os.getcwd())) * 1024 ** 2  # B (diskspace is in MB)
+    cwd = os.getcwd()
+    logger.debug('checking local space on %s' % cwd)
+    spaceleft = convert_mb_to_b(get_local_disk_space(cwd))  # B (diskspace is in MB)
     free_space_limit = human2bytes(config.Pilot.free_space_limit)
     if spaceleft <= free_space_limit:
         diagnostics = 'too little space left on local disk to run job: %d B (need > %d B)' %\
@@ -494,14 +501,18 @@ def get_max_allowed_work_dir_size(queuedata):
     """
 
     try:
-        maxwdirsize = int(queuedata.maxwdir) * 1024 ** 2  # from MB to B, e.g. 16336 MB -> 17,129,537,536 B
-    except Exception:
+        maxwdirsize = convert_mb_to_b(get_maximum_input_sizes())  # from MB to B, e.g. 16336 MB -> 17,129,537,536 B
+    except Exception as e:
         max_input_size = get_max_input_size()
         maxwdirsize = max_input_size + config.Pilot.local_size_limit_stdout * 1024
         logger.info("work directory size check will use %d B as a max limit (maxinputsize [%d B] + local size limit for"
                     " stdout [%d B])" % (maxwdirsize, max_input_size, config.Pilot.local_size_limit_stdout * 1024))
+        logger.warning('conversion caught exception: %s' % e)
     else:
-        logger.info("work directory size check will use %d B as a max limit" % maxwdirsize)
+        # grace margin, as discussed in https://its.cern.ch/jira/browse/ATLASPANDA-482
+        margin = 10.0  # percent, read later from somewhere
+        maxwdirsize = int(maxwdirsize * (1 + margin / 100.0))
+        logger.info("work directory size check will use %d B as a max limit (10%% grace limit added)" % maxwdirsize)
 
     return maxwdirsize
 

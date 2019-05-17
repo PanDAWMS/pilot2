@@ -41,7 +41,7 @@ class StorageData(BaseData):
 
     pk = 0        # unique identification number
     name = ""     # DDMEndpoint name
-    type = ""     # type of Storage
+    type = ""     # type of Storage <- can this be renamed to storagetype without causing any problem with queuedata?
     token = ""    # space token descriptor
 
     is_deterministic = None
@@ -52,11 +52,12 @@ class StorageData(BaseData):
     arprotocols = {}
     rprotocols = {}
     special_setup = {}
+    resource = None
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['pk'],
              str: ['name', 'state', 'site', 'type', 'token'],
-             dict: ['copytools', 'acopytools', 'astorages', 'arprotocols', 'rprotocols'],
+             dict: ['copytools', 'acopytools', 'astorages', 'arprotocols', 'rprotocols', 'resource'],
              bool: ['is_deterministic']
              }
 

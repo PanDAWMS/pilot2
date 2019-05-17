@@ -7,6 +7,7 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
 
+import collections
 import hashlib
 import io
 import os
@@ -14,12 +15,16 @@ import re
 import tarfile
 import time
 import uuid
-from shutil import copy2
+from json import load
+from json import dump as dumpjson
+from shutil import copy2, rmtree
 from zlib import adler32
 
 from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile, \
     NotImplemented
-from pilot.util.container import execute
+from .auxiliary import get_logger
+from .container import execute
+from .math import diff_lists
 
 import logging
 logger = logging.getLogger(__name__)
@@ -147,10 +152,13 @@ def tail(filename, nlines=10):
 
     :param filename: name of file to do the tail on (string).
     :param nlines: number of lines (int).
-    :return: file tail (list)
+    :return: file tail (str).
     """
 
     exit_code, stdout, stderr = execute('tail -n %d %s' % (nlines, filename))
+    # protection
+    if type(stdout) != str:
+        stdout = ""
     return stdout
 
 
@@ -215,7 +223,6 @@ def convert(data):
     :return: converted data to utf-8
     """
 
-    import collections
     if isinstance(data, basestring):
         return str(data)
     elif isinstance(data, collections.Mapping):
@@ -224,6 +231,22 @@ def convert(data):
         return type(data)(map(convert, data))
     else:
         return data
+
+
+def is_json(input_file):
+    """
+    Check if the file is in JSON format.
+    The function reads the first character of the file, and if it is "{" then returns True.
+
+    :param input_file: file name (string)
+    :return: Boolean.
+    """
+
+    with open(input_file) as unknown_file:
+        c = unknown_file.read(1)
+        if c == '{':
+            return True
+        return False
 
 
 def read_json(filename):
@@ -238,7 +261,6 @@ def read_json(filename):
     dictionary = None
     f = open_file(filename, 'r')
     if f:
-        from json import load
         try:
             dictionary = load(f)
         except PilotException as e:
@@ -251,7 +273,7 @@ def read_json(filename):
                 try:
                     dictionary = convert(dictionary)
                 except Exception as e:
-                    raise ConversionFailure(e.message)
+                    raise ConversionFailure(e)
 
     return dictionary
 
@@ -268,7 +290,6 @@ def write_json(filename, dictionary):
 
     status = False
 
-    from json import dump
     try:
         fp = open(filename, "w")
     except IOError as e:
@@ -276,7 +297,7 @@ def write_json(filename, dictionary):
     else:
         # Write the dictionary
         try:
-            dump(dictionary, fp, sort_keys=True, indent=4, separators=(',', ': '))
+            dumpjson(dictionary, fp, sort_keys=True, indent=4, separators=(',', ': '))
         except PilotException as e:
             raise FileHandlingFailure(e.get_detail())
         else:
@@ -289,13 +310,17 @@ def write_json(filename, dictionary):
 def touch(path):
     """
     Touch a file and update mtime in case the file exists.
+    Default to use execute() if case of python problem with appending to non-existant path.
 
-    :param path:
+    :param path: full path to file to be touched (string).
     :return:
     """
 
-    with open(path, 'a'):
-        os.utime(path, None)
+    try:
+        with open(path, 'a'):
+            os.utime(path, None)
+    except Exception:
+        exit_code, stdout, stderr = execute('touch %s' % path)
 
 
 def remove_empty_directories(src_dir):
@@ -326,7 +351,22 @@ def remove(path):
     try:
         os.remove(path)
     except OSError as e:
-        logger.warning("failed to remove file: %s, %s" % (e.errno, e.strerror))
+        logger.warning("failed to remove file: %s (%s, %s)" % (path, e.errno, e.strerror))
+        return -1
+    return 0
+
+
+def remove_dir_tree(path):
+    """
+    Remove directory tree.
+    :param path: path to directory (string).
+    :return: 0 if successful, -1 if failed (int)
+    """
+
+    try:
+        rmtree(path)
+    except OSError as e:
+        logger.warning("failed to remove directory: %s (%s, %s)" % (path, e.errno, e.strerror))
         return -1
     return 0
 
@@ -719,3 +759,87 @@ def get_checksum_type(checksum):
             checksum_type = 'md5'
 
     return checksum_type
+
+
+def scan_file(path, error_messages, jobid, warning_message=None):
+    """
+    Scan file for known error messages.
+
+    :param path: path to file (string).
+    :param error_messages: list of error messages.
+    :param jobid: job id (int).
+    :param warning_message: optional warning message to printed with any of the error_messages have been found (string).
+    :return: Boolean. (note: True means the error was found)
+    """
+
+    found_problem = False
+
+    matched_lines = grep(error_messages, path)
+    if len(matched_lines) > 0:
+        log = get_logger(jobid)
+        if warning_message:
+            log.warning(warning_message)
+        for line in matched_lines:
+            log.info(line)
+        found_problem = True
+
+    return found_problem
+
+
+def verify_file_list(list_of_files):
+    """
+    Make sure that the files in the given list exist, return the list of files that does exist.
+
+    :param list_of_files: file list.
+    :return: list of existing files.
+    """
+
+    # remove any non-existent files from the input file list
+    filtered_list = [f for f in list_of_files if os.path.exists(f)]
+
+    diff = diff_lists(list_of_files, filtered_list)
+    if diff:
+        logger.debug('found %d file(s) that do not exist (e.g. %s)' % (len(diff), diff[0]))
+
+    return filtered_list
+
+
+def find_latest_modified_file(list_of_files):
+    """
+    Find the most recently modified file among the list of given files.
+    In case int conversion of getmtime() fails, int(time.time()) will be returned instead.
+
+    :param list_of_files: list of files with full paths.
+    :return: most recently updated file (string), modification time (int).
+    """
+
+    if not list_of_files:
+        logger.warning('there were no files to check mod time for')
+        return None, None
+
+    try:
+        latest_file = max(list_of_files, key=os.path.getctime)
+        mtime = int(os.path.getmtime(latest_file))
+    except Exception as e:
+        logger.warning("int conversion failed for mod time: %s" % e)
+        latest_file = ""
+        mtime = None
+
+    return latest_file, mtime
+
+
+def dump(path, cmd="cat"):
+    """
+    Dump the content of the file in the given path to the log.
+
+    :param path: file path (string).
+    :param cmd: optional command (string).
+    :return: cat (string).
+    """
+
+    if os.path.exists(path) or cmd == "echo":
+        _cmd = "%s %s" % (cmd, path)
+        exit_code, stdout, stderr = execute(_cmd)
+        logger.info("%s:\n%s" % (_cmd, stdout + stderr))
+    else:
+        logger.info("path %s does not exist" % path)

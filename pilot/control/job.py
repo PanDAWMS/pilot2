@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 from __future__ import print_function
@@ -17,30 +17,33 @@ import time
 import hashlib
 
 try:
-    import Queue as queue
+    import Queue as queue  # noqa: N813
 except Exception:
     import queue  # python 3
 
 from json import dumps
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import ExcThread
-from pilot.info import infosys, JobData
+from pilot.common.exception import ExcThread, PilotException  #, JobAlreadyRunning
+from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
-from pilot.util.auxiliary import time_stamp, get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger
+from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
+    set_pilot_state, get_pilot_state, check_for_final_server_update
 from pilot.util.config import config
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
-    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED
-from pilot.util.filehandling import get_files, tail
-from pilot.util.harvester import request_new_jobs, remove_job_request_file
+    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
+    SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
+from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json
+from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file
 from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.proxy import get_distinguished_name
-from pilot.util.queuehandling import scan_for_jobs
-from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since
-from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, is_virtual_machine
+from pilot.util.queuehandling import scan_for_jobs, put_in_queue
+from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since, time_stamp
+from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, is_virtual_machine, \
+    get_cpu_model
 
 import logging
 logger = logging.getLogger(__name__)
@@ -100,21 +103,52 @@ def control(queues, traces, args):
 
 def _validate_job(job):
     """
-    (add description)
+    Verify job parameters for specific problems.
+
+    :param job: job object.
+    :return: Boolean.
+    """
+
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+    if user.verify_job(job):
+        status = True
+    else:
+        status = False
+
+    return status
+
+
+def verify_error_code(job):
+    """
+    Make sure an error code is properly set.
+    This makes sure that job.piloterrorcode is always set for a failed/holding job, that not only
+    job.piloterrorcodes are set but not job.piloterrorcode. This function also negates the sign of the error code
+    and sets job state 'holding' (instead of 'failed') if the error is found to be recoverable by a later job (user
+    jobs only).
 
     :param job: job object.
     :return:
     """
-    # valid = random.uniform(0, 100)
-    # if valid > 99:
-    #     logger.warning('%s: job did not validate correctly -- skipping' % job.jobid)
-    #     job['errno'] = random.randint(0, 100)
-    #     job['errmsg'] = 'job failed random validation'
-    #     return False
-    return True
+
+    log = get_logger(job.jobid, logger)
+
+    if job.piloterrorcode == 0 and len(job.piloterrorcodes) > 0:
+        log.warning('piloterrorcode set to first piloterrorcodes list entry: %s' % str(job.piloterrorcodes))
+        job.piloterrorcode = job.piloterrorcodes[0]
+
+    if job.piloterrorcode != 0 and job.is_analysis():
+        if errors.is_recoverable(code=job.piloterrorcode):
+            job.piloterrorcode = -abs(job.piloterrorcode)
+            job.state = 'failed'
+            log.info('failed user job is recoverable (error code=%s)' % job.piloterrorcode)
+        else:
+            log.info('failed user job is not recoverable')
+    else:
+        log.info('verified error code')
 
 
-def send_state(job, args, state, xml=None):
+def send_state(job, args, state, xml=None, metadata=None):
     """
     Update the server (send heartbeat message).
     Interpret and handle any server instructions arriving with the updateJob backchannel.
@@ -123,71 +157,215 @@ def send_state(job, args, state, xml=None):
     :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :param state: job state (string).
     :param xml: optional metadata xml (string).
+    :param metadata: job report metadata read as a string.
     :return: boolean (True if successful, False otherwise).
     """
 
     log = get_logger(job.jobid, logger)
 
+    # _state = get_job_status(job, 'SERVER_UPDATE')
+
     # should the pilot make any server updates?
     if not args.update_server:
-        log.info('pilot will not update the server')
-        return True
+        log.info('pilot will not update the server (heartbeat message will be written to file)')
+    tag = 'sending' if args.update_server else 'writing'
 
-    if state == 'finished' or state == 'failed':
-        log.info('job %s has %s - sending final server update' % (job.jobid, state))
+    if state == 'finished' or state == 'failed' or state == 'holding':
+        final = True
+        os.environ['SERVER_UPDATE'] = SERVER_UPDATE_UPDATING
+        log.info('job %s has %s - %s final server update' % (job.jobid, state, tag))
+
+        # make sure that job.state is 'failed' if there's a set error code
+        if job.piloterrorcode or job.piloterrorcodes:
+            log.warning('making sure that job.state is set to failed since a pilot error code is set')
+            state = 'failed'
+            job.state = state
+        # make sure an error code is properly set
+        elif state != 'finished':
+            verify_error_code(job)
+
     else:
-        log.info('job %s has state \'%s\' - sending heartbeat' % (job.jobid, state))
+        final = False
+        log.info('job %s has state \'%s\' - %s heartbeat' % (job.jobid, state, tag))
 
     # build the data structure needed for getJob, updateJob
-    data = get_data_structure(job, state, args, xml=xml)
+    data = get_data_structure(job, state, args, xml=xml, metadata=metadata)
+
+    # write the heartbeat message to file if the server is not to be updated by the pilot (Nordugrid mode)
+    if not args.update_server:
+        # store the file in the main workdir
+        path = os.path.join(os.environ.get('PILOT_HOME'), config.Pilot.heartbeat_message)
+        if write_json(path, data):
+            log.debug('wrote heartbeat to file %s' % path)
+            return True
+        else:
+            return False
 
     try:
-        if args.url != '' and args.port != 0:
-            pandaserver = args.url + ':' + str(args.port)
-        else:
-            pandaserver = config.Pilot.pandaserver
+        # get the URL for the PanDA server from pilot options or from config
+        pandaserver = get_panda_server(args.url, args.port)
 
         if config.Pilot.pandajob == 'real':
             res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver), data=data)
+            log.info("res = %s" % str(res))
             if res is not None:
                 log.info('server updateJob request completed for job %s' % job.jobid)
-                log.info('res = %s' % str(res))
 
                 # does the server update contain any backchannel information? if so, update the job object
-                if 'command' in res and res.get('command') != 'NULL':
-                    # look for 'tobekilled', 'softkill', 'debug', 'debugoff'
-                    if res.get('command') == 'tobekilled':
-                        log.info('pilot received a panda server signal to kill job %s at %s' %
-                                 (job.jobid, time_stamp()))
-                        job.state = 'failed'
-                        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL)
-                        args.abort_job.set()
-                    elif res.get('command') == 'softkill':
-                        log.info('pilot received a panda server signal to softkill job %s at %s' %
-                                 (job.jobid, time_stamp()))
-                        # event service kill instruction
-                    elif res.get('command') == 'debug':
-                        log.info('pilot received a command to turn on debug mode from the server')
-                        job.debug = True
-                    elif res.get('command') == 'debugoff':
-                        log.info('pilot received a command to turn off debug mode from the server')
-                        job.debug = False
-                    else:
-                        log.warning('received unknown server command via backchannel: %s' % res.get('command'))
+                handle_backchannel_command(res, job, args)
 
+                if final:
+                    os.environ['SERVER_UPDATE'] = SERVER_UPDATE_FINAL
                 return True
         else:
             log.info('skipping job update for fake test job')
             return True
     except Exception as e:
-        log.warning('while setting job state, Exception caught: %s' % str(e.message))
+        log.warning('exception caught while sending https request: %s' % e)
+        log.warning('possibly offending data: %s' % data)
         pass
 
-    log.warning('set job state=%s failed' % state)
+    if final:
+        os.environ['SERVER_UPDATE'] = SERVER_UPDATE_TROUBLE
+
     return False
 
 
-def get_data_structure(job, state, args, xml=None):
+def get_job_status_from_server(job_id, url, port):
+    """
+    Return the current status of job <jobId> from the dispatcher.
+    typical dispatcher response: 'status=finished&StatusCode=0'
+    StatusCode  0: succeeded
+               10: time-out
+               20: general error
+               30: failed
+    In the case of time-out, the dispatcher will be asked one more time after 10 s.
+
+    :param job_id: PanDA job id (int).
+    :param url: PanDA server URL (string).
+    :param port: PanDA server port (int).
+    :return: status (string; e.g. holding), attempt_nr (int), status_code (int)
+    """
+
+    status = 'unknown'
+    attempt_nr = 0
+    status_code = 0
+    if config.Pilot.pandajob == 'fake':
+        return status, attempt_nr, status_code
+
+    data = {}
+    data['ids'] = job_id
+
+    # get the URL for the PanDA server from pilot options or from config
+    pandaserver = get_panda_server(url, port)
+
+    # ask dispatcher about lost job status
+    trial = 1
+    max_trials = 2
+
+    while trial <= max_trials:
+        try:
+            # open connection
+            ret = https.request('{pandaserver}/server/panda/getStatus'.format(pandaserver=pandaserver), data=data)
+            response = ret[1]
+            logger.info("response: %s" % str(response))
+            if response:
+                try:
+                    # decode the response
+                    # eg. var = ['status=notfound', 'attemptNr=0', 'StatusCode=0']
+                    # = response
+
+                    status = response['status']  # e.g. 'holding'
+                    attempt_nr = int(response['attemptNr'])  # e.g. '0'
+                    status_code = int(response['StatusCode'])  # e.g. '0'
+                except Exception as e:
+                    logger.warning(
+                        "exception: dispatcher did not return allowed values: %s, %s" % (str(ret), e))
+                    status = "unknown"
+                    attempt_nr = -1
+                    status_code = 20
+                else:
+                    logger.debug('server job status=%s, attempt_nr=%d, status_code=%d' % (status, attempt_nr, status_code))
+            else:
+                logger.warning("dispatcher did not return allowed values: %s" % str(ret))
+                status = "unknown"
+                attempt_nr = -1
+                status_code = 20
+        except Exception as e:
+            logger.warning("could not interpret job status from dispatcher: %s" % e)
+            status = 'unknown'
+            attempt_nr = -1
+            status_code = -1
+            break
+        else:
+            if status_code == 0:  # success
+                break
+            elif status_code == 10:  # time-out
+                trial += 1
+                time.sleep(10)
+                continue
+            elif status_code == 20:  # other error
+                if ret[0] == 13056 or ret[0] == '13056':
+                    logger.warning("wrong certificate used with curl operation? (encountered error 13056)")
+                break
+            else:  # general error
+                break
+
+    return status, attempt_nr, status_code
+
+
+def get_panda_server(url, port):
+    """
+    Get the URL for the PanDA server.
+
+    :param url: URL string, if set in pilot option (port not included).
+    :param port: port number, if set in pilot option (int).
+    :return: full URL (either from pilot options or from config file)
+    """
+
+    if url != '' and port != 0:
+        pandaserver = '%s:%s' % (url, port)
+    else:
+        pandaserver = config.Pilot.pandaserver
+
+    return pandaserver
+
+
+def handle_backchannel_command(res, job, args):
+    """
+    Does the server update contain any backchannel information? if so, update the job object.
+
+    :param res: server response (dictionary).
+    :param job: job object.
+    :param args: pilot args object.
+    :return:
+    """
+
+    log = get_logger(job.jobid, logger)
+
+    if 'command' in res and res.get('command') != 'NULL':
+        # look for 'tobekilled', 'softkill', 'debug', 'debugoff'
+        if res.get('command') == 'tobekilled':
+            log.info('pilot received a panda server signal to kill job %s at %s' %
+                     (job.jobid, time_stamp()))
+            set_pilot_state(job=job, state="failed")
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL)
+            args.abort_job.set()
+        elif res.get('command') == 'softkill':
+            log.info('pilot received a panda server signal to softkill job %s at %s' %
+                     (job.jobid, time_stamp()))
+            # event service kill instruction
+        elif res.get('command') == 'debug':
+            log.info('pilot received a command to turn on debug mode from the server')
+            job.debug = True
+        elif res.get('command') == 'debugoff':
+            log.info('pilot received a command to turn off debug mode from the server')
+            job.debug = False
+        else:
+            log.warning('received unknown server command via backchannel: %s' % res.get('command'))
+
+
+def get_data_structure(job, state, args, xml=None, metadata=None):
     """
     Build the data structure needed for getJob, updateJob.
 
@@ -195,6 +373,7 @@ def get_data_structure(job, state, args, xml=None):
     :param state: state of the job (string).
     :param args:
     :param xml: optional XML string.
+    :param metadata: job report metadata read as a string.
     :return: data structure (dictionary).
     """
 
@@ -205,27 +384,6 @@ def get_data_structure(job, state, args, xml=None):
             'timestamp': time_stamp(),
             'siteName': args.site,
             'node': get_node_name()}
-
-    # error codes
-    pilot_error_code = job.piloterrorcode
-    pilot_error_codes = job.piloterrorcodes
-    if pilot_error_codes != []:
-        log.warning('pilotErrorCodes = %s (will report primary/first error code)' % str(pilot_error_codes))
-        data['pilotErrorCode'] = pilot_error_codes[0]
-    else:
-        data['pilotErrorCode'] = pilot_error_code
-
-    pilot_error_diag = job.piloterrordiag
-    pilot_error_diags = job.piloterrordiags
-    if pilot_error_diags != []:
-        log.warning('pilotErrorDiags = %s (will report primary/first error diag)' % str(pilot_error_diags))
-        data['pilotErrorDiag'] = pilot_error_diags[0]
-    else:
-        data['pilotErrorDiag'] = pilot_error_diag
-
-    data['transExitCode'] = job.transexitcode
-    data['exeErrorCode'] = job.exeerrorcode
-    data['exeErrorDiag'] = job.exeerrordiag
 
     data['attemptNr'] = job.attemptnr
 
@@ -243,7 +401,7 @@ def get_data_structure(job, state, args, xml=None):
         if batchsystem_type:
             data['pilotID'] = "%s|%s|%s|%s" % \
                               (pilotid, batchsystem_type, args.version_tag, pilotversion)
-            data['batchID'] = batchsystem_id,
+            data['batchID'] = batchsystem_id
         else:
             data['pilotID'] = "%s|%s|%s" % (pilotid, args.version_tag, pilotversion)
 
@@ -257,29 +415,185 @@ def get_data_structure(job, state, args, xml=None):
 
     if xml is not None:
         data['xml'] = xml
+    if metadata is not None:
+        data['metaData'] = metadata
 
     # in debug mode, also send a tail of the latest log file touched by the payload
     if job.debug:
-        # find the latest updated log file
-        list_of_files = get_files()
-        if not list_of_files:
-            log.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
-            list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]  # get_files(pattern=config.Payload.payloadstdout)
+        stdout_tail = get_payload_log_tail()
+        if stdout_tail:
+            data['stdout'] = stdout_tail
 
+    # add the core count
+    if job.corecount and job.corecount != 'null' and job.corecount != 'NULL':
+        data['coreCount'] = job.corecount
+
+    # get the number of events, should report in heartbeat in case of preempted.
+    if job.nevents != 0:
+        data['nEvents'] = job.nevents
+        log.info("total number of processed events: %d (read)" % job.nevents)
+    else:
+        log.info("payload/TRF did not report the number of read events")
+
+    # get the CU consumption time
+    constime = get_cpu_consumption_time(job.cpuconsumptiontime)
+    if constime and constime != -1:
+        data['cpuConsumptionTime'] = constime
+        data['cpuConsumptionUnit'] = job.cpuconsumptionunit + "+" + get_cpu_model()
+        data['cpuConversionFactor'] = job.cpuconversionfactor
+
+    # add memory information if available
+    add_memory_info(data, job.workdir)
+
+    if state == 'finished' or state == 'failed':
+        add_timing_and_extracts(data, job, state, args)
+        add_error_codes(data, job)
+
+    return data
+
+
+def add_error_codes(data, job):
+    """
+    Add error codes to data structure.
+
+    :param data: data dictionary.
+    :param job: job object.
+    :return:
+    """
+
+    log = get_logger(job.jobid, logger)
+
+    # error codes
+    pilot_error_code = job.piloterrorcode
+    pilot_error_codes = job.piloterrorcodes
+    if pilot_error_codes != []:
+        log.warning('pilotErrorCodes = %s (will report primary/first error code)' % str(pilot_error_codes))
+        data['pilotErrorCode'] = pilot_error_codes[0]
+    else:
+        data['pilotErrorCode'] = pilot_error_code
+
+    # add error info
+    pilot_error_diag = job.piloterrordiag
+    pilot_error_diags = job.piloterrordiags
+    if pilot_error_diags != []:
+        log.warning('pilotErrorDiags = %s (will report primary/first error diag)' % str(pilot_error_diags))
+        data['pilotErrorDiag'] = pilot_error_diags[0]
+    else:
+        data['pilotErrorDiag'] = pilot_error_diag
+    data['transExitCode'] = job.transexitcode
+    data['exeErrorCode'] = job.exeerrorcode
+    data['exeErrorDiag'] = job.exeerrordiag
+
+
+def get_cpu_consumption_time(cpuconsumptiontime):
+    """
+    Get the CPU consumption time.
+    The function makes sure that the value exists and is within allowed limits (< 10^9).
+
+    :param cpuconsumptiontime: CPU consumption time (int/None).
+    :return: properly set CPU consumption time (int/None).
+    """
+
+    constime = None
+
+    try:
+        constime = int(cpuconsumptiontime)
+    except Exception:
+        constime = None
+    if constime and constime > 10 ** 9:
+        logger.warning("unrealistic cpuconsumptiontime: %d (reset to -1)" % constime)
+        constime = -1
+
+    return constime
+
+
+def add_timing_and_extracts(data, job, state, args):
+    """
+    Add timing info and log extracts to data structure for a completed job (finished or failed) to be sent to server.
+    Note: this function updates the data dictionary.
+
+    :param data: data structure (dictionary).
+    :param job: job object.
+    :param state: state of the job (string).
+    :param args: pilot args.
+    :return:
+    """
+
+    time_getjob, time_stagein, time_payload, time_stageout, time_total_setup = timing_report(job.jobid, args)
+    data['pilotTiming'] = "%s|%s|%s|%s|%s" % \
+                          (time_getjob, time_stagein, time_payload, time_stageout, time_total_setup)
+
+    # add log extracts (for failed/holding jobs or for jobs with outbound connections)
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
+    extracts = user.get_log_extracts(job, state)
+    if extracts != "":
+        logger.warning('pilot log extracts:\n%s' % extracts)
+        data['pilotLog'] = extracts[:1024]
+
+
+def add_memory_info(data, workdir):
+    """
+    Add memory information (if available) to the data structure that will be sent to the server with job updates
+    Note: this function updates the data dictionary.
+
+    :param data: data structure (dictionary).
+    :param workdir: working directory of the job (string).
+    :return:
+    """
+
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user], -1)
+    try:
+        utility_node = utilities.get_memory_monitor_info(workdir)
+        data.update(utility_node)
+    except Exception as e:
+        logger.info('memory information not available: %s' % e)
+        pass
+
+
+def get_list_of_log_files():
+    """
+    Return a list of log files produced by the payload.
+
+    :return: list of log files.
+    """
+
+    list_of_files = get_files()
+    if not list_of_files:  # some TRFs produce logs with different naming scheme
+        list_of_files = get_files(pattern="log.*")
+
+    return list_of_files
+
+
+def get_payload_log_tail(job):
+    """
+    Return the tail of the payload stdout or its latest updated log file.
+
+    :param job: job object.
+    :return: tail of stdout (string).
+    """
+
+    log = get_logger(job.jobid, logger)
+    stdout_tail = ""
+
+    # find the latest updated log file
+    list_of_files = get_list_of_log_files(job)
+    if not list_of_files:
+        log.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
+        list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]  # get_files(pattern=config.Payload.payloadstdout)
+
+    try:
         latest_file = max(list_of_files, key=os.path.getmtime)
         log.info('tail of file %s will be added to heartbeat' % latest_file)
 
         # now get the tail of the found log file and protect against potentially large tails
-        stdout_tail = tail(latest_file)
+        stdout_tail = latest_file + "\n" + tail(latest_file)
         stdout_tail = stdout_tail[-2048:]
-        data['stdout'] = stdout_tail
+    except Exception as e:
+        log.warning('failed to get payload stdout tail: %s' % e)
 
-    if state == 'finished' or state == 'failed':
-        time_getjob, time_stagein, time_payload, time_stageout, time_total_setup = timing_report(job.jobid, args)
-        data['pilotTiming'] = "%s|%s|%s|%s|%s" % \
-                              (time_getjob, time_stagein, time_payload, time_stageout, time_total_setup)
-
-    return data
+    return stdout_tail
 
 
 def validate(queues, traces, args):
@@ -315,21 +629,23 @@ def validate(queues, traces, args):
                 job.workdir = job_dir
             except Exception as e:
                 log.debug('cannot create working directory: %s' % str(e))
-                queues.failed_jobs.put(job)
+                traces.pilot['error_code'] = errors.MKDIR
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(traces.pilot['error_code'])
+                job.piloterrordiag = e
+                put_in_queue(job, queues.failed_jobs)
                 break
 
             log.debug('symlinking pilot log')
             try:
                 os.symlink('../pilotlog.txt', os.path.join(job_dir, 'pilotlog.txt'))
             except Exception as e:
-                log.debug('cannot symlink pilot log: %s' % str(e))
-#                queues.failed_jobs.put(job)
-#                break
+                log.warning('cannot symlink pilot log: %s' % str(e))
 
-            queues.validated_jobs.put(job)
+            put_in_queue(job, queues.validated_jobs)
+
         else:
             log.debug('Failed to validate job=%s' % job.jobid)
-            queues.failed_jobs.put(job)
+            put_in_queue(job, queues.failed_jobs)
 
 
 def create_data_payload(queues, traces, args):
@@ -350,12 +666,15 @@ def create_data_payload(queues, traces, args):
 
         if job.indata:
             # if the job has input data, put the job object in the data_in queue which will trigger stage-in
-            queues.data_in.put(job)
+            set_pilot_state(job=job, state='stagein')
+            put_in_queue(job, queues.data_in)
+
         else:
             # if the job does not have any input data, then pretend that stage-in has finished and put the job
             # in the finished_data_in queue
-            queues.finished_data_in.put(job)
-        queues.payloads.put(job)
+            put_in_queue(job, queues.finished_data_in)
+
+        put_in_queue(job, queues.payloads)
 
 
 def get_task_id():
@@ -380,13 +699,25 @@ def get_job_label(args):
     Return a proper job label.
     The function returns a job label that corresponds to the actual pilot version, ie if the pilot is a development
     version (ptest or rc_test2) or production version (managed or user).
+    Example: -i RC -> job_label = rc_test2.
+    NOTE: it should be enough to only use the job label, -j rc_test2 (and not specify -i RC at all).
 
     :param args: pilot args object.
     :return: job_label (string).
     """
 
-    if args.version_tag.startswith('RC'):
+    # PQ status
+    status = infosys.queuedata.status
+
+    if args.version_tag == 'RC' and (args.job_label == 'ptest' or args.job_label == 'rc_test2'):
         job_label = 'rc_test2'
+    elif args.version_tag == 'RCM' and args.job_label == 'ptest':
+        job_label = 'rcm_test2'
+    elif args.version_tag == 'ALRB':
+        job_label = 'rc_alrb'
+    elif status == 'test' and args.job_label != 'ptest':
+        logger.warning('PQ status set to test - will use job label / prodSourceLabel test')
+        job_label = 'test'
     else:
         job_label = args.job_label
 
@@ -412,22 +743,21 @@ def get_dispatcher_dictionary(args):
     :returns: dictionary prepared for the dispatcher getJob operation.
     """
 
-    #_diskspace = get_disk_space(args.location.queuedata)
-
-    ## passing here the queuedata is redundant since it's available
-    ## globally via pilot.info.infosys
-    ## kept for a while as "wrong" example .. to be cleaned soon
-    _diskspace = get_disk_space(args.info.infoservice.queuedata)
+    _diskspace = get_disk_space(infosys.queuedata)
 
     _mem, _cpu, _disk = collect_workernode_info()
+
     _nodename = get_node_name()
 
     # override for RC dev pilots
     job_label = get_job_label(args)
 
+    logger.debug('infosys.queuedata.resource=%s' % infosys.queuedata.resource)
+    logger.debug('args.resource=%s' % args.resource)
+
     data = {
-        'siteName': args.resource,
-        'computingElement': args.location.queue,
+        'siteName': args.resource,   ## replace it with `infosys.queuedata.resource` to remove redundant '-r' option of pilot.py
+        'computingElement': args.queue,
         'prodSourceLabel': job_label,
         'diskSpace': _diskspace,
         'workingGroup': args.working_group,
@@ -454,10 +784,16 @@ def get_dispatcher_dictionary(args):
     if args.resource_type != "":
         data['resourceType'] = args.resource_type
 
+    # add harvester fields
+    if 'HARVESTER_ID' in os.environ:
+        data['harvester_id'] = os.environ.get('HARVESTER_ID')
+    if 'HARVESTER_WORKER_ID' in os.environ:
+        data['worker_id'] = os.environ.get('HARVESTER_WORKER_ID')
+
     return data
 
 
-def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harvester, verify_proxy):
+def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harvester, verify_proxy, traces):
     """
     Can we proceed with getjob?
     We may not proceed if we have run out of time (timefloor limit), if the proxy is too short, if disk space is too
@@ -469,6 +805,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     :param getjob_requests: number of getjob requests
     :param harvester: True if Harvester is used, False otherwise. Affects the max number of getjob reads (from file).
     :param verify_proxy: True if the proxy should be verified. False otherwise.
+    :param traces: traces object (to be able to propagate a proxy error all the way back to the wrapper).
     :return: Boolean.
     """
 
@@ -479,6 +816,8 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
 
     currenttime = time.time()
 
+    logger.debug('proceed_with_getjob called with getjob_requests=%d' % getjob_requests)
+
     # should the proxy be verified?
     if verify_proxy:
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -486,6 +825,8 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
 
         # is the proxy still valid?
         exit_code, diagnostics = userproxy.verify_proxy()
+        if traces.pilot['error_code'] == 0:  # careful so we don't overwrite another error code
+            traces.pilot['error_code'] = exit_code
         if exit_code == errors.NOPROXY or exit_code == errors.NOVOMSPROXY:
             logger.warning(diagnostics)
             return False
@@ -493,6 +834,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # is there enough local space to run a job?
     ec, diagnostics = check_local_space()
     if ec != 0:
+        traces.pilot['error_code'] = errors.NOLOCALSPACE
         return False
 
     if harvester:
@@ -503,14 +845,23 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     if getjob_requests > int(maximum_getjob_requests):
         logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' %
                        config.Pilot.maximum_getjob_requests)
+        # use singleton:
+        # instruct the pilot to wrap up quickly
+        os.environ['PILOT_WRAP_UP'] = 'QUICKLY'
         return False
 
     if timefloor == 0 and jobnumber > 0:
         logger.warning("since timefloor is set to 0, pilot was only allowed to run one job")
+        # use singleton:
+        # instruct the pilot to wrap up quickly
+        os.environ['PILOT_WRAP_UP'] = 'QUICKLY'
         return False
 
     if (currenttime - starttime > timefloor) and jobnumber > 0:
         logger.warning("the pilot has run out of time (timefloor=%d has been passed)" % timefloor)
+        # use singleton:
+        # instruct the pilot to wrap up quickly
+        os.environ['PILOT_WRAP_UP'] = 'QUICKLY'
         return False
 
     # timefloor not relevant for the first job
@@ -524,6 +875,11 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
         logger.info('asking Harvester for another job')
         request_new_jobs()
 
+    if os.environ.get('SERVER_UPDATE', '') == SERVER_UPDATE_UPDATING:
+        logger.info('still updating previous job, will not ask for a new job yet')
+        return False
+
+    os.environ['SERVER_UPDATE'] = SERVER_UPDATE_NOT_DONE
     return True
 
 
@@ -559,10 +915,24 @@ def get_job_definition_from_file(path, harvester):
     :return: job definition dictionary.
     """
 
-    # remove any existing Harvester job request files (silent in non-Harvester mode)
+    # remove any existing Harvester job request files (silent in non-Harvester mode) and read the JSON
     if harvester:
         remove_job_request_file()
+        if is_json(path):
+            job_definition_list = parse_job_definition_file(path)
+            if not job_definition_list:
+                logger.warning('no jobs were found in Harvester job definitions file: %s' % path)
+                return {}
+            else:
+                # remove the job definition file from the original location, place a renamed copy in the pilot dir
+                new_path = os.path.join(os.environ.get('PILOT_HOME'), 'job_definition.json')
+                copy(path, new_path)
+                remove(path)
 
+                # note: the pilot can only handle one job at the time from Harvester
+                return job_definition_list[0]
+
+    # old style
     res = {}
     with open(path, 'r') as jobdatafile:
         response = jobdatafile.read()
@@ -602,19 +972,40 @@ def get_job_definition_from_server(args):
     return res
 
 
+def locate_job_definition(args):
+    """
+    Locate the job definition file among standard locations.
+
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
+    :return: path (string).
+    """
+
+    paths = [os.path.join("%s/.." % args.sourcedir, config.Pilot.pandajobdata),
+             os.path.join(args.sourcedir, config.Pilot.pandajobdata),
+             os.path.join(os.environ['PILOT_WORK_DIR'], config.Pilot.pandajobdata)]
+
+    path = ""
+    for _path in paths:
+        if os.path.exists(_path):
+            path = _path
+            break
+
+    if path == "":
+        logger.info('did not find any local job definition file')
+
+    return path
+
+
 def get_job_definition(args):
     """
     Get a job definition from a source (server or pre-placed local file).
+
     :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return: job definition dictionary.
     """
 
     res = {}
-
-    path = os.path.join(os.environ['PILOT_WORK_DIR'], config.Pilot.pandajobdata)
-
-    if not os.path.exists(path):
-        logger.warning('Job definition file does not exist: %s' % path)
+    path = locate_job_definition(args)
 
     # should we run a norma 'real' job or with a 'fake' job?
     if config.Pilot.pandajob == 'fake':
@@ -624,7 +1015,7 @@ def get_job_definition(args):
         logger.info('will read job definition from file %s' % path)
         res = get_job_definition_from_file(path, args.harvester)
     else:
-        if args.harvester:
+        if args.harvester and args.harvester_submitmode.lower() == 'push':
             pass  # local job definition file not found (go to sleep)
         else:
             logger.info('will download job definition from server')
@@ -817,6 +1208,8 @@ def retrieve(queues, traces, args):
     :param queues: internal queues for job handling.
     :param traces: tuple containing internal pilot states.
     :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
+    :raises PilotException: if create_job fails (e.g. because queuedata could not be downloaded).
+    :return:
     """
 
     timefloor = infosys.queuedata.timefloor
@@ -831,7 +1224,11 @@ def retrieve(queues, traces, args):
 
         getjob_requests += 1
 
-        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester, args.verify_proxy):
+        logger.debug('getjob_requests=%d' % getjob_requests)
+        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester, args.verify_proxy, traces):
+            # do not set graceful stop if pilot has not finished sending the final job update
+            # i.e. wait until SERVER_UPDATE is DONE_FINAL
+            check_for_final_server_update(args.update_server)
             args.graceful_stop.set()
             break
 
@@ -844,6 +1241,10 @@ def retrieve(queues, traces, args):
 
         if res is None:
             logger.fatal('fatal error in job download loop - cannot continue')
+            # do not set graceful stop if pilot has not finished sending the final job update
+            # i.e. wait until SERVER_UPDATE is DONE_FINAL
+            check_for_final_server_update(args.update_server)
+            args.graceful_stop.set()
             break
 
         if not res:
@@ -856,7 +1257,8 @@ def retrieve(queues, traces, args):
                 time.sleep(1)
         else:
             # it seems the PanDA server returns StatusCode as an int, but the aCT returns it as a string
-            if res['StatusCode'] != '0' and res['StatusCode'] != 0:
+            # note: StatusCode keyword is not available in job definition files from Harvester (not needed)
+            if 'StatusCode' in res and res['StatusCode'] != '0' and res['StatusCode'] != 0:
                 logger.warning('did not get a job -- sleep 60s and repeat -- status: %s' % res['StatusCode'])
                 for i in xrange(60):
                     if args.graceful_stop.is_set():
@@ -864,8 +1266,21 @@ def retrieve(queues, traces, args):
                     time.sleep(1)
             else:
                 # create the job object out of the raw dispatcher job dictionary
-                job = create_job(res, args.queue)
-
+                try:
+                    job = create_job(res, args.queue)
+                except PilotException as error:
+                    raise error
+                else:
+                    pass
+                    # verify the job status on the server
+                    #try:
+                    #    job_status, job_attempt_nr, job_status_code = get_job_status_from_server(job.jobid, args.url, args.port)
+                    #    if job_status == "running":
+                    #        pilot_error_diag = "job %s is already running elsewhere - aborting" % (job.jobid)
+                    #        logger.warning(pilot_error_diag)
+                    #        raise JobAlreadyRunning(pilot_error_diag)
+                    #except Exception as e:
+                    #    logger.warning("%s" % e)
                 # write time stamps to pilot timing file
                 # note: PILOT_POST_GETJOB corresponds to START_TIME in Pilot 1
                 add_to_pilot_timing(job.jobid, PILOT_PRE_GETJOB, time_pre_getjob, args)
@@ -873,12 +1288,13 @@ def retrieve(queues, traces, args):
 
                 # add the job definition to the jobs queue and increase the job counter,
                 # and wait until the job has finished
-                queues.jobs.put(job)
+                put_in_queue(job, queues.jobs)
 
                 jobnumber += 1
                 while not args.graceful_stop.is_set():
                     if has_job_completed(queues):
                         logger.info('ready for new job')
+                        getjob_requests = 0
                         break
                     time.sleep(0.5)
 
@@ -906,7 +1322,6 @@ def create_job(dispatcher_response, queue):
     """
 
     # initialize (job specific) InfoService instance
-    from pilot.info import InfoService, JobInfoProvider
 
     job = JobData(dispatcher_response)
 
@@ -982,7 +1397,7 @@ def has_job_finished(queues):
     else:
         logger.info("job %s has finished" % job.jobid)
         # make sure that state=finished
-        job.state = 'finished'
+        set_pilot_state(job=job, state="finished")
 
     return job
 
@@ -1000,9 +1415,9 @@ def has_job_failed(queues):
         # logger.info("(job still running)")
         job = None
     else:
-        logger.info("job %s has failed" % job.jobid)
         # make sure that state=failed
-        job.state = 'failed'
+        set_pilot_state(job=job, state="failed")
+        logger.info("job %s has state=%s" % (job.jobid, job.state))
 
     return job
 
@@ -1045,7 +1460,9 @@ def order_log_transfer(args, queues, job):
 
     # add the job object to the data_out queue to have it staged out
     job.stageout = 'log'  # only stage-out log file
-    queues.data_out.put(job)
+    set_pilot_state(job=job, state='stageout')
+    put_in_queue(job, queues.data_out)
+
     log.info('job added to data_out queue')
 
     # wait for the log transfer to finish
@@ -1133,7 +1550,8 @@ def queue_monitor(queues, traces, args):
     if not scan_for_jobs(queues):
         logger.warning('queues are still empty of jobs - will begin queue monitoring anyway')
 
-    abort = False
+    job = None
+    sentfinal = False
     while True:  # will abort when graceful_stop has been set
         if traces.pilot['command'] == 'abort':
             logger.warning('job queue monitor received an abort instruction')
@@ -1141,26 +1559,38 @@ def queue_monitor(queues, traces, args):
         # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
         # (abort at the end of the loop)
         abort = should_abort(args, label='job:queue_monitor')
-        if abort:
+        if abort and os.environ.get('PILOT_WRAP_UP', '') == 'NORMAL':
             pause_queue_monitor(20)
 
         # check if the job has finished
-        job = check_job(args, queues)
+        imax = 20
+        i = 0
+        while i < imax and os.environ.get('PILOT_WRAP_UP', '') == 'NORMAL':
+            job = check_job(args, queues)
+            if job:
+                logger.debug('check_job returned job with state=%s' % job.state)
+                break
+            i += 1
+            state = get_pilot_state()  # the job object is not available, but the state is also kept in PILOT_JOB_STATE
+            if state != 'stage-out':
+                # logger.info("no need to wait since job state=\'%s\'" % state)
+                break
+            if abort:
+                pause_queue_monitor(60)
 
         # job has not been defined if it's still running
         if job:
             log = get_logger(job.jobid)
-            log.info('preparing for final server update for job %s' % job.jobid)
+            log.info("preparing for final server update for job %s (state=\'%s\')" % (job.jobid, job.state))
 
             if args.job_aborted.is_set():
                 # wait for stage-out to finish for aborted job
                 wait_for_aborted_job_stageout(args, queues, job)
 
             # send final server update
-            if job.fileinfo:
-                send_state(job, args, job.state, xml=dumps(job.fileinfo))
-            else:
-                send_state(job, args, job.state)
+            if not sentfinal:
+                update_server(job, args)
+                sentfinal = True
 
             # we can now stop monitoring this job, so remove it from the monitored_payloads queue and add it to the
             # completed_jobs queue which will tell retrieve() that it can download another job
@@ -1168,15 +1598,43 @@ def queue_monitor(queues, traces, args):
                 _job = queues.monitored_payloads.get(block=True, timeout=1)
             except queue.Empty:
                 logger.warning('failed to dequeue job: queue is empty (did job fail before job monitor started?)')
+                make_job_report(job)
             else:
                 logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
                 # now ready for the next job (or quit)
-                queues.completed_jobs.put(_job)
+                put_in_queue(job, queues.completed_jobs)
+                # reset the sentfinal since we will now get another job
+                sentfinal = False
 
         if abort:
             break
 
     logger.info('[job] queue monitor has finished')
+
+
+def update_server(job, args):
+    """
+    Update the server (wrapper for send_state() that also prepares the metadata).
+
+    :param job: job object.
+    :param args: pilot args object.
+    :return:
+    """
+
+    log = get_logger(job.jobid)
+
+    path = os.path.join(job.workdir, config.Payload.jobreport)
+    if os.path.exists(path):
+        metadata = read_file(path)  # read_json(path)
+    else:
+        metadata = None
+    log.debug('metadata=%s' % str(metadata))
+    if job.fileinfo:
+        log.debug('xml:will send fileinfo')
+        send_state(job, args, job.state, xml=dumps(job.fileinfo), metadata=metadata)
+    else:
+        log.debug('will not send fileinfo')
+        send_state(job, args, job.state, metadata=metadata)
 
 
 def pause_queue_monitor(delay):
@@ -1187,8 +1645,7 @@ def pause_queue_monitor(delay):
     :return:
     """
 
-    logger.warning('since job:queue_monitor is responsible for sending job updates, we sleep until log has been'
-                   ' transferred (or a maximum of %d s)' % delay)
+    logger.warning('since job:queue_monitor is responsible for sending job updates, we sleep for %d s' % delay)
     time.sleep(delay)
 
 
@@ -1203,21 +1660,29 @@ def check_job(args, queues):
     """
 
     job = has_job_finished(queues)
-    if not job:
+    if job:
+        logger.info('check_job: job has finished')
+    else:
+        # logger.info('check_job: job has not finished')
         job = has_job_failed(queues)
+        if job:
+            logger.debug('check_job: job has failed')
 
-        # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
-        log_transfer = get_job_status(job, 'LOG_TRANSFER')
+            # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
+            log_transfer = get_job_status(job, 'LOG_TRANSFER')
 
-        if job and log_transfer == LOG_TRANSFER_NOT_DONE:
-            # order a log transfer for a failed job
-            order_log_transfer(args, queues, job)
+            if log_transfer == LOG_TRANSFER_NOT_DONE:
+                # order a log transfer for a failed job
+                order_log_transfer(args, queues, job)
 
     # check if the job has failed
     if job and job.state == 'failed':
         # set job_aborted in case of kill signals
         if args.abort_job.is_set():
             logger.warning('queue monitor detected a set abort_job (due to a kill signal), setting job_aborted')
+            # do not set graceful stop if pilot has not finished sending the final job update
+            # i.e. wait until SERVER_UPDATE is DONE_FINAL
+            check_for_final_server_update(args.update_server)
             args.job_aborted.set()
 
     return job
@@ -1309,34 +1774,20 @@ def job_monitor(queues, traces, args):
                 # perform the monitoring tasks
                 exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
                 if exit_code != 0:
-                    jobs[i].state = 'failed'
-                    jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
-                    queues.failed_payloads.put(jobs[i])
-                    log.info('aborting job monitoring since job state=%s' % jobs[i].state)
+                    fail_monitored_job(jobs[i], exit_code, diagnostics, queues, traces)
                     break
 
                 # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
                 # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
-                period = get_heartbeat_period(jobs[i].debug)
-                now = int(time.time())
-                if now - update_time >= period:
+                if int(time.time()) - update_time >= get_heartbeat_period(jobs[i].debug):
                     send_state(jobs[i], args, 'running')
                     update_time = int(time.time())
 
+        elif os.environ.get('PILOT_JOB_STATE') == 'stagein':
+            logger.info('job monitoring is waiting for stage-in to finish')
         else:
-            waiting_time = int(time.time()) - peeking_time
-            msg = 'no jobs in monitored_payloads queue (waited for %d s)' % waiting_time
-            if waiting_time > 120:
-                abort = True
-                msg += ' - aborting'
-            else:
-                abort = False
-            if logger:
-                logger.warning(msg)
-            else:
-                print(msg)
-            if abort:
-                args.graceful_stop.set()
+            # check the waiting time in the job monitor. set global graceful_stop if necessary
+            check_job_monitor_waiting_time(args, peeking_time)
 
         n += 1
 
@@ -1344,6 +1795,56 @@ def job_monitor(queues, traces, args):
             break
 
     logger.info('job monitor has finished')
+
+
+def check_job_monitor_waiting_time(args, peeking_time):
+    """
+    Check the waiting time in the job monitor.
+    Set global graceful_stop if necessary.
+
+    :param args: args object.
+    :param peeking_time: time when monitored_payloads queue was peeked into (int).
+    :return:
+    """
+
+    waiting_time = int(time.time()) - peeking_time
+    msg = 'no jobs in monitored_payloads queue (waited for %d s)' % waiting_time
+    if waiting_time > 60 * 60:
+        abort = True
+        msg += ' - aborting'
+    else:
+        abort = False
+    if logger:
+        logger.warning(msg)
+    else:
+        print(msg)
+    if abort:
+        # do not set graceful stop if pilot has not finished sending the final job update
+        # i.e. wait until SERVER_UPDATE is DONE_FINAL
+        check_for_final_server_update(args.update_server)
+        args.graceful_stop.set()
+
+
+def fail_monitored_job(job, exit_code, diagnostics, queues, traces):
+    """
+    Fail a monitored job.
+
+    :param job: job object
+    :param exit_code: exit code from job_monitor_tasks (int).
+    :param diagnostics: pilot error diagnostics (string).
+    :param queues: queues object.
+    :param traces: traces object.
+    :return:
+    """
+
+    log = get_logger(job.jobid)
+
+    set_pilot_state(job=job, state="failed")
+    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
+    job.pilorerrordiag = diagnostics
+    traces.pilot['error_code'] = exit_code
+    put_in_queue(job, queues.failed_payloads)
+    log.info('aborting job monitoring since job state=%s' % job.state)
 
 
 def make_job_report(job):
@@ -1375,7 +1876,10 @@ def make_job_report(job):
     for key in job.status:
         info += key + " = " + job.status[key] + " "
     log.info('status: %s' % info)
-    log.info('pilot state: %s' % job.state)
+    s = ""
+    if job.is_analysis() and job.state != 'finished':
+        s = '(user job is recoverable)' if errors.is_recoverable(code=job.piloterrorcode) else '(user job is not recoverable)'
+    log.info('pilot state: %s %s' % (job.state, s))
     log.info('transexitcode: %d' % job.transexitcode)
     log.info('exeerrorcode: %d' % job.exeerrorcode)
     log.info('exeerrordiag: %s' % job.exeerrordiag)
@@ -1388,5 +1892,6 @@ def make_job_report(job):
     log.info('pgrp: %s' % str(job.pgrp))
     log.info('corecount: %d' % job.corecount)
     log.info('event service: %s' % str(job.is_eventservice))
+    #log.info('sizes: %s' % str(job.sizes))
     log.info('--------------------------------------------------')
     log.info('')

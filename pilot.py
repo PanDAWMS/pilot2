@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 
 from __future__ import print_function
 
@@ -19,22 +19,18 @@ import time
 from os import getcwd, chdir, environ
 from shutil import rmtree
 
-from pilot.info import set_info
+from pilot.common.exception import PilotException
+from pilot.info import infosys
 from pilot.util.auxiliary import shell_exit_code
 from pilot.util.config import config
-from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_START_TIME, PILOT_END_TIME
+from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_START_TIME, PILOT_END_TIME, get_pilot_version, \
+    SERVER_UPDATE_NOT_DONE
 from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
-from pilot.util.information import set_location
 from pilot.util.mpi import get_ranks_info
 from pilot.util.timing import add_to_pilot_timing
-from pilot.util.workernode import is_virtual_machine
-
-RELEASE = '2'  # fixed at 2 for Pilot 2
-VERSION = '0'  # '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
-REVISION = '0'  # reset to '0' for every new Pilot version release, increased for small updates
-BUILD = '110'  # reset to '1' for every new development cycle
+from pilot.util.workernode import is_virtual_machine, display_architecture_info
 
 
 def pilot_version_banner():
@@ -46,7 +42,7 @@ def pilot_version_banner():
 
     logger = logging.getLogger(__name__)
 
-    version = '***  PanDA Pilot 2 version %s  ***' % get_pilot_version()
+    version = '***  PanDA Pilot version %s  ***' % get_pilot_version()
     logger.info('*' * len(version))
     logger.info(version)
     logger.info('*' * len(version))
@@ -55,18 +51,8 @@ def pilot_version_banner():
     if is_virtual_machine():
         logger.info('pilot is running in a VM')
 
-
-def get_pilot_version():
-    """
-    Return the current Pilot version string with the format <release>.<version>.<revision> (<build>).
-    E.g. pilot_version = '2.1.3 (12)'
-    :return: version string.
-    """
-
-    return '{release}.{version}.{revision} ({build})'.format(release=RELEASE,
-                                                             version=VERSION,
-                                                             revision=REVISION,
-                                                             build=BUILD)
+    display_architecture_info()
+    logger.info('*' * len(version))
 
 
 def main():
@@ -98,12 +84,19 @@ def main():
     # perform https setup
     https_setup(args, get_pilot_version())
 
-    if not args.workflow == "generic_hpc":  # set_location does not work well for hpc workflow
-        if not set_location(args):  # ## DEPRECATE ME LATER
-            return False
+    # initialize InfoService
+    try:
+        infosys.init(args.queue)
+        # check if queue is ACTIVE
+        if infosys.queuedata.state != 'ACTIVE':
+            logger.critical('specified queue is NOT ACTIVE: %s -- aborting' % infosys.queuedata.name)
+            raise PilotException("Panda Queue is NOT ACTIVE")
+    except PilotException as error:
+        logger.fatal(error)
+        return error.get_error_code()
 
-    # initialize InfoService and populate args.info structure
-    set_info(args)
+    # set the site name for rucio  ## is it really used?
+    environ['PILOT_RUCIO_SITENAME'] = infosys.queuedata.site
 
     # set requested workflow
     logger.info('pilot arguments: %s' % str(args))
@@ -164,6 +157,7 @@ def import_module(**kwargs):
                            '--harvester-datadir': kwargs.get('harvester_datadir', ''),
                            '--harvester-eventstatusdump': kwargs.get('harvester_eventstatusdump', ''),
                            '--harvester-workerattributes': kwargs.get('harvester_workerattributes', ''),
+                           '--harvester-submitmode': kwargs.get('harvester_submitmode', ''),
                            '--resource-type': kwargs.get('resource_type', '')
                            }
 
@@ -237,7 +231,7 @@ def get_args():
                             help='MANDATORY: resource name (e.g., AGLT2_TEST')
     arg_parser.add_argument('-s',
                             dest='site',
-                            required=True,  # it is needed by the dispatcher (only)
+                            required=True,  # it is needed by the dispatcher (only) -- same as '-r'? is it PandaSite or ATLAS Site?
                             help='MANDATORY: site name (e.g., AGLT2_TEST')
 
     # graciously stop pilot process after hard limit
@@ -254,7 +248,7 @@ def get_args():
 
     arg_parser.add_argument('-z',
                             dest='update_server',
-                            action='store_true',
+                            action='store_false',
                             default=True,
                             help='Disable server updates')
 
@@ -343,12 +337,16 @@ def get_args():
                             dest='harvester_workerattributes',
                             default='',
                             help='Harvester worker attributes json file containing job status')
+    arg_parser.add_argument('--harvester-submit-mode',
+                            dest='harvester_submitmode',
+                            default='PULL',
+                            help='Harvester submit mode (PUSH or PULL [default])')
     arg_parser.add_argument('--resource-type',
                             dest='resource_type',
                             default='',
                             type=str,
-                            choices=['MCORE', 'SCORE'],
-                            help='Resource type; MSCORE or SCORE')
+                            choices=['SCORE', 'MCORE', 'SCORE_HIMEM', 'MCORE_HIMEM'],
+                            help='Resource type; MCORE, SCORE, SCORE_HIMEM or MCORE_HIMEM')
 
     # Harvester and Nordugrid specific options
     arg_parser.add_argument('--input-dir',
@@ -400,7 +398,7 @@ def create_main_work_dir(args):
 def set_environment_variables(args, mainworkdir):
     """
     Set environment variables. To be replaced with singleton implementation.
-    This function sets PILOT_WORK_DIR, PILOT_HOME, PILOT_SITENAME, PILOT_USER and PILOT_VERSION.
+    This function sets PILOT_WORK_DIR, PILOT_HOME, PILOT_SITENAME, PILOT_USER and PILOT_VERSION and others.
 
     :param args:
     :param mainworkdir:
@@ -422,8 +420,17 @@ def set_environment_variables(args, mainworkdir):
     # set the pilot user (e.g. ATLAS)
     environ['PILOT_USER'] = args.pilot_user  # TODO: replace with singleton
 
+    # internal pilot state
+    environ['PILOT_JOB_STATE'] = 'startup'  # TODO: replace with singleton
+
     # set the pilot version
     environ['PILOT_VERSION'] = get_pilot_version()
+
+    # set the default wrap-up/finish instruction
+    environ['PILOT_WRAP_UP'] = 'NORMAL'
+
+    # keep track of the server updates, if any
+    environ['SERVER_UPDATE'] = SERVER_UPDATE_NOT_DONE
 
 
 def establish_logging(args):
@@ -481,30 +488,30 @@ def wrap_up(initdir, mainworkdir, args):
         from pilot.util.harvester import kill_worker
         kill_worker()
 
-    if not trace:
-        logging.critical('pilot startup did not succeed -- aborting')
-        exit_code = FAILURE
-    elif trace.pilot['nr_jobs'] > 0:
-        if trace.pilot['nr_jobs'] == 1:
-            logging.getLogger(__name__).info('pilot has finished (%d job was processed)' % trace.pilot['nr_jobs'])
-        else:
-            logging.getLogger(__name__).info('pilot has finished (%d jobs were processed)' % trace.pilot['nr_jobs'])
-        exit_code = SUCCESS
-    elif trace.pilot['state'] == FAILURE:
-        logging.critical('pilot workflow failure -- aborting')
-        exit_code = FAILURE
-    elif trace.pilot['state'] == ERRNO_NOJOBS:
-        logging.critical('pilot did not process any events -- aborting')
-        exit_code = ERRNO_NOJOBS
+    try:
+        exit_code = trace.pilot['error_code']
+    except Exception:
+        exit_code = trace
     else:
-        logging.info('pilot has finished')
-        exit_code = SUCCESS
-
+        logging.info('traces error code: %d' % exit_code)
+        if trace.pilot['nr_jobs'] <= 1:
+            if exit_code != 0:
+                logging.info('an exit code was already set: %d (will be converted to a standard shell code)' % exit_code)
+        elif trace.pilot['nr_jobs'] > 0:
+            if trace.pilot['nr_jobs'] == 1:
+                logging.getLogger(__name__).info('pilot has finished (%d job was processed)' % trace.pilot['nr_jobs'])
+            else:
+                logging.getLogger(__name__).info('pilot has finished (%d jobs were processed)' % trace.pilot['nr_jobs'])
+            exit_code = SUCCESS
+        elif trace.pilot['state'] == FAILURE:
+            logging.critical('pilot workflow failure -- aborting')
+        elif trace.pilot['state'] == ERRNO_NOJOBS:
+            logging.critical('pilot did not process any events -- aborting')
+            exit_code = ERRNO_NOJOBS
+    logging.info('pilot has finished')
     logging.shutdown()
 
-    # exit_code = shell_exit_code(exit_code)
-
-    return exit_code
+    return shell_exit_code(exit_code)
 
 
 if __name__ == '__main__':

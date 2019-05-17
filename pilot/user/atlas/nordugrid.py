@@ -9,7 +9,7 @@
 
 import re
 from xml.dom import minidom
-import xml.etree.ElementTree as xml
+from xml.etree import ElementTree
 
 import logging
 logger = logging.getLogger(__name__)
@@ -103,7 +103,7 @@ def convert_to_xml(dictionary):
         return None
 
     file_tag = single_file_tag[0]
-    root = xml.Element(file_tag)
+    root = ElementTree.Element(file_tag)
 
     file_list = dictionary[file_tag]
     if type(file_list) == list:
@@ -112,14 +112,14 @@ def convert_to_xml(dictionary):
                 single_entry = file_entry.keys()[0]
 
                 # add the 'file' element
-                file_element = xml.Element(single_entry)
+                file_element = ElementTree.Element(single_entry)
                 root.append(file_element)
 
                 file_dictionary = file_entry[single_entry]
                 if type(file_dictionary) == dict:
                     for dictionary_entry in file_dictionary.keys():
                         # convert all entries to xml elements
-                        entry = xml.SubElement(file_element, dictionary_entry)
+                        entry = ElementTree.SubElement(file_element, dictionary_entry)
                         entry.text = file_dictionary[dictionary_entry]
                 else:
                     logger.warning("unexpected format - expected a dictionary, got %s" % file_dictionary)
@@ -135,7 +135,7 @@ def convert_to_xml(dictionary):
         return None
 
     # generate pretty print
-    return minidom.parseString(xml.tostring(root)).toprettyxml(indent="   ")
+    return minidom.parseString(ElementTree.tostring(root)).toprettyxml(indent="   ")
 
 
 def convert_to_prettyprint(xmlstr):

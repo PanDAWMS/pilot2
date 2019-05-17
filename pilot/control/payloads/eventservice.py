@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 class Executor(generic.Executor):
-    def __init__(self, args, job, out, err):
-        super(Executor, self).__init__(args, job, out, err)
+    def __init__(self, args, job, out, err, traces):
+        super(Executor, self).__init__(args, job, out, err, traces)
 
     def run_payload(self, job, out, err):
         """

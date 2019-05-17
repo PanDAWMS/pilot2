@@ -18,7 +18,10 @@ def get_ranks_info():
     """
     Return current MPI rank and number of ranks
     None, None - if MPI environment is not available
-     """
+
+    :return: rank, max_rank
+    """
+
     rank = None
     max_rank = None
     try:
@@ -27,6 +30,6 @@ def get_ranks_info():
         rank = comm.Get_rank()
         max_rank = comm.Get_size()
     except ImportError:
-        logger.info("No mpi4py found.")
+        logger.info("mpi4py not found")
 
     return rank, max_rank

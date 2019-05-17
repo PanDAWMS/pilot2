@@ -12,9 +12,11 @@ import re
 from time import sleep
 
 from pilot.common.errorcodes import ErrorCodes
+from pilot.common.exception import NoSoftwareDir
 from pilot.info import infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
+from pilot.util.filehandling import read_file, write_file
 
 from .metadata import get_file_info_from_xml
 
@@ -62,23 +64,6 @@ def should_pilot_prepare_asetup(noexecstrcnv, jobpars):
     return prepareasetup
 
 
-def is_user_analysis_job(trf):  ## DEPRECATED: consider job.is_analysis()
-    """
-    Determine whether the job is an analysis job or not.
-    The trf name begins with a protocol for user analysis jobs.
-
-    :param trf:
-    :return:
-    """
-
-    if (trf.startswith('https://') or trf.startswith('http://')):
-        analysisjob = True
-    else:
-        analysisjob = False
-
-    return analysisjob
-
-
 def get_alrb_export():
     """
     Return the export command for the ALRB path if it exists.
@@ -102,7 +87,8 @@ def get_asetup(asetup=True, alrb=False):
 
     :param asetup: Boolean. True value means that the pilot should include the asetup command.
     :param alrb: Boolean. True value means that the function should return special setup used with ALRB and containers.
-    :return: asetup (string).
+    :raises: NoSoftwareDir if appdir does not exist.
+    :return: source <path>/asetup.sh (string).
     """
 
     cmd = ""
@@ -114,10 +100,18 @@ def get_asetup(asetup=True, alrb=False):
             if asetup:
                 cmd += "source $AtlasSetup/scripts/asetup.sh"
     else:
-        appdir = infosys.queuedata.appdir
+        try:  # use try in case infosys has not been initiated
+            appdir = infosys.queuedata.appdir
+        except Exception:
+            appdir = ""
         if appdir == "":
             appdir = os.environ.get('VO_ATLAS_SW_DIR', '')
         if appdir != "":
+            # make sure that the appdir exists
+            if not os.path.exists(appdir):
+                msg = 'appdir does not exist: %s' % appdir
+                logger.warning(msg)
+                raise NoSoftwareDir(msg)
             if asetup:
                 cmd = "source %s/scripts/asetup.sh" % appdir
 
@@ -148,7 +142,7 @@ def get_asetup_options(release, homepackage):
     else:
 
         asetupopt += homepackage.split('/')
-        if release not in homepackage:
+        if release not in homepackage and release not in asetupopt:
             asetupopt.append(release)
 
     # Add the notest,here for all setups (not necessary for late releases but harmless to add)
@@ -327,13 +321,14 @@ def get_valid_base_urls(order=None):
     return valid_base_urls
 
 
-def get_payload_environment_variables(cmd, job_id, task_id, processing_type, site_name, analysis_job):
+def get_payload_environment_variables(cmd, job_id, task_id, attempt_nr, processing_type, site_name, analysis_job):
     """
     Return an array with enviroment variables needed by the payload.
 
     :param cmd: payload execution command (string).
     :param job_id: PanDA job id (string).
     :param task_id: PanDA task id (string).
+    :param attempt_nr: PanDA job attempt number (int).
     :param processing_type: processing type (string).
     :param site_name: site name (string).
     :param analysis_job: True for user analysis jobs, False otherwise (boolean).
@@ -343,9 +338,13 @@ def get_payload_environment_variables(cmd, job_id, task_id, processing_type, sit
     log = get_logger(job_id)
 
     variables = []
-    variables.append('export PANDA_RESOURCE=\"%s\";' % site_name)
+    variables.append('export PANDA_RESOURCE=\'%s\';' % site_name)
     variables.append('export FRONTIER_ID=\"[%s_%s]\";' % (task_id, job_id))
     variables.append('export CMSSW_VERSION=$FRONTIER_ID;')
+    variables.append('export PandaID=\'%s\';' % os.environ.get('PandaID', 'unknown'))
+    variables.append('export PanDA_TaskID=\'%s\';' % os.environ.get('PanDA_TaskID', 'unknown'))
+    variables.append('export PanDA_AttemptNr=\'%d\';' % attempt_nr)
+    variables.append('export INDS=\'%s\';' % os.environ.get('INDS', 'unknown'))
 
     # Unset ATHENA_PROC_NUMBER if set for event service Merge jobs
     if "Merge_tf" in cmd and 'ATHENA_PROC_NUMBER' in os.environ:
@@ -364,13 +363,34 @@ def get_payload_environment_variables(cmd, job_id, task_id, processing_type, sit
     if processing_type == "":
         log.warning("RUCIO_APPID needs job.processingType but it is not set!")
     else:
-        variables.append('export RUCIO_APPID=\"%s\";' % processing_type)
-    variables.append('export RUCIO_ACCOUNT=\"%s\";' % os.environ.get('RUCIO_ACCOUNT', 'pilot'))
+        variables.append('export RUCIO_APPID=\'%s\';' % processing_type)
+    variables.append('export RUCIO_ACCOUNT=\'%s\';' % os.environ.get('RUCIO_ACCOUNT', 'pilot'))
 
     return variables
 
 
-def replace_lfns_with_turls(cmd, workdir, filename, infiles):
+def get_writetoinput_filenames(writetofile):
+    """
+    Extract the writeToFile file name(s).
+    writeToFile='tmpin_mc16_13TeV.345935.PhPy8EG_A14_ttbarMET100_200_hdamp258p75_nonallhad.merge.AOD.e6620_e5984_s3126_r10724_r10726_tid15760866_00:AOD.15760866._000002.pool.root.1'
+    -> return 'tmpin_mc16_13TeV.345935.PhPy8EG_A14_ttbarMET100_200_hdamp258p75_nonallhad.merge.AOD.e6620_e5984_s3126_r10724_r10726_tid15760866_00'
+
+    :param writetofile: string containing file name information.
+    :return: list of file names
+    """
+
+    filenames = []
+    entries = writetofile.split('^')
+    for entry in entries:
+        if ':' in entry:
+            name = entry.split(":")[0]
+            name = name.replace('.pool.root.', '.txt.')  # not necessary?
+            filenames.append(name)
+
+    return filenames
+
+
+def replace_lfns_with_turls(cmd, workdir, filename, infiles, writetofile=""):
     """
     Replace all LFNs with full TURLs in the payload execution command.
 
@@ -380,19 +400,47 @@ def replace_lfns_with_turls(cmd, workdir, filename, infiles):
     :param workdir: location of metadata file (string).
     :param filename: metadata file name (string).
     :param infiles: list of input files.
+    :param writetofile:
     :return: updated cmd (string).
     """
 
+    turl_dictionary = {}  # { LFN: TURL, ..}
     path = os.path.join(workdir, filename)
     if os.path.exists(path):
         file_info_dictionary = get_file_info_from_xml(workdir, filename=filename)
         for inputfile in infiles:
             if inputfile in cmd:
                 turl = file_info_dictionary[inputfile][0]
+                turl_dictionary[inputfile] = turl
                 # if turl.startswith('root://') and turl not in cmd:
                 if turl not in cmd:
                     cmd = cmd.replace(inputfile, turl)
                     logger.info("replaced '%s' with '%s' in the run command" % (inputfile, turl))
+
+        # replace the LFNs with TURLs in the writetofile input file list (if it exists)
+        if writetofile and turl_dictionary:
+            filenames = get_writetoinput_filenames(writetofile)
+            logger.info("filenames=%s" % filenames)
+            for fname in filenames:
+                new_lines = []
+                path = os.path.join(workdir, fname)
+                if os.path.exists(path):
+                    f = read_file(path)
+                    for line in f.split('\n'):
+                        fname = os.path.basename(line)
+                        if fname in turl_dictionary:
+                            turl = turl_dictionary[fname]
+                            new_lines.append(turl)
+                        else:
+                            if line:
+                                new_lines.append(line)
+
+                    lines = '\n'.join(new_lines)
+                    if lines:
+                        write_file(path, lines)
+                        logger.info("lines=%s" % lines)
+                else:
+                    logger.warning("file does not exist: %s" % path)
     else:
         logger.warning("could not find file: %s (cannot locate TURLs for direct access)" % filename)
 

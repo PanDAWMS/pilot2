@@ -55,6 +55,11 @@ def create_input_file_metadata(file_dictionary, workdir, filename="PoolFileCatal
     # create a new XML file with the results
     xml = ElementTree.tostring(data, encoding='utf8')
     xml = minidom.parseString(xml).toprettyxml(indent="  ")
+
+    # add escape character for & (needed for google turls)
+    if '&' in xml:
+        xml = xml.replace('&', '&#038;')
+
     write_file(os.path.join(workdir, filename), xml, mute=False)
 
     return xml
@@ -142,7 +147,12 @@ def get_metadata_from_xml(workdir, filename="metadata.xml"):
 
     # metadata_dictionary = { lfn: { att_name1: att_value1, .. }, ..}
     metadata_dictionary = {}
-    tree = ElementTree.parse(os.path.join(workdir, filename))
+    path = os.path.join(workdir, filename)
+    if not os.path.exists(path):
+        logger.warning('file does not exist: %s' % path)
+        return metadata_dictionary
+
+    tree = ElementTree.parse(path)
     root = tree.getroot()
     # root.tag = POOLFILECATALOG
 

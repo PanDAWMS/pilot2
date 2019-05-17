@@ -16,16 +16,17 @@ import time
 import traceback
 
 try:
-    import Queue as queue
+    import Queue as queue  # noqa: N813
 except Exception:
     import queue  # python 3
 
 from pilot.control.payloads import generic, eventservice, eventservicemerge
 from pilot.control.job import send_state
-from pilot.util.auxiliary import get_logger
+from pilot.util.auxiliary import get_logger, set_pilot_state
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
 from pilot.util.filehandling import read_file
+from pilot.util.queuehandling import put_in_queue
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
 
@@ -98,42 +99,46 @@ def validate_pre(queues, traces, args):
             continue
 
         if _validate_payload(job):
-            queues.validated_payloads.put(job)
+            #queues.validated_payloads.put(job)
+            put_in_queue(job, queues.validated_payloads)
         else:
-            queues.failed_payloads.put(job)
+            #queues.failed_payloads.put(job)
+            put_in_queue(job, queues.failed_payloads)
 
 
 def _validate_payload(job):
     """
-    (add description)
+    Perform validation tests for the payload.
+    Currently, only some job info is dumped to the log.
 
-    :param job:
-    :return:
+    :param job: job object.
+    :return: boolean.
     """
-    # valid = random.uniform(0, 100)
-    # if valid > 99:
-    #     logger.warning('payload did not validate correctly -- skipping')
-    #     job['errno'] = random.randint(0, 100)
-    #     job['errmsg'] = 'payload failed random validation'
-    #     return False
+
+    log = get_logger(job.jobid, logger)
+    log.debug('PandaID = %s' % os.environ.get('PandaID', 'unknown'))
+    log.debug('PanDA_TaskID = %s' % os.environ.get('PanDA_TaskID', 'unknown'))
+
     return True
 
 
-def get_payload_executor(args, job, out, err):
+def get_payload_executor(args, job, out, err, traces):
     """
     Get payload executor function for different payload.
-     :param args:
-    :param job:
+
+    :param args: args object.
+    :param job: job object.
     :param out:
     :param err:
+    :param traces: traces object.
     :return: instance of a payload executor
     """
     if job.is_eventservice:
-        payload_executor = eventservice.Executor(args, job, out, err)
+        payload_executor = eventservice.Executor(args, job, out, err, traces)
     elif job.is_eventservicemerge:
-        payload_executor = eventservicemerge.Executor(args, job, out, err)
+        payload_executor = eventservicemerge.Executor(args, job, out, err, traces)
     else:
-        payload_executor = generic.Executor(args, job, out, err)
+        payload_executor = generic.Executor(args, job, out, err, traces)
     return payload_executor
 
 
@@ -156,7 +161,8 @@ def execute_payloads(queues, traces, args):
             q_snapshot = list(queues.finished_data_in.queue)
             peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
             if len(peek) == 0:
-                queues.validated_payloads.put(job)
+                #queues.validated_payloads.put(job)
+                put_in_queue(job, queues.validated_payloads)
                 for i in xrange(10):
                     if args.graceful_stop.is_set():
                         break
@@ -164,7 +170,8 @@ def execute_payloads(queues, traces, args):
                 continue
 
             # this job is now to be monitored, so add it to the monitored_payloads queue
-            queues.monitored_payloads.put(job)
+            #queues.monitored_payloads.put(job)
+            put_in_queue(job, queues.monitored_payloads)
 
             log.info('job %s added to monitored payloads queue' % job.jobid)
 
@@ -173,37 +180,42 @@ def execute_payloads(queues, traces, args):
 
             send_state(job, args, 'starting')
 
-            payload_executor = get_payload_executor(args, job, out, err)
+            payload_executor = get_payload_executor(args, job, out, err, traces)
             log.info("Got payload executor: %s" % payload_executor)
 
             # run the payload and measure the execution time
             job.t0 = os.times()
             exit_code = payload_executor.run()
 
-            cpuconsumptiontime = get_cpu_consumption_time(job.t0)
-            job.cpuconsumptiontime = int(round(cpuconsumptiontime))
-            job.cpuconsumptionunit = "s"
-            job.cpuconversionfactor = 1.0
-            log.info('CPU consumption time: %f %s (rounded to %d %s)' %
-                     (cpuconsumptiontime, job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconsumptionunit))
+            set_cpu_consumption_time(job)
+            job.transexitcode = exit_code % 255
 
             out.close()
             err.close()
 
-            if exit_code == 0:
-                job.transexitcode = 0
-                queues.finished_payloads.put(job)
+            # analyze and interpret the payload execution output
+            perform_initial_payload_error_analysis(job, exit_code)
+            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+            user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
+            try:
+                exit_code_interpret = user.interpret(job)
+            except Exception as e:
+                log.warning('exception caught: %s' % e)
+                exit_code_interpret = -1
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.INTERNALPILOTPROBLEM)
+
+            if exit_code_interpret == 0 and exit_code == 0:
+                log.info('main payload error analysis completed - did not find any errors')
+
+                # update output lists if zipmaps were used
+                #job.add_archives_to_output_lists()
+
+                # queues.finished_payloads.put(job)
+                put_in_queue(job, queues.finished_payloads)
             else:
-                stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
-                if stderr != "":
-                    msg = errors.extract_stderr_msg(stderr)
-                    if msg != "":
-                        log.warning("extracted message from stderr:\n%s" % msg)
-                ec = errors.resolve_transform_error(exit_code, stderr)
-                if ec != 0:
-                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
-                job.transexitcode = exit_code % 255
-                queues.failed_payloads.put(job)
+                log.debug('main payload error analysis completed - adding job to failed_payloads queue')
+                #queues.failed_payloads.put(job)
+                put_in_queue(job, queues.failed_payloads)
 
         except queue.Empty:
             continue
@@ -211,10 +223,56 @@ def execute_payloads(queues, traces, args):
             logger.fatal('execute payloads caught an exception (cannot recover): %s, %s' % (e, traceback.format_exc()))
             if job:
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADEXECUTIONEXCEPTION)
-                queues.failed_payloads.put(job)
+                #queues.failed_payloads.put(job)
+                put_in_queue(job, queues.failed_payloads)
             while not args.graceful_stop.is_set():
                 # let stage-out of log finish, but stop running payloads as there should be a problem with the pilot
                 time.sleep(5)
+
+
+def set_cpu_consumption_time(job):
+    """
+    Set the CPU consumption time.
+    :param job: job object.
+    :return:
+    """
+
+    log = get_logger(job.jobid, logger)
+
+    cpuconsumptiontime = get_cpu_consumption_time(job.t0)
+    job.cpuconsumptiontime = int(round(cpuconsumptiontime))
+    job.cpuconsumptionunit = "s"
+    job.cpuconversionfactor = 1.0
+    log.info('CPU consumption time: %f %s (rounded to %d %s)' %
+             (cpuconsumptiontime, job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconsumptionunit))
+
+
+def perform_initial_payload_error_analysis(job, exit_code):
+    """
+    Perform an initial analysis of the payload.
+    Singularity errors are caught here.
+
+    :param job: job object.
+    :param exit_code: exit code from payload execution.
+    :return:
+    """
+
+    log = get_logger(job.jobid, logger)
+
+    if exit_code != 0:
+        log.warning('main payload execution returned non-zero exit code: %d' % exit_code)
+        stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
+        if stderr != "":
+            msg = errors.extract_stderr_msg(stderr)
+            if msg != "":
+                log.warning("extracted message from stderr:\n%s" % msg)
+        ec = errors.resolve_transform_error(exit_code, stderr)
+        if ec != 0:
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
+        else:
+            log.warning('initial error analysis did not resolve the issue')
+    else:
+        log.info('main payload execution returned zero exit code, but will check it more carefully')
 
 
 def validate_post(queues, traces, args):
@@ -240,22 +298,10 @@ def validate_post(queues, traces, args):
 
         # by default, both output and log should be staged out
         job.stageout = 'all'
-
-        # analyze and interpret the payload execution output
-        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-        user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
-        try:
-            exit_code = user.interpret(job)
-        except Exception as e:
-            log.warning('exception caught: %s' % e)
-            exit_code = -1
-
-        if exit_code != 0:
-            log.debug('adding job to failed_payloads queue')
-            queues.failed_payloads.put(job)
-        else:
-            log.debug('adding job to data_out queue')
-            queues.data_out.put(job)
+        log.debug('adding job to data_out queue')
+        #queues.data_out.put(job)
+        set_pilot_state(job=job, state='stageout')
+        put_in_queue(job, queues.data_out)
 
     logger.info('validate_post has finished')
 
@@ -281,4 +327,6 @@ def failed_post(queues, traces, args):
         log.debug('adding log for log stageout')
 
         job.stageout = 'log'  # only stage-out log file
-        queues.data_out.put(job)
+        #queues.data_out.put(job)
+        set_pilot_state(job=job, state='stageout')
+        put_in_queue(job, queues.data_out)

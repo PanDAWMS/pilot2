@@ -18,7 +18,7 @@ from time import time
 from sys import stderr
 
 try:
-    import Queue as queue
+    import Queue as queue  # noqa: N813
 except Exception:
     import queue  # python 3
 
@@ -108,6 +108,7 @@ def run(args):
     traces = namedtuple('traces', ['pilot'])
     traces.pilot = {'state': SUCCESS,
                     'nr_jobs': 0,
+                    'error_code': 0,
                     'command': None}
 
     # define the threads
@@ -135,6 +136,6 @@ def run(args):
 
             thread.join(0.1)
 
-    logger.info('end of generic workflow')
+    logger.info('end of generic workflow (traces error code: %d)' % traces.pilot['error_code'])
 
     return traces
