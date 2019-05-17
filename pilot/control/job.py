@@ -1746,7 +1746,7 @@ def job_monitor(queues, traces, args):
             abort_job = True
         elif not queues.current_data_in.empty():
             # make sure to send heartbeat regularly if stage-in takes a long time
-            jobs = queues.current_data_in
+            jobs = queues.current_data_in.queue
             if int(time.time()) - update_time2 >= 60:
                 if jobs:
                     logger.debug('waiting: jobs in queue')
