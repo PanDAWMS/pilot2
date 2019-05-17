@@ -1726,6 +1726,7 @@ def job_monitor(queues, traces, args):
     # used for sending the heartbeat and is updated after a server update
     peeking_time = int(time.time())
     update_time = peeking_time
+    update_time2 = peeking_time
 
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
@@ -1743,18 +1744,22 @@ def job_monitor(queues, traces, args):
             logger.warning('job monitor detected an abort_job request (signal=%s)' % args.signal)
             logger.warning('in case pilot is running more than one job, all jobs will be aborted')
             abort_job = True
-        elif not queues.data_in.empty():
+        elif not queues.current_data_in.empty():
             # make sure to send heartbeat regularly if stage-in takes a long time
-            jobs = queues.data_in.queue
+            jobs = queues.current_data_in
+            if int(time.time()) - update_time2 >= 60:
+                if jobs:
+                    logger.debug('waiting: jobs in queue')
+                else:
+                    logger.debug('waiting: no jobs in queue')
+                time.sleep(5)
             if jobs:
-                # update the peeking time
-                peeking_time = int(time.time())
                 for i in range(len(jobs)):
                     # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
                     # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
-                    if int(time.time()) - update_time >= get_heartbeat_period(jobs[i].debug):
+                    if int(time.time()) - update_time2 >= get_heartbeat_period(jobs[i].debug):
                         send_state(jobs[i], args, 'running')
-                        update_time = int(time.time())
+                        update_time2 = int(time.time())
                 # sleep for a while if stage-in has not completed
                 time.sleep(1)
                 continue

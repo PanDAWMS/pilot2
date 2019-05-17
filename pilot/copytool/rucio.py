@@ -82,15 +82,15 @@ def copy_in(files, **kwargs):
 
         cmd += ['%s:%s' % (fspec.scope, fspec.lfn)]
 
+        logger.info('taking a long nap')
+        sleep(4*60)
+        logger.info('took a long nap')
+
         # kwargs['timeout'] = get_timeout(fspec.filesize)
         rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)
 
         logger.info('stdout = %s' % stdout)
         logger.info('stderr = %s' % stderr)
-
-        logger.info('taking a long nap')
-        sleep(35*60)
-        logger.info('took a long nap')
 
         if rcode:  ## error occurred
             error = resolve_common_transfer_errors(stderr, is_stagein=True)
