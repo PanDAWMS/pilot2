@@ -116,6 +116,8 @@ class ErrorCodes:
     BLACKHOLE = 1332
     NOREMOTESPACE = 1333
     ATLASSETUPFATAL = 1334
+    MISSINGUSERCODE = 1335
+    JOBALREADYRUNNING = 1336
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -210,7 +212,9 @@ class ErrorCodes:
         MISSINGINPUTFILE: "Input file is missing in storage element",
         BLACKHOLE: "Black hole detected in file system (consult Pilot log)",
         NOREMOTESPACE: "No space left on device",
-        ATLASSETUPFATAL: "AtlasSetup failed with a fatal exception (consult Payload log)"
+        ATLASSETUPFATAL: "AtlasSetup failed with a fatal exception (consult Payload log)",
+        MISSINGUSERCODE: "User code not available on PanDA server (resubmit task with --useNewCode)",
+        JOBALREADYRUNNING: "Job is already running elsewhere"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
