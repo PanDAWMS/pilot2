@@ -52,11 +52,12 @@ class StorageData(BaseData):
     arprotocols = {}
     rprotocols = {}
     special_setup = {}
+    resource = None
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['pk'],
              str: ['name', 'state', 'site', 'type', 'token'],
-             dict: ['copytools', 'acopytools', 'astorages', 'arprotocols', 'rprotocols'],
+             dict: ['copytools', 'acopytools', 'astorages', 'arprotocols', 'rprotocols', 'resource'],
              bool: ['is_deterministic']
              }
 
