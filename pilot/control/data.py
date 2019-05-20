@@ -356,7 +356,11 @@ def copytool_in(queues, traces, args):
 
     while not args.graceful_stop.is_set():
         try:
+            # extract a job to stage-in its input
             job = queues.data_in.get(block=True, timeout=1)
+            # place it in the current stage-in queue (used by the jobs' queue monitoring)
+            if job:
+                put_in_queue(job, queues.current_data_in)
 
             # ready to set the job in running state
             send_state(job, args, 'running')
@@ -378,6 +382,10 @@ def copytool_in(queues, traces, args):
 
                 #queues.finished_data_in.put(job)
                 put_in_queue(job, queues.finished_data_in)
+                # remove the job from the current stage-in queue
+                _job = queues.current_data_in.get(block=True, timeout=1)
+                if _job:
+                    log.debug('job %s has been removed from the current_data_in queue' % _job.jobid)
 
                 # now create input file metadata if required by the payload
                 try:
