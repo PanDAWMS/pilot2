@@ -14,7 +14,7 @@ from __future__ import absolute_import
 import os
 import json
 import logging
-from time import time, sleep
+from time import time
 
 from .common import resolve_common_transfer_errors, verify_catalog_checksum, get_timeout
 from pilot.common.exception import PilotException, ErrorCodes
