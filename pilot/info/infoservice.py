@@ -211,9 +211,14 @@ class InfoService(object):
         if not ddmendpoint or ddmendpoint not in self.ddmendpoint2storage_id:
             storages = self.resolve_storage_data(ddmendpoint)
             for storage_name in storages:
-                storage_id = storages[storage_name].pk
+                storage = storages[storage_name]
+                storage_id = storage.pk
                 self.ddmendpoint2storage_id[storage_name] = storage_id
                 self.storage_id2ddmendpoint[storage_id] = storage_name
+                if storage.resource:
+                    bucket_id = storage.resource.get('bucket_id', None)
+                    if bucket_id:
+                        self.storage_id2ddmendpoint[bucket_id] = storage_name
 
     def get_storage_id(self, ddmendpoint):
         """
