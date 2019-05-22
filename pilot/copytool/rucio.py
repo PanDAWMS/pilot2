@@ -230,7 +230,7 @@ def _stage_in_api(dst, fspec, trace_report):
     f['did_name'] = fspec.lfn
     f['did'] = '%s:%s' % (fspec.scope, fspec.lfn)
     f['rse'] = fspec.ddmendpoint
-    f['base_dir'] = dirname(dst)
+    f['base_dir'] = dst
     f['no_subdir'] = True
     if fspec.turl:
         f['pfn'] = fspec.turl
