@@ -19,7 +19,6 @@ from time import time
 
 from .common import resolve_common_transfer_errors, verify_catalog_checksum, get_timeout
 from pilot.common.exception import PilotException, ErrorCodes
-from os.path import dirname
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
