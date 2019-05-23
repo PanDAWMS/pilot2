@@ -1187,12 +1187,7 @@ def get_job_retrieval_delay(harvester):
     :return: sleep (s)
     """
 
-    if harvester:
-        delay = 1
-    else:
-        delay = 60
-
-    return delay
+    return 1 if harvester else 60
 
 
 def retrieve(queues, traces, args):
@@ -1779,7 +1774,7 @@ def job_monitor(queues, traces, args):
                 if jobs[i].state == 'finished' or jobs[i].state == 'failed':
                     log.info('aborting job monitoring since job state=%s' % jobs[i].state)
                     break
-                if jobs[i].state == 'running':
+                elif jobs[i].state == 'running':
                     show_ps_info()
 
                 # perform the monitoring tasks
