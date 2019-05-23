@@ -1956,3 +1956,22 @@ def get_pid_for_cmd(cmd, whoami=getuser()):
         logger.warning('pid has wrong type: %s' % stdout)
 
     return pid
+
+
+def get_final_payload_command(job):
+    """
+    (store in job object directly after get_payload_command()? is it different in a container?)
+    :param job:
+    :return:
+    """
+    payload_command = ""
+    path = os.path.join(job.workdir, 'container.script.sh')
+    # is it a container job? if so, get the command from the container_script
+    if os.path.exists(path):
+        command = read_file(path)
+        payload_command = command.split(';')[-2]
+    else:
+        pass
+        # store payload command when it is defined, see get_payload_command()
+        #command = job.
+    return payload_command
