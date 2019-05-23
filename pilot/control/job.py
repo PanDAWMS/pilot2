@@ -21,6 +21,7 @@ try:
 except Exception:
     import queue  # python 3
 
+from getpass import getuser
 from json import dumps
 
 from pilot.common.errorcodes import ErrorCodes
@@ -34,6 +35,7 @@ from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
+from pilot.util.container import execute
 from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file
 from pilot.util.jobmetrics import get_job_metrics
@@ -1777,6 +1779,8 @@ def job_monitor(queues, traces, args):
                 if jobs[i].state == 'finished' or jobs[i].state == 'failed':
                     log.info('aborting job monitoring since job state=%s' % jobs[i].state)
                     break
+                if jobs[i].state == 'running':
+                    show_ps_info()
 
                 # perform the monitoring tasks
                 exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
@@ -1917,3 +1921,38 @@ def make_job_report(job):
     #log.info('sizes: %s' % str(job.sizes))
     log.info('--------------------------------------------------')
     log.info('')
+
+
+def show_ps_info(whoami=getuser()):
+    """
+    Display ps info for the given user.
+
+    :param whoami: user name (string).
+    :return:
+    """
+
+    cmd = "ps aux | grep %s" % whoami
+    exit_code, stdout, stderr = execute(cmd)
+    logger.info("\n%s" % stdout)
+
+
+def get_pid_for_cmd(cmd, whoami=getuser()):
+    """
+    Return the process id for the given command and user.
+    Note: function returns 0 in case pid could not be found.
+
+    :param cmd: command string expected to be in ps output (string).
+    :param whoami: user name (string).
+    :return: pid (int).
+    """
+
+    _cmd = "pgrep -u %s -f \'%s\'" % (whoami, cmd)
+    exit_code, stdout, stderr = execute(_cmd)
+
+    try:
+        pid = int(stdout)
+    except Exception:
+        pid = 0
+        logger.warning('pid has wrong type: %s' % stdout)
+
+    return pid

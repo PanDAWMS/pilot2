@@ -9,12 +9,10 @@
 
 import os
 import time
-from getpass import getuser
 
 # from pilot.info import infosys
 from .setup import get_asetup
 from pilot.util.auxiliary import get_logger
-from pilot.util.container import execute
 from pilot.util.filehandling import read_json, copy
 
 import logging
@@ -97,8 +95,6 @@ def get_memory_monitor_setup(pid, workdir, setup=""):
     :param setup: optional setup in case asetup can not be used, which uses infosys (string).
     :return: job work directory (string).
     """
-
-    show_ps_info()
 
     release = "21.0.22"
     platform = "x86_64-slc6-gcc62-opt"
@@ -403,39 +399,3 @@ def post_memory_monitor_action(job):
         copy(path1, path2)
     except Exception as e:
         log.warning('failed to copy memory monitor output: %s' % e)
-
-
-def show_ps_info(whoami=getuser()):
-    """
-    Display ps info for the given user.
-
-    :param whoami: user name (string).
-    :return:
-    """
-
-    cmd = "ps aux | grep %s" % whoami
-    exit_code, stdout, stderr = execute(cmd)
-    logger.info(stdout)
-
-
-def get_pid_for_cmd(cmd, whoami=getuser()):
-    """
-    Return the process id for the given command and user.
-    Note: function returns 0 in case pid could not be found.
-
-    :param cmd: command string expected to be in ps output (string).
-    :param whoami: user name (string).
-    :return: pid (int).
-    """
-
-    _cmd = "pgrep -u %s -f \'%s\'" % (whoami, cmd)
-    exit_code, stdout, stderr = execute(_cmd)
-
-    try:
-        pid = int(stdout)
-    except Exception:
-        pid = 0
-        logger.warning('pid has wrong type: %s' % stdout)
-
-    return pid
-
