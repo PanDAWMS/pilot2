@@ -13,7 +13,9 @@ import time
 # from pilot.info import infosys
 from .setup import get_asetup
 from pilot.util.auxiliary import get_logger
-from pilot.util.filehandling import read_json, copy
+from pilot.util.config import config
+from pilot.util.container import execute
+from pilot.util.filehandling import read_json, copy, read_file
 
 import logging
 logger = logging.getLogger(__name__)
@@ -96,6 +98,9 @@ def get_memory_monitor_setup(pid, workdir, setup=""):
     :return: job work directory (string).
     """
 
+    # try to get the pid from a pid.txt file which might be created by a container_script
+    pid = get_proper_pid(pid, workdir)
+
     release = "21.0.22"
     platform = "x86_64-slc6-gcc62-opt"
     if not setup:
@@ -109,6 +114,45 @@ def get_memory_monitor_setup(pid, workdir, setup=""):
     cmd = "cd " + workdir + ";" + cmd
 
     return cmd
+
+
+def get_proper_pid(pid, workdir):
+    """
+    Return a pid from the proper source.
+    The given pid comes from Popen(), but in the case containers are used, the pid should instead come from
+    the container_script file.
+
+    :param pid: process id (int).
+    :param workdir: job workdir (string).
+    :return: pid (int).
+    """
+
+    script_file = os.path.join(workdir, config.Container.pid_file)
+    if os.path.exists(script_file):
+        try:
+            _pid = read_file(script_file)
+            pid = int(_pid)
+        except Exception as e:
+            logger.warning('failed to convert pid to int: %s' % e)
+        else:
+            logger.debug('will use pid %d (from container script)' % pid)
+            show_proc_info(pid)
+    else:
+        logger.debug('not such file: %s (will use pid=%d in memory monitor setup)' % (script_file, pid))
+
+    return pid
+
+
+def show_proc_info(pid):
+    """
+    Display the /proc/[pid] info
+    :param pid:
+    :return:
+    """
+
+    _cmd = "ls /proc/%d" % pid
+    exit_code, stdout, stderr = execute(_cmd)
+    logger.info("%s:\n%s" % (_cmd, stdout))
 
 
 def get_memory_monitor_info_path(workdir, allowtxtfile=False):

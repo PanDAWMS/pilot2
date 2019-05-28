@@ -1776,6 +1776,7 @@ def job_monitor(queues, traces, args):
                     break
                 elif jobs[i].state == 'running':
                     show_ps_info()
+                    show_ps_info(child=True)
 
                 # perform the monitoring tasks
                 exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
@@ -1918,7 +1919,7 @@ def make_job_report(job):
     log.info('')
 
 
-def show_ps_info(whoami=getuser()):
+def show_ps_info(whoami=getuser(), child=False):
     """
     Display ps info for the given user.
 
@@ -1926,7 +1927,10 @@ def show_ps_info(whoami=getuser()):
     :return:
     """
 
-    cmd = "ps aux | grep %s" % whoami
+    if child:
+        cmd = "ps -fwu %s" % whoami
+    else:
+        cmd = "ps aux | grep %s" % whoami
     exit_code, stdout, stderr = execute(cmd)
     logger.info("\n%s" % stdout)
 
@@ -1953,20 +1957,17 @@ def get_pid_for_cmd(cmd, whoami=getuser()):
     return pid
 
 
-def get_final_payload_command(job):
+def get_trf_command(job):
     """
-    (store in job object directly after get_payload_command()? is it different in a container?)
-    :param job:
-    :return:
+    Return the last command in the full payload command string.
+    Note: this function returns the last command in job.command which is only set for containers.
+
+    :param job: job object.
+    :return: trf command (string).
     """
+
     payload_command = ""
-    path = os.path.join(job.workdir, 'container.script.sh')
-    # is it a container job? if so, get the command from the container_script
-    if os.path.exists(path):
-        command = read_file(path)
-        payload_command = command.split(';')[-2]
-    else:
-        pass
-        # store payload command when it is defined, see get_payload_command()
-        #command = job.
+    if job.command:
+        payload_command = job.command.split(';')[-2]
+
     return payload_command
