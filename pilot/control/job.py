@@ -1957,18 +1957,6 @@ def get_pid_for_cmd(cmd, whoami=getuser()):
     return pid
 
 
-def show_proc_info(pid):
-    """
-    Display the /proc/[pid] info
-    :param pid:
-    :return:
-    """
-
-    _cmd = "ls /proc/%d" % pid
-    exit_code, stdout, stderr = execute(_cmd)
-    logger.info("%s:\n%s" % (_cmd, stdout))
-
-
 def get_trf_command(job):
     """
     Return the last command in the full payload command string.

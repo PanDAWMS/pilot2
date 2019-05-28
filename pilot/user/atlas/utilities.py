@@ -14,6 +14,7 @@ import time
 from .setup import get_asetup
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
+from pilot.util.container import execute
 from pilot.util.filehandling import read_json, copy, read_file
 
 import logging
@@ -135,10 +136,23 @@ def get_proper_pid(pid, workdir):
             logger.warning('failed to convert pid to int: %s' % e)
         else:
             get_logger().debug('will use pid from container script file: %d' % pid)
+            show_proc_info(pid)
     else:
         logger.debug('not such file: %s (will use pid=%d in memory monitor setuo)' % (script_file, pid))
 
     return pid
+
+
+def show_proc_info(pid):
+    """
+    Display the /proc/[pid] info
+    :param pid:
+    :return:
+    """
+
+    _cmd = "ls /proc/%d" % pid
+    exit_code, stdout, stderr = execute(_cmd)
+    logger.info("%s:\n%s" % (_cmd, stdout))
 
 
 def get_memory_monitor_info_path(workdir, allowtxtfile=False):
