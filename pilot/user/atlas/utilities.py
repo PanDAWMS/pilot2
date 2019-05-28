@@ -127,7 +127,7 @@ def get_proper_pid(pid, workdir):
     :return: pid (int).
     """
 
-    script_file = os.path.join(workdir, config.Container.script_file)
+    script_file = os.path.join(workdir, config.Container.pid_file)
     if os.path.exists(script_file):
         try:
             _pid = read_file(script_file)
