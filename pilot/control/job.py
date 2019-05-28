@@ -1956,3 +1956,15 @@ def get_pid_for_cmd(cmd, whoami=getuser()):
         logger.warning('pid has wrong type: %s' % stdout)
 
     return pid
+
+
+def show_proc_info(pid):
+    """
+    Display the /proc/[pid] info
+    :param pid:
+    :return:
+    """
+
+    _cmd = "ls /proc/%d" % pid
+    exit_code, stdout, stderr = execute(_cmd)
+    logger.info("%s:\n%s" % (_cmd, stdout))

@@ -96,6 +96,8 @@ def get_memory_monitor_setup(pid, workdir, setup=""):
     :return: job work directory (string).
     """
 
+    # try to get the pid from a pid.txt file which might be created by a container_script
+
     release = "21.0.22"
     platform = "x86_64-slc6-gcc62-opt"
     if not setup:

@@ -503,6 +503,9 @@ def get_input_file_dictionary(indata, workdir):
         dst = e.workdir or workdir or '.'
         file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else os.path.join(dst, e.lfn)
         # file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else e.surl
+        # correction for ND and mv
+        if not file_dictionary[e.guid]:
+            file_dictionary[e.guid] = e.lfn
 
     return file_dictionary
 
