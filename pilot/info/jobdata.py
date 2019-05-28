@@ -90,6 +90,7 @@ class JobData(BaseData):
     pid = None                     # payload pid
     pgrp = None                    # payload process group
     sizes = {}                     # job object sizes { timestamp: size, .. }
+    command = ""                   # full payload command (set for container jobs)
 
     # time variable used for on-the-fly cpu consumption time measurements done by job monitoring
     t0 = None                      # payload startup time
