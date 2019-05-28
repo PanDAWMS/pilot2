@@ -13,7 +13,8 @@ import time
 # from pilot.info import infosys
 from .setup import get_asetup
 from pilot.util.auxiliary import get_logger
-from pilot.util.filehandling import read_json, copy
+from pilot.util.config import config
+from pilot.util.filehandling import read_json, copy, read_file
 
 import logging
 logger = logging.getLogger(__name__)
@@ -97,6 +98,7 @@ def get_memory_monitor_setup(pid, workdir, setup=""):
     """
 
     # try to get the pid from a pid.txt file which might be created by a container_script
+    pid = get_proper_pid(pid, workdir)
 
     release = "21.0.22"
     platform = "x86_64-slc6-gcc62-opt"
@@ -111,6 +113,30 @@ def get_memory_monitor_setup(pid, workdir, setup=""):
     cmd = "cd " + workdir + ";" + cmd
 
     return cmd
+
+
+def get_proper_pid(pid, workdir):
+    """
+    Return a pid from the proper source.
+    The given pid comes from Popen(), but in the case containers are used, the pid should instead come from
+    the container_script file.
+
+    :param pid: process id (int).
+    :param workdir: job workdir (string).
+    :return: pid (int).
+    """
+
+    script_file = os.path.join(workdir, config.Container.script_file)
+    if os.path.exists(script_file):
+        try:
+            _pid = read_file(script_file)
+            pid = int(_pid)
+        except Exception as e:
+            logger.warning('failed to convert pid to int: %s' % e)
+        else:
+            get_logger().debug('will use pid from container script file: %d' % pid)
+
+    return pid
 
 
 def get_memory_monitor_info_path(workdir, allowtxtfile=False):
