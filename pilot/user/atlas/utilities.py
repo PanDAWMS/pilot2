@@ -128,7 +128,8 @@ def get_proper_pid(pid, workdir):
     """
 
     #script_file = os.path.join(workdir, config.Container.pid_file)
-    if os.path.exists(config.Container.pid_file:
+    script_file = config.Container.pid_file
+    if os.path.exists(script_file):
         try:
             _pid = read_file(script_file)
             pid = int(_pid)
