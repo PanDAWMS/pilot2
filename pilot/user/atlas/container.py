@@ -237,7 +237,8 @@ def alrb_wrapper(cmd, workdir, job):
         else:
             _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -C\";'
 
-        script_file = 'container_script.sh'
+        # write the full payload command to a script file
+        script_file = config.Container.script_file
         status = write_file(os.path.join(job.workdir, script_file), cmd, mute=False)
         if status:
             script_cmd = '. /srv/' + script_file
@@ -245,6 +246,9 @@ def alrb_wrapper(cmd, workdir, job):
         else:
             log.warning('attempting to quote command instead')
             _cmd += 'export ALRB_CONT_RUNPAYLOAD=%s;' % pipes.quote(cmd)
+
+        # also store the command string in the job object
+        job.command = cmd
 
         # this should not be necessary after the extract_container_image() in JobData update
         # containerImage should have been removed already

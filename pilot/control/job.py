@@ -1187,12 +1187,7 @@ def get_job_retrieval_delay(harvester):
     :return: sleep (s)
     """
 
-    if harvester:
-        delay = 1
-    else:
-        delay = 60
-
-    return delay
+    return 1 if harvester else 60
 
 
 def retrieve(queues, traces, args):
@@ -1779,8 +1774,9 @@ def job_monitor(queues, traces, args):
                 if jobs[i].state == 'finished' or jobs[i].state == 'failed':
                     log.info('aborting job monitoring since job state=%s' % jobs[i].state)
                     break
-                if jobs[i].state == 'running':
+                elif jobs[i].state == 'running':
                     show_ps_info()
+                    show_ps_info(child=True)
 
                 # perform the monitoring tasks
                 exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
@@ -1923,7 +1919,7 @@ def make_job_report(job):
     log.info('')
 
 
-def show_ps_info(whoami=getuser()):
+def show_ps_info(whoami=getuser(), child=False):
     """
     Display ps info for the given user.
 
@@ -1931,7 +1927,10 @@ def show_ps_info(whoami=getuser()):
     :return:
     """
 
-    cmd = "ps aux | grep %s" % whoami
+    if child:
+        cmd = "ps -fwu %s" % whoami
+    else:
+        cmd = "ps aux | grep %s" % whoami
     exit_code, stdout, stderr = execute(cmd)
     logger.info("\n%s" % stdout)
 
@@ -1968,3 +1967,19 @@ def show_proc_info(pid):
     _cmd = "ls /proc/%d" % pid
     exit_code, stdout, stderr = execute(_cmd)
     logger.info("%s:\n%s" % (_cmd, stdout))
+
+
+def get_trf_command(job):
+    """
+    Return the last command in the full payload command string.
+    Note: this function returns the last command in job.command which is only set for containers.
+
+    :param job: job object.
+    :return: trf command (string).
+    """
+
+    payload_command = ""
+    if job.command:
+        payload_command = job.command.split(';')[-2]
+
+    return payload_command
