@@ -127,8 +127,7 @@ def get_proper_pid(pid, workdir):
     :return: pid (int).
     """
 
-    #script_file = os.path.join(workdir, config.Container.pid_file)
-    script_file = config.Container.pid_file
+    script_file = os.path.join(workdir, config.Container.pid_file)
     if os.path.exists(script_file):
         try:
             _pid = read_file(script_file)
@@ -139,7 +138,7 @@ def get_proper_pid(pid, workdir):
             logger.debug('will use pid %d (from container script)' % pid)
             show_proc_info(pid)
     else:
-        logger.debug('not such file: %s (will use pid=%d in memory monitor setup)' % (script_file, pid))
+        logger.debug('no such file: %s (will use pid=%d in memory monitor setup)' % (script_file, pid))
 
     return pid
 

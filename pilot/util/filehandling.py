@@ -263,7 +263,7 @@ def read_json(filename):
     if f:
         try:
             dictionary = load(f)
-        except PilotException as e:
+        except Exception as e:
             raise FileHandlingFailure(e.get_detail())
         else:
             f.close()
