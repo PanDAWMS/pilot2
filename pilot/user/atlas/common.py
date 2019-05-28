@@ -1008,7 +1008,9 @@ def get_redundants():
                 "/src/*",
                 "singularity_cachedir",
                 "_joproxy15",
-                "HAHM_*"]
+                "HAHM_*",
+                "Process",
+                "merged_lhef*"]
 
     return dir_list
 
