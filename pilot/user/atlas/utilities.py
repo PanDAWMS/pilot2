@@ -135,6 +135,8 @@ def get_proper_pid(pid, workdir):
             logger.warning('failed to convert pid to int: %s' % e)
         else:
             get_logger().debug('will use pid from container script file: %d' % pid)
+    else:
+        logger.debug('not such file: %s (will use pid=%d in memory monitor setuo)' % (script_file, pid))
 
     return pid
 
