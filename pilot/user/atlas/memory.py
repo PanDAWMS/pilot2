@@ -77,6 +77,11 @@ def memory_usage(job):
     # Get the maxPSS value from the memory monitor
     summary_dictionary = get_memory_values(job.workdir)
 
+    if not summary_dictionary:
+        exit_code = -1
+        diagnostics = "no summary dictionary"
+        return exit_code, diagnostics
+
     maxdict = summary_dictionary.get('Max', {})
     maxpss_int = maxdict.get('maxPSS', -1)
 
