@@ -264,7 +264,7 @@ def read_json(filename):
         try:
             dictionary = load(f)
         except Exception as e:
-            raise FileHandlingFailure(e.get_detail())
+            raise FileHandlingFailure(str(e))
         else:
             f.close()
 

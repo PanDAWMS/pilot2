@@ -129,11 +129,11 @@ def get_proper_pid(pid, workdir):
 
     script_file = os.path.join(workdir, config.Container.pid_file)
     i = 0
-    while i < 10:
+    while i < 6:
         if os.path.exists(script_file):
             break
         logger.debug('file not found/created yet: %s' % script_file)
-        time.sleep(1)
+        time.sleep(10)
         i += 1
 
     _cmd = "ls -lF %s" % workdir
