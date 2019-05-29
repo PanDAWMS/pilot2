@@ -238,7 +238,7 @@ def alrb_wrapper(cmd, workdir, job):
             _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -C\";'
 
         # add the pid of the process to be tracked by the memory monitor
-        pid_cmd = "export PILOT_CONTAINER_DIR=`pwd`;ps -o pid= $$ 2>/dev/null > %s;" % config.Container.pid_file
+        pid_cmd = "ps -o pid= $$ 2>/dev/null > %s;" % os.path.join(job.workdir, config.Container.pid_file)
         cmd = pid_cmd + cmd
 
         # write the full payload command to a script file

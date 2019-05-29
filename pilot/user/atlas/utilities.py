@@ -99,7 +99,7 @@ def get_memory_monitor_setup(pid, workdir, setup=""):
     """
 
     # try to get the pid from a pid.txt file which might be created by a container_script
-    pid = get_proper_pid(pid)
+    pid = get_proper_pid(pid, workdir)
 
     release = "21.0.22"
     platform = "x86_64-slc6-gcc62-opt"
@@ -116,18 +116,30 @@ def get_memory_monitor_setup(pid, workdir, setup=""):
     return cmd
 
 
-def get_proper_pid(pid):
+def get_proper_pid(pid, workdir):
     """
     Return a pid from the proper source.
     The given pid comes from Popen(), but in the case containers are used, the pid should instead come from
     the container_script file.
 
     :param pid: process id (int).
+    :param workdir: job workdir (string).
     :return: pid (int).
     """
 
-    workdir = os.environ.get('PILOT_CONTAINER_DIR', os.getcwd())
     script_file = os.path.join(workdir, config.Container.pid_file)
+    i = 0
+    while i < 10:
+        if os.path.exists(script_file):
+            break
+        logger.debug('PILOT_CONTAINER_DIR=%s' % os.environ.get('PILOT_CONTAINER_DIR', 'unknown'))
+        time.sleep(1)
+        i += 1
+
+    _cmd = "ls -lF %s" % workdir
+    exit_code, stdout, stderr = execute(_cmd)
+    logger.debug('%s\n%s' % (_cmd, stdout))
+
     if os.path.exists(script_file):
         try:
             _pid = read_file(script_file)
