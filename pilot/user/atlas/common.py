@@ -1010,7 +1010,7 @@ def get_redundants():
                 "_joproxy15",
                 "HAHM_*",
                 "Process",
-                "merged_lhef*"]
+                "merged_lhef._0.events-new"]
 
     return dir_list
 

@@ -132,7 +132,7 @@ def get_proper_pid(pid, workdir):
     while i < 10:
         if os.path.exists(script_file):
             break
-        logger.debug('PILOT_CONTAINER_DIR=%s' % os.environ.get('PILOT_CONTAINER_DIR', 'unknown'))
+        logger.debug('file not found/created yet: %s' % script_file)
         time.sleep(1)
         i += 1
 
