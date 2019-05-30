@@ -237,11 +237,17 @@ def alrb_wrapper(cmd, workdir, job):
         else:
             _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -C\";'
 
-        # add the pid of the process to be tracked by the memory monitor
-        pid_cmd = "ps -o pid= \$$ 2>/dev/null > %s;" % config.Container.pid_file
-        pid_export_cmd = 'export ALRB_CONT_PRESETUP=\"%s\";' % pid_cmd
-        #cmd = pid_cmd + cmd
-        _cmd = pid_export_cmd + _cmd
+        #
+        #for fspec in job.outdata:
+        #    name = fspec.lfn
+        #if name:
+        #    # add the pid of the process to be tracked by the memory monitor
+        #    #pid_cmd = "ps -o pid= \$$ 2>/dev/null > %s;" % config.Container.pid_file
+        #    log.debug('extracted output file: %s' % name)
+        #    pid_cmd = "ps -ef | grep %s | tr -s ' ' | cut -d ' ' -f2 >%s" % (name, config.Container.pid_file)
+        #    pid_export_cmd = 'export ALRB_CONT_PRESETUP=\"%s\";' % pid_cmd
+        #    #cmd = pid_cmd + cmd
+        #    _cmd = pid_export_cmd + _cmd
 
         # write the full payload command to a script file
         script_file = config.Container.script_file

@@ -1774,9 +1774,6 @@ def job_monitor(queues, traces, args):
                 if jobs[i].state == 'finished' or jobs[i].state == 'failed':
                     log.info('aborting job monitoring since job state=%s' % jobs[i].state)
                     break
-                elif jobs[i].state == 'running':
-                    show_ps_info()
-                    show_ps_info(child=True)
 
                 # perform the monitoring tasks
                 exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
@@ -1917,57 +1914,3 @@ def make_job_report(job):
     #log.info('sizes: %s' % str(job.sizes))
     log.info('--------------------------------------------------')
     log.info('')
-
-
-def show_ps_info(whoami=getuser(), child=False):
-    """
-    Display ps info for the given user.
-
-    :param whoami: user name (string).
-    :return:
-    """
-
-    if child:
-        cmd = "ps -fwu %s" % whoami
-    else:
-        cmd = "ps aux | grep %s" % whoami
-    exit_code, stdout, stderr = execute(cmd)
-    logger.info("\n%s" % stdout)
-
-
-def get_pid_for_cmd(cmd, whoami=getuser()):
-    """
-    Return the process id for the given command and user.
-    Note: function returns 0 in case pid could not be found.
-
-    :param cmd: command string expected to be in ps output (string).
-    :param whoami: user name (string).
-    :return: pid (int).
-    """
-
-    _cmd = "pgrep -u %s -f \'%s\'" % (whoami, cmd)
-    exit_code, stdout, stderr = execute(_cmd)
-
-    try:
-        pid = int(stdout)
-    except Exception:
-        pid = 0
-        logger.warning('pid has wrong type: %s' % stdout)
-
-    return pid
-
-
-def get_trf_command(job):
-    """
-    Return the last command in the full payload command string.
-    Note: this function returns the last command in job.command which is only set for containers.
-
-    :param job: job object.
-    :return: trf command (string).
-    """
-
-    payload_command = ""
-    if job.command:
-        payload_command = job.command.split(';')[-2]
-
-    return payload_command

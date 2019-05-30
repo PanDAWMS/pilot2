@@ -9,6 +9,7 @@
 
 import os
 import time
+from getpass import getuser
 
 # from pilot.info import infosys
 from .setup import get_asetup
@@ -85,7 +86,7 @@ def get_memory_monitor_output_filename():
     return "memory_monitor_output.txt"
 
 
-def get_memory_monitor_setup(pid, workdir, setup=""):
+def get_memory_monitor_setup(pid, workdir, cmd, setup=""):
     """
     Return the proper setup for the memory monitor.
     If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the
@@ -94,12 +95,13 @@ def get_memory_monitor_setup(pid, workdir, setup=""):
 
     :param pid: job process id (int).
     :param workdir: job work directory (string).
+    :param cmd: payload command (string).
     :param setup: optional setup in case asetup can not be used, which uses infosys (string).
     :return: job work directory (string).
     """
 
     # try to get the pid from a pid.txt file which might be created by a container_script
-    pid = get_proper_pid(pid, workdir)
+    pid = get_proper_pid(pid, cmd)
 
     release = "21.0.22"
     platform = "x86_64-slc6-gcc62-opt"
@@ -116,55 +118,89 @@ def get_memory_monitor_setup(pid, workdir, setup=""):
     return cmd
 
 
-def get_proper_pid(pid, workdir):
+def get_proper_pid(pid, cmd):
     """
     Return a pid from the proper source.
-    The given pid comes from Popen(), but in the case containers are used, the pid should instead come from
-    the container_script file.
+    The given pid comes from Popen(), but in the case containers are used, the pid should instead come from a ps aux
+    lookup.
 
     :param pid: process id (int).
-    :param workdir: job workdir (string).
+    :param cmd: payload command (string).
     :return: pid (int).
     """
 
-    script_file = os.path.join(workdir, config.Container.pid_file)
+    _cmd = get_trf_command(cmd)
     i = 0
     while i < 6:
-        if os.path.exists(script_file):
+        # lookup the process id using ps aux
+        _pid = get_pid_for_cmd(_cmd)
+        if _pid:
+            logger.debug('pid=%d for command \"%s\"' % (_pid, _cmd))
             break
-        logger.debug('file not found/created yet: %s' % script_file)
+        else:
+            logger.warning('pid not identified from payload command')
+        # wait until the payload has launched
         time.sleep(10)
         i += 1
 
-    _cmd = "ls -lF %s" % workdir
-    exit_code, stdout, stderr = execute(_cmd)
-    logger.debug('%s\n%s' % (_cmd, stdout))
+    if _pid:
+        pid = _pid
 
-    if os.path.exists(script_file):
-        try:
-            _pid = read_file(script_file)
-            pid = int(_pid)
-        except Exception as e:
-            logger.warning('failed to convert pid to int: %s' % e)
-        else:
-            logger.debug('will use pid %d (from container script)' % pid)
-            show_proc_info(pid)
-    else:
-        logger.debug('no such file: %s (will use pid=%d in memory monitor setup)' % (script_file, pid))
+    logger.info('will use pid=%d for memory monitor' % pid)
 
     return pid
 
 
-def show_proc_info(pid):
+def get_ps_info(whoami=getuser(), child=False):
     """
-    Display the /proc/[pid] info
-    :param pid:
-    :return:
+    Return ps info for the given user.
+
+    :param whoami: user name (string).
+    :return: ps aux for given user (string).
     """
 
-    _cmd = "ls /proc/%d" % pid
+    cmd = "ps -fwu %s" % whoami if child else "ps aux | grep %s" % whoami
+    exit_code, stdout, stderr = execute(cmd)
+
+    return stdout
+
+
+def get_pid_for_cmd(cmd, whoami=getuser()):
+    """
+    Return the process id for the given command and user.
+    Note: function returns 0 in case pid could not be found.
+
+    :param cmd: command string expected to be in ps output (string).
+    :param whoami: user name (string).
+    :return: pid (int).
+    """
+
+    _cmd = "pgrep -u %s -f \'%s\'" % (whoami, cmd)
     exit_code, stdout, stderr = execute(_cmd)
-    logger.info("%s:\n%s" % (_cmd, stdout))
+
+    try:
+        pid = int(stdout)
+    except Exception:
+        pid = 0
+        logger.warning('pid has wrong type: %s' % stdout)
+
+    return pid
+
+
+def get_trf_command(cmd):
+    """
+    Return the last command in the full payload command string.
+    Note: this function returns the last command in job.command which is only set for containers.
+
+    :param cmd: full payload command (string).
+    :return: trf command (string).
+    """
+
+    payload_command = ""
+    if cmd:
+        payload_command = cmd.split(';')[-2]
+
+    return payload_command.strip()
 
 
 def get_memory_monitor_info_path(workdir, allowtxtfile=False):

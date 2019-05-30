@@ -120,7 +120,8 @@ def verify_memory_usage(current_time, mt, job):
         # is the used memory within the allowed limit?
         exit_code, diagnostics = memory.memory_usage(job)
         if exit_code != 0:
-            return exit_code, diagnostics
+            logger.warning('ignoring memory monitor failure')
+            #return exit_code, diagnostics
         else:
             # update the ct_proxy with the current time
             mt.update('ct_memory')
