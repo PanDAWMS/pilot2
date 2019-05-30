@@ -131,14 +131,16 @@ def get_proper_pid(pid, cmd):
 
     _cmd = get_trf_command(cmd)
     i = 0
-    while i < 6:
+    imax = 6 * 2
+    while i < imax:
         # lookup the process id using ps aux
         _pid = get_pid_for_cmd(_cmd)
         if _pid:
             logger.debug('pid=%d for command \"%s\"' % (_pid, _cmd))
             break
         else:
-            logger.warning('pid not identified from payload command')
+            logger.warning('pid not identified from payload command (#%d/#%d)' % (i + 1, imax))
+
         # wait until the payload has launched
         time.sleep(10)
         i += 1
@@ -172,11 +174,13 @@ def get_pid_for_cmd(cmd, whoami=getuser()):
 
     :param cmd: command string expected to be in ps output (string).
     :param whoami: user name (string).
-    :return: pid (int).
+    :return: pid (int) or None if no such process.
     """
 
     _cmd = "pgrep -u %s -f \'%s\'" % (whoami, cmd)
     exit_code, stdout, stderr = execute(_cmd)
+    if not stdout:
+        return None
 
     try:
         pid = int(stdout)
