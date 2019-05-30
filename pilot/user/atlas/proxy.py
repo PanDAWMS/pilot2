@@ -43,7 +43,7 @@ def verify_proxy(limit=None):
     else:
         envsetup = ''
     #envsetup += ". %s;" % (arcproxy_setup)
-    envsetup += "lsetup emi;"
+    envsetup += ". %s/atlas.cern.ch/repo/ATLASLocalRootBase/user/atlasLocalSetup.sh;lsetup emi;" % get_file_system_root_path()
 
     # first try to use arcproxy since voms-proxy-info is not working properly on SL6
     #  (memory issues on queues with limited memory)

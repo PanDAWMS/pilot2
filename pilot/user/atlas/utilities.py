@@ -133,6 +133,9 @@ def get_proper_pid(pid, cmd):
     i = 0
     imax = 6 * 2
     while i < imax:
+        ps = get_ps_info()
+        logger.debug('ps:\n%s' % ps)
+
         # lookup the process id using ps aux
         _pid = get_pid_for_cmd(_cmd)
         if _pid:
@@ -153,7 +156,7 @@ def get_proper_pid(pid, cmd):
     return pid
 
 
-def get_ps_info(whoami=getuser(), child=False):
+def get_ps_info(whoami=getuser(), options='axfo pid,user,rss,pcpu,args'):
     """
     Return ps info for the given user.
 
@@ -161,7 +164,7 @@ def get_ps_info(whoami=getuser(), child=False):
     :return: ps aux for given user (string).
     """
 
-    cmd = "ps -fwu %s" % whoami if child else "ps aux | grep %s" % whoami
+    cmd = "ps %s | grep %s" % (options, whoami)
     exit_code, stdout, stderr = execute(cmd)
 
     return stdout
