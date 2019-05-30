@@ -78,8 +78,8 @@ def memory_usage(job):
     summary_dictionary = get_memory_values(job.workdir)
 
     if not summary_dictionary:
-        exit_code = -1
-        diagnostics = "no summary dictionary"
+        exit_code = errors.BADMEMORYMONITORJSON
+        diagnostics = "Memory monitor output could not be read"
         return exit_code, diagnostics
 
     maxdict = summary_dictionary.get('Max', {})

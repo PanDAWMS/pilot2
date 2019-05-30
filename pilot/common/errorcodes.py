@@ -118,6 +118,7 @@ class ErrorCodes:
     ATLASSETUPFATAL = 1334
     MISSINGUSERCODE = 1335
     JOBALREADYRUNNING = 1336
+    BADMEMORYMONITORJSON = 1337
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -214,7 +215,8 @@ class ErrorCodes:
         NOREMOTESPACE: "No space left on device",
         ATLASSETUPFATAL: "AtlasSetup failed with a fatal exception (consult Payload log)",
         MISSINGUSERCODE: "User code not available on PanDA server (resubmit task with --useNewCode)",
-        JOBALREADYRUNNING: "Job is already running elsewhere"
+        JOBALREADYRUNNING: "Job is already running elsewhere",
+        BADMEMORYMONITORJSON: "Memory monitor produced bad output"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
