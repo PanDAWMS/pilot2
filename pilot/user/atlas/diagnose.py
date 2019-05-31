@@ -571,6 +571,9 @@ def process_job_report(job):
                     job.piloterrordiag = diagnostics
                 else:
                     log.info('extracted exit message from job report: %s' % job.exitmsg)
+                    if job.exitmsg != 'OK':
+                        job.exeerrordiag = job.exitmsg
+                        job.exeerrorcode = job.exitcode
 
             if job.exitcode != 0:
                 # get list with identified errors in job report

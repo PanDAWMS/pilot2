@@ -77,7 +77,7 @@ def run(args):
     signal.signal(signal.SIGBUS, functools.partial(interrupt, args))
 
     logger.info('setting up queues')
-    queues = namedtuple('queues', ['jobs', 'payloads', 'data_in', 'data_out',
+    queues = namedtuple('queues', ['jobs', 'payloads', 'data_in', 'data_out', 'current_data_in',
                                    'validated_jobs', 'validated_payloads', 'monitored_payloads',
                                    'finished_jobs', 'finished_payloads', 'finished_data_in', 'finished_data_out',
                                    'failed_jobs', 'failed_payloads', 'failed_data_in', 'failed_data_out',
@@ -88,6 +88,7 @@ def run(args):
     queues.data_in = queue.Queue()
     queues.data_out = queue.Queue()
 
+    queues.current_data_in = queue.Queue()
     queues.validated_jobs = queue.Queue()
     queues.validated_payloads = queue.Queue()
     queues.monitored_payloads = queue.Queue()
