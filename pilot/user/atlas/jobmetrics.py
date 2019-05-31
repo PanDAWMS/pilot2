@@ -94,7 +94,9 @@ def get_job_metrics(job):
     path = os.path.join(job.workdir, get_memory_monitor_output_filename())
     if os.path.exists(path):
         client = analytics.Analytics()
-        slope = client.get_fitted_data(path)
+        # do not include tails on final update
+        tails = False if (job.state == "finished" or job.state == "failed" or job.state == "holding") else True
+        slope = client.get_fitted_data(path, tails=tails)
         if slope != "":
             job_metrics += get_job_metrics_entry("leak", slope)
 

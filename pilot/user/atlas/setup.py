@@ -64,23 +64,6 @@ def should_pilot_prepare_asetup(noexecstrcnv, jobpars):
     return prepareasetup
 
 
-def is_user_analysis_job(trf):  ## DEPRECATED: consider job.is_analysis()
-    """
-    Determine whether the job is an analysis job or not.
-    The trf name begins with a protocol for user analysis jobs.
-
-    :param trf:
-    :return:
-    """
-
-    if (trf.startswith('https://') or trf.startswith('http://')):
-        analysisjob = True
-    else:
-        analysisjob = False
-
-    return analysisjob
-
-
 def get_alrb_export():
     """
     Return the export command for the ALRB path if it exists.
@@ -361,6 +344,7 @@ def get_payload_environment_variables(cmd, job_id, task_id, attempt_nr, processi
     variables.append('export PandaID=\'%s\';' % os.environ.get('PandaID', 'unknown'))
     variables.append('export PanDA_TaskID=\'%s\';' % os.environ.get('PanDA_TaskID', 'unknown'))
     variables.append('export PanDA_AttemptNr=\'%d\';' % attempt_nr)
+    variables.append('export INDS=\'%s\';' % os.environ.get('INDS', 'unknown'))
 
     # Unset ATHENA_PROC_NUMBER if set for event service Merge jobs
     if "Merge_tf" in cmd and 'ATHENA_PROC_NUMBER' in os.environ:

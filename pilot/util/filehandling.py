@@ -15,7 +15,8 @@ import re
 import tarfile
 import time
 import uuid
-from json import load, dump
+from json import load
+from json import dump as dumpjson
 from shutil import copy2, rmtree
 from zlib import adler32
 
@@ -296,7 +297,7 @@ def write_json(filename, dictionary):
     else:
         # Write the dictionary
         try:
-            dump(dictionary, fp, sort_keys=True, indent=4, separators=(',', ': '))
+            dumpjson(dictionary, fp, sort_keys=True, indent=4, separators=(',', ': '))
         except PilotException as e:
             raise FileHandlingFailure(e.get_detail())
         else:
@@ -825,3 +826,20 @@ def find_latest_modified_file(list_of_files):
         mtime = None
 
     return latest_file, mtime
+
+
+def dump(path, cmd="cat"):
+    """
+    Dump the content of the file in the given path to the log.
+
+    :param path: file path (string).
+    :param cmd: optional command (string).
+    :return: cat (string).
+    """
+
+    if os.path.exists(path) or cmd == "echo":
+        _cmd = "%s %s" % (cmd, path)
+        exit_code, stdout, stderr = execute(_cmd)
+        logger.info("%s:\n%s" % (_cmd, stdout + stderr))
+    else:
+        logger.info("path %s does not exist" % path)

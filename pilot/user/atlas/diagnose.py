@@ -102,6 +102,11 @@ def interpret_payload_exit_info(job):
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NFSSQLITE, priority=True)
         return
 
+    # is the user tarball missing on the server?
+    if is_user_code_missing(job):
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGUSERCODE, priority=True)
+        return
+
     # set a general Pilot error code if the payload error could not be identified
     if job.transexitcode != 0:
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.UNKNOWNPAYLOADFAILURE, priority=True)
@@ -138,6 +143,23 @@ def is_out_of_memory(job):
     return out_of_memory
 
 
+def is_user_code_missing(job):
+    """
+    Is the user code (tarball) missing on the server?
+
+    :param job: job object.
+    :return: Boolean. (note: True means the error was found)
+    """
+
+    stdout = os.path.join(job.workdir, config.Payload.payloadstdout)
+    error_messages = ["ERROR: unable to fetch source tarball from web"]
+
+    return scan_file(stdout,
+                     error_messages,
+                     job.jobid,
+                     warning_message="identified an \'%s\' message in %s" % (error_messages[0], os.path.basename(stdout)))
+
+
 def is_out_of_space(job):
     """
     Did the disk run out of space?
@@ -152,7 +174,7 @@ def is_out_of_space(job):
     return scan_file(stderr,
                      error_messages,
                      job.jobid,
-                     warning_message="identified a \'No space left on device\' message in %s" % os.path.basename(stderr))
+                     warning_message="identified a \'%s\' message in %s" % (error_messages[0], os.path.basename(stderr)))
 
 
 def is_installation_error(job):
@@ -549,6 +571,9 @@ def process_job_report(job):
                     job.piloterrordiag = diagnostics
                 else:
                     log.info('extracted exit message from job report: %s' % job.exitmsg)
+                    if job.exitmsg != 'OK':
+                        job.exeerrordiag = job.exitmsg
+                        job.exeerrorcode = job.exitcode
 
             if job.exitcode != 0:
                 # get list with identified errors in job report

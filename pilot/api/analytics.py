@@ -114,15 +114,16 @@ class Analytics(Services):
 
         return get_table_from_file(filename, header=header, separator=separator, convert_to_float=convert_to_float)
 
-    def get_fitted_data(self, filename, x_value='Time', y_value='PSS', precision=2):
+    def get_fitted_data(self, filename, x_name='Time', y_name='PSS+Swap', precision=2, tails=True):
         """
         Return a properly formatted job metrics string with analytics data.
-        Currently the function returns a fit for PSS vs time, whose slope measures memory leaks.
+        Currently the function returns a fit for PSS+Swap vs time, whose slope measures memory leaks.
 
         :param filename: full path to memory monitor output (string).
-        :param x_value: optional string, name selector for table column.
-        :param y_value: optional string, name selector for table column.
+        :param x_name: optional string, name selector for table column.
+        :param y_name: optional string, name selector for table column.
         :param precision: optional precision for fitted slope parameter, default 2.
+        :param tails: should tails (first and last values) be used? (boolean).
         :return: slope (float string with desired precision).
         """
 
@@ -131,10 +132,20 @@ class Analytics(Services):
 
         if table:
             # extract data to be fitted
-            x = table.get('Time', [])
-            y = table.get('PSS', [])
+            x, y = self.extract_from_table(table, x_name, y_name)
 
-            if len(x) >= 2 and len(y) >= 2:
+            # remove tails if desired
+            # this is useful e.g. for memory monitor data where the first and last values
+            # represent allocation and de-allocation, ie not interesting
+            if not tails and len(x) > 2 and len(y) > 2:
+                logger.debug('removing tails from data to be fitted')
+                x = x[1:]
+                x = x[:-1]
+                y = y[1:]
+                y = y[:-1]
+
+            if len(x) > 2 and len(y) > 2:
+                logger.info('fitting %s vs %s' % (y_name, x_name))
                 try:
                     fit = self.fit(x, y)
                     _slope = self.slope()
@@ -150,6 +161,34 @@ class Analytics(Services):
                 logger.warning('wrong length of table data, x=%s, y=%s (must be same and length>=2)' % (str(x), str(y)))
 
         return slope
+
+    def extract_from_table(self, table, x_name, y_name):
+        """
+
+        :param table: dictionary with columns.
+        :param x_name: column name to be extracted (string).
+        :param y_name: column name to be extracted (may contain '+'-sign) (string).
+        :return: x (list), y (list).
+        """
+
+        x = table.get(x_name, [])
+        if '+' not in y_name:
+            y = table.get(y_name, [])
+        else:
+            try:
+                y1_name = y_name.split('+')[0]
+                y2_name = y_name.split('+')[1]
+                y1_value = table.get(y1_name, [])
+                y2_value = table.get(y2_name, [])
+            except Exception as e:
+                logger.warning('exception caught: %s' % e)
+                x = []
+                y = []
+            else:
+                # create new list with added values (1,2,3) + (4,5,6) = (5,7,9)
+                y = [x0 + y0 for x0, y0 in zip(y1_value, y2_value)]
+
+        return x, y
 
 
 class Fit(object):

@@ -356,7 +356,11 @@ def copytool_in(queues, traces, args):
 
     while not args.graceful_stop.is_set():
         try:
+            # extract a job to stage-in its input
             job = queues.data_in.get(block=True, timeout=1)
+            # place it in the current stage-in queue (used by the jobs' queue monitoring)
+            if job:
+                put_in_queue(job, queues.current_data_in)
 
             # ready to set the job in running state
             send_state(job, args, 'running')
@@ -378,12 +382,16 @@ def copytool_in(queues, traces, args):
 
                 #queues.finished_data_in.put(job)
                 put_in_queue(job, queues.finished_data_in)
+                # remove the job from the current stage-in queue
+                _job = queues.current_data_in.get(block=True, timeout=1)
+                if _job:
+                    log.debug('job %s has been removed from the current_data_in queue' % _job.jobid)
 
                 # now create input file metadata if required by the payload
                 try:
                     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
                     user = __import__('pilot.user.%s.metadata' % pilot_user, globals(), locals(), [pilot_user], -1)
-                    file_dictionary = get_input_file_dictionary(job.indata)
+                    file_dictionary = get_input_file_dictionary(job.indata, job.workdir)
                     log.debug('file_dictionary=%s' % str(file_dictionary))
                     xml = user.create_input_file_metadata(file_dictionary, job.workdir)
                     log.info('created input file metadata:\n%s' % xml)
@@ -478,20 +486,23 @@ def copytool_out(queues, traces, args):
     logger.debug('copytool_out has finished')
 
 
-def get_input_file_dictionary(indata):
+def get_input_file_dictionary(indata, workdir):
     """
     Return an input file dictionary.
     Format: {'guid': 'pfn', ..}
     Normally use_turl would be set to True if direct access is used.
 
     :param indata: FileSpec object.
+    :param workdir: job.workdir (string).
     :return: file dictionary.
     """
 
     file_dictionary = {}
 
     for e in indata:
-        file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else e.surl
+        dst = e.workdir or workdir or '.'
+        file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else os.path.join(dst, e.lfn)
+        # file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else e.surl
 
     return file_dictionary
 

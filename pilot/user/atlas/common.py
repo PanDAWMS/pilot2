@@ -140,10 +140,10 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
 
     log = get_logger(job.jobid)
 
-    if userjob:
-        # set the INDS env variable (used by runAthena)
-        set_inds(job.datasetin)  # realDatasetsIn
+    # set the INDS env variable (used by runAthena but also for EventIndex production jobs)
+    set_inds(job.datasetin)  # realDatasetsIn
 
+    if userjob:
         # Try to download the trf (skip when user container is to be used)
         #if job.imagename != "" or "--containerImage" in job.jobparams:
         #    job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
@@ -635,8 +635,8 @@ def update_job_data(job):  # noqa: C901
                         extra.append(spec)
 
         if extra:
-            log.info('found extra output files to be added for stage-out: extra=%s' % extra)
-            job.outdata.extend(extra)
+            log.info('found extra output files in job report, will overwrite output file list: extra=%s' % extra)
+            job.outdata = extra
     else:
         log.warning('job.metadata not set')
 
@@ -939,7 +939,7 @@ def cleanup_payload(workdir, outputfiles=[]):
     for ampdir in glob('%s/athenaMP-workers-*' % (workdir)):
         for (p, d, f) in os.walk(ampdir):
             for filename in f:
-                if 'core' in filename or 'tmp.' in filename:
+                if 'core' in filename or 'pool.root' in filename or 'tmp.' in filename:
                     path = os.path.join(p, filename)
                     path = os.path.abspath(path)
                     remove(path)
