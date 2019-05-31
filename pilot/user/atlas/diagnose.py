@@ -255,6 +255,10 @@ def find_number_of_events(job):
 
     log = get_logger(job.jobid)
 
+    if job.nevents:
+        log.info('number of events already known: %d' % job.nevents)
+        return
+
     log.info('looking for number of processed events (source #1: jobReport.json)')
     find_number_of_events_in_jobreport(job)
     if job.nevents > 0:

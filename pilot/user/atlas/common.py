@@ -606,6 +606,11 @@ def update_job_data(job):  # noqa: C901
 
     log.info('work_attributes = %s' % work_attributes)
 
+    # note: the number of events can possibly be set already at this point
+    nevents = work_attributes.get('nEvents', 0)
+    if nevents:
+        job.nevents = nevents
+
     # extract output files from the job report, in case the trf has created additional (overflow) files
     # also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
     if job.metadata and not job.is_eventservice:
