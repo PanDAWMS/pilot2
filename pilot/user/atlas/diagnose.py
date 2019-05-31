@@ -286,9 +286,9 @@ def find_number_of_events_in_jobreport(job):
     """
 
     work_attributes = parse_jobreport_data(job.metadata)
-    if 'nevents' in work_attributes:
+    if 'nEvents' in work_attributes:
         try:
-            n_events = work_attributes.get('nevents')
+            n_events = work_attributes.get('nEvents')
             if n_events:
                 job.nevents = int(n_events)
         except ValueError as e:
