@@ -86,7 +86,7 @@ def get_memory_monitor_output_filename():
     return "memory_monitor_output.txt"
 
 
-def get_memory_monitor_setup(pid, workdir, cmd, setup=""):
+def get_memory_monitor_setup(pid, workdir, cmd, setup="", use_container=True):
     """
     Return the proper setup for the memory monitor.
     If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the
@@ -97,11 +97,12 @@ def get_memory_monitor_setup(pid, workdir, cmd, setup=""):
     :param workdir: job work directory (string).
     :param cmd: payload command (string).
     :param setup: optional setup in case asetup can not be used, which uses infosys (string).
+    :param use_container: optional boolean.
     :return: job work directory (string).
     """
 
     # try to get the pid from a pid.txt file which might be created by a container_script
-    pid = get_proper_pid(pid, cmd)
+    pid = get_proper_pid(pid, cmd, use_container=use_container)
 
     release = "21.0.22"
     platform = "x86_64-slc6-gcc62-opt"
@@ -118,7 +119,7 @@ def get_memory_monitor_setup(pid, workdir, cmd, setup=""):
     return cmd
 
 
-def get_proper_pid(pid, cmd):
+def get_proper_pid(pid, cmd, use_container=True):
     """
     Return a pid from the proper source.
     The given pid comes from Popen(), but in the case containers are used, the pid should instead come from a ps aux
@@ -126,6 +127,7 @@ def get_proper_pid(pid, cmd):
 
     :param pid: process id (int).
     :param cmd: payload command (string).
+    :param use_container: optional boolean.
     :return: pid (int).
     """
 

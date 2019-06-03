@@ -100,6 +100,7 @@ class JobData(BaseData):
 
     zipmap = ""                    # ZIP MAP values extracted from jobparameters
     imagename = ""                 # user defined container image name extracted from job parameters
+    usecontainer = False           # boolean, True if a container is to be used for the payload
 
     # from job definition
     attemptnr = 0                  # job attempt number
@@ -139,7 +140,7 @@ class JobData(BaseData):
                    'infilesguids'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
              dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes'],
-             bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug']
+             bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug', 'usecontainer']
              }
 
     def __init__(self, data):

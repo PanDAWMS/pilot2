@@ -118,6 +118,11 @@ def _validate_job(job):
     else:
         status = False
 
+    container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], -1)
+    # should a container be used for the payload?
+    kwargs = {'job': job}
+    job.usecontainer = container.do_use_container(**kwargs)
+
     return status
 
 

@@ -41,6 +41,7 @@ def execute(executable, **kwargs):
     # switch off pilot controlled containers for user defined containers
     if job and job.imagename != "" and "runcontainer" in executable:
         usecontainer = False
+        job.usecontainer = usecontainer
 
     # Import user specific code if necessary (in case the command should be executed in a container)
     # Note: the container.wrapper() function must at least be declared
@@ -49,7 +50,7 @@ def execute(executable, **kwargs):
         container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], -1)
         if container:
             # should a container really be used?
-            do_use_container = container.do_use_container(**kwargs)
+            do_use_container = job.usecontainer if job else container.do_use_container(**kwargs)
 
             if do_use_container:
                 diagnostics = ""
