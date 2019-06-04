@@ -131,6 +131,9 @@ def get_proper_pid(pid, cmd, use_container=True):
     :return: pid (int).
     """
 
+    if not use_container:
+        return pid
+
     _cmd = get_trf_command(cmd)
     i = 0
     imax = 6 * 2

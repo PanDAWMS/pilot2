@@ -113,17 +113,16 @@ def _validate_job(job):
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
-    if user.verify_job(job):
-        status = True
-    else:
-        status = False
-
     container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], -1)
-    # should a container be used for the payload?
-    kwargs = {'job': job}
-    job.usecontainer = container.do_use_container(**kwargs)
 
-    return status
+    # should a container be used for the payload?
+    try:
+        kwargs = {'job': job}
+        job.usecontainer = container.do_use_container(**kwargs)
+    except Exception as e:
+        logger.warning('exception caught: %s' % e)
+
+    return True if user.verify_job(job) else False
 
 
 def verify_error_code(job):
