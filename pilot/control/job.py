@@ -111,7 +111,7 @@ def _validate_job(job):
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
-    container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], -1)
+    container = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [user], -1)
 
     # should a container be used for the payload?
     try:
