@@ -32,9 +32,7 @@ def do_use_container(**kwargs):
     :return: True if function has decided that a container should be used, False otherwise (boolean).
     """
 
-    return False
-
-    #use_container = False
+    use_container = False
 
     # to force no container use: return False
 
