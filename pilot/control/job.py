@@ -21,7 +21,6 @@ try:
 except Exception:
     import queue  # python 3
 
-from getpass import getuser
 from json import dumps
 
 from pilot.common.errorcodes import ErrorCodes
@@ -35,7 +34,6 @@ from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
-from pilot.util.container import execute
 from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file
 from pilot.util.jobmetrics import get_job_metrics

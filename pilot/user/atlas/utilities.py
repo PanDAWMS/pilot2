@@ -14,9 +14,8 @@ from getpass import getuser
 # from pilot.info import infosys
 from .setup import get_asetup
 from pilot.util.auxiliary import get_logger
-from pilot.util.config import config
 from pilot.util.container import execute
-from pilot.util.filehandling import read_json, copy, read_file
+from pilot.util.filehandling import read_json, copy
 
 import logging
 logger = logging.getLogger(__name__)

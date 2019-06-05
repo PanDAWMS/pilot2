@@ -307,9 +307,7 @@ def utility_monitor(job):
                 log.warning('dectected crashed utility subprocess - too many restarts, will not restart %s again' %
                             utcmd)
         else:
-            # log.info('utility %s is still running' % utcmd)
-
-            # check the utility output (the selector option adds a substring to the output file name)
+                # check the utility output (the selector option adds a substring to the output file name)
             filename = usercommon.get_utility_command_output_filename(utcmd, selector=True)
             path = os.path.join(job.workdir, filename)
             if os.path.exists(path):
