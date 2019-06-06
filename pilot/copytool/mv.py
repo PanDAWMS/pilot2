@@ -206,7 +206,7 @@ def symlink(source, destination):
     :return: exit_code, stdout, stderr
     """
 
-    executable = ['/usr/bin/env', 'ln', '-s', source, destination]
+    executable = ['/usr/bin/env', 'ln', '-sr', source, destination]
     cmd = ' '.join(executable)
     exit_code, stdout, stderr = execute(cmd)
 
