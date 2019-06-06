@@ -113,7 +113,7 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
         setup += ';'
     # Now add the MemoryMonitor command
     _cmd = "%sMemoryMonitor --pid %d --filename %s --json-summary %s --interval %d" %\
-          (setup, pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
+           (setup, pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
     _cmd = "cd " + workdir + ";" + _cmd
 
     return _cmd
