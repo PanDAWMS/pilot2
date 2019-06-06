@@ -85,7 +85,7 @@ def get_memory_monitor_output_filename():
     return "memory_monitor_output.txt"
 
 
-def get_memory_monitor_setup(pid, workdir, cmd, setup="", use_container=True):
+def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True, transformation=""):
     """
     Return the proper setup for the memory monitor.
     If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the
@@ -94,14 +94,15 @@ def get_memory_monitor_setup(pid, workdir, cmd, setup="", use_container=True):
 
     :param pid: job process id (int).
     :param workdir: job work directory (string).
-    :param cmd: payload command (string).
+    :param command: payload command (string).
     :param setup: optional setup in case asetup can not be used, which uses infosys (string).
     :param use_container: optional boolean.
+    :param transformation: optional name of transformation, e.g. Sim_tf.py (string).
     :return: job work directory (string).
     """
 
     # try to get the pid from a pid.txt file which might be created by a container_script
-    pid = get_proper_pid(pid, cmd, use_container=use_container)
+    pid = get_proper_pid(pid, command, use_container=use_container, transformation=transformation)
 
     release = "21.0.22"
     platform = "x86_64-slc6-gcc62-opt"
@@ -111,29 +112,30 @@ def get_memory_monitor_setup(pid, workdir, cmd, setup="", use_container=True):
     if not setup.endswith(';'):
         setup += ';'
     # Now add the MemoryMonitor command
-    cmd = "%sMemoryMonitor --pid %d --filename %s --json-summary %s --interval %d" %\
+    _cmd = "%sMemoryMonitor --pid %d --filename %s --json-summary %s --interval %d" %\
           (setup, pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
-    cmd = "cd " + workdir + ";" + cmd
+    _cmd = "cd " + workdir + ";" + _cmd
 
-    return cmd
+    return _cmd
 
 
-def get_proper_pid(pid, cmd, use_container=True):
+def get_proper_pid(pid, command, use_container=True, transformation=""):
     """
     Return a pid from the proper source.
     The given pid comes from Popen(), but in the case containers are used, the pid should instead come from a ps aux
     lookup.
 
     :param pid: process id (int).
-    :param cmd: payload command (string).
+    :param command: payload command (string).
     :param use_container: optional boolean.
+    :param transformation: optional name of transformation, e.g. Sim_tf.py (string).
     :return: pid (int).
     """
 
     if not use_container:
         return pid
 
-    _cmd = get_trf_command(cmd)
+    _cmd = get_trf_command(command, transformation=transformation)
     i = 0
     imax = 6 * 2
     while i < imax:
@@ -198,19 +200,23 @@ def get_pid_for_cmd(cmd, whoami=getuser()):
     return pid
 
 
-def get_trf_command(cmd):
+def get_trf_command(command, transformation=""):
     """
     Return the last command in the full payload command string.
     Note: this function returns the last command in job.command which is only set for containers.
 
-    :param cmd: full payload command (string).
+    :param command: full payload command (string).
+    :param transformation: optional name of transformation, e.g. Sim_tf.py (string).
     :return: trf command (string).
     """
 
     payload_command = ""
-    if cmd:
-        payload_command = cmd.split(';')[-2]
-
+    if command:
+        if not transformation:
+            payload_command = command.split(';')[-2]
+        else:
+            if transformation in command:
+                payload_command = command[command.find(transformation):]
     return payload_command.strip()
 
 
