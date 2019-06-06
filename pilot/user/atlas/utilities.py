@@ -217,7 +217,13 @@ def get_trf_command(command, transformation=""):
         else:
             if transformation in command:
                 payload_command = command[command.find(transformation):]
-    return payload_command.strip()
+
+        # clean-up the command, remove '-signs and any trailing ;
+        payload_command = payload_command.strip()
+        payload_command = payload_command.replace("'", "")
+        payload_command = payload_command.rstrip(";")
+
+    return payload_command
 
 
 def get_memory_monitor_info_path(workdir, allowtxtfile=False):
