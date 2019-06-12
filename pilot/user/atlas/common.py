@@ -559,7 +559,7 @@ def get_file_transfer_info(transfertype, is_a_build_job, queuedata):
     return use_copy_tool, use_direct_access, use_pfc_turl
 
 
-def update_job_data(job):  # noqa: C901
+def update_job_data(job):
     """
     This function can be used to update/add data to the job object.
     E.g. user specific information can be extracted from other job object fields. In the case of ATLAS, information
@@ -614,36 +614,7 @@ def update_job_data(job):  # noqa: C901
     # extract output files from the job report, in case the trf has created additional (overflow) files
     # also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
     if job.metadata and not job.is_eventservice:
-        data = dict([e.lfn, e] for e in job.outdata)
-        extra = []
-
-        for dat in job.metadata.get('files', {}).get('output', []):
-            for fdat in dat.get('subFiles', []):
-                lfn = fdat['name']
-
-                # verify the guid if the lfn is known
-                if lfn in data:
-                    data[lfn].guid = fdat['file_guid']
-                    logger.info('set guid=%s for lfn=%s (value taken from job report)' % (data[lfn].guid, lfn))
-                else:  # found new entry, create filespec
-                    #if not job.outdata:
-                    #    raise PilotException("job.outdata is empty, will not be able to construct FileSpecs",
-                    #                         code=errors.INTERNALPILOTPROBLEM)
-                    if job.outdata:
-                        kw = {'lfn': lfn,
-                              'scope': job.outdata[0].scope,  ## take value from 1st output file?
-                              'guid': fdat['file_guid'],
-                              'filesize': fdat['file_size'],
-                              'dataset': dat.get('dataset') or job.outdata[0].dataset  ## take value from 1st output file?
-                              }
-                        spec = FileSpec(filetype='output', **kw)
-                        extra.append(spec)
-
-        if extra:
-            log.info('found extra output files in job report, will overwrite output file list: extra=%s' % extra)
-            job.outdata = extra
-    else:
-        log.warning('job.metadata not set')
+        extract_output_files(job)
 
     ## validate output data (to be moved into the JobData)
     ## warning: do no execute this code unless guid lookup in job report has failed - pilot should only generate guids
@@ -652,6 +623,47 @@ def update_job_data(job):  # noqa: C901
         if not dat.guid:
             dat.guid = get_guid()
             log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
+
+
+def extract_output_files(job):
+    """
+    Extract output files from the job report if required (not for user jobs), in case the trf has created additional
+    (overflow) files also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
+
+    :param job: job object.
+    :return:
+    """
+
+    log = get_logger(job.jobid)
+
+    data = dict([e.lfn, e] for e in job.outdata)
+    extra = []
+
+    for dat in job.metadata.get('files', {}).get('output', []):
+        for fdat in dat.get('subFiles', []):
+            lfn = fdat['name']
+
+            # verify the guid if the lfn is known
+            if lfn in data:
+                data[lfn].guid = fdat['file_guid']
+                logger.info('set guid=%s for lfn=%s (value taken from job report)' % (data[lfn].guid, lfn))
+            else:  # found new entry, create filespec
+                #if not job.outdata:
+                #    raise PilotException("job.outdata is empty, will not be able to construct FileSpecs",
+                #                         code=errors.INTERNALPILOTPROBLEM)
+                if job.outdata:
+                    kw = {'lfn': lfn,
+                          'scope': job.outdata[0].scope,  ## take value from 1st output file?
+                          'guid': fdat['file_guid'],
+                          'filesize': fdat['file_size'],
+                          'dataset': dat.get('dataset') or job.outdata[0].dataset  ## take value from 1st output file?
+                          }
+                    spec = FileSpec(filetype='output', **kw)
+                    extra.append(spec)
+
+    if extra:
+        log.info('found extra output files in job report, will overwrite output file list: extra=%s' % extra)
+        job.outdata = extra
 
 
 def get_outfiles_records(subfiles):
