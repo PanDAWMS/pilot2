@@ -573,13 +573,15 @@ def update_job_data(job):
     ## it would be better to reallocate this logic (as well as parse metadata values)directly to Job object
     ## since in general it's Job related part
     ## later on once we introduce VO specific Job class (inherited from JobData) this can be easily customized
+    ## Comment from Paul:
+    ## Yes but it is ATLAS specific; we might want to make the Job object user specific first
 
     log = get_logger(job.jobid)
 
     stageout = "all"
 
     if job.is_eventservice:
-        logger.info('payload is eventservice, will only stageout log')
+        logger.info('event service payload, will only stage-out log')
         stageout = "log"
     else:
         # handle any error codes
@@ -590,6 +592,7 @@ def update_job_data(job):
             else:
                 log.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
                 stageout = "log"
+
     if 'exeErrorDiag' in job.metadata:
         job.exeerrordiag = job.metadata['exeErrorDiag']
         if job.exeerrordiag:
@@ -606,15 +609,18 @@ def update_job_data(job):
 
     log.info('work_attributes = %s' % work_attributes)
 
-    # note: the number of events can possibly be set already at this point
+    # note: the number of events can be set already at this point if the value was extracted from the job report
+    # (a more thorough search for this value is done later unless it was set here)
     nevents = work_attributes.get('nEvents', 0)
     if nevents:
         job.nevents = nevents
 
-    # extract output files from the job report, in case the trf has created additional (overflow) files
+    # extract output files from the job report if required, in case the trf has created additional (overflow) files
     # also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
-    if job.metadata and not job.is_eventservice:
+    if job.metadata and not job.is_eventservice and not job.is_analysis():
         extract_output_files(job)
+    else:
+        pass
 
     ## validate output data (to be moved into the JobData)
     ## warning: do no execute this code unless guid lookup in job report has failed - pilot should only generate guids
@@ -636,9 +642,9 @@ def extract_output_files(job):
 
     log = get_logger(job.jobid)
 
+    # extract info from metadata (job report JSON)
     data = dict([e.lfn, e] for e in job.outdata)
     extra = []
-
     for dat in job.metadata.get('files', {}).get('output', []):
         for fdat in dat.get('subFiles', []):
             lfn = fdat['name']

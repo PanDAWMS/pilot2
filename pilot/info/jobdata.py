@@ -61,6 +61,7 @@ class JobData(BaseData):
     accessmode = ""                # direct access instruction from jobparams
     processingtype = ""            # e.g. nightlies
     maxcpucount = 0                # defines what is a looping job (seconds)
+    allownooutput = []             # used to disregard empty files from job report
 
     # set by the pilot (not from job definition)
     workdir = ""                   # working directoty for this job
@@ -138,7 +139,7 @@ class JobData(BaseData):
                    'swrelease', 'zipmap', 'imagename', 'accessmode', 'transfertype',
                    'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    'infilesguids'],
-             list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
+             list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'allownooutput'],
              dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes'],
              bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug', 'usecontainer']
              }
@@ -173,7 +174,7 @@ class JobData(BaseData):
         if '--accessmode=copy' in self.jobparams or '--useLocalIO' in self.jobparams:
             self.accessmode = 'copy'
 
-        # form raw list data from input comma-separated values for further validataion by FileSpec
+        # form raw list data from input comma-separated values for further validation by FileSpec
         kmap = {
             # 'internal_name': 'ext_key_structure'
             'lfn': 'inFiles',
@@ -337,6 +338,7 @@ class JobData(BaseData):
             'is_eventservice': 'eventService',
             'is_eventservicemerge': 'eventServiceMerge',
             'maxcpucount': 'maxCpuCount',
+            'allownooutput': 'allowNoOutput',
         }
 
         self._load_data(data, kmap)
