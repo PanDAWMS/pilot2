@@ -573,8 +573,6 @@ def update_job_data(job):
     ## it would be better to reallocate this logic (as well as parse metadata values)directly to Job object
     ## since in general it's Job related part
     ## later on once we introduce VO specific Job class (inherited from JobData) this can be easily customized
-    ## Comment from Paul:
-    ## Yes but it is ATLAS specific; we might want to make the Job object user specific first
 
     log = get_logger(job.jobid)
 
@@ -620,7 +618,11 @@ def update_job_data(job):
     if job.metadata and not job.is_eventservice and not job.is_analysis():
         extract_output_files(job)
     else:
-        pass
+        if not job.allownooutput:  # i.e. if it's an empty list, do nothing
+            log.debug("will not try to extract output files from jobReport for user job (and allowNoOut list is empty)")
+        else:
+            # remove the files listed in allowNoOutput if they don't exist
+            remove_no_output_files(job)
 
     ## validate output data (to be moved into the JobData)
     ## warning: do no execute this code unless guid lookup in job report has failed - pilot should only generate guids
@@ -670,6 +672,44 @@ def extract_output_files(job):
     if extra:
         log.info('found extra output files in job report, will overwrite output file list: extra=%s' % extra)
         job.outdata = extra
+
+
+def remove_no_output_files(job):
+    """
+    Remove files from output file list if they are listed in allowNoOutput and do not exist.
+
+    :param job: job object.
+    :return:
+    """
+
+    log = get_logger(job.jobid)
+
+    # first identify the files to keep
+    _outfiles = []
+    for fspec in job.outdata:
+        filename = fspec.lfn
+        path = os.path.join(job.workdir, filename)
+
+        if filename in job.allownooutput:
+            if os.path.exists(path):
+                log.info("file %s is listed in allowNoOutput but exists (will not be removed from list of files to be staged-out)" % filename)
+                _outfiles.append(filename)
+            else:
+                log.info("file %s is listed in allowNoOutput and does not exist (will be removed from list of files to be staged-out)" % filename)
+        else:
+            if os.path.exists(path):
+                log.info("file %s is not listed in allowNoOutput (will be staged-out)" % filename)
+            else:
+                log.warning("file %s is not listed in allowNoOutput and does not exist (job will fail)" % filename)
+            _outfiles.append(filename)
+
+    # now remove the unwanted fspecs
+    if len(_outfiles) != len(job.outdata):
+        outdata = []
+        for fspec in job.outdata:
+            if fspec.lfn in _outfiles:
+                outdata.append(fspec)
+        job.outdata = outdata
 
 
 def get_outfiles_records(subfiles):
