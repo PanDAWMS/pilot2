@@ -10,6 +10,7 @@
 import os
 import time
 from getpass import getuser
+from re import search
 
 # from pilot.info import infosys
 from .setup import get_asetup
@@ -143,7 +144,7 @@ def get_proper_pid(pid, command, use_container=True, transformation=""):
         logger.debug('ps:\n%s' % ps)
 
         # lookup the process id using ps aux
-        _pid = get_pid_for_cmd(_cmd)
+        _pid = get_pid_for_cmd(_cmd, ps)
         if _pid:
             logger.debug('pid=%d for command \"%s\"' % (_pid, _cmd))
             break
@@ -176,26 +177,35 @@ def get_ps_info(whoami=getuser(), options='axfo pid,user,rss,pcpu,args'):
     return stdout
 
 
-def get_pid_for_cmd(cmd, whoami=getuser()):
+def get_pid_for_cmd(cmd, ps, whoami=getuser()):
     """
     Return the process id for the given command and user.
     Note: function returns 0 in case pid could not be found.
 
     :param cmd: command string expected to be in ps output (string).
+    :param ps: ps output (string).
     :param whoami: user name (string).
     :return: pid (int) or None if no such process.
     """
 
-    _cmd = "pgrep -u %s -f \'%s\'" % (whoami, cmd)
-    exit_code, stdout, stderr = execute(_cmd)
-    if not stdout:
-        return None
+    pid = None
+    found = None
 
-    try:
-        pid = int(stdout)
-    except Exception:
-        pid = 0
-        logger.warning('pid has wrong type: %s' % stdout)
+    for line in ps.split('\n'):
+        if cmd in line:
+            found = line
+            break
+    if found:
+        # extract pid
+        _pid = search(r'(\d+) ', found)
+        try:
+            pid = int(_pid.group(1))
+        except Exception as e:
+            logger.warning('pid has wrong type: %s' % e)
+        else:
+            logger.debug('extracted pid=%d from ps output: %s' % (pid, found))
+    else:
+        logger.debug('command not found in ps output: %s' % cmd)
 
     return pid
 
