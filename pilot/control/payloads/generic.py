@@ -322,7 +322,10 @@ class Executor(object):
                                               -1)
                             sig = user.get_utility_command_kill_signal(utcmd)
                             log.info("stopping process \'%s\' with signal %d" % (utcmd, sig))
-                            os.killpg(os.getpgid(utproc.pid), sig)
+                            try:
+                                os.killpg(os.getpgid(utproc.pid), sig)
+                            except Exception as e:
+                                log.warning('exception caught: %s (ignoring)' % e)
 
                             user.post_utility_command_action(utcmd, self.__job)
 

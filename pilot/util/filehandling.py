@@ -263,8 +263,9 @@ def read_json(filename):
     if f:
         try:
             dictionary = load(f)
-        except PilotException as e:
-            raise FileHandlingFailure(e.get_detail())
+        except Exception as e:
+            logger.warning('exception caught: %s' % e)
+            #raise FileHandlingFailure(str(e))
         else:
             f.close()
 
@@ -818,7 +819,7 @@ def find_latest_modified_file(list_of_files):
         return None, None
 
     try:
-        latest_file = max(list_of_files, key=os.path.getctime)
+        latest_file = max(list_of_files, key=os.path.getmtime)
         mtime = int(os.path.getmtime(latest_file))
     except Exception as e:
         logger.warning("int conversion failed for mod time: %s" % e)

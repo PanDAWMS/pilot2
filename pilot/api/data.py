@@ -49,7 +49,7 @@ class StagingClient(object):
     # list of schemas to be used for direct acccess mode from LOCAL replicas
     direct_localinput_allowed_schemas = ['root', 'dcache', 'dcap', 'file', 'https']
     # list of allowed schemas to be used for transfers from REMOTE sites
-    remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm']
+    remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm', 'storm']
 
     def __init__(self, infosys_instance=None, acopytools=None, logger=None, default_copytools='rucio', trace_report=None):
         """
@@ -149,7 +149,7 @@ class StagingClient(object):
         ## do apply either simple query list_replicas() without geoip sort to resolve LAN replicas in case of directaccesstype=[None, LAN]
         # otherwise in case of directaccesstype=WAN mode do query geo sorted list_replicas() with location data passed
 
-        bquery = {'schemes': ['srm', 'root', 'davs', 'gsiftp', 'https'],
+        bquery = {'schemes': ['srm', 'root', 'davs', 'gsiftp', 'https', 'storm'],
                   'dids': [dict(scope=e.scope, name=e.lfn) for e in xfiles]}
 
         #allow_remoteinput = True in set(e.allowremoteinputs for e in xfiles)  ## implement direct access later

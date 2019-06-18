@@ -61,6 +61,7 @@ class JobData(BaseData):
     accessmode = ""                # direct access instruction from jobparams
     processingtype = ""            # e.g. nightlies
     maxcpucount = 0                # defines what is a looping job (seconds)
+    allownooutput = []             # used to disregard empty files from job report
 
     # set by the pilot (not from job definition)
     workdir = ""                   # working directoty for this job
@@ -90,6 +91,7 @@ class JobData(BaseData):
     pid = None                     # payload pid
     pgrp = None                    # payload process group
     sizes = {}                     # job object sizes { timestamp: size, .. }
+    command = ""                   # full payload command (set for container jobs)
 
     # time variable used for on-the-fly cpu consumption time measurements done by job monitoring
     t0 = None                      # payload startup time
@@ -99,6 +101,7 @@ class JobData(BaseData):
 
     zipmap = ""                    # ZIP MAP values extracted from jobparameters
     imagename = ""                 # user defined container image name extracted from job parameters
+    usecontainer = False           # boolean, True if a container is to be used for the payload
 
     # from job definition
     attemptnr = 0                  # job attempt number
@@ -136,9 +139,9 @@ class JobData(BaseData):
                    'swrelease', 'zipmap', 'imagename', 'accessmode', 'transfertype',
                    'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    'infilesguids'],
-             list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes'],
+             list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'allownooutput'],
              dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes'],
-             bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug']
+             bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug', 'usecontainer']
              }
 
     def __init__(self, data):
@@ -171,7 +174,7 @@ class JobData(BaseData):
         if '--accessmode=copy' in self.jobparams or '--useLocalIO' in self.jobparams:
             self.accessmode = 'copy'
 
-        # form raw list data from input comma-separated values for further validataion by FileSpec
+        # form raw list data from input comma-separated values for further validation by FileSpec
         kmap = {
             # 'internal_name': 'ext_key_structure'
             'lfn': 'inFiles',
@@ -335,6 +338,7 @@ class JobData(BaseData):
             'is_eventservice': 'eventService',
             'is_eventservicemerge': 'eventServiceMerge',
             'maxcpucount': 'maxCpuCount',
+            'allownooutput': 'allowNoOutput',
         }
 
         self._load_data(data, kmap)
@@ -717,11 +721,11 @@ class JobData(BaseData):
                 else:
                     f.write("%s\n" % job_option)
                 for input_file in writetofile_dictionary[input_name]:
-                    f.write("%s\n" % os.path.join(self.workdir, input_file))
+                    f.write("%s\n" % input_file)
                 f.close()
                 logger.info("Wrote input file list to file %s: %s" % (input_name_full, writetofile_dictionary[input_name]))
 
-                self.jobparams = self.jobparams.replace(input_name, input_name_full)
+                self.jobparams = self.jobparams.replace(input_name, input_name_new)
                 if job_option:
                     self.jobparams = self.jobparams.replace('%s=' % job_option, '')
                 self.jobparams = self.jobparams.replace('--autoConfiguration=everything', '')
