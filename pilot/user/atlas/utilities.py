@@ -9,11 +9,15 @@
 
 import os
 import time
+from getpass import getuser
+from re import search
 
 # from pilot.info import infosys
 from .setup import get_asetup
 from pilot.util.auxiliary import get_logger
+from pilot.util.container import execute
 from pilot.util.filehandling import read_json, copy
+from pilot.util.processes import is_process_running
 
 import logging
 logger = logging.getLogger(__name__)
@@ -83,7 +87,7 @@ def get_memory_monitor_output_filename():
     return "memory_monitor_output.txt"
 
 
-def get_memory_monitor_setup(pid, workdir, setup=""):
+def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True, transformation=""):
     """
     Return the proper setup for the memory monitor.
     If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the
@@ -92,9 +96,18 @@ def get_memory_monitor_setup(pid, workdir, setup=""):
 
     :param pid: job process id (int).
     :param workdir: job work directory (string).
+    :param command: payload command (string).
     :param setup: optional setup in case asetup can not be used, which uses infosys (string).
+    :param use_container: optional boolean.
+    :param transformation: optional name of transformation, e.g. Sim_tf.py (string).
     :return: job work directory (string).
     """
+
+    # try to get the pid from a pid.txt file which might be created by a container_script
+    pid = get_proper_pid(pid, command, use_container=use_container, transformation=transformation)
+    if pid == -1:
+        logger.warning('process id was not identified before payload finished - will not launch memory monitor')
+        return ""
 
     release = "21.0.22"
     platform = "x86_64-slc6-gcc62-opt"
@@ -104,11 +117,134 @@ def get_memory_monitor_setup(pid, workdir, setup=""):
     if not setup.endswith(';'):
         setup += ';'
     # Now add the MemoryMonitor command
-    cmd = "%sMemoryMonitor --pid %d --filename %s --json-summary %s --interval %d" %\
-          (setup, pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
-    cmd = "cd " + workdir + ";" + cmd
+    _cmd = "%sMemoryMonitor --pid %d --filename %s --json-summary %s --interval %d" %\
+           (setup, pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
+    _cmd = "cd " + workdir + ";" + _cmd
 
-    return cmd
+    return _cmd
+
+
+def get_proper_pid(pid, command, use_container=True, transformation=""):
+    """
+    Return a pid from the proper source to be used with the memory monitor.
+    The given pid comes from Popen(), but in the case containers are used, the pid should instead come from a ps aux
+    lookup.
+    If the main process has finished before the proper pid has been identified (it will take time if the payload is
+    running inside a container), then this function will abort and return -1. The called should handle this and not
+    launch the memory monitor as it is not needed any longer.
+
+    :param pid: process id (int).
+    :param command: payload command (string).
+    :param use_container: optional boolean.
+    :param transformation: optional name of transformation, e.g. Sim_tf.py (string).
+    :return: pid (int).
+    """
+
+    if not use_container:
+        return pid
+
+    _cmd = get_trf_command(command, transformation=transformation)
+    i = 0
+    imax = 120
+    while i < imax:
+        # abort if main process has finished already
+        if not is_process_running(pid):
+            return -1
+
+        ps = get_ps_info()
+        logger.debug('ps:\n%s' % ps)
+
+        # lookup the process id using ps aux
+        _pid = get_pid_for_cmd(_cmd, ps)
+        if _pid:
+            logger.debug('pid=%d for command \"%s\"' % (_pid, _cmd))
+            break
+        else:
+            logger.warning('pid not identified from payload command (#%d/#%d)' % (i + 1, imax))
+
+        # wait until the payload has launched
+        time.sleep(5)
+        i += 1
+
+    if _pid:
+        pid = _pid
+
+    logger.info('will use pid=%d for memory monitor' % pid)
+
+    return pid
+
+
+def get_ps_info(whoami=getuser(), options='axfo pid,user,rss,pcpu,args'):
+    """
+    Return ps info for the given user.
+
+    :param whoami: user name (string).
+    :return: ps aux for given user (string).
+    """
+
+    cmd = "ps %s | grep %s" % (options, whoami)
+    exit_code, stdout, stderr = execute(cmd)
+
+    return stdout
+
+
+def get_pid_for_cmd(cmd, ps, whoami=getuser()):
+    """
+    Return the process id for the given command and user.
+    Note: function returns 0 in case pid could not be found.
+
+    :param cmd: command string expected to be in ps output (string).
+    :param ps: ps output (string).
+    :param whoami: user name (string).
+    :return: pid (int) or None if no such process.
+    """
+
+    pid = None
+    found = None
+
+    for line in ps.split('\n'):
+        if cmd in line:
+            found = line
+            break
+    if found:
+        # extract pid
+        _pid = search(r'(\d+) ', found)
+        try:
+            pid = int(_pid.group(1))
+        except Exception as e:
+            logger.warning('pid has wrong type: %s' % e)
+        else:
+            logger.debug('extracted pid=%d from ps output: %s' % (pid, found))
+    else:
+        logger.debug('command not found in ps output: %s' % cmd)
+
+    return pid
+
+
+def get_trf_command(command, transformation=""):
+    """
+    Return the last command in the full payload command string.
+    Note: this function returns the last command in job.command which is only set for containers.
+
+    :param command: full payload command (string).
+    :param transformation: optional name of transformation, e.g. Sim_tf.py (string).
+    :return: trf command (string).
+    """
+
+    payload_command = ""
+    if command:
+        if not transformation:
+            payload_command = command.split(';')[-2]
+        else:
+            if transformation in command:
+                payload_command = command[command.find(transformation):]
+
+        # clean-up the command, remove '-signs and any trailing ;
+        payload_command = payload_command.strip()
+        payload_command = payload_command.replace("'", "")
+        payload_command = payload_command.rstrip(";")
+
+    return payload_command
 
 
 def get_memory_monitor_info_path(workdir, allowtxtfile=False):

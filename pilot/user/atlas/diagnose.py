@@ -255,6 +255,10 @@ def find_number_of_events(job):
 
     log = get_logger(job.jobid)
 
+    if job.nevents:
+        log.info('number of events already known: %d' % job.nevents)
+        return
+
     log.info('looking for number of processed events (source #1: jobReport.json)')
     find_number_of_events_in_jobreport(job)
     if job.nevents > 0:
@@ -285,7 +289,12 @@ def find_number_of_events_in_jobreport(job):
     :return:
     """
 
-    work_attributes = parse_jobreport_data(job.metadata)
+    try:
+        work_attributes = parse_jobreport_data(job.metadata)
+    except Exception as e:
+        logger.warning('exception caught while parsing job report: %s' % e)
+        return
+
     if 'nEvents' in work_attributes:
         try:
             n_events = work_attributes.get('nEvents')

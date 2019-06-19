@@ -141,7 +141,9 @@ class Executor(object):
 
                 # how should this command be executed?
                 utilitycommand = user.get_utility_command_setup(utcmd, job)
-
+                if not utilitycommand:
+                    log.warning('empty utility command - nothing to run')
+                    return
                 try:
                     proc1 = execute(utilitycommand, workdir=job.workdir, returnproc=True,
                                     usecontainer=False, stdout=PIPE, stderr=PIPE, cwd=job.workdir,
@@ -322,7 +324,10 @@ class Executor(object):
                                               -1)
                             sig = user.get_utility_command_kill_signal(utcmd)
                             log.info("stopping process \'%s\' with signal %d" % (utcmd, sig))
-                            os.killpg(os.getpgid(utproc.pid), sig)
+                            try:
+                                os.killpg(os.getpgid(utproc.pid), sig)
+                            except Exception as e:
+                                log.warning('exception caught: %s (ignoring)' % e)
 
                             user.post_utility_command_action(utcmd, self.__job)
 

@@ -111,12 +111,16 @@ def _validate_job(job):
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
-    if user.verify_job(job):
-        status = True
-    else:
-        status = False
+    container = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [user], -1)
 
-    return status
+    # should a container be used for the payload?
+    try:
+        kwargs = {'job': job}
+        job.usecontainer = container.do_use_container(**kwargs)
+    except Exception as e:
+        logger.warning('exception caught: %s' % e)
+
+    return True if user.verify_job(job) else False
 
 
 def verify_error_code(job):
@@ -1185,12 +1189,7 @@ def get_job_retrieval_delay(harvester):
     :return: sleep (s)
     """
 
-    if harvester:
-        delay = 1
-    else:
-        delay = 60
-
-    return delay
+    return 1 if harvester else 60
 
 
 def retrieve(queues, traces, args):
@@ -1328,7 +1327,7 @@ def create_job(dispatcher_response, queue):
     jobinfosys = InfoService()
     jobinfosys.init(queue, infosys.confinfo, infosys.extinfo, JobInfoProvider(job))
     job.infosys = jobinfosys
-    job.workdir = os.getcwd()
+    #job.workdir = os.getcwd()
 
     logger.info('received job: %s (sleep until the job has finished)' % job.jobid)
     logger.info('job details: \n%s' % job)
@@ -1705,7 +1704,7 @@ def get_heartbeat_period(debug=False):
         return 1800
 
 
-def job_monitor(queues, traces, args):  # noqa: C901
+def job_monitor(queues, traces, args):
     """
     Monitoring of job parameters.
     This function monitors certain job parameters, such as job looping, at various time intervals. The main loop
@@ -1726,7 +1725,6 @@ def job_monitor(queues, traces, args):  # noqa: C901
     # used for sending the heartbeat and is updated after a server update
     peeking_time = int(time.time())
     update_time = peeking_time
-    update_time2 = peeking_time
 
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
@@ -1751,9 +1749,8 @@ def job_monitor(queues, traces, args):  # noqa: C901
                 for i in range(len(jobs)):
                     # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
                     # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
-                    if int(time.time()) - update_time2 >= get_heartbeat_period(jobs[i].debug):
-                        send_state(jobs[i], args, 'running')
-                        update_time2 = int(time.time())
+                    update_time = send_heartbeat_if_time(jobs[i], args, update_time)
+
                 # sleep for a while if stage-in has not completed
                 time.sleep(1)
                 continue
@@ -1775,11 +1772,6 @@ def job_monitor(queues, traces, args):  # noqa: C901
             for i in range(len(jobs)):
                 log = get_logger(jobs[i].jobid)
 
-                #if abort_job:
-                #    declare_failed_by_kill(jobs[i], queues.failed_payloads, args.signal)
-                #    log.info('aborting job monitoring since job state=%s' % jobs[i].state)
-                #    break
-
                 log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
                 if jobs[i].state == 'finished' or jobs[i].state == 'failed':
                     log.info('aborting job monitoring since job state=%s' % jobs[i].state)
@@ -1793,9 +1785,7 @@ def job_monitor(queues, traces, args):  # noqa: C901
 
                 # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
                 # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
-                if int(time.time()) - update_time >= get_heartbeat_period(jobs[i].debug):
-                    send_state(jobs[i], args, 'running')
-                    update_time = int(time.time())
+                update_time = send_heartbeat_if_time(jobs[i], args, update_time)
 
         elif os.environ.get('PILOT_JOB_STATE') == 'stagein':
             logger.info('job monitoring is waiting for stage-in to finish')
@@ -1809,6 +1799,23 @@ def job_monitor(queues, traces, args):  # noqa: C901
             break
 
     logger.info('job monitor has finished')
+
+
+def send_heartbeat_if_time(job, args, update_time):
+    """
+    Send a heartbeat to the server if it is time to do so.
+
+    :param job: job object.
+    :param args: args object.
+    :param update_time: last update time (from time.time()).
+    :return: possibly updated update_time (from time.time()).
+    """
+
+    if int(time.time()) - update_time >= get_heartbeat_period(job.debug):
+        send_state(job, args, 'running')
+        update_time = int(time.time())
+
+    return update_time
 
 
 def check_job_monitor_waiting_time(args, peeking_time):
