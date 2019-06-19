@@ -148,7 +148,7 @@ def get_proper_pid(pid, command, use_container=True, transformation=""):
     imax = 120
     while i < imax:
         # abort if main process has finished already
-        if is_process_running(pid):
+        if not is_process_running(pid):
             return -1
 
         ps = get_ps_info()
