@@ -138,7 +138,7 @@ def get_proper_pid(pid, command, use_container=True, transformation=""):
 
     _cmd = get_trf_command(command, transformation=transformation)
     i = 0
-    imax = 6 * 2
+    imax = 120
     while i < imax:
         ps = get_ps_info()
         logger.debug('ps:\n%s' % ps)
@@ -152,7 +152,7 @@ def get_proper_pid(pid, command, use_container=True, transformation=""):
             logger.warning('pid not identified from payload command (#%d/#%d)' % (i + 1, imax))
 
         # wait until the payload has launched
-        time.sleep(10)
+        time.sleep(5)
         i += 1
 
     if _pid:
