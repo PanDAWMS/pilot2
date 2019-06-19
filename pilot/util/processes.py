@@ -522,3 +522,18 @@ def get_core_count(job):
                 log.warning("environment variable ATHENA_PROC_NUMBER is not set. corecount is not set")
 
     return job.corecount
+
+
+def is_process_running(process_id):
+    """
+    Check whether process is still running.
+
+    :param process_id: process id (int).
+    :return: Boolean.
+    """
+    try:
+        # note that this kill function call will not kill the process
+        os.kill(process_id, 0)
+        return True
+    except OSError:
+        return False
