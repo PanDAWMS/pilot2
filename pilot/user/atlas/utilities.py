@@ -139,7 +139,7 @@ def get_proper_pid(pid, command, use_container=True, transformation=""):
     _cmd = get_trf_command(command, transformation=transformation)
     i = 0
     imax = 120
-    while i < imax:
+    while i < imax:  # abort if pid has finished
         ps = get_ps_info()
         logger.debug('ps:\n%s' % ps)
 
