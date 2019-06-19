@@ -289,7 +289,12 @@ def find_number_of_events_in_jobreport(job):
     :return:
     """
 
-    work_attributes = parse_jobreport_data(job.metadata)
+    try:
+        work_attributes = parse_jobreport_data(job.metadata)
+    except Exception as e:
+        logger.warning('exception caught while parsing job report: %s' % e)
+        return
+
     if 'nEvents' in work_attributes:
         try:
             n_events = work_attributes.get('nEvents')

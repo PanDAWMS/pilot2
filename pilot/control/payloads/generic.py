@@ -141,7 +141,9 @@ class Executor(object):
 
                 # how should this command be executed?
                 utilitycommand = user.get_utility_command_setup(utcmd, job)
-
+                if not utilitycommand:
+                    log.warning('empty utility command - nothing to run')
+                    return
                 try:
                     proc1 = execute(utilitycommand, workdir=job.workdir, returnproc=True,
                                     usecontainer=False, stdout=PIPE, stderr=PIPE, cwd=job.workdir,

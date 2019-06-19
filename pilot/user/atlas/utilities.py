@@ -17,6 +17,7 @@ from .setup import get_asetup
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 from pilot.util.filehandling import read_json, copy
+from pilot.util.processes import is_process_running
 
 import logging
 logger = logging.getLogger(__name__)
@@ -104,6 +105,9 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
 
     # try to get the pid from a pid.txt file which might be created by a container_script
     pid = get_proper_pid(pid, command, use_container=use_container, transformation=transformation)
+    if pid == -1:
+        logger.warning('process id was not identified before payload finished - will not launch memory monitor')
+        return ""
 
     release = "21.0.22"
     platform = "x86_64-slc6-gcc62-opt"
@@ -122,9 +126,12 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
 
 def get_proper_pid(pid, command, use_container=True, transformation=""):
     """
-    Return a pid from the proper source.
+    Return a pid from the proper source to be used with the memory monitor.
     The given pid comes from Popen(), but in the case containers are used, the pid should instead come from a ps aux
     lookup.
+    If the main process has finished before the proper pid has been identified (it will take time if the payload is
+    running inside a container), then this function will abort and return -1. The called should handle this and not
+    launch the memory monitor as it is not needed any longer.
 
     :param pid: process id (int).
     :param command: payload command (string).
@@ -138,8 +145,12 @@ def get_proper_pid(pid, command, use_container=True, transformation=""):
 
     _cmd = get_trf_command(command, transformation=transformation)
     i = 0
-    imax = 6 * 2
+    imax = 120
     while i < imax:
+        # abort if main process has finished already
+        if not is_process_running(pid):
+            return -1
+
         ps = get_ps_info()
         logger.debug('ps:\n%s' % ps)
 
@@ -152,7 +163,7 @@ def get_proper_pid(pid, command, use_container=True, transformation=""):
             logger.warning('pid not identified from payload command (#%d/#%d)' % (i + 1, imax))
 
         # wait until the payload has launched
-        time.sleep(10)
+        time.sleep(5)
         i += 1
 
     if _pid:
