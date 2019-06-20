@@ -122,7 +122,8 @@ def run(args):
 
     logger.info('waiting for interrupts')
 
-    while threading.activeCount() > 1:
+    thread_count = threading.activeCount()
+    while threading.activeCount() > 0:
         for thread in threads:
             bucket = thread.get_bucket()
             try:
@@ -136,6 +137,10 @@ def run(args):
                 # logger.fatal('caught exception: %s' % exc_obj)
 
             thread.join(0.1)
+
+        if thread_count != threading.activeCount():
+            thread_count = threading.activeCount()
+            logger.debug('thread count now at %d threads' % thread_count)
 
     logger.info('end of generic workflow (traces error code: %d)' % traces.pilot['error_code'])
 

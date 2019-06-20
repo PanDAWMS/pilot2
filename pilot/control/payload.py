@@ -276,7 +276,10 @@ def perform_initial_payload_error_analysis(job, exit_code):
         if ec != 0:
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
         else:
-            log.warning('initial error analysis did not resolve the issue')
+            if job.piloterrorcodes:
+                log.warning('error code(s) already set: %s' % str(job.piloterrorcodes))
+            else:
+                log.warning('initial error analysis did not resolve the issue')
     else:
         log.info('main payload execution returned zero exit code, but will check it more carefully')
 

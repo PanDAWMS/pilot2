@@ -108,9 +108,9 @@ def memory_usage(job):
                         #pUtil.createLockFile(False, self.__env['jobDic'][k][1].workdir, lockfile="MEMORYEXCEEDED")
 
                         # Kill the job
-                        kill_processes(job.pid)
                         set_pilot_state(job=job, state="failed")
                         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADEXCEEDMAXMEM)
+                        kill_processes(job.pid)
                     else:
                         log.info("max memory (maxPSS) used by the payload is within the allowed limit: "
                                  "%d B (2 * maxRSS = %d B)" % (maxpss_int, maxrss_int))
