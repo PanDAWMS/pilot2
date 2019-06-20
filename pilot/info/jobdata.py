@@ -789,6 +789,6 @@ class JobData(BaseData):
                     logger.info("harmless exception when collecting zombie jobs, %s" % str(e))
                     self.zombies.remove(x)
                 else:
-                    if _id: # finished
+                    if _id:  # finished
                         self.zombies.remove(x)
                 self.collect_zombies(tn=tn)  # recursion

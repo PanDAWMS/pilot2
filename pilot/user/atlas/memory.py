@@ -93,7 +93,7 @@ def memory_usage(job):
             # correction for SCORE/4CORE/nCORE jobs on UCORE queues
             scale = get_ucore_scale_factor(job)
             try:
-                maxrss_int = 2 * int(maxrss * scale) * 1024  # Convert to int and kB
+                maxrss_int = 1  #2 * int(maxrss * scale) * 1024  # Convert to int and kB
             except Exception as e:
                 log.warning("unexpected value for maxRSS: %s" % e)
             else:
