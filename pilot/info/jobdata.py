@@ -26,6 +26,7 @@ import re
 import ast
 import shlex
 import pipes
+from time import sleep
 
 from .basedata import BaseData
 from .filespec import FileSpec
@@ -92,6 +93,7 @@ class JobData(BaseData):
     pgrp = None                    # payload process group
     sizes = {}                     # job object sizes { timestamp: size, .. }
     command = ""                   # full payload command (set for container jobs)
+    zombies = []                   # list of zombie process ids
 
     # time variable used for on-the-fly cpu consumption time measurements done by job monitoring
     t0 = None                      # payload startup time
@@ -139,7 +141,7 @@ class JobData(BaseData):
                    'swrelease', 'zipmap', 'imagename', 'accessmode', 'transfertype',
                    'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    'infilesguids'],
-             list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'allownooutput'],
+             list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'allownooutput', 'zombies'],
              dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes'],
              bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug', 'usecontainer']
              }
@@ -749,3 +751,44 @@ class JobData(BaseData):
 
         # add a data point to the sizes dictionary
         self.sizes[time_stamp] = size
+
+    def collect_zombies(self, tn=None):
+        """
+        Collect zombie child processes, tn is the max number of loops, plus 1,
+        to avoid infinite looping even if some child processes really get wedged;
+        tn=None means it will keep going until all child zombies have been collected.
+
+        :param tn: max depth (int).
+        :return:
+        """
+
+        sleep(1)
+
+        if self.zombies and tn > 1:
+            logger.info("--- collectZombieJob: --- %d, %s" % (tn, str(self.zombies)))
+            tn -= 1
+            for x in self.zombies:
+                try:
+                    logger.info("zombie collector trying to kill pid %s" % str(x))
+                    _id, rc = os.waitpid(x, os.WNOHANG)
+                except OSError as e:
+                    logger.info("harmless exception when collecting zombies: %s" % e)
+                    self.zombies.remove(x)
+                else:
+                    if _id:  # finished
+                        self.zombies.remove(x)
+                self.collect_zombies(tn=tn)  # recursion
+
+        if self.zombies and not tn:
+            # for the infinite waiting case, we have to use blocked waiting, otherwise it throws
+            # RuntimeError: maximum recursion depth exceeded
+            for x in self.zombies:
+                try:
+                    _id, rc = os.waitpid(x, 0)
+                except OSError as e:
+                    logger.info("harmless exception when collecting zombie jobs, %s" % str(e))
+                    self.zombies.remove(x)
+                else:
+                    if _id: # finished
+                        self.zombies.remove(x)
+                self.collect_zombies(tn=tn)  # recursion

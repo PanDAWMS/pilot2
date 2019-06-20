@@ -136,7 +136,10 @@ def kill_processes(pid):
 
     # if there is a known subprocess pgrp, then it should be enough to kill the group in one go
     status = False
-    pgrp = os.getpgid(pid)
+    try:
+        pgrp = os.getpgid(pid)
+    except Exception as e:
+        pgrp = 0
     if pgrp != 0:
         status = kill_process_group(pgrp)
 
@@ -537,3 +540,21 @@ def is_process_running(process_id):
         return True
     except OSError:
         return False
+
+
+def cleanup(job):
+    """
+    Cleanup called after completion of job.
+
+    :param job: job object
+    :return:
+    """
+
+    logger.info("overall cleanup function is called")
+
+    # collect any zombie processes
+    job.collect_zombies(tn=10)
+    logger.info("collected zombie processes")
+
+    logger.info("will now attempt to kill all subprocesses of pid=%d" % job.pid)
+    kill_processes(job.pid)

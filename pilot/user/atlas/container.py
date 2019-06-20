@@ -34,6 +34,8 @@ def do_use_container(**kwargs):
 
     use_container = False
 
+    return use_container
+
     # to force no container use: return False
 
     job = kwargs.get('job')

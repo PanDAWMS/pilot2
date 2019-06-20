@@ -39,6 +39,7 @@ from pilot.util.harvester import request_new_jobs, remove_job_request_file, pars
 from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
+from pilot.util.processes import cleanup
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.queuehandling import scan_for_jobs, put_in_queue
 from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since, time_stamp
@@ -624,6 +625,9 @@ def validate(queues, traces, args):
         log.info('processing PanDA job %s from task %s' % (job.jobid, job.taskid))
 
         if _validate_job(job):
+
+            # Define a new parent group
+            os.setpgrp()
 
             log.debug('creating job working directory')
             job_dir = os.path.join(args.mainworkdir, 'PanDA_Pilot-%s' % job.jobid)
@@ -1359,6 +1363,11 @@ def has_job_completed(queues):
         make_job_report(job)
 
         log.info("job %s has completed" % job.jobid)
+
+        # cleanup of any remaining processes
+        job.zombies.append(job.pid)
+        cleanup(job)
+
         return True
 
     #jobid = os.environ.get('PandaID')
