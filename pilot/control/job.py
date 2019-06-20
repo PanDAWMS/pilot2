@@ -101,6 +101,8 @@ def control(queues, traces, args):
             # find all running jobs and stop them, find all jobs in queues relevant to this module
             #abort_jobs_in_queues(queues, args.signal)
 
+    logger.debug('[job] control thread has finished')
+
 
 def _validate_job(job):
     """
@@ -655,6 +657,8 @@ def validate(queues, traces, args):
             log.debug('Failed to validate job=%s' % job.jobid)
             put_in_queue(job, queues.failed_jobs)
 
+    logger.debug('[job] validate thread has finished')
+
 
 def create_data_payload(queues, traces, args):
     """
@@ -683,6 +687,8 @@ def create_data_payload(queues, traces, args):
             put_in_queue(job, queues.finished_data_in)
 
         put_in_queue(job, queues.payloads)
+
+    logger.debug('[job] create_data_payload thread has finished')
 
 
 def get_task_id():
@@ -1301,6 +1307,8 @@ def retrieve(queues, traces, args):
                         break
                     time.sleep(0.5)
 
+    logger.debug('[job] retrieve thread has finished')
+
 
 def print_node_info():
     """
@@ -1617,7 +1625,7 @@ def queue_monitor(queues, traces, args):
         if abort:
             break
 
-    logger.info('[job] queue monitor has finished')
+    logger.debug('[job] queue monitor thread has finished')
 
 
 def update_server(job, args):
@@ -1807,7 +1815,7 @@ def job_monitor(queues, traces, args):
         if abort:
             break
 
-    logger.info('job monitor has finished')
+    logger.debug('[job] job monitor thread has finished')
 
 
 def send_heartbeat_if_time(job, args, update_time):

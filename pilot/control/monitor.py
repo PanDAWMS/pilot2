@@ -94,7 +94,7 @@ def control(queues, traces, args):
         print("monitor: exception caught: %s" % e)
         raise PilotException(e)
 
-    logger.info('monitor control has ended')
+    logger.info('[monitor] control thread has ended')
 
 
 #def log_lifetime(sig, frame, traces):

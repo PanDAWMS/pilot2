@@ -83,6 +83,8 @@ def control(queues, traces, args):
             # find all running jobs and stop them, find all jobs in queues relevant to this module
             #abort_jobs_in_queues(queues, args.signal)
 
+    logger.debug('[data] control thread has finished')
+
 
 def use_container(cmd):
     """
@@ -413,7 +415,7 @@ def copytool_in(queues, traces, args):
         except queue.Empty:
             continue
 
-    logger.debug('copytool_in ended since graceful_stop has been set')
+    logger.debug('[data] copytool_in thread has finished')
 
 
 def copytool_out(queues, traces, args):
@@ -483,7 +485,7 @@ def copytool_out(queues, traces, args):
             cont = False
             break
 
-    logger.debug('copytool_out has finished')
+    logger.debug('[data] copytool_out thread has finished')
 
 
 def get_input_file_dictionary(indata, workdir):
@@ -824,4 +826,4 @@ def queue_monitoring(queues, traces, args):
         if abort:
             break
 
-    logger.info('[data] queue monitor has finished')
+    logger.debug('[data] queue_monitor thread has finished')

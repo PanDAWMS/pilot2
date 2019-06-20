@@ -82,6 +82,8 @@ def control(queues, traces, args):
             # find all running jobs and stop them, find all jobs in queues relevant to this module
             #abort_jobs_in_queues(queues, args.signal)
 
+    logger.debug('[payload] control thread has finished')
+
 
 def validate_pre(queues, traces, args):
     """
@@ -104,6 +106,8 @@ def validate_pre(queues, traces, args):
         else:
             #queues.failed_payloads.put(job)
             put_in_queue(job, queues.failed_payloads)
+
+    logger.info('[payload] validate_pre thread has finished')
 
 
 def _validate_payload(job):
@@ -229,6 +233,8 @@ def execute_payloads(queues, traces, args):
                 # let stage-out of log finish, but stop running payloads as there should be a problem with the pilot
                 time.sleep(5)
 
+    logger.info('[payload] execute_payloads thread has finished')
+
 
 def set_cpu_consumption_time(job):
     """
@@ -303,7 +309,7 @@ def validate_post(queues, traces, args):
         set_pilot_state(job=job, state='stageout')
         put_in_queue(job, queues.data_out)
 
-    logger.info('validate_post has finished')
+    logger.info('[payload] validate_post thread has finished')
 
 
 def failed_post(queues, traces, args):
@@ -330,3 +336,5 @@ def failed_post(queues, traces, args):
         #queues.data_out.put(job)
         set_pilot_state(job=job, state='stageout')
         put_in_queue(job, queues.data_out)
+
+    logger.info('[payload] failed_post thread has finished')
