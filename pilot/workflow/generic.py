@@ -123,7 +123,7 @@ def run(args):
     logger.info('waiting for interrupts')
 
     thread_count = threading.activeCount()
-    while threading.activeCount() > 0:
+    while threading.activeCount() > 1:
         for thread in threads:
             bucket = thread.get_bucket()
             try:
