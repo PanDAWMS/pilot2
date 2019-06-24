@@ -278,6 +278,8 @@ def alrb_wrapper(cmd, workdir, job):
         cmd = _cmd
 
         log.info("Updated command: %s" % cmd)
+    else:
+        log.warning('container %s not supported' % container_name)
 
     return cmd
 
