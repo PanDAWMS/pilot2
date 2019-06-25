@@ -138,6 +138,7 @@ def run(args):
 
             thread.join(0.1)
 
+        abort = False
         if thread_count != threading.activeCount():
             thread_count = threading.activeCount()
             logger.debug('thread count now at %d threads' % thread_count)
@@ -146,7 +147,11 @@ def run(args):
                 for thread in threading.enumerate():
                     if thread.isDaemon():  # ignore any daemon threads, they will be aborted when python ends
                         logger.debug('encountered daemon thread, stopping loop now')
+                        abort = True
                         break
+        if abort:
+            break
+
         sleep(0.1)
 
     logger.info('end of generic workflow (traces error code: %d)' % traces.pilot['error_code'])
