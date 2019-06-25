@@ -141,6 +141,7 @@ def run(args):
         if thread_count != threading.activeCount():
             thread_count = threading.activeCount()
             logger.debug('thread count now at %d threads' % thread_count)
+            logger.debug('enumerate: %s' % str(threading.enumerate()))
 
         time.sleep(0.1)
 
