@@ -144,7 +144,7 @@ def run(args):
             logger.debug('enumerate: %s' % str(threading.enumerate()))
             if thread_count == 2:
                 for thread in threading.enumerate():
-                    if thread.isDaemon()
+                    if thread.isDaemon()  # ignore any daemon threads, they will be aborted when python ends
                         logger.debug('encountered daemon thread, stopping loop now')
                         break
         sleep(0.1)
