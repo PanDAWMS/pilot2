@@ -136,6 +136,13 @@ def run(args):
                 print('received exception from bucket queue in generic workflow: %s' % exc_obj, file=stderr)
                 # logger.fatal('caught exception: %s' % exc_obj)
 
+            if "Dummy" in str(thread):
+                logger.debug('encountered dummy thread, will try to stop')
+                try:
+                    thread.stop()
+                except Exception as e:
+                    logger.warning('exception caught: %s' % e)
+
             thread.join(0.1)
 
         if thread_count != threading.activeCount():
