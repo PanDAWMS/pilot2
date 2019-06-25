@@ -34,7 +34,7 @@ def do_use_container(**kwargs):
 
     use_container = False
 
-    return use_container
+    # return use_container
 
     # to force no container use: return False
 
