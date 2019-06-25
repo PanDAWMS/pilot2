@@ -142,6 +142,8 @@ def run(args):
             thread_count = threading.activeCount()
             logger.debug('thread count now at %d threads' % thread_count)
 
+        time.sleep(0.1)
+
     logger.info('end of generic workflow (traces error code: %d)' % traces.pilot['error_code'])
 
     return traces
