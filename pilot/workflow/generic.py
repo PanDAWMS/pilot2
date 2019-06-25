@@ -144,7 +144,7 @@ def run(args):
             logger.debug('enumerate: %s' % str(threading.enumerate()))
             if thread_count == 2:
                 for thread in threading.enumerate():
-                    if "daemon" in thread.name:
+                    if thread.isDaemon()
                         logger.debug('encountered daemon thread, stopping loop now')
                         break
         sleep(0.1)
