@@ -82,6 +82,8 @@ def control(queues, traces, args):
             # find all running jobs and stop them, find all jobs in queues relevant to this module
             #abort_jobs_in_queues(queues, args.signal)
 
+    logger.debug('[payload] control thread has finished')
+
 
 def validate_pre(queues, traces, args):
     """
@@ -104,6 +106,8 @@ def validate_pre(queues, traces, args):
         else:
             #queues.failed_payloads.put(job)
             put_in_queue(job, queues.failed_payloads)
+
+    logger.info('[payload] validate_pre thread has finished')
 
 
 def _validate_payload(job):
@@ -195,14 +199,19 @@ def execute_payloads(queues, traces, args):
 
             # analyze and interpret the payload execution output
             perform_initial_payload_error_analysis(job, exit_code)
-            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-            user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
-            try:
-                exit_code_interpret = user.interpret(job)
-            except Exception as e:
-                log.warning('exception caught: %s' % e)
-                exit_code_interpret = -1
-                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.INTERNALPILOTPROBLEM)
+
+            # was an error already found?
+            if job.piloterrorcodes:
+                exit_code_interpret = 1
+            else:
+                pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+                user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
+                try:
+                    exit_code_interpret = user.interpret(job)
+                except Exception as e:
+                    log.warning('exception caught: %s' % e)
+                    exit_code_interpret = -1
+                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.INTERNALPILOTPROBLEM)
 
             if exit_code_interpret == 0 and exit_code == 0:
                 log.info('main payload error analysis completed - did not find any errors')
@@ -228,6 +237,8 @@ def execute_payloads(queues, traces, args):
             while not args.graceful_stop.is_set():
                 # let stage-out of log finish, but stop running payloads as there should be a problem with the pilot
                 time.sleep(5)
+
+    logger.info('[payload] execute_payloads thread has finished')
 
 
 def set_cpu_consumption_time(job):
@@ -270,7 +281,10 @@ def perform_initial_payload_error_analysis(job, exit_code):
         if ec != 0:
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
         else:
-            log.warning('initial error analysis did not resolve the issue')
+            if job.piloterrorcodes:
+                log.warning('error code(s) already set: %s' % str(job.piloterrorcodes))
+            else:
+                log.warning('initial error analysis did not resolve the issue')
     else:
         log.info('main payload execution returned zero exit code, but will check it more carefully')
 
@@ -303,7 +317,7 @@ def validate_post(queues, traces, args):
         set_pilot_state(job=job, state='stageout')
         put_in_queue(job, queues.data_out)
 
-    logger.info('validate_post has finished')
+    logger.info('[payload] validate_post thread has finished')
 
 
 def failed_post(queues, traces, args):
@@ -330,3 +344,5 @@ def failed_post(queues, traces, args):
         #queues.data_out.put(job)
         set_pilot_state(job=job, state='stageout')
         put_in_queue(job, queues.data_out)
+
+    logger.info('[payload] failed_post thread has finished')

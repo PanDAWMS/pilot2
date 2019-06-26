@@ -134,7 +134,7 @@ def https_setup(args, version):
             _ctx.ssl_context = None
 
 
-def request(url, data=None, plain=False):
+def request(url, data=None, plain=False, secure=True):  # noqa: C901
     """
     This function sends a request using HTTPS.
     Sends :mailheader:`User-Agent` and certificates previously being set up by `https_setup`.
@@ -148,7 +148,7 @@ def request(url, data=None, plain=False):
     :param string url: the URL of the resource
     :param dict data: data to send
     :param boolean plain: if true, treats the response as a plain text.
-
+    :param secure: Boolean (default: True, ie use certificates)
     Usage:
 
     .. code-block:: python
@@ -182,7 +182,7 @@ def request(url, data=None, plain=False):
     else:
         dat = '--config %s %s' % (tmpname, url)
 
-    if _ctx.ssl_context is None:
+    if _ctx.ssl_context is None and secure:
         req = 'curl -sS --compressed --connect-timeout %s --max-time %s '\
               '--capath %s --cert %s --cacert %s --key %s '\
               '-H %s %s %s' % (100, 120,
@@ -215,9 +215,11 @@ def request(url, data=None, plain=False):
         req = urllib2.Request(url, urllib.urlencode(data))
         if not plain:
             req.add_header('Accept', 'application/json')
-        req.add_header('User-Agent', _ctx.user_agent)
+        if secure:
+            req.add_header('User-Agent', _ctx.user_agent)
+        context = _ctx.ssl_context if secure else None
         try:
-            output = urllib2.urlopen(req, context=_ctx.ssl_context)
+            output = urllib2.urlopen(req, context=context)
         except urllib2.HTTPError as e:
             logger.warn('server error (%s): %s' % (e.code, e.read()))
             return None
