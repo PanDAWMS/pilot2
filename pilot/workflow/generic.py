@@ -14,7 +14,7 @@ from __future__ import print_function
 import functools
 import signal
 import threading
-from time import time
+from time import time, sleep
 from sys import stderr
 
 try:
@@ -122,6 +122,7 @@ def run(args):
 
     logger.info('waiting for interrupts')
 
+    thread_count = threading.activeCount()
     while threading.activeCount() > 1:
         for thread in threads:
             bucket = thread.get_bucket()
@@ -136,6 +137,22 @@ def run(args):
                 # logger.fatal('caught exception: %s' % exc_obj)
 
             thread.join(0.1)
+
+        abort = False
+        if thread_count != threading.activeCount():
+            thread_count = threading.activeCount()
+            logger.debug('thread count now at %d threads' % thread_count)
+            logger.debug('enumerate: %s' % str(threading.enumerate()))
+            if thread_count == 2:
+                for thread in threading.enumerate():
+                    if thread.isDaemon():  # ignore any daemon threads, they will be aborted when python ends
+                        logger.debug('encountered daemon thread, stopping loop now')
+                        abort = True
+                        break
+        if abort:
+            break
+
+        sleep(0.1)
 
     logger.info('end of generic workflow (traces error code: %d)' % traces.pilot['error_code'])
 

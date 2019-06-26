@@ -39,6 +39,7 @@ from pilot.util.harvester import request_new_jobs, remove_job_request_file, pars
 from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
+from pilot.util.processes import cleanup
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.queuehandling import scan_for_jobs, put_in_queue
 from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since, time_stamp
@@ -99,6 +100,8 @@ def control(queues, traces, args):
 
             # find all running jobs and stop them, find all jobs in queues relevant to this module
             #abort_jobs_in_queues(queues, args.signal)
+
+    logger.debug('[job] control thread has finished')
 
 
 def _validate_job(job):
@@ -625,6 +628,9 @@ def validate(queues, traces, args):
 
         if _validate_job(job):
 
+            # Define a new parent group
+            os.setpgrp()
+
             log.debug('creating job working directory')
             job_dir = os.path.join(args.mainworkdir, 'PanDA_Pilot-%s' % job.jobid)
             try:
@@ -650,6 +656,8 @@ def validate(queues, traces, args):
         else:
             log.debug('Failed to validate job=%s' % job.jobid)
             put_in_queue(job, queues.failed_jobs)
+
+    logger.debug('[job] validate thread has finished')
 
 
 def create_data_payload(queues, traces, args):
@@ -679,6 +687,8 @@ def create_data_payload(queues, traces, args):
             put_in_queue(job, queues.finished_data_in)
 
         put_in_queue(job, queues.payloads)
+
+    logger.debug('[job] create_data_payload thread has finished')
 
 
 def get_task_id():
@@ -1297,6 +1307,8 @@ def retrieve(queues, traces, args):
                         break
                     time.sleep(0.5)
 
+    logger.debug('[job] retrieve thread has finished')
+
 
 def print_node_info():
     """
@@ -1359,6 +1371,11 @@ def has_job_completed(queues):
         make_job_report(job)
 
         log.info("job %s has completed" % job.jobid)
+
+        # cleanup of any remaining processes
+        job.zombies.append(job.pid)
+        cleanup(job)
+
         return True
 
     #jobid = os.environ.get('PandaID')
@@ -1608,7 +1625,7 @@ def queue_monitor(queues, traces, args):
         if abort:
             break
 
-    logger.info('[job] queue monitor has finished')
+    logger.debug('[job] queue monitor thread has finished')
 
 
 def update_server(job, args):
@@ -1798,7 +1815,7 @@ def job_monitor(queues, traces, args):
         if abort:
             break
 
-    logger.info('job monitor has finished')
+    logger.debug('[job] job monitor thread has finished')
 
 
 def send_heartbeat_if_time(job, args, update_time):

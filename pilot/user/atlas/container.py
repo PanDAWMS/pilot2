@@ -34,6 +34,8 @@ def do_use_container(**kwargs):
 
     use_container = False
 
+    # return use_container
+
     # to force no container use: return False
 
     job = kwargs.get('job')
@@ -276,6 +278,8 @@ def alrb_wrapper(cmd, workdir, job):
         cmd = _cmd
 
         log.info("Updated command: %s" % cmd)
+    else:
+        log.warning('container %s not supported' % container_name)
 
     return cmd
 
