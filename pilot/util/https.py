@@ -134,7 +134,7 @@ def https_setup(args, version):
             _ctx.ssl_context = None
 
 
-def request(url, data=None, plain=False, secure=True):
+def request(url, data=None, plain=False, secure=True):  # noqa: C901
     """
     This function sends a request using HTTPS.
     Sends :mailheader:`User-Agent` and certificates previously being set up by `https_setup`.
