@@ -96,7 +96,7 @@ def is_long(s):
         except ValueError:
             return False
 
-    if s[0] in ('-', '+'):
+    if s and s[0] in ('-', '+'):
         return s[1:].isdigit()
     return s.isdigit()
 
