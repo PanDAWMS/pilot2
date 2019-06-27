@@ -229,7 +229,7 @@ class JobData(BaseData):
 
         ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())
 
-        # unify scopeOut structure: add scope of log file there (better to properly fix at Panda side)
+        # unify scopeOut structure: add scope of log file
         log_lfn = data.get('logFile')
         if log_lfn:
             scope_out = []

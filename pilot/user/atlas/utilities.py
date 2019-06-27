@@ -17,6 +17,7 @@ from .setup import get_asetup
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 from pilot.util.filehandling import read_json, copy
+from pilot.util.parameters import convert_to_int
 from pilot.util.processes import is_process_running
 
 import logging
@@ -377,11 +378,99 @@ def convert_unicode_string(unicode_string):
     return None
 
 
+def get_average_summary_dictionary_prmon(path):
+    """
+    Loop over the memory monitor output file and create the averaged summary dictionary.
+
+    prmon keys:
+    'Time', 'nprocs', 'nthreads', 'pss', 'rchar', 'read_bytes', 'rss', 'rx_bytes',
+    'rx_packets', 'stime', 'swap', 'tx_bytes', 'tx_packets', 'utime', 'vmem', 'wchar',
+    'write_bytes', 'wtime'
+
+    The function uses the first line in the output file to define the dictionary keys used
+    later in the function. This means that any change in the format such as new columns
+    will be handled automatically.
+
+    :param path: path to memory monitor txt output file (string).
+    :return: summary dictionary.
+    """
+
+    dictionary = {}
+    summary_dictionary = {}
+    summary_keys = []  # to keep track of content
+    header_locked = False
+    with open(path) as f:
+        for line in f:
+            line = convert_unicode_string(line)
+            if line != "":
+                try:
+                    # Remove empty entries from list (caused by multiple \t)
+                    _l = line.replace('\n', '')
+                    _l = filter(None, _l.split('\t'))
+
+                    # define dictionary keys
+                    if type(_l[0]) == str and not header_locked:
+                        summary_keys = _l
+                        for key in _l:
+                            dictionary[key] = []
+                        header_locked = True
+                    else:  # sort the memory measurements in the correct columns
+                        for i, key in enumerate(_l):
+                            # for key in _l:
+                            key_entry = summary_keys[i]  # e.g. Time
+                            value = convert_to_int(key)
+                            dictionary[key_entry].append(value)
+                except Exception:
+                    logger.warning("unexpected format of utility output: %s" % line)
+    #
+    if dictionary:
+        # Calculate averages and store all values
+        summary_dictionary = {"Max": {}, "Avg": {}, "Other": {}}
+
+        def filterValue(value):
+            """ Inline function used to remove any string or None values from data. """
+            if type(value) == str or value == None:
+                return False
+            else:
+                return True
+
+        keys = ['vmem', 'pss', 'rss', 'swap']
+        values = {}
+        for key in keys:
+            value_list = filter(filterValue, dictionary.get(key, 0))
+            n = len(value_list)
+            average = int(float(sum(value_list)) / float(n)) if n > 0 else 0
+            maximum = max(value_list)
+            values[key] = {'avg': average, 'max': maximum}
+
+        summary_dictionary["Max"] = {"maxVMEM": values['vmem'].get('max'), "maxPSS": values['pss'].get('max'),
+                                     "maxRSS": values['rss'].get('max'), "maxSwap": values['swap'].get('max')}
+        summary_dictionary["Avg"] = {"avgVMEM": values['vmem'].get('avg'), "avgPSS": values['pss'].get('avg'),
+                                     "avgRSS": values['rss'].get('avg'), "avgSwap": values['swap'].get('avg')}
+
+        # add the last of the rchar, .., values
+        keys = ['rchar', 'wchar', 'read_bytes', 'write_bytes']
+        # warning: should read_bytes/write_bytes be reported as rbytes/wbytes?
+        for key in keys:
+            value = get_last_value(dictionary.get(key, None))
+            if value:
+                summary_dictionary["Other"][key] = value
+
+    return summary_dictionary
+
+
+def get_last_value(value_list):
+    value = None
+    if value_list:
+        value = value_list[-1]
+    return value
+
+
 def get_average_summary_dictionary(path):
     """
     Loop over the memory monitor output file and create the averaged summary dictionary.
 
-    :param path: path to memory monitor output file (string).
+    :param path: path to memory monitor txt output file (string).
     :return: summary dictionary.
     """
 
