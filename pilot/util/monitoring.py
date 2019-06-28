@@ -92,7 +92,7 @@ def job_monitor_tasks(job, mt, args):
 
     # make sure that any utility commands are still running
     if job.utilities != {}:
-        job = utility_monitor(job)
+        utility_monitor(job)
 
     return exit_code, diagnostics
 
@@ -273,7 +273,7 @@ def utility_monitor(job):
     The function is used by the job monitor thread.
 
     :param job: job object.
-    :return: updated job object.
+    :return:
     """
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -313,7 +313,6 @@ def utility_monitor(job):
                 log.info('file: %s exists' % path)
             else:
                 log.warning('file: %s does not exist' % path)
-    return job
 
 
 def get_local_size_limit_stdout(bytes=True):
