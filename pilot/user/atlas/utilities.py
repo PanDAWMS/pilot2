@@ -436,7 +436,7 @@ def get_average_summary_dictionary_prmon(path):
 
         def filterValue(value):
             """ Inline function used to remove any string or None values from data. """
-            if type(value) == str or value == None:
+            if type(value) == str or value is None:
                 return False
             else:
                 return True
