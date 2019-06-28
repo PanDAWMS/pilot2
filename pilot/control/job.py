@@ -450,7 +450,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
         data['cpuConversionFactor'] = job.cpuconversionfactor
 
     # add memory information if available
-    add_memory_info(data, job.workdir)
+    add_memory_info(data, job.workdir, name=job.get_memory_monitor_name())
 
     if state == 'finished' or state == 'failed':
         add_timing_and_extracts(data, job, state, args)
@@ -552,7 +552,8 @@ def add_memory_info(data, workdir):
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user], -1)
     try:
-        utility_node = utilities.get_memory_monitor_info(workdir)
+        #for key in job.utilities
+        utility_node = utilities.get_memory_monitor_info(workdir, name=memory_monitor)
         data.update(utility_node)
     except Exception as e:
         logger.info('memory information not available: %s' % e)
