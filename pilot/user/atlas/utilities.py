@@ -286,12 +286,13 @@ def get_memory_monitor_info_path(workdir, allowtxtfile=False):
     return path
 
 
-def get_memory_monitor_info(workdir, allowtxtfile=False):
+def get_memory_monitor_info(workdir, allowtxtfile=False, name=""):
     """
     Add the utility info to the node structure if available.
 
     :param workdir: relevant work directory (string).
     :param allowtxtfile: boolean attribute to allow for reading the raw memory monitor output.
+    :param name: name of memory monitor (string).
     :return: node structure (dictionary).
     """
 
@@ -299,7 +300,7 @@ def get_memory_monitor_info(workdir, allowtxtfile=False):
 
     # Get the values from the memory monitor file (json if it exists, otherwise the preliminary txt file)
     # Note that only the final json file will contain the totRBYTES, etc
-    summary_dictionary = get_memory_values(workdir)
+    summary_dictionary = get_memory_values(workdir, name=name)
 
     logger.debug("summary_dictionary=%s" % str(summary_dictionary))
 
@@ -563,7 +564,7 @@ def get_average_summary_dictionary(path):
     return summary_dictionary
 
 
-def get_memory_values(workdir):
+def get_memory_values(workdir, name=""):
     """
     Find the values in the memory monitor output file.
 
@@ -576,6 +577,7 @@ def get_memory_values(workdir):
         "Other":{"rchar":NN,"wchar":NN,"rbytes":NN,"wbytes":NN}}
 
     :param workdir: relevant work directory (string).
+    :param name: name of memory monitor (string).
     :return: memory values dictionary.
     """
 
@@ -592,7 +594,10 @@ def get_memory_values(workdir):
             summary_dictionary = read_json(path)
         else:
             # Loop over the output file, line by line, and look for the maximum PSS value
-            summary_dictionary = get_average_summary_dictionary(path)
+            if name == "prmon":
+                summary_dictionary = get_average_summary_dictionary_prmon(path)
+            else:
+                summary_dictionary = get_average_summary_dictionary(path)
     else:
         if path == "":
             logger.warning("filename not set for memory monitor output")
