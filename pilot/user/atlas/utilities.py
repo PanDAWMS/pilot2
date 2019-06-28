@@ -117,8 +117,13 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
     interval = 60
     if not setup.endswith(';'):
         setup += ';'
-    # Now add the MemoryMonitor command
-    _cmd = "%sMemoryMonitor --pid %d --filename %s --json-summary %s --interval %d" %\
+    # Decide which version of the memory monitor should be used
+    cmd = "which prmon"
+    exit_code, stdout, stderr = execute(cmd)
+    if stdout:
+        _cmd = "%sprmon"
+    else:
+        _cmd = "%sMemoryMonitor --pid %d --filename %s --json-summary %s --interval %d" %\
            (setup, pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
     _cmd = "cd " + workdir + ";" + _cmd
 
@@ -578,7 +583,7 @@ def get_memory_values(workdir):
     # Get the path to the proper memory info file (priority ordered)
     path = get_memory_monitor_info_path(workdir, allowtxtfile=True)
     if os.path.exists(path):
-        logger.info("using path: %s" % (path))
+        logger.info("using path: %s" % path)
 
         # Does a JSON summary file exist? If so, there's no need to calculate maximums and averages in the pilot
         if path.lower().endswith('json'):
