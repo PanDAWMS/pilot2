@@ -121,11 +121,12 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
     cmd = "which prmon"
     exit_code, stdout, stderr = execute(cmd)
     if stdout:
-        _cmd = "%sprmon"
+        _cmd = "%sprmon "
     else:
-        _cmd = "%sMemoryMonitor --pid %d --filename %s --json-summary %s --interval %d" %\
+        _cmd = "%sMemoryMonitor "
+    options = "--pid %d --filename %s --json-summary %s --interval %d" %\
            (setup, pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
-    _cmd = "cd " + workdir + ";" + _cmd
+    _cmd = "cd " + workdir + ";" + _cmd + options
 
     return _cmd
 
