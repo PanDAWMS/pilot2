@@ -94,6 +94,7 @@ class JobData(BaseData):
     sizes = {}                     # job object sizes { timestamp: size, .. }
     command = ""                   # full payload command (set for container jobs)
     zombies = []                   # list of zombie process ids
+    memorymonitor = ""             # memory monitor name, e.g. prmon
 
     # time variable used for on-the-fly cpu consumption time measurements done by job monitoring
     t0 = None                      # payload startup time
@@ -140,7 +141,7 @@ class JobData(BaseData):
                    'cpuconsumptionunit', 'homepackage', 'jobsetid', 'payload', 'processingtype',
                    'swrelease', 'zipmap', 'imagename', 'accessmode', 'transfertype',
                    'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-                   'infilesguids'],
+                   'infilesguids', 'memorymonitor'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'allownooutput', 'zombies'],
              dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes'],
              bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug', 'usecontainer']
