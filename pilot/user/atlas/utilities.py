@@ -120,7 +120,7 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
     # Decide which version of the memory monitor should be used
     cmd = "%swhich prmon" % setup
     exit_code, stdout, stderr = execute(cmd)
-    if stdout:
+    if stdout and "Command not found" not in stdout:
         _cmd = "prmon "
     else:
         logger.warning('failed to find prmon, defaulting to old memory monitor: %d, %s' % (exit_code, stderr))
