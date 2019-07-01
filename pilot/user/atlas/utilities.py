@@ -309,41 +309,86 @@ def get_memory_monitor_info(workdir, allowtxtfile=False, name=""):
 
     # Fill the node dictionary
     if summary_dictionary and summary_dictionary != {}:
-        try:
-            node['maxRSS'] = summary_dictionary['Max']['maxRSS']
-            node['maxVMEM'] = summary_dictionary['Max']['maxVMEM']
-            node['maxSWAP'] = summary_dictionary['Max']['maxSwap']
-            node['maxPSS'] = summary_dictionary['Max']['maxPSS']
-            node['avgRSS'] = summary_dictionary['Avg']['avgRSS']
-            node['avgVMEM'] = summary_dictionary['Avg']['avgVMEM']
-            node['avgSWAP'] = summary_dictionary['Avg']['avgSwap']
-            node['avgPSS'] = summary_dictionary['Avg']['avgPSS']
-        except Exception as e:
-            logger.warning("exception caught while parsing memory monitor file: %s" % e)
-            logger.warning("will add -1 values for the memory info")
-            node['maxRSS'] = -1
-            node['maxVMEM'] = -1
-            node['maxSWAP'] = -1
-            node['maxPSS'] = -1
-            node['avgRSS'] = -1
-            node['avgVMEM'] = -1
-            node['avgSWAP'] = -1
-            node['avgPSS'] = -1
+        # first determine which memory monitor version was running (MemoryMonitor or prmon)
+        if 'maxRSS' in summary_dictionary['Max']:
+            version = 'MemoryMonitor'
+        elif 'rss' in summary_dictionary['Max']:
+            version = 'prmon'
         else:
-            logger.info("extracted standard info from memory monitor json")
-        try:
-            node['totRCHAR'] = summary_dictionary['Max']['totRCHAR']
-            node['totWCHAR'] = summary_dictionary['Max']['totWCHAR']
-            node['totRBYTES'] = summary_dictionary['Max']['totRBYTES']
-            node['totWBYTES'] = summary_dictionary['Max']['totWBYTES']
-            node['rateRCHAR'] = summary_dictionary['Avg']['rateRCHAR']
-            node['rateWCHAR'] = summary_dictionary['Avg']['rateWCHAR']
-            node['rateRBYTES'] = summary_dictionary['Avg']['rateRBYTES']
-            node['rateWBYTES'] = summary_dictionary['Avg']['rateWBYTES']
-        except Exception:
-            logger.warning("standard memory fields were not found in memory monitor json (or json doesn't exist yet)")
+            version = 'unknown'
+        if version == 'MemoryMonitor':
+            try:
+                node['maxRSS'] = summary_dictionary['Max']['maxRSS']
+                node['maxVMEM'] = summary_dictionary['Max']['maxVMEM']
+                node['maxSWAP'] = summary_dictionary['Max']['maxSwap']
+                node['maxPSS'] = summary_dictionary['Max']['maxPSS']
+                node['avgRSS'] = summary_dictionary['Avg']['avgRSS']
+                node['avgVMEM'] = summary_dictionary['Avg']['avgVMEM']
+                node['avgSWAP'] = summary_dictionary['Avg']['avgSwap']
+                node['avgPSS'] = summary_dictionary['Avg']['avgPSS']
+            except Exception as e:
+                logger.warning("exception caught while parsing memory monitor file: %s" % e)
+                logger.warning("will add -1 values for the memory info")
+                node['maxRSS'] = -1
+                node['maxVMEM'] = -1
+                node['maxSWAP'] = -1
+                node['maxPSS'] = -1
+                node['avgRSS'] = -1
+                node['avgVMEM'] = -1
+                node['avgSWAP'] = -1
+                node['avgPSS'] = -1
+            else:
+                logger.info("extracted standard info from memory monitor json")
+            try:
+                node['totRCHAR'] = summary_dictionary['Max']['totRCHAR']
+                node['totWCHAR'] = summary_dictionary['Max']['totWCHAR']
+                node['totRBYTES'] = summary_dictionary['Max']['totRBYTES']
+                node['totWBYTES'] = summary_dictionary['Max']['totWBYTES']
+                node['rateRCHAR'] = summary_dictionary['Avg']['rateRCHAR']
+                node['rateWCHAR'] = summary_dictionary['Avg']['rateWCHAR']
+                node['rateRBYTES'] = summary_dictionary['Avg']['rateRBYTES']
+                node['rateWBYTES'] = summary_dictionary['Avg']['rateWBYTES']
+            except Exception:
+                logger.warning("standard memory fields were not found in memory monitor json (or json doesn't exist yet)")
+            else:
+                logger.info("extracted standard memory fields from memory monitor json")
+        elif version == 'prmon':
+                node['maxRSS'] = summary_dictionary['Max']['rss']
+                node['maxVMEM'] = summary_dictionary['Max']['vmem']
+                node['maxSWAP'] = summary_dictionary['Max']['swap']
+                node['maxPSS'] = summary_dictionary['Max']['pss']
+                node['avgRSS'] = summary_dictionary['Avg']['rss']
+                node['avgVMEM'] = summary_dictionary['Avg']['vmem']
+                node['avgSWAP'] = summary_dictionary['Avg']['swap']
+                node['avgPSS'] = summary_dictionary['Avg']['pss']
+            except Exception as e:
+                logger.warning("exception caught while parsing prmon file: %s" % e)
+                logger.warning("will add -1 values for the memory info")
+                node['maxRSS'] = -1
+                node['maxVMEM'] = -1
+                node['maxSWAP'] = -1
+                node['maxPSS'] = -1
+                node['avgRSS'] = -1
+                node['avgVMEM'] = -1
+                node['avgSWAP'] = -1
+                node['avgPSS'] = -1
+            else:
+                logger.info("extracted standard info from prmon json")
+            try:
+                node['totRCHAR'] = summary_dictionary['Max']['rchar']
+                node['totWCHAR'] = summary_dictionary['Max']['wchar']
+                node['totRBYTES'] = summary_dictionary['Max']['read_bytes']
+                node['totWBYTES'] = summary_dictionary['Max']['write_bytes']
+                node['rateRCHAR'] = summary_dictionary['Avg']['rchar']
+                node['rateWCHAR'] = summary_dictionary['Avg']['wchar']
+                node['rateRBYTES'] = summary_dictionary['Avg']['read_bytes']
+                node['rateWBYTES'] = summary_dictionary['Avg']['write_bytes']
+            except Exception:
+                logger.warning("standard memory fields were not found in prmon json (or json doesn't exist yet)")
+            else:
+                logger.info("extracted standard memory fields from prmon json")
         else:
-            logger.info("extracted standard memory fields from memory monitor json")
+            logger.warning('unknown memory monitor version')
     else:
         logger.info("memory summary dictionary not yet available")
 
