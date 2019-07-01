@@ -646,6 +646,7 @@ def get_memory_values(workdir, name=""):
                 summary_dictionary = get_average_summary_dictionary_prmon(path)
             else:
                 summary_dictionary = get_average_summary_dictionary(path)
+            logger.debug('summary_dictionary=%s' % str(summary_dictionary))
     else:
         if path == "":
             logger.warning("filename not set for memory monitor output")
