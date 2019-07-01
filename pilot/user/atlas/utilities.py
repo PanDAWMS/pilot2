@@ -483,7 +483,7 @@ def get_average_summary_dictionary_prmon(path):
         # Calculate averages and store all values
         summary_dictionary = {"Max": {}, "Avg": {}, "Other": {}}
 
-        def filterValue(value):
+        def filter_value(value):
             """ Inline function used to remove any string or None values from data. """
             if type(value) == str or value is None:
                 return False
@@ -493,7 +493,7 @@ def get_average_summary_dictionary_prmon(path):
         keys = ['vmem', 'pss', 'rss', 'swap']
         values = {}
         for key in keys:
-            value_list = filter(filterValue, dictionary.get(key, 0))
+            value_list = filter(filter_value, dictionary.get(key, 0))
             n = len(value_list)
             average = int(float(sum(value_list)) / float(n)) if n > 0 else 0
             maximum = max(value_list)
