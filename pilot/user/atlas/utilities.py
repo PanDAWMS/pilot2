@@ -123,6 +123,7 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
     if stdout:
         _cmd = "prmon "
     else:
+        logger.warning('failed to find prmon, defaulting to old memory monitor: %d, %s' % (exit_code, stderr))
         _cmd = "MemoryMonitor "
         setup = setup.replace(release, "21.0.22")
         setup = setup.replace(platform, "x86_64-slc6-gcc62-opt")
