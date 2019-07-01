@@ -118,7 +118,7 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
     if not setup.endswith(';'):
         setup += ';'
     # Decide which version of the memory monitor should be used
-    cmd = "which prmon"
+    cmd = "%swhich prmon" % setup
     exit_code, stdout, stderr = execute(cmd)
     if stdout:
         _cmd = "prmon "
