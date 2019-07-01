@@ -127,7 +127,7 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
         release_old = "21.0.22"
         platform_old = "x86_64-slc6-gcc62-opt"
         setup = setup.replace(release, release_old)
-        setup = setup.replcae(platform, platform_old)
+        setup = setup.replace(platform, platform_old)
     options = "--pid %d --filename %s --json-summary %s --interval %d" %\
            (setup, pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
     _cmd = "cd " + workdir + ";" + _cmd + options
