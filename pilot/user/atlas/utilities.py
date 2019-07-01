@@ -121,16 +121,14 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
     cmd = "which prmon"
     exit_code, stdout, stderr = execute(cmd)
     if stdout:
-        _cmd = "%sprmon "
+        _cmd = "prmon "
     else:
-        _cmd = "%sMemoryMonitor "
-        release_old = "21.0.22"
-        platform_old = "x86_64-slc6-gcc62-opt"
-        setup = setup.replace(release, release_old)
-        setup = setup.replace(platform, platform_old)
+        _cmd = "MemoryMonitor "
+        setup = setup.replace(release, "21.0.22")
+        setup = setup.replace(platform, "x86_64-slc6-gcc62-opt")
     options = "--pid %d --filename %s --json-summary %s --interval %d" %\
-           (setup, pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
-    _cmd = "cd " + workdir + ";" + _cmd + options
+           (pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
+    _cmd = "cd " + workdir + ";" + setup + _cmd + options
 
     return _cmd
 
