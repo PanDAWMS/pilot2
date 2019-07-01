@@ -110,8 +110,8 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
         logger.warning('process id was not identified before payload finished - will not launch memory monitor')
         return ""
 
-    release = "21.0.22"
-    platform = "x86_64-slc6-gcc62-opt"
+    release = "22.0.1"
+    platform = "x86_64-centos7-gcc8-opt"
     if not setup:
         setup = get_asetup() + " Athena," + release + " --platform " + platform
     interval = 60
@@ -124,6 +124,10 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
         _cmd = "%sprmon "
     else:
         _cmd = "%sMemoryMonitor "
+        release_old = "21.0.22"
+        platform_old = "x86_64-slc6-gcc62-opt"
+        setup = setup.replace(release, release_old)
+        setup = setup.replcae(platform, platform_old)
     options = "--pid %d --filename %s --json-summary %s --interval %d" %\
            (setup, pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
     _cmd = "cd " + workdir + ";" + _cmd + options
