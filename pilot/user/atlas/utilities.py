@@ -128,7 +128,7 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
         setup = setup.replace(release, "21.0.22")
         setup = setup.replace(platform, "x86_64-slc6-gcc62-opt")
     options = "--pid %d --filename %s --json-summary %s --interval %d" %\
-           (pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
+              (pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
     _cmd = "cd " + workdir + ";" + setup + _cmd + options
 
     return _cmd
@@ -353,6 +353,7 @@ def get_memory_monitor_info(workdir, allowtxtfile=False, name=""):
             else:
                 logger.info("extracted standard memory fields from memory monitor json")
         elif version == 'prmon':
+            try:
                 node['maxRSS'] = summary_dictionary['Max']['rss']
                 node['maxVMEM'] = summary_dictionary['Max']['vmem']
                 node['maxSWAP'] = summary_dictionary['Max']['swap']
