@@ -88,7 +88,7 @@ def get_memory_monitor_output_filename():
     return "memory_monitor_output.txt"
 
 
-def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True, transformation="", outfiles=None):
+def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True, transformation="", outdata=None):
     """
     Return the proper setup for the memory monitor.
     If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the
@@ -101,12 +101,12 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
     :param setup: optional setup in case asetup can not be used, which uses infosys (string).
     :param use_container: optional boolean.
     :param transformation: optional name of transformation, e.g. Sim_tf.py (string).
-    :param outfiles: optional list of output fspec objects (list).
+    :param outdata: optional list of output fspec objects (list).
     :return: job work directory (string).
     """
 
     # try to get the pid from a pid.txt file which might be created by a container_script
-    pid = get_proper_pid(pid, command, outfiles, transformation, use_container=use_container)
+    pid = get_proper_pid(pid, command, outdata, transformation, use_container=use_container)
     if pid == -1:
         logger.warning('process id was not identified before payload finished - will not launch memory monitor')
         return ""
@@ -135,7 +135,7 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
     return _cmd
 
 
-def get_proper_pid(pid, command, transformation, outfiles, use_container=True):
+def get_proper_pid(pid, command, transformation, outdata, use_container=True):
     """
     Return a pid from the proper source to be used with the memory monitor.
     The given pid comes from Popen(), but in the case containers are used, the pid should instead come from a ps aux
@@ -147,7 +147,7 @@ def get_proper_pid(pid, command, transformation, outfiles, use_container=True):
     :param pid: process id (int).
     :param command: payload command (string).
     :param transformation: optional name of transformation, e.g. Sim_tf.py (string).
-    :param outfiles: list of output fspec object (list).
+    :param outdata: list of output fspec object (list).
     :param use_container: optional boolean.
     :return: pid (int).
     """
@@ -167,7 +167,7 @@ def get_proper_pid(pid, command, transformation, outfiles, use_container=True):
         logger.debug('ps:\n%s' % ps)
 
         # lookup the process id using ps aux
-        _pid = get_pid_for_trf(ps, transformation, outfiles)
+        _pid = get_pid_for_trf(ps, transformation, outdata) if outdata else None
         if _pid:
             logger.debug('pid=%d for trf=%s' % (_pid, transformation))
             break
@@ -205,14 +205,14 @@ def get_ps_info(whoami=getuser(), options='axfo pid,user,rss,pcpu,args'):
     return stdout
 
 
-def get_pid_for_trf(ps, transform, outfiles):
+def get_pid_for_trf(ps, transform, outdata):
     """
     Return the process id for the given command and user.
     Note: function returns 0 in case pid could not be found.
 
     :param ps: ps output (string).
     :param transform: transform name, e.g. Sim_tf.py (String).
-    :param outfiles: fspec objects (list).
+    :param outdata: fspec objects (list).
     :return: pid (int) or None if no such process.
     """
 
@@ -227,7 +227,7 @@ def get_pid_for_trf(ps, transform, outfiles):
 
     if candidates:
         for line in candidates:
-            for fspec in outfiles:
+            for fspec in outdata:
                 if fspec.lfn in line:
                     # extract pid
                     _pid = search(r'(\d+) ', line)
