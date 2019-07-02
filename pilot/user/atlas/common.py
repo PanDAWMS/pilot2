@@ -1233,11 +1233,15 @@ def get_utility_command_setup(name, job, setup=None):
 
     if name == 'MemoryMonitor':
         setup = get_memory_monitor_setup(job.pid, job.workdir, job.command, use_container=job.usecontainer, transformation=job.transformation)
-        _pattern = "([\S]+)\ ."
+        logger.debug('memmon: setup=%s' % setup)
+        _pattern = r"([\S]+)\ ."
         pattern = re.compile(_pattern)
-        _name = re.findall(pattern, setup)
+        _name = re.findall(pattern, setup.split(';')[-1])
         if _name:
             job.memorymonitor = _name[0]
+            logger.debug('memmon: name=%s' % job.memorymonitor)
+        else:
+            logger.debug('memmon: no _name')
         return setup
     elif name == 'NetworkMonitor' and setup:
         return get_network_monitor_setup(setup, job)

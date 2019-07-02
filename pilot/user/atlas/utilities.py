@@ -635,7 +635,7 @@ def get_memory_values(workdir, name=""):
     # Get the path to the proper memory info file (priority ordered)
     path = get_memory_monitor_info_path(workdir, allowtxtfile=True)
     if os.path.exists(path):
-        logger.info("using path: %s" % path)
+        logger.info("using path: %s for name=%s" % (path, name))
 
         # Does a JSON summary file exist? If so, there's no need to calculate maximums and averages in the pilot
         if path.lower().endswith('json'):
@@ -647,7 +647,7 @@ def get_memory_values(workdir, name=""):
                 summary_dictionary = get_average_summary_dictionary_prmon(path)
             else:
                 summary_dictionary = get_average_summary_dictionary(path)
-            logger.debug('summary_dictionary=%s' % str(summary_dictionary))
+            logger.debug('summary_dictionary=%s (name=%s)' % (str(summary_dictionary), name))
     else:
         if path == "":
             logger.warning("filename not set for memory monitor output")
