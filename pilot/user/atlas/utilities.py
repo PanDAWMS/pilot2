@@ -183,12 +183,11 @@ def get_proper_pid(pid, command, transformation, outdata, use_container=True):
         time.sleep(5)
         i += 1
 
-
     if not _pid:
         ps = get_ps_info()
         logger.debug('final ps:\n%s' % ps)
         _pid = get_pid_for_command(ps)  # default: python pilot2/pilot.py
-    if _pid
+    if _pid:
         pid = _pid
 
     logger.info('will use pid=%d for memory monitor' % pid)
