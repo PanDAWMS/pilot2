@@ -361,6 +361,7 @@ def get_memory_monitor_info(workdir, allowtxtfile=False, name=""):
 
     # Get the values from the memory monitor file (json if it exists, otherwise the preliminary txt file)
     # Note that only the final json file will contain the totRBYTES, etc
+    logger.debug('memmon: 3) name=%s' % name)
     summary_dictionary = get_memory_values(workdir, name=name)
 
     logger.debug("summary_dictionary=%s" % str(summary_dictionary))
@@ -689,6 +690,7 @@ def get_memory_values(workdir, name=""):
     """
 
     summary_dictionary = {}
+    logger.debug('memmon: 3) name=%s' % name)
 
     # Get the path to the proper memory info file (priority ordered)
     path = get_memory_monitor_info_path(workdir, allowtxtfile=True)
