@@ -106,7 +106,7 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
     """
 
     # try to get the pid from a pid.txt file which might be created by a container_script
-    pid = get_proper_pid(pid, command, outdata, transformation, use_container=use_container)
+    pid = get_proper_pid(pid, command, transformation, outdata, use_container=use_container)
     if pid == -1:
         logger.warning('process id was not identified before payload finished - will not launch memory monitor')
         return ""
@@ -172,12 +172,17 @@ def get_proper_pid(pid, command, transformation, outdata, use_container=True):
             logger.debug('pid=%d for trf=%s' % (_pid, transformation))
             break
         else:
-            _pid = get_pid_for_command(ps, command=_cmd)
+            _pid = get_pid_for_command(ps, command="Singularity runtime parent")
             if _pid:
                 logger.debug('pid=%d for command \"%s\"' % (_pid, _cmd))
                 break
             else:
-                logger.warning('pid not identified from payload command (#%d/#%d)' % (i + 1, imax))
+                _pid = get_pid_for_command(ps, command=_cmd)
+                if _pid:
+                    logger.debug('pid=%d for command \"%s\"' % (_pid, _cmd))
+                    break
+                else:
+                    logger.warning('pid not identified from payload command (#%d/#%d)' % (i + 1, imax))
 
         # wait until the payload has launched
         time.sleep(5)
@@ -293,7 +298,7 @@ def get_trf_command(command, transformation=""):
     :return: trf command (string).
     """
 
-    logger.debug('memmon: transformation=%s command=%s' % (transformation, command))
+    logger.debug('memmon: transformation=%s command=%s' % (str(transformation), command))
     payload_command = ""
     if command:
         if not transformation:
