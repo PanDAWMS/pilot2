@@ -1232,7 +1232,7 @@ def get_utility_command_setup(name, job, setup=None):
     """
 
     if name == 'MemoryMonitor':
-        setup = get_memory_monitor_setup(job.pid, job.workdir, job.command, use_container=job.usecontainer, transformation=job.transformation)
+        setup = get_memory_monitor_setup(job.pid, job.workdir, job.command, use_container=job.usecontainer, transformation=job.transformation, outfiles=job.outfiles)
         logger.debug('memmon: setup=%s' % setup)
         _pattern = r"([\S]+)\ ."
         pattern = re.compile(_pattern)
