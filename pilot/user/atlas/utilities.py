@@ -172,7 +172,7 @@ def get_proper_pid(pid, command, transformation, outdata, use_container=True):
             logger.debug('pid=%d for trf=%s' % (_pid, transformation))
             break
         else:
-            _pid = get_pid_for_cmd(_cmd, ps)
+            _pid = get_pid_for_command(ps, command=_cmd)
             if _pid:
                 logger.debug('pid=%d for command \"%s\"' % (_pid, _cmd))
                 break
@@ -183,7 +183,12 @@ def get_proper_pid(pid, command, transformation, outdata, use_container=True):
         time.sleep(5)
         i += 1
 
-    if _pid:
+
+    if not _pid:
+        ps = get_ps_info()
+        logger.debug('final ps:\n%s' % ps)
+        _pid = get_pid_for_command(ps)  # default: python pilot2/pilot.py
+    if _pid
         pid = _pid
 
     logger.info('will use pid=%d for memory monitor' % pid)
@@ -210,7 +215,7 @@ def get_pid_for_trf(ps, transform, outdata):
     Return the process id for the given command and user.
     Note: function returns 0 in case pid could not be found.
 
-    :param ps: ps output (string).
+    :param ps: ps command output (string).
     :param transform: transform name, e.g. Sim_tf.py (String).
     :param outdata: fspec objects (list).
     :return: pid (int) or None if no such process.
@@ -246,14 +251,14 @@ def get_pid_for_trf(ps, transform, outdata):
     return pid
 
 
-def get_pid_for_cmd(cmd, ps, whoami=getuser()):
+def get_pid_for_command(ps, command="python pilot2/pilot.py"):
     """
     Return the process id for the given command and user.
-    Note: function returns 0 in case pid could not be found.
+    The function returns 0 in case pid could not be found.
+    If no command is specified, the function looks for the "python pilot2/pilot.py" command in the ps output.
 
-    :param cmd: command string expected to be in ps output (string).
-    :param ps: ps output (string).
-    :param whoami: user name (string).
+    :param ps: ps command output (string).
+    :param command: command string expected to be in ps output (string).
     :return: pid (int) or None if no such process.
     """
 
@@ -261,7 +266,7 @@ def get_pid_for_cmd(cmd, ps, whoami=getuser()):
     found = None
 
     for line in ps.split('\n'):
-        if cmd in line:
+        if command in line:
             found = line
             break
     if found:
@@ -274,7 +279,7 @@ def get_pid_for_cmd(cmd, ps, whoami=getuser()):
         else:
             logger.debug('extracted pid=%d from ps output: %s' % (pid, found))
     else:
-        logger.debug('command not found in ps output: %s' % cmd)
+        logger.debug('command not found in ps output: %s' % command)
 
     return pid
 
@@ -289,6 +294,7 @@ def get_trf_command(command, transformation=""):
     :return: trf command (string).
     """
 
+    logger.debug('memmon: transformation=%s command=%s' % (transformation, command))
     payload_command = ""
     if command:
         if not transformation:
