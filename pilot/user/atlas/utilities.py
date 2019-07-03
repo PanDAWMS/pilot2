@@ -167,22 +167,21 @@ def get_proper_pid(pid, command, transformation, outdata, use_container=True):
         logger.debug('ps:\n%s' % ps)
 
         # lookup the process id using ps aux
-        _pid = get_pid_for_trf(ps, transformation, outdata) if outdata else None
+        logger.debug('attempting to identify pid from transform name and its output')
+        #_pid = get_pid_for_trf(ps, transformation, outdata) if outdata else None
+        _pid = get_pid_for_command(ps)  # default: python pilot2/pilot.py
         if _pid:
-            logger.debug('pid=%d for trf=%s' % (_pid, transformation))
+            logger.debug('discovered pid=%d for process \"%s\"' % (_pid, "python pilot2/pilot.py"))
+            #logger.debug('discovered pid=%d for transform name \"%s\"' % (_pid, transformation))
             break
         else:
+            logger.debug('attempting to identify pid for Singularity runtime parent process')
             _pid = get_pid_for_command(ps, command="Singularity runtime parent")
             if _pid:
-                logger.debug('pid=%d for command \"%s\"' % (_pid, _cmd))
+                logger.debug('discovered pid=%d for process \"%s\"' % (_pid, _cmd))
                 break
             else:
-                _pid = get_pid_for_command(ps, command=_cmd)
-                if _pid:
-                    logger.debug('pid=%d for command \"%s\"' % (_pid, _cmd))
-                    break
-                else:
-                    logger.warning('pid not identified from payload command (#%d/#%d)' % (i + 1, imax))
+                logger.warning('payload pid has not yet been identified (#%d/#%d)' % (i + 1, imax))
 
         # wait until the payload has launched
         time.sleep(5)
@@ -190,7 +189,7 @@ def get_proper_pid(pid, command, transformation, outdata, use_container=True):
 
     if not _pid:
         ps = get_ps_info()
-        logger.debug('final ps:\n%s' % ps)
+        logger.debug('ps:\n%s' % ps)
         _pid = get_pid_for_command(ps)  # default: python pilot2/pilot.py
     if _pid:
         pid = _pid
