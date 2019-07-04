@@ -168,11 +168,9 @@ def get_proper_pid(pid, command, transformation, outdata, use_container=True):
 
         # lookup the process id using ps aux
         logger.debug('attempting to identify pid from transform name and its output')
-        #_pid = get_pid_for_trf(ps, transformation, outdata) if outdata else None
-        _pid = get_pid_for_command(ps)  # default: python pilot2/pilot.py
+        _pid = get_pid_for_trf(ps, transformation, outdata) if outdata else None
         if _pid:
-            logger.debug('discovered pid=%d for process \"%s\"' % (_pid, "python pilot2/pilot.py"))
-            #logger.debug('discovered pid=%d for transform name \"%s\"' % (_pid, transformation))
+            logger.debug('discovered pid=%d for transform name \"%s\"' % (_pid, transformation))
             break
         else:
             logger.debug('attempting to identify pid for Singularity runtime parent process')
