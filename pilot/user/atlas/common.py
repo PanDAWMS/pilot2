@@ -1232,7 +1232,16 @@ def get_utility_command_setup(name, job, setup=None):
     """
 
     if name == 'MemoryMonitor':
-        return get_memory_monitor_setup(job.pid, job.workdir, job.command, use_container=job.usecontainer, transformation=job.transformation)
+        setup = get_memory_monitor_setup(job.pid, job.workdir, job.command, use_container=job.usecontainer,
+                                         transformation=job.transformation, outdata=job.outdata)
+        _pattern = r"([\S]+)\ ."
+        pattern = re.compile(_pattern)
+        _name = re.findall(pattern, setup.split(';')[-1])
+        if _name:
+            job.memorymonitor = _name[0]
+        else:
+            logger.warning('trf name could not be identified in setup string')
+        return setup
     elif name == 'NetworkMonitor' and setup:
         return get_network_monitor_setup(setup, job)
     elif name == 'Prefetcher':

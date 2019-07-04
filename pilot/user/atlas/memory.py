@@ -75,7 +75,7 @@ def memory_usage(job):
     log = get_logger(job.jobid)
 
     # Get the maxPSS value from the memory monitor
-    summary_dictionary = get_memory_values(job.workdir)
+    summary_dictionary = get_memory_values(job.workdir, name=job.memorymonitor)
 
     if not summary_dictionary:
         exit_code = errors.BADMEMORYMONITORJSON

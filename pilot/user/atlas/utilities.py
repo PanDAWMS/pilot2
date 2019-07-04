@@ -17,6 +17,7 @@ from .setup import get_asetup
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 from pilot.util.filehandling import read_json, copy
+from pilot.util.parameters import convert_to_int
 from pilot.util.processes import is_process_running
 
 import logging
@@ -87,7 +88,7 @@ def get_memory_monitor_output_filename():
     return "memory_monitor_output.txt"
 
 
-def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True, transformation=""):
+def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True, transformation="", outdata=None):
     """
     Return the proper setup for the memory monitor.
     If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the
@@ -100,31 +101,41 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
     :param setup: optional setup in case asetup can not be used, which uses infosys (string).
     :param use_container: optional boolean.
     :param transformation: optional name of transformation, e.g. Sim_tf.py (string).
+    :param outdata: optional list of output fspec objects (list).
     :return: job work directory (string).
     """
 
     # try to get the pid from a pid.txt file which might be created by a container_script
-    pid = get_proper_pid(pid, command, use_container=use_container, transformation=transformation)
+    pid = get_proper_pid(pid, command, transformation, outdata, use_container=use_container)
     if pid == -1:
         logger.warning('process id was not identified before payload finished - will not launch memory monitor')
         return ""
 
-    release = "21.0.22"
-    platform = "x86_64-slc6-gcc62-opt"
+    release = "22.0.1"
+    platform = "x86_64-centos7-gcc8-opt"
     if not setup:
         setup = get_asetup() + " Athena," + release + " --platform " + platform
     interval = 60
     if not setup.endswith(';'):
         setup += ';'
-    # Now add the MemoryMonitor command
-    _cmd = "%sMemoryMonitor --pid %d --filename %s --json-summary %s --interval %d" %\
-           (setup, pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
-    _cmd = "cd " + workdir + ";" + _cmd
+    # Decide which version of the memory monitor should be used
+    cmd = "%swhich prmon" % setup
+    exit_code, stdout, stderr = execute(cmd)
+    if stdout and "Command not found" not in stdout:
+        _cmd = "prmon "
+    else:
+        logger.warning('failed to find prmon, defaulting to old memory monitor: %d, %s' % (exit_code, stderr))
+        _cmd = "MemoryMonitor "
+        setup = setup.replace(release, "21.0.22")
+        setup = setup.replace(platform, "x86_64-slc6-gcc62-opt")
+    options = "--pid %d --filename %s --json-summary %s --interval %d" %\
+              (pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
+    _cmd = "cd " + workdir + ";" + setup + _cmd + options
 
     return _cmd
 
 
-def get_proper_pid(pid, command, use_container=True, transformation=""):
+def get_proper_pid(pid, command, transformation, outdata, use_container=True):
     """
     Return a pid from the proper source to be used with the memory monitor.
     The given pid comes from Popen(), but in the case containers are used, the pid should instead come from a ps aux
@@ -135,8 +146,9 @@ def get_proper_pid(pid, command, use_container=True, transformation=""):
 
     :param pid: process id (int).
     :param command: payload command (string).
-    :param use_container: optional boolean.
     :param transformation: optional name of transformation, e.g. Sim_tf.py (string).
+    :param outdata: list of output fspec object (list).
+    :param use_container: optional boolean.
     :return: pid (int).
     """
 
@@ -155,17 +167,28 @@ def get_proper_pid(pid, command, use_container=True, transformation=""):
         logger.debug('ps:\n%s' % ps)
 
         # lookup the process id using ps aux
-        _pid = get_pid_for_cmd(_cmd, ps)
+        logger.debug('attempting to identify pid from transform name and its output')
+        _pid = get_pid_for_trf(ps, transformation, outdata) if outdata else None
         if _pid:
-            logger.debug('pid=%d for command \"%s\"' % (_pid, _cmd))
+            logger.debug('discovered pid=%d for transform name \"%s\"' % (_pid, transformation))
             break
         else:
-            logger.warning('pid not identified from payload command (#%d/#%d)' % (i + 1, imax))
+            logger.debug('attempting to identify pid for Singularity runtime parent process')
+            _pid = get_pid_for_command(ps, command="Singularity runtime parent")
+            if _pid:
+                logger.debug('discovered pid=%d for process \"%s\"' % (_pid, _cmd))
+                break
+            else:
+                logger.warning('payload pid has not yet been identified (#%d/#%d)' % (i + 1, imax))
 
         # wait until the payload has launched
         time.sleep(5)
         i += 1
 
+    if not _pid:
+        ps = get_ps_info()
+        logger.debug('ps:\n%s' % ps)
+        _pid = get_pid_for_command(ps)  # default: python pilot2/pilot.py
     if _pid:
         pid = _pid
 
@@ -188,14 +211,55 @@ def get_ps_info(whoami=getuser(), options='axfo pid,user,rss,pcpu,args'):
     return stdout
 
 
-def get_pid_for_cmd(cmd, ps, whoami=getuser()):
+def get_pid_for_trf(ps, transform, outdata):
     """
     Return the process id for the given command and user.
     Note: function returns 0 in case pid could not be found.
 
-    :param cmd: command string expected to be in ps output (string).
-    :param ps: ps output (string).
-    :param whoami: user name (string).
+    :param ps: ps command output (string).
+    :param transform: transform name, e.g. Sim_tf.py (String).
+    :param outdata: fspec objects (list).
+    :return: pid (int) or None if no such process.
+    """
+
+    pid = None
+    found = None
+    candidates = []
+
+    for line in ps.split('\n'):
+        if transform in line:
+            candidates.append(line)
+            break
+
+    if candidates:
+        for line in candidates:
+            for fspec in outdata:
+                if fspec.lfn in line:
+                    # extract pid
+                    _pid = search(r'(\d+) ', line)
+                    try:
+                        pid = int(_pid.group(1))
+                    except Exception as e:
+                        logger.warning('pid has wrong type: %s' % e)
+                    else:
+                        logger.debug('extracted pid=%d from ps output: %s' % (pid, found))
+                    break
+            if pid:
+                break
+    else:
+        logger.debug('pid not found in ps output for trf=%s' % transform)
+
+    return pid
+
+
+def get_pid_for_command(ps, command="python pilot2/pilot.py"):
+    """
+    Return the process id for the given command and user.
+    The function returns 0 in case pid could not be found.
+    If no command is specified, the function looks for the "python pilot2/pilot.py" command in the ps output.
+
+    :param ps: ps command output (string).
+    :param command: command string expected to be in ps output (string).
     :return: pid (int) or None if no such process.
     """
 
@@ -203,7 +267,7 @@ def get_pid_for_cmd(cmd, ps, whoami=getuser()):
     found = None
 
     for line in ps.split('\n'):
-        if cmd in line:
+        if command in line:
             found = line
             break
     if found:
@@ -216,7 +280,7 @@ def get_pid_for_cmd(cmd, ps, whoami=getuser()):
         else:
             logger.debug('extracted pid=%d from ps output: %s' % (pid, found))
     else:
-        logger.debug('command not found in ps output: %s' % cmd)
+        logger.debug('command not found in ps output: %s' % command)
 
     return pid
 
@@ -279,12 +343,13 @@ def get_memory_monitor_info_path(workdir, allowtxtfile=False):
     return path
 
 
-def get_memory_monitor_info(workdir, allowtxtfile=False):
+def get_memory_monitor_info(workdir, allowtxtfile=False, name=""):
     """
     Add the utility info to the node structure if available.
 
     :param workdir: relevant work directory (string).
     :param allowtxtfile: boolean attribute to allow for reading the raw memory monitor output.
+    :param name: name of memory monitor (string).
     :return: node structure (dictionary).
     """
 
@@ -292,47 +357,93 @@ def get_memory_monitor_info(workdir, allowtxtfile=False):
 
     # Get the values from the memory monitor file (json if it exists, otherwise the preliminary txt file)
     # Note that only the final json file will contain the totRBYTES, etc
-    summary_dictionary = get_memory_values(workdir)
+    summary_dictionary = get_memory_values(workdir, name=name)
 
     logger.debug("summary_dictionary=%s" % str(summary_dictionary))
 
     # Fill the node dictionary
     if summary_dictionary and summary_dictionary != {}:
-        try:
-            node['maxRSS'] = summary_dictionary['Max']['maxRSS']
-            node['maxVMEM'] = summary_dictionary['Max']['maxVMEM']
-            node['maxSWAP'] = summary_dictionary['Max']['maxSwap']
-            node['maxPSS'] = summary_dictionary['Max']['maxPSS']
-            node['avgRSS'] = summary_dictionary['Avg']['avgRSS']
-            node['avgVMEM'] = summary_dictionary['Avg']['avgVMEM']
-            node['avgSWAP'] = summary_dictionary['Avg']['avgSwap']
-            node['avgPSS'] = summary_dictionary['Avg']['avgPSS']
-        except Exception as e:
-            logger.warning("exception caught while parsing memory monitor file: %s" % e)
-            logger.warning("will add -1 values for the memory info")
-            node['maxRSS'] = -1
-            node['maxVMEM'] = -1
-            node['maxSWAP'] = -1
-            node['maxPSS'] = -1
-            node['avgRSS'] = -1
-            node['avgVMEM'] = -1
-            node['avgSWAP'] = -1
-            node['avgPSS'] = -1
+        # first determine which memory monitor version was running (MemoryMonitor or prmon)
+        if 'maxRSS' in summary_dictionary['Max']:
+            version = 'MemoryMonitor'
+        elif 'rss' in summary_dictionary['Max']:
+            version = 'prmon'
         else:
-            logger.info("extracted standard info from memory monitor json")
-        try:
-            node['totRCHAR'] = summary_dictionary['Max']['totRCHAR']
-            node['totWCHAR'] = summary_dictionary['Max']['totWCHAR']
-            node['totRBYTES'] = summary_dictionary['Max']['totRBYTES']
-            node['totWBYTES'] = summary_dictionary['Max']['totWBYTES']
-            node['rateRCHAR'] = summary_dictionary['Avg']['rateRCHAR']
-            node['rateWCHAR'] = summary_dictionary['Avg']['rateWCHAR']
-            node['rateRBYTES'] = summary_dictionary['Avg']['rateRBYTES']
-            node['rateWBYTES'] = summary_dictionary['Avg']['rateWBYTES']
-        except Exception:
-            logger.warning("standard memory fields were not found in memory monitor json (or json doesn't exist yet)")
+            version = 'unknown'
+        if version == 'MemoryMonitor':
+            try:
+                node['maxRSS'] = summary_dictionary['Max']['maxRSS']
+                node['maxVMEM'] = summary_dictionary['Max']['maxVMEM']
+                node['maxSWAP'] = summary_dictionary['Max']['maxSwap']
+                node['maxPSS'] = summary_dictionary['Max']['maxPSS']
+                node['avgRSS'] = summary_dictionary['Avg']['avgRSS']
+                node['avgVMEM'] = summary_dictionary['Avg']['avgVMEM']
+                node['avgSWAP'] = summary_dictionary['Avg']['avgSwap']
+                node['avgPSS'] = summary_dictionary['Avg']['avgPSS']
+            except Exception as e:
+                logger.warning("exception caught while parsing memory monitor file: %s" % e)
+                logger.warning("will add -1 values for the memory info")
+                node['maxRSS'] = -1
+                node['maxVMEM'] = -1
+                node['maxSWAP'] = -1
+                node['maxPSS'] = -1
+                node['avgRSS'] = -1
+                node['avgVMEM'] = -1
+                node['avgSWAP'] = -1
+                node['avgPSS'] = -1
+            else:
+                logger.info("extracted standard info from memory monitor json")
+            try:
+                node['totRCHAR'] = summary_dictionary['Max']['totRCHAR']
+                node['totWCHAR'] = summary_dictionary['Max']['totWCHAR']
+                node['totRBYTES'] = summary_dictionary['Max']['totRBYTES']
+                node['totWBYTES'] = summary_dictionary['Max']['totWBYTES']
+                node['rateRCHAR'] = summary_dictionary['Avg']['rateRCHAR']
+                node['rateWCHAR'] = summary_dictionary['Avg']['rateWCHAR']
+                node['rateRBYTES'] = summary_dictionary['Avg']['rateRBYTES']
+                node['rateWBYTES'] = summary_dictionary['Avg']['rateWBYTES']
+            except Exception:
+                logger.warning("standard memory fields were not found in memory monitor json (or json doesn't exist yet)")
+            else:
+                logger.info("extracted standard memory fields from memory monitor json")
+        elif version == 'prmon':
+            try:
+                node['maxRSS'] = summary_dictionary['Max']['rss']
+                node['maxVMEM'] = summary_dictionary['Max']['vmem']
+                node['maxSWAP'] = summary_dictionary['Max']['swap']
+                node['maxPSS'] = summary_dictionary['Max']['pss']
+                node['avgRSS'] = summary_dictionary['Avg']['rss']
+                node['avgVMEM'] = summary_dictionary['Avg']['vmem']
+                node['avgSWAP'] = summary_dictionary['Avg']['swap']
+                node['avgPSS'] = summary_dictionary['Avg']['pss']
+            except Exception as e:
+                logger.warning("exception caught while parsing prmon file: %s" % e)
+                logger.warning("will add -1 values for the memory info")
+                node['maxRSS'] = -1
+                node['maxVMEM'] = -1
+                node['maxSWAP'] = -1
+                node['maxPSS'] = -1
+                node['avgRSS'] = -1
+                node['avgVMEM'] = -1
+                node['avgSWAP'] = -1
+                node['avgPSS'] = -1
+            else:
+                logger.info("extracted standard info from prmon json")
+            try:
+                node['totRCHAR'] = summary_dictionary['Max']['rchar']
+                node['totWCHAR'] = summary_dictionary['Max']['wchar']
+                node['totRBYTES'] = summary_dictionary['Max']['read_bytes']
+                node['totWBYTES'] = summary_dictionary['Max']['write_bytes']
+                node['rateRCHAR'] = summary_dictionary['Avg']['rchar']
+                node['rateWCHAR'] = summary_dictionary['Avg']['wchar']
+                node['rateRBYTES'] = summary_dictionary['Avg']['read_bytes']
+                node['rateWBYTES'] = summary_dictionary['Avg']['write_bytes']
+            except Exception:
+                logger.warning("standard memory fields were not found in prmon json (or json doesn't exist yet)")
+            else:
+                logger.info("extracted standard memory fields from prmon json")
         else:
-            logger.info("extracted standard memory fields from memory monitor json")
+            logger.warning('unknown memory monitor version')
     else:
         logger.info("memory summary dictionary not yet available")
 
@@ -377,11 +488,99 @@ def convert_unicode_string(unicode_string):
     return None
 
 
+def get_average_summary_dictionary_prmon(path):
+    """
+    Loop over the memory monitor output file and create the averaged summary dictionary.
+
+    prmon keys:
+    'Time', 'nprocs', 'nthreads', 'pss', 'rchar', 'read_bytes', 'rss', 'rx_bytes',
+    'rx_packets', 'stime', 'swap', 'tx_bytes', 'tx_packets', 'utime', 'vmem', 'wchar',
+    'write_bytes', 'wtime'
+
+    The function uses the first line in the output file to define the dictionary keys used
+    later in the function. This means that any change in the format such as new columns
+    will be handled automatically.
+
+    :param path: path to memory monitor txt output file (string).
+    :return: summary dictionary.
+    """
+
+    dictionary = {}
+    summary_dictionary = {}
+    summary_keys = []  # to keep track of content
+    header_locked = False
+    with open(path) as f:
+        for line in f:
+            line = convert_unicode_string(line)
+            if line != "":
+                try:
+                    # Remove empty entries from list (caused by multiple \t)
+                    _l = line.replace('\n', '')
+                    _l = filter(None, _l.split('\t'))
+
+                    # define dictionary keys
+                    if type(_l[0]) == str and not header_locked:
+                        summary_keys = _l
+                        for key in _l:
+                            dictionary[key] = []
+                        header_locked = True
+                    else:  # sort the memory measurements in the correct columns
+                        for i, key in enumerate(_l):
+                            # for key in _l:
+                            key_entry = summary_keys[i]  # e.g. Time
+                            value = convert_to_int(key)
+                            dictionary[key_entry].append(value)
+                except Exception:
+                    logger.warning("unexpected format of utility output: %s" % line)
+    #
+    if dictionary:
+        # Calculate averages and store all values
+        summary_dictionary = {"Max": {}, "Avg": {}, "Other": {}}
+
+        def filter_value(value):
+            """ Inline function used to remove any string or None values from data. """
+            if type(value) == str or value is None:
+                return False
+            else:
+                return True
+
+        keys = ['vmem', 'pss', 'rss', 'swap']
+        values = {}
+        for key in keys:
+            value_list = filter(filter_value, dictionary.get(key, 0))
+            n = len(value_list)
+            average = int(float(sum(value_list)) / float(n)) if n > 0 else 0
+            maximum = max(value_list)
+            values[key] = {'avg': average, 'max': maximum}
+
+        summary_dictionary["Max"] = {"maxVMEM": values['vmem'].get('max'), "maxPSS": values['pss'].get('max'),
+                                     "maxRSS": values['rss'].get('max'), "maxSwap": values['swap'].get('max')}
+        summary_dictionary["Avg"] = {"avgVMEM": values['vmem'].get('avg'), "avgPSS": values['pss'].get('avg'),
+                                     "avgRSS": values['rss'].get('avg'), "avgSwap": values['swap'].get('avg')}
+
+        # add the last of the rchar, .., values
+        keys = ['rchar', 'wchar', 'read_bytes', 'write_bytes']
+        # warning: should read_bytes/write_bytes be reported as rbytes/wbytes?
+        for key in keys:
+            value = get_last_value(dictionary.get(key, None))
+            if value:
+                summary_dictionary["Other"][key] = value
+
+    return summary_dictionary
+
+
+def get_last_value(value_list):
+    value = None
+    if value_list:
+        value = value_list[-1]
+    return value
+
+
 def get_average_summary_dictionary(path):
     """
     Loop over the memory monitor output file and create the averaged summary dictionary.
 
-    :param path: path to memory monitor output file (string).
+    :param path: path to memory monitor txt output file (string).
     :return: summary dictionary.
     """
 
@@ -468,7 +667,7 @@ def get_average_summary_dictionary(path):
     return summary_dictionary
 
 
-def get_memory_values(workdir):
+def get_memory_values(workdir, name=""):
     """
     Find the values in the memory monitor output file.
 
@@ -481,6 +680,7 @@ def get_memory_values(workdir):
         "Other":{"rchar":NN,"wchar":NN,"rbytes":NN,"wbytes":NN}}
 
     :param workdir: relevant work directory (string).
+    :param name: name of memory monitor (string).
     :return: memory values dictionary.
     """
 
@@ -489,7 +689,7 @@ def get_memory_values(workdir):
     # Get the path to the proper memory info file (priority ordered)
     path = get_memory_monitor_info_path(workdir, allowtxtfile=True)
     if os.path.exists(path):
-        logger.info("using path: %s" % (path))
+        logger.info("using path: %s (trf name=%s)" % (path, name))
 
         # Does a JSON summary file exist? If so, there's no need to calculate maximums and averages in the pilot
         if path.lower().endswith('json'):
@@ -497,7 +697,11 @@ def get_memory_values(workdir):
             summary_dictionary = read_json(path)
         else:
             # Loop over the output file, line by line, and look for the maximum PSS value
-            summary_dictionary = get_average_summary_dictionary(path)
+            if name == "prmon":
+                summary_dictionary = get_average_summary_dictionary_prmon(path)
+            else:
+                summary_dictionary = get_average_summary_dictionary(path)
+            logger.debug('summary_dictionary=%s (trf name=%s)' % (str(summary_dictionary), name))
     else:
         if path == "":
             logger.warning("filename not set for memory monitor output")
