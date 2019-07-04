@@ -451,7 +451,6 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
 
     # add memory information if available
     add_memory_info(data, job.workdir, name=job.memorymonitor)
-    logger.debug('memmon; job.memorymonitor=%s' % job.memorymonitor)
     if state == 'finished' or state == 'failed':
         add_timing_and_extracts(data, job, state, args)
         add_error_codes(data, job)
@@ -554,7 +553,6 @@ def add_memory_info(data, workdir, name=""):
     utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user], -1)
     try:
         #for key in job.utilities
-        logger.debug('memmon: 2) name=%s' % name)
         utility_node = utilities.get_memory_monitor_info(workdir, name=name)
         data.update(utility_node)
     except Exception as e:
