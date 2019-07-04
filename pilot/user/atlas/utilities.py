@@ -298,7 +298,6 @@ def get_trf_command(command, transformation=""):
     :return: trf command (string).
     """
 
-    logger.debug('memmon: transformation=%s command=%s' % (str(transformation), command))
     payload_command = ""
     if command:
         if not transformation:
@@ -361,7 +360,6 @@ def get_memory_monitor_info(workdir, allowtxtfile=False, name=""):
 
     # Get the values from the memory monitor file (json if it exists, otherwise the preliminary txt file)
     # Note that only the final json file will contain the totRBYTES, etc
-    logger.debug('memmon: 3) name=%s' % name)
     summary_dictionary = get_memory_values(workdir, name=name)
 
     logger.debug("summary_dictionary=%s" % str(summary_dictionary))
@@ -690,12 +688,11 @@ def get_memory_values(workdir, name=""):
     """
 
     summary_dictionary = {}
-    logger.debug('memmon: 3) name=%s' % name)
 
     # Get the path to the proper memory info file (priority ordered)
     path = get_memory_monitor_info_path(workdir, allowtxtfile=True)
     if os.path.exists(path):
-        logger.info("using path: %s for name=%s" % (path, name))
+        logger.info("using path: %s (trf name=%s)" % (path, name))
 
         # Does a JSON summary file exist? If so, there's no need to calculate maximums and averages in the pilot
         if path.lower().endswith('json'):
@@ -707,7 +704,7 @@ def get_memory_values(workdir, name=""):
                 summary_dictionary = get_average_summary_dictionary_prmon(path)
             else:
                 summary_dictionary = get_average_summary_dictionary(path)
-            logger.debug('summary_dictionary=%s (name=%s)' % (str(summary_dictionary), name))
+            logger.debug('summary_dictionary=%s (trf name=%s)' % (str(summary_dictionary), name))
     else:
         if path == "":
             logger.warning("filename not set for memory monitor output")
