@@ -211,13 +211,13 @@ def get_ps_info(whoami=getuser(), options='axfo pid,user,rss,pcpu,args'):
     return stdout
 
 
-def get_pid_for_trf(ps, transform, outdata):
+def get_pid_for_trf(ps, transformation, outdata):
     """
     Return the process id for the given command and user.
     Note: function returns 0 in case pid could not be found.
 
     :param ps: ps command output (string).
-    :param transform: transform name, e.g. Sim_tf.py (String).
+    :param transformation: transformation name, e.g. Sim_tf.py (String).
     :param outdata: fspec objects (list).
     :return: pid (int) or None if no such process.
     """
@@ -226,8 +226,12 @@ def get_pid_for_trf(ps, transform, outdata):
     found = None
     candidates = []
 
+    # in the case of user analysis job, the transformation will contain a URL which should be stripped
+    if "/" in transformation:
+        transformation = transformation.split('/')[-1]
+    logger.debug('using transformation name: %s' % transformation)
     for line in ps.split('\n'):
-        if transform in line:
+        if transformation in line:
             candidates.append(line)
             break
 
@@ -247,7 +251,7 @@ def get_pid_for_trf(ps, transform, outdata):
             if pid:
                 break
     else:
-        logger.debug('pid not found in ps output for trf=%s' % transform)
+        logger.debug('pid not found in ps output for trf=%s' % transformation)
 
     return pid
 
