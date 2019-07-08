@@ -119,6 +119,7 @@ class ErrorCodes:
     MISSINGUSERCODE = 1335
     JOBALREADYRUNNING = 1336
     BADMEMORYMONITORJSON = 1337
+    STAGEINAUTHENTICATIONFAILURE = 1338
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -216,7 +217,8 @@ class ErrorCodes:
         ATLASSETUPFATAL: "AtlasSetup failed with a fatal exception (consult Payload log)",
         MISSINGUSERCODE: "User code not available on PanDA server (resubmit task with --useNewCode)",
         JOBALREADYRUNNING: "Job is already running elsewhere",
-        BADMEMORYMONITORJSON: "Memory monitor produced bad output"
+        BADMEMORYMONITORJSON: "Memory monitor produced bad output",
+        STAGEINAUTHENTICATIONFAILURE: "Authentication failure during stage-in"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
