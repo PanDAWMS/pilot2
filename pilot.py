@@ -25,7 +25,7 @@ from pilot.util.auxiliary import shell_exit_code
 from pilot.util.config import config
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_START_TIME, PILOT_END_TIME, get_pilot_version, \
     SERVER_UPDATE_NOT_DONE
-from pilot.util.filehandling import get_pilot_work_dir, create_pilot_work_dir
+from pilot.util.filehandling import get_pilot_work_dir, mkdirs
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
 from pilot.util.mpi import get_ranks_info
@@ -381,7 +381,8 @@ def create_main_work_dir(args):
     if args.workdir != "":
         mainworkdir = get_pilot_work_dir(args.workdir)
         try:
-            create_pilot_work_dir(mainworkdir)
+            # create the main PanDA Pilot work directory
+            mkdirs(mainworkdir)
         except Exception as e:
             # print to stderr since logging has not been established yet
             print('failed to create workdir at %s -- aborting: %s' % (mainworkdir, e), file=sys.stderr)
