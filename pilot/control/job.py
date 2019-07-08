@@ -450,8 +450,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
         data['cpuConversionFactor'] = job.cpuconversionfactor
 
     # add memory information if available
-    add_memory_info(data, job.workdir)
-
+    add_memory_info(data, job.workdir, name=job.memorymonitor)
     if state == 'finished' or state == 'failed':
         add_timing_and_extracts(data, job, state, args)
         add_error_codes(data, job)
@@ -539,20 +538,22 @@ def add_timing_and_extracts(data, job, state, args):
         data['pilotLog'] = extracts[:1024]
 
 
-def add_memory_info(data, workdir):
+def add_memory_info(data, workdir, name=""):
     """
     Add memory information (if available) to the data structure that will be sent to the server with job updates
     Note: this function updates the data dictionary.
 
     :param data: data structure (dictionary).
     :param workdir: working directory of the job (string).
+    :param name: name of memory monitor (string).
     :return:
     """
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user], -1)
     try:
-        utility_node = utilities.get_memory_monitor_info(workdir)
+        #for key in job.utilities
+        utility_node = utilities.get_memory_monitor_info(workdir, name=name)
         data.update(utility_node)
     except Exception as e:
         logger.info('memory information not available: %s' % e)

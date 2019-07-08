@@ -234,7 +234,7 @@ def move_all_files_out(files, nretries=1):  ### NOT USED -- TO BE DEPRECATED
     return exit_code, stdout, stderr
 
 
-@timeout(seconds=600)
+@timeout(seconds=10800)
 def move(source, destination, recursive=False):
     cmd = None
     if recursive:
