@@ -136,6 +136,8 @@ def create_setup_file(version, path):
         else:
             logger.info("Created setup file with the following content:.................................\n%s" % txt)
             logger.info("...............................................................................")
+    else:
+        logger.warning('failed to create %s for DBRelease version=%s and directory=%s' % (path, version, d))
 
     return status
 
