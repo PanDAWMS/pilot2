@@ -143,7 +143,7 @@ def _stage_in(args, job):
     # now that the trace report has been created, remove any files that are not to be transferred (DBRelease files) from the indata list
     toberemoved = []
     for fspec in job.indata:
-        if fspec.status = 'no_transfer':
+        if fspec.status == 'no_transfer':
             toberemoved.append(fspec)
     for fspec in toberemoved:
         logger.info('removing fspec object (lfn=%s) from list of input files' % fspec.lfn)
