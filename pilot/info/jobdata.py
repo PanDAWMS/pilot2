@@ -194,7 +194,7 @@ class JobData(BaseData):
         logger.debug('ksources=%s' % str(ksources))
         ret, lfns = [], set()
         for ind, lfn in enumerate(ksources.get('inFiles', [])):
-            if lfn in ['', 'NULL'] or lfn in lfns:  # exclude null data and duplicates
+            if lfn in ['', 'NULL'] or lfn in lfns or 'DBRelease' in lfn:  # exclude null data and duplicates
                 continue
             lfns.add(lfn)
             idat = {}
