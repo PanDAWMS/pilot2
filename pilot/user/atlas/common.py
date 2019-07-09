@@ -15,6 +15,7 @@ from collections import defaultdict
 from glob import glob
 from signal import SIGTERM, SIGUSR1
 
+from .dbrelease import get_dbrelease_version, create_dbrelease
 from .setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
     set_inds, get_analysis_trf, get_payload_environment_variables, replace_lfns_with_turls
 from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
@@ -45,10 +46,17 @@ def validate(job):
     :return: Boolean (True if validation is successful).
     """
 
+    log = get_logger(job.jobid)
     status = True
 
     if 'DBRelease' in job.jobparams:
-        logger.debug('encountered DBRelease info in job parameters - will attempt to create a local DBRelease file')
+        log.debug('encountered DBRelease info in job parameters - will attempt to create a local DBRelease file')
+        version = get_dbrelease_version(job.jobparams)
+        if version:
+            status = create_dbrelease(version, job.workdir)
+
+    if not status:
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.DBRELEASEFAILURE)
 
     return status
 
