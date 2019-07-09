@@ -36,6 +36,23 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
+def validate(job):
+    """
+    Perform user specific payload/job validation.
+    This function will produce a local DBRelease file if necessary (old releases).
+
+    :param job: job object.
+    :return: Boolean (True if validation is successful).
+    """
+
+    status = True
+
+    if 'DBRelease' in job.jobparams:
+        logger.debug('encountered DBRelease info in job parameters - will attempt to create a local DBRelease file')
+
+    return status
+
+
 def get_payload_command(job):
     """
     Return the full command for execuring the payload, including the sourcing of all setup files and setting of
