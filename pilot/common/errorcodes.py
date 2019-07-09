@@ -120,6 +120,7 @@ class ErrorCodes:
     JOBALREADYRUNNING = 1336
     BADMEMORYMONITORJSON = 1337
     STAGEINAUTHENTICATIONFAILURE = 1338
+    DBRELEASEFAILURE = 1339
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -218,7 +219,8 @@ class ErrorCodes:
         MISSINGUSERCODE: "User code not available on PanDA server (resubmit task with --useNewCode)",
         JOBALREADYRUNNING: "Job is already running elsewhere",
         BADMEMORYMONITORJSON: "Memory monitor produced bad output",
-        STAGEINAUTHENTICATIONFAILURE: "Authentication failure during stage-in"
+        STAGEINAUTHENTICATIONFAILURE: "Authentication failure during stage-in",
+        DBRELEASEFAILURE: "Local DBRelease handling failed (consult Pilot log)"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
