@@ -55,6 +55,7 @@ def validate(job):
         if version:
             status = create_dbrelease(version, job.workdir)
 
+    # assign error in case of DBRelease handling failure
     if not status:
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.DBRELEASEFAILURE)
 
