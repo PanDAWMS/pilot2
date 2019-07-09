@@ -11,6 +11,7 @@
 import hashlib
 import socket
 import time
+from copy import deepcopy
 from sys import exc_info
 from json import dumps  #, loads
 from os import environ, getuid
@@ -156,6 +157,27 @@ class TraceReport(dict):
             logger.error('tracing failed: %s' % str(exc_info()))
         else:
             logger.info("tracing report sent")
+
+        return True
+
+    def merge(self, other, override=True):
+        """
+        Merge current trace with other one.
+
+        :param other: the other trace object or dictionary.
+        :param override: True if the values of self should be overridden by other.
+        """
+
+        if override:
+            self.update(other)
+        else:
+            oth = deepcopy(other)  # not to change the other
+            oth.update(self)
+            self.update(other)
+
+        if not self.verify_trace():
+            logger.warning('Merging the trace with another one caused inconsistencies.')
+            return False
 
         return True
 
