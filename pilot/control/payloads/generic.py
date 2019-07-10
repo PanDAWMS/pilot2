@@ -237,6 +237,7 @@ class Executor(object):
 
         log.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
         job.pid = proc.pid
+        job.pgrp = os.getpgid(job.pid)
 
         self.utility_after_payload_started(job)
 
