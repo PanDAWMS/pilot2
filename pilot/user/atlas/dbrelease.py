@@ -11,7 +11,7 @@ import os
 import re
 import tarfile
 
-from pilot.common.exception import FileHandlingFailure
+from pilot.common.exception import FileHandlingFailure, PilotException
 from pilot.util.filehandling import write_file, mkdirs, rmdirs
 
 import logging
@@ -155,7 +155,13 @@ def create_dbrelease(version, path):
 
     # create the DBRelease and version directories
     dbrelease_path = os.path.join(path, 'DBRelease')
-    if mkdirs(os.path.join(dbrelease_path, version), chmod=None):
+    _path = os.path.join(dbrelease_path, version)
+    try:
+        mkdirs(_path, chmod=None)
+    except PilotException as e:
+        logger.warning('failed to create directories for DBRelease: %s' % e)
+    else:
+        logger.debug('created directories: %s' % _path)
 
         # create the setup file in the DBRelease directory
         version_path = os.path.join(dbrelease_path, version)
