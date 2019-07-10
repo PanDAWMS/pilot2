@@ -349,6 +349,7 @@ def get_payload_environment_variables(cmd, job_id, task_id, attempt_nr, processi
     # Unset ATHENA_PROC_NUMBER if set for event service Merge jobs
     if "Merge_tf" in cmd and 'ATHENA_PROC_NUMBER' in os.environ:
         variables.append('unset ATHENA_PROC_NUMBER;')
+        variables.append('unset ATHENA_CORE_NUMBER;')
 
     if analysis_job:
         variables.append('export ROOT_TTREECACHE_SIZE=1;')
