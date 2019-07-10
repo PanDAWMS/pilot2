@@ -51,12 +51,16 @@ def copy_in(files, **kwargs):
     ignore_errors = kwargs.get('ignore_errors')
     trace_report = kwargs.get('trace_report')
 
+    # reference to a list where rucio trace candidates are appended
+    traces_rucio = []
+
     # don't spoil the output, we depend on stderr parsing
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
     localsite = os.environ.get('DQ2_LOCAL_SITE_ID', None)
     for fspec in files:
         logger.info('rucio copytool, downloading file with scope:%s lfn:%s' % (str(fspec.scope), str(fspec.lfn)))
+
         # update the trace report
         localsite = localsite if localsite else fspec.ddmendpoint
         trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
@@ -76,35 +80,42 @@ def copy_in(files, **kwargs):
         dst = fspec.workdir or kwargs.get('workdir') or '.'
         logger.info('the file will be stored in %s' % str(dst))
 
+        # process the stage in
         error_msg = None
         rucio_state = None
         try:
-            rucio_state = _stage_in_api(dst, fspec, trace_report)
+            rucio_state = _stage_in_api(dst, fspec, trace_report, traces_rucio)
         except Exception as error:
             error_msg = str(error)
 
+        # treatment of error states
         if error_msg:
             logger.info('stderr = %s' % error_msg)
         else:
             logger.info('rucio client state: %s' % str(rucio_state))
 
-        if error_msg:  ## error occurred
+        if error_msg:
             error = resolve_common_transfer_errors(error_msg, is_stagein=True)
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
             trace_report.update(clientState=rucio_state or 'STAGEIN_ATTEMPT_FAILED',
                                 stateReason=error_msg, timeEnd=time())
             if not ignore_errors:
+                if traces_rucio:
+                    _merge_traces([trace_report], traces_rucio)
                 trace_report.send()
                 raise PilotException(error_msg, code=error.get('rcode'), state='FAILED')
 
         # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
+        # terminating with sending the trace
         destination = os.path.join(dst, fspec.lfn)
         if os.path.exists(destination):
             state, diagnostics = verify_catalog_checksum(fspec, destination)
             if diagnostics != "" and not ignore_errors:
                 trace_report.update(clientState=state or 'STAGEIN_ATTEMPT_FAILED', stateReason=diagnostics,
                                     timeEnd=time())
+                if traces_rucio:
+                    _merge_traces([trace_report], traces_rucio)
                 trace_report.send()
                 raise PilotException(diagnostics, code=fspec.status_code, state=state)
         else:
@@ -114,6 +125,9 @@ def copy_in(files, **kwargs):
             fspec.status_code = 0
             fspec.status = 'transferred'
             trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
+
+        if traces_rucio:
+            _merge_traces([trace_report], traces_rucio)
 
         trace_report.send()
 
@@ -212,8 +226,17 @@ def copy_out(files, **kwargs):
     return files
 
 
-# stageIn using rucio api.
-def _stage_in_api(dst, fspec, trace_report):
+def _stage_in_api(dst, fspec, trace_report, traces_rucio):
+    """
+    Calling the rucio downloadclient.
+
+    :param dst: destination path for the download.
+    :param fspec: FileSpec object. (Only one file for the moment.)
+    :param trace_report: trace introduced in pilot.
+    :param traces_rucio: reference to a list to which the rucio traces are attachd.
+
+    :return: client_state
+    """
 
     # init. download client
     from rucio.client.downloadclient import DownloadClient
@@ -224,29 +247,25 @@ def _stage_in_api(dst, fspec, trace_report):
         download_client.tracing = tracing_rucio
 
     # file specifications before the actual download
-    f = {}
-    f['did_scope'] = fspec.scope
-    f['did_name'] = fspec.lfn
+    f = {'did_scope': fspec.scope, 'did_name': fspec.lfn, 'rse': fspec.ddmendpoint, 'base_dir': dst, 'no_subdir': True}
     f['did'] = '%s:%s' % (fspec.scope, fspec.lfn)
-    f['rse'] = fspec.ddmendpoint
-    f['base_dir'] = dst
-    f['no_subdir'] = True
     if fspec.turl:
         f['pfn'] = fspec.turl
 
+    # getting transfer timeout
     if fspec.filesize:
         f['transfer_timeout'] = get_timeout(fspec.filesize)
 
-    # proceed with the download
+    # process the download
     logger.info('_stage_in_api file: %s' % str(f))
     trace_pattern = {}
     if trace_report:
         trace_pattern = trace_report
     result = []
     if fspec.turl:
-        result = download_client.download_pfns([f], 1, trace_custom_fields=trace_pattern)
+        result = download_client.download_pfns([f], 1, trace_custom_fields=trace_pattern, traces_copy_out=traces_rucio)
     else:
-        result = download_client.download_dids([f], trace_custom_fields=trace_pattern)
+        result = download_client.download_dids([f], trace_custom_fields=trace_pattern, traces_copy_out=traces_rucio)
 
     client_state = 'FAILED'
     if result:
@@ -256,6 +275,15 @@ def _stage_in_api(dst, fspec, trace_report):
 
 
 def _stage_out_api(fspec, summary_file_path, trace_report):
+    """
+    Calling the rucio uploadclient.
+
+    :param fspec: FileSpec object. (Only one file for the moment.)
+    :param summary_file_path: summary of the download.
+    :param trace_report: trace introduced in pilot.
+
+    :return: client_state
+    """
 
     # init. download client
     from rucio.client.uploadclient import UploadClient
@@ -268,24 +296,18 @@ def _stage_out_api(fspec, summary_file_path, trace_report):
         upload_client.trace = trace_report
 
     # file specifications before the upload
-    f = {}
+    f = {'rse': fspec.ddmendpoint, 'did_scope': fspec.scope, 'no_register': True}
     f['path'] = fspec.surl or getattr(fspec, 'pfn', None) or os.path.join(fspec.workdir, fspec.lfn)
-    f['rse'] = fspec.ddmendpoint
-    f['did_scope'] = fspec.scope
-    f['no_register'] = True
 
+    # getting transfer timeout
     if fspec.filesize:
         f['transfer_timeout'] = get_timeout(fspec.filesize)
 
-    # if fspec.storageId and int(fspec.storageId) > 0:
-    #     if fspec.turl and fspec.is_nondeterministic:
-    #         f['pfn'] = fspec.turl
-    # elif fspec.lfn and '.root' in fspec.lfn:
-    #     f['guid'] = fspec.guid
+    # guid needs to be set for root files
     if fspec.lfn and '.root' in fspec.lfn:
         f['guid'] = fspec.guid
 
-    # process with the upload
+    # process the upload
     logger.info('_stage_out_api: %s' % str(f))
     result = None
     try:
@@ -299,3 +321,26 @@ def _stage_out_api(fspec, summary_file_path, trace_report):
         client_state = 'DONE'
 
     return client_state
+
+
+def _merge_traces(pilot_traces, rucio_traces):
+    """
+    This method adds information filled in traces on Rucio side
+    with the traces that have been created by pilot.
+
+    :param pilot_traces: list of traces created by pilot
+    :param rucio_traces: list of traces created by downloadclient in Rucio
+    """
+
+    for p_trace in pilot_traces:
+        try:
+            r_traces = list(filter(lambda rt: rt['filename'] == p_trace['filename'] and rt['scope'] == p_trace['scope'], rucio_traces))
+            if r_traces:
+                if p_trace.merge(r_traces[-1]):
+                    logger.info('The trace updated for rucio info.: %s' % p_trace)
+            else:
+                logger.warning('Pilot and rucio traces do not match.')
+        except KeyError:
+            logger.warning('The pilot trace is missing scope or filename.')
+        except Exception as error:
+            logger.warning('Traces from pilot and rucio could not be merged: %s' % str(error))

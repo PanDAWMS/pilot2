@@ -33,7 +33,8 @@ class TraceReport(dict):
         defs = {
             'eventType': '',                # sitemover
             'eventVersion': event_version,  # Pilot+Rucio client version
-            'protocol': None,               # set by specific copy tool
+            'protocol': None,
+            'copytool': None,               # set by specific copy tool
             'clientState': 'INIT_REPORT',
             'localSite': '',                # localsite
             'remoteSite': '',               # equals remotesite
