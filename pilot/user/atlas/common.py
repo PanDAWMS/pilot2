@@ -1258,7 +1258,7 @@ def get_utility_command_setup(name, job, setup=None):
     """
 
     if name == 'MemoryMonitor':
-        setup = get_memory_monitor_setup(job.pid, job.workdir, job.command, use_container=job.usecontainer,
+        setup, pid = get_memory_monitor_setup(job.pid, job.workdir, job.command, use_container=job.usecontainer,
                                          transformation=job.transformation, outdata=job.outdata)
         _pattern = r"([\S]+)\ ."
         pattern = re.compile(_pattern)
@@ -1267,6 +1267,12 @@ def get_utility_command_setup(name, job, setup=None):
             job.memorymonitor = _name[0]
         else:
             logger.warning('trf name could not be identified in setup string')
+
+        # update the pgrp if the pid changed
+        if job.pid != pid and pid != --1:
+            logger.debug('updated pgrp=%d for pid=%d' % (job.pgrp, pid))
+            job.pgrp = os.getpgid(pid)
+
         return setup
     elif name == 'NetworkMonitor' and setup:
         return get_network_monitor_setup(setup, job)
