@@ -197,8 +197,10 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
         if job.is_eventservice:
             if job.corecount:
                 cmd += '; export ATHENA_PROC_NUMBER=%s' % job.corecount
+                cmd += '; export ATHENA_CORE_NUMBER=%s' % job.corecount
             else:
                 cmd += '; export ATHENA_PROC_NUMBER=1'
+                cmd += '; export ATHENA_CORE_NUMBER=1'
 
         # Add the transform and the job parameters (production jobs)
         if prepareasetup:
