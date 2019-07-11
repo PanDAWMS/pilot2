@@ -155,6 +155,28 @@ def verify_error_code(job):
         log.info('verified error code')
 
 
+def get_proper_state(job, state):
+    """
+    Return a proper job state to send to server.
+    This function should only return 'starting', 'running', 'finished', 'holding' or 'failed'.
+    If the internal job.serverstate is not yet set, it means it is the first server update, ie 'starting' should be
+    sent.
+
+    :param job: job object.
+    :param state: internal pilot state (string).
+    :return: valid server state (string).
+    """
+
+    if job.serverstate == "" and state != "finished" and state != "failed":
+        job.serverstate = 'starting'
+    elif state == "finished" or state == "failed" or state == "holding":
+        job.serverstate = state
+    else:
+        job.serverstate = 'running'
+
+    return job.serverstate
+
+
 def send_state(job, args, state, xml=None, metadata=None):
     """
     Update the server (send heartbeat message).
@@ -171,6 +193,8 @@ def send_state(job, args, state, xml=None, metadata=None):
     log = get_logger(job.jobid, logger)
 
     # _state = get_job_status(job, 'SERVER_UPDATE')
+
+    state = get_proper_state(job, state)
 
     # should the pilot make any server updates?
     if not args.update_server:
