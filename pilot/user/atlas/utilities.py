@@ -102,14 +102,14 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
     :param use_container: optional boolean.
     :param transformation: optional name of transformation, e.g. Sim_tf.py (string).
     :param outdata: optional list of output fspec objects (list).
-    :return: job work directory (string).
+    :return: job work directory (string), pid for process inside container (int).
     """
 
     # try to get the pid from a pid.txt file which might be created by a container_script
     pid = get_proper_pid(pid, command, transformation, outdata, use_container=use_container)
     if pid == -1:
         logger.warning('process id was not identified before payload finished - will not launch memory monitor')
-        return ""
+        return "", pid
 
     release = "22.0.1"
     platform = "x86_64-centos7-gcc8-opt"
@@ -132,7 +132,7 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
               (pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
     _cmd = "cd " + workdir + ";" + setup + _cmd + options
 
-    return _cmd
+    return _cmd, pid
 
 
 def get_proper_pid(pid, command, transformation, outdata, use_container=True):

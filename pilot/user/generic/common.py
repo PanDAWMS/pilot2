@@ -15,6 +15,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def validate(job):
+    """
+    Perform user specific payload/job validation.
+
+    :param job: job object.
+    :return: Boolean (True if validation is successful).
+    """
+
+    return True
+
+
 def get_payload_command(job):
     """
     Return the full command for execuring the payload, including the sourcing of all setup files and setting of
