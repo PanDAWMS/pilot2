@@ -1261,7 +1261,7 @@ def get_utility_command_setup(name, job, setup=None):
 
     if name == 'MemoryMonitor':
         setup, pid = get_memory_monitor_setup(job.pid, job.workdir, job.command, use_container=job.usecontainer,
-                                         transformation=job.transformation, outdata=job.outdata)
+                                              transformation=job.transformation, outdata=job.outdata)
         _pattern = r"([\S]+)\ ."
         pattern = re.compile(_pattern)
         _name = re.findall(pattern, setup.split(';')[-1])
