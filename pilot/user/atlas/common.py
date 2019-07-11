@@ -15,6 +15,7 @@ from collections import defaultdict
 from glob import glob
 from signal import SIGTERM, SIGUSR1
 
+from .dbrelease import get_dbrelease_version, create_dbrelease
 from .setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
     set_inds, get_analysis_trf, get_payload_environment_variables, replace_lfns_with_turls
 from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
@@ -34,6 +35,31 @@ import logging
 logger = logging.getLogger(__name__)
 
 errors = ErrorCodes()
+
+
+def validate(job):
+    """
+    Perform user specific payload/job validation.
+    This function will produce a local DBRelease file if necessary (old releases).
+
+    :param job: job object.
+    :return: Boolean (True if validation is successful).
+    """
+
+    log = get_logger(job.jobid)
+    status = True
+
+    if 'DBRelease' in job.jobparams:
+        log.debug('encountered DBRelease info in job parameters - will attempt to create a local DBRelease file')
+        version = get_dbrelease_version(job.jobparams)
+        if version:
+            status = create_dbrelease(version, job.workdir)
+
+    # assign error in case of DBRelease handling failure
+    if not status:
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.DBRELEASEFAILURE)
+
+    return status
 
 
 def get_payload_command(job):
@@ -171,8 +197,10 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
         if job.is_eventservice:
             if job.corecount:
                 cmd += '; export ATHENA_PROC_NUMBER=%s' % job.corecount
+                cmd += '; export ATHENA_CORE_NUMBER=%s' % job.corecount
             else:
                 cmd += '; export ATHENA_PROC_NUMBER=1'
+                cmd += '; export ATHENA_CORE_NUMBER=1'
 
         # Add the transform and the job parameters (production jobs)
         if prepareasetup:
@@ -1232,8 +1260,8 @@ def get_utility_command_setup(name, job, setup=None):
     """
 
     if name == 'MemoryMonitor':
-        setup = get_memory_monitor_setup(job.pid, job.workdir, job.command, use_container=job.usecontainer,
-                                         transformation=job.transformation, outdata=job.outdata)
+        setup, pid = get_memory_monitor_setup(job.pid, job.workdir, job.command, use_container=job.usecontainer,
+                                              transformation=job.transformation, outdata=job.outdata)
         _pattern = r"([\S]+)\ ."
         pattern = re.compile(_pattern)
         _name = re.findall(pattern, setup.split(';')[-1])
@@ -1241,6 +1269,12 @@ def get_utility_command_setup(name, job, setup=None):
             job.memorymonitor = _name[0]
         else:
             logger.warning('trf name could not be identified in setup string')
+
+        # update the pgrp if the pid changed
+        if job.pid != pid and pid != --1:
+            logger.debug('updated pgrp=%d for pid=%d' % (job.pgrp, pid))
+            job.pgrp = os.getpgid(pid)
+
         return setup
     elif name == 'NetworkMonitor' and setup:
         return get_network_monitor_setup(setup, job)

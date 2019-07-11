@@ -123,6 +123,11 @@ def _stage_in(args, job):
     # write time stamps to pilot timing file
     add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN, time.time(), args)
 
+    # any DBRelease files should not be staged in
+    for fspec in job.indata:
+        if 'DBRelease' in fspec.lfn:
+            fspec.status = 'no_transfer'
+
     event_type = "get_sm"
     #if log_transfer:
     #    eventType += '_logs'
@@ -134,6 +139,15 @@ def _stage_in(args, job):
     localsite = remotesite = rse
     trace_report = TraceReport(pq='', localSite=localsite, remoteSite=remotesite, dataset="", eventType=event_type)
     trace_report.init(job)
+
+    # now that the trace report has been created, remove any files that are not to be transferred (DBRelease files) from the indata list
+    toberemoved = []
+    for fspec in job.indata:
+        if fspec.status == 'no_transfer':
+            toberemoved.append(fspec)
+    for fspec in toberemoved:
+        logger.info('removing fspec object (lfn=%s) from list of input files' % fspec.lfn)
+        job.indata.remove(fspec)
 
     try:
         if job.is_eventservicemerge:

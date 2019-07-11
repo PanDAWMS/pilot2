@@ -113,17 +113,27 @@ def validate_pre(queues, traces, args):
 def _validate_payload(job):
     """
     Perform validation tests for the payload.
-    Currently, only some job info is dumped to the log.
 
     :param job: job object.
     :return: boolean.
     """
 
+    status = True
+
     log = get_logger(job.jobid, logger)
     log.debug('PandaID = %s' % os.environ.get('PandaID', 'unknown'))
     log.debug('PanDA_TaskID = %s' % os.environ.get('PanDA_TaskID', 'unknown'))
 
-    return True
+    # perform user specific validation
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+    try:
+        status = user.validate(job)
+    except Exception as e:
+        log.fatal('failed to execute user validate() function: %s' % e)
+        status = False
+
+    return status
 
 
 def get_payload_executor(args, job, out, err, traces):

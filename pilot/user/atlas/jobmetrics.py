@@ -44,6 +44,10 @@ def get_job_metrics(job):
     if corecount is not None and corecount != "NULL" and corecount != 'null':
         job_metrics += get_job_metrics_entry("coreCount", corecount)
 
+    # report number of actual used cores
+    if job.actualcorecount:
+        job_metrics += get_job_metrics_entry("actualCoreCount", job.actualcorecount)
+
     # report number of events
     if job.nevents > 0:
         job_metrics += get_job_metrics_entry("nEvents", job.nevents)

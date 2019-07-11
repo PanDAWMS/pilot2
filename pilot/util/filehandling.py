@@ -42,19 +42,43 @@ def get_pilot_work_dir(workdir):
     return os.path.join(workdir, jobworkdir)
 
 
-def create_pilot_work_dir(workdir):
+def mkdirs(workdir, chmod=0770):
     """
-    Create the main PanDA Pilot work directory.
+    Create a directory.
+    Perform a chmod if set.
+
     :param workdir: Full path to the directory to be created
+    :param chmod: chmod code (default 0770) (octal).
     :raises PilotException: MKDirFailure.
     :return:
     """
 
     try:
         os.makedirs(workdir)
-        os.chmod(workdir, 0770)
+        if chmod:
+            os.chmod(workdir, chmod)
     except Exception as e:
         raise MKDirFailure(e)
+
+
+def rmdirs(path):
+    """
+    Remove directory in path.
+
+    :param path: path to directory to be removed (string).
+    :return: Boolean (True if success).
+    """
+
+    status = False
+
+    try:
+        rmtree(path)
+    except OSError as e:
+        logger.warning("failed to remove directories %s: %s" % (path, e))
+    else:
+        status = True
+
+    return status
 
 
 def read_file(filename):
