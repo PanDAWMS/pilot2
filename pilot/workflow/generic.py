@@ -149,7 +149,7 @@ def run(args):
                 if thread.isDaemon():  # ignore any daemon threads, they will be aborted when python ends
                     daemon_threads += 1
             if thread_count - daemon_threads == 1:
-                logger.debug('aborting since there is[are] %d daemon thread[s]' % daemon_threads)
+                logger.debug('aborting since there is[are] %d daemon thread[s] which can be ignored' % daemon_threads)
                 abort = True
 
         if abort:
