@@ -57,7 +57,7 @@ class TraceReport(dict):
             'suspicious': '0',
             'usrdn': '',
             'url': None,
-            'stateReason': None,
+            'stateReason': '',
             'uuid': None,
             'taskid': ''
         }

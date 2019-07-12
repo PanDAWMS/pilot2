@@ -66,6 +66,7 @@ def copy_in(files, **kwargs):
         trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
         trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
         trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
+        trace_report.update(copytool='rucio')  # hack, should be in api.data
 
         # continue loop for files that are to be accessed directly
         if fspec.is_directaccess(ensure_replica=False) and allow_direct_access and fspec.accessmode == 'direct':
