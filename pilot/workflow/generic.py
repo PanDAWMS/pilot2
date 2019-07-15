@@ -143,12 +143,15 @@ def run(args):
             thread_count = threading.activeCount()
             logger.debug('thread count now at %d threads' % thread_count)
             logger.debug('enumerate: %s' % str(threading.enumerate()))
-            if thread_count == 2:
-                for thread in threading.enumerate():
-                    if thread.isDaemon():  # ignore any daemon threads, they will be aborted when python ends
-                        logger.debug('encountered daemon thread, stopping loop now')
-                        abort = True
-                        break
+            # count all non-daemon threads
+            daemon_threads = 0
+            for thread in threading.enumerate():
+                if thread.isDaemon():  # ignore any daemon threads, they will be aborted when python ends
+                    daemon_threads += 1
+            if thread_count - daemon_threads == 1:
+                logger.debug('aborting since there is[are] %d daemon thread[s] which can be ignored' % daemon_threads)
+                abort = True
+
         if abort:
             break
 
