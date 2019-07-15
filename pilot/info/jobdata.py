@@ -77,7 +77,8 @@ class JobData(BaseData):
     exeerrordiag = ""              #
     exitcode = 0                   #
     exitmsg = ""                   #
-    state = ""                     # internal pilot state; running, failed, finished, holding
+    state = ""                     # internal pilot states; running, failed, finished, holding, stagein, stageout
+    serverstate = ""               # server job states; starting, running, finished, holding, failed
     stageout = ""                  # stage-out identifier, e.g. log
     metadata = {}                  # payload metadata (job report)
     cpuconsumptionunit = ""        #
@@ -137,7 +138,7 @@ class JobData(BaseData):
     _keys = {int: ['corecount', 'piloterrorcode', 'transexitcode', 'exitcode', 'cpuconversionfactor', 'exeerrorcode',
                    'attemptnr', 'nevents', 'neventsw', 'pid', 'cpuconsumptiontime', 'maxcpucount', 'actualcorecount'],
              str: ['jobid', 'taskid', 'jobparams', 'transformation', 'destinationdblock', 'exeerrordiag'
-                   'state', 'workdir', 'stageout',
+                   'state', 'serverstate', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg', 'produserid', 'jobdefinitionid', 'writetofile',
                    'cpuconsumptionunit', 'homepackage', 'jobsetid', 'payload', 'processingtype',
                    'swrelease', 'zipmap', 'imagename', 'accessmode', 'transfertype',
