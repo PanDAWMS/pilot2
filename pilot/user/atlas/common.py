@@ -1260,7 +1260,7 @@ def get_utility_command_setup(name, job, setup=None):
     """
 
     if name == 'MemoryMonitor':
-        setup, pid = get_memory_monitor_setup(job.pid, job.workdir, job.command, use_container=job.usecontainer,
+        setup, pid = get_memory_monitor_setup(job.pid, job.pgrp, job.workdir, job.command, use_container=job.usecontainer,
                                               transformation=job.transformation, outdata=job.outdata)
         _pattern = r"([\S]+)\ ."
         pattern = re.compile(_pattern)
@@ -1272,9 +1272,11 @@ def get_utility_command_setup(name, job, setup=None):
 
         # update the pgrp if the pid changed
         if job.pid != pid and pid != --1:
-            logger.debug('updated pgrp=%d for pid=%d' % (job.pgrp, pid))
-            job.pgrp = os.getpgid(pid)
-
+            logger.debug('updating pgrp=%d for pid=%d' % (job.pgrp, pid))
+            try:
+                job.pgrp = os.getpgid(pid)
+            except Exception as e:
+                logger.warning('os.getpgid(%d) failed with: %s' % (pid, e))
         return setup
     elif name == 'NetworkMonitor' and setup:
         return get_network_monitor_setup(setup, job)
