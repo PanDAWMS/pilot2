@@ -88,7 +88,7 @@ def get_memory_monitor_output_filename():
     return "memory_monitor_output.txt"
 
 
-def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True, transformation="", outdata=None):
+def get_memory_monitor_setup(pid, pgrp, jobid, workdir, command, setup="", use_container=True, transformation="", outdata=None):
     """
     Return the proper setup for the memory monitor.
     If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the
@@ -96,6 +96,8 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
     to use a fixed version for the setup. Currently, release 21.0.22 is used.
 
     :param pid: job process id (int).
+    :param pgrp: process group id (int).
+    :param jobid: job id (int).
     :param workdir: job work directory (string).
     :param command: payload command (string).
     :param setup: optional setup in case asetup can not be used, which uses infosys (string).
@@ -106,7 +108,7 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
     """
 
     # try to get the pid from a pid.txt file which might be created by a container_script
-    pid = get_proper_pid(pid, command, transformation, outdata, use_container=use_container)
+    pid = get_proper_pid(pid, pgrp, jobid, command, transformation, outdata, use_container=use_container)
     if pid == -1:
         logger.warning('process id was not identified before payload finished - will not launch memory monitor')
         return "", pid
@@ -135,7 +137,7 @@ def get_memory_monitor_setup(pid, workdir, command, setup="", use_container=True
     return _cmd, pid
 
 
-def get_proper_pid(pid, command, transformation, outdata, use_container=True):
+def get_proper_pid(pid, pgrp, jobid, command, transformation, outdata, use_container=True):
     """
     Return a pid from the proper source to be used with the memory monitor.
     The given pid comes from Popen(), but in the case containers are used, the pid should instead come from a ps aux
@@ -145,6 +147,8 @@ def get_proper_pid(pid, command, transformation, outdata, use_container=True):
     launch the memory monitor as it is not needed any longer.
 
     :param pid: process id (int).
+    :param pgrp: process group id (int).
+    :param jobid: job id (int).
     :param command: payload command (string).
     :param transformation: optional name of transformation, e.g. Sim_tf.py (string).
     :param outdata: list of output fspec object (list).
@@ -155,7 +159,20 @@ def get_proper_pid(pid, command, transformation, outdata, use_container=True):
     if not use_container:
         return pid
 
-    _cmd = get_trf_command(command, transformation=transformation)
+    # abort if main process has finished already
+    if not is_process_running(pid):
+        return -1
+
+    #_cmd = get_trf_command(command, transformation=transformation)
+    # get ps info using group id
+    #ps = get_ps_info(pgrp)
+    #logger.debug('ps:\n%s' % ps)
+    #logger.debug('attempting to identify pid for Singularity (v.3) runtime parent process')
+    #_pid = get_pid_for_command(ps, command="Singularity runtime parent")
+    #if _pid:
+    #    logger.debug('discovered pid=%d for process \"%s\"' % (_pid, _cmd))
+    #    return _pid
+
     i = 0
     imax = 120
     while i < imax:
@@ -163,32 +180,28 @@ def get_proper_pid(pid, command, transformation, outdata, use_container=True):
         if not is_process_running(pid):
             return -1
 
-        ps = get_ps_info()
+        ps = get_ps_info(pgrp)
         logger.debug('ps:\n%s' % ps)
 
         # lookup the process id using ps aux
-        logger.debug('attempting to identify pid from transform name and its output')
-        _pid = get_pid_for_trf(ps, transformation, outdata) if outdata else None
+        logger.debug('attempting to identify pid from job id')
+        _pid = get_pid_for_jobid(ps, jobid)
         if _pid:
-            logger.debug('discovered pid=%d for transform name \"%s\"' % (_pid, transformation))
+            logger.debug('discovered pid=%d for job id %s' % (_pid, jobid))
             break
-        else:
-            logger.debug('attempting to identify pid for Singularity runtime parent process')
-            _pid = get_pid_for_command(ps, command="Singularity runtime parent")
-            if _pid:
-                logger.debug('discovered pid=%d for process \"%s\"' % (_pid, _cmd))
-                break
-            else:
-                logger.warning('payload pid has not yet been identified (#%d/#%d)' % (i + 1, imax))
+
+        #logger.debug('attempting to identify pid from transform name and its output')
+        #_pid = get_pid_for_trf(ps, transformation, outdata) if outdata else None
+        #if _pid:
+        #    logger.debug('discovered pid=%d for transform name \"%s\"' % (_pid, transformation))
+        #    break
+
+        logger.warning('payload pid has not yet been identified (#%d/#%d)' % (i + 1, imax))
 
         # wait until the payload has launched
         time.sleep(5)
         i += 1
 
-    if not _pid:
-        ps = get_ps_info()
-        logger.debug('ps:\n%s' % ps)
-        _pid = get_pid_for_command(ps)  # default: python pilot2/pilot.py
     if _pid:
         pid = _pid
 
@@ -197,18 +210,47 @@ def get_proper_pid(pid, command, transformation, outdata, use_container=True):
     return pid
 
 
-def get_ps_info(whoami=getuser(), options='axfo pid,user,rss,pcpu,args'):
+def get_ps_info(pgrp, whoami=getuser(), options='axfo pid,user,args'):
     """
     Return ps info for the given user.
 
+    :param pgrp: process group id (int).
     :param whoami: user name (string).
     :return: ps aux for given user (string).
     """
 
     cmd = "ps %s | grep %s" % (options, whoami)
+    #cmd = "ps %s | grep %s | awk -v p=%s '$1 == p {print $5}" % (options, whoami, pgrp)
+    #cmd = "ps %s | awk -v p=%s '$1 == p {print $5}" % (options, pgrp)
     exit_code, stdout, stderr = execute(cmd)
 
     return stdout
+
+
+def get_pid_for_jobid(ps, jobid):
+    """
+    Return the process id for the ps entry that contains the job id.
+
+    :param ps: ps command output (string).
+    :param jobid: PanDA job id (int).
+    :return: pid (int) or None if no such process.
+    """
+
+    pid = None
+
+    for line in ps.split('\n'):
+        if jobid in line:
+            # extract pid
+            _pid = search(r'(\d+) ', line)
+            try:
+                pid = int(_pid.group(1))
+            except Exception as e:
+                logger.warning('pid has wrong type: %s' % e)
+            else:
+                logger.debug('extracted pid=%d from ps output' % pid)
+            break
+
+    return pid
 
 
 def get_pid_for_trf(ps, transformation, outdata):
@@ -223,7 +265,6 @@ def get_pid_for_trf(ps, transformation, outdata):
     """
 
     pid = None
-    found = None
     candidates = []
 
     # in the case of user analysis job, the transformation will contain a URL which should be stripped
@@ -246,7 +287,7 @@ def get_pid_for_trf(ps, transformation, outdata):
                     except Exception as e:
                         logger.warning('pid has wrong type: %s' % e)
                     else:
-                        logger.debug('extracted pid=%d from ps output: %s' % (pid, found))
+                        logger.debug('extracted pid=%d from ps output' % pid)
                     break
             if pid:
                 break
