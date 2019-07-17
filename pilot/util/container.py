@@ -8,7 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch
 
 import subprocess
-from os import environ, getcwd, setpgrp  #setsid
+from os import environ, getcwd, setpgrp  #, getpgid  #setsid
 
 import logging
 logger = logging.getLogger(__name__)
