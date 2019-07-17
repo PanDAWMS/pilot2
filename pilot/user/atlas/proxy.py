@@ -43,7 +43,11 @@ def verify_proxy(limit=None):
     else:
         envsetup = ''
     #envsetup += ". %s;" % (arcproxy_setup)
-    envsetup += ". %s/atlas.cern.ch/repo/ATLASLocalRootBase/user/atlasLocalSetup.sh;lsetup emi;" % get_file_system_root_path()
+    envsetup += ". %s/atlas.cern.ch/repo/ATLASLocalRootBase/user/atlasLocalSetup.sh;" % get_file_system_root_path()
+    if os.environ.get('ALRB_noGridMW', '').lower()<>"yes":
+        envsetup += "lsetup emi;"
+    else:
+        logger.warning('Skipping "lsetup emi" as ALRB_noGridMW=YES')
 
     # first try to use arcproxy since voms-proxy-info is not working properly on SL6
     #  (memory issues on queues with limited memory)
