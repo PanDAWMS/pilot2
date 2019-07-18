@@ -303,31 +303,28 @@ def read_json(filename):
     return dictionary
 
 
-def write_json(filename, dictionary):
+def write_json(filename, data, sort_keys=True, indent=4, separators=(',', ': ')):
     """
     Write the dictionary to a JSON file.
 
-    :param filename:
-    :param dictionary:
-    :raises PilotException: FileHandlingFailure
-    :return: status (boolean)
+    :param filename: file name (string).
+    :param data: object to be written to file (dictionary or list).
+    :param sort_keys: should entries be sorted? (boolean).
+    :param indent: indentation level, default 4 (int).
+    :param separators: field separators (default (',', ': ') for dictionaries, use e.g. (',\n') for lists) (tuple)
+    :raises PilotException: FileHandlingFailure.
+    :return: status (boolean).
     """
 
     status = False
 
     try:
-        fp = open(filename, "w")
+        with open(filename, 'w') as fh:
+            dumpjson(data, fh, sort_keys=sort_keys, indent=indent, separators=separators)
     except IOError as e:
         raise FileHandlingFailure(e)
     else:
-        # Write the dictionary
-        try:
-            dumpjson(dictionary, fp, sort_keys=True, indent=4, separators=(',', ': '))
-        except PilotException as e:
-            raise FileHandlingFailure(e.get_detail())
-        else:
-            status = True
-        fp.close()
+        status = True
 
     return status
 
