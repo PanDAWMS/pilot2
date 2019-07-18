@@ -7,13 +7,13 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
-from os import environ
-from os.path import join, exists
+from os import environ, walk
+from os.path import join, exists, dirname, basename
 from socket import gethostname
 
 from pilot.common.exception import FileHandlingFailure
 from pilot.util.config import config
-from pilot.util.filehandling import write_json, touch, remove, read_json
+from pilot.util.filehandling import write_json, touch, remove, read_json, get_checksum_value
 from pilot.util.timing import time_stamp
 
 import logging
@@ -117,6 +117,125 @@ def get_initial_work_report():
     return work_report
 
 
+def get_event_status_file(args):
+    """
+    Return the name of the event_status.dump file as defined in the pilot config file
+    and from the pilot arguments.
+
+    :param args: Pilot arguments object.
+    :return: event staus file name.
+    """
+    if args.harvester_workdir != '':
+        work_dir = args.harvester_workdir
+    else:
+        work_dir = environ['PILOT_HOME']
+    event_status_file = config.Harvester.StageOutnFile
+    event_status_file = join(work_dir, event_status_file)
+    logger.debug('event_status_file = {}'.format(event_status_file))
+
+    return event_status_file
+
+
+def get_worker_attributes_file(args):
+    """
+    Return the name of the worker attributes file as defined in the pilot config file
+    and from the pilot arguments.
+
+    :param args: Pilot arguments object.
+    :return: worker attributes file name.
+    """
+    if args.harvester_workdir != '':
+        work_dir = args.harvester_workdir
+    else:
+        work_dir = environ['PILOT_HOME']
+    worker_attributes_file = config.Harvester.workerAttributesFile
+    worker_attributes_file = join(work_dir, worker_attributes_file)
+    logger.debug('worker_attributes_file = {}'.format(worker_attributes_file))
+
+    return worker_attributes_file
+
+
+def findfile(path, name):
+    """
+    find the first instance of file in the directory tree
+
+    :param path: directory tree to search
+    :param name: name of the file to search
+
+    :return: the path to the first instance of the file
+    """
+
+    for root, dirs, files in walk(path):
+        if name in files:
+            return join(root, name)
+    return ''
+
+
+def publish_stageout_files(job, event_status_file):
+    """
+    Publishing of work report to file.
+    The work report dictionary should contain the fields defined in get_initial_work_report().
+
+    :param args: Pilot arguments object.
+    :param job: job object.
+    :param event status file name:
+
+    :return: Boolean. status of writing the file information to a json
+    """
+
+    # get the harvester workdir from the event_status_file
+    work_dir = dirname(event_status_file)
+
+    out_file_report = {}
+    out_file_report[job.jobid] = []
+
+    # first look at the logfile information (logdata) from the FileSpec objects
+    for fspec in job.logdata:
+        logger.debug("File {} will be checked and declared for stage out".format(fspec.lfn))
+        # find the first instance of the file
+        filename = basename(fspec.surl)
+        path = findfile(work_dir, filename)
+        logger.debug("Found File {} at path - {}".format(fspec.lfn, path))
+        #
+        file_desc = {}
+        file_desc['type'] = fspec.filetype
+        file_desc['path'] = path
+        file_desc['guid'] = fspec.guid
+        file_desc['fsize'] = fspec.filesize
+        file_desc['chksum'] = get_checksum_value(fspec.checksum)
+        logger.debug("File description - {} ".format(file_desc))
+        out_file_report[job.jobid].append(file_desc)
+
+    # Now look at the output file(s) information (outdata) from the FileSpec objects
+    for fspec in job.outdata:
+        logger.debug("File {} will be checked and declared for stage out".format(fspec.lfn))
+        # find the first instance of the file
+        filename = basename(fspec.surl)
+        path = findfile(work_dir, filename)
+        logger.debug("Found File {} at path - {}".format(fspec.lfn, path))
+        #
+        file_desc = {}
+        file_desc['type'] = fspec.filetype
+        file_desc['path'] = path
+        file_desc['guid'] = fspec.guid
+        file_desc['fsize'] = fspec.filesize
+        file_desc['chksum'] = get_checksum_value(fspec.checksum)
+        logger.debug("File description - {} ".format(file_desc))
+        out_file_report[job.jobid].append(file_desc)
+
+    if out_file_report[job.jobid]:
+        if write_json(event_status_file, out_file_report):
+            logger.debug('Stagout declared in: {0}'.format(event_status_file))
+            logger.debug('Report for stageout: {}'.format(out_file_report))
+            return True
+        else:
+            logger.debug('Failed to declare stagout in: {0}'.format(event_status_file))
+            return False
+    else:
+            logger.debug('No Report for stageout')
+            return False
+
+
 def publish_work_report(work_report=None, worker_attributes_file="worker_attributes.json"):
     """
     Publishing of work report to file.
@@ -133,6 +252,8 @@ def publish_work_report(work_report=None, worker_attributes_file="worker_attribu
             del(work_report["outputfiles"])
         if "inputfiles" in work_report:
             del (work_report["inputfiles"])
+        if "xml" in work_report:
+            del (work_report["xml"])
         if write_json(worker_attributes_file, work_report):
             logger.info("work report published: {0}".format(work_report))
 
