@@ -273,6 +273,26 @@ def is_json(input_file):
         return False
 
 
+def read_list(filename):
+    """
+    Read a list from a JSON file.
+
+    :param filename: file name (string).
+    :return: list.
+    """
+
+    _list = []
+
+    # open output file for reading
+    try:
+        with open(filename, 'r') as filehandle:
+            _list = load(filehandle)
+    except IOError as e:
+        logger.warning('failed to read %s: %s' % (filename, e))
+
+    return _list
+
+
 def read_json(filename):
     """
     Read a dictionary with unicode to utf-8 conversion
