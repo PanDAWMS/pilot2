@@ -44,7 +44,7 @@ def verify_proxy(limit=None):
         envsetup = ''
     #envsetup += ". %s;" % (arcproxy_setup)
     envsetup += ". %s/atlas.cern.ch/repo/ATLASLocalRootBase/user/atlasLocalSetup.sh;" % get_file_system_root_path()
-    if os.environ.get('ALRB_noGridMW', '').lower()!="yes":
+    if os.environ.get('ALRB_noGridMW', '').lower() != "yes":
         envsetup += "lsetup emi;"
     else:
         logger.warning('Skipping "lsetup emi" as ALRB_noGridMW=YES')
