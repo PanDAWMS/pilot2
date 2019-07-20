@@ -20,7 +20,7 @@ from json import dump as dumpjson
 from shutil import copy2, rmtree
 from zlib import adler32
 
-from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile, \
+from pilot.common.exception import ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile, \
     NotImplemented
 from .auxiliary import get_logger
 from .container import execute
@@ -290,7 +290,7 @@ def read_list(filename):
     except IOError as e:
         logger.warning('failed to read %s: %s' % (filename, e))
 
-    return _list
+    return convert(_list)
 
 
 def read_json(filename):
