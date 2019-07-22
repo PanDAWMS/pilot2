@@ -409,6 +409,7 @@ def copytool_in(queues, traces, args):
                     user = __import__('pilot.user.%s.metadata' % pilot_user, globals(), locals(), [pilot_user], -1)
                     _dir = '/srv' if job.usecontainer else job.workdir
                     file_dictionary = get_input_file_dictionary(job.indata, _dir)
+                    #file_dictionary = get_input_file_dictionary(job.indata, job.workdir)
                     log.debug('file_dictionary=%s' % str(file_dictionary))
                     xml = user.create_input_file_metadata(file_dictionary, job.workdir)
                     log.info('created input file metadata:\n%s' % xml)
