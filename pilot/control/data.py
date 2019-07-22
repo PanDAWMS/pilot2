@@ -407,7 +407,8 @@ def copytool_in(queues, traces, args):
                 try:
                     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
                     user = __import__('pilot.user.%s.metadata' % pilot_user, globals(), locals(), [pilot_user], -1)
-                    file_dictionary = get_input_file_dictionary(job.indata, job.workdir)
+                    _dir = '/srv' if job.usecontainer else job.workdir
+                    file_dictionary = get_input_file_dictionary(job.indata, _dir)
                     log.debug('file_dictionary=%s' % str(file_dictionary))
                     xml = user.create_input_file_metadata(file_dictionary, job.workdir)
                     log.info('created input file metadata:\n%s' % xml)
