@@ -34,7 +34,7 @@ from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
-from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json, remove_dir_tree
+from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file, \
     is_harvester_mode, get_worker_attributes_file, publish_work_report, get_event_status_file, \
     publish_stageout_files
@@ -1417,10 +1417,6 @@ def has_job_completed(queues):
         # cleanup of any remaining processes
         job.zombies.append(job.pid)
         cleanup(job)
-
-        # make sure the workdir is deleted
-        if remove_dir_tree(job.workdir):
-            logger.info('removed %s' % job.workdir)
 
         return True
 

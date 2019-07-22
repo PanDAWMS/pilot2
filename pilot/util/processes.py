@@ -552,6 +552,10 @@ def cleanup(job):
 
     logger.info("overall cleanup function is called")
 
+    # make sure the workdir is deleted
+    if remove_dir_tree(job.workdir):
+        logger.info('removed %s' % job.workdir)
+
     # collect any zombie processes
     job.collect_zombies(tn=10)
     logger.info("collected zombie processes")
