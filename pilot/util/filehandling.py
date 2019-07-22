@@ -18,10 +18,13 @@ import uuid
 from json import load
 from json import dump as dumpjson
 from shutil import copy2, rmtree
+import sys
 from zlib import adler32
 
 from pilot.common.exception import ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile, \
     NotImplemented
+from pilot.util.config import config
+from pilot.util.mpi import get_ranks_info
 from .auxiliary import get_logger
 from .container import execute
 from .math import diff_lists
@@ -885,3 +888,31 @@ def dump(path, cmd="cat"):
         logger.info("%s:\n%s" % (_cmd, stdout + stderr))
     else:
         logger.info("path %s does not exist" % path)
+
+
+def establish_logging(args):
+    """
+    Setup and establish logging.
+
+    :param args: pilot arguments object.
+    :return:
+    """
+
+    console = logging.StreamHandler(sys.stdout)
+    if args.debug:
+        format_str = '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'
+        level = logging.DEBUG
+    else:
+        format_str = '%(asctime)s | %(levelname)-8s | %(message)s'
+        level = logging.INFO
+    rank, maxrank = get_ranks_info()
+    if rank is not None:
+        format_str = 'Rank {0} |'.format(rank) + format_str
+    if args.nopilotlog:
+        logging.basicConfig(level=level, format=format_str, mode='w')
+    else:
+        logging.basicConfig(filename=config.Pilot.pilotlog, level=level, format=format_str, mode='w')
+    console.setLevel(level)
+    console.setFormatter(logging.Formatter(format_str))
+    logging.Formatter.converter = time.gmtime
+    logging.getLogger('').addHandler(console)

@@ -25,10 +25,9 @@ from pilot.util.auxiliary import shell_exit_code
 from pilot.util.config import config
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_START_TIME, PILOT_END_TIME, get_pilot_version, \
     SERVER_UPDATE_NOT_DONE
-from pilot.util.filehandling import get_pilot_work_dir, mkdirs
+from pilot.util.filehandling import get_pilot_work_dir, mkdirs, establish_logging
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
-from pilot.util.mpi import get_ranks_info
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.workernode import is_virtual_machine, display_architecture_info
 
@@ -432,34 +431,6 @@ def set_environment_variables(args, mainworkdir):
 
     # keep track of the server updates, if any
     environ['SERVER_UPDATE'] = SERVER_UPDATE_NOT_DONE
-
-
-def establish_logging(args):
-    """
-    Setup and establish logging.
-
-    :param args: pilot arguments object.
-    :return:
-    """
-
-    console = logging.StreamHandler(sys.stdout)
-    if args.debug:
-        format_str = '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'
-        level = logging.DEBUG
-    else:
-        format_str = '%(asctime)s | %(levelname)-8s | %(message)s'
-        level = logging.INFO
-    rank, maxrank = get_ranks_info()
-    if rank is not None:
-        format_str = 'Rank {0} |'.format(rank) + format_str
-    if args.nopilotlog:
-        logging.basicConfig(level=level, format=format_str)
-    else:
-        logging.basicConfig(filename=config.Pilot.pilotlog, level=level, format=format_str)
-    console.setLevel(level)
-    console.setFormatter(logging.Formatter(format_str))
-    logging.Formatter.converter = time.gmtime
-    logging.getLogger('').addHandler(console)
 
 
 def wrap_up(initdir, mainworkdir, args):
