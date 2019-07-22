@@ -556,6 +556,11 @@ def cleanup(job):
     if remove_dir_tree(job.workdir):
         logger.info('removed %s' % job.workdir)
 
+    if os.path.exists(job.workdir):
+        logger.warning('work directory still exists: %s' % job.workdir)
+    else:
+        logger.debug('work directory was removed: %s' % job.workdir)
+
     # collect any zombie processes
     job.collect_zombies(tn=10)
     logger.info("collected zombie processes")
