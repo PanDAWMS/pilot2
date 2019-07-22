@@ -909,9 +909,9 @@ def establish_logging(args):
     if rank is not None:
         format_str = 'Rank {0} |'.format(rank) + format_str
     if args.nopilotlog:
-        logging.basicConfig(level=level, format=format_str, mode='w')
+        logging.basicConfig(level=level, format=format_str, filemode='w')
     else:
-        logging.basicConfig(filename=config.Pilot.pilotlog, level=level, format=format_str, mode='w')
+        logging.basicConfig(filename=config.Pilot.pilotlog, level=level, format=format_str, filemode='w')
     console.setLevel(level)
     console.setFormatter(logging.Formatter(format_str))
     logging.Formatter.converter = time.gmtime
