@@ -1348,6 +1348,7 @@ def retrieve(queues, traces, args):
 
                         # re-establish logging
                         logging.info('pilot has finished for previous job - re-establishing logging')
+                        logging.handlers = []
                         logging.shutdown()
                         establish_logging(args)
 
