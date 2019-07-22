@@ -898,6 +898,10 @@ def establish_logging(args):
     :return:
     """
 
+    _logger = logging.getLogger('')
+    _logger.handlers = []
+    _logger.propagate = False
+
     console = logging.StreamHandler(sys.stdout)
     if args.debug:
         format_str = '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'
@@ -915,4 +919,5 @@ def establish_logging(args):
     console.setLevel(level)
     console.setFormatter(logging.Formatter(format_str))
     logging.Formatter.converter = time.gmtime
-    logging.getLogger('').addHandler(console)
+    #if not len(_logger.handlers):
+    _logger.addHandler(console)
