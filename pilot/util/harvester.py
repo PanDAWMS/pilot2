@@ -30,7 +30,7 @@ def is_harvester_mode(args):
     if (args.harvester_workdir != '' or args.harvester_datadir != '' or args.harvester_eventstatusdump != '' or
             args.harvester_workerattributes != '') and not args.update_server:
         harvester = True
-    elif 'HARVESTER_ID' in environ or 'HARVESTER_WORKER_ID' in environ:
+    elif ('HARVESTER_ID' in environ or 'HARVESTER_WORKER_ID' in environ) and args.harvester_submitmode.lower() == 'pull':
         harvester = True
     else:
         harvester = False
