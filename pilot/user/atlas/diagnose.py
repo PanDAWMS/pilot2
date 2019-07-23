@@ -16,7 +16,7 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import PilotException, BadXML
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
-from pilot.util.filehandling import get_guid, tail, grep, open_file, read_file, write_file, scan_file
+from pilot.util.filehandling import get_guid, tail, grep, open_file, read_file, scan_file  #, write_file
 from pilot.util.math import convert_mb_to_b
 from pilot.util.workernode import get_local_disk_space
 
@@ -731,19 +731,19 @@ def get_pilot_log_extracts(job):
             extracts += _tail
 
         # grep for fatal/critical errors in the pilot log
-        errormsgs = ["FATAL", "CRITICAL", "ERROR"]
-        matched_lines = grep(errormsgs, path)
-        _extracts = ""
-        if len(matched_lines) > 0:
-            log.debug("dumping warning messages from %s:\n" % os.path.basename(path))
-            for line in matched_lines:
-                _extracts += line + "\n"
-        if _extracts != "":
-            if config.Pilot.error_log != "":
-                path = os.path.join(job.workdir, config.Pilot.error_log)
-                write_file(path, _extracts)
-            extracts += "\n- Error messages from %s -\n" % config.Pilot.pilotlog
-            extracts += _extracts
+        #errormsgs = ["FATAL", "CRITICAL", "ERROR"]
+        #matched_lines = grep(errormsgs, path)
+        #_extracts = ""
+        #if len(matched_lines) > 0:
+        #    log.debug("dumping warning messages from %s:\n" % os.path.basename(path))
+        #    for line in matched_lines:
+        #        _extracts += line + "\n"
+        #if _extracts != "":
+        #    if config.Pilot.error_log != "":
+        #        path = os.path.join(job.workdir, config.Pilot.error_log)
+        #        write_file(path, _extracts)
+        #    extracts += "\n- Error messages from %s -\n" % config.Pilot.pilotlog
+        #    extracts += _extracts
     else:
         log.warning('pilot log file does not exist: %s' % path)
 
