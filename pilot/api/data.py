@@ -648,8 +648,8 @@ class StageOutClient(StagingClient):
 
             protocols = []
             for aname in activity:
-                aname = get_ddm_activity(aname)
-                protocols = ddm.arprotocols.get(aname)
+                aname = get_ddm_activity(aname, self.infosys.queuedata, fdat.ddmendpoint, ddm)
+                protocols = ddm.arprotocols.get(aname, None)
                 if protocols:
                     break
 

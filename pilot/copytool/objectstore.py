@@ -71,8 +71,8 @@ def resolve_protocol(fspec, activity, ddm):
 
     logger.info("Resolving protocol for file(lfn: %s, ddmendpoint: %s) with activity(%s)" % (fspec.lfn, fspec.ddmendpoint, activity))
 
-    activity = get_ddm_activity(activity)
-    protocols = ddm.arprotocols.get(activity)
+    activity = get_ddm_activity(activity, None, fspec.ddmendpoint, ddm)
+    protocols = ddm.arprotocols.get(activity, None)
     protocols_allow = []
     for schema in allowed_schemas:
         for protocol in protocols:
