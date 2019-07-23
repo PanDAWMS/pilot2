@@ -16,7 +16,7 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import PilotException, BadXML
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
-from pilot.util.filehandling import get_guid, tail, grep, open_file, read_file, write_file, scan_file
+from pilot.util.filehandling import get_guid, tail, grep, open_file, read_file, scan_file  #, write_file
 from pilot.util.math import convert_mb_to_b
 from pilot.util.workernode import get_local_disk_space
 
