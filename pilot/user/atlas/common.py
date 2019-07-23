@@ -24,10 +24,11 @@ from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import get_logger
+from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
     UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
-from pilot.util.filehandling import remove, get_guid, remove_dir_tree
+from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list
 
 from pilot.info import FileSpec
 
@@ -1041,12 +1042,41 @@ def cleanup_payload(workdir, outputfiles=[]):
                         remove(path)
 
 
+def get_redundant_path():
+    """
+    Return the path to the file containing the redundant files and directories to be removed prior to log file creation.
+
+    :return: file path (string).
+    """
+
+    filename = config.Pilot.redundant
+
+    # correct /cvmfs if necessary
+    if filename.startswith('/cvmfs') and os.environ.get('ATLAS_SW_BASE', False):
+        filename = filename.replace('/cvmfs', os.environ.get('ATLAS_SW_BASE'))
+
+    return filename
+
+
 def get_redundants():
     """
     Get list of redundant files and directories (to be removed).
+    The function will return the content of an external file. It that can't be read, then a list defined in this
+    function will be returned instead. Any updates to the external file must be propagated to this function.
+
     :return: files and directories list
     """
 
+    # try to read the list from the external file
+    filename = get_redundant_path()
+    if os.path.exists(filename):
+        dir_list = read_list(filename)
+        if dir_list:
+            return dir_list
+
+    logger.debug('list of redundant files could not be read from external file: %s (will use internal list)' % filename)
+
+    # else return the following
     dir_list = ["AtlasProduction*",
                 "AtlasPoint1",
                 "AtlasTier0",
@@ -1095,8 +1125,8 @@ def get_redundants():
                 "*job.log.tgz",
                 "runGen-*",
                 "runAthena-*",
-                "/pandawnutil/*",
-                "/src/*",
+                "pandawnutil/*",
+                "src/*",
                 "singularity_cachedir",
                 "_joproxy15",
                 "HAHM_*",
