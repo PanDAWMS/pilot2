@@ -240,7 +240,10 @@ def alrb_wrapper(cmd, workdir, job):
             _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -C\";'
 
         # add the jobid to be used as an identifier for the payload running inside the container
-        _cmd += "export PANDAID=%s;export TMPDIR=/srv;" % job.jobid
+        _cmd += "export PANDAID=%s;" % job.jobid
+
+        # add TMPDIR
+        cmd = "export TMPDIR=/srv;" + cmd
 
         # write the full payload command to a script file
         script_file = config.Container.script_file
