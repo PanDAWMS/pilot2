@@ -344,6 +344,9 @@ def utility_monitor(job):
             else:
                 log.warning('file: %s does not exist' % path)
 
+            # rest
+            time.sleep(10)
+
 
 def get_local_size_limit_stdout(bytes=True):
     """
