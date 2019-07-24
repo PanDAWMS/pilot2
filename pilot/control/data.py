@@ -504,7 +504,7 @@ def copytool_out(queues, traces, args):
     logger.debug('[data] copytool_out thread has finished')
 
 
-def get_input_file_dictionary(indata, workdir, lfn=True):
+def get_input_file_dictionary(indata, workdir):
     """
     Return an input file dictionary.
     Format: {'guid': 'pfn', ..}
@@ -519,12 +519,12 @@ def get_input_file_dictionary(indata, workdir, lfn=True):
 
     for e in indata:
         dst = e.workdir or workdir or '.'
-        file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else os.path.join(dst, e.lfn)
+        file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else e.lfn  #os.path.join(dst, e.lfn)
         # file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else e.surl
 
         # correction for ND and mv
         # in any case use the lfn instead of pfn since there are trf's that have problems with pfn's
-        if not file_dictionary[e.guid] or lfn:
+        if not file_dictionary[e.guid]:
             file_dictionary[e.guid] = e.lfn
 
     return file_dictionary
