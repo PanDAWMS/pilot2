@@ -59,7 +59,7 @@ def resolve_surl(fspec, protocol, ddmconf, **kwargs):
     return {'surl': surl}
 
 
-def resolve_protocol(fspec, activity, ddm):
+def resolve_protocol(fspec, activity, ddm, queuedata=None):
     """
         Rosolve protocols to be used to transfer the file with corressponding activity
 
@@ -71,7 +71,7 @@ def resolve_protocol(fspec, activity, ddm):
 
     logger.info("Resolving protocol for file(lfn: %s, ddmendpoint: %s) with activity(%s)" % (fspec.lfn, fspec.ddmendpoint, activity))
 
-    activity = get_ddm_activity(activity, None, fspec.ddmendpoint, ddm)
+    activity = get_ddm_activity(activity, queuedata, fspec.ddmendpoint, ddm)
     protocols = ddm.arprotocols.get(activity, None)
     protocols_allow = []
     for schema in allowed_schemas:
@@ -100,6 +100,7 @@ def copy_in(files, **kwargs):
 
     ddmconf = kwargs.pop('ddmconf', {})
     activity = kwargs.pop('activity', None)
+    queuedata = kwargs.pop('queuedata', {})
     # trace_report = kwargs.get('trace_report')
 
     for fspec in files:
@@ -108,7 +109,7 @@ def copy_in(files, **kwargs):
         logger.info("To transfer file: %s" % fspec)
         ddm = ddmconf.get(fspec.ddmendpoint)
         if ddm:
-            protocol = resolve_protocol(fspec, activity, ddm)
+            protocol = resolve_protocol(fspec, activity, ddm, queuedata)
             surls = resolve_surl(fspec, protocol, ddmconf)
             if 'surl' in surls:
                 fspec.surl = surls['surl']
@@ -154,6 +155,7 @@ def copy_out(files, **kwargs):
     no_register = kwargs.pop('no_register', True)
     summary = kwargs.pop('summary', False)
     ddmconf = kwargs.pop('ddmconf', {})
+
     # trace_report = kwargs.get('trace_report')
 
     for fspec in files:

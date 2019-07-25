@@ -560,6 +560,7 @@ class StageInClient(StagingClient):
         if self.infosys:
             if self.infosys.queuedata:
                 kwargs['copytools'] = self.infosys.queuedata.copytools
+                kwargs['queuedata'] = self.infosys.queuedata
             kwargs['ddmconf'] = self.infosys.resolve_storage_data()
         kwargs['activity'] = activity
 
@@ -851,6 +852,7 @@ class StageOutClient(StagingClient):
 
         if self.infosys:
             kwargs['copytools'] = self.infosys.queuedata.copytools
+            kwargs['queuedata'] = self.infosys.queuedata
 
             # some copytools will need to know endpoint specifics (e.g. the space token) stored in ddmconf, add it
             kwargs['ddmconf'] = self.infosys.resolve_storage_data()
