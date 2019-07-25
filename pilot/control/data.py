@@ -518,7 +518,7 @@ def get_input_file_dictionary(indata, workdir):
     file_dictionary = {}
 
     for e in indata:
-        dst = e.workdir or workdir or '.'
+        # dst = e.workdir or workdir or '.'
         file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else e.lfn  #os.path.join(dst, e.lfn)
         # file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else e.surl
 
