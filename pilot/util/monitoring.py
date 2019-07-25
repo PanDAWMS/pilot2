@@ -313,6 +313,10 @@ def utility_monitor(job):
         # make sure the subprocess is still running
         utproc = job.utilities[utcmd][0]
         if not utproc.poll() is None:
+            if job.state == 'finished' or job.state == 'failed':
+                log.debug('no need to restart utility command since payload has finished')
+                continue
+
             # if poll() returns anything but None it means that the subprocess has ended - which it
             # should not have done by itself
             utility_subprocess_launches = job.utilities[utcmd][1]
@@ -339,6 +343,9 @@ def utility_monitor(job):
                 log.info('file: %s exists' % path)
             else:
                 log.warning('file: %s does not exist' % path)
+
+            # rest
+            time.sleep(10)
 
 
 def get_local_size_limit_stdout(bytes=True):
