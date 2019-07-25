@@ -219,7 +219,8 @@ def get_ps_info(pgrp, whoami=getuser(), options='axfo pid,user,args'):
     :return: ps aux for given user (string).
     """
 
-    cmd = "ps %s | grep %s" % (options, whoami)
+    cmd = "ps -u %s %s" % (whoami, options)
+    #cmd = "ps %s | grep %s" % (options, whoami)
     #cmd = "ps %s | grep %s | awk -v p=%s '$1 == p {print $5}" % (options, whoami, pgrp)
     #cmd = "ps %s | awk -v p=%s '$1 == p {print $5}" % (options, pgrp)
     exit_code, stdout, stderr = execute(cmd)

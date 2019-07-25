@@ -152,8 +152,6 @@ def kill_looping_job(job):
     exit_code, stdout, stderr = execute(cmd, mute=True)
     log.info("%s: %s" % (cmd + '\n', stdout))
 
-    kill_processes(job.pid)
-
     # set the relevant error code
     if job.state == 'stagein':
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINTIMEOUT)
@@ -170,6 +168,8 @@ def kill_looping_job(job):
         ec = remove_files(job.workdir, lfns)
         if ec != 0:
             log.warning('failed to remove all files')
+
+    kill_processes(job.pid)
 
 
 def get_looping_job_limit(job):
