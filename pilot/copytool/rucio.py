@@ -337,8 +337,8 @@ def _merge_traces(pilot_traces, rucio_traces):
         try:
             r_traces = list(filter(lambda rt: rt['filename'] == p_trace['filename'] and rt['scope'] == p_trace['scope'], rucio_traces))
             if r_traces:
-                if p_trace.merge(r_traces[-1]):
-                    logger.info('The trace updated for rucio info.: %s' % p_trace)
+                p_trace.update(r_traces[-1]):
+                logger.info('The trace updated for rucio info.: %s' % p_trace)
             else:
                 logger.warning('Pilot and rucio traces do not match.')
         except KeyError:
