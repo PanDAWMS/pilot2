@@ -384,7 +384,10 @@ class StagingClient(object):
                 code = errors.STAGEINTIMEOUT if self.mode == 'stage-in' else errors.STAGEOUTTIMEOUT  # is it stage-in/out?
                 self.logger.warning('caught time-out exception: %s' % caught_errors[0])
             else:
-                code = None
+                if "Cannot authenticate" in caught_errors:
+                    code = ErrorCodes.STAGEINAUTHENTICATIONFAILURE
+                else:
+                    code = None
             self.logger.fatal('caught_errors=%s' % str(caught_errors))
             self.logger.fatal('code=%s' % str(code))
             raise PilotException('failed to transfer files using copytools=%s, error=%s' % (copytools, caught_errors),

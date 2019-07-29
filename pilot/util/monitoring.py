@@ -58,6 +58,9 @@ def job_monitor_tasks(job, mt, args):
         log.info('CPU consumption time for pid=%d: %f (rounded to %d)' %
                  (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
 
+        # check how many cores the payload is using
+        check_number_used_cores(job)
+
         # check memory usage (optional) for jobs in running state
         exit_code, diagnostics = verify_memory_usage(current_time, mt, job)
         if exit_code != 0:
@@ -95,6 +98,29 @@ def job_monitor_tasks(job, mt, args):
         utility_monitor(job)
 
     return exit_code, diagnostics
+
+
+def check_number_used_cores(job):
+    """
+    Check the number of cores used by the payload.
+    The number of actual used cores is reported with job metrics (if set).
+
+    :param job: job object.
+    :return:
+    """
+
+    if job.pgrp:
+        cmd = "ps axo pgid,psr | sort | grep %d | uniq | wc -l" % job.pgrp
+        exit_code, stdout, stderr = execute(cmd, mute=True)
+        logger.debug('%s:\n%s' % (cmd, stdout))
+        try:
+            job.actualcorecount = int(stdout)
+        except Exception as e:
+            logger.warning('failed to convert number of actual cores to int: %s' % e)
+        else:
+            logger.debug('set number of actual cores to: %d' % job.actualcorecount)
+    else:
+        logger.debug('payload process group not set - cannot check number of cores used by payload')
 
 
 def verify_memory_usage(current_time, mt, job):
@@ -287,6 +313,10 @@ def utility_monitor(job):
         # make sure the subprocess is still running
         utproc = job.utilities[utcmd][0]
         if not utproc.poll() is None:
+            if job.state == 'finished' or job.state == 'failed':
+                log.debug('no need to restart utility command since payload has finished')
+                continue
+
             # if poll() returns anything but None it means that the subprocess has ended - which it
             # should not have done by itself
             utility_subprocess_launches = job.utilities[utcmd][1]
@@ -313,6 +343,9 @@ def utility_monitor(job):
                 log.info('file: %s exists' % path)
             else:
                 log.warning('file: %s does not exist' % path)
+
+            # rest
+            time.sleep(10)
 
 
 def get_local_size_limit_stdout(bytes=True):

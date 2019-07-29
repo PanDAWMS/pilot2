@@ -34,8 +34,10 @@ from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
-from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json
-from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file
+from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json, establish_logging
+from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file, \
+    is_harvester_mode, get_worker_attributes_file, publish_work_report, get_event_status_file, \
+    publish_stageout_files
 from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
@@ -155,6 +157,28 @@ def verify_error_code(job):
         log.info('verified error code')
 
 
+def get_proper_state(job, state):
+    """
+    Return a proper job state to send to server.
+    This function should only return 'starting', 'running', 'finished', 'holding' or 'failed'.
+    If the internal job.serverstate is not yet set, it means it is the first server update, ie 'starting' should be
+    sent.
+
+    :param job: job object.
+    :param state: internal pilot state (string).
+    :return: valid server state (string).
+    """
+
+    if job.serverstate == "" and state != "finished" and state != "failed":
+        job.serverstate = 'starting'
+    elif state == "finished" or state == "failed" or state == "holding":
+        job.serverstate = state
+    else:
+        job.serverstate = 'running'
+
+    return job.serverstate
+
+
 def send_state(job, args, state, xml=None, metadata=None):
     """
     Update the server (send heartbeat message).
@@ -171,6 +195,8 @@ def send_state(job, args, state, xml=None, metadata=None):
     log = get_logger(job.jobid, logger)
 
     # _state = get_job_status(job, 'SERVER_UPDATE')
+
+    state = get_proper_state(job, state)
 
     # should the pilot make any server updates?
     if not args.update_server:
@@ -200,13 +226,28 @@ def send_state(job, args, state, xml=None, metadata=None):
 
     # write the heartbeat message to file if the server is not to be updated by the pilot (Nordugrid mode)
     if not args.update_server:
-        # store the file in the main workdir
-        path = os.path.join(os.environ.get('PILOT_HOME'), config.Pilot.heartbeat_message)
-        if write_json(path, data):
-            log.debug('wrote heartbeat to file %s' % path)
-            return True
+        # if in harvester mode write to files required by harvester
+        if is_harvester_mode(args) and final:
+            # Use the job information to write Harvester event_status.dump file
+            event_status_file = get_event_status_file(args)
+            if publish_stageout_files(job, event_status_file):
+                log.debug('wrote log and output files to file %s' % event_status_file)
+                # write part of the heartbeat message to worker attributes files needed by Harvester
+                path = get_worker_attributes_file(args)
+                # Should publish work report return a Boolean for pass/fail?
+                publish_work_report(data, path)
+                return True
+            else:
+                log.debug('Warning - could not write log and output files to file %s' % event_status_file)
+                return False
         else:
-            return False
+            # store the file in the main workdir
+            path = os.path.join(os.environ.get('PILOT_HOME'), config.Pilot.heartbeat_message)
+            if write_json(path, data):
+                log.debug('wrote heartbeat to file %s' % path)
+                return True
+            else:
+                return False
 
     try:
         # get the URL for the PanDA server from pilot options or from config
@@ -771,7 +812,7 @@ def get_dispatcher_dictionary(args):
     logger.debug('args.resource=%s' % args.resource)
 
     data = {
-        'siteName': args.resource,   ## replace it with `infosys.queuedata.resource` to remove redundant '-r' option of pilot.py
+        'siteName': args.resource,   # replace it with `infosys.queuedata.resource` to remove redundant '-r' option of pilot.py
         'computingElement': args.queue,
         'prodSourceLabel': job_label,
         'diskSpace': _diskspace,
@@ -1304,6 +1345,13 @@ def retrieve(queues, traces, args):
                 while not args.graceful_stop.is_set():
                     if has_job_completed(queues):
                         logger.info('ready for new job')
+
+                        # re-establish logging
+                        logging.info('pilot has finished for previous job - re-establishing logging')
+                        logging.handlers = []
+                        logging.shutdown()
+                        establish_logging(args)
+
                         getjob_requests = 0
                         break
                     time.sleep(0.5)

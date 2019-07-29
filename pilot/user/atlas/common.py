@@ -15,6 +15,7 @@ from collections import defaultdict
 from glob import glob
 from signal import SIGTERM, SIGUSR1
 
+from .dbrelease import get_dbrelease_version, create_dbrelease
 from .setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
     set_inds, get_analysis_trf, get_payload_environment_variables, replace_lfns_with_turls
 from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
@@ -23,10 +24,11 @@ from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import get_logger
+from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
     UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
-from pilot.util.filehandling import remove, get_guid, remove_dir_tree
+from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list
 
 from pilot.info import FileSpec
 
@@ -34,6 +36,31 @@ import logging
 logger = logging.getLogger(__name__)
 
 errors = ErrorCodes()
+
+
+def validate(job):
+    """
+    Perform user specific payload/job validation.
+    This function will produce a local DBRelease file if necessary (old releases).
+
+    :param job: job object.
+    :return: Boolean (True if validation is successful).
+    """
+
+    log = get_logger(job.jobid)
+    status = True
+
+    if 'DBRelease' in job.jobparams:
+        log.debug('encountered DBRelease info in job parameters - will attempt to create a local DBRelease file')
+        version = get_dbrelease_version(job.jobparams)
+        if version:
+            status = create_dbrelease(version, job.workdir)
+
+    # assign error in case of DBRelease handling failure
+    if not status:
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.DBRELEASEFAILURE)
+
+    return status
 
 
 def get_payload_command(job):
@@ -171,8 +198,10 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
         if job.is_eventservice:
             if job.corecount:
                 cmd += '; export ATHENA_PROC_NUMBER=%s' % job.corecount
+                cmd += '; export ATHENA_CORE_NUMBER=%s' % job.corecount
             else:
                 cmd += '; export ATHENA_PROC_NUMBER=1'
+                cmd += '; export ATHENA_CORE_NUMBER=1'
 
         # Add the transform and the job parameters (production jobs)
         if prepareasetup:
@@ -1013,12 +1042,41 @@ def cleanup_payload(workdir, outputfiles=[]):
                         remove(path)
 
 
+def get_redundant_path():
+    """
+    Return the path to the file containing the redundant files and directories to be removed prior to log file creation.
+
+    :return: file path (string).
+    """
+
+    filename = config.Pilot.redundant
+
+    # correct /cvmfs if necessary
+    if filename.startswith('/cvmfs') and os.environ.get('ATLAS_SW_BASE', False):
+        filename = filename.replace('/cvmfs', os.environ.get('ATLAS_SW_BASE'))
+
+    return filename
+
+
 def get_redundants():
     """
     Get list of redundant files and directories (to be removed).
+    The function will return the content of an external file. It that can't be read, then a list defined in this
+    function will be returned instead. Any updates to the external file must be propagated to this function.
+
     :return: files and directories list
     """
 
+    # try to read the list from the external file
+    filename = get_redundant_path()
+    if os.path.exists(filename):
+        dir_list = read_list(filename)
+        if dir_list:
+            return dir_list
+
+    logger.debug('list of redundant files could not be read from external file: %s (will use internal list)' % filename)
+
+    # else return the following
     dir_list = ["AtlasProduction*",
                 "AtlasPoint1",
                 "AtlasTier0",
@@ -1067,8 +1125,8 @@ def get_redundants():
                 "*job.log.tgz",
                 "runGen-*",
                 "runAthena-*",
-                "/pandawnutil/*",
-                "/src/*",
+                "pandawnutil/*",
+                "src/*",
                 "singularity_cachedir",
                 "_joproxy15",
                 "HAHM_*",
@@ -1232,8 +1290,8 @@ def get_utility_command_setup(name, job, setup=None):
     """
 
     if name == 'MemoryMonitor':
-        setup = get_memory_monitor_setup(job.pid, job.workdir, job.command, use_container=job.usecontainer,
-                                         transformation=job.transformation, outdata=job.outdata)
+        setup, pid = get_memory_monitor_setup(job.pid, job.pgrp, job.jobid, job.workdir, job.command, use_container=job.usecontainer,
+                                              transformation=job.transformation, outdata=job.outdata)
         _pattern = r"([\S]+)\ ."
         pattern = re.compile(_pattern)
         _name = re.findall(pattern, setup.split(';')[-1])
@@ -1241,6 +1299,14 @@ def get_utility_command_setup(name, job, setup=None):
             job.memorymonitor = _name[0]
         else:
             logger.warning('trf name could not be identified in setup string')
+
+        # update the pgrp if the pid changed
+        if job.pid != pid and pid != --1:
+            logger.debug('updating pgrp=%d for pid=%d' % (job.pgrp, pid))
+            try:
+                job.pgrp = os.getpgid(pid)
+            except Exception as e:
+                logger.warning('os.getpgid(%d) failed with: %s' % (pid, e))
         return setup
     elif name == 'NetworkMonitor' and setup:
         return get_network_monitor_setup(setup, job)

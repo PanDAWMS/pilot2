@@ -18,10 +18,13 @@ import uuid
 from json import load
 from json import dump as dumpjson
 from shutil import copy2, rmtree
+import sys
 from zlib import adler32
 
-from pilot.common.exception import PilotException, ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile, \
+from pilot.common.exception import ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile, \
     NotImplemented
+from pilot.util.config import config
+from pilot.util.mpi import get_ranks_info
 from .auxiliary import get_logger
 from .container import execute
 from .math import diff_lists
@@ -42,19 +45,43 @@ def get_pilot_work_dir(workdir):
     return os.path.join(workdir, jobworkdir)
 
 
-def create_pilot_work_dir(workdir):
+def mkdirs(workdir, chmod=0770):
     """
-    Create the main PanDA Pilot work directory.
+    Create a directory.
+    Perform a chmod if set.
+
     :param workdir: Full path to the directory to be created
+    :param chmod: chmod code (default 0770) (octal).
     :raises PilotException: MKDirFailure.
     :return:
     """
 
     try:
         os.makedirs(workdir)
-        os.chmod(workdir, 0770)
+        if chmod:
+            os.chmod(workdir, chmod)
     except Exception as e:
         raise MKDirFailure(e)
+
+
+def rmdirs(path):
+    """
+    Remove directory in path.
+
+    :param path: path to directory to be removed (string).
+    :return: Boolean (True if success).
+    """
+
+    status = False
+
+    try:
+        rmtree(path)
+    except OSError as e:
+        logger.warning("failed to remove directories %s: %s" % (path, e))
+    else:
+        status = True
+
+    return status
 
 
 def read_file(filename):
@@ -249,6 +276,26 @@ def is_json(input_file):
         return False
 
 
+def read_list(filename):
+    """
+    Read a list from a JSON file.
+
+    :param filename: file name (string).
+    :return: list.
+    """
+
+    _list = []
+
+    # open output file for reading
+    try:
+        with open(filename, 'r') as filehandle:
+            _list = load(filehandle)
+    except IOError as e:
+        logger.warning('failed to read %s: %s' % (filename, e))
+
+    return convert(_list)
+
+
 def read_json(filename):
     """
     Read a dictionary with unicode to utf-8 conversion
@@ -279,31 +326,28 @@ def read_json(filename):
     return dictionary
 
 
-def write_json(filename, dictionary):
+def write_json(filename, data, sort_keys=True, indent=4, separators=(',', ': ')):
     """
     Write the dictionary to a JSON file.
 
-    :param filename:
-    :param dictionary:
-    :raises PilotException: FileHandlingFailure
-    :return: status (boolean)
+    :param filename: file name (string).
+    :param data: object to be written to file (dictionary or list).
+    :param sort_keys: should entries be sorted? (boolean).
+    :param indent: indentation level, default 4 (int).
+    :param separators: field separators (default (',', ': ') for dictionaries, use e.g. (',\n') for lists) (tuple)
+    :raises PilotException: FileHandlingFailure.
+    :return: status (boolean).
     """
 
     status = False
 
     try:
-        fp = open(filename, "w")
+        with open(filename, 'w') as fh:
+            dumpjson(data, fh, sort_keys=sort_keys, indent=indent, separators=separators)
     except IOError as e:
         raise FileHandlingFailure(e)
     else:
-        # Write the dictionary
-        try:
-            dumpjson(dictionary, fp, sort_keys=True, indent=4, separators=(',', ': '))
-        except PilotException as e:
-            raise FileHandlingFailure(e.get_detail())
-        else:
-            status = True
-        fp.close()
+        status = True
 
     return status
 
@@ -844,3 +888,36 @@ def dump(path, cmd="cat"):
         logger.info("%s:\n%s" % (_cmd, stdout + stderr))
     else:
         logger.info("path %s does not exist" % path)
+
+
+def establish_logging(args):
+    """
+    Setup and establish logging.
+
+    :param args: pilot arguments object.
+    :return:
+    """
+
+    _logger = logging.getLogger('')
+    _logger.handlers = []
+    _logger.propagate = False
+
+    console = logging.StreamHandler(sys.stdout)
+    if args.debug:
+        format_str = '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'
+        level = logging.DEBUG
+    else:
+        format_str = '%(asctime)s | %(levelname)-8s | %(message)s'
+        level = logging.INFO
+    rank, maxrank = get_ranks_info()
+    if rank is not None:
+        format_str = 'Rank {0} |'.format(rank) + format_str
+    if args.nopilotlog:
+        logging.basicConfig(level=level, format=format_str, filemode='w')
+    else:
+        logging.basicConfig(filename=config.Pilot.pilotlog, level=level, format=format_str, filemode='w')
+    console.setLevel(level)
+    console.setFormatter(logging.Formatter(format_str))
+    logging.Formatter.converter = time.gmtime
+    #if not len(_logger.handlers):
+    _logger.addHandler(console)

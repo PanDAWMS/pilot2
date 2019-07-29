@@ -57,8 +57,6 @@ def looping_job(job, mt):
         # check, the returned value will be the same as the previous time
         time_last_touched = get_time_for_last_touch(job, mt, looping_limit)
 
-        log.info('time_last_touched=%d' % time_last_touched)
-
         # the payload process is considered to be looping if it's files have not been touched within looping_limit time
         if time_last_touched:
             ct = int(time.time())
@@ -71,7 +69,7 @@ def looping_job(job, mt):
                 except Exception as e:
                     log.warning('exception caught: %s' % e)
         else:
-            log.info('no files were touched yet')
+            log.info('no files were touched')
 
     return exit_code, diagnostics
 
@@ -84,7 +82,7 @@ def get_time_for_last_touch(job, mt, looping_limit):
     :param job: job object.
     :param mt: `MonitoringTime` object.
     :param looping_limit: looping limit in seconds.
-    :return: time in seconds since epoch (int).
+    :return: time in seconds since epoch (int) (or None in case of failure).
     """
 
     log = get_logger(job.jobid)
@@ -154,8 +152,6 @@ def kill_looping_job(job):
     exit_code, stdout, stderr = execute(cmd, mute=True)
     log.info("%s: %s" % (cmd + '\n', stdout))
 
-    kill_processes(job.pid)
-
     # set the relevant error code
     if job.state == 'stagein':
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINTIMEOUT)
@@ -172,6 +168,8 @@ def kill_looping_job(job):
         ec = remove_files(job.workdir, lfns)
         if ec != 0:
             log.warning('failed to remove all files')
+
+    kill_processes(job.pid)
 
 
 def get_looping_job_limit(job):

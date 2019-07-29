@@ -15,7 +15,7 @@ import re
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 from pilot.util.auxiliary import whoami
-from pilot.util.filehandling import read_file
+from pilot.util.filehandling import read_file, remove_dir_tree
 
 import logging
 logger = logging.getLogger(__name__)
@@ -551,6 +551,15 @@ def cleanup(job):
     """
 
     logger.info("overall cleanup function is called")
+
+    # make sure the workdir is deleted
+    if remove_dir_tree(job.workdir):
+        logger.info('removed %s' % job.workdir)
+
+    if os.path.exists(job.workdir):
+        logger.warning('work directory still exists: %s' % job.workdir)
+    else:
+        logger.debug('work directory was removed: %s' % job.workdir)
 
     # collect any zombie processes
     job.collect_zombies(tn=10)

@@ -8,7 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch
 
 import subprocess
-from os import environ, getcwd, setsid
+from os import environ, getcwd, setpgrp  #, getpgid  #setsid
 
 import logging
 logger = logging.getLogger(__name__)
@@ -86,7 +86,7 @@ def execute(executable, **kwargs):
                                stdout=stdout,
                                stderr=stderr,
                                cwd=cwd,
-                               preexec_fn=setsid)
+                               preexec_fn=setpgrp)  #setsid)
     if returnproc:
         return process
     else:
