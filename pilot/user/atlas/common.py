@@ -62,6 +62,7 @@ def validate(job):
 
     # cleanup job parameters if only copy-to-scratch
     if job.only_copy_to_scratch() or True:
+        log.debug('job.params=%s' % job.jobparams)
         if ' --usePFCTurl' in job.jobparams:
             log.debug('cleaning up --usePFCTurl from job parameters since all input is copy-to-scratch')
             job.jobparams = job.jobparams.replace(' --usePFCTurl', '')
