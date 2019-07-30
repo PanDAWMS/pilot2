@@ -60,6 +60,13 @@ def validate(job):
     if not status:
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.DBRELEASEFAILURE)
 
+    # cleanup job parameters if only copy-to-scratch
+    if job.only_copy_to_scratch():
+        if ' --usePFCTurl' in job.jobparams:
+            job.jobparams = job.jobparams.replace(' --usePFCTurl', '')
+        if ' --directIn' in job.jobparams:
+            job.jobparams = job.jobparams.replace(' --directIn', '')
+
     return status
 
 
