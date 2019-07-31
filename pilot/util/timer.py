@@ -16,10 +16,13 @@ Timer stops execution of wrapped function if it reaches the limit of provided ti
 :date: March 2018
 """
 
+from __future__ import print_function
+
 import os
 import signal
 import sys
 
+import traceback
 import threading
 import multiprocessing
 
@@ -97,6 +100,7 @@ class TimedProcess(object):
         (completely isolated memory space)
         In default python implementation multiprocessing considers (c)pickle as serialization backend
         which is not able properly (requires a hack) to pickle local and decorated functions (affects Windows only)
+        Traceback data is printed to stderr
     """
 
     def __init__(self, timeout):
@@ -114,6 +118,8 @@ class TimedProcess(object):
                 ret = func(*args, **kwargs)
                 queue.put((True, ret))
             except Exception as e:
+                print('Exception occured while executing %s' % func, file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
                 queue.put((False, e))
 
         queue = multiprocessing.Queue(1)
@@ -140,7 +146,7 @@ class TimedProcess(object):
         if ret[0]:
             return ret[1]
         else:
-            raise ret[1][0], ret[1][1], ret[1][2]
+            raise ret[1]
 
 
 if getattr(os, 'fork', None):
