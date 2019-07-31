@@ -1857,7 +1857,7 @@ def job_monitor(queues, traces, args):
             logger.info('job monitoring is waiting for stage-in to finish')
         else:
             # check the waiting time in the job monitor. set global graceful_stop if necessary
-            check_job_monitor_waiting_time(args, peeking_time)
+            check_job_monitor_waiting_time(args, peeking_time, abort_override=abort)
 
         n += 1
 
@@ -1884,7 +1884,7 @@ def send_heartbeat_if_time(job, args, update_time):
     return update_time
 
 
-def check_job_monitor_waiting_time(args, peeking_time):
+def check_job_monitor_waiting_time(args, peeking_time, abort_override=False):
     """
     Check the waiting time in the job monitor.
     Set global graceful_stop if necessary.
@@ -1905,7 +1905,7 @@ def check_job_monitor_waiting_time(args, peeking_time):
         logger.warning(msg)
     else:
         print(msg)
-    if abort:
+    if abort or abort_override:
         # do not set graceful stop if pilot has not finished sending the final job update
         # i.e. wait until SERVER_UPDATE is DONE_FINAL
         check_for_final_server_update(args.update_server)
