@@ -48,7 +48,7 @@ def create_input_file_metadata(file_dictionary, workdir, filename="PoolFileCatal
         _file.set('ID', fileid)
         _physical = ElementTree.SubElement(_file, 'physical')
         _pfn = ElementTree.SubElement(_physical, 'pfn')
-        _pfn.set('filetype', 'ROOT_ALL')
+        _pfn.set('filetype', 'ROOT_All')
         _pfn.set('name', file_dictionary.get(fileid))
         ElementTree.SubElement(_file, 'logical')
 
