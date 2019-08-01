@@ -645,8 +645,9 @@ def _do_stageout(job, xdata, activity, title):
         client.transfer(xdata, activity, **kwargs)
     except PilotException as error:
         import traceback
-        log.error(traceback.format_exc())
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())
+        error_msg = traceback.format_exc()
+        log.error(error_msg)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=error_msg[-256:])
     except Exception as e:
         import traceback
         log.error(traceback.format_exc())
