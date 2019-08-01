@@ -384,7 +384,7 @@ class StagingClient(object):
                 code = errors.STAGEINTIMEOUT if self.mode == 'stage-in' else errors.STAGEOUTTIMEOUT  # is it stage-in/out?
                 self.logger.warning('caught time-out exception: %s' % caught_errors[0])
             else:
-                if "Cannot authenticate" in caught_errors:
+                if "Cannot authenticate" in str(caught_errors):
                     code = ErrorCodes.STAGEINAUTHENTICATIONFAILURE
                 else:
                     code = None
