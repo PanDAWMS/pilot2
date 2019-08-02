@@ -112,6 +112,20 @@ def run(args):
                     'error_code': 0,
                     'command': None}
 
+    # initial sanity check defined by pilot user
+    try:
+        user = __import__('pilot.user.%s.common' % args.pilot_user, globals(), locals(), [args.pilot_user], -1)
+        exit_code = user.sanity_check()
+    except Exception:
+        logger.info('skipping sanity check since function not defined')
+    else:
+        if exit_code != 0:
+            logger.info('aborting workflow since sanity check failed')
+            traces.pilot['error_code'] = exit_code
+            return traces
+        else:
+            logger.info('passed sanity check')
+
     # define the threads
     targets = {'job': job.control, 'payload': payload.control, 'data': data.control, 'monitor': monitor.control}
     threads = [ExcThread(bucket=queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},

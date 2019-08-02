@@ -38,6 +38,27 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
+def sanity_check():
+    """
+    Perform an initial sanity check before doing anything else in a given workflow.
+    This function can be used to verify importing of modules that are otherwise used much later, but it is better to abort
+    the pilot if a problem is discovered early.
+
+    :return: Boolean (True if all is ok).
+    """
+
+    status = True
+
+    try:
+        from rucio.client.downloadclient import DownloadClient
+        from rucio.client.uploadclient import UploadClient
+    except Exception as e:
+        logger.fatal('sanity check failed: %s' % e)
+        status = False
+
+    return status
+
+
 def validate(job):
     """
     Perform user specific payload/job validation.
