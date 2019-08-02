@@ -115,7 +115,7 @@ def control(queues, traces, args):
 #    logger.info('lifetime: %i used, %i maximum' % (int(time.time() - traces.pilot['lifetime_start']),
 #                                                   traces.pilot['lifetime_max']))
 
-def get_ps_info(whoami=getuser(), options='aufex'):
+def get_ps_info(whoami=getuser(), options='aufx'):
     """
     Return ps info for the given user.
 
