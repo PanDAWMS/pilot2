@@ -72,11 +72,17 @@ def copy_in(files, copy_type="symlink", **kwargs):
     :raises PilotException: StageInFailure
     """
 
+    # make sure direct access is not attempted (wrong queue configuration - pilot should fail job)
+    allow_direct_access = kwargs.get('allow_direct_access')
+    for fspec in files:
+        if fspec.is_directaccess(ensure_replica=False) and allow_direct_access and fspec.accessmode == 'direct':
+            raise StageInFailure("bad queue configuration - mv does not support direct access")
+
     if copy_type not in ["cp", "mv", "symlink"]:
-        raise StageInFailure("Incorrect method for copy in")
+        raise StageInFailure("incorrect method for copy in")
 
     if not kwargs.get('workdir'):
-        raise StageInFailure("Workdir is not specified")
+        raise StageInFailure("workdir is not specified")
 
     exit_code, stdout, stderr = move_all_files(files, copy_type, kwargs.get('workdir'))
     if exit_code != 0:
@@ -95,7 +101,7 @@ def copy_out(files, copy_type="mv", **kwargs):
     """
 
     if copy_type not in ["cp", "mv"]:
-        raise StageOutFailure("Incorrect method for copy out")
+        raise StageOutFailure("incorrect method for copy out")
 
     if not kwargs.get('workdir'):
         raise StageOutFailure("Workdir is not specified")
@@ -131,7 +137,7 @@ def move_all_files(files, copy_type, workdir):
     elif copy_type == "symlink":
         copy_method = symlink
     else:
-        return -1, "", "Incorrect copy method"
+        return -1, "", "incorrect copy method"
 
     for fspec in files:  # entry = {'name':<filename>, 'source':<dir>, 'destination':<dir>}
 

@@ -386,12 +386,13 @@ class StagingClient(object):
             else:
                 if "Cannot authenticate" in str(caught_errors):
                     code = ErrorCodes.STAGEINAUTHENTICATIONFAILURE
+                elif "bad queue configuration" in str(caught_errors):
+                    code = ErrorCodes.BADQUEUECONFIGURATION
                 else:
                     code = None
             self.logger.fatal('caught_errors=%s' % str(caught_errors))
             self.logger.fatal('code=%s' % str(code))
-            raise PilotException('failed to transfer files using copytools=%s, error=%s' % (copytools, caught_errors),
-                                 code=code)
+            raise PilotException('failed to transfer files using copytools=%s, error=%s' % (copytools, caught_errors), code=code)
 
         self.logger.debug('result=%s' % str(result))
         return result
