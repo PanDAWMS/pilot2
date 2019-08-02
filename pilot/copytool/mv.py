@@ -76,6 +76,7 @@ def copy_in(files, copy_type="symlink", **kwargs):
     allow_direct_access = kwargs.get('allow_direct_access')
     for fspec in files:
         if fspec.is_directaccess(ensure_replica=False) and allow_direct_access and fspec.accessmode == 'direct':
+            fspec.status_code = ErrorCodes.BADQUEUECONFIGURATION
             raise StageInFailure("bad queue configuration - mv does not support direct access")
 
     if copy_type not in ["cp", "mv", "symlink"]:

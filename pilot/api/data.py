@@ -159,6 +159,7 @@ class StagingClient(object):
             location = self.detect_client_location()
             if not location:
                 raise PilotException("Failed to get client location for Rucio", code=errors.RUCIOLOCATIONFAILED)
+
             query.update(sort='geoip', client_location=location)
             logger.info('calling rucio.list_replicas() with query=%s' % query)
             replicas = c.list_replicas(**query)
@@ -378,18 +379,17 @@ class StagingClient(object):
                 break
 
         if not result:
-            if caught_errors and isinstance(caught_errors[-1], PilotException):
+            if caught_errors and "Cannot authenticate" in str(caught_errors):
+                code = ErrorCodes.STAGEINAUTHENTICATIONFAILURE
+            elif caught_errors and "bad queue configuration" in str(caught_errors):
+                code = ErrorCodes.BADQUEUECONFIGURATION
+            elif caught_errors and isinstance(caught_errors[-1], PilotException):
                 code = caught_errors[0].get_error_code()
             elif caught_errors and isinstance(caught_errors[-1], TimeoutException):
                 code = errors.STAGEINTIMEOUT if self.mode == 'stage-in' else errors.STAGEOUTTIMEOUT  # is it stage-in/out?
                 self.logger.warning('caught time-out exception: %s' % caught_errors[0])
             else:
-                if "Cannot authenticate" in str(caught_errors):
-                    code = ErrorCodes.STAGEINAUTHENTICATIONFAILURE
-                elif "bad queue configuration" in str(caught_errors):
-                    code = ErrorCodes.BADQUEUECONFIGURATION
-                else:
-                    code = None
+                code = ErrorCodes.STAGEINFAILED
             self.logger.fatal('caught_errors=%s' % str(caught_errors))
             self.logger.fatal('code=%s' % str(code))
             raise PilotException('failed to transfer files using copytools=%s, error=%s' % (copytools, caught_errors), code=code)

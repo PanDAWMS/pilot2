@@ -123,6 +123,7 @@ class ErrorCodes:
     DBRELEASEFAILURE = 1339
     SINGULARITYNEWUSERNAMESPACE = 1340
     BADQUEUECONFIGURATION = 1341
+    MIDDLEWAREIMPORTFAILURE = 1342
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -224,7 +225,8 @@ class ErrorCodes:
         STAGEINAUTHENTICATIONFAILURE: "Authentication failure during stage-in",
         DBRELEASEFAILURE: "Local DBRelease handling failed (consult Pilot log)",
         SINGULARITYNEWUSERNAMESPACE: "Singularity: Failed invoking the NEWUSER namespace runtime",
-        BADQUEUECONFIGURATION: "Bad queue configuration detected"
+        BADQUEUECONFIGURATION: "Bad queue configuration detected",
+        MIDDLEWAREIMPORTFAILURE: "Failed to import middleware (consult Pilot log)"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
