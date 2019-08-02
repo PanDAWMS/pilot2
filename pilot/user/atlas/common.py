@@ -44,19 +44,19 @@ def sanity_check():
     This function can be used to verify importing of modules that are otherwise used much later, but it is better to abort
     the pilot if a problem is discovered early.
 
-    :return: Boolean (True if all is ok).
+    :return: exit code (0 if all is ok, otherwise non-zero exit code).
     """
 
-    status = True
+    exit_code = 0
 
     try:
         from rucio.client.downloadclient import DownloadClient
         from rucio.client.uploadclient import UploadClient
     except Exception as e:
         logger.fatal('sanity check failed: %s' % e)
-        status = False
+        exit_code = errors.MIDDLEWAREIMPORTFAILURE
 
-    return status
+    return exit_code
 
 
 def validate(job):

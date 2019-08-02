@@ -21,10 +21,10 @@ def sanity_check():
     This function can be used to verify importing of modules that are otherwise used much later, but it is better to abort
     the pilot if a problem is discovered early.
 
-    :return: Boolean (True if all is ok).
+    :return: exit code (0 if all is ok, otherwise non-zero exit code).
     """
 
-    return True
+    return 0
 
 
 def validate(job):
