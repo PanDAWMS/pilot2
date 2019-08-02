@@ -114,7 +114,7 @@ def run(args):
 
     # initial sanity check defined by pilot user
     try:
-        user = __import__('pilot.user.%s.common' % args.pilot_user, globals(), locals(), [args.pilot_user], -1)
+        user = __import__('pilot.user.%s.common' % args.pilot_user.lower(), globals(), locals(), [args.pilot_user.lower()], -1)
         exit_code = user.sanity_check()
     except Exception as e:
         logger.info('skipping sanity check since: %s' % e)
