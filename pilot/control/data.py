@@ -72,6 +72,8 @@ def control(queues, traces, args):
             thread.join(0.1)
             time.sleep(0.1)
 
+        time.sleep(0.1)
+
     logger.debug('data control ending since graceful_stop has been set')
     if args.abort_job.is_set():
         if traces.pilot['command'] == 'aborting':
@@ -373,6 +375,7 @@ def copytool_in(queues, traces, args):
     """
 
     while not args.graceful_stop.is_set():
+        time.sleep(0.1)
         try:
             # extract a job to stage-in its input
             job = queues.data_in.get(block=True, timeout=1)
@@ -455,14 +458,12 @@ def copytool_out(queues, traces, args):
 #    while not args.graceful_stop.is_set() and cont:
     while cont:
 
+        time.sleep(0.1)
         if first:
             first = False
-            logger.debug('inside copytool_out() loop')
 
         # check for abort, print useful messages and include a 1 s sleep
         abort = should_abort(args, label='data:copytool_out')
-        if abort:
-            logger.debug('will abort ')
         try:
             job = queues.data_out.get(block=True, timeout=1)
             if job:
@@ -493,13 +494,11 @@ def copytool_out(queues, traces, args):
                 log.debug('no returned job - why no exception?')
         except queue.Empty:
             if abort:
-                logger.debug('aborting')
                 cont = False
                 break
             continue
 
         if abort:
-            logger.debug('aborting')
             cont = False
             break
 
@@ -775,6 +774,7 @@ def queue_monitoring(queues, traces, args):
     """
 
     while True:  # will abort when graceful_stop has been set
+        time.sleep(0.1)
         if traces.pilot['command'] == 'abort':
             logger.warning('data queue monitor saw the abort instruction')
 
