@@ -177,8 +177,10 @@ class GenericExecutor(BaseExecutor):
             file_spec = FileSpec(filetype='output', **file_data)
             xdata = [file_spec]
             client = StageOutESClient(job.infosys, logger=log)
+            activity = ['es_events', 'pw']  ## FIX ME LATER: replace `pw` with `write_lan` once AGIS is updated (acopytools)
             kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
-            client.transfer(xdata, activity=['es_events', 'pw'], **kwargs)
+            client.prepare_destinations(xdata, activity)  ## IF ES job should be allowed to write only at `es_events` astorages, then fix activity names here
+            client.transfer(xdata, activity=activity, **kwargs)
         except exception.PilotException, error:
             log.error(error.get_detail())
         except Exception, e:

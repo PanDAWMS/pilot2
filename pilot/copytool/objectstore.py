@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2018
+# - Alexey Anisenkov, anisyonk@cern.ch, 2019
 
 import os
 import json
@@ -13,7 +14,7 @@ import logging
 
 from .common import resolve_common_transfer_errors
 from pilot.common.exception import PilotException, ErrorCodes
-from pilot.info.storageactivitymaps import get_ddm_activity
+#from pilot.info.storageactivitymaps import get_ddm_activity
 from pilot.util.container import execute
 from pilot.util.ruciopath import get_rucio_path
 
@@ -21,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 # can be disable for Rucio if allowed to use all RSE for input
 require_replicas = False    ## indicates if given copytool requires input replicas to be resolved
+
+require_input_protocols = True    ## indicates if given copytool requires input protocols and manual generation of input replicas
 require_protocols = True  ## indicates if given copytool requires protocols to be resolved first for stage-out
 
 allowed_schemas = ['srm', 'gsiftp', 'https', 'davs', 'root', 's3', 's3+rucio']
@@ -52,39 +55,39 @@ def resolve_surl(fspec, protocol, ddmconf, **kwargs):
         surl = protocol.get('endpoint', '') + os.path.join(protocol.get('path', ''), get_rucio_path(fspec.scope, fspec.lfn))
     elif ddm.type in ['OS_ES', 'OS_LOGS']:
         surl = protocol.get('endpoint', '') + os.path.join(protocol.get('path', ''), fspec.lfn)
-        fspec.protocol_id = protocol.get('id', None)
+        fspec.protocol_id = protocol.get('id')
     else:
         raise PilotException('resolve_surl(): Failed to construct SURL for non deterministic ddm=%s: NOT IMPLEMENTED', fspec.ddmendpoint)
 
     return {'surl': surl}
 
-
-def resolve_protocol(fspec, activity, ddm):
-    """
-        Rosolve protocols to be used to transfer the file with corressponding activity
-
-        :param fspec: file spec data
-        :param activity: actvitiy name as string
-        :param ddm: ddm storage data
-        :return: protocol as dictionary
-    """
-
-    logger.info("Resolving protocol for file(lfn: %s, ddmendpoint: %s) with activity(%s)" % (fspec.lfn, fspec.ddmendpoint, activity))
-
-    activity = get_ddm_activity(activity)
-    protocols = ddm.arprotocols.get(activity)
-    protocols_allow = []
-    for schema in allowed_schemas:
-        for protocol in protocols:
-            if schema is None or protocol.get('endpoint', '').startswith("%s://" % schema):
-                protocols_allow.append(protocol)
-    if not protocols_allow:
-        err = "No available allowed protocols for file(lfn: %s, ddmendpoint: %s) with activity(%s)" % (fspec.lfn, fspec.ddmendpoint, activity)
-        logger.error(err)
-        raise PilotException(err)
-    protocol = protocols_allow[0]
-    logger.info("Resolved protocol for file(lfn: %s, ddmendpoint: %s) with activity(%s): %s" % (fspec.lfn, fspec.ddmendpoint, activity, protocol))
-    return protocol
+## redundant logic, can be removed (anisyonk)
+#def resolve_protocol(fspec, activity, ddm):
+#    """
+#        Rosolve protocols to be used to transfer the file with corressponding activity
+#
+#        :param fspec: file spec data
+#        :param activity: actvitiy name as string
+#        :param ddm: ddm storage data
+#        :return: protocol as dictionary
+#    """
+#
+#    logger.info("Resolving protocol for file(lfn: %s, ddmendpoint: %s) with activity(%s)" % (fspec.lfn, fspec.ddmendpoint, activity))
+#
+#    activity = get_ddm_activity(activity)
+#    protocols = ddm.arprotocols.get(activity)
+#    protocols_allow = []
+#    for schema in allowed_schemas:
+#        for protocol in protocols:
+#            if schema is None or protocol.get('endpoint', '').startswith("%s://" % schema):
+#                protocols_allow.append(protocol)
+#    if not protocols_allow:
+#        err = "No available allowed protocols for file(lfn: %s, ddmendpoint: %s) with activity(%s)" % (fspec.lfn, fspec.ddmendpoint, activity)
+#        logger.error(err)
+#        raise PilotException(err)
+#    protocol = protocols_allow[0]
+#    logger.info("Resolved protocol for file(lfn: %s, ddmendpoint: %s) with activity(%s): %s" % (fspec.lfn, fspec.ddmendpoint, activity, protocol))
+#    return protocol
 
 
 def copy_in(files, **kwargs):
@@ -99,22 +102,30 @@ def copy_in(files, **kwargs):
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
     ddmconf = kwargs.pop('ddmconf', {})
-    activity = kwargs.pop('activity', None)
+    #activity = kwargs.pop('activity', None)
     # trace_report = kwargs.get('trace_report')
 
     for fspec in files:
 
         cmd = []
         logger.info("To transfer file: %s" % fspec)
-        ddm = ddmconf.get(fspec.ddmendpoint)
-        if ddm:
-            protocol = resolve_protocol(fspec, activity, ddm)
-            surls = resolve_surl(fspec, protocol, ddmconf)
-            if 'surl' in surls:
-                fspec.surl = surls['surl']
-            ddm_special_setup = ddm.get_special_setup(protocol.get('id', None))
-            if ddm_special_setup:
-                cmd += [ddm_special_setup]
+        if fspec.protocol_id:
+            ddm = ddmconf.get(fspec.ddmendpoint)
+            if ddm:
+                ddm_special_setup = ddm.get_special_setup(fspec.protocol_id)
+                if ddm_special_setup:
+                    cmd = [ddm_special_setup]
+
+        # redundant logic: to be cleaned (anisyonk)
+        #ddm = ddmconf.get(fspec.ddmendpoint)
+        #if ddm:
+        #    protocol = resolve_protocol(fspec, activity, ddm)
+        #    surls = resolve_surl(fspec, protocol, ddmconf)
+        #    if 'surl' in surls:
+        #        fspec.surl = surls['surl']
+        #    ddm_special_setup = ddm.get_special_setup(fspec.protocol_id)
+        #    if ddm_special_setup:
+        #        cmd += [ddm_special_setup]
 
         dst = fspec.workdir or kwargs.get('workdir') or '.'
         cmd += ['/usr/bin/env', 'rucio', '-v', 'download', '--no-subdir', '--dir', dst]

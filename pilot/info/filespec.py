@@ -65,12 +65,13 @@ class FileSpec(BaseData):
     workdir = None     # used to declare file-specific work dir (location of given local file when it's used for transfer by copytool)
     protocol_id = None  # id of the protocol to be used to construct turl
     is_tar = False     # whether it's a tar file or not
+    ddm_activity = None  # DDM activity names (e.g. [read_lan, read_wan]) which should be used to resolve appropriate protocols from StorageData.arprotocols
 
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['filesize', 'mtime', 'status_code'],
              str: ['lfn', 'guid', 'checksum', 'scope', 'dataset', 'ddmendpoint',
                    'filetype', 'surl', 'turl', 'status', 'workdir', 'accessmode', 'allowremoteinputs', 'storage_token'],
-             list: ['replicas', 'inputddms'],
+             list: ['replicas', 'inputddms', 'ddm_activity'],
              bool: []
              }
 
