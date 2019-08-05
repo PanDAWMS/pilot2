@@ -49,12 +49,13 @@ def sanity_check():
 
     exit_code = 0
 
-    try:
-        from rucio.client.downloadclient import DownloadClient
-        from rucio.client.uploadclient import UploadClient
-    except Exception as e:
-        logger.warning('sanity check failed: %s' % e)
-        # exit_code = errors.MIDDLEWAREIMPORTFAILURE
+    #try:
+    #    from rucio.client.downloadclient import DownloadClient
+    #    from rucio.client.uploadclient import UploadClient
+    #    # note: must do something with Download/UploadClients or flake8 will complain - but do not instantiate
+    #except Exception as e:
+    #    logger.warning('sanity check failed: %s' % e)
+    #    exit_code = errors.MIDDLEWAREIMPORTFAILURE
 
     return exit_code
 
