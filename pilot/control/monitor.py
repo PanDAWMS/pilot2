@@ -44,8 +44,10 @@ def control(queues, traces, args):
     traces.pilot['lifetime_max'] = t0
 
     threadchecktime = int(config.Pilot.thread_check)
-    cpuchecktime = int(config.Pilot.cpu_check)
-    tcpu = t0
+
+    # for CPU usage debugging
+    #cpuchecktime = int(config.Pilot.cpu_check)
+    #tcpu = t0
 
     queuedata = get_queuedata_from_job(queues)
     if queuedata:
@@ -82,13 +84,13 @@ def control(queues, traces, args):
             time.sleep(1)
 
             # time to check the CPU?
-            if int(time.time() - tcpu) > cpuchecktime:
-                stdout = get_ps_info()
-                logger.info('-' * 100)
-                logger.info('current CPU consumption by PanDA Pilot')
-                logger.info(stdout)
-                logger.info('-' * 100)
-                tcpu = time.time()
+            #if int(time.time() - tcpu) > cpuchecktime:
+            #    stdout = get_ps_info()
+            #    logger.info('-' * 100)
+            #    logger.info('current CPU consumption by PanDA Pilot')
+            #    logger.info(stdout)
+            #    logger.info('-' * 100)
+            #    tcpu = time.time()
 
             # proceed with running the other checks
             run_checks(queues, args)
