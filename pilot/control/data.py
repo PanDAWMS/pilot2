@@ -72,7 +72,7 @@ def control(queues, traces, args):
             thread.join(0.1)
             time.sleep(0.1)
 
-        time.sleep(0.1)
+        time.sleep(0.5)
 
     logger.debug('data control ending since graceful_stop has been set')
     if args.abort_job.is_set():
@@ -263,7 +263,7 @@ def stage_in_auto(site, files):
                                    stderr=subprocess.PIPE)
         f['errno'] = 2
         while True:
-            time.sleep(0.1)
+            time.sleep(0.5)
             exit_code = process.poll()
             if exit_code is not None:
                 stdout, stderr = process.communicate()
@@ -341,7 +341,7 @@ def stage_out_auto(site, files):
                                    stderr=subprocess.PIPE)
         f['errno'] = 2
         while True:
-            time.sleep(0.1)
+            time.sleep(0.5)
             exit_code = process.poll()
             if exit_code is not None:
                 stdout, stderr = process.communicate()
@@ -375,7 +375,7 @@ def copytool_in(queues, traces, args):
     """
 
     while not args.graceful_stop.is_set():
-        time.sleep(0.1)
+        time.sleep(0.5)
         try:
             # extract a job to stage-in its input
             job = queues.data_in.get(block=True, timeout=1)
@@ -458,7 +458,7 @@ def copytool_out(queues, traces, args):
 #    while not args.graceful_stop.is_set() and cont:
     while cont:
 
-        time.sleep(0.1)
+        time.sleep(0.5)
         if first:
             first = False
 
@@ -774,7 +774,7 @@ def queue_monitoring(queues, traces, args):
     """
 
     while True:  # will abort when graceful_stop has been set
-        time.sleep(0.1)
+        time.sleep(0.5)
         if traces.pilot['command'] == 'abort':
             logger.warning('data queue monitor saw the abort instruction')
 
