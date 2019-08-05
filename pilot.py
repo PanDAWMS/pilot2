@@ -134,7 +134,7 @@ def import_module(**kwargs):
                            '-l': kwargs.get('lifetime', '3600'),
                            '-q': kwargs.get('queue'),  # required
                            '-r': kwargs.get('resource'),  # required
-                           '-s': kwargs.get('site'),  # required
+                           '-s': kwargs.get('site'),
                            '-j': kwargs.get('job_label', 'ptest'),  # change default later to 'managed'
                            '-i': kwargs.get('version_tag', 'PR'),
                            '-t': kwargs.get('verify_proxy', True),
@@ -230,8 +230,9 @@ def get_args():
                             help='MANDATORY: resource name (e.g., AGLT2_TEST')
     arg_parser.add_argument('-s',
                             dest='site',
-                            required=True,  # it is needed by the dispatcher (only) -- same as '-r'? is it PandaSite or ATLAS Site?
-                            help='MANDATORY: site name (e.g., AGLT2_TEST')
+                            required=False,  # it is needed by the dispatcher (only) -- same as '-r'? is it PandaSite or ATLAS Site?
+                            default=''
+                            help='site name (e.g., AGLT2_TEST')
 
     # graciously stop pilot process after hard limit
     arg_parser.add_argument('-j',
