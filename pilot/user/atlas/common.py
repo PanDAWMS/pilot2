@@ -53,8 +53,8 @@ def sanity_check():
         from rucio.client.downloadclient import DownloadClient
         from rucio.client.uploadclient import UploadClient
     except Exception as e:
-        logger.fatal('sanity check failed: %s' % e)
-        exit_code = errors.MIDDLEWAREIMPORTFAILURE
+        logger.warning('sanity check failed: %s' % e)
+        # exit_code = errors.MIDDLEWAREIMPORTFAILURE
 
     return exit_code
 
