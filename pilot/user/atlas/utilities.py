@@ -500,7 +500,7 @@ def get_memory_monitor_info(workdir, allowtxtfile=False, name=""):
     return node
 
 
-def get_max_memory_monitor_value(value, maxvalue, totalvalue):
+def get_max_memory_monitor_value(value, maxvalue, totalvalue):  # noqa: C90
     """
     Return the max and total value (used by memory monitoring).
     Return an error code, 1, in case of value error.
