@@ -389,7 +389,7 @@ def get_memory_monitor_info_path(workdir, allowtxtfile=False):
     return path
 
 
-def get_memory_monitor_info(workdir, allowtxtfile=False, name=""):
+def get_memory_monitor_info(workdir, allowtxtfile=False, name=""):  # noqa: C901
     """
     Add the utility info to the node structure if available.
 
