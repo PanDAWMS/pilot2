@@ -38,6 +38,28 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
+def sanity_check():
+    """
+    Perform an initial sanity check before doing anything else in a given workflow.
+    This function can be used to verify importing of modules that are otherwise used much later, but it is better to abort
+    the pilot if a problem is discovered early.
+
+    :return: exit code (0 if all is ok, otherwise non-zero exit code).
+    """
+
+    exit_code = 0
+
+    #try:
+    #    from rucio.client.downloadclient import DownloadClient
+    #    from rucio.client.uploadclient import UploadClient
+    #    # note: must do something with Download/UploadClients or flake8 will complain - but do not instantiate
+    #except Exception as e:
+    #    logger.warning('sanity check failed: %s' % e)
+    #    exit_code = errors.MIDDLEWAREIMPORTFAILURE
+
+    return exit_code
+
+
 def validate(job):
     """
     Perform user specific payload/job validation.

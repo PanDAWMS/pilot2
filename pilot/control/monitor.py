@@ -15,10 +15,12 @@ import logging
 import threading
 import time
 from os import environ
+from getpass import getuser
 
 from pilot.common.exception import PilotException, ExceededMaxWaitTime
 from pilot.util.auxiliary import check_for_final_server_update
 from pilot.util.config import config
+from pilot.util.container import execute
 from pilot.util.queuehandling import get_queuedata_from_job, abort_jobs_in_queues
 from pilot.util.timing import get_time_since_start
 
@@ -37,10 +39,13 @@ def control(queues, traces, args):
     :return:
     """
 
-    traces.pilot['lifetime_start'] = time.time()  # ie referring to when pilot monitoring begain
-    traces.pilot['lifetime_max'] = time.time()
+    t0 = time.time()
+    traces.pilot['lifetime_start'] = t0  # ie referring to when pilot monitoring began
+    traces.pilot['lifetime_max'] = t0
 
     threadchecktime = int(config.Pilot.thread_check)
+    cpuchecktime = int(config.Pilot.cpu_check)
+    tcpu = t0
 
     queuedata = get_queuedata_from_job(queues)
     if queuedata:
@@ -76,7 +81,16 @@ def control(queues, traces, args):
                     logger.info('%d s have passed since pilot start' % time_since_start)
             time.sleep(1)
 
-            # proceed with running the checks
+            # time to check the CPU?
+            if int(time.time() - tcpu) > cpuchecktime:
+                stdout = get_ps_info()
+                logger.info('-' * 100)
+                logger.info('current CPU consumption by PanDA Pilot')
+                logger.info(stdout)
+                logger.info('-' * 100)
+                tcpu = time.time()
+
+            # proceed with running the other checks
             run_checks(queues, args)
 
             # thread monitoring
@@ -101,6 +115,21 @@ def control(queues, traces, args):
 #    logger.info('lifetime: %i used, %i maximum' % (int(time.time() - traces.pilot['lifetime_start']),
 #                                                   traces.pilot['lifetime_max']))
 
+def get_ps_info(whoami=getuser(), options='aufx'):
+    """
+    Return ps info for the given user.
+
+    :param pgrp: process group id (int).
+    :param whoami: user name (string).
+    :return: ps aux for given user (string).
+    """
+
+    cmd = "ps -u %s %s" % (whoami, options)
+    exit_code, stdout, stderr = execute(cmd)
+
+    return stdout
+
+
 def run_checks(queues, args):
     """
     Perform non-job related monitoring checks.
@@ -109,6 +138,8 @@ def run_checks(queues, args):
     :param args:
     :return:
     """
+
+    # check CPU consumption of pilot process and its children
 
     if args.abort_job.is_set():
         # find all running jobs and stop them, find all jobs in queues relevant to this module

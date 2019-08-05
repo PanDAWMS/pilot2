@@ -389,7 +389,7 @@ def get_memory_monitor_info_path(workdir, allowtxtfile=False):
     return path
 
 
-def get_memory_monitor_info(workdir, allowtxtfile=False, name=""):
+def get_memory_monitor_info(workdir, allowtxtfile=False, name=""):  # noqa: C901
     """
     Add the utility info to the node structure if available.
 
@@ -403,9 +403,13 @@ def get_memory_monitor_info(workdir, allowtxtfile=False, name=""):
 
     # Get the values from the memory monitor file (json if it exists, otherwise the preliminary txt file)
     # Note that only the final json file will contain the totRBYTES, etc
-    summary_dictionary = get_memory_values(workdir, name=name)
-
-    logger.debug("summary_dictionary=%s" % str(summary_dictionary))
+    try:
+        summary_dictionary = get_memory_values(workdir, name=name)
+    except Exception as e:
+        logger.warning('failed to get memory values from memory monitor tool: %s' % e)
+        summary_dictionary = {}
+    else:
+        logger.debug("summary_dictionary=%s" % str(summary_dictionary))
 
     # Fill the node dictionary
     if summary_dictionary and summary_dictionary != {}:
@@ -496,7 +500,7 @@ def get_memory_monitor_info(workdir, allowtxtfile=False, name=""):
     return node
 
 
-def get_max_memory_monitor_value(value, maxvalue, totalvalue):
+def get_max_memory_monitor_value(value, maxvalue, totalvalue):  # noqa: C90
     """
     Return the max and total value (used by memory monitoring).
     Return an error code, 1, in case of value error.
