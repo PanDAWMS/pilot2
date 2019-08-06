@@ -492,7 +492,7 @@ class ESProcess(threading.Thread):
                     for i in range(time_to_wait * 10):
                         if not self.__process.poll() is None:
                             break
-                        time.sleep(0.1)
+                        time.sleep(1)
 
                     if not self.__process.poll() is None:
                         if self.__process.poll() == 0:

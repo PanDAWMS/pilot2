@@ -292,12 +292,12 @@ class GenericExecutor(BaseExecutor):
                 self.stageout_es()
 
                 exit_code = proc.poll()
-                if iteration % 300 == 0:
+                if iteration % 60 == 0:
                     log.info('running: iteration=%d pid=%s exit_code=%s' % (iteration, proc.pid, exit_code))
-                time.sleep(1)
+                time.sleep(5)
 
             while proc.is_alive():
-                time.sleep(0.1)
+                time.sleep(1)
             log.info("ESProcess finished")
 
             self.stageout_es(force=True)
