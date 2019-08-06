@@ -165,7 +165,8 @@ def _stage_in(args, job):
         import traceback
         error_msg = traceback.format_exc()
         log.error(error_msg)
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=error_msg[-256:])
+        msg = errors.format_diagnostics(error.get_error_code(), error_msg)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=msg)
     except Exception as error:
         log.error('failed to stage-in: error=%s' % error)
 
@@ -648,8 +649,9 @@ def _do_stageout(job, xdata, activity, title):
         import traceback
         error_msg = traceback.format_exc()
         log.error(error_msg)
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=error_msg[-256:])
-    except Exception as e:
+        msg = errors.format_diagnostics(error.get_error_code(), error_msg)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=msg)
+    except Exception:
         import traceback
         log.error(traceback.format_exc())
         # do not raise the exception since that will prevent also the log from being staged out
