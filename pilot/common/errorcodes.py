@@ -372,7 +372,10 @@ class ErrorCodes:
             standard_message = ""
 
         try:
-            error_message = standard_message + diag[-(len(diag)-len(standard_message)):]
+            if diag:
+                error_message = standard_message + diag[-(len(diag) - len(standard_message)):]
+            else:
+                error_message = standard_message
         except Exception:
             error_message = diag
 
