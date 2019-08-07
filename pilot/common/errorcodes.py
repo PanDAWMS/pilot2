@@ -357,6 +357,30 @@ class ErrorCodes:
 
         return msg
 
+    def format_diagnostics(self, code, diag):
+        """
+        Format the error diagnostics by adding the standard error message and the tail of the longer piloterrordiag.
+        If there is any kind of failure handling the diagnostics string, the standard error description will be returned.
+
+        :param code: standard error code (int).
+        :param diag: dynamic error diagnostics (string).
+        :return: formatted error diagnostics (string).
+        """
+        try:
+            standard_message = self._error_messages[code] + ":"
+        except Exception:
+            standard_message = ""
+
+        try:
+            if diag:
+                error_message = standard_message + diag[-(len(diag) - len(standard_message)):]
+            else:
+                error_message = standard_message
+        except Exception:
+            error_message = diag
+
+        return error_message
+
     @classmethod
     def is_recoverable(self, code=0):
         """

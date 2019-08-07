@@ -72,7 +72,7 @@ def control(queues, traces, args):
             thread.join(0.1)
             time.sleep(0.1)
 
-        time.sleep(0.1)
+        time.sleep(0.5)
 
     logger.debug('data control ending since graceful_stop has been set')
     if args.abort_job.is_set():
@@ -165,7 +165,8 @@ def _stage_in(args, job):
         import traceback
         error_msg = traceback.format_exc()
         log.error(error_msg)
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=error_msg[-256:])
+        msg = errors.format_diagnostics(error.get_error_code(), error_msg)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=msg)
     except Exception as error:
         log.error('failed to stage-in: error=%s' % error)
 
@@ -263,7 +264,7 @@ def stage_in_auto(site, files):
                                    stderr=subprocess.PIPE)
         f['errno'] = 2
         while True:
-            time.sleep(0.1)
+            time.sleep(0.5)
             exit_code = process.poll()
             if exit_code is not None:
                 stdout, stderr = process.communicate()
@@ -341,7 +342,7 @@ def stage_out_auto(site, files):
                                    stderr=subprocess.PIPE)
         f['errno'] = 2
         while True:
-            time.sleep(0.1)
+            time.sleep(0.5)
             exit_code = process.poll()
             if exit_code is not None:
                 stdout, stderr = process.communicate()
@@ -375,7 +376,7 @@ def copytool_in(queues, traces, args):
     """
 
     while not args.graceful_stop.is_set():
-        time.sleep(0.1)
+        time.sleep(0.5)
         try:
             # extract a job to stage-in its input
             job = queues.data_in.get(block=True, timeout=1)
@@ -458,7 +459,7 @@ def copytool_out(queues, traces, args):
 #    while not args.graceful_stop.is_set() and cont:
     while cont:
 
-        time.sleep(0.1)
+        time.sleep(0.5)
         if first:
             first = False
 
@@ -648,8 +649,9 @@ def _do_stageout(job, xdata, activity, title):
         import traceback
         error_msg = traceback.format_exc()
         log.error(error_msg)
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=error_msg[-256:])
-    except Exception as e:
+        msg = errors.format_diagnostics(error.get_error_code(), error_msg)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=msg)
+    except Exception:
         import traceback
         log.error(traceback.format_exc())
         # do not raise the exception since that will prevent also the log from being staged out
@@ -774,7 +776,7 @@ def queue_monitoring(queues, traces, args):
     """
 
     while True:  # will abort when graceful_stop has been set
-        time.sleep(0.1)
+        time.sleep(0.5)
         if traces.pilot['command'] == 'abort':
             logger.warning('data queue monitor saw the abort instruction')
 
