@@ -434,6 +434,9 @@ class JobData(BaseData):
             self.alrbuserplatform = v.split('@')[1]  # ALRB_USER_PLATFORM value
             v = v.split('@')[0]  # cmtconfig value
 
+            # correct for unset values
+            if not v:
+                v = self.alrbuserplatform
         return v
 
     def clean__jobparams(self, raw, value):
