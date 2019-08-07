@@ -71,6 +71,8 @@ def control(queues, traces, args):
             thread.join(0.1)
             time.sleep(0.1)
 
+        time.sleep(0.5)
+
     logger.debug('payload control ending since graceful_stop has been set')
     if args.abort_job.is_set():
         if traces.pilot['command'] == 'aborting':
@@ -95,6 +97,7 @@ def validate_pre(queues, traces, args):
     :return:
     """
     while not args.graceful_stop.is_set():
+        time.sleep(0.5)
         try:
             job = queues.payloads.get(block=True, timeout=1)
         except queue.Empty:
@@ -168,6 +171,7 @@ def execute_payloads(queues, traces, args):
 
     job = None
     while not args.graceful_stop.is_set():
+        time.sleep(0.5)
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
             log = get_logger(job.jobid, logger)
@@ -317,6 +321,7 @@ def validate_post(queues, traces, args):
     """
 
     while not args.graceful_stop.is_set():
+        time.sleep(0.5)
         # finished payloads
         try:
             job = queues.finished_payloads.get(block=True, timeout=1)
@@ -346,10 +351,12 @@ def failed_post(queues, traces, args):
     """
 
     while not args.graceful_stop.is_set():
+        time.sleep(0.5)
         # finished payloads
         try:
             job = queues.failed_payloads.get(block=True, timeout=1)
         except queue.Empty:
+            time.sleep(0.1)
             continue
         log = get_logger(job.jobid, logger)
 

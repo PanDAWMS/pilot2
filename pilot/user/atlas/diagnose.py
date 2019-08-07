@@ -108,7 +108,7 @@ def interpret_payload_exit_info(job):
         return
 
     # set a general Pilot error code if the payload error could not be identified
-    if job.transexitcode != 0:
+    if job.transexitcode == 0 and job.exitcode != 0:
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.UNKNOWNPAYLOADFAILURE, priority=True)
 
 

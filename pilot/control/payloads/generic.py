@@ -258,6 +258,8 @@ class Executor(object):
         exit_code = None
         iteration = 0L
         while True:
+            time.sleep(0.1)
+
             iteration += 1
             for i in xrange(100):
                 if args.graceful_stop.is_set():
