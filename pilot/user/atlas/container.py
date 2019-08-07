@@ -275,10 +275,10 @@ def alrb_wrapper(cmd, workdir, job):
                 _cmd = ""
         else:
             # _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c images'
-            _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c '
+            _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh '
             if job.platform or job.alrbuserplatform:
                 # _cmd += '+$thePlatform'
-                _cmd += '$thePlatform'
+                _cmd += '-c $thePlatform'
 
         _cmd = _cmd.replace('  ', ' ')
         cmd = _cmd
