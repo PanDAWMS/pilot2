@@ -124,10 +124,20 @@ def get_processes_for_command(cmd, user=getuser(), args='aufx'):
     Return process info for given command.
     The function returns a list with format (pid, cpu, mem, command) as returned by 'ps -u user args' for a given command (e.g. python pilot.py).
 
+    Example
+      get_processes_for_command('sshd:')
+
+      nilspal   1362  0.0  0.0 183424  2528 ?        S    12:39   0:00 sshd: nilspal@pts/28
+      nilspal   1363  0.0  0.0 136628  2640 pts/28   Ss   12:39   0:00  \_ -tcsh
+      nilspal   8603  0.0  0.0  34692  5072 pts/28   S+   12:44   0:00      \_ python monitor.py
+      nilspal   8604  0.0  0.0  62036  1776 pts/28   R+   12:44   0:00          \_ ps -u nilspal aufx --no-headers
+
+      -> [['1362', '0.0', '0.0', 'sshd: nilspal@pts/28']]
+
     :param cmd: command (string).
     :param user: user (string).
     :param args: ps arguments (string).
-    :return: process info list.
+    :return: list of lists with process info.
     """
 
     processes = []
