@@ -87,10 +87,12 @@ def control(queues, traces, args):
 
             # time to check the CPU?
             if int(time.time() - tcpu) > cpuchecktime:
-                stdout = get_processes_for_command('python pilot.py')
-                logger.info('-' * 100)
-                logger.info('current CPU consumption by PanDA Pilot')
-                logger.info(stdout)
+                output_list = get_processes_for_command('python pilot.py')
+                if output_list:
+                    logger.info('-' * 100)
+                    logger.info('current CPU usage by PanDA Pilot')
+                    for output in output_list:
+                        logger.info(output)
                 logger.info('-' * 100)
                 tcpu = time.time()
 
@@ -142,8 +144,8 @@ def get_processes_for_command(cmd, user=getuser(), args='aufx'):
 
     processes = []
     pattern = re.compile(r"\S+|[-+]?\d*\.\d+|\d+")
-
     arguments = ['ps', '-u', user, args, '--no-headers']
+
     process = Popen(arguments, stdout=PIPE, stderr=PIPE)
     stdout, notused = process.communicate()
     for line in stdout.splitlines():
