@@ -90,7 +90,12 @@ def control(queues, traces, args):
                 processes = get_process_info('python pilot2/pilot.py', pid=getpid())
                 if processes:
                     logger.info('-' * 100)
-                    logger.info('PID=%d has CPU usage=%s% MEM usage=%s% CMD=%s' % (getpid(), processes[0], processes[1], processes[2]))
+                    logger.info('PID=%d has CPU usage=%s%% MEM usage=%s%% CMD=%s' % (getpid(), processes[0], processes[1], processes[2]))
+                    n = processes[3]
+                    if n > 1:
+                        logger.info('there are %d \"%s\" processes running' % (n, processes[2]))
+                    else:
+                        logger.info('there is %d \"%s\" process running' % (n, processes[2]))
                     logger.info('-' * 100)
                 tcpu = time.time()
 
@@ -122,7 +127,7 @@ def control(queues, traces, args):
 def get_process_info(cmd, user=getuser(), args='aufx', pid=None):
     """
     Return process info for given command.
-    The function returns a list with format (pid, cpu, mem, command) as returned by 'ps -u user args' for a given command (e.g. python pilot.py).
+    The function returns a list with format [cpu, mem, command, number of commands] as returned by 'ps -u user args' for a given command (e.g. python pilot2/pilot.py).
 
     Example
       get_processes_for_command('sshd:')
@@ -132,7 +137,7 @@ def get_process_info(cmd, user=getuser(), args='aufx', pid=None):
       nilspal   8603  0.0  0.0  34692  5072 pts/28   S+   12:44   0:00      \_ python monitor.py
       nilspal   8604  0.0  0.0  62036  1776 pts/28   R+   12:44   0:00          \_ ps -u nilspal aufx --no-headers
 
-      -> ['0.0', '0.0', 'sshd: nilspal@pts/28']
+      -> ['0.0', '0.0', 'sshd: nilspal@pts/28', 1]
 
     :param cmd: command (string).
     :param user: user (string).
@@ -142,6 +147,7 @@ def get_process_info(cmd, user=getuser(), args='aufx', pid=None):
     """
 
     processes = []
+    n = 0
     pattern = re.compile(r"\S+|[-+]?\d*\.\d+|\d+")
     arguments = ['ps', '-u', user, args, '--no-headers']
 
@@ -154,9 +160,13 @@ def get_process_info(cmd, user=getuser(), args='aufx', pid=None):
             cpu = found[2]
             mem = found[3]
             command = ' '.join(found[10:])
-            if cmd in command and processid == str(pid):
-                processes = [cpu, mem, command]
-                break
+            if cmd in command:
+                n += 1
+                if processid == str(pid):
+                    processes = [cpu, mem, command]
+
+    if processes:
+        processes.append(n)
 
     return processes
 
