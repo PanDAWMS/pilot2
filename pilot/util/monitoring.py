@@ -321,7 +321,7 @@ def utility_monitor(job):
             # should not have done by itself
             utility_subprocess_launches = job.utilities[utcmd][1]
             if utility_subprocess_launches <= 5:
-                log.warning('dectected crashed utility subprocess - will restart it')
+                log.warning('detected crashed utility subprocess - will restart it')
                 utility_command = job.utilities[utcmd][2]
 
                 try:

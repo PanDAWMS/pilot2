@@ -93,9 +93,9 @@ def control(queues, traces, args):
                     logger.info('PID=%d has CPU usage=%s%% MEM usage=%s%% CMD=%s' % (getpid(), processes[0], processes[1], processes[2]))
                     n = processes[3]
                     if n > 1:
-                        logger.info('there are %d \"%s\" processes running' % (n, processes[2]))
+                        logger.info('there are %d such processes running' % n)
                     else:
-                        logger.info('there is %d \"%s\" process running' % (n, processes[2]))
+                        logger.info('there is %d such process running' % n)
                     logger.info('-' * 100)
                 tcpu = time.time()
 
