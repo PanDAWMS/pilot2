@@ -334,7 +334,7 @@ def utility_monitor(job):
                     # command has been launched
                     job.utilities[utcmd] = [proc1, utility_subprocess_launches + 1, utility_command]
             else:
-                log.warning('dectected crashed utility subprocess - too many restarts, will not restart %s again' %
+                log.warning('detected crashed utility subprocess - too many restarts, will not restart %s again' %
                             utcmd)
         else:  # check the utility output (the selector option adds a substring to the output file name)
             filename = usercommon.get_utility_command_output_filename(utcmd, selector=True)
