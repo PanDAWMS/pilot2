@@ -14,8 +14,10 @@
 import logging
 import threading
 import time
+import re
 from os import environ
 from getpass import getuser
+from subprocess import Popen, PIPE
 
 from pilot.common.exception import PilotException, ExceededMaxWaitTime
 from pilot.util.auxiliary import check_for_final_server_update
@@ -46,8 +48,8 @@ def control(queues, traces, args):
     threadchecktime = int(config.Pilot.thread_check)
 
     # for CPU usage debugging
-    #cpuchecktime = int(config.Pilot.cpu_check)
-    #tcpu = t0
+    cpuchecktime = int(config.Pilot.cpu_check)
+    tcpu = t0
 
     queuedata = get_queuedata_from_job(queues)
     if queuedata:
@@ -84,13 +86,13 @@ def control(queues, traces, args):
             time.sleep(1)
 
             # time to check the CPU?
-            #if int(time.time() - tcpu) > cpuchecktime:
-            #    stdout = get_ps_info()
-            #    logger.info('-' * 100)
-            #    logger.info('current CPU consumption by PanDA Pilot')
-            #    logger.info(stdout)
-            #    logger.info('-' * 100)
-            #    tcpu = time.time()
+            if int(time.time() - tcpu) > cpuchecktime:
+                stdout = get_processes_for_command('python pilot.py')
+                logger.info('-' * 100)
+                logger.info('current CPU consumption by PanDA Pilot')
+                logger.info(stdout)
+                logger.info('-' * 100)
+                tcpu = time.time()
 
             # proceed with running the other checks
             run_checks(queues, args)
@@ -112,24 +114,39 @@ def control(queues, traces, args):
 
     logger.info('[monitor] control thread has ended')
 
-
 #def log_lifetime(sig, frame, traces):
 #    logger.info('lifetime: %i used, %i maximum' % (int(time.time() - traces.pilot['lifetime_start']),
 #                                                   traces.pilot['lifetime_max']))
 
-def get_ps_info(whoami=getuser(), options='aufx'):
+def get_processes_for_command(cmd, user=getuser(), args='aufx'):
     """
-    Return ps info for the given user.
+    Return process info for given command.
+    The function returns a list with format (pid, cpu, mem, command) as returned by 'ps -u user args' for a given command (e.g. python pilot.py).
 
-    :param pgrp: process group id (int).
-    :param whoami: user name (string).
-    :return: ps aux for given user (string).
+    :param cmd: command (string).
+    :param user: user (string).
+    :param args: ps arguments (string).
+    :return: process info list.
     """
 
-    cmd = "ps -u %s %s" % (whoami, options)
-    exit_code, stdout, stderr = execute(cmd)
+    processes = []
+    arguments = ['ps', '-u', user, args, '--no-headers']
+    pattern = re.compile(r"\S+|[-+]?\d*\.\d+|\d+|\_+")
+    process = Popen(arguments, stdout=PIPE, stderr=PIPE)
 
-    return stdout
+    stdout, notused = process.communicate()
+    for line in stdout.splitlines():
+        filtered_line = re.sub(' +', ' ', line)  # remove extra spaces
+        found = re.findall(pattern, filtered_line)
+        if found is not None:
+            pid = found[1]
+            cpu = found[2]
+            mem = found[3]
+            command = ' '.join(found[10:])
+            if cmd in command:
+                processes.append([pid, cpu, mem, command])
+
+    return processes
 
 
 def run_checks(queues, args):
