@@ -22,7 +22,7 @@ from subprocess import Popen, PIPE
 from pilot.common.exception import PilotException, ExceededMaxWaitTime
 from pilot.util.auxiliary import check_for_final_server_update
 from pilot.util.config import config
-from pilot.util.container import execute
+# from pilot.util.container import execute
 from pilot.util.queuehandling import get_queuedata_from_job, abort_jobs_in_queues
 from pilot.util.timing import get_time_since_start
 
@@ -117,6 +117,7 @@ def control(queues, traces, args):
 #def log_lifetime(sig, frame, traces):
 #    logger.info('lifetime: %i used, %i maximum' % (int(time.time() - traces.pilot['lifetime_start']),
 #                                                   traces.pilot['lifetime_max']))
+
 
 def get_processes_for_command(cmd, user=getuser(), args='aufx'):
     """
