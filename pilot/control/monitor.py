@@ -141,14 +141,13 @@ def get_processes_for_command(cmd, user=getuser(), args='aufx'):
     """
 
     processes = []
-    arguments = ['ps', '-u', user, args, '--no-headers']
     pattern = re.compile(r"\S+|[-+]?\d*\.\d+|\d+")
-    process = Popen(arguments, stdout=PIPE, stderr=PIPE)
 
+    arguments = ['ps', '-u', user, args, '--no-headers']
+    process = Popen(arguments, stdout=PIPE, stderr=PIPE)
     stdout, notused = process.communicate()
     for line in stdout.splitlines():
-        filtered_line = re.sub(' +', ' ', line)  # remove extra spaces
-        found = re.findall(pattern, filtered_line)
+        found = re.findall(pattern, line)
         if found is not None:
             pid = found[1]
             cpu = found[2]
