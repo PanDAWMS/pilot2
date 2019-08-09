@@ -87,7 +87,7 @@ def control(queues, traces, args):
 
             # time to check the CPU?
             if int(time.time() - tcpu) > cpuchecktime:
-                output_list = get_processes_for_command('python pilot.py')
+                output_list = get_processes_for_command('python pilot2/pilot.py')
                 if output_list:
                     logger.info('-' * 100)
                     logger.info('current CPU usage by PanDA Pilot')
