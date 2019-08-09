@@ -15,7 +15,7 @@ import logging
 import threading
 import time
 import re
-from os import environ
+from os import environ, getpid
 from getpass import getuser
 from subprocess import Popen, PIPE
 
@@ -87,13 +87,11 @@ def control(queues, traces, args):
 
             # time to check the CPU?
             if int(time.time() - tcpu) > cpuchecktime:
-                output_list = get_processes_for_command('python pilot2/pilot.py')
-                if output_list:
+                processes = get_process_info('python pilot2/pilot.py', pid=getpid())
+                if processes:
                     logger.info('-' * 100)
-                    logger.info('current CPU usage by PanDA Pilot')
-                    for output in output_list:
-                        logger.info(output)
-                logger.info('-' * 100)
+                    logger.info('PID=%d has CPU usage=%s% MEM usage=%s% CMD=%s' % (getpid(), processes[0], processes[1], processes[2]))
+                    logger.info('-' * 100)
                 tcpu = time.time()
 
             # proceed with running the other checks
@@ -121,7 +119,7 @@ def control(queues, traces, args):
 #                                                   traces.pilot['lifetime_max']))
 
 
-def get_processes_for_command(cmd, user=getuser(), args='aufx'):
+def get_process_info(cmd, user=getuser(), args='aufx', pid=None):
     """
     Return process info for given command.
     The function returns a list with format (pid, cpu, mem, command) as returned by 'ps -u user args' for a given command (e.g. python pilot.py).
@@ -134,12 +132,13 @@ def get_processes_for_command(cmd, user=getuser(), args='aufx'):
       nilspal   8603  0.0  0.0  34692  5072 pts/28   S+   12:44   0:00      \_ python monitor.py
       nilspal   8604  0.0  0.0  62036  1776 pts/28   R+   12:44   0:00          \_ ps -u nilspal aufx --no-headers
 
-      -> [['1362', '0.0', '0.0', 'sshd: nilspal@pts/28']]
+      -> ['0.0', '0.0', 'sshd: nilspal@pts/28']
 
     :param cmd: command (string).
     :param user: user (string).
     :param args: ps arguments (string).
-    :return: list of lists with process info.
+    :param pid: process id (int).
+    :return: list with process info (l[0]=cpu usage(%), l[1]=mem usage(%), l[2]=command(string)).
     """
 
     processes = []
@@ -151,12 +150,13 @@ def get_processes_for_command(cmd, user=getuser(), args='aufx'):
     for line in stdout.splitlines():
         found = re.findall(pattern, line)
         if found is not None:
-            pid = found[1]
+            processid = found[1]
             cpu = found[2]
             mem = found[3]
             command = ' '.join(found[10:])
-            if cmd in command:
-                processes.append([pid, cpu, mem, command])
+            if cmd in command and processid == str(pid):
+                processes = [cpu, mem, command]
+                break
 
     return processes
 
