@@ -132,7 +132,7 @@ def get_processes_for_command(cmd, user=getuser(), args='aufx'):
 
     processes = []
     arguments = ['ps', '-u', user, args, '--no-headers']
-    pattern = re.compile(r"\S+|[-+]?\d*\.\d+|\d+|\_+")
+    pattern = re.compile(r"\S+|[-+]?\d*\.\d+|\d+")
     process = Popen(arguments, stdout=PIPE, stderr=PIPE)
 
     stdout, notused = process.communicate()
