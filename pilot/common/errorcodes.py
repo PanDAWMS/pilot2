@@ -124,6 +124,7 @@ class ErrorCodes:
     SINGULARITYNEWUSERNAMESPACE = 1340
     BADQUEUECONFIGURATION = 1341
     MIDDLEWAREIMPORTFAILURE = 1342
+    NOOUTPUTINJOBREPORT = 1343
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -226,7 +227,8 @@ class ErrorCodes:
         DBRELEASEFAILURE: "Local DBRelease handling failed (consult Pilot log)",
         SINGULARITYNEWUSERNAMESPACE: "Singularity: Failed invoking the NEWUSER namespace runtime",
         BADQUEUECONFIGURATION: "Bad queue configuration detected",
-        MIDDLEWAREIMPORTFAILURE: "Failed to import middleware (consult Pilot log)"
+        MIDDLEWAREIMPORTFAILURE: "Failed to import middleware (consult Pilot log)",
+        NOOUTPUTINJOBREPORT: "Found no output in job report"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
