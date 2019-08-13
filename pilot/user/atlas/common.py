@@ -704,6 +704,15 @@ def extract_output_files(job):
 
     log = get_logger(job.jobid)
 
+    # make sure there is a defined output file list in the job report - unless it is allowed by task parameter allowNoOutput
+    if not job.allownooutput:
+        output = job.metadata.get('files', {}).get('output', [])
+        if output:
+            logger.info('verified that job report contains metadata for %d file(s)' % len(output))
+        else:
+            logger.warning('job report contains no output files - will fail job since allowNoOutput is not set')
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOOUTPUTINJOBREPORT)
+
     # extract info from metadata (job report JSON)
     data = dict([e.lfn, e] for e in job.outdata)
     extra = []
