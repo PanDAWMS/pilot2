@@ -127,7 +127,8 @@ def control(queues, traces, args):
 def get_process_info(cmd, user=getuser(), args='aufx', pid=None):
     """
     Return process info for given command.
-    The function returns a list with format [cpu, mem, command, number of commands] as returned by 'ps -u user args' for a given command (e.g. python pilot2/pilot.py).
+    The function returns a list with format [cpu, mem, command, number of commands] as returned by 'ps -u user args' for
+    a given command (e.g. python pilot2/pilot.py).
 
     Example
       get_processes_for_command('sshd:')
