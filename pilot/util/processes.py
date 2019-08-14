@@ -7,7 +7,6 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
-import ctypes
 import os
 import time
 import signal

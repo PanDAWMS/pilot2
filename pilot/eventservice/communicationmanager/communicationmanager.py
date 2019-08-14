@@ -189,7 +189,7 @@ class CommunicationManager(threading.Thread, PluginFactory):
             return
 
         while req.response is None:
-            time.sleep(2)
+            time.sleep(1)
         if req.response.exception:
             raise req.response.exception
         if req.response.status is False:
@@ -219,7 +219,7 @@ class CommunicationManager(threading.Thread, PluginFactory):
             return
 
         while req.response is None:
-            time.sleep(2)
+            time.sleep(1)
         if req.response.exception:
             raise req.response.exception
         if req.response.status is False:
@@ -260,7 +260,7 @@ class CommunicationManager(threading.Thread, PluginFactory):
             return
 
         while req.response is None:
-            time.sleep(2)
+            time.sleep(1)
         if req.response.exception:
             raise req.response.exception
         if req.response.status is False:
