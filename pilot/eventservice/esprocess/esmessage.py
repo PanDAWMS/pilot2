@@ -12,7 +12,7 @@ import time
 import traceback
 
 from pilot.common.exception import PilotException, MessageFailure
-from pilot.util.processes import get_thread_tid
+
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ class MessageThread(threading.Thread):
         Main thread loop to poll messages from payload and
         put received into message queue for other processes to fetch.
         """
-        logger.info('Message thread starts to run with thread ident: %s, tid: %s' % (self.ident, get_thread_tid()))
+        logger.info('Message thread starts to run.')
         try:
             while True:
                 if self.is_stopped():

@@ -12,7 +12,6 @@
 Exceptions in pilot
 """
 
-import ctypes
 import time
 import threading
 import traceback
@@ -20,14 +19,6 @@ from sys import exc_info
 
 from .errorcodes import ErrorCodes
 errors = ErrorCodes()
-
-
-def get_thread_tid():
-    """System call gettid on Linux, returning thread-id."""
-    try:
-        return ctypes.CDLL('libc.so.6').syscall(186)
-    except Exception:
-        return None
 
 
 class PilotException(Exception):
@@ -419,7 +410,6 @@ class ExcThread(threading.Thread):
         :return:
         """
         try:
-            print('starting thread %s with thread ident: %s, tid: %s' % (self.name, self.ident, get_thread_tid()))
             self._Thread__target(**self._Thread__kwargs)
         except Exception:
             # logger object can't be used here for some reason:

@@ -19,7 +19,6 @@ from pilot.info.filespec import FileSpec
 from pilot.info import infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
-from pilot.util.processes import get_thread_tid
 from .baseexecutor import BaseExecutor
 
 import logging
@@ -259,7 +258,7 @@ class GenericExecutor(BaseExecutor):
         Initialize and run ESProcess.
         """
         try:
-            logger.info("starting ES GenericExecutor with thread ident: %s, tid: %s" % (self.ident, get_thread_tid()))
+            logger.info("starting ES GenericExecutor with thread ident: %s" % (self.ident))
             if self.is_set_payload():
                 payload = self.get_payload()
             elif self.is_retrieve_payload():

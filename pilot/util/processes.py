@@ -568,11 +568,3 @@ def cleanup(job):
 
     logger.info("will now attempt to kill all subprocesses of pid=%d" % job.pid)
     kill_processes(job.pid)
-
-
-def get_thread_tid():
-    """System call gettid on Linux, returning thread-id."""
-    try:
-        return ctypes.CDLL('libc.so.6').syscall(186)
-    except Exception:
-        return None

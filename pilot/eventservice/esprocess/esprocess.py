@@ -23,7 +23,8 @@ except Exception:
 
 from pilot.common.exception import PilotException, MessageFailure, SetupFailure, RunPayloadFailure, UnknownException
 from pilot.eventservice.esprocess.esmessage import MessageThread
-from pilot.util.processes import kill_child_processes, get_thread_tid
+from pilot.util.processes import kill_child_processes
+
 
 logger = logging.getLogger(__name__)
 
@@ -541,7 +542,7 @@ class ESProcess(threading.Thread):
                  UnknownException: when other unknown exception is caught.
         """
 
-        logger.info('start esprocess with thread ident: %s, tid: %s' % (self.ident, get_thread_tid()))
+        logger.info('start esprocess with thread ident: %s' % (self.ident))
         logger.debug('initializing')
         self.init()
         logger.debug('initialization finished.')
