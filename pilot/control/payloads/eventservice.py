@@ -98,8 +98,9 @@ class Executor(generic.Executor):
             if time.time() > t1 + 300:  # 5 minutes
                 log.info("Process is still running")
                 t1 = time.time()
+            time.sleep(2)
 
         while proc.is_alive():
-            time.sleep(0.1)
+            time.sleep(2)
         exit_code = proc.get_exit_code()
         return exit_code

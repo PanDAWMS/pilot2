@@ -45,7 +45,7 @@ class ESProcess(threading.Thread):
 
         :param payload: a dict of {'executable': <cmd string>, 'output_file': <filename or without it>, 'error_file': <filename or without it>}
         """
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, name='esprocess')
 
         self.__message_queue = queue.Queue()
         self.__payload = payload
@@ -562,11 +562,12 @@ class ESProcess(threading.Thread):
                  UnknownException: when other unknown exception is caught.
         """
 
-        logger.debug('initializing.')
+        logger.info('start esprocess with thread ident: %s' % (self.ident))
+        logger.debug('initializing')
         self.init()
         logger.debug('initialization finished.')
 
-        logger.debug('starts to main loop')
+        logger.info('starts to main loop')
         while self.is_payload_running():
             try:
                 self.monitor()
