@@ -184,7 +184,7 @@ def execute_payloads(queues, traces, args):
                 for i in xrange(10):
                     if args.graceful_stop.is_set():
                         break
-                    time.sleep(0.1)
+                    time.sleep(1)
                 continue
 
             # this job is now to be monitored, so add it to the monitored_payloads queue

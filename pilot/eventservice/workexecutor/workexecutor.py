@@ -82,7 +82,7 @@ class WorkExecutor(PluginFactory):
             if self.plugin.is_payload_started():
                 logger.info("Payload started with pid: %s" % self.get_pid())
                 break
-            time.sleep(0.1)
+            time.sleep(1)
 
     def stop(self):
         if not self.plugin:
