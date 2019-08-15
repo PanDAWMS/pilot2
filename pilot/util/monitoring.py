@@ -51,12 +51,21 @@ def job_monitor_tasks(job, mt, args):
 
     # update timing info for running jobs (to avoid an update after the job has finished)
     if job.state == 'running':
-        cpuconsumptiontime = get_current_cpu_consumption_time(job.pid)
-        job.cpuconsumptiontime = int(round(cpuconsumptiontime))
-        job.cpuconsumptionunit = "s"
-        job.cpuconversionfactor = 1.0
-        log.info('CPU consumption time for pid=%d: %f (rounded to %d)' %
-                 (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
+        try:
+            cpuconsumptiontime = get_current_cpu_consumption_time(job.pid)
+        except Exception as e:
+            diagnostics = "Exception caught: %s" % e
+            log.warning(diagnostics)
+            if "Resource temporarily unavailable" in diagnostics:
+                exit_code = errors.RESOURCEUNAVAILABLE
+            else:
+                exit_code = errors.UNKNOWNEXCEPTION
+            return exit_code, diagnostics
+        else:
+            job.cpuconsumptiontime = int(round(cpuconsumptiontime))
+            job.cpuconsumptionunit = "s"
+            job.cpuconversionfactor = 1.0
+            log.info('CPU consumption time for pid=%d: %f (rounded to %d)' % (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
 
         # check how many cores the payload is using
         check_number_used_cores(job)
