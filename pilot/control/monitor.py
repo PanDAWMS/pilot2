@@ -86,7 +86,7 @@ def control(queues, traces, args):
             time.sleep(1)
 
             # time to check the CPU?
-            if int(time.time() - tcpu) > cpuchecktime:
+            if int(time.time() - tcpu) > cpuchecktime and False:  # for testing only
                 processes = get_process_info('python pilot2/pilot.py', pid=getpid())
                 if processes:
                     logger.info('-' * 100)
