@@ -17,6 +17,7 @@ import threading
 from time import time, sleep
 from sys import stderr
 from os import getpid
+from shutil import rmtree
 
 try:
     import Queue as queue  # noqa: N813
@@ -51,6 +52,11 @@ def interrupt(args, signum, frame):
     args.signal_counter += 1
     if args.signal_counter == MAX_KILL_SIGNALS:
         logger.warning('passed maximum number of kill signals - will commit suicide - farewell')
+        logging.shutdown()
+        try:
+            rmtree(args.sourcedir)
+        except Exception as e:
+            pass
         kill_processes(getpid())
 
     add_to_pilot_timing('0', PILOT_KILL_SIGNAL, time(), args)

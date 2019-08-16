@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
-# - Wen Guan, wen.guan, 2018
+# - Wen Guan, wen.guan@cern.ch, 2018
 
 import re
 
