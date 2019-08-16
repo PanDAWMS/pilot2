@@ -59,11 +59,11 @@ def interrupt(args, signum, frame):
     current_time = int(time())
     if args.kill_time and current_time - args.kill_time > max_kill_wait_time:
         logger.warning('passed maximum waiting time after first kill signal - will commit suicide - farewell')
-        logging.shutdown()
         try:
             rmtree(args.sourcedir)
         except Exception as e:
-            pass
+            logger.warning(e)
+        logging.shutdown()
         kill_processes(getpid())
 
     add_to_pilot_timing('0', PILOT_KILL_SIGNAL, time(), args)
