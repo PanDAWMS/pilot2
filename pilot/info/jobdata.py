@@ -451,7 +451,7 @@ class JobData(BaseData):
         logger.info('cleaning jobparams: %s' % value)
 
         ## clean job params from Pilot1 old-formatted options
-        ret = re.sub(r"--overwriteQueuedata={.*?}", "", value)
+        ret = re.sub(r"--overwriteQueueData={.*?}", "", value)
 
         ## extract overwrite options
         options, ret = self.parse_args(ret, {'--overwriteQueueData': lambda x: ast.literal_eval(x) if x else {},
