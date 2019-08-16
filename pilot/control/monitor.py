@@ -22,6 +22,7 @@ from subprocess import Popen, PIPE
 from pilot.common.exception import PilotException, ExceededMaxWaitTime
 from pilot.util.auxiliary import check_for_final_server_update
 from pilot.util.config import config
+from pilot.util.constants import MAX_KILL_WAIT_TIME
 # from pilot.util.container import execute
 from pilot.util.queuehandling import get_queuedata_from_job, abort_jobs_in_queues
 from pilot.util.timing import get_time_since_start
@@ -65,6 +66,11 @@ def control(queues, traces, args):
         while not args.graceful_stop.is_set():
             # every seconds, run the monitoring checks
             if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility
+                break
+
+            # abort if kill signal arrived too long time ago, ie loop is stuck
+            if args.kill_time and args.kill_time > MAX_KILL_WAIT_TIME:
+                logger.warning('loop has run for too long time - will abort')
                 break
 
             # check if the pilot has run out of time (stop ten minutes before PQ limit)

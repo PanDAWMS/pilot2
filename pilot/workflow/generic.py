@@ -50,6 +50,11 @@ def interrupt(args, signum, frame):
 
     sig = [v for v, k in signal.__dict__.iteritems() if k == signum][0]
     args.signal_counter += 1
+
+    # keep track of when first kill signal arrived, any stuck loops should abort at a defined cut off time
+    if args.kill_time == 0:
+        args.kill_time = int(time())
+
     if args.signal_counter == MAX_KILL_SIGNALS:
         logger.warning('passed maximum number of kill signals - will commit suicide - farewell')
         logging.shutdown()
