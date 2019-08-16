@@ -16,6 +16,7 @@ import signal
 import threading
 from time import time, sleep
 from sys import stderr
+from os import getpid
 
 try:
     import Queue as queue  # noqa: N813
@@ -26,7 +27,8 @@ from collections import namedtuple
 
 from pilot.common.exception import ExcThread
 from pilot.control import job, payload, data, monitor
-from pilot.util.constants import SUCCESS, PILOT_KILL_SIGNAL
+from pilot.util.constants import SUCCESS, PILOT_KILL_SIGNAL, MAX_KILL_SIGNALS
+from pilot.util.processes import kill_processes
 from pilot.util.timing import add_to_pilot_timing
 
 import logging
@@ -46,6 +48,11 @@ def interrupt(args, signum, frame):
     """
 
     sig = [v for v, k in signal.__dict__.iteritems() if k == signum][0]
+    args.signal_counter += 1
+    if args.signal_counter == MAX_KILL_SIGNALS:
+        logger.warning('passed maximum number of kill signals - will commit suicide - farewell')
+        kill_processes(getpid())
+
     add_to_pilot_timing('0', PILOT_KILL_SIGNAL, time(), args)
     logger.warning('caught signal: %s' % sig)
     args.signal = sig

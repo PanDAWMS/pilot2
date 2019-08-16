@@ -14,7 +14,7 @@ from os import environ
 RELEASE = '2'   # released number should be fixed at 2 for Pilot 2
 VERSION = '1'   # version number is '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
 REVISION = '21'  # revision number should be reset to '0' for every new version release, increased for small updates
-BUILD = '12'   # build number should be reset to '1' for every new development cycle
+BUILD = '13'   # build number should be reset to '1' for every new development cycle
 
 SUCCESS = 0
 FAILURE = 1
@@ -58,6 +58,9 @@ SERVER_UPDATE_RUNNING = 'RUNNING'
 SERVER_UPDATE_UPDATING = 'UPDATING_FINAL'
 SERVER_UPDATE_FINAL = 'DONE_FINAL'
 SERVER_UPDATE_TROUBLE = 'LOST_HEARTBEAT'
+
+# How many kill signals will the pilot accept to receive before it should commit suicide?
+MAX_KILL_SIGNALS = 1
 
 
 def get_pilot_version():
