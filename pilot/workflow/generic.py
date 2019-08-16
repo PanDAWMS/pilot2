@@ -28,7 +28,7 @@ from collections import namedtuple
 
 from pilot.common.exception import ExcThread
 from pilot.control import job, payload, data, monitor
-from pilot.util.constants import SUCCESS, PILOT_KILL_SIGNAL, MAX_KILL_SIGNALS
+from pilot.util.constants import SUCCESS, PILOT_KILL_SIGNAL, MAX_KILL_WAIT_TIME
 from pilot.util.processes import kill_processes
 from pilot.util.timing import add_to_pilot_timing
 
@@ -55,8 +55,10 @@ def interrupt(args, signum, frame):
     if args.kill_time == 0:
         args.kill_time = int(time())
 
-    if args.signal_counter == MAX_KILL_SIGNALS:
-        logger.warning('passed maximum number of kill signals - will commit suicide - farewell')
+    max_kill_wait_time = MAX_KILL_WAIT_TIME + 60  # add another minute of grace to let threads finish
+    current_time = int(time())
+    if args.kill_time and current_time - args.kill_time > max_kill_wait_time:
+        logger.warning('passed maximum waiting time after first kill signal - will commit suicide - farewell')
         logging.shutdown()
         try:
             rmtree(args.sourcedir)

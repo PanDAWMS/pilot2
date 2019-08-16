@@ -59,8 +59,7 @@ SERVER_UPDATE_UPDATING = 'UPDATING_FINAL'
 SERVER_UPDATE_FINAL = 'DONE_FINAL'
 SERVER_UPDATE_TROUBLE = 'LOST_HEARTBEAT'
 
-# How many kill signals will the pilot accept to receive before it should commit suicide?
-MAX_KILL_SIGNALS = 100
+# How long should the pilot wait before it should commit suicide after it has received a kill signal?
 MAX_KILL_WAIT_TIME = 1200  # twenty minutes
 
 
