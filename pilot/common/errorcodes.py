@@ -74,6 +74,7 @@ class ErrorCodes:
     ESFATAL = 1228
     EXECUTEDCLONEJOB = 1234
     PAYLOADEXCEEDMAXMEM = 1235
+    FAILEDBYSERVER = 1236
     ESNOEVENTS = 1238
     MESSAGEHANDLINGFAILURE = 1240
     CHKSUMNOTSUP = 1242
@@ -185,6 +186,7 @@ class ErrorCodes:
         ESFATAL: "Event service: fatal error",
         EXECUTEDCLONEJOB: "Clone job is already executed",
         PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
+        FAILEDBYSERVER: "Failed by server",
         ESNOEVENTS: "Event service: no events",
         MESSAGEHANDLINGFAILURE: "Failed to handle message from payload",
         NOTIMPLEMENTED: "The class or function is not implemented",
