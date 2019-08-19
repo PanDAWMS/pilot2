@@ -354,15 +354,13 @@ class ErrorCodes:
         """
 
         msg = ""
-        pattern = r"ERROR +\: (.+)"
-        found = re.findall(pattern, stderr)
-        if len(found) > 0:
-            msg = found[0]
-        else:
-            pattern = r"WARNING\: (.+)"
+        patterns = [r"ERROR +\: (.+)", r"Warning\: (.+)", r"WARNING\: (.+)"]
+
+        for pattern in patterns:
             found = re.findall(pattern, stderr)
             if len(found) > 0:
                 msg = found[0]
+                break
 
         return msg
 
