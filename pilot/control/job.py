@@ -1427,7 +1427,8 @@ def has_job_completed(queues):
         log.info("job %s has completed" % job.jobid)
 
         # cleanup of any remaining processes
-        job.zombies.append(job.pid)
+        if job.pid:
+            job.zombies.append(job.pid)
         cleanup(job)
 
         return True
