@@ -258,6 +258,7 @@ class GenericExecutor(BaseExecutor):
         Initialize and run ESProcess.
         """
         try:
+            logger.info("starting ES GenericExecutor with thread ident: %s" % (self.ident))
             if self.is_set_payload():
                 payload = self.get_payload()
             elif self.is_retrieve_payload():
