@@ -128,6 +128,8 @@ class ErrorCodes:
     NOOUTPUTINJOBREPORT = 1343
     RESOURCEUNAVAILABLE = 1344
     SINGULARITYFAILEDUSERNAMESPACE = 1345
+    TRANSFORMNOTFOUND = 1346
+    UNSUPPORTEDSL5OS = 1347
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -234,7 +236,9 @@ class ErrorCodes:
         MIDDLEWAREIMPORTFAILURE: "Failed to import middleware (consult Pilot log)",
         NOOUTPUTINJOBREPORT: "Found no output in job report",
         RESOURCEUNAVAILABLE: "Resource temporarily unavailable",
-        SINGULARITYFAILEDUSERNAMESPACE: "Singularity: Failed to create user namespace"
+        SINGULARITYFAILEDUSERNAMESPACE: "Singularity: Failed to create user namespace",
+        TRANSFORMNOTFOUND: "Transform not found",
+        UNSUPPORTEDSL5OS: "Unsupported SL5 OS"
 
     }
 

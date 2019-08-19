@@ -296,6 +296,10 @@ def perform_initial_payload_error_analysis(job, exit_code):
                     ec = errors.SINGULARITYNEWUSERNAMESPACE
                 elif "Failed to create user namespace" in msg:
                     ec = errors.SINGULARITYFAILEDUSERNAMESPACE
+                elif "command not found" in msg:
+                    ec = errors.TRANSFORMNOTFOUND
+                elif "SL5 is unsupported" in msg:
+                    ec = errors.UNSUPPORTEDSL5OS
 
         if not ec:
             ec = errors.resolve_transform_error(exit_code, stderr)
