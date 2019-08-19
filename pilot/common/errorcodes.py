@@ -127,6 +127,7 @@ class ErrorCodes:
     MIDDLEWAREIMPORTFAILURE = 1342
     NOOUTPUTINJOBREPORT = 1343
     RESOURCEUNAVAILABLE = 1344
+    SINGULARITYFAILEDUSERNAMESPACE = 1345
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -232,7 +233,8 @@ class ErrorCodes:
         BADQUEUECONFIGURATION: "Bad queue configuration detected",
         MIDDLEWAREIMPORTFAILURE: "Failed to import middleware (consult Pilot log)",
         NOOUTPUTINJOBREPORT: "Found no output in job report",
-        RESOURCEUNAVAILABLE: "Resource temporarily unavailable"
+        RESOURCEUNAVAILABLE: "Resource temporarily unavailable",
+        SINGULARITYFAILEDUSERNAMESPACE: "Singularity: Failed to create user namespace"
 
     }
 
