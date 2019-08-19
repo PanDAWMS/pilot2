@@ -153,9 +153,13 @@ def verify_memory_usage(current_time, mt, job):
     memory_verification_time = convert_to_int(config.Pilot.memory_usage_verification_time, default=60)
     if current_time - mt.get('ct_memory') > memory_verification_time:
         # is the used memory within the allowed limit?
-        exit_code, diagnostics = memory.memory_usage(job)
+        try:
+            exit_code, diagnostics = memory.memory_usage(job)
+        except Exception as e:
+            logger.warning('caught exception: %s' % e)
+            exit_code = -1
         if exit_code != 0:
-            logger.warning('ignoring memory monitor failure')
+            logger.warning('ignoring failure to parse memory monitor output')
             #return exit_code, diagnostics
         else:
             # update the ct_proxy with the current time
