@@ -23,12 +23,35 @@ except NameError:  # Python 3
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.container import execute
-from pilot.util.constants import SUCCESS, FAILURE, SERVER_UPDATE_FINAL, SERVER_UPDATE_NOT_DONE
+from pilot.util.constants import SUCCESS, FAILURE, SERVER_UPDATE_FINAL, SERVER_UPDATE_NOT_DONE, get_pilot_version
+from pilot.util.workernode import is_virtual_machine, display_architecture_info
 
 import logging
 logger = logging.getLogger(__name__)
 
 errors = ErrorCodes()
+
+
+def pilot_version_banner():
+    """
+    Print a pilot version banner.
+
+    :return:
+    """
+
+    logger = logging.getLogger(__name__)
+
+    version = '***  PanDA Pilot version %s  ***' % get_pilot_version()
+    logger.info('*' * len(version))
+    logger.info(version)
+    logger.info('*' * len(version))
+    logger.info('')
+
+    if is_virtual_machine():
+        logger.info('pilot is running in a VM')
+
+    display_architecture_info()
+    logger.info('*' * len(version))
 
 
 def get_batchsystem_jobid():

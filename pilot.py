@@ -21,7 +21,7 @@ from shutil import rmtree
 
 from pilot.common.exception import PilotException
 from pilot.info import infosys
-from pilot.util.auxiliary import shell_exit_code
+from pilot.util.auxiliary import pilot_version_banner, shell_exit_code
 from pilot.util.config import config
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_START_TIME, PILOT_END_TIME, get_pilot_version, \
     SERVER_UPDATE_NOT_DONE
@@ -29,29 +29,6 @@ from pilot.util.filehandling import get_pilot_work_dir, mkdirs, establish_loggin
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
 from pilot.util.timing import add_to_pilot_timing
-from pilot.util.workernode import is_virtual_machine, display_architecture_info
-
-
-def pilot_version_banner():
-    """
-    Print a pilot version banner.
-
-    :return:
-    """
-
-    logger = logging.getLogger(__name__)
-
-    version = '***  PanDA Pilot version %s  ***' % get_pilot_version()
-    logger.info('*' * len(version))
-    logger.info(version)
-    logger.info('*' * len(version))
-    logger.info('')
-
-    if is_virtual_machine():
-        logger.info('pilot is running in a VM')
-
-    display_architecture_info()
-    logger.info('*' * len(version))
 
 
 def main():
