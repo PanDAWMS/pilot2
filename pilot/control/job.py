@@ -28,7 +28,7 @@ from pilot.common.exception import ExcThread, PilotException  #, JobAlreadyRunni
 from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
-    set_pilot_state, get_pilot_state, check_for_final_server_update
+    set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner
 from pilot.util.config import config
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
@@ -876,8 +876,6 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
 
     currenttime = time.time()
 
-    logger.debug('proceed_with_getjob called with getjob_requests=%d' % getjob_requests)
-
     # should the proxy be verified?
     if verify_proxy:
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -1280,7 +1278,6 @@ def retrieve(queues, traces, args):
         time.sleep(0.5)
         getjob_requests += 1
 
-        logger.debug('getjob_requests=%d' % getjob_requests)
         if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester, args.verify_proxy, traces):
             # do not set graceful stop if pilot has not finished sending the final job update
             # i.e. wait until SERVER_UPDATE is DONE_FINAL
@@ -1356,7 +1353,7 @@ def retrieve(queues, traces, args):
                         logging.handlers = []
                         logging.shutdown()
                         establish_logging(args)
-
+                        pilot_version_banner()
                         getjob_requests = 0
                         break
                     time.sleep(0.5)
