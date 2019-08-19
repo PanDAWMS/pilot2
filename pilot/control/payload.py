@@ -302,6 +302,8 @@ def perform_initial_payload_error_analysis(job, exit_code):
                     ec = errors.UNSUPPORTEDSL5OS
                 elif "resource temporarily unavailable" in msg:
                     ec = errors.SINGULARITYRESOURCEUNAVAILABLE
+                elif "unrecognized arguments" in msg:
+                    ec = errors.UNRECOGNIZEDTRFARGUMENTS
 
         if not ec:
             ec = errors.resolve_transform_error(exit_code, stderr)
