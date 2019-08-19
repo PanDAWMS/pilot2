@@ -1622,8 +1622,9 @@ def queue_monitor(queues, traces, args):
 
     job = None
     sentfinal = False
-    while True:  # will abort when graceful_stop has been set
+    while True:  # will abort when graceful_stop has been set or if enough time has passed after kill signal
         time.sleep(0.5)
+
         if traces.pilot['command'] == 'abort':
             logger.warning('job queue monitor received an abort instruction')
 
@@ -1802,6 +1803,7 @@ def job_monitor(queues, traces, args):
     n = 0
     while not args.graceful_stop.is_set():
         time.sleep(0.5)
+
         # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
         # (abort at the end of the loop)
         abort = should_abort(args, label='job:job_monitor')

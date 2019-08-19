@@ -42,6 +42,9 @@ def interpret(job):
 
     # extract errors from job report
     process_job_report(job)
+    if job.piloterrorcodes:
+        log.warning('aborting payload error diagnosis since an error has already been set')
+        return -1
 
     if job.exitcode != 0:
         exit_code = job.exitcode

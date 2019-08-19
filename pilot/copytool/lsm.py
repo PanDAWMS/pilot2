@@ -128,6 +128,10 @@ def copy_in(files, **kwargs):
         trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
         trace_report.send()
 
+    # for testing kill signals
+    #import signal
+    #os.kill(os.getpid(), signal.SIGSEGV)
+
     return files
 
 

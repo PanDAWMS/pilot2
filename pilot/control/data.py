@@ -33,7 +33,7 @@ from pilot.util.auxiliary import get_logger, set_pilot_state, check_for_final_se
 from pilot.util.common import should_abort
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
-    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING
+    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME
 from pilot.util.container import execute
 from pilot.util.filehandling import find_executable, remove
 from pilot.util.timing import add_to_pilot_timing
@@ -378,6 +378,12 @@ def copytool_in(queues, traces, args):
     while not args.graceful_stop.is_set():
         time.sleep(0.5)
         try:
+            # abort if kill signal arrived too long time ago, ie loop is stuck
+            current_time = int(time.time())
+            if args.kill_time and current_time - args.kill_time > MAX_KILL_WAIT_TIME:
+                logger.warning('loop has run for too long time after first kill signal - will abort')
+                break
+
             # extract a job to stage-in its input
             job = queues.data_in.get(block=True, timeout=1)
             # place it in the current stage-in queue (used by the jobs' queue monitoring)
@@ -455,13 +461,17 @@ def copytool_out(queues, traces, args):
     logger.debug('entering copytool_out loop')
     if args.graceful_stop.is_set():
         logger.debug('graceful_stop already set')
-    first = True
+
 #    while not args.graceful_stop.is_set() and cont:
     while cont:
 
         time.sleep(0.5)
-        if first:
-            first = False
+
+        # abort if kill signal arrived too long time ago, ie loop is stuck
+        current_time = int(time.time())
+        if args.kill_time and current_time - args.kill_time > MAX_KILL_WAIT_TIME:
+            logger.warning('loop has run for too long time after first kill signal - will abort')
+            break
 
         # check for abort, print useful messages and include a 1 s sleep
         abort = should_abort(args, label='data:copytool_out')

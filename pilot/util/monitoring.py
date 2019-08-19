@@ -51,12 +51,21 @@ def job_monitor_tasks(job, mt, args):
 
     # update timing info for running jobs (to avoid an update after the job has finished)
     if job.state == 'running':
-        cpuconsumptiontime = get_current_cpu_consumption_time(job.pid)
-        job.cpuconsumptiontime = int(round(cpuconsumptiontime))
-        job.cpuconsumptionunit = "s"
-        job.cpuconversionfactor = 1.0
-        log.info('CPU consumption time for pid=%d: %f (rounded to %d)' %
-                 (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
+        try:
+            cpuconsumptiontime = get_current_cpu_consumption_time(job.pid)
+        except Exception as e:
+            diagnostics = "Exception caught: %s" % e
+            log.warning(diagnostics)
+            if "Resource temporarily unavailable" in diagnostics:
+                exit_code = errors.RESOURCEUNAVAILABLE
+            else:
+                exit_code = errors.UNKNOWNEXCEPTION
+            return exit_code, diagnostics
+        else:
+            job.cpuconsumptiontime = int(round(cpuconsumptiontime))
+            job.cpuconsumptionunit = "s"
+            job.cpuconversionfactor = 1.0
+            log.info('CPU consumption time for pid=%d: %f (rounded to %d)' % (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
 
         # check how many cores the payload is using
         check_number_used_cores(job)
@@ -321,7 +330,7 @@ def utility_monitor(job):
             # should not have done by itself
             utility_subprocess_launches = job.utilities[utcmd][1]
             if utility_subprocess_launches <= 5:
-                log.warning('dectected crashed utility subprocess - will restart it')
+                log.warning('detected crashed utility subprocess - will restart it')
                 utility_command = job.utilities[utcmd][2]
 
                 try:
@@ -334,7 +343,7 @@ def utility_monitor(job):
                     # command has been launched
                     job.utilities[utcmd] = [proc1, utility_subprocess_launches + 1, utility_command]
             else:
-                log.warning('dectected crashed utility subprocess - too many restarts, will not restart %s again' %
+                log.warning('detected crashed utility subprocess - too many restarts, will not restart %s again' %
                             utcmd)
         else:  # check the utility output (the selector option adds a substring to the output file name)
             filename = usercommon.get_utility_command_output_filename(utcmd, selector=True)

@@ -16,6 +16,8 @@ import signal
 import threading
 from time import time, sleep
 from sys import stderr
+from os import getpid
+from shutil import rmtree
 
 try:
     import Queue as queue  # noqa: N813
@@ -26,7 +28,8 @@ from collections import namedtuple
 
 from pilot.common.exception import ExcThread
 from pilot.control import job, payload, data, monitor
-from pilot.util.constants import SUCCESS, PILOT_KILL_SIGNAL
+from pilot.util.constants import SUCCESS, PILOT_KILL_SIGNAL, MAX_KILL_WAIT_TIME
+from pilot.util.processes import kill_processes
 from pilot.util.timing import add_to_pilot_timing
 
 import logging
@@ -46,6 +49,23 @@ def interrupt(args, signum, frame):
     """
 
     sig = [v for v, k in signal.__dict__.iteritems() if k == signum][0]
+    args.signal_counter += 1
+
+    # keep track of when first kill signal arrived, any stuck loops should abort at a defined cut off time
+    if args.kill_time == 0:
+        args.kill_time = int(time())
+
+    max_kill_wait_time = MAX_KILL_WAIT_TIME + 60  # add another minute of grace to let threads finish
+    current_time = int(time())
+    if args.kill_time and current_time - args.kill_time > max_kill_wait_time:
+        logger.warning('passed maximum waiting time after first kill signal - will commit suicide - farewell')
+        try:
+            rmtree(args.sourcedir)
+        except Exception as e:
+            logger.warning(e)
+        logging.shutdown()
+        kill_processes(getpid())
+
     add_to_pilot_timing('0', PILOT_KILL_SIGNAL, time(), args)
     logger.warning('caught signal: %s' % sig)
     args.signal = sig
