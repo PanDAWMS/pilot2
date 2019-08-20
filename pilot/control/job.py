@@ -895,11 +895,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
         traces.pilot['error_code'] = errors.NOLOCALSPACE
         return False
 
-    if harvester:
-        maximum_getjob_requests = 60  # 1 s apart
-    else:
-        maximum_getjob_requests = config.Pilot.maximum_getjob_requests
-
+    maximum_getjob_requests = 60 if harvester else config.Pilot.maximum_getjob_requests  # 1 s apart (if harvester)
     if getjob_requests > int(maximum_getjob_requests):
         logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' %
                        config.Pilot.maximum_getjob_requests)
