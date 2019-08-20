@@ -258,15 +258,17 @@ class Executor(object):
         exit_code = None
         iteration = 0L
         while True:
+            time.sleep(0.1)
+
             iteration += 1
-            for i in xrange(100):
+            for i in xrange(60):
                 if args.graceful_stop.is_set():
                     breaker = True
                     log.info('breaking -- sending SIGTERM pid=%s' % proc.pid)
                     os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
                     # proc.terminate()
                     break
-                time.sleep(0.1)
+                time.sleep(1)
             if breaker:
                 log.info('breaking -- sleep 3s before sending SIGKILL pid=%s' % proc.pid)
                 time.sleep(3)

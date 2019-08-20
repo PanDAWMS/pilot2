@@ -45,7 +45,7 @@ class ESProcess(threading.Thread):
 
         :param payload: a dict of {'executable': <cmd string>, 'output_file': <filename or without it>, 'error_file': <filename or without it>}
         """
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, name='esprocess')
 
         self.__message_queue = queue.Queue()
         self.__payload = payload
@@ -86,7 +86,7 @@ class ESProcess(threading.Thread):
             event_ranges = "No more events"
             self.send_event_ranges_to_payload(event_ranges)
 
-    def init_message_thread(self, socketname='EventService_EventRanges', context='local'):
+    def init_message_thread(self, socketname=None, context='local'):
         """
         init message thread.
 
@@ -120,6 +120,25 @@ class ESProcess(threading.Thread):
                     self.__message_thread.stop()
         logger.info("Message thread stopped")
 
+    def init_yampl_socket(self, executable):
+        socket_name = self.__message_thread.get_yampl_socket_name()
+        if "PILOT_EVENTRANGECHANNEL" in executable:
+            executable = "export PILOT_EVENTRANGECHANNEL=\"%s\"; " % (socket_name) + executable
+        elif "--preExec" not in executable:
+            executable += " --preExec \'from AthenaMP.AthenaMPFlags import jobproperties as jps;jps.AthenaMPFlags.EventRangeChannel=\"%s\"\'" % (socket_name)
+        else:
+            if "import jobproperties as jps" in executable:
+                executable = executable.replace("import jobproperties as jps;",
+                                                "import jobproperties as jps;jps.AthenaMPFlags.EventRangeChannel=\"%s\";" % (socket_name))
+            else:
+                if "--preExec " in executable:
+                    new_str = "--preExec \'from AthenaMP.AthenaMPFlags import jobproperties as jps;jps.AthenaMPFlags.EventRangeChannel=\"%s\"\' " % socket_name
+                    executable = executable.replace("--preExec ", new_str)
+                else:
+                    logger.warn("!!WARNING!!43431! --preExec has an unknown format - expected \'--preExec \"\' or \"--preExec \'\", got: %s" % (executable))
+
+        return executable
+
     def init_payload_process(self):
         """
         init payload process.
@@ -130,6 +149,7 @@ class ESProcess(threading.Thread):
         logger.info("start to init payload process")
         try:
             executable = self.__payload['executable']
+            executable = self.init_yampl_socket(executable)
             workdir = ''
             if 'workdir' in self.__payload:
                 workdir = self.__payload['workdir']
@@ -472,7 +492,7 @@ class ESProcess(threading.Thread):
                     for i in range(time_to_wait * 10):
                         if not self.__process.poll() is None:
                             break
-                        time.sleep(0.1)
+                        time.sleep(1)
 
                     if not self.__process.poll() is None:
                         if self.__process.poll() == 0:
@@ -542,11 +562,12 @@ class ESProcess(threading.Thread):
                  UnknownException: when other unknown exception is caught.
         """
 
-        logger.debug('initializing.')
+        logger.info('start esprocess with thread ident: %s' % (self.ident))
+        logger.debug('initializing')
         self.init()
         logger.debug('initialization finished.')
 
-        logger.debug('starts to main loop')
+        logger.info('starts to main loop')
         while self.is_payload_running():
             try:
                 self.monitor()

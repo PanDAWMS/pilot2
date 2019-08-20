@@ -795,3 +795,19 @@ class JobData(BaseData):
                     if _id:  # finished
                         self.zombies.remove(x)
                 self.collect_zombies(tn=tn)  # recursion
+
+    def only_copy_to_scratch(self):
+        """
+        Determine if the payload only has copy-to-scratch input.
+        In this case, there should be no --usePFCTurl or --directIn in the job parameters.
+
+        :return: True if only copy-to-scratch. False if at least one accessmode=direct in the indata.
+        """
+
+        status = True
+        for fspec in self.indata:
+            if fspec.accessmode == 'direct':
+                status = False
+                break
+
+        return status

@@ -38,6 +38,28 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
+def sanity_check():
+    """
+    Perform an initial sanity check before doing anything else in a given workflow.
+    This function can be used to verify importing of modules that are otherwise used much later, but it is better to abort
+    the pilot if a problem is discovered early.
+
+    :return: exit code (0 if all is ok, otherwise non-zero exit code).
+    """
+
+    exit_code = 0
+
+    #try:
+    #    from rucio.client.downloadclient import DownloadClient
+    #    from rucio.client.uploadclient import UploadClient
+    #    # note: must do something with Download/UploadClients or flake8 will complain - but do not instantiate
+    #except Exception as e:
+    #    logger.warning('sanity check failed: %s' % e)
+    #    exit_code = errors.MIDDLEWAREIMPORTFAILURE
+
+    return exit_code
+
+
 def validate(job):
     """
     Perform user specific payload/job validation.
@@ -59,6 +81,16 @@ def validate(job):
     # assign error in case of DBRelease handling failure
     if not status:
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.DBRELEASEFAILURE)
+
+    # cleanup job parameters if only copy-to-scratch
+    #if job.only_copy_to_scratch():
+    #    log.debug('job.params=%s' % job.jobparams)
+    #    if ' --usePFCTurl' in job.jobparams:
+    #        log.debug('cleaning up --usePFCTurl from job parameters since all input is copy-to-scratch')
+    #        job.jobparams = job.jobparams.replace(' --usePFCTurl', '')
+    #    if ' --directIn' in job.jobparams:
+    #        log.debug('cleaning up --directIn from job parameters since all input is copy-to-scratch')
+    #        job.jobparams = job.jobparams.replace(' --directIn', '')
 
     return status
 
@@ -116,9 +148,7 @@ def get_payload_command(job):
 
     # For direct access in prod jobs, we need to substitute the input file names with the corresponding TURLs
     # get relevant file transfer info
-    use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype,
-                                                                            job.is_build_job(),
-                                                                            job.infosys.queuedata)
+    use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job)
     if not userjob and use_direct_access and job.transfertype == 'direct':
         lfns, guids = job.get_lfns_and_guids()
         cmd = replace_lfns_with_turls(cmd, job.workdir, "PoolFileCatalog.xml", lfns, writetofile=job.writetofile)
@@ -397,9 +427,7 @@ def get_analysis_run_command(job, trf_name):
     log = get_logger(job.jobid)
 
     # get relevant file transfer info
-    use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job.transfertype,
-                                                                            job.is_build_job(),
-                                                                            job.infosys.queuedata)
+    use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job)
     # check if the input files are to be accessed locally (ie if prodDBlockToken is set to local)
     if job.is_local():
         log.debug('switched off direct access for local prodDBlockToken')
@@ -565,13 +593,11 @@ def get_guids_from_jobparams(jobparams, infiles, infilesguids):
     return guidlist
 
 
-def get_file_transfer_info(transfertype, is_a_build_job, queuedata):
+def get_file_transfer_info(job):
     """
     Return information about desired file transfer.
 
-    :param transfertype:
-    :param is_a_build_job: boolean.
-    :param queuedata: infosys queuedata object from job object.
+    :param job: job object
     :return: use copy tool (boolean), use direct access (boolean), use PFC Turl (boolean).
     """
 
@@ -580,10 +606,15 @@ def get_file_transfer_info(transfertype, is_a_build_job, queuedata):
     use_pfc_turl = False
 
     # check with schedconfig
-    if (queuedata.direct_access_lan or queuedata.direct_access_wan or transfertype == 'direct') and not is_a_build_job:
-        use_copy_tool = False
-        use_direct_access = True
-        use_pfc_turl = True
+    if (job.infosys.queuedata.direct_access_lan or job.infosys.queuedata.direct_access_wan or job.transfertype == 'direct') and not job.is_build_job():
+        # override if all input files are copy-to-scratch
+        if job.only_copy_to_scratch():
+            logger.info('all input files are copy-to-scratch (--usePFCTurl and --directIn will not be set)')
+        else:
+            logger.debug('--usePFCTurl and --directIn will be set')
+            use_copy_tool = False
+            use_direct_access = True
+            use_pfc_turl = True
 
     return use_copy_tool, use_direct_access, use_pfc_turl
 
@@ -672,6 +703,15 @@ def extract_output_files(job):
     """
 
     log = get_logger(job.jobid)
+
+    # make sure there is a defined output file list in the job report - unless it is allowed by task parameter allowNoOutput
+    if not job.allownooutput:
+        output = job.metadata.get('files', {}).get('output', [])
+        if output:
+            logger.info('verified that job report contains metadata for %d file(s)' % len(output))
+        else:
+            logger.warning('job report contains no output files - will fail job since allowNoOutput is not set')
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOOUTPUTINJOBREPORT)
 
     # extract info from metadata (job report JSON)
     data = dict([e.lfn, e] for e in job.outdata)

@@ -42,6 +42,9 @@ def interpret(job):
 
     # extract errors from job report
     process_job_report(job)
+    if job.piloterrorcodes:
+        log.warning('aborting payload error diagnosis since an error has already been set')
+        return -1
 
     if job.exitcode != 0:
         exit_code = job.exitcode
@@ -108,7 +111,7 @@ def interpret_payload_exit_info(job):
         return
 
     # set a general Pilot error code if the payload error could not be identified
-    if job.transexitcode != 0:
+    if job.transexitcode == 0 and job.exitcode != 0:
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.UNKNOWNPAYLOADFAILURE, priority=True)
 
 

@@ -81,6 +81,7 @@ def execute(executable, **kwargs):
         logger.info('executing command: %s' % executable_readable)
 
     exe = ['/bin/bash', '-c', executable]
+    # try: intercept exception such as OSError -> report e.g. error.RESOURCEUNAVAILABLE: "Resource temporarily unavailable"
     process = subprocess.Popen(exe,
                                bufsize=-1,
                                stdout=stdout,

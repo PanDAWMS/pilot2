@@ -92,6 +92,8 @@ def control(queues, traces, args):
             thread.join(0.1)
             time.sleep(0.1)
 
+        time.sleep(0.5)
+
     logger.debug('job control ending since graceful_stop has been set')
     if args.abort_job.is_set():
         if traces.pilot['command'] == 'aborting':
@@ -656,6 +658,7 @@ def validate(queues, traces, args):
     """
 
     while not args.graceful_stop.is_set():
+        time.sleep(0.5)
         try:
             job = queues.jobs.get(block=True, timeout=1)
         except queue.Empty:
@@ -713,6 +716,7 @@ def create_data_payload(queues, traces, args):
     """
 
     while not args.graceful_stop.is_set():
+        time.sleep(0.5)
         try:
             job = queues.validated_jobs.get(block=True, timeout=1)
         except queue.Empty:
@@ -1273,6 +1277,7 @@ def retrieve(queues, traces, args):
 
     while not args.graceful_stop.is_set():
 
+        time.sleep(0.5)
         getjob_requests += 1
 
         logger.debug('getjob_requests=%d' % getjob_requests)
@@ -1617,7 +1622,9 @@ def queue_monitor(queues, traces, args):
 
     job = None
     sentfinal = False
-    while True:  # will abort when graceful_stop has been set
+    while True:  # will abort when graceful_stop has been set or if enough time has passed after kill signal
+        time.sleep(0.5)
+
         if traces.pilot['command'] == 'abort':
             logger.warning('job queue monitor received an abort instruction')
 
@@ -1795,6 +1802,8 @@ def job_monitor(queues, traces, args):
     # overall loop counter (ignoring the fact that more than one job may be running)
     n = 0
     while not args.graceful_stop.is_set():
+        time.sleep(0.5)
+
         # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
         # (abort at the end of the loop)
         abort = should_abort(args, label='job:job_monitor')
@@ -1857,11 +1866,11 @@ def job_monitor(queues, traces, args):
             logger.info('job monitoring is waiting for stage-in to finish')
         else:
             # check the waiting time in the job monitor. set global graceful_stop if necessary
-            check_job_monitor_waiting_time(args, peeking_time)
+            check_job_monitor_waiting_time(args, peeking_time, abort_override=abort_job)
 
         n += 1
 
-        if abort:
+        if abort or abort_job:
             break
 
     logger.debug('[job] job monitor thread has finished')
@@ -1884,7 +1893,7 @@ def send_heartbeat_if_time(job, args, update_time):
     return update_time
 
 
-def check_job_monitor_waiting_time(args, peeking_time):
+def check_job_monitor_waiting_time(args, peeking_time, abort_override=False):
     """
     Check the waiting time in the job monitor.
     Set global graceful_stop if necessary.
@@ -1905,7 +1914,7 @@ def check_job_monitor_waiting_time(args, peeking_time):
         logger.warning(msg)
     else:
         print(msg)
-    if abort:
+    if abort or abort_override:
         # do not set graceful stop if pilot has not finished sending the final job update
         # i.e. wait until SERVER_UPDATE is DONE_FINAL
         check_for_final_server_update(args.update_server)

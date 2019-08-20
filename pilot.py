@@ -76,6 +76,8 @@ def main():
     # define useful variables
     args.retrieve_next_job = True  # go ahead and download a new job
     args.signal = None  # to store any incoming signals
+    args.signal_counter = 0  # keep track of number of received kill signal (suicide counter)
+    args.kill_time = 0  # keep track of when first kill signal arrived
 
     # read and parse config file
     config.read(args.config)

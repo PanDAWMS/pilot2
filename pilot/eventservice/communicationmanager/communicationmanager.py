@@ -189,7 +189,7 @@ class CommunicationManager(threading.Thread, PluginFactory):
             return
 
         while req.response is None:
-            time.sleep(0.1)
+            time.sleep(1)
         if req.response.exception:
             raise req.response.exception
         if req.response.status is False:
@@ -219,7 +219,7 @@ class CommunicationManager(threading.Thread, PluginFactory):
             return
 
         while req.response is None:
-            time.sleep(0.1)
+            time.sleep(1)
         if req.response.exception:
             raise req.response.exception
         if req.response.status is False:
@@ -260,7 +260,7 @@ class CommunicationManager(threading.Thread, PluginFactory):
             return
 
         while req.response is None:
-            time.sleep(0.1)
+            time.sleep(1)
         if req.response.exception:
             raise req.response.exception
         if req.response.status is False:
@@ -289,7 +289,7 @@ class CommunicationManager(threading.Thread, PluginFactory):
             return
 
         while req.response is None:
-            time.sleep(0.1)
+            time.sleep(1)
         if req.response.exception:
             raise req.response.exception
         if req.response.status is False:
@@ -375,7 +375,6 @@ class CommunicationManager(threading.Thread, PluginFactory):
                                                'process_req_post_hook': True}
                      }
 
-        logger.info("Starting communication manager")
         while True:
             has_req = False
             for process_type in processor:
@@ -416,6 +415,5 @@ class CommunicationManager(threading.Thread, PluginFactory):
             if not has_req:
                 if self.is_stop():
                     break
-            else:
-                time.sleep(0.01)
+            time.sleep(1)
         logger.info("Communication manager stopped.")

@@ -33,7 +33,7 @@ from pilot.util.auxiliary import get_logger, set_pilot_state, check_for_final_se
 from pilot.util.common import should_abort
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
-    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING
+    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME
 from pilot.util.container import execute
 from pilot.util.filehandling import find_executable, remove
 from pilot.util.timing import add_to_pilot_timing
@@ -71,6 +71,8 @@ def control(queues, traces, args):
 
             thread.join(0.1)
             time.sleep(0.1)
+
+        time.sleep(0.5)
 
     logger.debug('data control ending since graceful_stop has been set')
     if args.abort_job.is_set():
@@ -160,8 +162,11 @@ def _stage_in(args, job):
 
         client.transfer(job.indata, activity=activity, **kwargs)
     except PilotException as error:
-        log.error('PilotException caught: %s' % error)
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())
+        import traceback
+        error_msg = traceback.format_exc()
+        log.error(error_msg)
+        msg = errors.format_diagnostics(error.get_error_code(), error_msg)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=msg)
     except Exception as error:
         log.error('failed to stage-in: error=%s' % error)
 
@@ -259,7 +264,7 @@ def stage_in_auto(site, files):
                                    stderr=subprocess.PIPE)
         f['errno'] = 2
         while True:
-            time.sleep(0.1)
+            time.sleep(0.5)
             exit_code = process.poll()
             if exit_code is not None:
                 stdout, stderr = process.communicate()
@@ -337,7 +342,7 @@ def stage_out_auto(site, files):
                                    stderr=subprocess.PIPE)
         f['errno'] = 2
         while True:
-            time.sleep(0.1)
+            time.sleep(0.5)
             exit_code = process.poll()
             if exit_code is not None:
                 stdout, stderr = process.communicate()
@@ -371,7 +376,14 @@ def copytool_in(queues, traces, args):
     """
 
     while not args.graceful_stop.is_set():
+        time.sleep(0.5)
         try:
+            # abort if kill signal arrived too long time ago, ie loop is stuck
+            current_time = int(time.time())
+            if args.kill_time and current_time - args.kill_time > MAX_KILL_WAIT_TIME:
+                logger.warning('loop has run for too long time after first kill signal - will abort')
+                break
+
             # extract a job to stage-in its input
             job = queues.data_in.get(block=True, timeout=1)
             # place it in the current stage-in queue (used by the jobs' queue monitoring)
@@ -449,18 +461,20 @@ def copytool_out(queues, traces, args):
     logger.debug('entering copytool_out loop')
     if args.graceful_stop.is_set():
         logger.debug('graceful_stop already set')
-    first = True
+
 #    while not args.graceful_stop.is_set() and cont:
     while cont:
 
-        if first:
-            first = False
-            logger.debug('inside copytool_out() loop')
+        time.sleep(0.5)
+
+        # abort if kill signal arrived too long time ago, ie loop is stuck
+        current_time = int(time.time())
+        if args.kill_time and current_time - args.kill_time > MAX_KILL_WAIT_TIME:
+            logger.warning('loop has run for too long time after first kill signal - will abort')
+            break
 
         # check for abort, print useful messages and include a 1 s sleep
         abort = should_abort(args, label='data:copytool_out')
-        if abort:
-            logger.debug('will abort ')
         try:
             job = queues.data_out.get(block=True, timeout=1)
             if job:
@@ -491,13 +505,11 @@ def copytool_out(queues, traces, args):
                 log.debug('no returned job - why no exception?')
         except queue.Empty:
             if abort:
-                logger.debug('aborting')
                 cont = False
                 break
             continue
 
         if abort:
-            logger.debug('aborting')
             cont = False
             break
 
@@ -645,9 +657,11 @@ def _do_stageout(job, xdata, activity, title):
         client.transfer(xdata, activity, **kwargs)
     except PilotException as error:
         import traceback
-        log.error(traceback.format_exc())
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())
-    except Exception as e:
+        error_msg = traceback.format_exc()
+        log.error(error_msg)
+        msg = errors.format_diagnostics(error.get_error_code(), error_msg)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=msg)
+    except Exception:
         import traceback
         log.error(traceback.format_exc())
         # do not raise the exception since that will prevent also the log from being staged out
@@ -772,6 +786,7 @@ def queue_monitoring(queues, traces, args):
     """
 
     while True:  # will abort when graceful_stop has been set
+        time.sleep(0.5)
         if traces.pilot['command'] == 'abort':
             logger.warning('data queue monitor saw the abort instruction')
 

@@ -71,6 +71,8 @@ def control(queues, traces, args):
             thread.join(0.1)
             time.sleep(0.1)
 
+        time.sleep(0.5)
+
     logger.debug('payload control ending since graceful_stop has been set')
     if args.abort_job.is_set():
         if traces.pilot['command'] == 'aborting':
@@ -95,6 +97,7 @@ def validate_pre(queues, traces, args):
     :return:
     """
     while not args.graceful_stop.is_set():
+        time.sleep(0.5)
         try:
             job = queues.payloads.get(block=True, timeout=1)
         except queue.Empty:
@@ -168,6 +171,7 @@ def execute_payloads(queues, traces, args):
 
     job = None
     while not args.graceful_stop.is_set():
+        time.sleep(0.5)
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
             log = get_logger(job.jobid, logger)
@@ -180,7 +184,7 @@ def execute_payloads(queues, traces, args):
                 for i in xrange(10):
                     if args.graceful_stop.is_set():
                         break
-                    time.sleep(0.1)
+                    time.sleep(1)
                 continue
 
             # this job is now to be monitored, so add it to the monitored_payloads queue
@@ -281,13 +285,18 @@ def perform_initial_payload_error_analysis(job, exit_code):
     log = get_logger(job.jobid, logger)
 
     if exit_code != 0:
+        ec = 0
         log.warning('main payload execution returned non-zero exit code: %d' % exit_code)
         stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
         if stderr != "":
             msg = errors.extract_stderr_msg(stderr)
             if msg != "":
                 log.warning("extracted message from stderr:\n%s" % msg)
-        ec = errors.resolve_transform_error(exit_code, stderr)
+                if "Failed invoking the NEWUSER namespace runtime" in msg:
+                    ec = errors.SINGULARITYNEWUSERNAMESPACE
+
+        if not ec:
+            ec = errors.resolve_transform_error(exit_code, stderr)
         if ec != 0:
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
         else:
@@ -312,6 +321,7 @@ def validate_post(queues, traces, args):
     """
 
     while not args.graceful_stop.is_set():
+        time.sleep(0.5)
         # finished payloads
         try:
             job = queues.finished_payloads.get(block=True, timeout=1)
@@ -341,10 +351,12 @@ def failed_post(queues, traces, args):
     """
 
     while not args.graceful_stop.is_set():
+        time.sleep(0.5)
         # finished payloads
         try:
             job = queues.failed_payloads.get(block=True, timeout=1)
         except queue.Empty:
+            time.sleep(0.1)
             continue
         log = get_logger(job.jobid, logger)
 

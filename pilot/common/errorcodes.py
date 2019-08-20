@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
-# - Wen Guan, wen.guan, 2018
+# - Wen Guan, wen.guan@cern.ch, 2018
 
 import re
 
@@ -74,6 +74,7 @@ class ErrorCodes:
     ESFATAL = 1228
     EXECUTEDCLONEJOB = 1234
     PAYLOADEXCEEDMAXMEM = 1235
+    FAILEDBYSERVER = 1236
     ESNOEVENTS = 1238
     MESSAGEHANDLINGFAILURE = 1240
     CHKSUMNOTSUP = 1242
@@ -121,6 +122,11 @@ class ErrorCodes:
     BADMEMORYMONITORJSON = 1337
     STAGEINAUTHENTICATIONFAILURE = 1338
     DBRELEASEFAILURE = 1339
+    SINGULARITYNEWUSERNAMESPACE = 1340
+    BADQUEUECONFIGURATION = 1341
+    MIDDLEWAREIMPORTFAILURE = 1342
+    NOOUTPUTINJOBREPORT = 1343
+    RESOURCEUNAVAILABLE = 1344
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -180,6 +186,7 @@ class ErrorCodes:
         ESFATAL: "Event service: fatal error",
         EXECUTEDCLONEJOB: "Clone job is already executed",
         PAYLOADEXCEEDMAXMEM: "Payload exceeded maximum allowed memory",
+        FAILEDBYSERVER: "Failed by server",
         ESNOEVENTS: "Event service: no events",
         MESSAGEHANDLINGFAILURE: "Failed to handle message from payload",
         NOTIMPLEMENTED: "The class or function is not implemented",
@@ -220,7 +227,13 @@ class ErrorCodes:
         JOBALREADYRUNNING: "Job is already running elsewhere",
         BADMEMORYMONITORJSON: "Memory monitor produced bad output",
         STAGEINAUTHENTICATIONFAILURE: "Authentication failure during stage-in",
-        DBRELEASEFAILURE: "Local DBRelease handling failed (consult Pilot log)"
+        DBRELEASEFAILURE: "Local DBRelease handling failed (consult Pilot log)",
+        SINGULARITYNEWUSERNAMESPACE: "Singularity: Failed invoking the NEWUSER namespace runtime",
+        BADQUEUECONFIGURATION: "Bad queue configuration detected",
+        MIDDLEWAREIMPORTFAILURE: "Failed to import middleware (consult Pilot log)",
+        NOOUTPUTINJOBREPORT: "Found no output in job report",
+        RESOURCEUNAVAILABLE: "Resource temporarily unavailable"
+
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
@@ -256,7 +269,7 @@ class ErrorCodes:
         else:
             return "Unknown error code: %d" % errorcode
 
-    def add_error_code(self, errorcode, pilot_error_codes=[], pilot_error_diags=[], priority=False):
+    def add_error_code(self, errorcode, pilot_error_codes=[], pilot_error_diags=[], priority=False, msg=None):
         """
         Add pilot error code to list of error codes.
         This function adds the given error code to the list of all errors that have occurred. This is needed since
@@ -268,17 +281,19 @@ class ErrorCodes:
         :param pilot_error_codes: list of pilot error codes (list of integers)
         :param pilot_error_diags: list of pilot error diags (list of strings)
         :param priority: if set to True, the new errorcode will be added to the error code list first (highest priority)
+        :param msg: error message (more detailed) to overwrite standard error message (string).
         :return: pilotErrorCodes, pilotErrorDiags
         """
 
         # do nothing if the error code has already been added
         if errorcode not in pilot_error_codes:
+            error_msg = msg if msg else self.get_error_message(errorcode)
             if priority:
                 pilot_error_codes.insert(0, errorcode)
-                pilot_error_diags.insert(0, self.get_error_message(errorcode))
+                pilot_error_diags.insert(0, error_msg)
             else:
                 pilot_error_codes.append(errorcode)
-                pilot_error_diags.append(self.get_error_message(errorcode))
+                pilot_error_diags.append(error_msg)
 
         return pilot_error_codes, pilot_error_diags
 
@@ -348,6 +363,30 @@ class ErrorCodes:
                 msg = found[0]
 
         return msg
+
+    def format_diagnostics(self, code, diag):
+        """
+        Format the error diagnostics by adding the standard error message and the tail of the longer piloterrordiag.
+        If there is any kind of failure handling the diagnostics string, the standard error description will be returned.
+
+        :param code: standard error code (int).
+        :param diag: dynamic error diagnostics (string).
+        :return: formatted error diagnostics (string).
+        """
+        try:
+            standard_message = self._error_messages[code] + ":"
+        except Exception:
+            standard_message = ""
+
+        try:
+            if diag:
+                error_message = standard_message + diag[-(len(diag) - len(standard_message)):]
+            else:
+                error_message = standard_message
+        except Exception:
+            error_message = diag
+
+        return error_message
 
     @classmethod
     def is_recoverable(self, code=0):

@@ -14,11 +14,16 @@
 import logging
 import threading
 import time
-from os import environ
+import re
+from os import environ, getpid
+from getpass import getuser
+from subprocess import Popen, PIPE
 
 from pilot.common.exception import PilotException, ExceededMaxWaitTime
 from pilot.util.auxiliary import check_for_final_server_update
 from pilot.util.config import config
+from pilot.util.constants import MAX_KILL_WAIT_TIME
+# from pilot.util.container import execute
 from pilot.util.queuehandling import get_queuedata_from_job, abort_jobs_in_queues
 from pilot.util.timing import get_time_since_start
 
@@ -37,10 +42,15 @@ def control(queues, traces, args):
     :return:
     """
 
-    traces.pilot['lifetime_start'] = time.time()  # ie referring to when pilot monitoring begain
-    traces.pilot['lifetime_max'] = time.time()
+    t0 = time.time()
+    traces.pilot['lifetime_start'] = t0  # ie referring to when pilot monitoring began
+    traces.pilot['lifetime_max'] = t0
 
     threadchecktime = int(config.Pilot.thread_check)
+
+    # for CPU usage debugging
+    cpuchecktime = int(config.Pilot.cpu_check)
+    tcpu = t0
 
     queuedata = get_queuedata_from_job(queues)
     if queuedata:
@@ -56,6 +66,11 @@ def control(queues, traces, args):
         while not args.graceful_stop.is_set():
             # every seconds, run the monitoring checks
             if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility
+                break
+
+            # abort if kill signal arrived too long time ago, ie loop is stuck
+            if args.kill_time and args.kill_time > MAX_KILL_WAIT_TIME:
+                logger.warning('loop has run for too long time - will abort')
                 break
 
             # check if the pilot has run out of time (stop ten minutes before PQ limit)
@@ -76,7 +91,21 @@ def control(queues, traces, args):
                     logger.info('%d s have passed since pilot start' % time_since_start)
             time.sleep(1)
 
-            # proceed with running the checks
+            # time to check the CPU?
+            if int(time.time() - tcpu) > cpuchecktime and False:  # for testing only
+                processes = get_process_info('python pilot2/pilot.py', pid=getpid())
+                if processes:
+                    logger.info('-' * 100)
+                    logger.info('PID=%d has CPU usage=%s%% MEM usage=%s%% CMD=%s' % (getpid(), processes[0], processes[1], processes[2]))
+                    n = processes[3]
+                    if n > 1:
+                        logger.info('there are %d such processes running' % n)
+                    else:
+                        logger.info('there is %d such process running' % n)
+                    logger.info('-' * 100)
+                tcpu = time.time()
+
+            # proceed with running the other checks
             run_checks(queues, args)
 
             # thread monitoring
@@ -96,10 +125,58 @@ def control(queues, traces, args):
 
     logger.info('[monitor] control thread has ended')
 
-
 #def log_lifetime(sig, frame, traces):
 #    logger.info('lifetime: %i used, %i maximum' % (int(time.time() - traces.pilot['lifetime_start']),
 #                                                   traces.pilot['lifetime_max']))
+
+
+def get_process_info(cmd, user=getuser(), args='aufx', pid=None):
+    """
+    Return process info for given command.
+    The function returns a list with format [cpu, mem, command, number of commands] as returned by 'ps -u user args' for
+    a given command (e.g. python pilot2/pilot.py).
+
+    Example
+      get_processes_for_command('sshd:')
+
+      nilspal   1362  0.0  0.0 183424  2528 ?        S    12:39   0:00 sshd: nilspal@pts/28
+      nilspal   1363  0.0  0.0 136628  2640 pts/28   Ss   12:39   0:00  \_ -tcsh
+      nilspal   8603  0.0  0.0  34692  5072 pts/28   S+   12:44   0:00      \_ python monitor.py
+      nilspal   8604  0.0  0.0  62036  1776 pts/28   R+   12:44   0:00          \_ ps -u nilspal aufx --no-headers
+
+      -> ['0.0', '0.0', 'sshd: nilspal@pts/28', 1]
+
+    :param cmd: command (string).
+    :param user: user (string).
+    :param args: ps arguments (string).
+    :param pid: process id (int).
+    :return: list with process info (l[0]=cpu usage(%), l[1]=mem usage(%), l[2]=command(string)).
+    """
+
+    processes = []
+    n = 0
+    pattern = re.compile(r"\S+|[-+]?\d*\.\d+|\d+")
+    arguments = ['ps', '-u', user, args, '--no-headers']
+
+    process = Popen(arguments, stdout=PIPE, stderr=PIPE)
+    stdout, notused = process.communicate()
+    for line in stdout.splitlines():
+        found = re.findall(pattern, line)
+        if found is not None:
+            processid = found[1]
+            cpu = found[2]
+            mem = found[3]
+            command = ' '.join(found[10:])
+            if cmd in command:
+                n += 1
+                if processid == str(pid):
+                    processes = [cpu, mem, command]
+
+    if processes:
+        processes.append(n)
+
+    return processes
+
 
 def run_checks(queues, args):
     """
@@ -109,6 +186,8 @@ def run_checks(queues, args):
     :param args:
     :return:
     """
+
+    # check CPU consumption of pilot process and its children
 
     if args.abort_job.is_set():
         # find all running jobs and stop them, find all jobs in queues relevant to this module

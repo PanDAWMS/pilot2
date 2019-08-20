@@ -15,6 +15,18 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def sanity_check():
+    """
+    Perform an initial sanity check before doing anything else in a given workflow.
+    This function can be used to verify importing of modules that are otherwise used much later, but it is better to abort
+    the pilot if a problem is discovered early.
+
+    :return: exit code (0 if all is ok, otherwise non-zero exit code).
+    """
+
+    return 0
+
+
 def validate(job):
     """
     Perform user specific payload/job validation.
