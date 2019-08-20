@@ -25,7 +25,6 @@ from pilot.common.exception import ConversionFailure, FileHandlingFailure, MKDir
     NotImplemented
 from pilot.util.config import config
 from pilot.util.mpi import get_ranks_info
-from .auxiliary import get_logger
 from .container import execute
 from .math import diff_lists
 
@@ -806,13 +805,12 @@ def get_checksum_type(checksum):
     return checksum_type
 
 
-def scan_file(path, error_messages, jobid, warning_message=None):
+def scan_file(path, error_messages, warning_message=None):
     """
     Scan file for known error messages.
 
     :param path: path to file (string).
     :param error_messages: list of error messages.
-    :param jobid: job id (int).
     :param warning_message: optional warning message to printed with any of the error_messages have been found (string).
     :return: Boolean. (note: True means the error was found)
     """
@@ -821,11 +819,10 @@ def scan_file(path, error_messages, jobid, warning_message=None):
 
     matched_lines = grep(error_messages, path)
     if len(matched_lines) > 0:
-        log = get_logger(jobid)
         if warning_message:
-            log.warning(warning_message)
+            logger.warning(warning_message)
         for line in matched_lines:
-            log.info(line)
+            logger.info(line)
         found_problem = True
 
     return found_problem
