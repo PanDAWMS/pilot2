@@ -749,7 +749,11 @@ def verify_output_files(job):
     is greater than zero. If the output file is not listed in the job report, then if the file is listed in allowNoOutput
     remove it from stage-out, otherwise fail the job.
 
-    :param job:
+    Note: The job report might contain additional output files, which should be extracted and added to the outdata list in order to get
+    staged out. Such a file is not required to be in the original outdata list. Any such extraction should be done after
+    running this function (extract_output_files).
+
+    :param job: job object.
     :return: Boolean (and potentially updated job.outdata list)
     """
 
