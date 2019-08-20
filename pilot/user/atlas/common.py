@@ -792,10 +792,18 @@ def verify_output_files(job):
 
                 # get the number of processed events
                 nentries = fdat.get('nentries', None)
+
+                output_jobrep[name] = nentries
+
                 if nentries and nentries is not None:
                     log.info('file %s contains %d event(s)' % (name, nentries))
                 else:
                     log.warning('nentries is not defined for file %s' % name)
+
+        for lfn in lfns_jobdef:
+            if lfn not in output_jobrep:
+                log.warning('lfn from job definition (%s) is not in output list from job report')
+                break
 
     return status
 
