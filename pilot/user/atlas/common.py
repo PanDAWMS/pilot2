@@ -678,7 +678,7 @@ def update_job_data(job):
     if job.metadata and not job.is_eventservice and not job.is_analysis():
         extract_output_files(job)
     else:
-        if not job.allownooutput:  # i.e. if it's an empty list, do nothing
+        if not job.allownooutput:  # i.e. if it's an empty list/string, do nothing
             log.debug("will not try to extract output files from jobReport for user job (and allowNoOut list is empty)")
         else:
             # remove the files listed in allowNoOutput if they don't exist
@@ -741,6 +741,19 @@ def extract_output_files(job):
     if extra:
         log.info('found extra output files in job report, will overwrite output file list: extra=%s' % extra)
         job.outdata = extra
+
+
+def verify_output_files(job):
+    """
+    Make sure that the known output files from the job definition are listed in the job report and number of processed events
+    is greater than zero. If the output file is not listed in the job report, then if the file is listed in allowNoOutput
+    remove it from stage-out, otherwise fail the job.
+
+    :param job:
+    :return: Boolean (and potentially updated job.outdata list)
+    """
+
+    pass
 
 
 def remove_no_output_files(job):
