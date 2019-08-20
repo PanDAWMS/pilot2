@@ -763,8 +763,17 @@ def verify_output_files(job):
     status = False
     log = get_logger(job.jobid)
 
+    # get list of output files from the job definition
+    lfns_jobdef = []
+    for fspec in job.outdata:
+        lfns_jobdef.append(fspec.lfn)
+    if not lfns_jobdef:
+        log.debug('empty output file list from job definition, nothing to verify')
+        return True
+
     # get list of output files from job report
     # (if None is returned, it means the job report is from an old release and does not contain an output list)
+    output_jobrep = {}
     output = job.metadata.get('files', {}).get('output', None)
     if not output and output is not None:
         # ie empty list
