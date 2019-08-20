@@ -749,6 +749,9 @@ def verify_output_files(job):
     is greater than zero. If the output file is not listed in the job report, then if the file is listed in allowNoOutput
     remove it from stage-out, otherwise fail the job.
 
+    Note: fail scenario: The output file is not in output:[] or is there with zero events. Then if allownooutput is not
+    set - fail the job. If it is set, then do not store the output, and finish ok.
+
     Note: The job report might contain additional output files, which should be extracted and added to the outdata list in order to get
     staged out. Such a file is not required to be in the original outdata list. Any such extraction should be done after
     running this function (extract_output_files).
@@ -757,7 +760,35 @@ def verify_output_files(job):
     :return: Boolean (and potentially updated job.outdata list)
     """
 
-    pass
+    status = False
+    log = get_logger(job.jobid)
+
+    # get list of output files from job report
+    # (if None is returned, it means the job report is from an old release and does not contain an output list)
+    output = job.metadata.get('files', {}).get('output', None)
+    if not output and output is not None:
+        # ie empty list
+        log.debug('encountered an empty output file list in job report')
+
+    elif output is None:
+        # ie job report is ancient / output could not be extracted
+        log.warning('output file list could not be extracted from job report (nothing to verify)')
+        status = True
+    else:
+        log.debug('extracted output file list from job report')
+        for dat in output:
+            for fdat in dat.get('subFiles', []):
+                # get the lfn
+                name = fdat.get('name', None)
+
+                # get the number of processed events
+                nentries = fdat.get('nentries', None)
+                if nentries and nentries is not None:
+                    log.info('file %s contains %d event(s)' % (name, nentries))
+                else:
+                    log.warning('nentries is not defined for file %s' % name)
+
+    return status
 
 
 def remove_no_output_files(job):
