@@ -12,7 +12,6 @@ sys.path.insert(0, '.')
 # get release version
 with open('PILOTVERSION') as reader:
     release_version = reader.read()
-    print release_version
 
 setup(
     name="pilot",
