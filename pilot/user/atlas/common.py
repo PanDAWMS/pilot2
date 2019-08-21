@@ -757,7 +757,6 @@ def verify_output_files(job):
     :return: Boolean (and potentially updated job.outdata list)
     """
 
-    status = False
     failed = False
     log = get_logger(job.jobid)
 
