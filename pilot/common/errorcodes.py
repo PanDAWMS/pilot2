@@ -132,6 +132,7 @@ class ErrorCodes:
     UNSUPPORTEDSL5OS = 1347
     SINGULARITYRESOURCEUNAVAILABLE = 1348
     UNRECOGNIZEDTRFARGUMENTS = 1349
+    EMPTYOUTPUTFILE = 1350
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -242,7 +243,8 @@ class ErrorCodes:
         TRANSFORMNOTFOUND: "Transform not found",
         UNSUPPORTEDSL5OS: "Unsupported SL5 OS",
         SINGULARITYRESOURCEUNAVAILABLE: "Singularity: Resource temporarily unavailable",  # not the same as RESOURCEUNAVAILABLE
-        UNRECOGNIZEDTRFARGUMENTS: "Unrecognized transform arguments"
+        UNRECOGNIZEDTRFARGUMENTS: "Unrecognized transform arguments",
+        EMPTYOUTPUTFILE: "Empty output file detected"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]

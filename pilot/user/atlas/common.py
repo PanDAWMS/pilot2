@@ -768,22 +768,22 @@ def verify_output_files(job):
     for fspec in job.outdata:
         lfns_jobdef.append(fspec.lfn)
     if not lfns_jobdef:
-        log.debug('empty output file list from job definition, nothing to verify')
+        log.debug('empty output file list from job definition (nothing to verify)')
         return True
 
     # get list of output files from job report
     # (if None is returned, it means the job report is from an old release and does not contain an output list)
-    output_jobrep = {}
     output = job.metadata.get('files', {}).get('output', None)
     if not output and output is not None:
-        # ie empty list
-        log.debug('encountered an empty output file list in job report')
-
+        # ie empty list, output=[]
+        log.warning('encountered an empty output file list in job report (nothing to verify)')
+        status = True
     elif output is None:
         # ie job report is ancient / output could not be extracted
         log.warning('output file list could not be extracted from job report (nothing to verify)')
         status = True
     else:
+        output_jobrep = {}  # {lfn: nentries, ..}
         log.debug('extracted output file list from job report - make sure all known output files are listed')
         failed = False
         # first collect the output files from the job report
@@ -807,6 +807,7 @@ def verify_output_files(job):
         for lfn in lfns_jobdef:
             if lfn not in output_jobrep and lfn not in job.allownooutput:
                 log.warning('output file %s from job definition is not present in job report and is not listed in allowNoOutput - job will fail' % lfn)
+                # MISSINGOUTPUTFILE
                 failed = True
                 break
             if lfn not in output_jobrep and lfn in job.allownooutput:
