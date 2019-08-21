@@ -806,20 +806,29 @@ def verify_output_files(job):
         # now make sure that the known output files are in the dictionary
         for lfn in lfns_jobdef:
             if lfn not in output_jobrep and lfn not in job.allownooutput:
-                log.warning('output file %s from job definition is not present in job report and is not listed in allowNoOutput - job will fail')
+                log.warning('output file %s from job definition is not present in job report and is not listed in allowNoOutput - job will fail' % lfn)
                 failed = True
                 break
             if lfn not in output_jobrep and lfn in job.allownooutput:
-                log.warning('output file %s from job definition is not present in job report but is listed in allowNoOutput - remove from stage-out')
+                log.warning('output file %s from job definition is not present in job report but is listed in allowNoOutput - remove from stage-out' % lfn)
                 # remove from stage-out
                 # ..
             else:
                 nentries = output_jobrep[lfn]
-                if nentries is not None and nentries == 0:
-                    log.warning('output file %s is listed in job report but has zero events - consulting with')
+                if nentries is not None and nentries == 0 and lfn not in job.allownooutput:
+                    log.warning('output file %s is listed in job report, has zero events and is not listen in allowNoOutput - job will fail' % lfn)
+                    failed = True
+                    break
+                elif not nentries and lfn not in job.allownooutput:
+                    log.warning('output file %s is listed in job report, nentries is not set and is not listen in allowNoOutput - job will fail' % lfn)
+                    failed = True
+                    break
+                elif nentries:
+                    log.info('output file %s has %d events' % (lfn, nentries))
+                else:  # should not reach this step
+                    log.warning('case not handled for output file %s with %d events' % (lfn, nentries))
+        status = True if not failed else False
 
-        if failed:
-            status = False
     return status
 
 
