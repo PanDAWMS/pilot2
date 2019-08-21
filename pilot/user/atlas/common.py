@@ -783,7 +783,9 @@ def verify_output_files(job):
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGOUTPUTFILE)
                 break
             else:
-                log.info('lfn %s listed in allowNoOutput' % lfn)
+                log.info('lfn %s listed in allowNoOutput - will be removed from stage-out' % lfn)
+                remove_from_stageout(lfn, job)
+
     elif output is None:
         # ie job report is ancient / output could not be extracted
         log.warning('output file list could not be extracted from job report (nothing to verify)')
