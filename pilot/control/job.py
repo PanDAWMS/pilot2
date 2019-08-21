@@ -28,7 +28,7 @@ from pilot.common.exception import ExcThread, PilotException  #, JobAlreadyRunni
 from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
-    set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner
+    set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine
 from pilot.util.config import config
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
@@ -45,8 +45,7 @@ from pilot.util.processes import cleanup
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.queuehandling import scan_for_jobs, put_in_queue
 from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since, time_stamp
-from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, is_virtual_machine, \
-    get_cpu_model
+from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, get_cpu_model
 
 import logging
 logger = logging.getLogger(__name__)

@@ -24,7 +24,8 @@ except NameError:  # Python 3
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.container import execute
 from pilot.util.constants import SUCCESS, FAILURE, SERVER_UPDATE_FINAL, SERVER_UPDATE_NOT_DONE, get_pilot_version
-from pilot.util.workernode import is_virtual_machine, display_architecture_info
+#from pilot.util.workernode import is_virtual_machine, display_architecture_info
+from pilot.util.filehandling import dump
 
 import logging
 logger = logging.getLogger(__name__)
@@ -52,6 +53,52 @@ def pilot_version_banner():
 
     display_architecture_info()
     logger.info('*' * len(version))
+
+
+def is_virtual_machine():
+    """
+    Are we running in a virtual machine?
+    If we are running inside a VM, then linux will put 'hypervisor' in cpuinfo. This function looks for the presence
+    of that.
+
+    :return: boolean.
+    """
+
+    status = False
+
+    # look for 'hypervisor' in cpuinfo
+    with open("/proc/cpuinfo", "r") as fd:
+        lines = fd.readlines()
+        for line in lines:
+            if "hypervisor" in line:
+                status = True
+                break
+
+    return status
+
+
+def display_architecture_info():
+    """
+    Display OS/architecture information.
+    The function attempts to use the lsb_release -a command if available. If that is not available,
+    it will dump the contents of
+
+    :return:
+    """
+
+    logger.info("architecture information:")
+
+    exit_code, stdout, stderr = execute("lsb_release -a", mute=True)
+    if "Command not found" in stdout or "Command not found" in stderr:
+        # Dump standard architecture info files if available
+        dump("/etc/lsb-release")
+        dump("/etc/SuSE-release")
+        dump("/etc/redhat-release")
+        dump("/etc/debian_version")
+        dump("/etc/issue")
+        dump("$MACHTYPE", cmd="echo")
+    else:
+        logger.info("\n%s" % stdout)
 
 
 def get_batchsystem_jobid():
