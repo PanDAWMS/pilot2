@@ -799,11 +799,6 @@ def verify_output_files(job):
                 # add the output file info to the dictionary
                 output_jobrep[name] = nentries
 
-                if nentries and nentries is not None:
-                    log.info('file %s contains %d event(s)' % (name, nentries))
-                else:
-                    log.warning('nentries is not defined for file %s' % name)
-
         # now make sure that the known output files are in the job report dictionary
         for lfn in lfns_jobdef:
             if lfn not in output_jobrep and lfn not in job.allownooutput:
@@ -834,7 +829,13 @@ def verify_output_files(job):
                     log.info('output file %s has %d events' % (lfn, nentries))
                 else:  # should not reach this step
                     log.warning('case not handled for output file %s with %s events (ignore)' % (lfn, str(nentries)))
+
         status = True if not failed else False
+
+    if status:
+        log.info('output file verification succeeded')
+    else:
+        log.warning('output file verification failed')
 
     return status
 
