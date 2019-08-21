@@ -758,6 +758,7 @@ def verify_output_files(job):
     """
 
     status = False
+    failed = False
     log = get_logger(job.jobid)
 
     # get list of output files from the job definition
@@ -772,13 +773,20 @@ def verify_output_files(job):
     # (if None is returned, it means the job report is from an old release and does not contain an output list)
     output = job.metadata.get('files', {}).get('output', None)
     if not output and output is not None:
-        # ie empty list, output=[]
-        log.warning('encountered an empty output file list in job report (nothing to verify)')
-        status = True
+        # ie empty list, output=[] - are all known output files in allowNoOutput?
+        log.warning('encountered an empty output file list in job report, consulting allowNoOutput list')
+        failed = False
+        for lfn in lfns_jobdef:
+            if lfn not in job.allownooutput:
+                failed = True
+                log.warning('lfn %s is not in allowNoOutput list - job will fail' % lfn)
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGOUTPUTFILE)
+                break
+            else:
+                log.info('lfn %s listed in allowNoOutput' % lfn)
     elif output is None:
         # ie job report is ancient / output could not be extracted
         log.warning('output file list could not be extracted from job report (nothing to verify)')
-        status = True
     else:
         output_jobrep = {}  # {lfn: nentries, ..}
         log.debug('extracted output file list from job report - make sure all known output files are listed')
@@ -825,7 +833,7 @@ def verify_output_files(job):
                 else:  # should not reach this step
                     log.warning('case not handled for output file %s with %s events (ignore)' % (lfn, str(nentries)))
 
-        status = True if not failed else False
+    status = True if not failed else False
 
     if status:
         log.info('output file verification succeeded')
