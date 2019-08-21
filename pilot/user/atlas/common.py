@@ -784,7 +784,9 @@ def verify_output_files(job):
         log.warning('output file list could not be extracted from job report (nothing to verify)')
         status = True
     else:
-        log.debug('extracted output file list from job report')
+        log.debug('extracted output file list from job report - make sure all known output files are listed')
+        failed = False
+        # first collect the output files from the job report
         for dat in output:
             for fdat in dat.get('subFiles', []):
                 # get the lfn
@@ -793,6 +795,7 @@ def verify_output_files(job):
                 # get the number of processed events
                 nentries = fdat.get('nentries', None)
 
+                # add the output file info to the dictionary
                 output_jobrep[name] = nentries
 
                 if nentries and nentries is not None:
@@ -800,11 +803,23 @@ def verify_output_files(job):
                 else:
                     log.warning('nentries is not defined for file %s' % name)
 
+        # now make sure that the known output files are in the dictionary
         for lfn in lfns_jobdef:
-            if lfn not in output_jobrep:
-                log.warning('lfn from job definition (%s) is not in output list from job report')
+            if lfn not in output_jobrep and lfn not in job.allownooutput:
+                log.warning('output file %s from job definition is not present in job report and is not listed in allowNoOutput - job will fail')
+                failed = True
                 break
+            if lfn not in output_jobrep and lfn in job.allownooutput:
+                log.warning('output file %s from job definition is not present in job report but is listed in allowNoOutput - remove from stage-out')
+                # remove from stage-out
+                # ..
+            else:
+                nentries = output_jobrep[lfn]
+                if nentries is not None and nentries == 0:
+                    log.warning('output file %s is listed in job report but has zero events - consulting with')
 
+        if failed:
+            status = False
     return status
 
 
