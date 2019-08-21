@@ -818,13 +818,11 @@ def verify_output_files(job):
                     failed = True
                     break
                 if nentries == 0 and lfn in job.allownooutput:
-                    log.warning('output file %s is listed in job report, nentries=0 and is listed in allowNoOutput - job will fail' % lfn)
+                    log.warning('output file %s is listed in job report, nentries=0 and is listed in allowNoOutput - remove from stage-out' % lfn)
                     # remove from stage-out
                     remove_from_stageout(lfn, job)
                 elif not nentries and lfn not in job.allownooutput:
-                    log.warning('output file %s is listed in job report, nentries is not set and is not listed in allowNoOutput - job will fail' % lfn)
-                    failed = True
-                    break
+                    log.warning('output file %s is listed in job report, nentries is not set and is not listed in allowNoOutput - ignore' % lfn)
                 elif nentries:
                     log.info('output file %s has %d events' % (lfn, nentries))
                 else:  # should not reach this step
