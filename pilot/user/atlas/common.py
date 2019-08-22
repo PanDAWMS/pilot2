@@ -815,7 +815,11 @@ def verify_output_files(job):  # noqa: C901
                 log.warning('output file %s from job definition is not present in job report but is listed in allowNoOutput - remove from stage-out' % lfn)
                 remove_from_stageout(lfn, job)
             else:
-                nentries = output_jobrep[lfn]
+                try:
+                    nentries = int(output_jobrep[lfn])
+                except Exception as e:
+                    log.warning('nentries conversion failed (type should be int or None, value=%s): %s' % (str(output_jobrep[lfn]), e))
+                    nentries = None
                 if nentries is not None and nentries == 0 and lfn not in job.allownooutput:
                     log.warning('output file %s is listed in job report, has zero events and is not listed in allowNoOutput - job will fail' % lfn)
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.EMPTYOUTPUTFILE)
