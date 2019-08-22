@@ -837,7 +837,7 @@ def verify_output_files(job):  # noqa: C901
                     failed = True
                     break
                 elif nentries == 0 and lfn in job.allownooutput:
-                    log.warning('output file %s is listed in job report, nentries=0 and is listed in allowNoOutput - remove from stage-out' % lfn)
+                    log.warning('output file %s is listed in job report, has zero events and is listed in allowNoOutput - remove from stage-out' % lfn)
                     remove_from_stageout(lfn, job)
                 elif nentries:
                     log.info('output file %s has %d events' % (lfn, nentries))
