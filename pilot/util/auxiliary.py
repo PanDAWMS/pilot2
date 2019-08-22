@@ -24,7 +24,6 @@ except NameError:  # Python 3
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.container import execute
 from pilot.util.constants import SUCCESS, FAILURE, SERVER_UPDATE_FINAL, SERVER_UPDATE_NOT_DONE, get_pilot_version
-#from pilot.util.workernode import is_virtual_machine, display_architecture_info
 from pilot.util.filehandling import dump
 
 import logging

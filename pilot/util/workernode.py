@@ -11,9 +11,7 @@ import os
 import re
 from string import find
 
-from pilot.util.container import execute
 from pilot.util.disk import disk_usage
-from pilot.util.filehandling import dump
 from pilot.info import infosys
 
 import logging
