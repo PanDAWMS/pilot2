@@ -677,7 +677,10 @@ def update_job_data(job):
     # also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
     if job.metadata and not job.is_eventservice and not job.is_analysis():
         extract_output_files(job)  # keep this for now, complicated to merge with verify_output_files?
-        verify_output_files(job)
+        try:
+            verify_output_files(job)
+        except Exception as e:
+            log.warning('exception caught while trying verify output files: %s' % e)
     else:
         if not job.allownooutput:  # i.e. if it's an empty list/string, do nothing
             log.debug("will not try to extract output files from jobReport for user job (and allowNoOut list is empty)")
@@ -798,11 +801,8 @@ def verify_output_files(job):  # noqa: C901
                 # get the lfn
                 name = fdat.get('name', None)
 
-                # get the number of processed events
-                nentries = fdat.get('nentries', None)
-
-                # add the output file info to the dictionary
-                output_jobrep[name] = nentries
+                # get the number of processed events and add the output file info to the dictionary
+                output_jobrep[name] = fdat.get('nentries', None)
 
         # now make sure that the known output files are in the job report dictionary
         for lfn in lfns_jobdef:
@@ -816,20 +816,26 @@ def verify_output_files(job):  # noqa: C901
                 remove_from_stageout(lfn, job)
             else:
                 nentries = output_jobrep[lfn]
-                if nentries is not None and nentries == 0 and lfn not in job.allownooutput:
+                if nentries == "UNDEFINED":
+                    log.warning('encountered file with nentries=UNDEFINED - will ignore %s' % lfn)
+                    continue
+                elif nentries is None and lfn not in job.allownooutput:
+                    log.warning('output file %s is listed in job report, has UNDEFINED events and is not listed in allowNoOutput - job will fail' % lfn)
+                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.EMPTYOUTPUTFILE)
+                    failed = True
+                    break
+                elif nentries is None and lfn in job.allownooutput:
+                    log.warning('output file %s is listed in job report, nentries is None and is listed in allowNoOutput - remove from stage-out' % lfn)
+                    remove_from_stageout(lfn, job)
+                elif type(nentries) is int and nentries == 0 and lfn not in job.allownooutput:
                     log.warning('output file %s is listed in job report, has zero events and is not listed in allowNoOutput - job will fail' % lfn)
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.EMPTYOUTPUTFILE)
                     failed = True
                     break
-                if nentries == 0 and lfn in job.allownooutput:
-                    log.warning('output file %s is listed in job report, nentries=0 and is listed in allowNoOutput - remove from stage-out' % lfn)
+                elif type(nentries) is int and nentries == 0 and lfn in job.allownooutput:
+                    log.warning('output file %s is listed in job report, has zero events and is listed in allowNoOutput - remove from stage-out' % lfn)
                     remove_from_stageout(lfn, job)
-                elif not nentries and lfn not in job.allownooutput:
-                    log.warning('output file %s is listed in job report, nentries is not set and is not listed in allowNoOutput - ignore' % lfn)
-                elif not nentries and lfn in job.allownooutput:
-                    log.warning('output file %s is listed in job report, nentries is None but is listed in allowNoOutput - remove from stage-out' % lfn)
-                    remove_from_stageout(lfn, job)
-                elif nentries:
+                elif type(nentries) is int and nentries:
                     log.info('output file %s has %d events' % (lfn, nentries))
                 else:  # should not reach this step
                     log.warning('case not handled for output file %s with %s events (ignore)' % (lfn, str(nentries)))
