@@ -294,6 +294,16 @@ def perform_initial_payload_error_analysis(job, exit_code):
                 log.warning("extracted message from stderr:\n%s" % msg)
                 if "Failed invoking the NEWUSER namespace runtime" in msg:
                     ec = errors.SINGULARITYNEWUSERNAMESPACE
+                elif "Failed to create user namespace" in msg:
+                    ec = errors.SINGULARITYFAILEDUSERNAMESPACE
+                elif "command not found" in msg:
+                    ec = errors.TRANSFORMNOTFOUND
+                elif "SL5 is unsupported" in msg:
+                    ec = errors.UNSUPPORTEDSL5OS
+                elif "resource temporarily unavailable" in msg:
+                    ec = errors.SINGULARITYRESOURCEUNAVAILABLE
+                elif "unrecognized arguments" in msg:
+                    ec = errors.UNRECOGNIZEDTRFARGUMENTS
 
         if not ec:
             ec = errors.resolve_transform_error(exit_code, stderr)

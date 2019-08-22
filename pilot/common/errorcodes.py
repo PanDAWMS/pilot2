@@ -127,6 +127,12 @@ class ErrorCodes:
     MIDDLEWAREIMPORTFAILURE = 1342
     NOOUTPUTINJOBREPORT = 1343
     RESOURCEUNAVAILABLE = 1344
+    SINGULARITYFAILEDUSERNAMESPACE = 1345
+    TRANSFORMNOTFOUND = 1346
+    UNSUPPORTEDSL5OS = 1347
+    SINGULARITYRESOURCEUNAVAILABLE = 1348
+    UNRECOGNIZEDTRFARGUMENTS = 1349
+    EMPTYOUTPUTFILE = 1350
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -232,8 +238,13 @@ class ErrorCodes:
         BADQUEUECONFIGURATION: "Bad queue configuration detected",
         MIDDLEWAREIMPORTFAILURE: "Failed to import middleware (consult Pilot log)",
         NOOUTPUTINJOBREPORT: "Found no output in job report",
-        RESOURCEUNAVAILABLE: "Resource temporarily unavailable"
-
+        RESOURCEUNAVAILABLE: "Resource temporarily unavailable",
+        SINGULARITYFAILEDUSERNAMESPACE: "Singularity: Failed to create user namespace",
+        TRANSFORMNOTFOUND: "Transform not found",
+        UNSUPPORTEDSL5OS: "Unsupported SL5 OS",
+        SINGULARITYRESOURCEUNAVAILABLE: "Singularity: Resource temporarily unavailable",  # not the same as RESOURCEUNAVAILABLE
+        UNRECOGNIZEDTRFARGUMENTS: "Unrecognized transform arguments",
+        EMPTYOUTPUTFILE: "Empty output file detected"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
@@ -352,15 +363,13 @@ class ErrorCodes:
         """
 
         msg = ""
-        pattern = r"ERROR +\: (.+)"
-        found = re.findall(pattern, stderr)
-        if len(found) > 0:
-            msg = found[0]
-        else:
-            pattern = r"WARNING\: (.+)"
+        patterns = [r"ERROR +\: (.+)", r"Warning\: (.+)", r"WARNING\: (.+)"]
+
+        for pattern in patterns:
             found = re.findall(pattern, stderr)
             if len(found) > 0:
                 msg = found[0]
+                break
 
         return msg
 

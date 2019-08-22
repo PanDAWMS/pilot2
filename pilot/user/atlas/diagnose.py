@@ -159,7 +159,6 @@ def is_user_code_missing(job):
 
     return scan_file(stdout,
                      error_messages,
-                     job.jobid,
                      warning_message="identified an \'%s\' message in %s" % (error_messages[0], os.path.basename(stdout)))
 
 
@@ -176,7 +175,6 @@ def is_out_of_space(job):
 
     return scan_file(stderr,
                      error_messages,
-                     job.jobid,
                      warning_message="identified a \'%s\' message in %s" % (error_messages[0], os.path.basename(stderr)))
 
 
@@ -229,7 +227,6 @@ def is_nfssqlite_locking_problem(job):
 
     return scan_file(stdout,
                      error_messages,
-                     job.jobid,
                      warning_message="identified an NFS/Sqlite locking problem in %s" % os.path.basename(stdout))
 
 

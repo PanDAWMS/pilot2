@@ -62,7 +62,7 @@ class JobData(BaseData):
     accessmode = ""                # direct access instruction from jobparams
     processingtype = ""            # e.g. nightlies
     maxcpucount = 0                # defines what is a looping job (seconds)
-    allownooutput = []             # used to disregard empty files from job report
+    allownooutput = ""             # used to disregard empty files from job report
 
     # set by the pilot (not from job definition)
     workdir = ""                   # working directoty for this job
@@ -143,8 +143,8 @@ class JobData(BaseData):
                    'cpuconsumptionunit', 'homepackage', 'jobsetid', 'payload', 'processingtype',
                    'swrelease', 'zipmap', 'imagename', 'accessmode', 'transfertype',
                    'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-                   'infilesguids', 'memorymonitor'],
-             list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'allownooutput', 'zombies'],
+                   'infilesguids', 'memorymonitor', 'allownooutput'],
+             list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'zombies'],
              dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes'],
              bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug', 'usecontainer']
              }
