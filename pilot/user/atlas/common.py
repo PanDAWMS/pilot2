@@ -744,7 +744,7 @@ def extract_output_files(job):
         job.outdata = extra
 
 
-def verify_output_files(job):
+def verify_output_files(job):  # noqa: C901
     """
     Make sure that the known output files from the job definition are listed in the job report and number of processed events
     is greater than zero. If the output file is not listed in the job report, then if the file is listed in allowNoOutput
