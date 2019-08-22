@@ -828,6 +828,9 @@ def verify_output_files(job):  # noqa: C901
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.EMPTYOUTPUTFILE)
                     failed = True
                     break
+                elif nentries is None and lfn in job.allownooutput:
+                    log.warning('output file %s is listed in job report, nentries is None and is listed in allowNoOutput - remove from stage-out' % lfn)
+                    remove_from_stageout(lfn, job)
                 elif nentries is not None and nentries == 0 and lfn not in job.allownooutput:
                     log.warning('output file %s is listed in job report, has zero events and is not listed in allowNoOutput - job will fail' % lfn)
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.EMPTYOUTPUTFILE)
