@@ -11,9 +11,7 @@ import os
 import re
 from string import find
 
-from pilot.util.container import execute
 from pilot.util.disk import disk_usage
-from pilot.util.filehandling import dump
 from pilot.info import infosys
 
 import logging
@@ -163,52 +161,6 @@ def get_condor_node_name(nodename):
         nodename = "%s@%s" % (os.environ["_CONDOR_SLOT"], nodename)
 
     return nodename
-
-
-def is_virtual_machine():
-    """
-    Are we running in a virtual machine?
-    If we are running inside a VM, then linux will put 'hypervisor' in cpuinfo. This function looks for the presence
-    of that.
-
-    :return: boolean.
-    """
-
-    status = False
-
-    # look for 'hypervisor' in cpuinfo
-    with open("/proc/cpuinfo", "r") as fd:
-        lines = fd.readlines()
-        for line in lines:
-            if "hypervisor" in line:
-                status = True
-                break
-
-    return status
-
-
-def display_architecture_info():
-    """
-    Display OS/architecture information.
-    The function attempts to use the lsb_release -a command if available. If that is not available,
-    it will dump the contents of
-
-    :return:
-    """
-
-    logger.info("architecture information:")
-
-    exit_code, stdout, stderr = execute("lsb_release -a", mute=True)
-    if "Command not found" in stdout or "Command not found" in stderr:
-        # Dump standard architecture info files if available
-        dump("/etc/lsb-release")
-        dump("/etc/SuSE-release")
-        dump("/etc/redhat-release")
-        dump("/etc/debian_version")
-        dump("/etc/issue")
-        dump("$MACHTYPE", cmd="echo")
-    else:
-        logger.info("\n%s" % stdout)
 
 
 def get_cpu_model():

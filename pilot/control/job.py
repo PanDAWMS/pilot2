@@ -28,7 +28,7 @@ from pilot.common.exception import ExcThread, PilotException  #, JobAlreadyRunni
 from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
-    set_pilot_state, get_pilot_state, check_for_final_server_update
+    set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine
 from pilot.util.config import config
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
@@ -45,8 +45,7 @@ from pilot.util.processes import cleanup
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.queuehandling import scan_for_jobs, put_in_queue
 from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since, time_stamp
-from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, is_virtual_machine, \
-    get_cpu_model
+from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, get_cpu_model
 
 import logging
 logger = logging.getLogger(__name__)
@@ -876,8 +875,6 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
 
     currenttime = time.time()
 
-    logger.debug('proceed_with_getjob called with getjob_requests=%d' % getjob_requests)
-
     # should the proxy be verified?
     if verify_proxy:
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -897,11 +894,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
         traces.pilot['error_code'] = errors.NOLOCALSPACE
         return False
 
-    if harvester:
-        maximum_getjob_requests = 60  # 1 s apart
-    else:
-        maximum_getjob_requests = config.Pilot.maximum_getjob_requests
-
+    maximum_getjob_requests = 60 if harvester else config.Pilot.maximum_getjob_requests  # 1 s apart (if harvester)
     if getjob_requests > int(maximum_getjob_requests):
         logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' %
                        config.Pilot.maximum_getjob_requests)
@@ -1280,7 +1273,6 @@ def retrieve(queues, traces, args):
         time.sleep(0.5)
         getjob_requests += 1
 
-        logger.debug('getjob_requests=%d' % getjob_requests)
         if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester, args.verify_proxy, traces):
             # do not set graceful stop if pilot has not finished sending the final job update
             # i.e. wait until SERVER_UPDATE is DONE_FINAL
@@ -1356,7 +1348,7 @@ def retrieve(queues, traces, args):
                         logging.handlers = []
                         logging.shutdown()
                         establish_logging(args)
-
+                        pilot_version_banner()
                         getjob_requests = 0
                         break
                     time.sleep(0.5)
@@ -1427,7 +1419,8 @@ def has_job_completed(queues):
         log.info("job %s has completed" % job.jobid)
 
         # cleanup of any remaining processes
-        job.zombies.append(job.pid)
+        if job.pid:
+            job.zombies.append(job.pid)
         cleanup(job)
 
         return True

@@ -60,6 +60,9 @@ def create_input_file_metadata(file_dictionary, workdir, filename="PoolFileCatal
     if '&' in xml:
         xml = xml.replace('&', '&#038;')
 
+    # stitch in the DOCTYPE
+    xml = xml.replace('<POOLFILECATALOG>', '<!DOCTYPE POOLFILECATALOG SYSTEM "InMemory">\n<POOLFILECATALOG>')
+
     write_file(os.path.join(workdir, filename), xml, mute=False)
 
     return xml

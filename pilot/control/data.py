@@ -139,7 +139,7 @@ def _stage_in(args, job):
         event_type += "_a"
     rse = get_rse(job.indata)
     localsite = remotesite = rse
-    trace_report = TraceReport(pq='', localSite=localsite, remoteSite=remotesite, dataset="", eventType=event_type)
+    trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''), localSite=localsite, remoteSite=remotesite, dataset="", eventType=event_type)
     trace_report.init(job)
 
     # now that the trace report has been created, remove any files that are not to be transferred (DBRelease files) from the indata list
@@ -647,7 +647,7 @@ def _do_stageout(job, xdata, activity, title):
         event_type += "_a"
     rse = get_rse(job.outdata)
     localsite = remotesite = rse
-    trace_report = TraceReport(pq='', localSite=localsite, remoteSite=remotesite, dataset="", eventType=event_type)
+    trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''), localSite=localsite, remoteSite=remotesite, dataset="", eventType=event_type)
     trace_report.init(job)
 
     try:
