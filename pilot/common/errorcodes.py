@@ -363,7 +363,7 @@ class ErrorCodes:
         """
 
         msg = ""
-        patterns = [r"ERROR +\: (.+)", r"Error +\: (.+)", r"error+\: (.+)", r"error +\: (.+)", r"WARNING\: (.+)",  r"Warning\: (.+)", r"warning\: (.+)"]
+        patterns = [r"ERROR +\: (.+)", r"Error +\: (.+)", r"error+\: (.+)", r"error +\: (.+)", r"WARNING\: (.+)", r"Warning\: (.+)", r"warning\: (.+)"]
 
         for pattern in patterns:
             found = re.findall(pattern, stderr)
