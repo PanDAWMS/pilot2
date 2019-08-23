@@ -343,9 +343,9 @@ class ESProcess(threading.Thread):
             raise SetupFailure("get_event_ranges_hook is not set")
 
         try:
-            logger.debug('calling get_event_ranges hook(%s) to get event ranges.' % self.get_event_ranges_hook)
+            logger.info('calling get_event_ranges hook(%s) to get event ranges.' % self.get_event_ranges_hook)
             event_ranges = self.get_event_ranges_hook(num_ranges)
-            logger.debug('got event ranges: %s' % event_ranges)
+            logger.info('got event ranges: %s' % event_ranges)
             return event_ranges
         except Exception as e:
             raise MessageFailure("Failed to get event ranges: %s" % e)
