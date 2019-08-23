@@ -304,7 +304,8 @@ def perform_initial_payload_error_analysis(job, exit_code):
                     ec = errors.SINGULARITYRESOURCEUNAVAILABLE
                 elif "unrecognized arguments" in msg:
                     ec = errors.UNRECOGNIZEDTRFARGUMENTS
-
+                else:
+                    log.warning('unknown stderr error detected: %s' % msg)
         if not ec:
             ec = errors.resolve_transform_error(exit_code, stderr)
         if ec != 0:
