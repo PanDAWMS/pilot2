@@ -133,6 +133,7 @@ class ErrorCodes:
     SINGULARITYRESOURCEUNAVAILABLE = 1348
     UNRECOGNIZEDTRFARGUMENTS = 1349
     EMPTYOUTPUTFILE = 1350
+    UNRECOGNIZEDTRFSTDERR = 1351
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -244,7 +245,8 @@ class ErrorCodes:
         UNSUPPORTEDSL5OS: "Unsupported SL5 OS",
         SINGULARITYRESOURCEUNAVAILABLE: "Singularity: Resource temporarily unavailable",  # not the same as RESOURCEUNAVAILABLE
         UNRECOGNIZEDTRFARGUMENTS: "Unrecognized transform arguments",
-        EMPTYOUTPUTFILE: "Empty output file detected"
+        EMPTYOUTPUTFILE: "Empty output file detected",
+        UNRECOGNIZEDTRFSTDERR: "Unrecognized fatal error in transform stderr"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
@@ -355,17 +357,33 @@ class ErrorCodes:
 
         return ec
 
-    def extract_stderr_msg(self, stderr):
+    def extract_stderr_error(self, stderr):
         """
-        Extract the ERROR or WARNING message from the singularity stderr.
+        Extract the ERROR message from the payload stderr.
+        :param stderr: string.
+        :return: string.
+        """
+
+        return self.get_message_for_pattern([r"ERROR\s*:\s*(.*)", r"Error\s*:\s*(.*)", r"error\s*:\s*(.*)"], stderr)
+
+    def extract_stderr_warning(self, stderr):
+        """
+        Extract the WARNING message from the payload stderr.
+        :param stderr: string.
+        :return: string.
+        """
+
+        return self.get_message_for_pattern([r"WARNING\s*:\s*(.*)", r"Warning\s*:\s*(.*)", r"warning\s*:\s*(.*)"], stderr)
+
+    def get_message_for_pattern(self, patterns, stderr):
+        """
+
+        :param patterns: list of patterns.
         :param stderr: string.
         :return: string.
         """
 
         msg = ""
-        patterns = [r"ERROR\s*:\s*(.*)", r"Error\s*:\s*(.*)", r"error\s*:\s*(.*)",
-                    r"WARNING\s*:\s*(.*)", r"Warning\s*:\s*(.*)", r"warning\s*:\s*(.*)"]
-
         for pattern in patterns:
             found = re.findall(pattern, stderr)
             if len(found) > 0:

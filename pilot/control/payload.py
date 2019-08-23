@@ -289,7 +289,13 @@ def perform_initial_payload_error_analysis(job, exit_code):
         log.warning('main payload execution returned non-zero exit code: %d' % exit_code)
         stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
         if stderr != "":
-            msg = errors.extract_stderr_msg(stderr)
+            msg = errors.extract_stderr_error(stderr)
+            if msg == "":
+                # look for warning messages instead (might not be fatal so do not set UNRECOGNIZEDTRFSTDERR)
+                msg = errors.extract_stderr_warning(stderr)
+                fatal = False
+            else:
+                fatal =True
             if msg != "":
                 log.warning("extracted message from stderr:\n%s" % msg)
                 if "Failed invoking the NEWUSER namespace runtime" in msg:
@@ -304,8 +310,9 @@ def perform_initial_payload_error_analysis(job, exit_code):
                     ec = errors.SINGULARITYRESOURCEUNAVAILABLE
                 elif "unrecognized arguments" in msg:
                     ec = errors.UNRECOGNIZEDTRFARGUMENTS
-                else:
-                    log.warning('unknown stderr error detected: %s' % msg)
+                elif fatal:
+                    ec = errors.UNRECOGNIZEDTRFSTDERR
+
         if not ec:
             ec = errors.resolve_transform_error(exit_code, stderr)
         if ec != 0:
