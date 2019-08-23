@@ -401,14 +401,17 @@ class ErrorCodes:
         :param diag: dynamic error diagnostics (string).
         :return: formatted error diagnostics (string).
         """
+
         try:
             standard_message = self._error_messages[code] + ":"
         except Exception:
             standard_message = ""
-
         try:
             if diag:
-                error_message = standard_message + diag[-(len(diag) - len(standard_message)):]
+                if len(diag) >= len(standard_message):
+                    error_message = standard_message + diag[-(len(diag) - len(standard_message)):]
+                else:
+                    error_message = standard_message + diag[-(len(standard_message) - len(diag)):]
             else:
                 error_message = standard_message
         except Exception:

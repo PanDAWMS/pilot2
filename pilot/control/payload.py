@@ -285,6 +285,7 @@ def perform_initial_payload_error_analysis(job, exit_code):
     log = get_logger(job.jobid, logger)
 
     if exit_code != 0:
+        msg = ""
         ec = 0
         log.warning('main payload execution returned non-zero exit code: %d' % exit_code)
         stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
@@ -316,7 +317,9 @@ def perform_initial_payload_error_analysis(job, exit_code):
         if not ec:
             ec = errors.resolve_transform_error(exit_code, stderr)
         if ec != 0:
-            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
+            if msg:
+                msg = errors.format_diagnostics(ec, msg)
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec, msg=msg)
         else:
             if job.piloterrorcodes:
                 log.warning('error code(s) already set: %s' % str(job.piloterrorcodes))
