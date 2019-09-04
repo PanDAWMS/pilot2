@@ -11,7 +11,7 @@
 import os
 import re
 
-from pilot.common.exception import StageInFailure, StageOutFailure, ErrorCodes
+from pilot.common.exception import StageInFailure, StageOutFailure, ErrorCodes, PilotException
 from pilot.util.container import execute
 
 import logging
@@ -20,10 +20,15 @@ logger = logging.getLogger(__name__)
 require_replicas = False  # indicate if given copytool requires input replicas to be resolved
 
 
-def create_output_list(files, init_dir):
+def create_output_list(files, init_dir, ddmconf):
     """
     Add files to the output list which tells ARC CE which files to upload
     """
+
+    if not ddmconf:
+        raise PilotException("copy_out() failed to resolve ddmconf from function arguments",
+                             code=ErrorCodes.STAGEOUTFAILED,
+                             state='COPY_ERROR')
 
     for fspec in files:
         arcturl = fspec.turl
@@ -36,10 +41,14 @@ def create_output_list(files, init_dir):
             activity = 'write'
             arcturl = '/'.join([rucio, arcturl, rse, activity])
         else:
-            checksumtype, checksum = fspec.checksum.items()[0]
             # Add ARC options to TURL
-            # Spacetoken doesn't seem to be available in fspec yet
-            #arcturl = re.sub(r'((:\d+)/)', r'\2;autodir=no;spacetoken=%s/' % token, arcturl)
+            checksumtype, checksum = fspec.checksum.items()[0]
+            # resolve token value from fspec.ddmendpoint
+            token = ddmconf.get(fspec.ddmendpoint).token
+            if not token:
+                logger.info('No space token info for %s' % fspec.ddmendpoint)
+            else:
+                arcturl = re.sub(r'((:\d+)/)', r'\2;autodir=no;spacetoken=%s/' % token, arcturl)
             arcturl += ':checksumtype=%s:checksumvalue=%s' % (checksumtype, checksum)
 
         logger.info('Adding to output.list: %s %s' % (fspec.lfn, arcturl))
@@ -113,7 +122,7 @@ def copy_out(files, copy_type="mv", **kwargs):
         raise StageOutFailure(stdout)
 
     # Create output list for ARC CE
-    create_output_list(files, os.path.dirname(kwargs.get('workdir')))
+    create_output_list(files, os.path.dirname(kwargs.get('workdir')), kwargs.get('ddmconf', None))
 
     return files
 
