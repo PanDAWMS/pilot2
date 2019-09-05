@@ -379,8 +379,8 @@ def set_environment_variables(args, mainworkdir):
     Set environment variables. To be replaced with singleton implementation.
     This function sets PILOT_WORK_DIR, PILOT_HOME, PILOT_SITENAME, PILOT_USER and PILOT_VERSION and others.
 
-    :param args:
-    :param mainworkdir:
+    :param args: args object.
+    :param mainworkdir: work directory (string).
     :return:
     """
 
