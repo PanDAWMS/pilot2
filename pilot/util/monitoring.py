@@ -207,8 +207,8 @@ def verify_looping_job(current_time, mt, job):
 
     log = get_logger(job.jobid)
 
-    looping_verifiction_time = convert_to_int(config.Pilot.looping_verifiction_time, default=600)
-    if current_time - mt.get('ct_looping') > looping_verifiction_time:
+    looping_verification_time = convert_to_int(config.Pilot.looping_verification_time, default=600)
+    if current_time - mt.get('ct_looping') > looping_verification_time:
         # is the job looping?
         try:
             exit_code, diagnostics = looping_job(job, mt)
