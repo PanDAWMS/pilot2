@@ -5,8 +5,8 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
-# - Wen Guan, wen.guan, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
+# - Wen Guan, wen.guan@cern.ch, 2018
 
 import os
 import re
