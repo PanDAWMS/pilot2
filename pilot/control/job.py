@@ -717,7 +717,8 @@ def store_jobid(jobid):
 
     try:
         path = os.path.join(os.environ.get('PILOT_HOME'), config.Pilot.jobid_file)
-        write_file(path, "%s\n" % str(jobid), mode='a')
+        mode = 'a' if os.path.exists(path) else 'w+'
+        write_file(path, "%s\n" % str(jobid), mode=mode)
     except Exception as e:
         logger.warning('exception caught while trying to store job id: %s' % e)
 
