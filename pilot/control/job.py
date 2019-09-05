@@ -696,7 +696,7 @@ def validate(queues, traces, args):
                 log.warning('cannot symlink pilot log: %s' % str(e))
 
             # store the PanDA job id for the wrapper to pick up
-            store_jobid(job.jobid)
+            store_jobid(job.jobid, args.sourcedir)
 
             put_in_queue(job, queues.validated_jobs)
 
@@ -707,16 +707,17 @@ def validate(queues, traces, args):
     logger.debug('[job] validate thread has finished')
 
 
-def store_jobid(jobid):
+def store_jobid(jobid, init_dir):
     """
     Store the PanDA job id in a file that can be picked up by the wrapper for other reporting.
 
     :param jobid: job id (int).
+    :param init_dir: pilot init dir (string).
     :return:
     """
 
     try:
-        path = os.path.join(os.path.join(os.environ.get('PILOT_HOME'), 'pilot'), config.Pilot.jobid_file)
+        path = os.path.join(init_dir, config.Pilot.jobid_file)
         mode = 'a' if os.path.exists(path) else 'w'
         logger.debug('path=%s  mode=%s' % (path, mode))
         write_file(path, "%s\n" % str(jobid), mode=mode, mute=False)
