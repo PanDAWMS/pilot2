@@ -124,7 +124,10 @@ def write_file(path, contents, mute=True, mode='w'):
         f.close()
 
     if not mute:
-        logger.info('created file: %s' % path)
+        if 'w' in mode:
+            logger.info('created file: %s' % path)
+        if 'a' in mode:
+            logger.info('appended file: %s' % path)
 
     return status
 
