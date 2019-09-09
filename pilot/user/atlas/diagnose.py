@@ -242,7 +242,10 @@ def extract_special_information(job):
     find_number_of_events(job)
 
     # get the DB info from the jobReport
-    find_db_info(job)
+    try:
+        find_db_info(job)
+    except Exception as e:
+        logger.warning('detected problem with parsing job report (in find_db_info()): %s' % e)
 
 
 def find_number_of_events(job):

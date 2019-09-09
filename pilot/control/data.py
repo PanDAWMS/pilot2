@@ -645,7 +645,7 @@ def _do_stageout(job, xdata, activity, title):
     #    eventType += '_logs_os'
     if job.is_analysis():
         event_type += "_a"
-    rse = get_rse(job.outdata)
+    rse = get_rse(xdata)
     localsite = remotesite = rse
     trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''), localSite=localsite, remoteSite=remotesite, dataset="", eventType=event_type)
     trace_report.init(job)
