@@ -285,30 +285,28 @@ def perform_initial_payload_error_analysis(job, exit_code):
     log = get_logger(job.jobid, logger)
 
     if exit_code != 0:
+        msg = ""
         ec = 0
         log.warning('main payload execution returned non-zero exit code: %d' % exit_code)
         stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
         if stderr != "":
-            msg = errors.extract_stderr_msg(stderr)
+            msg = errors.extract_stderr_error(stderr)
+            if msg == "":
+                # look for warning messages instead (might not be fatal so do not set UNRECOGNIZEDTRFSTDERR)
+                msg = errors.extract_stderr_warning(stderr)
+                fatal = False
+            else:
+                fatal = True
             if msg != "":
                 log.warning("extracted message from stderr:\n%s" % msg)
-                if "Failed invoking the NEWUSER namespace runtime" in msg:
-                    ec = errors.SINGULARITYNEWUSERNAMESPACE
-                elif "Failed to create user namespace" in msg:
-                    ec = errors.SINGULARITYFAILEDUSERNAMESPACE
-                elif "command not found" in msg:
-                    ec = errors.TRANSFORMNOTFOUND
-                elif "SL5 is unsupported" in msg:
-                    ec = errors.UNSUPPORTEDSL5OS
-                elif "resource temporarily unavailable" in msg:
-                    ec = errors.SINGULARITYRESOURCEUNAVAILABLE
-                elif "unrecognized arguments" in msg:
-                    ec = errors.UNRECOGNIZEDTRFARGUMENTS
+                ec = set_error_code_from_stderr(msg, fatal)
 
         if not ec:
             ec = errors.resolve_transform_error(exit_code, stderr)
         if ec != 0:
-            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
+            if msg:
+                msg = errors.format_diagnostics(ec, msg)
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec, msg=msg)
         else:
             if job.piloterrorcodes:
                 log.warning('error code(s) already set: %s' % str(job.piloterrorcodes))
@@ -316,6 +314,36 @@ def perform_initial_payload_error_analysis(job, exit_code):
                 log.warning('initial error analysis did not resolve the issue')
     else:
         log.info('main payload execution returned zero exit code, but will check it more carefully')
+
+
+def set_error_code_from_stderr(msg, fatal):
+    """
+    Identify specific errors in stderr and set the corresponding error code.
+    The function returns 0 if no error is recognized.
+
+    :param msg: stderr (string).
+    :param fatal: boolean flag if fatal error among warning messages in stderr.
+    :return: error code (int).
+    """
+
+    if "Failed invoking the NEWUSER namespace runtime" in msg:
+        ec = errors.SINGULARITYNEWUSERNAMESPACE
+    elif "Failed to create user namespace" in msg:
+        ec = errors.SINGULARITYFAILEDUSERNAMESPACE
+    elif "command not found" in msg:
+        ec = errors.TRANSFORMNOTFOUND
+    elif "SL5 is unsupported" in msg:
+        ec = errors.UNSUPPORTEDSL5OS
+    elif "resource temporarily unavailable" in msg:
+        ec = errors.SINGULARITYRESOURCEUNAVAILABLE
+    elif "unrecognized arguments" in msg:
+        ec = errors.UNRECOGNIZEDTRFARGUMENTS
+    elif fatal:
+        ec = errors.UNRECOGNIZEDTRFSTDERR
+    else:
+        ec = 0
+
+    return ec
 
 
 def validate_post(queues, traces, args):

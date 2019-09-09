@@ -34,7 +34,7 @@ from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
-from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json, establish_logging
+from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json, establish_logging, write_file
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file, \
     is_harvester_mode, get_worker_attributes_file, publish_work_report, get_event_status_file, \
     publish_stageout_files
@@ -695,6 +695,9 @@ def validate(queues, traces, args):
             except Exception as e:
                 log.warning('cannot symlink pilot log: %s' % str(e))
 
+            # store the PanDA job id for the wrapper to pick up
+            store_jobid(job.jobid, args.sourcedir)
+
             put_in_queue(job, queues.validated_jobs)
 
         else:
@@ -702,6 +705,24 @@ def validate(queues, traces, args):
             put_in_queue(job, queues.failed_jobs)
 
     logger.debug('[job] validate thread has finished')
+
+
+def store_jobid(jobid, init_dir):
+    """
+    Store the PanDA job id in a file that can be picked up by the wrapper for other reporting.
+
+    :param jobid: job id (int).
+    :param init_dir: pilot init dir (string).
+    :return:
+    """
+
+    try:
+        path = os.path.join(os.path.join(init_dir, 'pilot2'), config.Pilot.jobid_file)
+        mode = 'a' if os.path.exists(path) else 'w'
+        logger.debug('path=%s  mode=%s' % (path, mode))
+        write_file(path, "%s\n" % str(jobid), mode=mode, mute=False)
+    except Exception as e:
+        logger.warning('exception caught while trying to store job id: %s' % e)
 
 
 def create_data_payload(queues, traces, args):
@@ -867,8 +888,6 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     :param traces: traces object (to be able to propagate a proxy error all the way back to the wrapper).
     :return: Boolean.
     """
-
-    time.sleep(10)
 
     # use for testing thread exceptions. the exception will be picked up by ExcThread run() and caught in job.control()
     # raise NoLocalSpace('testing exception from proceed_with_getjob')
