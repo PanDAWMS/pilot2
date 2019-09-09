@@ -14,7 +14,7 @@ with open('PILOTVERSION') as reader:
     release_version = reader.read()
 
 setup(
-    name="pilot",
+    name="panda-pilot",
     version=release_version,
     description='PanDA Pilot 2',
     long_description='''This package contains the PanDA pilot 2 code''',
