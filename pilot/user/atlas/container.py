@@ -65,7 +65,7 @@ def wrapper(executable, **kwargs):
 
     workdir = kwargs.get('workdir', '.')
     pilot_home = os.environ.get('PILOT_HOME', '')
-    job = kwargs.get('job')
+    job = kwargs.get('job', None)
 
     logger.info('container wrapper called')
 
@@ -73,7 +73,7 @@ def wrapper(executable, **kwargs):
         workdir = pilot_home
 
     # if job.imagename (from --containerimage <image>) is set, then always use raw singularity
-    if config.Container.setup_type == "ALRB" and not job.imagename:
+    if config.Container.setup_type == "ALRB" and job and not job.imagename:
         fctn = alrb_wrapper
     else:
         fctn = singularity_wrapper
