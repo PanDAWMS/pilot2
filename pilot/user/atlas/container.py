@@ -32,13 +32,11 @@ def do_use_container(**kwargs):
     :return: True if function has decided that a container should be used, False otherwise (boolean).
     """
 
+    # to force no container use: return False
     use_container = False
 
-    # return use_container
-
-    # to force no container use: return False
-
-    job = kwargs.get('job')
+    job = kwargs.get('job', False)
+    copytool = kwargs.get('copytool', False)
     if job:
         # for user jobs, TRF option --containerImage must have been used, ie imagename must be set
         if job.is_analysis() and job.imagename:
@@ -48,6 +46,9 @@ def do_use_container(**kwargs):
             container_name = queuedata.container_type.get("pilot")
             if container_name == 'singularity':
                 use_container = True
+    elif copytool:
+        # override for copytools - use a container for stage-in/out
+        use_container = True
 
     return use_container
 
