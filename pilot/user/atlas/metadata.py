@@ -20,12 +20,13 @@ logger = logging.getLogger(__name__)
 def create_input_file_metadata(file_dictionary, workdir, filename="PoolFileCatalog.xml"):
     """
     Create a Pool File Catalog for the files listed in the input dictionary.
-    The function creates properly formmatted XML (pretty printed) and writes the XML to file.
+    The function creates properly formatted XML (pretty printed) and writes the XML to file.
 
     Format:
     dictionary = {'guid': 'pfn', ..}
     ->
     <POOLFILECATALOG>
+    <!DOCTYPE POOLFILECATALOG SYSTEM "InMemory">
     <File ID="guid">
       <physical>
         <pfn filetype="ROOT_All" name="surl"/>

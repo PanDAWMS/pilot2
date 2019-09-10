@@ -315,7 +315,7 @@ def move(source, destination, dst_in=True, copysetup="", options=None):
         cmd += "lsm-put %s" % args
 
     try:
-        exit_code, stdout, stderr = execute(cmd)  #, timeout=get_timeout(fspec.filesize))
+        exit_code, stdout, stderr = execute(cmd, usecontainer=True)  #, timeout=get_timeout(fspec.filesize))
     except Exception as e:
         if dst_in:
             exit_code = ErrorCodes.STAGEINFAILED
