@@ -159,7 +159,7 @@ def _stage_in(args, job):
             client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
             activity = 'pr'
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)  #, mode='stage-in')
-
+        client.prepare_sources(job.indata)
         client.transfer(job.indata, activity=activity, **kwargs)
     except PilotException as error:
         import traceback

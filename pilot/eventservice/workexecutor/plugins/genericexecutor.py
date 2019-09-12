@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2018
+# - Alexey Anisenkov, anisyonk@cern.ch, 2019
 
 import json
 import os
@@ -13,12 +14,14 @@ import time
 import traceback
 
 from pilot.api.es_data import StageOutESClient
-from pilot.common import exception
+from pilot.common.exception import PilotException, StageOutFailure, ErrorCodes
+
 from pilot.eventservice.esprocess.esprocess import ESProcess
 from pilot.info.filespec import FileSpec
 from pilot.info import infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
+
 from .baseexecutor import BaseExecutor
 
 import logging
@@ -165,33 +168,76 @@ class GenericExecutor(BaseExecutor):
 
         :param output_file: output file name.
         """
+
         job = self.get_job()
         log = get_logger(job.jobid, logger)
         log.info('prepare to stage-out eventservice files')
 
         error = None
+        file_data = {'scope': 'transient',
+                     'lfn': os.path.basename(output_file),
+                     }
+        file_spec = FileSpec(filetype='output', **file_data)
+        xdata = [file_spec]
+        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
+
+        try_failover = False
+        activity = ['es_events', 'pw']  ## FIX ME LATER: replace `pw` with `write_lan` once AGIS is updated (acopytools)
+
         try:
-            file_data = {'scope': 'transient',
-                         'lfn': os.path.basename(output_file),
-                         }
-            file_spec = FileSpec(filetype='output', **file_data)
-            xdata = [file_spec]
             client = StageOutESClient(job.infosys, logger=log)
-            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
-            client.transfer(xdata, activity=['es_events', 'pw'], **kwargs)
-        except exception.PilotException, error:
+            try_failover = True
+
+            client.prepare_destinations(xdata, activity)  ## IF ES job should be allowed to write only at `es_events` astorages, then fix activity names here
+            client.transfer(xdata, activity=activity, **kwargs)
+        except PilotException as error:
             log.error(error.get_detail())
-        except Exception, e:
-            import traceback
+        except Exception as e:
             log.error(traceback.format_exc())
-            error = exception.StageOutFailure("stageOut failed with error=%s" % e)
+            error = StageOutFailure("stageOut failed with error=%s" % e)
 
         log.info('Summary of transferred files:')
         log.info(" -- lfn=%s, status_code=%s, status=%s" % (file_spec.lfn, file_spec.status_code, file_spec.status))
 
-        if error or file_spec.status != 'transferred':
+        if error:
             log.error('Failed to stage-out eventservice file(%s): error=%s' % (output_file, error.get_detail()))
+        elif file_spec.status != 'transferred':
+            msg = 'Failed to stage-out ES file(%s): logic corrupted: unknown internal error, fspec=%s' % (output_file, file_spec)
+            log.error(msg)
+            raise StageOutFailure(msg)
+
+        failover_storage_activity = ['es_failover', 'pw']
+
+        if try_failover and error and error.get_error_code() not in [ErrorCodes.MISSINGOUTPUTFILE]:  ## try to failover to other storage
+
+            xdata2 = [FileSpec(filetype='output', **file_data)]
+
+            try:
+                client.prepare_destinations(xdata2, failover_storage_activity)
+                if xdata2[0].ddmendpoint != xdata[0].ddmendpoint:  ## skip transfer to same output storage
+                    msg = 'Will try to failover ES transfer to astorage with activity=%s, rse=%s' % (failover_storage_activity, xdata2[0].ddmendpoint)
+                    log.info(msg)
+                    client.transfer(xdata2, activity=activity, **kwargs)
+
+                    log.info('Summary of transferred files (failover transfer):')
+                    log.info(" -- lfn=%s, status_code=%s, status=%s" % (xdata2[0].lfn, xdata2[0].status_code, xdata2[0].status))
+
+            except PilotException as e:
+                if e.get_error_code() == ErrorCodes.NOSTORAGE:
+                    log.info('Failover ES storage is not defined for activity=%s .. skipped' % failover_storage_activity)
+                else:
+                    log.error('Transfer to failover storage=%s failed .. skipped, error=%s' % (xdata2[0].ddmendpoint, e.get_detail()))
+            except Exception as e:
+                log.error('Failover ES stageout failed .. skipped')
+                log.error(traceback.format_exc())
+
+            if xdata2[0].status == 'transferred':
+                error = None
+                file_spec = xdata2[0]
+
+        if error:
             raise error
+
         storage_id = infosys.get_storage_id(file_spec.ddmendpoint)
 
         return file_spec.ddmendpoint, storage_id, file_spec.filesize, file_spec.checksum

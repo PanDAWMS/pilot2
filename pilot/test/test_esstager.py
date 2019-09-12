@@ -73,7 +73,8 @@ class TestStager(unittest.TestCase):
             workdir = os.path.dirname(output_file)
             client = StageOutESClient(infoservice)
             kwargs = dict(workdir=workdir, cwd=workdir, usecontainer=False)
-            client.transfer(xdata, activity=['es_events'], **kwargs)
+            client.prepare_destinations(xdata, activity='es_events')
+            client.transfer(xdata, activity='es_events', **kwargs)
         except exception.PilotException, error:
             logger.error("Pilot Exeception: %s, %s" % (error.get_detail(), traceback.format_exc()))
         except Exception, e:
@@ -115,6 +116,7 @@ class TestStager(unittest.TestCase):
             workdir = os.path.dirname(output_file)
             client = StageOutESClient(infoservice)
             kwargs = dict(workdir=workdir, cwd=workdir, usecontainer=False)
+            client.prepare_destinations(xdata, activity=['es_events', 'pw'])  # allow to write to `es_events` and `pw` astorages
             client.transfer(xdata, activity=['es_events', 'pw'], **kwargs)
         except exception.PilotException, error:
             logger.error("Pilot Exeception: %s, %s" % (error.get_detail(), traceback.format_exc()))
@@ -157,6 +159,7 @@ class TestStager(unittest.TestCase):
             workdir = os.path.dirname(output_file)
             client = StageOutESClient(infoservice)
             kwargs = dict(workdir=workdir, cwd=workdir, usecontainer=False)
+            client.prepare_destinations(xdata, activity=['es_events_non_exist', 'pw'])  # allow to write to `es_events_non_exist` and `pw` astorages
             client.transfer(xdata, activity=['es_events_non_exist', 'pw'], **kwargs)
         except exception.PilotException, error:
             logger.error("Pilot Exeception: %s, %s" % (error.get_detail(), traceback.format_exc()))
@@ -199,6 +202,7 @@ class TestStager(unittest.TestCase):
             workdir = os.path.dirname(output_file)
             client = StageOutESClient(infoservice)
             kwargs = dict(workdir=workdir, cwd=workdir, usecontainer=False)
+            client.prepare_destinations(xdata, activity=['es_events', 'pw'])  # allow to write to `es_events` and `pw` astorages
             client.transfer(xdata, activity=['es_events', 'pw'], **kwargs)
         except exception.PilotException, error:
             logger.error("Pilot Exeception: %s, %s" % (error.get_detail(), traceback.format_exc()))
@@ -227,6 +231,7 @@ class TestStager(unittest.TestCase):
             workdir = os.path.dirname(output_file)
             client = StageInESClient(infoservice)
             kwargs = dict(workdir=workdir, cwd=workdir, usecontainer=False)
+            client.prepare_sources(xdata)
             client.transfer(xdata, activity=['es_events_read'], **kwargs)
         except exception.PilotException, error:
             logger.error("Pilot Exeception: %s, %s" % (error.get_detail(), traceback.format_exc()))
@@ -269,6 +274,7 @@ class TestStager(unittest.TestCase):
             workdir = os.path.dirname(output_file)
             client = StageOutESClient(infoservice)
             kwargs = dict(workdir=workdir, cwd=workdir, usecontainer=False)
+            client.prepare_destinations(xdata, activity=['es_events_no_exist', 'pw'])  # allow to write to `es_events_no_exist` and `pw` astorages
             client.transfer(xdata, activity=['es_events_no_exist', 'pw'], **kwargs)
         except exception.PilotException, error:
             logger.error("Pilot Exeception: %s, %s" % (error.get_detail(), traceback.format_exc()))
@@ -297,6 +303,7 @@ class TestStager(unittest.TestCase):
             workdir = os.path.dirname(output_file)
             client = StageInESClient(infoservice)
             kwargs = dict(workdir=workdir, cwd=workdir, usecontainer=False)
+            client.prepare_sources(xdata)
             client.transfer(xdata, activity=['es_events_read'], **kwargs)
         except exception.PilotException, error:
             logger.error("Pilot Exeception: %s, %s" % (error.get_detail(), traceback.format_exc()))

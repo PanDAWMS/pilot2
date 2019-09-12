@@ -90,6 +90,7 @@ class TestESWorkExecutorGrid(unittest.TestCase):
             # download input files
             client = StageInESClient(job.infosys, logger=logger)
             kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
+            client.prepare_sources(job.indata)
             client.transfer(job.indata, activity='pr', **kwargs)
 
             # get the payload command from the user specific code
