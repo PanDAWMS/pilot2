@@ -6,6 +6,7 @@
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2018
 
+## THIS FILE IS DEPRECATED AND CAN BE REMOVED LATER (anisyonk)
 
 import logging
 logger = logging.getLogger(__name__)
