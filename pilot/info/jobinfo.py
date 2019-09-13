@@ -83,6 +83,7 @@ class JobInfoProvider(object):
         master_data = self.job.overwrite_storagedata or {}
         data.update((k, v) for k, v in master_data.iteritems() if k in set(ddmendpoints or master_data) & set(master_data))
 
-        logger.info('storagedata: following data extracted from Job definition will be used: %s' % data)
+        if data:
+            logger.info('storagedata: following data extracted from Job definition will be used: %s' % data)
 
         return data
