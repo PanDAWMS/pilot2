@@ -189,7 +189,7 @@ def run(args):
         if abort:
             break
 
-        sleep(0.1)
+        sleep(1)
 
     logger.info('end of generic workflow (traces error code: %d)' % traces.pilot['error_code'])
 
