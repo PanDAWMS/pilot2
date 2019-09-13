@@ -546,7 +546,7 @@ class StageInClient(StagingClient):
         """
 
         if not fspec.replicas:
-            self.logger.warning('resolve_replicas() recevied no fspec.replicas')
+            self.logger.warning('resolve_replicas() received no fspec.replicas')
             return
 
         allowed_schemas = allowed_schemas or [None]
@@ -654,8 +654,10 @@ class StageInClient(StagingClient):
         if allow_direct_access:
             self.set_accessmodes_for_direct_access(files, direct_access_type)
 
-        if getattr(copytool, 'require_replicas', False) and files and files[0].replicas is None:
-            files = self.resolve_replicas(files)
+        if getattr(copytool, 'require_replicas', False) and files:
+            if files[0].replicas is None:  ## look up replicas only once
+                files = self.resolve_replicas(files)
+
             allowed_schemas = getattr(copytool, 'allowed_schemas', None)
 
             if self.infosys and self.infosys.queuedata:
@@ -664,8 +666,7 @@ class StageInClient(StagingClient):
 
             for fspec in files:
                 resolve_replica = getattr(copytool, 'resolve_replica', None)
-                if not callable(resolve_replica):
-                    resolve_replica = self.resolve_replica
+                resolve_replica = self.resolve_replica if not callable(resolve_replica) else resolve_replica
 
                 ## prepare schemas which will be used to look up first the replicas allowed for direct access mode
                 primary_schemas = self.direct_localinput_allowed_schemas if fspec.accessmode == 'direct' else None
