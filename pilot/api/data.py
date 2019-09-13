@@ -666,8 +666,7 @@ class StageInClient(StagingClient):
 
             for fspec in files:
                 resolve_replica = getattr(copytool, 'resolve_replica', None)
-                if not callable(resolve_replica):
-                    resolve_replica = self.resolve_replica
+                resolve_replica = self.resolve_replica if not callable(resolve_replica) else resolve_replica
 
                 ## prepare schemas which will be used to look up first the replicas allowed for direct access mode
                 primary_schemas = self.direct_localinput_allowed_schemas if fspec.accessmode == 'direct' else None
