@@ -99,6 +99,7 @@ class ExtendedConfig(ConfigParser.ConfigParser):
     def __dir__(self):
         def has_attr(obj, attr):
             """ Wrapper for hasattr() to resolve python 2 vs 3 issue """
+            # See https://medium.com/@k.wahome/python-2-vs-3-hasattr-behaviour-f1bed48b068
             has_the_attr = False
             try:
                 has_the_attr = hasattr(obj, attr)
@@ -110,7 +111,8 @@ class ExtendedConfig(ConfigParser.ConfigParser):
             import types
             if not has_attr(obj, '__dict__'):
                 return []  # slots only
-            if not isinstance(obj.__dict__, (dict, types.DictProxyType)):
+            arg = (dict, types.DictProxyType) if has_attr(types, 'DictProxyType') else dict  # python 3 correction
+            if not isinstance(obj.__dict__, arg):
                 raise TypeError("%s.__dict__ is not a dictionary"
                                 "" % obj.__name__)
             return obj.__dict__.keys()
