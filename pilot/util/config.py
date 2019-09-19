@@ -113,8 +113,7 @@ class ExtendedConfig(ConfigParser.ConfigParser):
                 return []  # slots only
             arg = (dict, types.DictProxyType) if has_attr(types, 'DictProxyType') else dict  # python 3 correction
             if not isinstance(obj.__dict__, arg):
-                raise TypeError("%s.__dict__ is not a dictionary"
-                                "" % obj.__name__)
+                raise TypeError("%s.__dict__ is not a dictionary" % obj.__name__)
             return obj.__dict__.keys()
 
         def dir2(obj):
