@@ -188,7 +188,7 @@ class StageOutESClientDeprecateME(StagingESClient, StageOutClient):
 class StageInESClient(StageInClient):
 
     def __init__(self, *argc, **kwargs):
-        super(StagingClient, self).__init__(*argc, **kwargs)
+        super(StageInESClient, self).__init__(*argc, **kwargs)
 
         self.copytool_modules.setdefault('objectstore', {'module_name': 'objectstore'})
         self.acopytools.setdefault('es_events_read', ['objectstore'])
