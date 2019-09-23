@@ -62,8 +62,8 @@ def verify_catalog_checksum(fspec, path):
         logger.info('checksum (catalog): %s (type: %s)' % (checksum_catalog, checksum_type))
         logger.info('checksum (local): %s' % checksum_local)
         if checksum_local and checksum_local != '' and checksum_local != checksum_catalog:
-            diagnostics = 'checksum verification failed: checksum (catalog)=%s != checksum (local)=%s' % \
-                          (checksum_catalog, checksum_local)
+            diagnostics = 'checksum verification failed for LFN=%s: checksum (catalog)=%s != checksum (local)=%s' % \
+                          (fspec.lfn, checksum_catalog, checksum_local)
             logger.warning(diagnostics)
             fspec.status_code = ErrorCodes.GETADMISMATCH if checksum_type == 'adler32' else ErrorCodes.GETMD5MISMATCH
             fspec.status = 'failed'
