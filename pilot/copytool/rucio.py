@@ -36,6 +36,16 @@ def is_valid_for_copy_in(files):
 def is_valid_for_copy_out(files):
     return True  ## FIX ME LATER
 
+def verify_stage_out(fspec):
+    """
+    Checks that the uploaded file is physically at the destination.
+    :param fspec: file specifications
+    """
+    from rucio.rse import rsemanager as rsemgr
+    rse_settings = rsemgr.get_rse_info(fspec.ddmendpoint)
+    uploaded_file = {'name': fspec.lfn, 'scope': fspec.scope}
+    logger.info('Checking file: %s' % str(fspec.lfn))
+    return rsemgr.exists(rse_settings, [uploaded_file])
 
 # @timeout(seconds=600)
 def copy_in(files, **kwargs):
@@ -296,6 +306,15 @@ def _stage_out_api(fspec, summary_file_path, trace_report):
 
     client_state = 'FAILED'
     if result == 0:
+        try:
+            file_exists = verify_stage_out(fspec)
+            logger.info('File exists at the storage: %s' % str(file_exists))
+            if not file_exists:
+                raise PilotException('stageOut: Physical check after upload failed.')
+        except Exception as e:
+            msg = 'stageOut: File existence verification failed with: %s' % str(e)
+            logger.info(msg)
+            raise PilotException(msg)
         client_state = 'DONE'
 
     return client_state
