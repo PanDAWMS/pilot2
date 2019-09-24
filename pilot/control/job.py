@@ -836,7 +836,7 @@ def get_dispatcher_dictionary(args):
     logger.debug('args.resource=%s' % args.resource)
 
     data = {
-        'siteName': infosys.queuedata.resource  # next: remove redundant '-r' option of pilot.py
+        'siteName': infosys.queuedata.resource,  # next: remove redundant '-r' option of pilot.py
         'computingElement': args.queue,
         'prodSourceLabel': job_label,
         'diskSpace': _diskspace,
