@@ -54,7 +54,7 @@ def copy_in(files, **kwargs):
     # don't spoil the output, we depend on stderr parsing
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
-    localsite = os.environ.get('DQ2_LOCAL_SITE_ID', None)
+    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', os.environ.get('DQ2_LOCAL_SITE_ID', None))
     for fspec in files:
         logger.info('rucio copytool, downloading file with scope:%s lfn:%s' % (str(fspec.scope), str(fspec.lfn)))
         # update the trace report

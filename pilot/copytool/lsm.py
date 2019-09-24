@@ -75,7 +75,7 @@ def copy_in(files, **kwargs):
     copysetup = get_copysetup(copytools, 'lsm')
     trace_report = kwargs.get('trace_report')
     allow_direct_access = kwargs.get('allow_direct_access')
-    localsite = os.environ.get('DQ2_LOCAL_SITE_ID', None)
+    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', os.environ.get('DQ2_LOCAL_SITE_ID', None))
 
     for fspec in files:
         # update the trace report
