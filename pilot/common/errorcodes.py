@@ -406,6 +406,16 @@ class ErrorCodes:
             standard_message = self._error_messages[code] + ":"
         except Exception:
             standard_message = ""
+
+        # extract the relevant info for reporting exceptions
+        if "Traceback" in diag:
+            pattern = 'details:(.+)'
+            found = re.findall(pattern, diag)
+            if found:
+                diag = 'X' * len(standard_message) + found[0]  # the X's will be cut below
+                diag = diag.replace("[PilotException(\'", '')
+                diag = diag.replace('[PilotException(\"', '')
+
         try:
             if diag:
                 if len(diag) >= len(standard_message):
