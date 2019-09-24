@@ -36,6 +36,7 @@ def is_valid_for_copy_in(files):
 def is_valid_for_copy_out(files):
     return True  ## FIX ME LATER
 
+
 def verify_stage_out(fspec):
     """
     Checks that the uploaded file is physically at the destination.
@@ -46,6 +47,7 @@ def verify_stage_out(fspec):
     uploaded_file = {'name': fspec.lfn, 'scope': fspec.scope}
     logger.info('Checking file: %s' % str(fspec.lfn))
     return rsemgr.exists(rse_settings, [uploaded_file])
+
 
 # @timeout(seconds=600)
 def copy_in(files, **kwargs):
