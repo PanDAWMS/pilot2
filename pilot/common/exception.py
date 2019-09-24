@@ -69,6 +69,11 @@ class PilotException(Exception):
     def get_error_code(self):
         return self._errorCode
 
+    def get_last_error(self):
+        if self.args:
+            return self.args[-1]
+        return self._message
+
 
 class NotImplemented(PilotException):
     """
