@@ -402,7 +402,7 @@ class StagingClient(object):
             except PilotException as e:
                 msg = 'failed to execute transfer_files(): PilotException caught: %s' % e
                 self.logger.warning(msg)
-                caught_errors.append(e)
+                caught_errors.append(e.get_last_error())
             except TimeoutException as e:
                 msg = 'function timed out: %s' % e
                 self.logger.warning(msg)
@@ -436,7 +436,7 @@ class StagingClient(object):
                 code = ErrorCodes.STAGEINFAILED
             self.logger.fatal('caught_errors=%s' % str(caught_errors))
             self.logger.fatal('code=%s' % str(code))
-            raise PilotException('failed to transfer files using copytools=%s, error=%s' % (copytools, caught_errors), code=code)
+            raise PilotException('failed to transfer files using copytools=%s' % (copytools), ','.join(caught_errors), code=code)
 
         self.logger.debug('result=%s' % str(result))
         return result
