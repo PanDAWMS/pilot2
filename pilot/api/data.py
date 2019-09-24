@@ -402,7 +402,7 @@ class StagingClient(object):
             except PilotException as e:
                 msg = 'failed to execute transfer_files(): PilotException caught: %s' % e
                 self.logger.warning(msg)
-                caught_errors.append(e)
+                caught_errors.append(e.get_last_error())
             except TimeoutException as e:
                 msg = 'function timed out: %s' % e
                 self.logger.warning(msg)

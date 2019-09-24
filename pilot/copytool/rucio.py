@@ -37,6 +37,18 @@ def is_valid_for_copy_out(files):
     return True  ## FIX ME LATER
 
 
+def verify_stage_out(fspec):
+    """
+    Checks that the uploaded file is physically at the destination.
+    :param fspec: file specifications
+    """
+    from rucio.rse import rsemanager as rsemgr
+    rse_settings = rsemgr.get_rse_info(fspec.ddmendpoint)
+    uploaded_file = {'name': fspec.lfn, 'scope': fspec.scope}
+    logger.info('Checking file: %s' % str(fspec.lfn))
+    return rsemgr.exists(rse_settings, [uploaded_file])
+
+
 # @timeout(seconds=600)
 def copy_in(files, **kwargs):
     """
@@ -96,7 +108,8 @@ def copy_in(files, **kwargs):
                                 stateReason=error_msg, timeEnd=time())
             if not ignore_errors:
                 trace_report.send()
-                raise PilotException(error_msg, code=error.get('rcode'), state='FAILED')
+                msg = ' %s:%s, %s' % (fspec.scope, fspec.lfn, str(error_msg).replace('\n', ' '))
+                raise PilotException(msg, code=error.get('rcode'), state='FAILED')
 
         # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
         destination = os.path.join(dst, fspec.lfn)
@@ -171,7 +184,8 @@ def copy_out(files, **kwargs):
                                 timeEnd=time())
             if not ignore_errors:
                 trace_report.send()
-                raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
+                msg = ' %s:%s, %s' % (fspec.scope, fspec.lfn, str(error_msg).replace('\n', ' '))
+                raise PilotException(msg, code=error.get('rcode'), state=error.get('state'))
 
         if summary:  # resolve final pfn (turl) from the summary JSON
             if not os.path.exists(summary_file_path):
@@ -201,7 +215,7 @@ def copy_out(files, **kwargs):
                             logger.info('local checksum (%s) = remote checksum (%s)' % (local_checksum, adler32))
                         else:
                             logger.warning('checksum could not be verified: local checksum (%s), remote checksum (%s)' %
-                                           str(local_checksum), str(adler32))
+                                           (str(local_checksum), str(adler32)))
         if not fspec.status_code:
             fspec.status_code = 0
             fspec.status = 'transferred'
@@ -248,11 +262,13 @@ def _stage_in_api(dst, fspec, trace_report):
     else:
         result = download_client.download_dids([f], trace_custom_fields=trace_pattern)
 
-    client_state = 'FAILED'
-    if result:
-        client_state = result[0].get('clientState', 'FAILED')
+    logger.debug('Rucio download client returned %s' % result)
+    if not result:
+        raise Exception('Unknown error')
+    if result[0].get('clientState', 'FAILED') == 'FAILED':
+        raise Exception(result[0].get('clientError', 'Unknown error'))
 
-    return client_state
+    return 'DONE'
 
 
 def _stage_out_api(fspec, summary_file_path, trace_report):
@@ -292,10 +308,23 @@ def _stage_out_api(fspec, summary_file_path, trace_report):
         result = upload_client.upload([f], summary_file_path)
     except UnboundLocalError:
         logger.warning('rucio still needs a bug fix of the summary in the uploadclient')
-        result = 0
 
-    client_state = 'FAILED'
-    if result == 0:
-        client_state = 'DONE'
+    # Old upload client returns 0, new one returns list of file dicts
+    if type(result) == list:
+        logger.debug('Rucio upload client returned %s' % result)
+        if not result:
+            raise Exception('Unknown error')
+        if not result[0].get('upload_result', {}).get('success', False):
+            raise Exception(result[0].get('upload_error', 'Unknown error'))
 
-    return client_state
+    try:
+        file_exists = verify_stage_out(fspec)
+        logger.info('File exists at the storage: %s' % str(file_exists))
+        if not file_exists:
+            raise PilotException('stageOut: Physical check after upload failed.')
+    except Exception as e:
+        msg = 'stageOut: File existence verification failed with: %s' % str(e)
+        logger.info(msg)
+        raise PilotException(msg)
+
+    return 'DONE'
