@@ -832,9 +832,6 @@ def get_dispatcher_dictionary(args):
     # override for RC dev pilots
     job_label = get_job_label(args)
 
-    logger.debug('infosys.queuedata.resource=%s' % infosys.queuedata.resource)
-    logger.debug('args.resource=%s' % args.resource)
-
     data = {
         'siteName': infosys.queuedata.resource,  # next: remove redundant '-r' option of pilot.py
         'computingElement': args.queue,
