@@ -84,7 +84,7 @@ class TimedThread(object):
 
         if thread.is_alive():
             self.is_timeout = True
-            raise TimeoutException("details: Timeout reached", timeout=timeout)
+            raise TimeoutException("Timeout reached", timeout=timeout)
 
         ret = self.result
 
@@ -133,7 +133,7 @@ class TimedProcess(object):
             ret = queue.get(block=True, timeout=timeout)
         except Empty:
             self.is_timeout = True
-            raise TimeoutException("details: Timeout reached", timeout=timeout)
+            raise TimeoutException("Timeout reached", timeout=timeout)
         finally:
             while process.is_alive():
                 process.terminate()

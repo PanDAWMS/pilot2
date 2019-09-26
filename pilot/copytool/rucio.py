@@ -50,7 +50,7 @@ def verify_stage_out(fspec):
     return rsemgr.exists(rse_settings, [uploaded_file])
 
 
-@timeout(seconds=10800)
+#@timeout(seconds=10800)
 def copy_in(files, **kwargs):
     """
         Download given files using rucio copytool.
@@ -92,7 +92,8 @@ def copy_in(files, **kwargs):
         error_msg = None
         rucio_state = None
         try:
-            rucio_state = _stage_in_api(dst, fspec, trace_report)
+            transfer_timeout = get_timeout(fspec.filesize, add=10)  # give the API a chance to do the time-out first
+            rucio_state = timeout(transfer_timeout)(_stage_in_api)(dst, fspec, trace_report)
         except Exception as error:
             error_msg = str(error)
 
@@ -134,7 +135,7 @@ def copy_in(files, **kwargs):
     return files
 
 
-@timeout(seconds=10800)
+#@timeout(seconds=10800)
 def copy_out(files, **kwargs):
     """
         Upload given files using rucio copytool.
@@ -165,7 +166,8 @@ def copy_out(files, **kwargs):
         rucio_state = None
         error_msg = None
         try:
-            rucio_state = _stage_out_api(fspec, summary_file_path, trace_report)
+            transfer_timeout = get_timeout(fspec.filesize, add=10)  # give the API a chance to do the time-out first
+            rucio_state = timeout(transfer_timeout)(_stage_out_api)(fspec, summary_file_path, trace_report)
         except Exception as error:
             error_msg = str(error)
 

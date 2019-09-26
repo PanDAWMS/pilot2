@@ -18,18 +18,19 @@ from pilot.util.filehandling import calculate_checksum, get_checksum_type, get_c
 logger = logging.getLogger(__name__)
 
 
-def get_timeout(filesize):
+def get_timeout(filesize, add=0):
     """
     Get a proper time-out limit based on the file size.
 
     :param filesize: file size (int).
-    :return:
+    :param add: optional additional time to be added [s] (int)
+    :return: time-out in seconds (int).
     """
 
     timeout_max = 3 * 3600  # 3 hours
     timeout_min = 300  # self.timeout
 
-    timeout = timeout_min + int(filesize / 0.5e6)  # approx < 0.5 Mb/sec
+    timeout = timeout_min + int(filesize / 0.5e6) + add  # approx < 0.5 Mb/sec
 
     return min(timeout, timeout_max)
 
