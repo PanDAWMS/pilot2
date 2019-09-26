@@ -131,10 +131,11 @@ def copy_in(files, **kwargs):
         cmd += ['/usr/bin/env', 'rucio', '-v', 'download', '--no-subdir', '--dir', dst]
         if require_replicas:
             cmd += ['--rse', fspec.replicas[0][0]]
-        if fspec.surl:
+        surl = fspec.surl if fspec.surl else fspec.turl
+        if surl:
             if fspec.ddmendpoint:
                 cmd.extend(['--rse', fspec.ddmendpoint])
-            cmd.extend(['--pfn', fspec.surl])
+            cmd.extend(['--pfn', surl])
         cmd += ['%s:%s' % (fspec.scope, fspec.lfn)]
 
         rcode, stdout, stderr = execute(" ".join(cmd), **kwargs)

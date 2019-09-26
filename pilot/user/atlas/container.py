@@ -128,7 +128,7 @@ def get_grid_image_for_singularity(platform):
     """
     Return the full path to the singularity grid image
 
-    :param platform (string): E.g. "x86_64-slc6"
+    :param platform: E.g. "x86_64-slc6" (string).
     :return: full path to grid image (string).
     """
 

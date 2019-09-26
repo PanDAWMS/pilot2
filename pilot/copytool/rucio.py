@@ -19,6 +19,7 @@ from time import time
 
 from .common import resolve_common_transfer_errors, verify_catalog_checksum, get_timeout
 from pilot.common.exception import PilotException, ErrorCodes
+from pilot.util.timer import timeout
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -49,7 +50,7 @@ def verify_stage_out(fspec):
     return rsemgr.exists(rse_settings, [uploaded_file])
 
 
-# @timeout(seconds=600)
+@timeout(seconds=10800)
 def copy_in(files, **kwargs):
     """
         Download given files using rucio copytool.
@@ -133,7 +134,7 @@ def copy_in(files, **kwargs):
     return files
 
 
-# @timeout(seconds=600)
+@timeout(seconds=10800)
 def copy_out(files, **kwargs):
     """
         Upload given files using rucio copytool.
