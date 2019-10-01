@@ -402,7 +402,7 @@ class StagingClient(object):
             except PilotException as e:
                 msg = 'failed to execute transfer_files(): PilotException caught: %s' % e
                 self.logger.warning(msg)
-                caught_errors.append(e.get_last_error())
+                caught_errors.append(e)
             except TimeoutException as e:
                 msg = 'function timed out: %s' % e
                 self.logger.warning(msg)
@@ -423,20 +423,23 @@ class StagingClient(object):
                 break
 
         if not result:
+            # Propagate message from first error back up
+            errmsg = str(caught_errors[0]) if caught_errors else ''
             if caught_errors and "Cannot authenticate" in str(caught_errors):
                 code = ErrorCodes.STAGEINAUTHENTICATIONFAILURE
             elif caught_errors and "bad queue configuration" in str(caught_errors):
                 code = ErrorCodes.BADQUEUECONFIGURATION
-            elif caught_errors and isinstance(caught_errors[-1], PilotException):
+            elif caught_errors and isinstance(caught_errors[0], PilotException):
                 code = caught_errors[0].get_error_code()
-            elif caught_errors and isinstance(caught_errors[-1], TimeoutException):
+                errmsg = caught_errors[0].get_last_error()
+            elif caught_errors and isinstance(caught_errors[0], TimeoutException):
                 code = errors.STAGEINTIMEOUT if self.mode == 'stage-in' else errors.STAGEOUTTIMEOUT  # is it stage-in/out?
                 self.logger.warning('caught time-out exception: %s' % caught_errors[0])
             else:
-                code = ErrorCodes.STAGEINFAILED
+                code = errors.STAGEINFAILED if self.mode == 'stage-in' else errors.STAGEOUTFAILED  # is it stage-in/out?
             self.logger.fatal('caught_errors=%s' % str(caught_errors))
             self.logger.fatal('code=%s' % str(code))
-            raise PilotException('failed to transfer files using copytools=%s' % (copytools), ','.join(caught_errors), code=code)
+            raise PilotException('failed to transfer files using copytools=%s' % (copytools), errmsg, code=code)
 
         self.logger.debug('result=%s' % str(result))
         return result

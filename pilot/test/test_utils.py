@@ -25,7 +25,7 @@ class TestUtils(unittest.TestCase):
             self.mac = True
 
         from pilot.info import infosys
-        infosys.init("AGLT2_TEST-condor")
+        infosys.init("AGLT2_TEST")
 
     def test_collect_workernode_info(self):
         """
