@@ -416,6 +416,7 @@ class ErrorCodes:
                 diag = 'X' * len(standard_message) + found[0]  # the X's will be cut below
                 diag = diag.replace("[PilotException(\'", '')
                 diag = diag.replace('[PilotException(\"', '')
+                diag = diag.replace('  ', ' ')
 
         try:
             if diag:
