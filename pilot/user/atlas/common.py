@@ -1602,6 +1602,8 @@ def verify_ncores(corecount):
     # ATHENA_PROC_NUMBER_JOB will always be the value from the job definition)
     if athena_proc_number:
         logger.info("encountered a set ATHENA_PROC_NUMBER (%d), will not overwrite it" % athena_proc_number)
+        logger.info('set ATHENA_CORE_NUMBER to same value as ATHENA_PROC_NUMBER')
+        os.environ['ATHENA_CORE_NUMBER'] = "%s" % athena_proc_number
     else:
         os.environ['ATHENA_PROC_NUMBER_JOB'] = "%s" % corecount
         os.environ['ATHENA_CORE_NUMBER'] = "%s" % corecount
