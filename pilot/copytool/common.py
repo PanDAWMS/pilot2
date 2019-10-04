@@ -143,7 +143,7 @@ def output_line_scan(ret, output):
     """
 
     for line in output.split('\n'):
-        m = re.search("Details\s*:\s*(?P<error>.*)", line)
+        m = re.search("[Dd]etails\s*:\s*(?P<error>.*)", line)
         if m:
             ret['error'] = m.group('error')
         elif 'service_unavailable' in line:
@@ -197,8 +197,8 @@ def resolve_common_transfer_errors(output, is_stagein=True):
         ret = get_error_info(ErrorCodes.SERVICENOTAVAILABLE, 'SERVICE_ERROR', output)
     elif "Network is unreachable" in output:
         ret = get_error_info(ErrorCodes.UNREACHABLENETWORK, 'NETWORK_UNREACHABLE', output)
-    else:
-        # reg exp the output
-        ret = output_line_scan(ret, output)
+
+    # reg exp the output to get real error message
+    ret = output_line_scan(ret, output)
 
     return ret
