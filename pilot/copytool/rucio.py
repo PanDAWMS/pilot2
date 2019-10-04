@@ -18,7 +18,7 @@ import logging
 from time import time
 
 from .common import resolve_common_transfer_errors, verify_catalog_checksum, get_timeout
-from pilot.common.exception import PilotException, ErrorCodes
+from pilot.common.exception import PilotException, StageOutFailure, ErrorCodes
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -88,28 +88,25 @@ def copy_in(files, **kwargs):
         dst = fspec.workdir or kwargs.get('workdir') or '.'
         logger.info('the file will be stored in %s' % str(dst))
 
-        error_msg = None
-        rucio_state = None
+        trace_report_out = []
         try:
-            rucio_state = _stage_in_api(dst, fspec, trace_report)
+            _stage_in_api(dst, fspec, trace_report, trace_report_out)
         except Exception as error:
             error_msg = str(error)
+            # Try to get a better error message from the traces
+            if trace_report_out and trace_report_out[0].get('stateReason'):
+                error_msg = trace_report_out[0].get('stateReason')
+            logger.info('rucio returned an error: %s' % error_msg)
 
-        if error_msg:
-            logger.info('stderr = %s' % error_msg)
-        else:
-            logger.info('rucio client state: %s' % str(rucio_state))
-
-        if error_msg:  ## error occurred
-            error = resolve_common_transfer_errors(error_msg, is_stagein=True)
+            error_details = resolve_common_transfer_errors(error_msg, is_stagein=True)
             fspec.status = 'failed'
-            fspec.status_code = error.get('rcode')
-            trace_report.update(clientState=rucio_state or 'STAGEIN_ATTEMPT_FAILED',
-                                stateReason=error_msg, timeEnd=time())
+            fspec.status_code = error_details.get('rcode')
+            trace_report.update(clientState=error_details.get('state', 'STAGEIN_ATTEMPT_FAILED'),
+                                stateReason=error_details.get('error'), timeEnd=time())
             if not ignore_errors:
                 trace_report.send()
-                msg = ' %s:%s, %s' % (fspec.scope, fspec.lfn, str(error_msg).replace('\n', ' '))
-                raise PilotException(msg, code=error.get('rcode'), state='FAILED')
+                msg = ' %s:%s, %s' % (fspec.scope, fspec.lfn, error_details.get('error'))
+                raise PilotException(msg, code=error_details.get('rcode'), state=error_details.get('state'))
 
         # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
         destination = os.path.join(dst, fspec.lfn)
@@ -154,6 +151,7 @@ def copy_out(files, **kwargs):
         logger.info('rucio copytool, uploading file with scope: %s and lfn: %s' % (str(fspec.scope), str(fspec.lfn)))
         trace_report.update(scope=fspec.scope, dataset=fspec.dataset, url=fspec.surl, filesize=fspec.filesize)
         trace_report.update(catStart=time(), filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
+        fspec.status_code = 0
 
         summary_file_path = None
         cwd = fspec.workdir or kwargs.get('workdir') or '.'
@@ -161,31 +159,25 @@ def copy_out(files, **kwargs):
             summary_file_path = os.path.join(cwd, 'rucio_upload.json')
 
         logger.info('the file will be uploaded to %s' % str(fspec.ddmendpoint))
-        rucio_state = None
-        error_msg = None
+        trace_report_out = []
         try:
-            rucio_state = _stage_out_api(fspec, summary_file_path, trace_report)
+            _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out)
         except Exception as error:
             error_msg = str(error)
+            # Try to get a better error message from the traces
+            if trace_report_out and trace_report_out[0].get('stateReason'):
+                error_msg = trace_report_out[0].get('stateReason')
+            logger.info('rucio returned an error: %s' % error_msg)
 
-        if error_msg:
-            logger.info('stderr = %s' % error_msg)
-        else:
-            logger.info('rucio client state: %s' % str(rucio_state))
-
-        fspec.status_code = 0
-
-        if error_msg:  ## error occurred
-            error = resolve_common_transfer_errors(error_msg, is_stagein=False)
+            error_details = resolve_common_transfer_errors(error_msg, is_stagein=False)
             fspec.status = 'failed'
-            fspec.status_code = error.get('rcode')
-            trace_report.update(clientState=error.get('state', None) or 'STAGEOUT_ATTEMPT_FAILED',
-                                stateReason=error.get('error', 'unknown error'),
-                                timeEnd=time())
+            fspec.status_code = error_details.get('rcode')
+            trace_report.update(clientState=error_details.get('state', 'STAGEOUT_ATTEMPT_FAILED'),
+                                stateReason=error_details.get('error'), timeEnd=time())
             if not ignore_errors:
                 trace_report.send()
-                msg = ' %s:%s, %s' % (fspec.scope, fspec.lfn, str(error_msg).replace('\n', ' '))
-                raise PilotException(msg, code=error.get('rcode'), state=error.get('state'))
+                msg = ' %s:%s, %s' % (fspec.scope, fspec.lfn, error_details.get('error'))
+                raise PilotException(msg, code=error_details.get('rcode'), state=error_details.get('state'))
 
         if summary:  # resolve final pfn (turl) from the summary JSON
             if not os.path.exists(summary_file_path):
@@ -227,7 +219,7 @@ def copy_out(files, **kwargs):
 
 
 # stageIn using rucio api.
-def _stage_in_api(dst, fspec, trace_report):
+def _stage_in_api(dst, fspec, trace_report, trace_report_out):
 
     # init. download client
     from rucio.client.downloadclient import DownloadClient
@@ -257,21 +249,16 @@ def _stage_in_api(dst, fspec, trace_report):
     if trace_report:
         trace_pattern = trace_report
     result = []
+    # download client raises an exception if any file failed
     if fspec.turl:
-        result = download_client.download_pfns([f], 1, trace_custom_fields=trace_pattern)
+        result = download_client.download_pfns([f], 1, trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
     else:
-        result = download_client.download_dids([f], trace_custom_fields=trace_pattern)
+        result = download_client.download_dids([f], trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
 
     logger.debug('Rucio download client returned %s' % result)
-    if not result:
-        raise Exception('Unknown error')
-    if result[0].get('clientState', 'FAILED') == 'FAILED':
-        raise Exception(result[0].get('clientError', 'Unknown error'))
-
-    return 'DONE'
 
 
-def _stage_out_api(fspec, summary_file_path, trace_report):
+def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out):
 
     # init. download client
     from rucio.client.uploadclient import UploadClient
@@ -304,27 +291,23 @@ def _stage_out_api(fspec, summary_file_path, trace_report):
     # process with the upload
     logger.info('_stage_out_api: %s' % str(f))
     result = None
+
+    # upload client raises an exception if any file failed
     try:
-        result = upload_client.upload([f], summary_file_path)
+        # TODO: Add traces_copy_out=trace_report_out when supported in rucio
+        upload_client.upload([f], summary_file_path=summary_file_path)
     except UnboundLocalError:
         logger.warning('rucio still needs a bug fix of the summary in the uploadclient')
 
-    # Old upload client returns 0, new one returns list of file dicts
-    if type(result) == list:
-        logger.debug('Rucio upload client returned %s' % result)
-        if not result:
-            raise Exception('Unknown error')
-        if not result[0].get('upload_result', {}).get('success', False):
-            raise Exception(result[0].get('upload_error', 'Unknown error'))
-
+    logger.debug('Rucio upload client returned %s' % result)
     try:
         file_exists = verify_stage_out(fspec)
         logger.info('File exists at the storage: %s' % str(file_exists))
         if not file_exists:
-            raise PilotException('stageOut: Physical check after upload failed.')
+            raise StageOutFailure('stageOut: Physical check after upload failed.')
     except Exception as e:
         msg = 'stageOut: File existence verification failed with: %s' % str(e)
         logger.info(msg)
-        raise PilotException(msg)
+        raise StageOutFailure(msg)
 
     return 'DONE'
