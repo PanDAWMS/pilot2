@@ -318,6 +318,11 @@ def add_athena_proc_number(cmd):
     else:
         logger.info("ATHENA_PROC_NUMBER already in job command")
 
+    if 'ATHENA_CORE_NUMBER' in os.environ:
+        cmd = 'export ATHENA_CORE_NUMBER=%s;' % os.environ['ATHENA_CORE_NUMBER'] + cmd
+    else:
+        logger.warning('there is no ATHENA_CORE_NUMBER in os.environ (cannot add it to payload command)')
+
     return cmd
 
 
@@ -1599,7 +1604,8 @@ def verify_ncores(corecount):
         logger.info("encountered a set ATHENA_PROC_NUMBER (%d), will not overwrite it" % athena_proc_number)
     else:
         os.environ['ATHENA_PROC_NUMBER_JOB'] = "%s" % corecount
-        logger.info("set ATHENA_PROC_NUMBER_JOB to %s (ATHENA_PROC_NUMBER will not be overwritten)" % corecount)
+        os.environ['ATHENA_CORE_NUMBER'] = "%s" % corecount
+        logger.info("set ATHENA_PROC_NUMBER_JOB and ATHENA_CORE_NUMBER to %s (ATHENA_PROC_NUMBER will not be overwritten)" % corecount)
 
 
 def verify_job(job):
