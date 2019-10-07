@@ -423,7 +423,7 @@ class ErrorCodes:
                 if len(diag) + len(standard_message) > max_message_length:
                     error_message = standard_message + diag[-(max_message_length - len(standard_message)):]
                 else:
-                    error_message = standard_message + diag
+                    error_message = standard_message + diag[-(len(standard_message) - len(diag)):]
             else:
                 error_message = standard_message
         except Exception:
