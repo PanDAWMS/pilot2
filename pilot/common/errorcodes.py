@@ -413,17 +413,26 @@ class ErrorCodes:
             pattern = 'details:(.+)'
             found = re.findall(pattern, diag)
             if found:
-                diag = 'X' * len(standard_message) + found[0]  # the X's will be cut below
+                diag = found[0]
                 diag = diag.replace("[PilotException(\'", '')
                 diag = diag.replace('[PilotException(\"', '')
                 diag = diag.replace('  ', ' ')
 
         try:
             if diag:
-                if len(diag) + len(standard_message) > max_message_length:
-                    error_message = standard_message + diag[-(max_message_length - len(standard_message)):]
+                # ensure that the message to be displayed on the PanDA monitor is not longer than max_message_length
+                # if it is, then reformat it so that the standard message is always displayed first.
+                # e.g. "Failed to stage-in file:abcdefghijklmnopqrstuvwxyz0123456789"
+                if standard_message in diag:
+                    if len(diag) > max_message_length:
+                        error_message = standard_message + diag[-(max_message_length - len(standard_message)):]
+                    else:
+                        error_message = standard_message + diag[len(standard_message):][-max_message_length:]
                 else:
-                    error_message = standard_message + diag[-(len(standard_message) - len(diag)):]
+                    if len(diag) + len(standard_message) > max_message_length:
+                        error_message = standard_message + diag[-(max_message_length - len(standard_message)):]
+                    else:
+                        error_message = standard_message + diag
             else:
                 error_message = standard_message
         except Exception:
