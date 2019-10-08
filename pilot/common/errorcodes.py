@@ -134,6 +134,7 @@ class ErrorCodes:
     UNRECOGNIZEDTRFARGUMENTS = 1349
     EMPTYOUTPUTFILE = 1350
     UNRECOGNIZEDTRFSTDERR = 1351
+    STATFILEPROBLEM = 1352
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -246,7 +247,8 @@ class ErrorCodes:
         SINGULARITYRESOURCEUNAVAILABLE: "Singularity: Resource temporarily unavailable",  # not the same as RESOURCEUNAVAILABLE
         UNRECOGNIZEDTRFARGUMENTS: "Unrecognized transform arguments",
         EMPTYOUTPUTFILE: "Empty output file detected",
-        UNRECOGNIZEDTRFSTDERR: "Unrecognized fatal error in transform stderr"
+        UNRECOGNIZEDTRFSTDERR: "Unrecognized fatal error in transform stderr",
+        STATFILEPROBLEM: "Failed to stat proc file for CPU consumption calculation"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]

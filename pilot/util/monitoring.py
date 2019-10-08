@@ -62,6 +62,8 @@ def job_monitor_tasks(job, mt, args):
             log.warning(traceback.format_exc())
             if "Resource temporarily unavailable" in diagnostics:
                 exit_code = errors.RESOURCEUNAVAILABLE
+            elif "No such file or directory" in diagnostics:
+                exit_code = errors.STATFILEPROBLEM
             else:
                 exit_code = errors.UNKNOWNEXCEPTION
             return exit_code, diagnostics
