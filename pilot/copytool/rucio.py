@@ -51,7 +51,7 @@ def verify_stage_out(fspec):
     return rsemgr.exists(rse_settings, [uploaded_file])
 
 
-#@timeout(seconds=10800)
+@timeout(seconds=10800)
 def copy_in(files, **kwargs):
     """
         Download given files using rucio copytool.
@@ -92,8 +92,9 @@ def copy_in(files, **kwargs):
 
         trace_report_out = []
         try:
-            transfer_timeout = get_timeout(fspec.filesize, add=10)  # give the API a chance to do the time-out first
-            timeout(transfer_timeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out)
+            #transfer_timeout = get_timeout(fspec.filesize, add=10)  # give the API a chance to do the time-out first
+            #timeout(transfer_timeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out)
+            _stage_in_api(dst, fspec, trace_report, trace_report_out)
         except Exception as error:
             error_msg = str(error)
             # Try to get a better error message from the traces
@@ -133,7 +134,7 @@ def copy_in(files, **kwargs):
     return files
 
 
-#@timeout(seconds=10800)
+@timeout(seconds=10800)
 def copy_out(files, **kwargs):
     """
         Upload given files using rucio copytool.
@@ -164,8 +165,9 @@ def copy_out(files, **kwargs):
         logger.info('the file will be uploaded to %s' % str(fspec.ddmendpoint))
         trace_report_out = []
         try:
-            transfer_timeout = get_timeout(fspec.filesize, add=10)  # give the API a chance to do the time-out first
-            timeout(transfer_timeout)(_stage_out_api)(fspec, summary_file_path, trace_report, trace_report_out)
+            #transfer_timeout = get_timeout(fspec.filesize, add=10)  # give the API a chance to do the time-out first
+            #timeout(transfer_timeout)(_stage_out_api)(fspec, summary_file_path, trace_report, trace_report_out)
+            _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out)
         except Exception as error:
             error_msg = str(error)
             # Try to get a better error message from the traces
