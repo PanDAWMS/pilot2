@@ -151,8 +151,11 @@ def copy_out(files, **kwargs):
     ignore_errors = kwargs.pop('ignore_errors', False)
     trace_report = kwargs.get('trace_report')
 
+    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', os.environ.get('DQ2_LOCAL_SITE_ID', None))
     for fspec in files:
         logger.info('rucio copytool, uploading file with scope: %s and lfn: %s' % (str(fspec.scope), str(fspec.lfn)))
+        localsite = localsite if localsite else fspec.ddmendpoint
+        trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint)
         trace_report.update(scope=fspec.scope, dataset=fspec.dataset, url=fspec.surl, filesize=fspec.filesize)
         trace_report.update(catStart=time(), filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
         fspec.status_code = 0
