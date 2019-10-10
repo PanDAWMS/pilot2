@@ -134,6 +134,7 @@ class ErrorCodes:
     UNRECOGNIZEDTRFARGUMENTS = 1349
     EMPTYOUTPUTFILE = 1350
     UNRECOGNIZEDTRFSTDERR = 1351
+    STATFILEPROBLEM = 1352
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -246,7 +247,8 @@ class ErrorCodes:
         SINGULARITYRESOURCEUNAVAILABLE: "Singularity: Resource temporarily unavailable",  # not the same as RESOURCEUNAVAILABLE
         UNRECOGNIZEDTRFARGUMENTS: "Unrecognized transform arguments",
         EMPTYOUTPUTFILE: "Empty output file detected",
-        UNRECOGNIZEDTRFSTDERR: "Unrecognized fatal error in transform stderr"
+        UNRECOGNIZEDTRFSTDERR: "Unrecognized fatal error in transform stderr",
+        STATFILEPROBLEM: "Failed to stat proc file for CPU consumption calculation"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
@@ -407,12 +409,32 @@ class ErrorCodes:
             standard_message = self._error_messages[code] + ":"
         except Exception:
             standard_message = ""
+
+        # extract the relevant info for reporting exceptions
+        if "Traceback" in diag:
+            pattern = 'details:(.+)'
+            found = re.findall(pattern, diag)
+            if found:
+                diag = found[0]
+                diag = diag.replace("[PilotException(\'", '')
+                diag = diag.replace('[PilotException(\"', '')
+                diag = diag.replace('  ', ' ')
+
         try:
             if diag:
-                if len(diag) + len(standard_message) > max_message_length:
-                    error_message = standard_message + diag[-(max_message_length - len(standard_message)):]
+                # ensure that the message to be displayed on the PanDA monitor is not longer than max_message_length
+                # if it is, then reformat it so that the standard message is always displayed first.
+                # e.g. "Failed to stage-in file:abcdefghijklmnopqrstuvwxyz0123456789"
+                if standard_message in diag:
+                    if len(diag) > max_message_length:
+                        error_message = standard_message + diag[-(max_message_length - len(standard_message)):]
+                    else:
+                        error_message = standard_message + diag[len(standard_message):][-max_message_length:]
                 else:
-                    error_message = standard_message + diag
+                    if len(diag) + len(standard_message) > max_message_length:
+                        error_message = standard_message + diag[-(max_message_length - len(standard_message)):]
+                    else:
+                        error_message = standard_message + diag
             else:
                 error_message = standard_message
         except Exception:

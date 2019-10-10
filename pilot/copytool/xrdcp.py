@@ -138,7 +138,7 @@ def copy_in(files, **kwargs):
     coption = _resolve_checksum_option(setup, **kwargs)
     trace_report = kwargs.get('trace_report')
 
-    localsite = os.environ.get('DQ2_LOCAL_SITE_ID', None)
+    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', os.environ.get('DQ2_LOCAL_SITE_ID', None))
     for fspec in files:
         # update the trace report
         localsite = localsite if localsite else fspec.ddmendpoint

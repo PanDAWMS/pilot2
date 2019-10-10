@@ -437,9 +437,9 @@ class StagingClient(object):
                 self.logger.warning('caught time-out exception: %s' % caught_errors[0])
             else:
                 code = errors.STAGEINFAILED if self.mode == 'stage-in' else errors.STAGEOUTFAILED  # is it stage-in/out?
-            self.logger.fatal('caught_errors=%s' % str(caught_errors))
-            self.logger.fatal('code=%s' % str(code))
-            raise PilotException('failed to transfer files using copytools=%s' % (copytools), errmsg, code=code)
+            details = str(caught_errors) + ":" + 'failed to transfer files using copytools=%s' % copytools
+            self.logger.fatal(details)
+            raise PilotException(details, code=code)
 
         self.logger.debug('result=%s' % str(result))
         return result

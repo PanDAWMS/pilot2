@@ -14,7 +14,7 @@ import re
 
 from pilot.user.atlas.setup import get_asetup
 from pilot.user.atlas.setup import get_file_system_root_path
-from pilot.info import infosys
+from pilot.info import InfoService, infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 from pilot.util.filehandling import write_file
@@ -32,13 +32,11 @@ def do_use_container(**kwargs):
     :return: True if function has decided that a container should be used, False otherwise (boolean).
     """
 
+    # to force no container use: return False
     use_container = False
 
-    # return use_container
-
-    # to force no container use: return False
-
-    job = kwargs.get('job')
+    job = kwargs.get('job', False)
+    copytool = kwargs.get('copytool', False)
     if job:
         # for user jobs, TRF option --containerImage must have been used, ie imagename must be set
         if job.is_analysis() and job.imagename:
@@ -48,6 +46,9 @@ def do_use_container(**kwargs):
             container_name = queuedata.container_type.get("pilot")
             if container_name == 'singularity':
                 use_container = True
+    elif copytool:
+        # override for copytools - use a container for stage-in/out
+        use_container = True
 
     return use_container
 
@@ -64,7 +65,7 @@ def wrapper(executable, **kwargs):
 
     workdir = kwargs.get('workdir', '.')
     pilot_home = os.environ.get('PILOT_HOME', '')
-    job = kwargs.get('job')
+    job = kwargs.get('job', None)
 
     logger.info('container wrapper called')
 
@@ -72,11 +73,11 @@ def wrapper(executable, **kwargs):
         workdir = pilot_home
 
     # if job.imagename (from --containerimage <image>) is set, then always use raw singularity
-    if config.Container.setup_type == "ALRB" and not job.imagename:
+    if config.Container.setup_type == "ALRB" and job and not job.imagename:
         fctn = alrb_wrapper
     else:
         fctn = singularity_wrapper
-    return fctn(executable, workdir, job)
+    return fctn(executable, workdir, job=job)
 
 
 # def use_payload_container(job):
@@ -127,7 +128,7 @@ def get_grid_image_for_singularity(platform):
     """
     Return the full path to the singularity grid image
 
-    :param platform (string): E.g. "x86_64-slc6"
+    :param platform: E.g. "x86_64-slc6" (string).
     :return: full path to grid image (string).
     """
 
@@ -181,7 +182,7 @@ def get_middleware_type():
     return middleware_type
 
 
-def alrb_wrapper(cmd, workdir, job):
+def alrb_wrapper(cmd, workdir, job=None):
     """
     Wrap the given command with the special ALRB setup for containers
     E.g. cmd = /bin/bash hello_world.sh
@@ -195,6 +196,10 @@ def alrb_wrapper(cmd, workdir, job):
     :param job: job object.
     :return: prepended command with singularity execution command (string).
     """
+
+    if not job:
+        logger.warning('the ALRB wrapper did not get a job object - cannot proceed')
+        return cmd
 
     log = get_logger(job.jobid)
     queuedata = job.infosys.queuedata
@@ -310,27 +315,32 @@ def remove_container_string(job_params):
     return job_params, container_path
 
 
-def singularity_wrapper(cmd, workdir, job):
+def singularity_wrapper(cmd, workdir, job=None):
     """
     Prepend the given command with the singularity execution command
     E.g. cmd = /bin/bash hello_world.sh
     -> singularity_command = singularity exec -B <bindmountsfromcatchall> <img> /bin/bash hello_world.sh
     singularity exec -B <bindmountsfromcatchall>  /cvmfs/atlas.cern.ch/repo/images/singularity/x86_64-slc6.img <script>
+    Note: if the job object is not set, then it is assumed that the middleware container is to be used.
 
-    :param cmd (string): command to be prepended.
-    :param workdir: explicit work directory where the command should be executed (needs to be set for Singularity).
+    :param cmd: command to be prepended (string).
+    :param workdir: explicit work directory where the command should be executed (needs to be set for Singularity) (string).
     :param job: job object.
     :return: prepended command with singularity execution command (string).
     """
 
-    log = get_logger(job.jobid)
-    queuedata = job.infosys.queuedata
+    if job:
+        queuedata = job.infosys.queuedata
+    else:
+        infoservice = InfoService()
+        infoservice.init(os.environ.get('PILOT_SITENAME'), infosys.confinfo, infosys.extinfo)
+        queuedata = infoservice.queuedata
 
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
-    log.debug("resolved container_name from queuedata.contaner_type: %s" % container_name)
+    logger.debug("resolved container_name from queuedata.contaner_type: %s" % container_name)
 
     if container_name == 'singularity':
-        log.info("singularity has been requested")
+        logger.info("singularity has been requested")
 
         # Get the singularity options
         singularity_options = queuedata.container_options
@@ -339,10 +349,13 @@ def singularity_wrapper(cmd, workdir, job):
         else:
             singularity_options = "-B "
         singularity_options += "/cvmfs,${workdir},/home"
-        log.debug("using singularity_options: %s" % singularity_options)
+        logger.debug("using singularity_options: %s" % singularity_options)
 
         # Get the image path
-        image_path = job.imagename or get_grid_image_for_singularity(job.platform)
+        if job:
+            image_path = job.imagename or get_grid_image_for_singularity(job.platform)
+        else:
+            image_path = config.Container.middleware_container
 
         # Does the image exist?
         if image_path:
@@ -355,8 +368,8 @@ def singularity_wrapper(cmd, workdir, job):
             # singularity_cmd = "singularity exec " + singularity_options + image_path
             # cmd = re.sub(r'-p "([A-Za-z0-9.%/]+)"', r'-p "%s\1"' % urllib.pathname2url(singularity_cmd), cmd)
         else:
-            log.warning("singularity options found but image does not exist")
+            logger.warning("singularity options found but image does not exist")
 
-        log.info("updated command: %s" % cmd)
+        logger.info("updated command: %s" % cmd)
 
     return cmd

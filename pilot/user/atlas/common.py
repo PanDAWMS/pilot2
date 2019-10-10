@@ -293,30 +293,44 @@ def get_generic_payload_command(cmd, job, prepareasetup, userjob):
 
 def add_athena_proc_number(cmd):
     """
-    Add the ATHENA_PROC_NUMBER to the payload command if necessary
+    Add the ATHENA_PROC_NUMBER and ATHENA_CORE_NUMBER to the payload command if necessary.
 
     :param cmd: payload execution command (string).
     :return: updated payload execution command (string).
     """
 
+    # get the values if they exist
+    try:
+        value1 = int(os.environ['ATHENA_PROC_NUMBER_JOB'])
+    except Exception as e:
+        logger.warning('failed to convert ATHENA_PROC_NUMBER_JOB to int: %s' % e)
+        value1 = None
+    try:
+        value2 = int(os.environ['ATHENA_CORE_NUMBER'])
+    except Exception as e:
+        logger.warning('failed to convert ATHENA_CORE_NUMBER to int: %s' % e)
+        value2 = None
+
     if "ATHENA_PROC_NUMBER" not in cmd:
         if "ATHENA_PROC_NUMBER" in os.environ:
             cmd = 'export ATHENA_PROC_NUMBER=%s;' % os.environ['ATHENA_PROC_NUMBER'] + cmd
-        elif "ATHENA_PROC_NUMBER_JOB" in os.environ:
-            try:
-                value = int(os.environ['ATHENA_PROC_NUMBER_JOB'])
-            except Exception:
-                logger.warning("failed to convert ATHENA_PROC_NUMBER_JOB=%s to int" %
-                               os.environ['ATHENA_PROC_NUMBER_JOB'])
+        elif "ATHENA_PROC_NUMBER_JOB" in os.environ and value1:
+            if value1 > 1:
+                cmd = 'export ATHENA_PROC_NUMBER=%d;' % value1 + cmd
             else:
-                if value > 1:
-                    cmd = 'export ATHENA_PROC_NUMBER=%d;' % value + cmd
-                else:
-                    logger.info("will not add ATHENA_PROC_NUMBER to cmd since the value is %d" % value)
+                logger.info("will not add ATHENA_PROC_NUMBER to cmd since the value is %s" % str(value1))
         else:
             logger.warning("don't know how to set ATHENA_PROC_NUMBER (could not find it in os.environ)")
     else:
         logger.info("ATHENA_PROC_NUMBER already in job command")
+
+    if 'ATHENA_CORE_NUMBER' in os.environ and value2:
+        if value2 > 1:
+            cmd = 'export ATHENA_CORE_NUMBER=%d;' % value2 + cmd
+        else:
+            logger.info("will not add ATHENA_CORE_NUMBER to cmd since the value is %s" % str(value2))
+    else:
+        logger.warning('there is no ATHENA_CORE_NUMBER in os.environ (cannot add it to payload command)')
 
     return cmd
 
@@ -1597,9 +1611,12 @@ def verify_ncores(corecount):
     # ATHENA_PROC_NUMBER_JOB will always be the value from the job definition)
     if athena_proc_number:
         logger.info("encountered a set ATHENA_PROC_NUMBER (%d), will not overwrite it" % athena_proc_number)
+        logger.info('set ATHENA_CORE_NUMBER to same value as ATHENA_PROC_NUMBER')
+        os.environ['ATHENA_CORE_NUMBER'] = "%s" % athena_proc_number
     else:
         os.environ['ATHENA_PROC_NUMBER_JOB'] = "%s" % corecount
-        logger.info("set ATHENA_PROC_NUMBER_JOB to %s (ATHENA_PROC_NUMBER will not be overwritten)" % corecount)
+        os.environ['ATHENA_CORE_NUMBER'] = "%s" % corecount
+        logger.info("set ATHENA_PROC_NUMBER_JOB and ATHENA_CORE_NUMBER to %s (ATHENA_PROC_NUMBER will not be overwritten)" % corecount)
 
 
 def verify_job(job):

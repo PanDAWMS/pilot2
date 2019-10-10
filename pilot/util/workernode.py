@@ -210,3 +210,20 @@ def get_cpu_model():
         modelstring = "UNKNOWN"
 
     return modelstring
+
+
+def check_hz():
+    """
+    Try to read the SC_CLK_TCK and write it to the log.
+
+    :return:
+    """
+
+    try:
+        hz = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
+    except Exception:
+        import traceback
+        logger.fatal('failed to read SC_CLK_TCK - will not be able to perform CPU consumption calculation')
+        logger.warning(traceback.format_exc())
+    else:
+        logger.debug('SC_CLK_TCK=%s' % str(hz))

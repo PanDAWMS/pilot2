@@ -75,7 +75,7 @@ def copy_in(files, **kwargs):
     copysetup = get_copysetup(copytools, 'lsm')
     trace_report = kwargs.get('trace_report')
     allow_direct_access = kwargs.get('allow_direct_access')
-    localsite = os.environ.get('DQ2_LOCAL_SITE_ID', None)
+    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', os.environ.get('DQ2_LOCAL_SITE_ID', None))
 
     for fspec in files:
         # update the trace report
@@ -315,7 +315,7 @@ def move(source, destination, dst_in=True, copysetup="", options=None):
         cmd += "lsm-put %s" % args
 
     try:
-        exit_code, stdout, stderr = execute(cmd)  #, timeout=get_timeout(fspec.filesize))
+        exit_code, stdout, stderr = execute(cmd, usecontainer=False, copytool=True)  #, timeout=get_timeout(fspec.filesize))
     except Exception as e:
         if dst_in:
             exit_code = ErrorCodes.STAGEINFAILED
