@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
 import os
 import re
@@ -97,20 +97,30 @@ class ExtendedConfig(ConfigParser.ConfigParser):
         return self.sections().__iter__()
 
     def __dir__(self):
+        def has_attr(obj, attr):
+            """ Wrapper for hasattr() to resolve python 2 vs 3 issue """
+            # See https://medium.com/@k.wahome/python-2-vs-3-hasattr-behaviour-f1bed48b068
+            has_the_attr = False
+            try:
+                has_the_attr = hasattr(obj, attr)
+            except Exception:  # python 3 will raise an exception rather than returning False
+                pass
+            return has_the_attr
+
         def get_attrs(obj):
             import types
-            if not hasattr(obj, '__dict__'):
+            if not has_attr(obj, '__dict__'):
                 return []  # slots only
-            if not isinstance(obj.__dict__, (dict, types.DictProxyType)):
-                raise TypeError("%s.__dict__ is not a dictionary"
-                                "" % obj.__name__)
+            arg = (dict, types.DictProxyType) if has_attr(types, 'DictProxyType') else dict  # python 3 correction
+            if not isinstance(obj.__dict__, arg):
+                raise TypeError("%s.__dict__ is not a dictionary" % obj.__name__)
             return obj.__dict__.keys()
 
         def dir2(obj):
             _dir = set()
-            if not hasattr(obj, '__bases__'):
+            if not has_attr(obj, '__bases__'):
                 # obj is an instance
-                if not hasattr(obj, '__class__'):
+                if not has_attr(obj, '__class__'):
                     # slots
                     return sorted(get_attrs(obj))
                 _class = obj.__class__

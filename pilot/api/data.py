@@ -18,7 +18,6 @@ import logging
 import time
 
 from pilot.info import infosys
-from pilot.info.storageactivitymaps import get_ddm_activity
 from pilot.common.exception import PilotException, ErrorCodes, SizeTooLarge, NoLocalSpace, ReplicasNotFound
 from pilot.util.filehandling import calculate_checksum
 from pilot.util.math import convert_mb_to_b
@@ -109,6 +108,48 @@ class StagingClient(object):
                 if replica and (not schema or replica.startswith('%s://' % schema)):
                     return replica
 
+    def prepare_sources(self, files, activities=None):
+        """
+            Customize/prepare source data for each entry in `files` optionally checking data for requested `activities`
+            (custom StageClient could extend the logic if need)
+            :param files: list of `FileSpec` objects to be processed
+            :param activities: string or ordered list of activities to resolve `astorages` (optional)
+            :return: None
+        """
+
+        return
+
+    def prepare_inputddms(self, files, activities=None):
+        """
+            Populates filespec.inputddms for each entry from `files` list
+            :param files: list of `FileSpec` objects
+            :param activities: sting or ordered list of activities to resolve astorages (optional)
+            :return: None
+        """
+
+        activities = activities or 'read_lan'
+        if isinstance(activities, basestring):
+            activities = [activities]
+
+        astorages = self.infosys.queuedata.astorages if self.infosys and self.infosys.queuedata else {}
+
+        storages = []
+        for a in activities:
+            storages = astorages.get(a, [])
+            if storages:
+                break
+
+        #activity = activities[0]
+        #if not storages:  ## ignore empty astorages
+        #    raise PilotException("Failed to resolve input sources: no associated storages defined for activity=%s (%s)"
+        #                         % (activity, ','.join(activities)), code=ErrorCodes.NOSTORAGE, state='NO_ASTORAGES_DEFINED')
+
+        for fdat in files:
+            if not fdat.inputddms:
+                fdat.inputddms = storages
+            if not fdat.inputddms and fdat.ddmendpoint:
+                fdat.inputddms = [fdat.ddmendpoint]
+
     def resolve_replicas(self, files):  # noqa: C901
         """
             Populates filespec.replicas for each entry from `files` list
@@ -117,8 +158,7 @@ class StagingClient(object):
             :return: `files`
         """
 
-        logger = self.logger  ## the function could be static if logger will be moved outside
-
+        logger = self.logger
         xfiles = []
         #ddmconf = self.infosys.resolve_storage_data()
 
@@ -131,11 +171,6 @@ class StagingClient(object):
 
             #fdat.accessmode = 'copy'        ### quick hack to avoid changing logic below for DIRECT access handling  ## REVIEW AND FIX ME LATER
             #fdat.allowremoteinputs = False  ### quick hack to avoid changing logic below for DIRECT access handling  ## REVIEW AND FIX ME LATER
-
-            if not fdat.inputddms and self.infosys.queuedata:
-                fdat.inputddms = self.infosys.queuedata.astorages.get('pr', {})  ## FIX ME LATER: change to proper activity=read_lan
-            if not fdat.inputddms and fdat.ddmendpoint:
-                fdat.inputddms = [fdat.ddmendpoint]
             xfiles.append(fdat)
 
         if not xfiles:  # no files for replica look-up
@@ -319,9 +354,6 @@ class StagingClient(object):
         if 'default' not in activity:
             activity.append('default')
 
-        # stage-in/out?
-        #mode = kwargs.get('mode', '')
-
         copytools = None
         for aname in activity:
             copytools = self.acopytools.get(aname)
@@ -331,6 +363,18 @@ class StagingClient(object):
         if not copytools:
             raise PilotException('failed to resolve copytool by preferred activities=%s, acopytools=%s' %
                                  (activity, self.acopytools))
+
+        # populate inputddms if need
+        self.prepare_inputddms(files)
+
+        # initialize ddm_activity name for requested files if not set
+        for fspec in files:
+            if fspec.ddm_activity:  # skip already initialized data
+                continue
+            if self.mode == 'stage-in':
+                fspec.ddm_activity = filter(None, ['read_lan' if fspec.ddmendpoint in fspec.inputddms else None, 'read_wan'])
+            else:
+                fspec.ddm_activity = filter(None, ['write_lan' if fspec.ddmendpoint in fspec.inputddms else None, 'write_wan'])
 
         result, caught_errors = None, []
 
@@ -379,23 +423,115 @@ class StagingClient(object):
                 break
 
         if not result:
+            # Propagate message from first error back up
+            errmsg = str(caught_errors[0]) if caught_errors else ''
             if caught_errors and "Cannot authenticate" in str(caught_errors):
                 code = ErrorCodes.STAGEINAUTHENTICATIONFAILURE
             elif caught_errors and "bad queue configuration" in str(caught_errors):
                 code = ErrorCodes.BADQUEUECONFIGURATION
-            elif caught_errors and isinstance(caught_errors[-1], PilotException):
+            elif caught_errors and isinstance(caught_errors[0], PilotException):
                 code = caught_errors[0].get_error_code()
-            elif caught_errors and isinstance(caught_errors[-1], TimeoutException):
+                errmsg = caught_errors[0].get_last_error()
+            elif caught_errors and isinstance(caught_errors[0], TimeoutException):
                 code = errors.STAGEINTIMEOUT if self.mode == 'stage-in' else errors.STAGEOUTTIMEOUT  # is it stage-in/out?
                 self.logger.warning('caught time-out exception: %s' % caught_errors[0])
             else:
-                code = ErrorCodes.STAGEINFAILED
-            self.logger.fatal('caught_errors=%s' % str(caught_errors))
-            self.logger.fatal('code=%s' % str(code))
-            raise PilotException('failed to transfer files using copytools=%s, error=%s' % (copytools, caught_errors), code=code)
+                code = errors.STAGEINFAILED if self.mode == 'stage-in' else errors.STAGEOUTFAILED  # is it stage-in/out?
+            details = str(caught_errors) + ":" + 'failed to transfer files using copytools=%s' % copytools
+            self.logger.fatal(details)
+            raise PilotException(details, code=code)
 
         self.logger.debug('result=%s' % str(result))
         return result
+
+    def require_protocols(self, files, copytool, activity):
+        """
+            Populates fspec.protocols and fspec.turl for each entry in `files` according to preferred fspec.ddm_activity
+            :param files: list of `FileSpec` objects
+            :param activity: str or ordered list of transfer activity names to resolve acopytools related data
+            :return: None
+        """
+
+        allowed_schemas = getattr(copytool, 'allowed_schemas', None)
+
+        if self.infosys and self.infosys.queuedata:
+            copytool_name = copytool.__name__.rsplit('.', 1)[-1]
+            allowed_schemas = self.infosys.queuedata.resolve_allowed_schemas(activity, copytool_name) or allowed_schemas
+
+        files = self.resolve_protocols(files)
+        ddmconf = self.infosys.resolve_storage_data()
+
+        for fspec in files:
+
+            protocols = self.resolve_protocol(fspec, allowed_schemas)
+            if not protocols:  #  no protocols found
+                error = 'Failed to resolve protocol for file=%s, allowed_schemas=%s, fspec=%s' % (fspec.lfn, allowed_schemas, fspec)
+                self.logger.error("resolve_protocol: %s" % error)
+                raise PilotException(error, code=ErrorCodes.NOSTORAGEPROTOCOL)
+
+            # take first available protocol for copytool: FIX ME LATER if need (do iterate over all allowed protocols?)
+            protocol = protocols[0]
+
+            self.logger.info("Resolved protocol to be used for transfer lfn=%s: data=%s" % (protocol, fspec.lfn))
+
+            resolve_surl = getattr(copytool, 'resolve_surl', None)
+            if not callable(resolve_surl):
+                resolve_surl = self.resolve_surl
+
+            r = resolve_surl(fspec, protocol, ddmconf)  ## pass ddmconf for possible custom look up at the level of copytool
+            if r.get('surl'):
+                fspec.turl = r['surl']
+            if r.get('ddmendpoint'):
+                fspec.ddmendpoint = r['ddmendpoint']
+
+    def resolve_protocols(self, files):
+        """
+            Populates filespec.protocols for each entry from `files` according to preferred `fspec.ddm_activity` value
+            :param files: list of `FileSpec` objects
+            fdat.protocols = [dict(endpoint, path, flavour), ..]
+            :return: `files`
+        """
+
+        ddmconf = self.infosys.resolve_storage_data()
+
+        for fdat in files:
+            ddm = ddmconf.get(fdat.ddmendpoint)
+            if not ddm:
+                error = 'Failed to resolve output ddmendpoint by name=%s (from PanDA), please check configuration.' % fdat.ddmendpoint
+                self.logger.error("resolve_protocols: %s, fspec=%s" % (error, fdat))
+                raise PilotException(error, code=ErrorCodes.NOSTORAGE)
+
+            protocols = []
+            for aname in fdat.ddm_activity:
+                protocols = ddm.arprotocols.get(aname)
+                if protocols:
+                    break
+
+            fdat.protocols = protocols
+
+        return files
+
+    @classmethod
+    def resolve_protocol(self, fspec, allowed_schemas=None):
+        """
+            Resolve protocols according to allowed schema
+            :param fspec: `FileSpec` instance
+            :param allowed_schemas: list of allowed schemas or any if None
+            :return: list of dict(endpoint, path, flavour)
+        """
+
+        if not fspec.protocols:
+            return []
+
+        protocols = []
+
+        allowed_schemas = allowed_schemas or [None]
+        for schema in allowed_schemas:
+            for pdat in fspec.protocols:
+                if schema is None or pdat.get('endpoint', '').startswith("%s://" % schema):
+                    protocols.append(pdat)
+
+        return protocols
 
 
 class StageInClient(StagingClient):
@@ -413,7 +549,7 @@ class StageInClient(StagingClient):
         """
 
         if not fspec.replicas:
-            self.logger.warning('resolve_replicas() recevied no fspec.replicas')
+            self.logger.warning('resolve_replicas() received no fspec.replicas')
             return
 
         allowed_schemas = allowed_schemas or [None]
@@ -521,8 +657,10 @@ class StageInClient(StagingClient):
         if allow_direct_access:
             self.set_accessmodes_for_direct_access(files, direct_access_type)
 
-        if getattr(copytool, 'require_replicas', False) and files and files[0].replicas is None:
-            files = self.resolve_replicas(files)
+        if getattr(copytool, 'require_replicas', False) and files:
+            if files[0].replicas is None:  ## look up replicas only once
+                files = self.resolve_replicas(files)
+
             allowed_schemas = getattr(copytool, 'allowed_schemas', None)
 
             if self.infosys and self.infosys.queuedata:
@@ -531,8 +669,7 @@ class StageInClient(StagingClient):
 
             for fspec in files:
                 resolve_replica = getattr(copytool, 'resolve_replica', None)
-                if not callable(resolve_replica):
-                    resolve_replica = self.resolve_replica
+                resolve_replica = self.resolve_replica if not callable(resolve_replica) else resolve_replica
 
                 ## prepare schemas which will be used to look up first the replicas allowed for direct access mode
                 primary_schemas = self.direct_localinput_allowed_schemas if fspec.accessmode == 'direct' else None
@@ -549,6 +686,10 @@ class StageInClient(StagingClient):
 
                 self.logger.info("[stage-in] found replica to be used for lfn=%s: ddmendpoint=%s, pfn=%s" %
                                  (fspec.lfn, fspec.ddmendpoint, fspec.turl))
+
+        # prepare files (resolve protocol/transfer url)
+        if getattr(copytool, 'require_input_protocols', False) and files:
+            self.require_protocols(files, copytool, activity)
 
         if not copytool.is_valid_for_copy_in(files):
             msg = 'input is not valid for transfers using copytool=%s' % copytool
@@ -627,57 +768,6 @@ class StageInClient(StagingClient):
 class StageOutClient(StagingClient):
 
     mode = "stage-out"
-
-    def resolve_protocols(self, files, activity):
-        """
-            Populates filespec.protocols for each entry from `files` according to requested `activity`
-            :param files: list of `FileSpec` objects
-            :param activity: ordered list of preferred activity names to resolve SE protocols
-            fdat.protocols = [dict(endpoint, path, flavour), ..]
-            :return: `files`
-        """
-
-        ddmconf = self.infosys.resolve_storage_data()
-
-        if isinstance(activity, basestring):
-            activity = [activity]
-
-        for fdat in files:
-            ddm = ddmconf.get(fdat.ddmendpoint)
-            if not ddm:
-                raise Exception("Failed to resolve output ddmendpoint by name=%s (from PanDA), please check configuration. fdat=%s" % (fdat.ddmendpoint, fdat))
-
-            protocols = []
-            for aname in activity:
-                aname = get_ddm_activity(aname)
-                protocols = ddm.arprotocols.get(aname)
-                if protocols:
-                    break
-
-            fdat.protocols = protocols
-
-        return files
-
-    def resolve_protocol(self, fspec, allowed_schemas=None):
-        """
-            Resolve protocols according to allowed schema
-            :param fspec: `FileSpec` instance
-            :param allowed_schemas: list of allowed schemas or any if None
-            :return: list of dict(endpoint, path, flavour)
-        """
-
-        if not fspec.protocols:
-            return []
-
-        protocols = []
-
-        allowed_schemas = allowed_schemas or [None]
-        for schema in allowed_schemas:
-            for pdat in fspec.protocols:
-                if schema is None or pdat.get('endpoint', '').startswith("%s://" % schema):
-                    protocols.append(pdat)
-
-        return protocols
 
     def prepare_destinations(self, files, activities):
         """
@@ -772,7 +862,7 @@ class StageOutClient(StagingClient):
         surl = protocol.get('endpoint', '') + os.path.join(protocol.get('path', ''), self.get_path(fspec.scope, fspec.lfn))
         return {'surl': surl}
 
-    def transfer_files(self, copytool, files, activity, **kwargs):  # noqa: C901
+    def transfer_files(self, copytool, files, activity, **kwargs):
         """
             Automatically stage out files using the selected copy tool module.
 
@@ -792,7 +882,7 @@ class StageOutClient(StagingClient):
             if not os.path.isfile(pfn) or not os.access(pfn, os.R_OK):
                 msg = "Error: output pfn file does not exist: %s" % pfn
                 self.logger.error(msg)
-                self.trace_report.update(clientState='NO_REPLICA', stateReason=msg)
+                self.trace_report.update(clientState='MISSINGOUTPUTFILE', stateReason=msg)
                 self.trace_report.send()
                 raise PilotException(msg, code=ErrorCodes.MISSINGOUTPUTFILE, state="FILE_INFO_FAIL")
             if not fspec.filesize:
@@ -810,38 +900,7 @@ class StageOutClient(StagingClient):
 
         # prepare files (resolve protocol/transfer url)
         if getattr(copytool, 'require_protocols', True) and files:
-
-            ddmconf = self.infosys.resolve_storage_data()
-            allowed_schemas = getattr(copytool, 'allowed_schemas', None)
-
-            if self.infosys and self.infosys.queuedata:
-                copytool_name = copytool.__name__.rsplit('.', 1)[-1]
-                allowed_schemas = self.infosys.queuedata.resolve_allowed_schemas(activity, copytool_name) or allowed_schemas
-
-            files = self.resolve_protocols(files, activity)
-
-            for fspec in files:
-
-                protocols = self.resolve_protocol(fspec, allowed_schemas)
-                if not protocols:  #  no protocols found
-                    error = 'Failed to resolve protocol for file=%s, allowed_schemas=%s, fspec=%s' % (fspec.lfn, allowed_schemas, fspec)
-                    self.logger.error("resolve_protocol: %s" % error)
-                    raise PilotException(error, code=ErrorCodes.NOSTORAGEPROTOCOL)
-
-                # take first available protocol for copytool: FIX ME LATER if need (do iterate over all allowed protocols?)
-                protocol = protocols[0]
-
-                self.logger.info("resolved protocol to be used for transfer: data=%s" % protocol)
-
-                resolve_surl = getattr(copytool, 'resolve_surl', None)
-                if not callable(resolve_surl):
-                    resolve_surl = self.resolve_surl
-
-                r = resolve_surl(fspec, protocol, ddmconf, activity=activity)  ## pass ddmconf & activity for possible custom look up at the level of copytool
-                if r.get('surl'):
-                    fspec.turl = r['surl']
-                if r.get('ddmendpoint'):
-                    fspec.ddmendpoint = r['ddmendpoint']
+            self.require_protocols(files, copytool, activity)
 
         if not copytool.is_valid_for_copy_out(files):
             self.logger.warning('Input is not valid for transfers using copytool=%s' % copytool)

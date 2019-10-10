@@ -129,7 +129,7 @@ class QueueData(BaseData):
     def resolve_allowed_schemas(self, activity, copytool=None):
         """
             Resolve list of allowed schemas for given activity and requested copytool based on `acopytools_schemas` settings
-            :param activity: ordered list of activity names to look up data
+            :param activity: str or ordered list of transfer activity names to resolve acopytools related data
             :return: list of protocol schemes
         """
 

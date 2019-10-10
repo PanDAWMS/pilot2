@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 require_replicas = True  ## indicate if given copytool requires input replicas to be resolved
 
-allowed_schemas = ['srm', 'gsiftp', 'https', 'davs']  # prioritized list of supported schemas for transfers by given copytool
+allowed_schemas = ['srm', 'gsiftp', 'https', 'davs', 'root']  # prioritized list of supported schemas for transfers by given copytool
 
 
 def is_valid_for_copy_in(files):
@@ -57,7 +57,7 @@ def copy_in(files, **kwargs):
     if not check_for_gfal():
         raise StageInFailure("No GFAL2 tools found")
 
-    localsite = os.environ.get('DQ2_LOCAL_SITE_ID', None)
+    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', os.environ.get('DQ2_LOCAL_SITE_ID', None))
     for fspec in files:
         # update the trace report
         localsite = localsite if localsite else fspec.ddmendpoint

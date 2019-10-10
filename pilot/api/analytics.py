@@ -114,7 +114,7 @@ class Analytics(Services):
 
         return get_table_from_file(filename, header=header, separator=separator, convert_to_float=convert_to_float)
 
-    def get_fitted_data(self, filename, x_name='Time', y_name='PSS+Swap', precision=2, tails=True):
+    def get_fitted_data(self, filename, x_name='Time', y_name='pss+swap', precision=2, tails=True):
         """
         Return a properly formatted job metrics string with analytics data.
         Currently the function returns a fit for PSS+Swap vs time, whose slope measures memory leaks.

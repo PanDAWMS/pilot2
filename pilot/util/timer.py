@@ -118,7 +118,7 @@ class TimedProcess(object):
                 ret = func(*args, **kwargs)
                 queue.put((True, ret))
             except Exception as e:
-                print('Exception occured while executing %s' % func, file=sys.stderr)
+                print('Exception occurred while executing %s' % func, file=sys.stderr)
                 traceback.print_exc(file=sys.stderr)
                 queue.put((False, e))
 

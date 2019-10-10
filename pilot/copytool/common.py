@@ -18,18 +18,19 @@ from pilot.util.filehandling import calculate_checksum, get_checksum_type, get_c
 logger = logging.getLogger(__name__)
 
 
-def get_timeout(filesize):
+def get_timeout(filesize, add=0):
     """
     Get a proper time-out limit based on the file size.
 
     :param filesize: file size (int).
-    :return:
+    :param add: optional additional time to be added [s] (int)
+    :return: time-out in seconds (int).
     """
 
     timeout_max = 3 * 3600  # 3 hours
     timeout_min = 300  # self.timeout
 
-    timeout = timeout_min + int(filesize / 0.5e6)  # approx < 0.5 Mb/sec
+    timeout = timeout_min + int(filesize / 0.5e6) + add  # approx < 0.5 Mb/sec
 
     return min(timeout, timeout_max)
 
@@ -57,13 +58,15 @@ def verify_catalog_checksum(fspec, path):
         state = 'UNKNOWN_CHECKSUM_TYPE'
     else:
         checksum_local = calculate_checksum(path, algorithm=checksum_type)
+        if checksum_type == 'ad32':
+            checksum_type = 'adler32'
         logger.info('checksum (catalog): %s (type: %s)' % (checksum_catalog, checksum_type))
         logger.info('checksum (local): %s' % checksum_local)
         if checksum_local and checksum_local != '' and checksum_local != checksum_catalog:
-            diagnostics = 'checksum verification failed: checksum (catalog)=%s != checksum (local)=%s' % \
-                          (checksum_catalog, checksum_local)
+            diagnostics = 'checksum verification failed for LFN=%s: checksum (catalog)=%s != checksum (local)=%s' % \
+                          (fspec.lfn, checksum_catalog, checksum_local)
             logger.warning(diagnostics)
-            fspec.status_code = ErrorCodes.GETADMISMATCH if checksum_type == 'ad32' else ErrorCodes.GETMD5MISMATCH
+            fspec.status_code = ErrorCodes.GETADMISMATCH if checksum_type == 'adler32' else ErrorCodes.GETMD5MISMATCH
             fspec.status = 'failed'
             state = 'AD_MISMATCH' if checksum_type == 'ad32' else 'MD_MISMATCH'
         else:
@@ -143,7 +146,7 @@ def output_line_scan(ret, output):
     """
 
     for line in output.split('\n'):
-        m = re.search("Details\s*:\s*(?P<error>.*)", line)
+        m = re.search("[Dd]etails\s*:\s*(?P<error>.*)", line)
         if m:
             ret['error'] = m.group('error')
         elif 'service_unavailable' in line:
@@ -197,8 +200,8 @@ def resolve_common_transfer_errors(output, is_stagein=True):
         ret = get_error_info(ErrorCodes.SERVICENOTAVAILABLE, 'SERVICE_ERROR', output)
     elif "Network is unreachable" in output:
         ret = get_error_info(ErrorCodes.UNREACHABLENETWORK, 'NETWORK_UNREACHABLE', output)
-    else:
-        # reg exp the output
-        ret = output_line_scan(ret, output)
+
+    # reg exp the output to get real error message
+    ret = output_line_scan(ret, output)
 
     return ret
