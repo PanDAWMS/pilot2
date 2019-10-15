@@ -417,7 +417,7 @@ class ErrorCodes:
             if found:
                 diag = found[0]
                 diag = re.sub(r'\[?PilotException\(\"?\'?', r'', diag)
-                diag = diag.replace('  ', ' ')
+                diag = re.sub(' +', ' ', diag)
 
         try:
             if diag:
