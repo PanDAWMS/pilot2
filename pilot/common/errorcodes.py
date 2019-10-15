@@ -435,6 +435,10 @@ class ErrorCodes:
                         error_message = standard_message + diag[-(max_message_length - len(standard_message)):]
                     else:
                         error_message = standard_message + diag
+
+                if '::' in error_message:
+                    error_message = error_message.replace('::', ':')
+
             else:
                 error_message = standard_message
         except Exception:
