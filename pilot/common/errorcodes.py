@@ -436,7 +436,7 @@ class ErrorCodes:
                         error_message = standard_message + diag
 
                 if '::' in error_message:
-                    error_message = error_message.replace('::', ':')
+                    error_message = re.sub(':+', ':', error_message)
 
             else:
                 error_message = standard_message
