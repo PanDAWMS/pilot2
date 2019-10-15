@@ -22,6 +22,7 @@ except Exception:
     import queue  # python 3
 
 from json import dumps
+from re import findall
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException  #, JobAlreadyRunning
@@ -962,12 +963,16 @@ def getjob_server_command(url, port):
     """
 
     if url != "":
-        url = url + ':%s' % port  # port is always set
+        port_pattern = '.:([0-9]+)'
+        if not findall(port_pattern, url):
+            url = url + ':%s' % port
+        else:
+            logger.debug('URL already contains port: %s' % url)
     else:
         url = config.Pilot.pandaserver
     if url == "":
         logger.fatal('PanDA server url not set (either as pilot option or in config file)')
-    elif not url.startswith("https://"):
+    elif not url.startswith("http"):
         url = 'https://' + url
         logger.warning('detected missing protocol in server url (added)')
 
