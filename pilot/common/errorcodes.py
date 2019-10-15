@@ -416,8 +416,7 @@ class ErrorCodes:
             found = re.findall(pattern, diag)
             if found:
                 diag = found[0]
-                diag = diag.replace("[PilotException(\'", '')
-                diag = diag.replace('[PilotException(\"', '')
+                diag = re.sub(r'\[?PilotException\(\"?\'?', r'', diag)
                 diag = diag.replace('  ', ' ')
 
         try:
