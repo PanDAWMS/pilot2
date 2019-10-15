@@ -317,7 +317,7 @@ def check_for_final_server_update(update_server):
     :return:
     """
 
-    max_i = 20
+    max_i = 200
     i = 0
 
     # abort if in startup stage or if in final update stage
@@ -330,5 +330,5 @@ def check_for_final_server_update(update_server):
             logger.info('server update done, finishing')
             break
         logger.info('server update not finished (#%d/#%d)' % (i + 1, max_i))
-        sleep(10)
+        sleep(30)
         i += 1
