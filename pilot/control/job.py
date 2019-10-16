@@ -432,7 +432,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     data = {'jobId': job.jobid,
             'state': state,
             'timestamp': time_stamp(),
-            'siteName': args.site,
+            'siteName': os.environ.get('PILOT_SITENAME')  # args.site,
             'node': get_node_name()}
 
     data['attemptNr'] = job.attemptnr

@@ -76,6 +76,9 @@ def main():
     # set the site name for rucio  ## is it really used?
     environ['PILOT_RUCIO_SITENAME'] = infosys.queuedata.site
 
+    # store the site name as set with a pilot option
+    environ['PILOT_SITENAME'] = infosys.queuedata.resource  #args.site  # TODO: replace with singleton
+
     # set requested workflow
     logger.info('pilot arguments: %s' % str(args))
     logger.info('selected workflow: %s' % args.workflow)
@@ -392,9 +395,6 @@ def set_environment_variables(args, mainworkdir):
 
     # pilot source directory (e.g. /cluster/home/usatlas1/gram_scratch_hHq4Ns/condorg_oqmHdWxz)
     environ['PILOT_SOURCE_DIR'] = args.sourcedir  # TODO: replace with singleton
-
-    # store the site name as set with a pilot option
-    environ['PILOT_SITENAME'] = args.site  # TODO: replace with singleton
 
     # set the pilot user (e.g. ATLAS)
     environ['PILOT_USER'] = args.pilot_user  # TODO: replace with singleton
