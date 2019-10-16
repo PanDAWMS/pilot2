@@ -208,11 +208,11 @@ def get_args():
                             help='MANDATORY: queue name (e.g., AGLT2_TEST-condor')
     arg_parser.add_argument('-r',
                             dest='resource',
-                            required=True,  # it is needed by the dispatcher (only)
+                            required=False,  # From v 2.2.0 the resource name is internally set
                             help='MANDATORY: resource name (e.g., AGLT2_TEST')
     arg_parser.add_argument('-s',
                             dest='site',
-                            required=True,  # it is needed by the dispatcher (only) -- same as '-r'? is it PandaSite or ATLAS Site?
+                            required=False,  # From v 2.2.1 the site name is internally set
                             help='MANDATORY: site name (e.g., AGLT2_TEST')
 
     # graciously stop pilot process after hard limit
