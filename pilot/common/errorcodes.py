@@ -135,6 +135,8 @@ class ErrorCodes:
     EMPTYOUTPUTFILE = 1350
     UNRECOGNIZEDTRFSTDERR = 1351
     STATFILEPROBLEM = 1352
+    NOSUCHPROCESS = 1353
+    GENERALCPUCALCPROBLEM = 1354
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -248,7 +250,9 @@ class ErrorCodes:
         UNRECOGNIZEDTRFARGUMENTS: "Unrecognized transform arguments",
         EMPTYOUTPUTFILE: "Empty output file detected",
         UNRECOGNIZEDTRFSTDERR: "Unrecognized fatal error in transform stderr",
-        STATFILEPROBLEM: "Failed to stat proc file for CPU consumption calculation"
+        STATFILEPROBLEM: "Failed to stat proc file for CPU consumption calculation",
+        NOSUCHPROCESS: "CPU consumption calculation failed: No such process",
+        GENERALCPUCALCPROBLEM: "General CPU consumption calculation problem (consult Pilot log)"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
