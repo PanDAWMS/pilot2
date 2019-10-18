@@ -154,6 +154,19 @@ def import_module(**kwargs):
     return 0
 
 
+def str2bool(v):
+    """ Helper function to convert string to bool """
+
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 def get_args():
     """
     Return the args from the arg parser.
@@ -283,14 +296,14 @@ def get_args():
     # Allow other country
     arg_parser.add_argument('--allow-other-country',
                             dest='allow_other_country',
-                            type=bool,
+                            type=str2bool,
                             default=False,
                             help='Is the resource allowed to be used outside the privileged group?')
 
     # Allow same user
     arg_parser.add_argument('--allow-same-user',
                             dest='allow_same_user',
-                            type=bool,
+                            type=str2bool,
                             default=True,
                             help='Multi-jobs will only come from same taskID (and thus same user)')
 
