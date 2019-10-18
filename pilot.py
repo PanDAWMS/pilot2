@@ -24,7 +24,7 @@ from pilot.info import infosys
 from pilot.util.auxiliary import pilot_version_banner, shell_exit_code
 from pilot.util.config import config
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_START_TIME, PILOT_END_TIME, get_pilot_version, \
-    SERVER_UPDATE_NOT_DONE
+    SERVER_UPDATE_NOT_DONE, PILOT_MULTIJOB_START_TIME
 from pilot.util.filehandling import get_pilot_work_dir, mkdirs, establish_logging
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
@@ -484,6 +484,7 @@ if __name__ == '__main__':
 
     # store T0 time stamp
     add_to_pilot_timing('0', PILOT_START_TIME, time.time(), args)
+    add_to_pilot_timing('1', PILOT_MULTIJOB_START_TIME, time.time(), args)
 
     # if requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
     args.sourcedir = getcwd()

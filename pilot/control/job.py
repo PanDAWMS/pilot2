@@ -32,7 +32,7 @@ from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, ge
     set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine
 from pilot.util.config import config
 from pilot.util.common import should_abort
-from pilot.util.constants import PILOT_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
+from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
 from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json, establish_logging, write_file
@@ -1371,7 +1371,7 @@ def retrieve(queues, traces, args):
                         establish_logging(args)
                         pilot_version_banner()
                         getjob_requests = 0
-                        add_to_pilot_timing('0', PILOT_START_TIME, time.time(), args)
+                        add_to_pilot_timing('1', PILOT_MULTIJOB_START_TIME, time.time(), args)
                         break
                     time.sleep(0.5)
 
