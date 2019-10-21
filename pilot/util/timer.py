@@ -99,10 +99,10 @@ class TimedThread(object):
             return ret[1]
         else:
             try:
-                raise ret[1][0](ret[1][1]).with_traceback(ret[1][2])
+                _r = ret[1][0](ret[1][1]).with_traceback(ret[1][2])
             except Exception:
-                raise ret[1][0], ret[1][1], ret[1][2]
-
+                _r = ret[1][0], ret[1][1], ret[1][2]
+            raise _r
 
 class TimedProcess(object):
     """
