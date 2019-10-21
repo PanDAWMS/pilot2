@@ -133,7 +133,7 @@ def copy_in(files, **kwargs):
         :raise: PilotException in case of controlled error
     """
 
-    allow_direct_access = kwargs.get('allow_direct_access') or False
+    #allow_direct_access = kwargs.get('allow_direct_access') or False
     setup = kwargs.pop('copytools', {}).get('xrdcp', {}).get('setup')
     coption = _resolve_checksum_option(setup, **kwargs)
     trace_report = kwargs.get('trace_report')
@@ -146,13 +146,13 @@ def copy_in(files, **kwargs):
         trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
         trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
 
-        # continue loop for files that are to be accessed directly
-        if fspec.is_directaccess(ensure_replica=False) and allow_direct_access and fspec.accessmode == 'direct':
-            fspec.status_code = 0
-            fspec.status = 'remote_io'
-            trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
-            trace_report.send()
-            continue
+        # continue loop for files that are to be accessed directly  ## TOBE DEPRECATED (anisyonk)
+        #if fspec.is_directaccess(ensure_replica=False) and allow_direct_access and fspec.accessmode == 'direct':
+        #    fspec.status_code = 0
+        #    fspec.status = 'remote_io'
+        #    trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
+        #    trace_report.send()
+        #    continue
 
         trace_report.update(catStart=time())
 

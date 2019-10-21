@@ -44,11 +44,11 @@ class StagingClient(object):
                         }
 
     # list of allowed schemas to be used for direct acccess mode from REMOTE replicas
-    direct_remoteinput_allowed_schemas = ['root']
+    direct_remoteinput_allowed_schemas = ['root', 'https']
     # list of schemas to be used for direct acccess mode from LOCAL replicas
     direct_localinput_allowed_schemas = ['root', 'dcache', 'dcap', 'file', 'https']
     # list of allowed schemas to be used for transfers from REMOTE sites
-    remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm', 'storm']
+    remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm', 'storm', 'https']
 
     def __init__(self, infosys_instance=None, acopytools=None, logger=None, default_copytools='rucio', trace_report=None):
         """
@@ -100,12 +100,13 @@ class StagingClient(object):
     def get_preferred_replica(self, replicas, allowed_schemas):
         """
             Get preferred replica from the `replicas` list suitable for `allowed_schemas`
-            :return: replica or None if not found
+            :return: first matched replica or None if not found
         """
 
         for replica in replicas:
+            pfn = replica.get('pfn')
             for schema in allowed_schemas:
-                if replica and (not schema or replica.startswith('%s://' % schema)):
+                if pfn and (not schema or pfn.startswith('%s://' % schema)):
                     return replica
 
     def prepare_sources(self, files, activities=None):
@@ -154,7 +155,7 @@ class StagingClient(object):
         """
             Populates filespec.replicas for each entry from `files` list
             :param files: list of `FileSpec` objects
-            fdat.replicas = [(ddmendpoint, replica, ddm_se, ddm_path)]
+            fdat.replicas = [{'ddmendpoint':'ddmendpoint', 'pfn':'replica', 'domain':'domain value'}]
             :return: `files`
         """
 
@@ -168,9 +169,6 @@ class StagingClient(object):
             #    raise Exception("Failed to resolve input ddmendpoint by name=%s (from PanDA), please check configuration. fdat=%s" % (fdat.ddmendpoint, fdat))
 
             ## skip fdat if need for further workflow (e.g. to properly handle OS ddms)
-
-            #fdat.accessmode = 'copy'        ### quick hack to avoid changing logic below for DIRECT access handling  ## REVIEW AND FIX ME LATER
-            #fdat.allowremoteinputs = False  ### quick hack to avoid changing logic below for DIRECT access handling  ## REVIEW AND FIX ME LATER
             xfiles.append(fdat)
 
         if not xfiles:  # no files for replica look-up
@@ -180,23 +178,19 @@ class StagingClient(object):
         from rucio.client import Client
         c = Client()
 
-        ## for the time being until Rucio bug with geo-ip sorting is resolved
-        ## do apply either simple query list_replicas() without geoip sort to resolve LAN replicas in case of directaccesstype=[None, LAN]
-        # otherwise in case of directaccesstype=WAN mode do query geo sorted list_replicas() with location data passed
+        location = self.detect_client_location()
+        if not location:
+            raise PilotException("Failed to get client location for Rucio", code=errors.RUCIOLOCATIONFAILED)
 
-        bquery = {'schemes': ['srm', 'root', 'davs', 'gsiftp', 'https', 'storm'],
-                  'dids': [dict(scope=e.scope, name=e.lfn) for e in xfiles]}
+        query = {
+            'schemes': ['srm', 'root', 'davs', 'gsiftp', 'https', 'storm'],
+            'dids': [dict(scope=e.scope, name=e.lfn) for e in xfiles],
+        }
 
-        #allow_remoteinput = True in set(e.allowremoteinputs for e in xfiles)  ## implement direct access later
+        query.update(sort='geoip', client_location=location)
+        logger.info('calling rucio.list_replicas() with query=%s' % query)
 
         try:
-            query = bquery.copy()
-            location = self.detect_client_location()
-            if not location:
-                raise PilotException("Failed to get client location for Rucio", code=errors.RUCIOLOCATIONFAILED)
-
-            query.update(sort='geoip', client_location=location)
-            logger.info('calling rucio.list_replicas() with query=%s' % query)
             replicas = c.list_replicas(**query)
         except Exception as e:
             raise PilotException("Failed to get replicas from Rucio: %s" % e, code=errors.RUCIOLISTREPLICASFAILED)
@@ -214,47 +208,23 @@ class StagingClient(object):
                 continue
 
             fdat.replicas = []  # reset replicas list
-            has_direct_localinput_replicas = False
 
-            # manually sort replicas by priority value since Rucio has a bug in ordering
-            # .. can be removed once Rucio server-side fix will be delivered
-            ordered_replicas = {}
+            # sort replicas by priority value
             for pfn, xdat in sorted(r.get('pfns', {}).iteritems(), key=lambda x: x[1]['priority']):
-                ordered_replicas.setdefault(xdat.get('rse'), []).append(pfn)
 
-            # local replicas
-            for ddm in fdat.inputddms:  ## iterate over local ddms and check if replica is exist here
-                #pfns = r.get('rses', {}).get(ddm)  ## use me once Rucio bug is resolved
-                pfns = ordered_replicas.get(ddm)    ## quick workaround of Rucio bug: use manually sorted pfns
-
-                if not pfns:  # no replica found for given local ddm
+                if not fdat.allow_lan and xdat['domain'] == 'lan':
+                    continue
+                if not fdat.allow_wan and xdat['domain'] == 'wan':
                     continue
 
-                fdat.replicas.append((ddm, pfns))
+                rinfo = {'pfn': pfn, 'ddmendpoint': xdat.get('rse'), 'domain': xdat.get('domain')}
 
-                if not has_direct_localinput_replicas:
-                    has_direct_localinput_replicas = bool(self.get_preferred_replica(pfns, self.direct_localinput_allowed_schemas))
+                ## (TEMPORARY?) consider fspec.inputddms as a primary source for local/lan source list definition
+                ## backward compartible logic -- FIX ME LATER if NEED
+                ## in case we should rely on domain value from Rucio, just remove the overwrite line below
+                rinfo['domain'] = 'lan' if rinfo['ddmendpoint'] in fdat.inputddms else 'wan'
 
-            if (not fdat.replicas or (fdat.accessmode == 'direct' and not has_direct_localinput_replicas)) and fdat.allowremoteinputs:
-                if fdat.accessmode == 'direct':
-                    allowed_schemas = self.direct_remoteinput_allowed_schemas
-                else:
-                    allowed_schemas = self.remoteinput_allowed_schemas
-
-                if not fdat.replicas:
-                    logger.info("No local replicas found for lfn=%s but allowremoteinputs is set => looking for remote inputs" % fdat.lfn)
-                else:
-                    logger.info("Direct access=True but no appr. local replicas found: allowremoteinputs=True =>checking remote input suitable for direct read")
-                logger.info("Consider first/closest replica, accessmode=%s, allowed_schemas=%s" % (fdat.accessmode, allowed_schemas))
-                #logger.debug('rses=%s' % r['rses'])
-                for ddm, pfns in r['rses'].iteritems():
-                    replica = self.get_preferred_replica(pfns, allowed_schemas)
-                    if not replica:
-                        continue
-
-                    # remoteinput supported replica found
-                    fdat.replicas.append((ddm, pfns))
-                    # break # ignore other remote replicas/sites
+                fdat.replicas.append(rinfo)
 
             # verify filesize and checksum values
             self.trace_report.update(validateStart=time.time())
@@ -282,8 +252,8 @@ class StagingClient(object):
                 self.trace_report.update(clientState="DONE")
 
         logger.info('Number of resolved replicas:\n' +
-                    '\n'.join(["lfn=%s: replicas=%s, allowremoteinputs=%s, is_directaccess=%s"
-                               % (f.lfn, len(f.replicas), f.allowremoteinputs, f.is_directaccess(ensure_replica=False)) for f in files]))
+                    '\n'.join(["lfn=%s: replicas=%s, is_directaccess=%s"
+                               % (f.lfn, len(f.replicas), f.is_directaccess(ensure_replica=False)) for f in files]))
 
         return files
 
@@ -538,10 +508,11 @@ class StageInClient(StagingClient):
 
     mode = "stage-in"
 
-    def resolve_replica(self, fspec, primary_schemas=None, allowed_schemas=None):
+    def resolve_replica(self, fspec, primary_schemas=None, allowed_schemas=None, domain=None):
         """
-            Resolve input replica first according to `primary_schemas`,
+            Resolve input replica (matched by `domain` if need) first according to `primary_schemas`,
             if not found then look up within `allowed_schemas`
+            Primary schemas ignore replica priority (used to resolve direct access replica, which could be not with top priority set)
             :param fspec: input `FileSpec` objects
             :param allowed_schemas: list of allowed schemas or any if None
             :return: dict(surl, ddmendpoint, pfn)
@@ -553,27 +524,39 @@ class StageInClient(StagingClient):
             return
 
         allowed_schemas = allowed_schemas or [None]
-        replica = None
+        primary_replica, replica = None, None
 
-        for ddmendpoint, replicas in fspec.replicas:
-            if not replicas:  # ignore ddms with no replicas
+        # group by ddmendpoint to look up related surl/srm value
+        replicas = {}
+
+        for rinfo in fspec.replicas:
+
+            replicas.setdefault(rinfo['ddmendpoint'], []).append(rinfo)
+
+            if rinfo['domain'] != domain:
                 continue
-            if primary_schemas:  ## look up primary schemas if requested
-                replica = self.get_preferred_replica(replicas, primary_schemas)
+            if primary_schemas and not primary_replica:  ## look up primary schemas if requested
+                primary_replica = self.get_preferred_replica([rinfo], primary_schemas)
             if not replica:
-                replica = self.get_preferred_replica(replicas, allowed_schemas)
-            if replica:
-                surl = self.get_preferred_replica(replicas, ['srm']) or replicas[0]  # prefer SRM protocol for surl -- to be verified
-                self.logger.info("[stage-in] surl (srm replica) from Rucio: pfn=%s, ddmendpoint=%s" % (surl, ddmendpoint))
+                replica = self.get_preferred_replica([rinfo], allowed_schemas)
+
+            if replica and primary_replica:
                 break
+
+        replica = primary_replica or replica
 
         if not replica:  # replica not found
             schemas = 'any' if not allowed_schemas[0] else ','.join(allowed_schemas)
-            error = 'Failed to find replica for input file=%s, allowed_schemas=%s, fspec=%s' % (fspec.lfn, schemas, fspec)
+            error = 'Failed to find replica for input file=%s, domain=%s, allowed_schemas=%s, fspec=%s' % (fspec.lfn, domain, schemas, fspec)
             self.logger.error("resolve_replica: %s" % error)
             raise PilotException(error, code=ErrorCodes.REPLICANOTFOUND)
 
-        return {'surl': surl, 'ddmendpoint': ddmendpoint, 'pfn': replica}
+        # prefer SRM protocol for surl -- to be verified, can it be deprecaed?
+        rse_replicas = replicas.get(replica['ddmendpoint'], [])
+        surl = self.get_preferred_replica(rse_replicas, ['srm']) or rse_replicas[0]
+        self.logger.info("[stage-in] surl (srm replica) from Rucio: pfn=%s, ddmendpoint=%s" % (surl['pfn'], surl['ddmendpoint']))
+
+        return {'surl': surl['pfn'], 'ddmendpoint': replica['ddmendpoint'], 'pfn': replica['pfn']}
 
     def get_direct_access_variables(self, job):
         """
@@ -599,40 +582,39 @@ class StageInClient(StagingClient):
 
         return allow_direct_access, direct_access_type
 
-    def set_accessmodes_for_direct_access(self, files, direct_access_type):
-        """
-        Update the FileSpec accessmodes for direct access and sort the files to get candidates for remote_io coming
-        first in order to exclude them from checking of available space for stage-in.
+    #def set_accessmodes_for_direct_access(self, files, direct_access_type):  ## TO BE DEPRECATED (anisyonk)
+    #    """
+    #    Update the FileSpec accessmodes for direct access and sort the files to get candidates for remote_io coming
+    #    first in order to exclude them from checking of available space for stage-in.
+    #
+    #    :param files: FileSpec objects.
+    #    :param direct_access_type: type of direct access (LAN or WAN) (string).
+    #    :return:
+    #    """
+    #
+    #    # sort the files
+    #    files = sorted(files, key=lambda x: x.is_directaccess(ensure_replica=False), reverse=True)
+    #
+    #    # populate allowremoteinputs for each FileSpec object
+    #    for fdata in files:
+    #        is_directaccess = fdata.is_directaccess(ensure_replica=False)
+    #        if is_directaccess and direct_access_type == 'WAN':  ## is it the same for ES workflow ?? -- test and verify/FIXME LATER
+    #            fdata.allowremoteinputs = True
+    #        self.logger.info("check direct access for lfn=%s: allow_direct_access=true, fdata.is_directaccess()=%s =>"
+    #                         " is_directaccess=%s, allowremoteinputs=%s" % (fdata.lfn,
+    #                                                                        fdata.is_directaccess(ensure_replica=False),
+    #                                                                        is_directaccess, fdata.allowremoteinputs))
+    #        # must update accessmode for user jobs (it is only set already for production jobs)
+    #        if fdata.accessmode != 'direct' and is_directaccess and fdata.accessmode != 'copy':
+    #            fdata.accessmode = 'direct'
+    #
+    #        # reset accessmode if direct access is not to be used
+    #        if fdata.accessmode == 'direct' and not is_directaccess:
+    #            fdata.accessmode = ''
+    #
+    #        self.logger.info('accessmode for LFN=%s: %s (is_directaccess=%s)' % (fdata.lfn, fdata.accessmode, is_directaccess))
 
-        :param files: FileSpec objects.
-        :param direct_access_type: type of direct access (LAN or WAN) (string).
-        :return:
-        """
-
-        # sort the files
-        files = sorted(files, key=lambda x: x.is_directaccess(ensure_replica=False), reverse=True)
-
-        # populate allowremoteinputs for each FileSpec object
-        for fdata in files:
-            is_directaccess = fdata.is_directaccess(ensure_replica=False)
-            if is_directaccess and direct_access_type == 'WAN':  ## is it the same for ES workflow ?? -- test and verify/FIXME LATER
-                fdata.allowremoteinputs = True
-            self.logger.info("check direct access for lfn=%s: allow_direct_access=true, fdata.is_directaccess()=%s =>"
-                             " is_directaccess=%s, allowremoteinputs=%s" % (fdata.lfn,
-                                                                            fdata.is_directaccess(ensure_replica=False),
-                                                                            is_directaccess, fdata.allowremoteinputs))
-            # must update accessmode for user jobs (it is only set already for production jobs)
-            if fdata.accessmode != 'direct' and is_directaccess and fdata.accessmode != 'copy':
-                fdata.accessmode = 'direct'
-
-            # reset accessmode if direct access is not to be used
-            if fdata.accessmode == 'direct' and not is_directaccess:
-                fdata.accessmode = ''
-
-            self.logger.info('accessmode for LFN=%s: %s (is_directaccess=%s)' %
-                             (fdata.lfn, fdata.accessmode, is_directaccess))
-
-    def transfer_files(self, copytool, files, activity=None, **kwargs):
+    def transfer_files(self, copytool, files, activity=None, **kwargs):  # noqa: C901
         """
         Automatically stage in files using the selected copy tool module.
 
@@ -647,15 +629,15 @@ class StageInClient(StagingClient):
         #logger.debug('trace_report[eventVersion]=%s' % self.trace_report.get('eventVersion', 'unknown'))
 
         # sort out direct access logic
-        job = kwargs.get('job', None)
-        #job_access_mode = job.accessmode if job else ''
-        allow_direct_access, direct_access_type = self.get_direct_access_variables(job)
-        self.logger.info("direct access settings for the PQ: allow_direct_access=%s (type=%s)" %
-                         (allow_direct_access, direct_access_type))
-        kwargs['allow_direct_access'] = allow_direct_access
+        #job = kwargs.get('job', None)
 
-        if allow_direct_access:
-            self.set_accessmodes_for_direct_access(files, direct_access_type)
+        #allow_direct_access, direct_access_type = self.get_direct_access_variables(job)
+        #self.logger.info("direct access settings for the PQ: allow_direct_access=%s (type=%s)" %
+        #                 (allow_direct_access, direct_access_type))
+        #kwargs['allow_direct_access'] = allow_direct_access
+        #
+        #if allow_direct_access:
+        #    self.set_accessmodes_for_direct_access(files, direct_access_type)
 
         if getattr(copytool, 'require_replicas', False) and files:
             if files[0].replicas is None:  ## look up replicas only once
@@ -671,18 +653,43 @@ class StageInClient(StagingClient):
                 resolve_replica = getattr(copytool, 'resolve_replica', None)
                 resolve_replica = self.resolve_replica if not callable(resolve_replica) else resolve_replica
 
-                ## prepare schemas which will be used to look up first the replicas allowed for direct access mode
-                primary_schemas = self.direct_localinput_allowed_schemas if fspec.accessmode == 'direct' else None
-                r = resolve_replica(fspec, primary_schemas, allowed_schemas)
-                if not r:
-                    raise ReplicasNotFound('resolve_replica() returned no replicas')
+                replica = None
 
-                if r.get('pfn'):
-                    fspec.turl = r['pfn']
-                if r.get('surl'):
-                    fspec.surl = r['surl']  # TO BE CLARIFIED if it's still used and need
-                if r.get('ddmendpoint'):
-                    fspec.ddmendpoint = r['ddmendpoint']
+                # process direct access logic ## TODO move to upper level, should not be dependent on copytool (anisyonk)
+                # check local replicas first
+                if fspec.allow_lan:
+                    # prepare schemas which will be used to look up first the replicas allowed for direct access mode
+                    primary_schemas = (self.direct_localinput_allowed_schemas if fspec.direct_access_lan and
+                                       fspec.is_directaccess(ensure_replica=False) else None)
+                    replica = resolve_replica(fspec, primary_schemas, allowed_schemas, domain='lan')
+                else:
+                    self.logger.info("[stage-in] LAN access is DISABLED for lfn=%s (fspec.allow_lan=%s)" % (fspec.lfn, fspec.allow_lan))
+
+                if not replica and fspec.allow_lan:
+                    self.logger.info("[stage-in] No LAN replica found for lfn=%s, primary_schemas=%s, allowed_schemas=%s" %
+                                     (fspec.lfn, primary_schemas, allowed_schemas))
+
+                # check remote replicas
+                if not replica and fspec.allow_wan:
+                    # prepare schemas which will be used to look up first the replicas allowed for direct access mode
+                    primary_schemas = (self.direct_remoteinput_allowed_schemas if fspec.direct_access_wan and
+                                       fspec.is_directaccess(ensure_replica=False) else None)
+                    xschemas = self.remoteinput_allowed_schemas
+                    allowed_schemas = [e for e in allowed_schemas if e in xschemas] if allowed_schemas else xschemas
+                    replica = resolve_replica(fspec, primary_schemas, allowed_schemas, domain='wan')
+
+                if not replica and fspec.allow_wan:
+                    self.logger.info("[stage-in] No WAN replica found for lfn=%s, primary_schemas=%s, allowed_schemas=%s" %
+                                     (fspec.lfn, primary_schemas, allowed_schemas))
+                if not replica:
+                    raise ReplicasNotFound('No replica found for lfn=%s (allow_lan=%s, allow_wan=%s)' % (fspec.lfn, fspec.allow_lan, fspec.allow_wan))
+
+                if replica.get('pfn'):
+                    fspec.turl = replica['pfn']
+                if replica.get('surl'):
+                    fspec.surl = replica['surl']  # TO BE CLARIFIED if it's still used and need
+                if replica.get('ddmendpoint'):
+                    fspec.ddmendpoint = replica['ddmendpoint']
 
                 self.logger.info("[stage-in] found replica to be used for lfn=%s: ddmendpoint=%s, pfn=%s" %
                                  (fspec.lfn, fspec.ddmendpoint, fspec.turl))
@@ -690,6 +697,15 @@ class StageInClient(StagingClient):
         # prepare files (resolve protocol/transfer url)
         if getattr(copytool, 'require_input_protocols', False) and files:
             self.require_protocols(files, copytool, activity)
+
+        # mark direct access files with status=remote_io
+        self.set_status_for_direct_access(files)
+
+        # get remain files that need to be transferred by copytool
+        files = [e for e in files if e.status not in ['remote_io', 'transferred', 'no_trasfer']]
+
+        if not files:
+            return
 
         if not copytool.is_valid_for_copy_in(files):
             msg = 'input is not valid for transfers using copytool=%s' % copytool
@@ -705,12 +721,8 @@ class StageInClient(StagingClient):
             kwargs['ddmconf'] = self.infosys.resolve_storage_data()
         kwargs['activity'] = activity
 
-        # mark direct access files with status=remote_io
-        if allow_direct_access:
-            self.set_status_for_direct_access(files)
-
         # verify file sizes and available space for stage-in
-        self.check_availablespace([e for e in files if e.status not in ['remote_io', 'transferred']])
+        self.check_availablespace(files)
 
         # add the trace report
         kwargs['trace_report'] = self.trace_report
@@ -721,15 +733,30 @@ class StageInClient(StagingClient):
     def set_status_for_direct_access(self, files):
         """
         Update the FileSpec status with 'remote_io' for direct access mode.
+        Should be called only once since the function sends traces
 
-        :param files: FileSpec objects.
-        :return:
+        :param files: list of FileSpec objects.
+        :return: None
         """
 
         for fspec in files:
-            if fspec.is_directaccess(ensure_replica=False):
+            direct_lan = (fspec.domain == 'lan' and fspec.direct_access_lan and
+                          fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.direct_localinput_allowed_schemas))
+            direct_wan = (fspec.domain == 'wan' and fspec.direct_access_wan and
+                          fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.remoteinput_allowed_schemas))
+            if direct_lan or direct_wan:
                 fspec.status_code = 0
                 fspec.status = 'remote_io'
+
+                # send trace
+                localsite = os.environ.get('RUCIO_LOCAL_SITE_ID') or os.environ.get('DQ2_LOCAL_SITE_ID')  ## VERIFY ME LATER
+                localsite = localsite or fspec.ddmendpoint
+                self.trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
+                self.trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
+                self.trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
+
+                self.trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
+                self.trace_report.send()
 
     def check_availablespace(self, files):
         """

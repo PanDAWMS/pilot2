@@ -4,7 +4,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Alexey Anisenkov, anisyonk@cern.ch, 2018-2019
 
 """
 The implementation of data structure to host File related data description.
@@ -43,8 +43,13 @@ class FileSpec(BaseData):
     dataset = ""
     ddmendpoint = ""    ## DDMEndpoint name (input or output depending on FileSpec.filetype)
 
-    accessmode = ""
-    allowremoteinputs = False
+    accessmode = ""  # preferred access mode
+
+    allow_lan = True
+    allow_wan = False
+
+    direct_access_lan = False
+    direct_access_wan = False
 
     ## dispatchDblock =  ""       # moved from Pilot1: is it needed? suggest proper internal name?
     ## dispatchDBlockToken = ""   # moved from Pilot1: is it needed? suggest proper internal name?
@@ -61,7 +66,7 @@ class FileSpec(BaseData):
     mtime = 0          # file modification time
     status = None      # file transfer status value
     status_code = 0    # file transfer status code
-    inputddms = []     # list of DDMEndpoint names which will be considered by default (if set) as allowed storage for input replicas
+    inputddms = []     # list of DDMEndpoint names which will be considered by default (if set) as allowed local (LAN) storage for input replicas
     workdir = None     # used to declare file-specific work dir (location of given local file when it's used for transfer by copytool)
     protocol_id = None  # id of the protocol to be used to construct turl
     is_tar = False     # whether it's a tar file or not
@@ -70,9 +75,9 @@ class FileSpec(BaseData):
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['filesize', 'mtime', 'status_code'],
              str: ['lfn', 'guid', 'checksum', 'scope', 'dataset', 'ddmendpoint',
-                   'filetype', 'surl', 'turl', 'status', 'workdir', 'accessmode', 'allowremoteinputs', 'storage_token'],
+                   'filetype', 'surl', 'turl', 'status', 'workdir', 'accessmode', 'storage_token'],
              list: ['replicas', 'inputddms', 'ddm_activity'],
-             bool: []
+             bool: ['allow_lan', 'allow_wan', 'direct_access_lan', 'direct_access_wan']
              }
 
     def __init__(self, filetype='input', **data):  ## FileSpec can be split into FileSpecInput + FileSpecOuput classes in case of significant logic changes
@@ -141,7 +146,7 @@ class FileSpec(BaseData):
             self.lfn = self.lfn.replace("zip://", "")
             self.is_tar = True
 
-    def is_directaccess(self, ensure_replica=True):
+    def is_directaccess(self, ensure_replica=True, allowed_replica_schemas=None):
         """
             Check if given (input) file can be used for direct access mode by Job transformation script
             :param ensure_replica: boolean, if True then check by allowed schemas of file replica turl will be considered as well
@@ -161,16 +166,17 @@ class FileSpec(BaseData):
         if not is_rootfile:
             return False
 
-        is_directaccess = self.storage_token != 'local'
+        is_directaccess = False  ## default value
+
+        if self.accessmode == 'direct':
+            is_directaccess = True
+        elif self.accessmode == 'copy':
+            is_directaccess = False
 
         if ensure_replica:
 
-            allowed_replica_schemas = ['root://', 'dcache://', 'dcap://', 'file://', 'https://']
-
-            if self.turl:
-                if True not in set([self.turl.startswith(e) for e in allowed_replica_schemas]):
-                    is_directaccess = False
-            else:
+            allowed_replica_schemas = allowed_replica_schemas or ['root', 'dcache', 'dcap', 'file', 'https']
+            if not self.turl or not any([self.turl.startswith('%s://' % e) for e in allowed_replica_schemas]):
                 is_directaccess = False
 
         return is_directaccess

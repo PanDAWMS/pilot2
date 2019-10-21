@@ -4,7 +4,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Alexey Anisenkov, anisyonk@cern.ch, 2018-2019
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 # - Wen Guan, wen.guan@cern.ch, 2018
 
@@ -154,13 +154,17 @@ class JobData(BaseData):
             :param data: input dictionary of data settings
         """
 
-        self.infosys = None  # reference to Job specific InfoService instace
-        self._rawdata = data  ###  TEMPORARY CACHE -- REMOVE ME LATER once all fields moved to Job object attributes
+        self.infosys = None  # reference to Job specific InfoService instance
+        self._rawdata = data
 
         self.load(data)
 
-        self.indata = self.prepare_infiles(data)
-        self.outdata, self.logdata = self.prepare_outfiles(data)
+    def init(self, infosys):
+
+        self.infosys = infosys
+
+        self.indata = self.prepare_infiles(self._rawdata)
+        self.outdata, self.logdata = self.prepare_outfiles(self._rawdata)
 
         logger.debug('Final parsed Job content:\n%s' % self)
 
@@ -170,14 +174,18 @@ class JobData(BaseData):
             :return: list of validated `FileSpec` objects
         """
 
-        # direct access handling (transfertype is now set)
-        if self.transfertype == 'direct':
-            self.accessmode = 'direct'
-        # job input options overwrite any Job settings
+        # direct access handling
+        self.accessmode = None
         if '--accessmode=direct' in self.jobparams:
             self.accessmode = 'direct'
         if '--accessmode=copy' in self.jobparams or '--useLocalIO' in self.jobparams:
             self.accessmode = 'copy'
+
+        access_keys = ['allow_lan', 'allow_wan', 'direct_access_lan', 'direct_access_wan']
+        if not self.infosys or not self.infosys.queuedata:
+            dat = dict([k, getattr(FileSpec, k, None)] for k in access_keys)
+            msg = ', '.join(["%s=%s" % (k, v) for k, v in sorted(dat.iteritems())])
+            self.logger.info('job.infosys.queuedata is not initialized: following access settings will be used by default: %s' % msg)
 
         # form raw list data from input comma-separated values for further validation by FileSpec
         kmap = {
@@ -189,7 +197,6 @@ class JobData(BaseData):
             ##'??define_internal_key': 'prodDBlocks',
             'storage_token': 'prodDBlockToken',
             'ddmendpoint': 'ddmEndPointIn',
-            # 'transfertype': 'transferType',  # if transfertype was defined per file (it currently is not)
         }
 
         ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())
@@ -202,7 +209,19 @@ class JobData(BaseData):
             idat = {}
             for attrname, k in kmap.iteritems():
                 idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
-            idat['accessmode'] = self.accessmode
+
+            accessmode = 'copy'  ## default settings
+            if self.transfertype == 'direct' and idat.get('storage_token') != 'local':  ## Job settings
+                accessmode = 'direct'
+            if self.accessmode:  ## Job input options (job params) overwrite any other settings
+                accessmode = self.accessmode
+
+            idat['accessmode'] = accessmode
+            # init access setting from queuedata
+            if self.infosys and self.infosys.queuedata:
+                for key in access_keys:
+                    idat[key] = getattr(self.infosys.queuedata, key)
+
             finfo = FileSpec(filetype='input', **idat)
             logger.info('added file %s' % lfn)
             ret.append(finfo)
@@ -374,7 +393,7 @@ class JobData(BaseData):
 
         return False
 
-    def is_local(self):
+    def is_local(self):  ## confusing function, since it does not consider real status of applied transfer, TOBE DEPRECATED, use `has_remoteio()` instead of
         """
         Should the input files be accessed locally?
         Note: all input files will have storage_token set to local in that case.
@@ -385,6 +404,14 @@ class JobData(BaseData):
         for fspec in self.indata:
             if fspec.storage_token == 'local' and '.lib.' not in fspec.lfn:
                 return True
+
+    def has_remoteio(self):
+        """
+        Check status of input file transfers and determine either direct access mode will be used or not.
+        :return: True if at least one file should use direct access mode
+        """
+
+        return any([fspec.status == 'remote_io' for fspec in self.indata])
 
     def clean(self):
         """
@@ -659,10 +686,10 @@ class JobData(BaseData):
 
         lfns = []
         guids = []
-        if self.indata:
-            for fspec in self.indata:
-                lfns.append(fspec.lfn)
-                guids.append(fspec.guid)
+
+        for fspec in self.indata:
+            lfns.append(fspec.lfn)
+            guids.append(fspec.guid)
 
         return lfns, guids
 
@@ -796,18 +823,16 @@ class JobData(BaseData):
                         self.zombies.remove(x)
                 self.collect_zombies(tn=tn)  # recursion
 
-    def only_copy_to_scratch(self):
+    def only_copy_to_scratch(self):  ## TO BE DEPRECATED, use `has_remoteio()` instead of
         """
         Determine if the payload only has copy-to-scratch input.
         In this case, there should be no --usePFCTurl or --directIn in the job parameters.
 
-        :return: True if only copy-to-scratch. False if at least one accessmode=direct in the indata.
+        :return: True if only copy-to-scratch. False if at least one file should use direct access mode
         """
 
-        status = True
         for fspec in self.indata:
-            if fspec.accessmode == 'direct':
-                status = False
-                break
+            if fspec.status == 'remote_io':
+                return False
 
-        return status
+        return True

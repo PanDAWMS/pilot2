@@ -74,7 +74,7 @@ def copy_in(files, **kwargs):
     copytools = kwargs.get('copytools') or []
     copysetup = get_copysetup(copytools, 'lsm')
     trace_report = kwargs.get('trace_report')
-    allow_direct_access = kwargs.get('allow_direct_access')
+    #allow_direct_access = kwargs.get('allow_direct_access')
     localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', os.environ.get('DQ2_LOCAL_SITE_ID', None))
 
     for fspec in files:
@@ -84,13 +84,13 @@ def copy_in(files, **kwargs):
         trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
         trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
 
-        # continue loop for files that are to be accessed directly
-        if fspec.is_directaccess(ensure_replica=False) and allow_direct_access and fspec.accessmode == 'direct':
-            fspec.status_code = 0
-            fspec.status = 'remote_io'
-            trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
-            trace_report.send()
-            continue
+        # continue loop for files that are to be accessed directly  ## TO BE DEPRECATED (anisyonk)
+        #if fspec.is_directaccess(ensure_replica=False) and allow_direct_access and fspec.accessmode == 'direct':
+        #    fspec.status_code = 0
+        #    fspec.status = 'remote_io'
+        #    trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
+        #    trace_report.send()
+        #    continue
 
         trace_report.update(catStart=time())
 
