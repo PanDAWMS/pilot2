@@ -474,7 +474,7 @@ def get_analysis_run_command(job, trf_name):
     #        cmd += ' --directIn'
 
     if job.has_remoteio():
-        logger.debug('direct access (remoteio) is used to access some input files: --usePFCTurl and --directIn will be added if need to payload command')
+        log.debug('direct access (remoteio) is used to access some input files: --usePFCTurl and --directIn will be added if need to payload command')
         if '--usePFCTurl' not in cmd:
             cmd += ' --usePFCTurl'
         if '--directIn' not in cmd:
