@@ -35,6 +35,7 @@ class _ConfigurationSection(object):
         else:
             raise AttributeError('Setting \"%s\" does not exist in the section' % attr)
 
+
 def read(config_file):
     """
     Read the settings from file and return a dot notation object
@@ -46,7 +47,7 @@ def read(config_file):
     obj = _ConfigurationSection()
 
     for section in config.sections():
-        
+
         settings = _ConfigurationSection()
         for key, value in config.items(section):
             # handle environmental variables
