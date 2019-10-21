@@ -17,10 +17,7 @@ Timer stops execution of wrapped function if it reaches the limit of provided ti
 :date: March 2018
 """
 
-try:
-    from __future__ import print_function  # Python 2
-except Exception:
-    pass
+from __future__ import print_function  # Python 2 (2to3 complains about this)
 
 import os
 import signal
