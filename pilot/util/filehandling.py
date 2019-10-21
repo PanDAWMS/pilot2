@@ -44,7 +44,7 @@ def get_pilot_work_dir(workdir):
     return os.path.join(workdir, jobworkdir)
 
 
-def mkdirs(workdir, chmod=0770):
+def mkdirs(workdir, chmod=None):
     """
     Create a directory.
     Perform a chmod if set.
@@ -55,6 +55,11 @@ def mkdirs(workdir, chmod=0770):
     :return:
     """
 
+    if not chmod:
+        try:
+            chmod = 0o770  # Python 3
+        except Exception:
+            chmod = 0770  # Python 2
     try:
         os.makedirs(workdir)
         if chmod:
@@ -253,12 +258,24 @@ def convert(data):
     :return: converted data to utf-8
     """
 
-    if isinstance(data, basestring):
+    try:
+        _basestring = basestring  # Python 2
+    except Exception:
+        _basestring = str  # Python 3 (note order in try statement)
+    if isinstance(data, _basestring):
         return str(data)
     elif isinstance(data, collections.Mapping):
-        return dict(map(convert, data.iteritems()))
+        try:
+            ret = dict(list(map(convert, iter(data.items()))))  # Python 3
+        except Exception:
+            ret = dict(map(convert, data.iteritems()))  # Python 2
+        return ret
     elif isinstance(data, collections.Iterable):
-        return type(data)(map(convert, data))
+        try:
+            ret = type(data)(list(map(convert, data)))  # Python 3
+        except Exception:
+            ret = type(data)(map(convert, data))  # Python 2
+        return ret
     else:
         return data
 
@@ -558,7 +575,10 @@ def add_to_total_size(path, total_size):
         fsize = get_local_file_size(path)
         if fsize:
             logger.info("size of file %s: %d B" % (path, fsize))
-            total_size += long(fsize)
+            try:
+                total_size += long(fsize)  # Python 2
+            except Exception:
+                total_size += int(fsize)  # Python 3 (note order in try statement)
     else:
         logger.warning("skipping file %s since it is not present" % path)
 
@@ -796,7 +816,7 @@ def get_checksum_type(checksum):
 
     checksum_type = 'unknown'
     if type(checksum) == dict:
-        for key in checksum.keys():
+        for key in list(checksum.keys()):  # Python 2/3
             # the dictionary is assumed to only contain one key-value pair
             checksum_type = key
             break
