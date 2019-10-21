@@ -56,9 +56,6 @@ def main():
     args.signal_counter = 0  # keep track of number of received kill signal (suicide counter)
     args.kill_time = 0  # keep track of when first kill signal arrived
 
-    # read and parse config file
-    config.read(args.config)
-
     # perform https setup
     https_setup(args, get_pilot_version())
 
@@ -125,7 +122,6 @@ def import_module(**kwargs):
                            '--capath': kwargs.get('capath'),
                            '--url': kwargs.get('url', ''),
                            '-p': kwargs.get('port', '25443'),
-                           '--config': kwargs.get('config', ''),
                            '--country-group': kwargs.get('country_group', ''),
                            '--working-group': kwargs.get('working_group', ''),
                            '--allow-other-country': kwargs.get('allow_other_country', 'False'),
@@ -273,13 +269,6 @@ def get_args():
                             dest='port',
                             default=25443,
                             help='PanDA server port')
-
-    # Configuration option
-    arg_parser.add_argument('--config',
-                            dest='config',
-                            default='',
-                            help='Config file path',
-                            metavar='path/to/pilot.cfg')
 
     # Country group
     arg_parser.add_argument('--country-group',
