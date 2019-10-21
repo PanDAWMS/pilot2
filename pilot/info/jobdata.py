@@ -192,7 +192,10 @@ class JobData(BaseData):
             # 'transfertype': 'transferType',  # if transfertype was defined per file (it currently is not)
         }
 
-        ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())
+        try:
+            ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.values())  # Python 3
+        except Exception:
+            ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())  # Python 2
         logger.debug('ksources=%s' % str(ksources))
         ret, lfns = [], set()
         for ind, lfn in enumerate(ksources.get('inFiles', [])):
@@ -200,8 +203,12 @@ class JobData(BaseData):
                 continue
             lfns.add(lfn)
             idat = {}
-            for attrname, k in kmap.iteritems():
-                idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
+            try:
+                for attrname, k in kmap.items():  # Python 3
+                    idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
+            except Exception:
+                for attrname, k in kmap.iteritems():  # Python 2
+                    idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
             idat['accessmode'] = self.accessmode
             finfo = FileSpec(filetype='input', **idat)
             logger.info('added file %s' % lfn)
@@ -230,7 +237,10 @@ class JobData(BaseData):
             'ddmendpoint': 'ddmEndPointOut',
         }
 
-        ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())
+        try:
+            ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.values())  # Python 3
+        except Exception:
+            ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())  # Python 2
 
         # unify scopeOut structure: add scope of log file
         log_lfn = data.get('logFile')
@@ -253,8 +263,12 @@ class JobData(BaseData):
                 continue
             lfns.add(lfn)
             idat = {}
-            for attrname, k in kmap.iteritems():
-                idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
+            try:
+                for attrname, k in kmap.items():  # Python 3
+                    idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
+            except Exception:
+                for attrname, k in kmap.iteritems():  # Python 2
+                    idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
 
             ftype = 'output'
             ret = ret_output
@@ -563,7 +577,11 @@ class JobData(BaseData):
             pargs.append([curopt, None])
 
         ret = {}
-        for opt, fcast in options.iteritems():
+        try:
+            _items = options.items()  # Python 3
+        except Exception:
+            _items = options.iteritems()  # Python 2
+        for opt, fcast in _items:
             val = opts.get(opt)
             try:
                 val = fcast(val) if callable(fcast) else val
@@ -598,14 +616,24 @@ class JobData(BaseData):
         """
 
         # Convert to long if necessary
-        if not isinstance(workdir_size, (int, long)):
-            try:
-                workdir_size = long(workdir_size)
-            except Exception as e:
-                logger.warning('failed to convert %s to long: %s' % (workdir_size, e))
-                return
-
-        total_size = 0L  # B
+        try:  # Python 2
+            if not isinstance(workdir_size, (int, long)):
+                try:
+                    workdir_size = long(workdir_size)
+                except Exception as e:
+                    logger.warning('failed to convert %s to long: %s' % (workdir_size, e))
+                    return
+        except Exception:  # Python 3, note order
+            if not isinstance(workdir_size, int):
+                try:
+                    workdir_size = long(workdir_size)
+                except Exception as e:
+                    logger.warning('failed to convert %s to long: %s' % (workdir_size, e))
+                    return
+        try:  # Python 2
+            total_size = 0L  # B
+        except Exception:  # Python 3
+            total_size = 0  # B
 
         if os.path.exists(self.workdir):
             # Find out which input and output files have been transferred and add their sizes to the total size
@@ -640,7 +668,10 @@ class JobData(BaseData):
         :return: workdir size (int).
         """
 
-        maxdirsize = 0L
+        try:
+            maxdirsize = 0L  # Python 2
+        except Exception:
+            maxdirsize = 0  # Python 3
 
         if self.workdirsizes != []:
             # Get the maximum value from the list
