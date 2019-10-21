@@ -9,7 +9,6 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
 import os
-import re
 import collections
 
 try:

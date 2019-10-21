@@ -11,7 +11,7 @@
 from pilot.common.exception import NotDefined
 
 from decimal import Decimal
-from re import split
+from re import split, sub
 
 import logging
 
@@ -312,7 +312,7 @@ def human2bytes(s, divider=None):
         num = "1"
     num = float(num)
     letter = s.strip()
-    letter = re.sub(r'(?i)(?<=.)(bi?|bytes?)$', "", letter)
+    letter = sub(r'(?i)(?<=.)(bi?|bytes?)$', "", letter)
     if len(letter) == 0:
         letter = "B"
 
