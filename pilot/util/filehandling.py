@@ -44,7 +44,7 @@ def get_pilot_work_dir(workdir):
     return os.path.join(workdir, jobworkdir)
 
 
-def mkdirs(workdir, chmod=None):
+def mkdirs(workdir, chmod=0o770):  # Python 2/3
     """
     Create a directory.
     Perform a chmod if set.
@@ -55,11 +55,6 @@ def mkdirs(workdir, chmod=None):
     :return:
     """
 
-    if not chmod:
-        try:
-            chmod = 0o770  # Python 3
-        except Exception:
-            chmod = 0770  # Python 2
     try:
         os.makedirs(workdir)
         if chmod:
