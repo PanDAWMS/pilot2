@@ -503,7 +503,7 @@ def update_forced_accessmode(log, cmd, transfertype, jobparams, trf_name):
                            "--accessmode=direct": ["direct access mode", " --directIn"]}
 
         # update run_command according to jobPars
-        for _mode in _accessmode_dic.keys():
+        for _mode in list(_accessmode_dic.keys()):  # Python 2/3
             if _mode in jobparams:
                 # any accessmode set in jobPars should overrule schedconfig
                 log.info("enforcing %s" % _accessmode_dic[_mode][0])
@@ -1075,7 +1075,7 @@ def get_number_of_events_deprecated(jobreport_dictionary):  # TODO: remove this 
 
     executor_dictionary = get_executor_dictionary(jobreport_dictionary)
     if executor_dictionary != {}:
-        for format in executor_dictionary.keys():  # "RAWtoESD", ..
+        for format in list(executor_dictionary.keys()):  # "RAWtoESD", .., Python 2/3
             if 'nevents' in executor_dictionary[format]:
                 if format in nevents:
                     nevents[format] += executor_dictionary[format]['nevents']
@@ -1114,7 +1114,7 @@ def get_db_info(jobreport_dictionary):
 
     executor_dictionary = get_executor_dictionary(jobreport_dictionary)
     if executor_dictionary != {}:
-        for format in executor_dictionary.keys():  # "RAWtoESD", ..
+        for format in list(executor_dictionary.keys()):  # "RAWtoESD", .., Python 2/3
             if 'dbData' in executor_dictionary[format]:
                 try:
                     db_data += executor_dictionary[format]['dbData']
@@ -1170,7 +1170,7 @@ def get_cpu_times(jobreport_dictionary):
 
     executor_dictionary = get_executor_dictionary(jobreport_dictionary)
     if executor_dictionary != {}:
-        for format in executor_dictionary.keys():  # "RAWtoESD", ..
+        for format in list(executor_dictionary.keys()):  # "RAWtoESD", .., Python 2/3
             if 'cpuTime' in executor_dictionary[format]:
                 try:
                     total_cpu_time += executor_dictionary[format]['cpuTime']

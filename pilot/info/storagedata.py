@@ -5,6 +5,7 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
 """
 The implementation of data structure to host storage data description.
@@ -131,7 +132,7 @@ class StorageData(BaseData):
         if protocol_id in self.special_setup and self.special_setup[protocol_id]:
             return self.special_setup[protocol_id]
 
-        if protocol_id is None or str(protocol_id) not in self.rprotocols.keys():
+        if protocol_id is None or str(protocol_id) not in list(self.rprotocols.keys()):  # Python 2/3
             return None
 
         if self.type in ['OS_ES', 'OS_LOGS']:

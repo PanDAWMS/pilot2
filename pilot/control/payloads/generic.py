@@ -8,7 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-8
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 import time
@@ -320,7 +320,7 @@ class Executor(object):
 
                 # stop any running utilities
                 if self.__job.utilities != {}:
-                    for utcmd in self.__job.utilities.keys():
+                    for utcmd in list(self.__job.utilities.keys()):  # Python 2/3
                         utproc = self.__job.utilities[utcmd][0]
                         if utproc:
                             user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user],

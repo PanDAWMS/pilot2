@@ -534,7 +534,7 @@ class JobData(BaseData):
             :return: tuple: (dict of extracted options, raw string of final command line options)
         """
 
-        logger.debug('Do extract options=%s from data=%s' % (options.keys(), data))
+        logger.debug('Do extract options=%s from data=%s' % (list(options.keys()), data))  # Python 2/3
 
         if not options:
             return {}, data

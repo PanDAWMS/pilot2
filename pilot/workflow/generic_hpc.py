@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 # - Danila Oleynik danila.oleynik@cern.ch, 2018
 
 import functools
@@ -160,7 +160,7 @@ def run(args):
         resource.postprocess_workdir(job_scratch_dir)
 
         # output files should not be packed with logs
-        protectedfiles = job.output_files.keys()
+        protectedfiles = list(job.output_files.keys())  # Python 2/3
 
         # log file not produced (yet), so should be excluded
         if job.log_file in protectedfiles:
@@ -205,7 +205,7 @@ def run(args):
 def copy_output(job, job_scratch_dir, work_dir):
     cp_start = time.time()
     try:
-        for outfile in job.output_files.keys():
+        for outfile in list(job.output_files.keys()):  # Python 2/3
             if os.path.exists(outfile):
                 copy(os.path.join(job_scratch_dir, outfile), os.path.join(work_dir, outfile))
         os.chdir(work_dir)
@@ -220,7 +220,7 @@ def copy_output(job, job_scratch_dir, work_dir):
 def declare_output(job, work_report, worker_stageout_declaration):
     out_file_report = {}
     out_file_report[job.jobid] = []
-    for outfile in job.output_files.keys():
+    for outfile in list(job.output_files.keys()):  # Python 2/3
         logger.debug("File {} will be checked and declared for stage out".format(outfile))
         if os.path.exists(outfile):
             file_desc = {}
@@ -230,7 +230,7 @@ def declare_output(job, work_report, worker_stageout_declaration):
                 file_desc['filetype'] = 'output'
             file_desc['path'] = os.path.abspath(outfile)
             file_desc['fsize'] = os.path.getsize(outfile)
-            if 'guid' in job.output_files[outfile].keys():
+            if 'guid' in list(job.output_files[outfile].keys()):  # Python 2/3
                 file_desc['guid'] = job.output_files[outfile]['guid']
             elif work_report['outputfiles'] and work_report['outputfiles'][outfile]:
                 file_desc['guid'] = work_report['outputfiles'][outfile]['guid']

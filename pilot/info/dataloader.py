@@ -5,6 +5,7 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
 """
 Base loader class to retrive data from Ext sources (file, url)

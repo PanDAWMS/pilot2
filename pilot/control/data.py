@@ -319,19 +319,19 @@ def stage_out_auto(site, files):
 
         tmp_executable += ['--rse', f['rse']]
 
-        if 'no_register' in f.keys() and f['no_register']:
+        if 'no_register' in list(f.keys()) and f['no_register']:  # Python 2/3
             tmp_executable += ['--no-register']
 
-        if 'summary' in f.keys() and f['summary']:
+        if 'summary' in list(f.keys()) and f['summary']:  # Python 2/3
             tmp_executable += ['--summary']
 
-        if 'lifetime' in f.keys():
+        if 'lifetime' in list(f.keys()):  # Python 2/3
             tmp_executable += ['--lifetime', str(f['lifetime'])]
 
-        if 'guid' in f.keys():
+        if 'guid' in list(f.keys()):  # Python 2/3
             tmp_executable += ['--guid', f['guid']]
 
-        if 'attach' in f.keys():
+        if 'attach' in list(f.keys()):  # Python 2/3
             tmp_executable += ['--scope', f['scope'], '%s:%s' % (f['attach']['scope'], f['attach']['name']), f['file']]
         else:
             tmp_executable += ['--scope', f['scope'], f['file']]

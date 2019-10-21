@@ -27,7 +27,7 @@ class _ConfigurationSection(object):
         return getattr(self, item)
 
     def __repr__(self):
-        return str(tuple(self.__dict__.keys()))
+        return str(tuple(list(self.__dict__.keys())))  # Python 2/3
 
     def __getattr__(self, attr):
         if attr in self.__dict__:

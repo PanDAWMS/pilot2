@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
 import re
 from xml.dom import minidom
@@ -96,7 +96,7 @@ def convert_to_xml(dictionary):
 
     failed = False
 
-    single_file_tag = dictionary.keys()
+    single_file_tag = list(dictionary.keys())  # Python 2/3
     if len(single_file_tag) != 1:
         logger.warning("unexpected format - expected single entry, got %d entries" % len(single_file_tag))
         logger.warning('dictionary = %s' % str(dictionary))
@@ -109,7 +109,7 @@ def convert_to_xml(dictionary):
     if type(file_list) == list:
         for file_entry in file_list:
             if type(file_entry) == dict and len(file_entry) == 1:
-                single_entry = file_entry.keys()[0]
+                single_entry = list(file_entry.keys())[0]  # Python 2/3
 
                 # add the 'file' element
                 file_element = ElementTree.Element(single_entry)
@@ -117,7 +117,7 @@ def convert_to_xml(dictionary):
 
                 file_dictionary = file_entry[single_entry]
                 if type(file_dictionary) == dict:
-                    for dictionary_entry in file_dictionary.keys():
+                    for dictionary_entry in list(file_dictionary.keys()):  # Python 2/3
                         # convert all entries to xml elements
                         entry = ElementTree.SubElement(file_element, dictionary_entry)
                         entry.text = file_dictionary[dictionary_entry]

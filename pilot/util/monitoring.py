@@ -329,7 +329,7 @@ def utility_monitor(job):
     log = get_logger(job.jobid)
 
     # loop over all utilities
-    for utcmd in job.utilities.keys():  # E.g. utcmd = MemoryMonitor
+    for utcmd in list(job.utilities.keys()):  # E.g. utcmd = MemoryMonitor, Python 2/3
 
         # make sure the subprocess is still running
         utproc = job.utilities[utcmd][0]

@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 
 import logging
 import os
@@ -113,7 +113,7 @@ def get_copysetup(copytools, copytool_name):
     """
     copysetup = ""
 
-    for ct in copytools.keys():
+    for ct in list(copytools.keys()):  # Python 2/3
         if copytool_name == ct:
             copysetup = copytools[ct].get('setup')
             break
