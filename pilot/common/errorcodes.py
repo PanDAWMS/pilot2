@@ -135,6 +135,9 @@ class ErrorCodes:
     EMPTYOUTPUTFILE = 1350
     UNRECOGNIZEDTRFSTDERR = 1351
     STATFILEPROBLEM = 1352
+    NOSUCHPROCESS = 1353
+    GENERALCPUCALCPROBLEM = 1354
+    COREDUMP = 1355
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -248,7 +251,10 @@ class ErrorCodes:
         UNRECOGNIZEDTRFARGUMENTS: "Unrecognized transform arguments",
         EMPTYOUTPUTFILE: "Empty output file detected",
         UNRECOGNIZEDTRFSTDERR: "Unrecognized fatal error in transform stderr",
-        STATFILEPROBLEM: "Failed to stat proc file for CPU consumption calculation"
+        STATFILEPROBLEM: "Failed to stat proc file for CPU consumption calculation",
+        NOSUCHPROCESS: "CPU consumption calculation failed: No such process",
+        GENERALCPUCALCPROBLEM: "General CPU consumption calculation problem (consult Pilot log)",
+        COREDUMP: "Core dump detected"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
@@ -416,9 +422,8 @@ class ErrorCodes:
             found = re.findall(pattern, diag)
             if found:
                 diag = found[0]
-                diag = diag.replace("[PilotException(\'", '')
-                diag = diag.replace('[PilotException(\"', '')
-                diag = diag.replace('  ', ' ')
+                diag = re.sub(r'\[?PilotException\(\"?\'?', r'', diag)
+                diag = re.sub(' +', ' ', diag)
 
         try:
             if diag:
@@ -435,6 +440,10 @@ class ErrorCodes:
                         error_message = standard_message + diag[-(max_message_length - len(standard_message)):]
                     else:
                         error_message = standard_message + diag
+
+                if '::' in error_message:
+                    error_message = re.sub(':+', ':', error_message)
+
             else:
                 error_message = standard_message
         except Exception:

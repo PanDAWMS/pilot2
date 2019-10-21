@@ -17,7 +17,7 @@ from time import time
 from .common import get_copysetup, verify_catalog_checksum, resolve_common_transfer_errors  #, get_timeout
 from pilot.common.exception import StageInFailure, StageOutFailure, PilotException, ErrorCodes
 from pilot.util.container import execute
-from pilot.util.timer import timeout
+#from pilot.util.timer import timeout
 
 
 logger = logging.getLogger(__name__)
@@ -288,7 +288,7 @@ def move_all_files_out(files, nretries=1):
     return exit_code, stdout, stderr
 
 
-@timeout(seconds=10800)
+#@timeout(seconds=10800)
 def move(source, destination, dst_in=True, copysetup="", options=None):
     """
     Use lsm-get or lsm-put to transfer the file.

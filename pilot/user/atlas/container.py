@@ -242,6 +242,8 @@ def alrb_wrapper(cmd, workdir, job=None):
         if singularity_options != "":
             _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % singularity_options
         else:
+            # consider using options "-c -i -p" instead of "-C". The difference is that the latter blocks all environment
+            # variables by default and the former does not
             _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -C\";'
 
         # add the jobid to be used as an identifier for the payload running inside the container

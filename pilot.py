@@ -24,7 +24,7 @@ from pilot.info import infosys
 from pilot.util.auxiliary import pilot_version_banner, shell_exit_code
 from pilot.util.config import config
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_START_TIME, PILOT_END_TIME, get_pilot_version, \
-    SERVER_UPDATE_NOT_DONE
+    SERVER_UPDATE_NOT_DONE, PILOT_MULTIJOB_START_TIME
 from pilot.util.filehandling import get_pilot_work_dir, mkdirs, establish_logging
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
@@ -75,6 +75,9 @@ def main():
 
     # set the site name for rucio  ## is it really used?
     environ['PILOT_RUCIO_SITENAME'] = infosys.queuedata.site
+
+    # store the site name as set with a pilot option
+    environ['PILOT_SITENAME'] = infosys.queuedata.resource  #args.site  # TODO: replace with singleton
 
     # set requested workflow
     logger.info('pilot arguments: %s' % str(args))
@@ -151,6 +154,19 @@ def import_module(**kwargs):
     return 0
 
 
+def str2bool(v):
+    """ Helper function to convert string to bool """
+
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 def get_args():
     """
     Return the args from the arg parser.
@@ -205,11 +221,11 @@ def get_args():
                             help='MANDATORY: queue name (e.g., AGLT2_TEST-condor')
     arg_parser.add_argument('-r',
                             dest='resource',
-                            required=True,  # it is needed by the dispatcher (only)
+                            required=False,  # From v 2.2.0 the resource name is internally set
                             help='MANDATORY: resource name (e.g., AGLT2_TEST')
     arg_parser.add_argument('-s',
                             dest='site',
-                            required=True,  # it is needed by the dispatcher (only) -- same as '-r'? is it PandaSite or ATLAS Site?
+                            required=False,  # From v 2.2.1 the site name is internally set
                             help='MANDATORY: site name (e.g., AGLT2_TEST')
 
     # graciously stop pilot process after hard limit
@@ -280,14 +296,14 @@ def get_args():
     # Allow other country
     arg_parser.add_argument('--allow-other-country',
                             dest='allow_other_country',
-                            type=bool,
+                            type=str2bool,
                             default=False,
                             help='Is the resource allowed to be used outside the privileged group?')
 
     # Allow same user
     arg_parser.add_argument('--allow-same-user',
                             dest='allow_same_user',
-                            type=bool,
+                            type=str2bool,
                             default=True,
                             help='Multi-jobs will only come from same taskID (and thus same user)')
 
@@ -393,9 +409,6 @@ def set_environment_variables(args, mainworkdir):
     # pilot source directory (e.g. /cluster/home/usatlas1/gram_scratch_hHq4Ns/condorg_oqmHdWxz)
     environ['PILOT_SOURCE_DIR'] = args.sourcedir  # TODO: replace with singleton
 
-    # store the site name as set with a pilot option
-    environ['PILOT_SITENAME'] = args.site  # TODO: replace with singleton
-
     # set the pilot user (e.g. ATLAS)
     environ['PILOT_USER'] = args.pilot_user  # TODO: replace with singleton
 
@@ -484,6 +497,7 @@ if __name__ == '__main__':
 
     # store T0 time stamp
     add_to_pilot_timing('0', PILOT_START_TIME, time.time(), args)
+    add_to_pilot_timing('1', PILOT_MULTIJOB_START_TIME, time.time(), args)
 
     # if requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
     args.sourcedir = getcwd()

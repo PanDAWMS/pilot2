@@ -64,8 +64,10 @@ def job_monitor_tasks(job, mt, args):
                 exit_code = errors.RESOURCEUNAVAILABLE
             elif "No such file or directory" in diagnostics:
                 exit_code = errors.STATFILEPROBLEM
+            elif "No such process" in diagnostics:
+                exit_code = errors.NOSUCHPROCESS
             else:
-                exit_code = errors.UNKNOWNEXCEPTION
+                exit_code = errors.GENERALCPUCALCPROBLEM
             return exit_code, diagnostics
         else:
             job.cpuconsumptiontime = int(round(cpuconsumptiontime))

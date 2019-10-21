@@ -22,7 +22,7 @@ from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 from pilot.util.constants import PILOT_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_PRE_SETUP, \
     PILOT_POST_SETUP, PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, PILOT_PRE_STAGEOUT,\
-    PILOT_POST_STAGEOUT, PILOT_PRE_FINAL_UPDATE, PILOT_POST_FINAL_UPDATE, PILOT_END_TIME
+    PILOT_POST_STAGEOUT, PILOT_PRE_FINAL_UPDATE, PILOT_POST_FINAL_UPDATE, PILOT_END_TIME, PILOT_MULTIJOB_START_TIME
 from pilot.util.filehandling import read_json, write_json
 from pilot.util.mpi import get_ranks_info
 
@@ -216,7 +216,7 @@ def get_time_measurement(timing_constant, time_measurement_dictionary, timing_di
     """
     Return a requested time measurement from the time measurement dictionary, read from the pilot timing file.
 
-    :param timing_constant: timing constant (e.g. PILOT_START_TIME)
+    :param timing_constant: timing constant (e.g. PILOT_MULTIJOB_START_TIME)
     :param time_measurement_dictionary: time measurement dictionary, extracted from pilot timing dictionary.
     :param timing_dictionary: full timing dictionary from pilot timing file.
     :param job_id: PanDA job id (string).
@@ -225,8 +225,9 @@ def get_time_measurement(timing_constant, time_measurement_dictionary, timing_di
 
     time_measurement = time_measurement_dictionary.get(timing_constant, None)
     if not time_measurement:
-        # try to get the measurement for the PILOT_START_TIME dictionary
-        time_measurement_dictionary_0 = timing_dictionary.get('0', None)
+        # try to get the measurement for the PILOT_MULTIJOB_START_TIME dictionary
+        i = '0' if timing_constant == PILOT_START_TIME else '1'
+        time_measurement_dictionary_0 = timing_dictionary.get(i, None)
         if time_measurement_dictionary_0:
             time_measurement = time_measurement_dictionary_0.get(timing_constant, None)
         else:
@@ -246,6 +247,17 @@ def get_time_since_start(args):
     """
 
     return get_time_since('0', PILOT_START_TIME, args)
+
+
+def get_time_since_multijob_start(args):
+    """
+    Return the amount of time that has passed since the last multi job was launched.
+
+    :param args: pilot arguments.
+    :return: time in seconds (int).
+    """
+
+    return get_time_since('1', PILOT_MULTIJOB_START_TIME, args)
 
 
 def get_time_since(job_id, timing_constant, args):

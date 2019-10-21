@@ -13,8 +13,8 @@ from os import environ
 # Pilot version
 RELEASE = '2'   # released number should be fixed at 2 for Pilot 2
 VERSION = '2'   # version number is '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
-REVISION = '0'  # revision number should be reset to '0' for every new version release, increased for small updates
-BUILD = '25'   # build number should be reset to '1' for every new development cycle
+REVISION = '1'  # revision number should be reset to '0' for every new version release, increased for small updates
+BUILD = '6'   # build number should be reset to '1' for every new development cycle
 
 SUCCESS = 0
 FAILURE = 1
@@ -31,6 +31,7 @@ UTILITY_WITH_STAGEIN = 4
 # Timing constants that allow for additional constants to be defined for values before the pilot is started, ie for
 # wrapper timing purposes.
 PILOT_START_TIME = 'PILOT_START_TIME'
+PILOT_MULTIJOB_START_TIME = 'PILOT_MULTIJOB_START_TIME'
 PILOT_PRE_GETJOB = 'PILOT_PRE_GETJOB'
 PILOT_POST_GETJOB = 'PILOT_POST_GETJOB'  # note: PILOT_POST_GETJOB corresponds to START_TIME in Pilot 1
 PILOT_PRE_SETUP = 'PILOT_PRE_SETUP'
