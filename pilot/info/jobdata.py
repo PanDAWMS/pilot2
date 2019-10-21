@@ -631,9 +631,9 @@ class JobData(BaseData):
                     logger.warning('failed to convert %s to long: %s' % (workdir_size, e))
                     return
         try:  # Python 2
-            total_size = 0L  # B
-        except Exception:  # Python 3
-            total_size = 0  # B
+            total_size = long(0)  # B, note do not use 0L as it will generate a syntax error in Python 3
+        except Exception:
+            total_size = 0  # B, Python 3
 
         if os.path.exists(self.workdir):
             # Find out which input and output files have been transferred and add their sizes to the total size
@@ -669,7 +669,7 @@ class JobData(BaseData):
         """
 
         try:
-            maxdirsize = 0L  # Python 2
+            maxdirsize = long(0)  # Python 2, note do not use 0L as it will generate a syntax error in Python 3
         except Exception:
             maxdirsize = 0  # Python 3
 
