@@ -16,11 +16,11 @@ from glob import glob
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import get_logger
-from pilot.util.config import config, human2bytes
+from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.filehandling import get_directory_size, remove_files, get_local_file_size
 from pilot.util.loopingjob import looping_job
-from pilot.util.math import convert_mb_to_b
+from pilot.util.math import convert_mb_to_b, human2bytes
 from pilot.util.parameters import convert_to_int, get_maximum_input_sizes
 from pilot.util.processes import get_current_cpu_consumption_time, kill_processes, get_number_of_child_processes
 from pilot.util.workernode import get_local_disk_space, check_hz
