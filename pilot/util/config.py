@@ -8,6 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
 import os
+import re
 
 try:
     import ConfigParser
@@ -39,15 +40,32 @@ def read(config_file):
     Read the settings from file and return a dot notation object
     """
 
-    _config = ConfigParser.ConfigParser()
-    _config.read(config_file)
+    config = ConfigParser.ConfigParser()
+    config.read(config_file)
 
     obj = _ConfigurationSection()
 
-    for section in _config.sections():
+    for section in config.sections():
         
         settings = _ConfigurationSection()
-        for key, value in _config.items(section):
+        for key, value in config.items(section):
+            # handle environmental variables
+            if value.startswith('$'):
+                tmpmatch = re.search('\$\{*([^\}]+)\}*', value)
+                envname = tmpmatch.group(1)
+                if envname not in os.environ:
+                    raise KeyError('{0} in the cfg is an undefined environment variable.'.format(envname))
+                value = os.environ.get(envname)
+            # convert to proper types
+            if value == 'True' or value == 'true':
+                value = True
+            elif value == 'False' or value == 'false':
+                value = False
+            elif value == 'None' or value == 'none':
+                value = None
+            elif re.match('^\d+$', value):
+                value = int(value)
+            print(type(value), value)
             setattr(settings, key, value)
 
         setattr(obj, section, settings)
