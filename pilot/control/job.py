@@ -22,6 +22,7 @@ except Exception:
     import queue  # python 3
 
 from json import dumps
+from re import findall
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException  #, JobAlreadyRunning
@@ -31,7 +32,7 @@ from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, ge
     set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine
 from pilot.util.config import config
 from pilot.util.common import should_abort
-from pilot.util.constants import PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
+from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
 from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json, establish_logging, write_file
@@ -431,7 +432,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     data = {'jobId': job.jobid,
             'state': state,
             'timestamp': time_stamp(),
-            'siteName': args.site,
+            'siteName': os.environ.get('PILOT_SITENAME'),  # args.site,
             'node': get_node_name()}
 
     data['attemptNr'] = job.attemptnr
@@ -962,12 +963,16 @@ def getjob_server_command(url, port):
     """
 
     if url != "":
-        url = url + ':%s' % port  # port is always set
+        port_pattern = '.:([0-9]+)'
+        if not findall(port_pattern, url):
+            url = url + ':%s' % port
+        else:
+            logger.debug('URL already contains port: %s' % url)
     else:
         url = config.Pilot.pandaserver
     if url == "":
         logger.fatal('PanDA server url not set (either as pilot option or in config file)')
-    elif not url.startswith("https://"):
+    elif not url.startswith("http"):
         url = 'https://' + url
         logger.warning('detected missing protocol in server url (added)')
 
@@ -1366,6 +1371,7 @@ def retrieve(queues, traces, args):
                         establish_logging(args)
                         pilot_version_banner()
                         getjob_requests = 0
+                        add_to_pilot_timing('1', PILOT_MULTIJOB_START_TIME, time.time(), args)
                         break
                     time.sleep(0.5)
 

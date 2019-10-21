@@ -25,7 +25,7 @@ from pilot.control.job import send_state
 from pilot.util.auxiliary import get_logger, set_pilot_state
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
-from pilot.util.filehandling import read_file
+from pilot.util.filehandling import read_file, remove
 from pilot.util.queuehandling import put_in_queue
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
@@ -311,7 +311,12 @@ def perform_initial_payload_error_analysis(job, exit_code):
             if job.piloterrorcodes:
                 log.warning('error code(s) already set: %s' % str(job.piloterrorcodes))
             else:
-                log.warning('initial error analysis did not resolve the issue')
+                if os.path.exists(os.path.join(job.workdir, "core")):
+                    log.warning("detected a core dump file (will be removed)")
+                    remove(os.path.join(job.workdir, "core"))
+                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.COREDUMP)
+                else:
+                    log.warning('initial error analysis did not resolve the issue')
     else:
         log.info('main payload execution returned zero exit code, but will check it more carefully')
 

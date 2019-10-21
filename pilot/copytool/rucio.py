@@ -109,7 +109,7 @@ def copy_in(files, **kwargs):
                                 stateReason=error_details.get('error'), timeEnd=time())
             if not ignore_errors:
                 trace_report.send()
-                msg = ' %s:%s, %s' % (fspec.scope, fspec.lfn, error_details.get('error'))
+                msg = ' %s:%s from %s, %s' % (fspec.scope, fspec.lfn, fspec.ddmendpoint, error_details.get('error'))
                 raise PilotException(msg, code=error_details.get('rcode'), state=error_details.get('state'))
 
         # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
@@ -185,7 +185,7 @@ def copy_out(files, **kwargs):
                                 stateReason=error_details.get('error'), timeEnd=time())
             if not ignore_errors:
                 trace_report.send()
-                msg = ' %s:%s, %s' % (fspec.scope, fspec.lfn, error_details.get('error'))
+                msg = ' %s:%s to %s, %s' % (fspec.scope, fspec.lfn, fspec.ddmendpoint, error_details.get('error'))
                 raise PilotException(msg, code=error_details.get('rcode'), state=error_details.get('state'))
 
         if summary:  # resolve final pfn (turl) from the summary JSON
