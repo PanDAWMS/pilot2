@@ -10,14 +10,20 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import collections
-import commands
+try:
+    import subprocess  # Python 3
+except Exception:
+    import commands  # Python 2
 import json
 import os
 import platform
 import ssl
 import sys
-import urllib
-import urllib2
+try:
+    import urllib.request, urllib.parse, urllib.error  # Python 3
+except Exception:
+    import urllib  # Python 2
+    import urllib2  # Python 2
 import pipes
 
 from .filehandling import write_file
@@ -169,16 +175,22 @@ def request(url, data=None, plain=False, secure=True):  # noqa: C901
 
     strdata = ""
     for key in data:
-        strdata += 'data="%s"\n' % urllib.urlencode({key: data[key]})
+        try:
+            strdata += 'data="%s"\n' % urllib.parse.urlencode({key: data[key]})  # Python 3
+        except Exception:
+            strdata += 'data="%s"\n' % urllib.urlencode({key: data[key]})  # Python 2
     jobid = ''
-    if 'jobId' in data.keys():
+    if 'jobId' in list(data.keys()):  # Python 2/3
         jobid = '_%s' % data['jobId']
     # write data to temporary config file
     tmpname = '%s/curl_%s%s.config' % (os.getenv('PILOT_HOME'), os.path.basename(url), jobid)
     s = write_file(tmpname, strdata)
     if not s:
         logger.warning('failed to create curl config file (will attempt to urlencode data directly)')
-        dat = pipes.quote(url + '?' + urllib.urlencode(data) if data else '')
+        try:
+            dat = pipes.quote(url + '?' + urllib.parse.urlencode(data) if data else '')  # Python 3
+        except Exception:
+            dat = pipes.quote(url + '?' + urllib.urlencode(data) if data else '')  # Python 2
     else:
         dat = '--config %s %s' % (tmpname, url)
 
@@ -193,7 +205,10 @@ def request(url, data=None, plain=False, secure=True):  # noqa: C901
                                dat)
         logger.info('request: %s' % req)
         try:
-            status, output = commands.getstatusoutput(req)
+            try:
+                status, output = subprocess.getstatusoutput(req)  # Python 3
+            except Exception:
+                status, output = commands.getstatusoutput(req)  # Python 2
         except Exception as e:
             logger.warning('exception: %s' % e)
         if status != 0:
@@ -212,19 +227,33 @@ def request(url, data=None, plain=False, secure=True):  # noqa: C901
                 return ret
         # return output if plain else json.loads(output)
     else:
-        req = urllib2.Request(url, urllib.urlencode(data))
+        try:
+            req = urllib.request.Request(url, urllib.parse.urlencode(data))  # Python 3
+        except Exception:
+            req = urllib2.Request(url, urllib.urlencode(data))  # Python 2
         if not plain:
             req.add_header('Accept', 'application/json')
         if secure:
             req.add_header('User-Agent', _ctx.user_agent)
         context = _ctx.ssl_context if secure else None
-        try:
-            output = urllib2.urlopen(req, context=context)
-        except urllib2.HTTPError as e:
-            logger.warn('server error (%s): %s' % (e.code, e.read()))
-            return None
-        except urllib2.URLError as e:
-            logger.warn('connection error: %s' % e.reason)
-            return None
+
+        try:  # Python 3
+            try:
+                output = urllib.request.urlopen(req, context=context)
+            except urllib.error.HTTPError as e:
+                logger.warn('server error (%s): %s' % (e.code, e.read()))
+                return None
+            except urllib.error.URLError as e:
+                logger.warn('connection error: %s' % e.reason)
+                return None
+        except Exception:  # Python 2
+            try:
+                output = urllib2.urlopen(req, context=context)
+            except urllib2.HTTPError as e:
+                logger.warn('server error (%s): %s' % (e.code, e.read()))
+                return None
+            except urllib2.URLError as e:
+                logger.warn('connection error: %s' % e.reason)
+                return None
 
         return output.read() if plain else json.load(output)
