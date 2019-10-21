@@ -66,7 +66,6 @@ def read(config_file):
                 value = None
             elif re.match('^\d+$', value):
                 value = int(value)
-            print(type(value), value)
             setattr(settings, key, value)
 
         setattr(obj, section, settings)
