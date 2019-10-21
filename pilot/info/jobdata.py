@@ -276,7 +276,7 @@ class JobData(BaseData):
                 ftype = 'log'
                 idat['guid'] = data.get('logGUID')
                 ret = ret_log
-            elif lfn.endswith('.lib.tgz'):  # build job case, generate a guid for the lib file
+            elif lfn.endswith(b'.lib.tgz'):  # build job case, generate a guid for the lib file, Python 2/3
                 idat['guid'] = get_guid()
 
             finfo = FileSpec(filetype=ftype, **idat)

@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 
 from pilot.util.container import execute
 
@@ -37,7 +37,7 @@ def get_distinguished_name():
     if exit_code == 0:
         dn = stdout
         logger.info('DN = %s' % dn)
-        cn = "/CN=proxy"
+        cn = b"/CN=proxy"  # Python 2/3
         if not dn.endswith(cn):
             logger.info("DN does not end with %s (will be added)" % cn)
             dn += cn

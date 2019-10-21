@@ -33,7 +33,7 @@ def create_output_list(files, init_dir, ddmconf):
 
     for fspec in files:
         arcturl = fspec.turl
-        if arcturl.startswith('s3://'):
+        if arcturl.startswith(b's3://'):  # Python 2/3
             # Use Rucio proxy to upload to OS
             arcturl = re.sub(r'^s3', 's3+rucio', arcturl)
             # Add failureallowed option so failed upload does not fail job

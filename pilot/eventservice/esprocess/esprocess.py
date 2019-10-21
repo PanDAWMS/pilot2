@@ -5,7 +5,7 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
 import json
 import logging
@@ -382,7 +382,7 @@ class ESProcess(threading.Thread):
 
         logger.debug('parsing message: %s' % message)
         try:
-            if message.startswith("/"):
+            if message.startswith(b"/"):  # Python 2/3
                 parts = message.split(",")
                 ret = {'output': parts[0]}
                 parts = parts[1:]
@@ -392,7 +392,7 @@ class ESProcess(threading.Thread):
                     ret[name] = value
                 ret['status'] = 'finished'
                 return ret
-            elif message.startswith('ERR'):
+            elif message.startswith(b'ERR'):  # Python 2/3
                 if "ERR_ATHENAMP_PARSE" in message:
                     pattern = re.compile(r"(ERR\_[A-Z\_]+)\ (.+)\:\ ?(.+)")
                     found = re.findall(pattern, message)

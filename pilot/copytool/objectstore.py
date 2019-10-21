@@ -7,6 +7,7 @@
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
 import os
 import json
@@ -79,7 +80,7 @@ def resolve_surl(fspec, protocol, ddmconf, **kwargs):
 #    protocols_allow = []
 #    for schema in allowed_schemas:
 #        for protocol in protocols:
-#            if schema is None or protocol.get('endpoint', '').startswith("%s://" % schema):
+#            if schema is None or protocol.get('endpoint', '').startswith(b"%s://" % schema):  # Python 2/3
 #                protocols_allow.append(protocol)
 #    if not protocols_allow:
 #        err = "No available allowed protocols for file(lfn: %s, ddmendpoint: %s) with activity(%s)" % (fspec.lfn, fspec.ddmendpoint, activity)

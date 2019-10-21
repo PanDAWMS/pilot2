@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
 import os
 import time
@@ -348,7 +348,7 @@ def kill_orphans():
             elif ppid == '1':
                 count += 1
                 logger.info("found orphan process: pid=%s, ppid=%s, args='%s'" % (pid, ppid, args))
-                if args.endswith('bash'):
+                if args.endswith(b'bash'):  # Python 2/3
                     logger.info("will not kill bash process")
                 else:
                     try:

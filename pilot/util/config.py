@@ -51,7 +51,7 @@ def read(config_file):
         settings = _ConfigurationSection()
         for key, value in config.items(section):
             # handle environmental variables
-            if value.startswith('$'):
+            if value.startswith(b'$'):  # Python 2/3
                 tmpmatch = re.search('\$\{*([^\}]+)\}*', value)
                 envname = tmpmatch.group(1)
                 if envname not in os.environ:
