@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
 """
 Standalone implementation of time-out check on function call.
@@ -16,7 +17,10 @@ Timer stops execution of wrapped function if it reaches the limit of provided ti
 :date: March 2018
 """
 
-from __future__ import print_function
+try:
+    from __future__ import print_function  # Python 2
+except Exception:
+    pass
 
 import os
 import signal
@@ -26,7 +30,10 @@ import traceback
 import threading
 import multiprocessing
 
-from Queue import Empty
+try:
+    from queue import Empty  # Python 3
+except Exception:
+    from Queue import Empty  # Python 2
 from functools import wraps
 
 
@@ -91,7 +98,10 @@ class TimedThread(object):
         if ret[0]:
             return ret[1]
         else:
-            raise ret[1][0], ret[1][1], ret[1][2]
+            try:
+                raise ret[1][0](ret[1][1]).with_traceback(ret[1][2])
+            except Exception:
+                raise ret[1][0], ret[1][1], ret[1][2]
 
 
 class TimedProcess(object):
