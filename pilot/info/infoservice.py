@@ -158,8 +158,12 @@ class InfoService(object):
             :return: dict of DDMEndpoint settings by DDMEndpoint name as a key
         """
 
-        if isinstance(ddmendpoints, basestring):
-            ddmendpoints = [ddmendpoints]
+        try:
+            if isinstance(ddmendpoints, basestring):  # Python 2
+                ddmendpoints = [ddmendpoints]
+        except Exception:
+            if isinstance(ddmendpoints, str):  # Python 3
+                ddmendpoints = [ddmendpoints]
 
         cache = self.storages_info
 
