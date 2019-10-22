@@ -9,7 +9,7 @@
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 
-from __future__ import print_function
+from __future__ import print_function  # Python 2 (2to3 complains about this)
 
 import argparse
 import logging
@@ -22,7 +22,6 @@ from shutil import rmtree
 from pilot.common.exception import PilotException
 from pilot.info import infosys
 from pilot.util.auxiliary import pilot_version_banner, shell_exit_code
-from pilot.util.config import config
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_START_TIME, PILOT_END_TIME, get_pilot_version, \
     SERVER_UPDATE_NOT_DONE, PILOT_MULTIJOB_START_TIME
 from pilot.util.filehandling import get_pilot_work_dir, mkdirs, establish_logging
@@ -140,7 +139,11 @@ def import_module(**kwargs):
 
     args = Args()
     parser = argparse.ArgumentParser()
-    for key, value in argument_dictionary.iteritems():
+    try:
+        _items = argument_dictionary.items()  # Python 3
+    except Exception:
+        _items = argument_dictionary.iteritems()  # Python 2
+    for key, value in _items:
         print(key, value)
         parser.add_argument(key)
         parser.parse_args(args=[key, value], namespace=args)  # convert back int and bool strings to int and bool??
