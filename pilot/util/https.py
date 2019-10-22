@@ -10,10 +10,11 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import collections
+import subprocess  # Python 2/3
 try:
-    import subprocess  # Python 3
-except Exception:
     import commands  # Python 2
+except Exception:
+    pass
 import json
 import os
 import platform
