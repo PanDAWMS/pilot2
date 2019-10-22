@@ -117,8 +117,8 @@ def _validate_job(job):
     """
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
-    container = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [user], -1)
+    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+    container = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [user], 0)  # Python 2/3
 
     # should a container be used for the payload?
     try:
@@ -574,7 +574,7 @@ def add_timing_and_extracts(data, job, state, args):
 
     # add log extracts (for failed/holding jobs or for jobs with outbound connections)
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
+    user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
     extracts = user.get_log_extracts(job, state)
     if extracts != "":
         logger.warning('pilot log extracts:\n%s' % extracts)
@@ -593,7 +593,7 @@ def add_memory_info(data, workdir, name=""):
     """
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user], -1)
+    utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
     try:
         #for key in job.utilities
         utility_node = utilities.get_memory_monitor_info(workdir, name=name)
@@ -895,7 +895,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # should the proxy be verified?
     if verify_proxy:
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-        userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
+        userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
         # is the proxy still valid?
         exit_code, diagnostics = userproxy.verify_proxy()

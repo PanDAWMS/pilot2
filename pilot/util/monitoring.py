@@ -152,7 +152,7 @@ def verify_memory_usage(current_time, mt, job):
     """
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    memory = __import__('pilot.user.%s.memory' % pilot_user, globals(), locals(), [pilot_user], -1)
+    memory = __import__('pilot.user.%s.memory' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
     if not memory.allow_memory_usage_verifications():
         return 0, ""
@@ -187,7 +187,7 @@ def verify_user_proxy(current_time, mt):
     """
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
+    userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
     # is it time to verify the proxy?
     proxy_verification_time = convert_to_int(config.Pilot.proxy_verification_time, default=600)
@@ -324,7 +324,7 @@ def utility_monitor(job):
     """
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    usercommon = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+    usercommon = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
     log = get_logger(job.jobid)
 

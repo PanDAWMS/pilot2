@@ -70,11 +70,11 @@ def run(args):
             return traces
 
         # get the resource reference
-        resource = __import__('pilot.resource.%s' % args.hpc_resource, globals(), locals(), [args.hpc_resource], -1)
+        resource = __import__('pilot.resource.%s' % args.hpc_resource, globals(), locals(), [args.hpc_resource], 0)  # Python 2/3
 
         # get the user reference
         user = __import__('pilot.user.%s.common' % args.pilot_user.lower(), globals(), locals(),
-                          [args.pilot_user.lower()], -1)
+                          [args.pilot_user.lower()], 0)  # Python 2/3
 
         # get job (and rank)
         add_to_pilot_timing('0', PILOT_PRE_GETJOB, time.time(), args)

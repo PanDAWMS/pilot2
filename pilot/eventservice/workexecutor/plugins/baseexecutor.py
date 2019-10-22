@@ -100,7 +100,7 @@ class BaseExecutor(threading.Thread, PluginFactory):
 
             # get the payload command from the user specific code
             pilot_user = os.environ.get('PILOT_USER', 'atlas').lower()
-            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
             cmd = user.get_payload_command(job)
             logger.info("payload execution command: %s" % cmd)
 

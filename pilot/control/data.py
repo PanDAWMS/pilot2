@@ -418,7 +418,7 @@ def copytool_in(queues, traces, args):
                 # now create input file metadata if required by the payload
                 try:
                     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-                    user = __import__('pilot.user.%s.metadata' % pilot_user, globals(), locals(), [pilot_user], -1)
+                    user = __import__('pilot.user.%s.metadata' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
                     _dir = '/srv' if job.usecontainer else job.workdir
                     file_dictionary = get_input_file_dictionary(job.indata, _dir)
                     #file_dictionary = get_input_file_dictionary(job.indata, job.workdir)
@@ -575,7 +575,7 @@ def create_log(job, logfile, tarball_name):
 
     # perform special cleanup (user specific) prior to log file creation
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
     user.remove_redundant_files(job.workdir)
 
     input_files = [e.lfn for e in job.indata]

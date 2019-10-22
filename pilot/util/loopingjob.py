@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import whoami, get_logger, set_pilot_state
@@ -89,7 +89,7 @@ def get_time_for_last_touch(job, mt, looping_limit):
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     loopingjob_definitions = __import__('pilot.user.%s.loopingjob_definitions' % pilot_user,
-                                        globals(), locals(), [pilot_user], -1)
+                                        globals(), locals(), [pilot_user], 0)  # Python 2/3
 
     # locate all files that were modified the last N minutes
     cmd = "find %s -mmin -%d" % (job.workdir, int(looping_limit / 60))

@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 
 from __future__ import print_function
 
@@ -134,7 +134,8 @@ def run(args):
 
     # initial sanity check defined by pilot user
     try:
-        user = __import__('pilot.user.%s.common' % args.pilot_user.lower(), globals(), locals(), [args.pilot_user.lower()], -1)
+        user = __import__('pilot.user.%s.common' % args.pilot_user.lower(), globals(), locals(),
+                          [args.pilot_user.lower()], 0)  # Python 2/3
         exit_code = user.sanity_check()
     except Exception as e:
         logger.info('skipping sanity check since: %s' % e)

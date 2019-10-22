@@ -387,7 +387,7 @@ class StagingClient(object):
 
                 module = self.copytool_modules[name]['module_name']
                 self.logger.info('trying to use copytool=%s for activity=%s' % (name, activity))
-                copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], -1)
+                copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], 0)  # Python 2/3
                 self.trace_report.update(protocol=name)
 
             except PilotException as e:
