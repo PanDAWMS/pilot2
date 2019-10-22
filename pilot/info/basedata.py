@@ -5,6 +5,7 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
 """
 The implementation of base data structure to host various settings collected
@@ -67,7 +68,11 @@ class BaseData(object):
                           None: self.clean_string,  # default validator
                           }
 
-        for ktype, knames in self._keys.iteritems():
+        try:
+            _items = self._keys.items()  # Python 3
+        except Exception:
+            _items = self._keys.iteritems()  # Python 2
+        for ktype, knames in _items:
 
             for kname in knames:
                 raw, value = None, None
