@@ -680,7 +680,7 @@ def validate(queues, traces, args):
             job_dir = os.path.join(args.mainworkdir, 'PanDA_Pilot-%s' % job.jobid)
             try:
                 os.mkdir(job_dir)
-                os.chmod(job_dir, 0770)
+                os.chmod(job_dir, 0o770)
                 job.workdir = job_dir
             except Exception as e:
                 log.debug('cannot create working directory: %s' % str(e))
