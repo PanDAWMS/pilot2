@@ -122,7 +122,14 @@ def copy_in(files, **kwargs):
                 trace_report.send()
                 raise PilotException(diagnostics, code=fspec.status_code, state=state)
         else:
-            logger.warning('file does not exist: %s (cannot verify catalog checksum)' % destination)
+            diagnostics = 'file does not exist: %s (cannot verify catalog checksum)' % destination
+            logger.warning(diagnostics)
+            state = 'STAGEIN_ATTEMPT_FAILED'
+            fspec.status_code = ErrorCodes.STAGEINFAILED
+            trace_report.update(clientState=state, stateReason=diagnostics,
+                                timeEnd=time())
+            trace_report.send()
+            raise PilotException(diagnostics, code=fspec.status_code, state=state)
 
         if not fspec.status_code:
             fspec.status_code = 0
