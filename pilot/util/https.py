@@ -212,9 +212,11 @@ def request(url, data=None, plain=False, secure=True):  # noqa: C901
                 status, output = commands.getstatusoutput(req)  # Python 2
         except Exception as e:
             logger.warning('exception: %s' % e)
-        if status != 0:
-            logger.warn('request failed (%s): %s' % (status, output))
             return None
+        else:
+            if status != 0:
+                logger.warn('request failed (%s): %s' % (status, output))
+                return None
 
         if plain:
             return output
