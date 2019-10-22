@@ -126,8 +126,13 @@ class BaseData(object):
         if isinstance(raw, ktype):
             return raw
 
-        if isinstance(raw, basestring):
-            raw = raw.strip()
+        try:
+            if isinstance(raw, basestring):  # Python 2
+                raw = raw.strip()
+        except Exception:
+            if isinstance(raw, str):  # Python 3
+                raw = raw.strip()
+
         try:
             return ktype(raw)
         except Exception:
@@ -146,10 +151,15 @@ class BaseData(object):
         if isinstance(raw, ktype):
             return raw
 
-        if isinstance(raw, basestring):
-            raw = raw.strip()
-        elif raw is None:
+        if raw is None:
             return defval
+        else:
+            try:
+                if isinstance(raw, basestring):  # Python 2
+                    raw = raw.strip()
+            except Exception:
+                if isinstance(raw, str):  # Python 3
+                    raw = raw.strip()
         try:
             return ktype(raw)
         except Exception:
@@ -208,8 +218,13 @@ class BaseData(object):
 
         elif raw is None:
             return defval
-        elif isinstance(raw, basestring):
-            raw = raw.split(',')
+        else:
+            try:
+                if isinstance(raw, basestring):  # Python 2
+                    raw = raw.split(',')
+            except Exception:
+                if isinstance(raw, str):  # Python 3
+                    raw = raw.split(',')
         try:
             return ktype(raw)
         except Exception:

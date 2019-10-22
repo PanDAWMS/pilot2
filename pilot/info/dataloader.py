@@ -108,11 +108,9 @@ class DataLoader(object):
                             content = urllib.request.urlopen(url, timeout=20).read()  # Python 3
                         except Exception:
                             content = urllib2.urlopen(url, timeout=20).read()  # Python 2
-                        logger.debug('loaded')
                     if fname:  # save to cache
                         with open(fname, "w+") as f:
-                            logger.debug('opened')
-                            f.write(content)
+                            f.write(str(content))  # Python 3, added str (write() argument must be str, not bytes; JSON OK)
                             logger.info('saved data from "%s" resource into file=%s, length=%.1fKb' %
                                         (url, fname, len(content) / 1024.))
                     return content
