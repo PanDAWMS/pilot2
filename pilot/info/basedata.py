@@ -78,8 +78,13 @@ class BaseData(object):
                 raw, value = None, None
 
                 ext_names = kmap.get(kname) or kname
-                if isinstance(ext_names, basestring):
-                    ext_names = [ext_names]
+                try:
+                    if isinstance(ext_names, basestring):  # Python 2
+                        ext_names = [ext_names]
+                except Exception:
+                    if isinstance(ext_names, str):  # Python 3
+                        ext_names = [ext_names]
+
                 for name in ext_names:
                     raw = data.get(name)
                     if raw is not None:
