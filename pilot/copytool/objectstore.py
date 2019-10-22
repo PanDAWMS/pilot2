@@ -80,7 +80,7 @@ def resolve_surl(fspec, protocol, ddmconf, **kwargs):
 #    protocols_allow = []
 #    for schema in allowed_schemas:
 #        for protocol in protocols:
-#            if schema is None or protocol.get('endpoint', '').startswith(b"%s://" % schema):  # Python 2/3
+#            if schema is None or protocol.get('endpoint', '').startswith("%s://" % schema):
 #                protocols_allow.append(protocol)
 #    if not protocols_allow:
 #        err = "No available allowed protocols for file(lfn: %s, ddmendpoint: %s) with activity(%s)" % (fspec.lfn, fspec.ddmendpoint, activity)

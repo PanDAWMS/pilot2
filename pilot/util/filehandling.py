@@ -168,7 +168,7 @@ def get_files(pattern="*.log"):
     exit_code, stdout, stderr = execute(cmd)
     if stdout:
         # remove last \n if present
-        if stdout.endswith(b'\n'):  # Python 2/3
+        if stdout.endswith('\n'):
             stdout = stdout[:-1]
         files = stdout.split('\n')
 
@@ -688,7 +688,7 @@ def _define_tabledict_keys(header, fields, separator):
             # first line defines the header, whose elements will be used as dictionary keys
             if key == '':
                 continue
-            if key.endswith(b'\n'):  # Python 2/3
+            if key.endswith('\n'):
                 key = key[:-1]
             tabledict[key] = []
             keylist.append(key)
@@ -698,7 +698,7 @@ def _define_tabledict_keys(header, fields, separator):
         for key in keys:
             if key == '':
                 continue
-            if key.endswith(b'\n'):  # Python 2/3
+            if key.endswith('\n'):
                 key = key[:-1]
             tabledict[key] = []
             keylist.append(key)

@@ -139,7 +139,7 @@ def get_schedconfig_queuedata(queue):
         return False
     else:
         # add the queuename to the URL
-        if not url.endswith(b'/'):  # Python 2/3
+        if not url.endswith('/'):
             url += '/'
         url += queue + '.all.json'
     queuedata = retrieve_json(url)

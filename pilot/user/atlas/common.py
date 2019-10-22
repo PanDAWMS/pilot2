@@ -134,7 +134,7 @@ def get_payload_command(job):
         cmd = get_generic_payload_command(cmd, job, prepareasetup, userjob)
 
     # add any missing trailing ;
-    if not cmd.endswith(b';'):  # Python 2/3
+    if not cmd.endswith(';'):
         cmd += '; '
     log.debug('post cmd: %s' % cmd)
 

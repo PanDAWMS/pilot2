@@ -118,7 +118,7 @@ def get_memory_monitor_setup(pid, pgrp, jobid, workdir, command, setup="", use_c
     if not setup:
         setup = get_asetup() + " Athena," + release + " --platform " + platform
     interval = 60
-    if not setup.endswith(b';'):  # Python 2/3
+    if not setup.endswith(';'):
         setup += ';'
     # Decide which version of the memory monitor should be used
     cmd = "%swhich prmon" % setup
@@ -742,7 +742,7 @@ def get_memory_values(workdir, name=""):
         logger.info("using path: %s (trf name=%s)" % (path, name))
 
         # Does a JSON summary file exist? If so, there's no need to calculate maximums and averages in the pilot
-        if path.lower().endswith(b'json'):  # Python 2/3
+        if path.lower().endswith('json'):
             # Read the dictionary from the JSON file
             summary_dictionary = read_json(path)
         else:

@@ -37,7 +37,7 @@ def get_distinguished_name():
     if exit_code == 0:
         dn = stdout
         logger.info('DN = %s' % dn)
-        cn = b"/CN=proxy"  # Python 2/3
+        cn = "/CN=proxy"
         if not dn.endswith(cn):
             logger.info("DN does not end with %s (will be added)" % cn)
             dn += cn

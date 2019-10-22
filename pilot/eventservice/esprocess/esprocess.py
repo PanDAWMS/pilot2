@@ -382,7 +382,7 @@ class ESProcess(threading.Thread):
 
         logger.debug('parsing message: %s' % message)
         try:
-            if message.startswith(b"/"):  # Python 2/3
+            if message.startswith("/"):
                 parts = message.split(",")
                 ret = {'output': parts[0]}
                 parts = parts[1:]
@@ -392,7 +392,7 @@ class ESProcess(threading.Thread):
                     ret[name] = value
                 ret['status'] = 'finished'
                 return ret
-            elif message.startswith(b'ERR'):  # Python 2/3
+            elif message.startswith('ERR'):
                 if "ERR_ATHENAMP_PARSE" in message:
                     pattern = re.compile(r"(ERR\_[A-Z\_]+)\ (.+)\:\ ?(.+)")
                     found = re.findall(pattern, message)

@@ -95,7 +95,7 @@ def execute(executable, **kwargs):
         exit_code = process.poll()
 
         # remove any added \n
-        if stdout and stdout.endswith(b'\n'):  # Python 2/3
+        if stdout and stdout.endswith(b'\n'):  # Python 2/3 (endswith first arg must be bytes or a tuple of bytes, not str)
             stdout = stdout[:-1]
 
         return exit_code, stdout, stderr
