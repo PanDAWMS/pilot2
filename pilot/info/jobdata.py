@@ -185,7 +185,7 @@ class JobData(BaseData):
         if not self.infosys or not self.infosys.queuedata:
             dat = dict([k, getattr(FileSpec, k, None)] for k in access_keys)
             msg = ', '.join(["%s=%s" % (k, v) for k, v in sorted(dat.iteritems())])
-            self.logger.info('job.infosys.queuedata is not initialized: following access settings will be used by default: %s' % msg)
+            logger.info('job.infosys.queuedata is not initialized: following access settings will be used by default: %s' % msg)
 
         # form raw list data from input comma-separated values for further validation by FileSpec
         kmap = {

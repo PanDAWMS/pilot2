@@ -1406,7 +1406,8 @@ def create_job(dispatcher_response, queue):
 
     jobinfosys = InfoService()
     jobinfosys.init(queue, infosys.confinfo, infosys.extinfo, JobInfoProvider(job))
-    job.infosys = jobinfosys
+    job.init(infosys)
+
     #job.workdir = os.getcwd()
 
     logger.info('received job: %s (sleep until the job has finished)' % job.jobid)
