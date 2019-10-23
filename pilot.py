@@ -221,11 +221,11 @@ def get_args():
     arg_parser.add_argument('-r',
                             dest='resource',
                             required=False,  # From v 2.2.0 the resource name is internally set
-                            help='MANDATORY: resource name (e.g., AGLT2_TEST')
+                            help='OBSOLETE: resource name (e.g., AGLT2_TEST')
     arg_parser.add_argument('-s',
                             dest='site',
                             required=False,  # From v 2.2.1 the site name is internally set
-                            help='MANDATORY: site name (e.g., AGLT2_TEST')
+                            help='OBSOLETE: site name (e.g., AGLT2_TEST')
 
     # graciously stop pilot process after hard limit
     arg_parser.add_argument('-j',
