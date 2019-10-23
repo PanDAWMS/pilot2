@@ -63,6 +63,7 @@ class FileSpec(BaseData):
     protocols = None   # list of preferred protocols for requested activity
     surl = ''          # source url
     turl = ''          # transfer url
+    domain = ""        # domain of resolved replica
     mtime = 0          # file modification time
     status = None      # file transfer status value
     status_code = 0    # file transfer status code
@@ -75,7 +76,7 @@ class FileSpec(BaseData):
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['filesize', 'mtime', 'status_code'],
              str: ['lfn', 'guid', 'checksum', 'scope', 'dataset', 'ddmendpoint',
-                   'filetype', 'surl', 'turl', 'status', 'workdir', 'accessmode', 'storage_token'],
+                   'filetype', 'surl', 'turl', 'domain', 'status', 'workdir', 'accessmode', 'storage_token'],
              list: ['replicas', 'inputddms', 'ddm_activity'],
              bool: ['allow_lan', 'allow_wan', 'direct_access_lan', 'direct_access_wan']
              }

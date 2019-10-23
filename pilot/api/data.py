@@ -515,7 +515,7 @@ class StageInClient(StagingClient):
             Primary schemas ignore replica priority (used to resolve direct access replica, which could be not with top priority set)
             :param fspec: input `FileSpec` objects
             :param allowed_schemas: list of allowed schemas or any if None
-            :return: dict(surl, ddmendpoint, pfn)
+            :return: dict(surl, ddmendpoint, pfn, domain)
             :raise PilotException: if replica not found
         """
 
@@ -556,7 +556,7 @@ class StageInClient(StagingClient):
         surl = self.get_preferred_replica(rse_replicas, ['srm']) or rse_replicas[0]
         self.logger.info("[stage-in] surl (srm replica) from Rucio: pfn=%s, ddmendpoint=%s" % (surl['pfn'], surl['ddmendpoint']))
 
-        return {'surl': surl['pfn'], 'ddmendpoint': replica['ddmendpoint'], 'pfn': replica['pfn']}
+        return {'surl': surl['pfn'], 'ddmendpoint': replica['ddmendpoint'], 'pfn': replica['pfn'], 'domain': replica['domain']}
 
     def get_direct_access_variables(self, job):
         """
@@ -690,6 +690,8 @@ class StageInClient(StagingClient):
                     fspec.surl = replica['surl']  # TO BE CLARIFIED if it's still used and need
                 if replica.get('ddmendpoint'):
                     fspec.ddmendpoint = replica['ddmendpoint']
+                if replica.get('domain'):
+                    fspec.domain = replica['domain']
 
                 self.logger.info("[stage-in] found replica to be used for lfn=%s: ddmendpoint=%s, pfn=%s" %
                                  (fspec.lfn, fspec.ddmendpoint, fspec.turl))
