@@ -212,17 +212,17 @@ class StagingClient(object):
             # sort replicas by priority value
             for pfn, xdat in sorted(r.get('pfns', {}).iteritems(), key=lambda x: x[1]['priority']):
 
-                if not fdat.allow_lan and xdat['domain'] == 'lan':
-                    continue
-                if not fdat.allow_wan and xdat['domain'] == 'wan':
-                    continue
-
                 rinfo = {'pfn': pfn, 'ddmendpoint': xdat.get('rse'), 'domain': xdat.get('domain')}
 
                 ## (TEMPORARY?) consider fspec.inputddms as a primary source for local/lan source list definition
                 ## backward compartible logic -- FIX ME LATER if NEED
                 ## in case we should rely on domain value from Rucio, just remove the overwrite line below
                 rinfo['domain'] = 'lan' if rinfo['ddmendpoint'] in fdat.inputddms else 'wan'
+
+                if not fdat.allow_lan and rinfo['domain'] == 'lan':
+                    continue
+                if not fdat.allow_wan and rinfo['domain'] == 'wan':
+                    continue
 
                 fdat.replicas.append(rinfo)
 
