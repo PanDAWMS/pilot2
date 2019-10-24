@@ -163,7 +163,7 @@ class StagingClient(object):
         if not inputddms:
             return replicas
 
-        # group replicas by ddmendpoint to properly consider priority of fspec.inputddms
+        # group replicas by ddmendpoint to properly consider priority of inputddms
         ddmreplicas = {}
         for pfn, xdat in replicas:
             ddmreplicas.setdefault(xdat.get('rse'), []).append((pfn, xdat))
@@ -241,8 +241,8 @@ class StagingClient(object):
             # sort replicas by priority value
             sorted_replicas = sorted(r.get('pfns', {}).iteritems(), key=lambda x: x[1]['priority'])
 
-            # prefer replicas from fspec.inputddms
-            xreplicas = self.sort_replicas(sorted_replicas, fspec.inputddms)
+            # prefer replicas from inputddms first
+            xreplicas = self.sort_replicas(sorted_replicas, fdat.inputddms)
 
             for pfn, xdat in xreplicas:
 
