@@ -1766,11 +1766,11 @@ def check_job(args, queues):
     if job and job.state == 'failed':
         # set job_aborted in case of kill signals
         if args.abort_job.is_set():
-            logger.warning('queue monitor detected a set abort_job (due to a kill signal), setting job_aborted')
+            logger.warning('queue monitor detected a set abort_job (due to a kill signal)')
             # do not set graceful stop if pilot has not finished sending the final job update
             # i.e. wait until SERVER_UPDATE is DONE_FINAL
-            check_for_final_server_update(args.update_server)
-            args.job_aborted.set()
+            #check_for_final_server_update(args.update_server)
+            #args.job_aborted.set()
 
     return job
 
