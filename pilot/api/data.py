@@ -151,6 +151,35 @@ class StagingClient(object):
             if not fdat.inputddms and fdat.ddmendpoint:
                 fdat.inputddms = [fdat.ddmendpoint]
 
+    @classmethod
+    def sort_replicas(self, replicas, inputddms):
+        """
+        Sort input replicas: consider first affected replicas from inputddms
+        :param replicas: Prioritized list of replicas [(pfn, dat)]
+        :param inputddms: preferred list of ddmebdpoint
+        :return: sorted `replicas`
+        """
+
+        if not inputddms:
+            return replicas
+
+        # group replicas by ddmendpoint to properly consider priority of fspec.inputddms
+        ddmreplicas = {}
+        for pfn, xdat in replicas:
+            ddmreplicas.setdefault(xdat.get('rse'), []).append((pfn, xdat))
+
+        # process LAN first (keep fspec.inputddms priorities)
+        xreplicas = []
+        for ddm in inputddms:
+            xreplicas.extend(ddmreplicas.get(ddm) or [])
+
+        for pfn, xdat in replicas:
+            if (pfn, xdat) in xreplicas:
+                continue
+            xreplicas.append((pfn, xdat))
+
+        return replicas
+
     def resolve_replicas(self, files):  # noqa: C901
         """
             Populates filespec.replicas for each entry from `files` list
@@ -204,13 +233,21 @@ class StagingClient(object):
         for r in replicas:
             k = r['scope'], r['name']
             fdat = files_lfn.get(k)
-            if not fdat:  # not requested replica returned?
+            if not fdat:  # not requested replica
                 continue
 
             fdat.replicas = []  # reset replicas list
 
             # sort replicas by priority value
-            for pfn, xdat in sorted(r.get('pfns', {}).iteritems(), key=lambda x: x[1]['priority']):
+            sorted_replicas = sorted(r.get('pfns', {}).iteritems(), key=lambda x: x[1]['priority'])
+
+            # prefer replicas from fspec.inputddms
+            xreplicas = self.sort_replicas(sorted_replicas, fspec.inputddms)
+
+            for pfn, xdat in xreplicas:
+
+                if xdat.get('type') != 'DISK':  ## consider only DISK replicas
+                    continue
 
                 rinfo = {'pfn': pfn, 'ddmendpoint': xdat.get('rse'), 'domain': xdat.get('domain')}
 
