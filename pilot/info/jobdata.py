@@ -211,7 +211,10 @@ class JobData(BaseData):
                 idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
 
             accessmode = 'copy'  ## default settings
-            if self.transfertype == 'direct' and idat.get('storage_token') != 'local':  ## Job settings
+
+            # for prod jobs: use remoteio if transferType=direct and prodDBlockToken!=local
+            # for analy jobs: use remoteio if prodDBlockToken!=local
+            if (self.is_analysis() or self.transfertype == 'direct') and idat.get('storage_token') != 'local':  ## Job settings
                 accessmode = 'direct'
             if self.accessmode:  ## Job input options (job params) overwrite any other settings
                 accessmode = self.accessmode
