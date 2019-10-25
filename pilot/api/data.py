@@ -387,6 +387,12 @@ class StagingClient(object):
 
         for name in copytools:
 
+            # get remain files that need to be transferred by copytool
+            files = [e for e in files if e.status not in ['remote_io', 'transferred', 'no_trasfer']]
+
+            if not files:
+                return
+
             try:
                 if name not in self.copytool_modules:
                     raise PilotException('passed unknown copytool with name=%s .. skipped' % name,
