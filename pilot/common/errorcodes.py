@@ -423,6 +423,8 @@ class ErrorCodes:
             if found:
                 diag = found[0]
                 diag = re.sub(r'\[?PilotException\(\"?\'?', r'', diag)
+                diag = re.sub(r'\[?StageInFailure\(\"?\'?', r'', diag)
+                diag = re.sub(r'\[?StageOutFailure\(\"?\'?', r'', diag)
                 diag = re.sub(' +', ' ', diag)
 
         try:
