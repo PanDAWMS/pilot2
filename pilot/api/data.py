@@ -793,6 +793,9 @@ class StageInClient(StagingClient):
                 fspec.status_code = 0
                 fspec.status = 'remote_io'
 
+                self.logger.info('stage-in: direct access (remoteio) will be used for lfn=%s (direct_lan=%s, direct_wan=%s), turl=%s' %
+                                 (fspec.lfn, direct_lan, direct_wan, fspec.turl))
+
                 # send trace
                 localsite = os.environ.get('RUCIO_LOCAL_SITE_ID') or os.environ.get('DQ2_LOCAL_SITE_ID')  ## VERIFY ME LATER
                 localsite = localsite or fspec.ddmendpoint
