@@ -8,7 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
-# - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Alexey Anisenkov, anisyonk@cern.ch, 2018-2019
 
 # refactored by Alexey Anisenkov
 
@@ -25,8 +25,6 @@ from pilot.util.parameters import get_maximum_input_sizes
 from pilot.util.workernode import get_local_disk_space
 from pilot.util.timer import TimeoutException
 from pilot.util.tracereport import TraceReport
-
-errors = ErrorCodes()
 
 
 class StagingClient(object):
@@ -209,7 +207,7 @@ class StagingClient(object):
 
         location = self.detect_client_location()
         if not location:
-            raise PilotException("Failed to get client location for Rucio", code=errors.RUCIOLOCATIONFAILED)
+            raise PilotException("Failed to get client location for Rucio", code=ErrorCodes.RUCIOLOCATIONFAILED)
 
         query = {
             'schemes': ['srm', 'root', 'davs', 'gsiftp', 'https', 'storm'],
@@ -222,7 +220,7 @@ class StagingClient(object):
         try:
             replicas = c.list_replicas(**query)
         except Exception as e:
-            raise PilotException("Failed to get replicas from Rucio: %s" % e, code=errors.RUCIOLISTREPLICASFAILED)
+            raise PilotException("Failed to get replicas from Rucio: %s" % e, code=ErrorCodes.RUCIOLISTREPLICASFAILED)
 
         replicas = list(replicas)
         logger.debug("replicas received from Rucio: %s" % replicas)
@@ -351,7 +349,7 @@ class StagingClient(object):
             :param activity: list of activity names used to determine appropriate copytool (prioritized list)
             :param kwargs: extra kwargs to be passed to copytool transfer handler
             :raise: PilotException in case of controlled error
-            :return: output of copytool transfers (to be clarified)
+            :return: list of processed `FileSpec` objects
         """
 
         self.trace_report.update(relativeStart=time.time(), transferStart=time.time())
@@ -383,15 +381,15 @@ class StagingClient(object):
             else:
                 fspec.ddm_activity = filter(None, ['write_lan' if fspec.ddmendpoint in fspec.inputddms else None, 'write_wan'])
 
-        result, caught_errors = None, []
+        caught_errors = []
 
         for name in copytools:
 
             # get remain files that need to be transferred by copytool
-            files = [e for e in files if e.status not in ['remote_io', 'transferred', 'no_trasfer']]
+            remain_files = [e for e in files if e.status not in ['remote_io', 'transferred', 'no_trasfer']]
 
-            if not files:
-                return
+            if not remain_files:
+                break
 
             try:
                 if name not in self.copytool_modules:
@@ -410,32 +408,30 @@ class StagingClient(object):
             except Exception as e:
                 self.logger.warning('failed to import copytool module=%s, error=%s' % (module, e))
                 continue
+
             try:
-                result = self.transfer_files(copytool, files, activity, **kwargs)
+                result = self.transfer_files(copytool, remain_files, activity, **kwargs)
+                self.logger.debug('transfer_files() using copytool=%s completed with result=%s' % (copytool, str(result)))
+                break
             except PilotException as e:
-                msg = 'failed to execute transfer_files(): PilotException caught: %s' % e
-                self.logger.warning(msg)
+                self.logger.warning('failed to transfer_files() using copytool=%s .. skipped; error=%s' % (copytool, e))
                 caught_errors.append(e)
             except TimeoutException as e:
-                msg = 'function timed out: %s' % e
-                self.logger.warning(msg)
+                self.logger.warning('function timed out: %s' % e)
                 caught_errors.append(e)
             except Exception as e:
                 self.logger.warning('failed to transfer files using copytool=%s .. skipped; error=%s' % (copytool, e))
+                caught_errors.append(e)
                 import traceback
                 self.logger.error(traceback.format_exc())
-                caught_errors.append(e)
-            else:
-                self.logger.debug('transfer_files() completed with result=%s' % str(result))
 
             if caught_errors and isinstance(caught_errors[-1], PilotException) and \
                     caught_errors[-1].get_error_code() == ErrorCodes.MISSINGOUTPUTFILE:
                 raise caught_errors[-1]
 
-            if result:
-                break
+        remain_files = [f for f in files if f.status not in ['remote_io', 'transferred', 'no_trasfer']]
 
-        if not result:
+        if remain_files:  ## failed or incomplete transfer
             # Propagate message from first error back up
             errmsg = str(caught_errors[0]) if caught_errors else ''
             if caught_errors and "Cannot authenticate" in str(caught_errors):
@@ -446,16 +442,15 @@ class StagingClient(object):
                 code = caught_errors[0].get_error_code()
                 errmsg = caught_errors[0].get_last_error()
             elif caught_errors and isinstance(caught_errors[0], TimeoutException):
-                code = errors.STAGEINTIMEOUT if self.mode == 'stage-in' else errors.STAGEOUTTIMEOUT  # is it stage-in/out?
+                code = ErrorCodes.STAGEINTIMEOUT if self.mode == 'stage-in' else ErrorCodes.STAGEOUTTIMEOUT  # is it stage-in/out?
                 self.logger.warning('caught time-out exception: %s' % caught_errors[0])
             else:
-                code = errors.STAGEINFAILED if self.mode == 'stage-in' else errors.STAGEOUTFAILED  # is it stage-in/out?
+                code = ErrorCodes.STAGEINFAILED if self.mode == 'stage-in' else ErrorCodes.STAGEOUTFAILED  # is it stage-in/out?
             details = str(caught_errors) + ":" + 'failed to transfer files using copytools=%s' % copytools
             self.logger.fatal(details)
             raise PilotException(details, code=code)
 
-        self.logger.debug('result=%s' % str(result))
-        return result
+        return files
 
     def require_protocols(self, files, copytool, activity):
         """
@@ -665,22 +660,9 @@ class StageInClient(StagingClient):
         :param files: list of `FileSpec` objects
         :param kwargs: extra kwargs to be passed to copytool transfer handler
 
-        :return: the output of the copytool transfer operation
+        :return: list of processed `FileSpec` objects
         :raise: PilotException in case of controlled error
         """
-
-        #logger.debug('trace_report[eventVersion]=%s' % self.trace_report.get('eventVersion', 'unknown'))
-
-        # sort out direct access logic
-        #job = kwargs.get('job', None)
-
-        #allow_direct_access, direct_access_type = self.get_direct_access_variables(job)
-        #self.logger.info("direct access settings for the PQ: allow_direct_access=%s (type=%s)" %
-        #                 (allow_direct_access, direct_access_type))
-        #kwargs['allow_direct_access'] = allow_direct_access
-        #
-        #if allow_direct_access:
-        #    self.set_accessmodes_for_direct_access(files, direct_access_type)
 
         if getattr(copytool, 'require_replicas', False) and files:
             if files[0].replicas is None:  ## look up replicas only once
@@ -698,7 +680,7 @@ class StageInClient(StagingClient):
 
                 replica = None
 
-                # process direct access logic ## TODO move to upper level, should not be dependent on copytool (anisyonk)
+                # process direct access logic  ## TODO move to upper level, should not be dependent on copytool (anisyonk)
                 # check local replicas first
                 if fspec.allow_lan:
                     # prepare schemas which will be used to look up first the replicas allowed for direct access mode
@@ -747,15 +729,15 @@ class StageInClient(StagingClient):
         self.set_status_for_direct_access(files)
 
         # get remain files that need to be transferred by copytool
-        files = [e for e in files if e.status not in ['remote_io', 'transferred', 'no_trasfer']]
+        remain_files = [e for e in files if e.status not in ['remote_io', 'transferred', 'no_trasfer']]
 
-        if not files:
-            return
+        if not remain_files:
+            return files
 
-        if not copytool.is_valid_for_copy_in(files):
+        if not copytool.is_valid_for_copy_in(remain_files):
             msg = 'input is not valid for transfers using copytool=%s' % copytool
             self.logger.warning(msg)
-            self.logger.debug('input: %s' % files)
+            self.logger.debug('input: %s' % remain_files)
             self.trace_report.update(clientState='NO_REPLICA', stateReason=msg)
             self.trace_report.send()
             raise PilotException('invalid input data for transfer operation')
@@ -767,13 +749,13 @@ class StageInClient(StagingClient):
         kwargs['activity'] = activity
 
         # verify file sizes and available space for stage-in
-        self.check_availablespace(files)
+        self.check_availablespace(remain_files)
 
         # add the trace report
         kwargs['trace_report'] = self.trace_report
-        self.logger.info('ready to transfer (stage-in) files: %s' % files)
+        self.logger.info('ready to transfer (stage-in) files: %s' % remain_files)
 
-        return copytool.copy_in(files, **kwargs)
+        return copytool.copy_in(remain_files, **kwargs)
 
     def set_status_for_direct_access(self, files):
         """
@@ -993,7 +975,7 @@ class StageOutClient(StagingClient):
         if not files:
             msg = 'nothing to stage-out - an internal Pilot error has occurred'
             self.logger.fatal(msg)
-            raise PilotException(msg, code=errors.INTERNALPILOTPROBLEM)
+            raise PilotException(msg, code=ErrorCodes.INTERNALPILOTPROBLEM)
 
         # add the trace report
         kwargs['trace_report'] = self.trace_report

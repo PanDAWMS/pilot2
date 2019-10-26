@@ -166,7 +166,7 @@ class JobData(BaseData):
         self.indata = self.prepare_infiles(self._rawdata)
         self.outdata, self.logdata = self.prepare_outfiles(self._rawdata)
 
-        logger.debug('Final parsed Job content:\n%s' % self)
+        #logger.debug('Final parsed Job content:\n%s' % self)
 
     def prepare_infiles(self, data):
         """

@@ -158,7 +158,7 @@ def _stage_in(args, job):
         else:
             client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
             activity = 'pr'
-        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)  #, mode='stage-in')
+        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
         client.prepare_sources(job.indata)
         client.transfer(job.indata, activity=activity, **kwargs)
     except PilotException as error:
@@ -172,10 +172,7 @@ def _stage_in(args, job):
 
     log.info('summary of transferred files:')
     for e in job.indata:
-        if not e.status:
-            status = "(not transferred)"
-        else:
-            status = e.status
+        status = e.status if e.status else "(not transferred)"
         log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, status))
 
     # write time stamps to pilot timing file

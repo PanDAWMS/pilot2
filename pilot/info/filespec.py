@@ -90,10 +90,10 @@ class FileSpec(BaseData):
         self.filetype = filetype
         self.load(data)
 
-        if True:  # DEBUG
-            #import pprint
-            #logger.debug('initialize FileSpec from raw:\n%s' % pprint.pformat(data))
-            logger.debug('Final parsed FileSpec content:\n%s' % self)
+        #if True:  # DEBUG
+        #    #import pprint
+        #    #logger.debug('initialize FileSpec from raw:\n%s' % pprint.pformat(data))
+        #    logger.debug('Final parsed FileSpec content:\n%s' % self)
 
     def load(self, data):
         """
