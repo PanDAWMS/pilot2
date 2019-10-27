@@ -211,15 +211,12 @@ class JobData(BaseData):
             lfns.add(lfn)
             idat = {}
 
-            #try:
-            #    for attrname, k in kmap.items():  # Python 3
-            #        idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
-            #except Exception:
-            #    for attrname, k in kmap.iteritems():  # Python 2
-            #        idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
-
-            for attrname, k in kmap.iteritems():
-                idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
+            try:
+                for attrname, k in kmap.items():  # Python 3
+                    idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
+            except Exception:
+                for attrname, k in kmap.iteritems():  # Python 2
+                    idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
 
             accessmode = 'copy'  ## default settings
 
