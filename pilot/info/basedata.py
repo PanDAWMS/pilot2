@@ -177,6 +177,9 @@ class BaseData(object):
         if isinstance(raw, ktype):
             return raw
 
+        if raw is None:  ## not set value, use default
+            return defval
+
         val = str(raw).strip().lower()
         allowed_values = ['', 'none', 'true', 'false', 'yes', 'no', '1', '0']
 
