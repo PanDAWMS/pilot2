@@ -148,9 +148,14 @@ def get_payload_command(job):
 
     # For direct access in prod jobs, we need to substitute the input file names with the corresponding TURLs
     # get relevant file transfer info
-    use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job)
-    if not userjob and use_direct_access and job.transfertype == 'direct':
-        lfns, guids = job.get_lfns_and_guids()
+    #use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job)
+    #if not userjob and use_direct_access and job.transfertype == 'direct':
+    if not userjob and not job.is_build_job() and job.has_remoteio():  ## ported from old logic
+        ## ported from old logic but still it looks strange (anisyonk)
+        ## the "PoolFileCatalog.xml" should already contains proper TURLs values as it created by create_input_file_metadata()
+        ## if the case is just to patch `writetofile` file, than logic should be cleaned and decoupled
+        ## anyway, instead of parsing the file, it's much more easy to generate properly `writetofile` content from the beginning with TURL data
+        lfns = job.get_lfns_and_guids()[0]
         cmd = replace_lfns_with_turls(cmd, job.workdir, "PoolFileCatalog.xml", lfns, writetofile=job.writetofile)
 
     # Explicitly add the ATHENA_PROC_NUMBER (or JOB value)
@@ -441,12 +446,12 @@ def get_analysis_run_command(job, trf_name):
     log = get_logger(job.jobid)
 
     # get relevant file transfer info
-    use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job)
+    #use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job)
     # check if the input files are to be accessed locally (ie if prodDBlockToken is set to local)
-    if job.is_local():
-        log.debug('switched off direct access for local prodDBlockToken')
-        use_direct_access = False
-        use_pfc_turl = False
+    #if job.is_local():   ## useless since stage-in phase has already passed (DEPRECATE ME, anisyonk)
+    #    log.debug('switched off direct access for local prodDBlockToken')
+    #    use_direct_access = False
+    #    use_pfc_turl = False
 
     # add the user proxy
     if 'X509_USER_PROXY' in os.environ and not job.imagename:
@@ -462,14 +467,22 @@ def get_analysis_run_command(job, trf_name):
         cmd += ' --containerImage=%s' % job.imagename
 
     # add control options for PFC turl and direct access
-    if job.indata != []:
-        if use_pfc_turl and '--usePFCTurl' not in cmd:
+    #if job.indata:   ## DEPRECATE ME (anisyonk)
+    #    if use_pfc_turl and '--usePFCTurl' not in cmd:
+    #        cmd += ' --usePFCTurl'
+    #    if use_direct_access and '--directIn' not in cmd:
+    #        cmd += ' --directIn'
+
+    if job.has_remoteio():
+        log.debug('direct access (remoteio) is used to access some input files: --usePFCTurl and --directIn will be added if need to payload command')
+        if '--usePFCTurl' not in cmd:
             cmd += ' --usePFCTurl'
-        if use_direct_access and '--directIn' not in cmd:
+        if '--directIn' not in cmd:
             cmd += ' --directIn'
 
     # update the payload command for forced accessmode
-    cmd = update_forced_accessmode(log, cmd, job.transfertype, job.jobparams, trf_name)
+    ## -- REDUNDANT logic, since it should be done from the beginning at the step of FileSpec initialization (anisyonk)
+    #cmd = update_forced_accessmode(log, cmd, job.transfertype, job.jobparams, trf_name)  ## DEPRECATE ME (anisyonk)
 
     # add guids when needed
     # get the correct guids list (with only the direct access files)
@@ -482,7 +495,8 @@ def get_analysis_run_command(job, trf_name):
     return cmd
 
 
-def update_forced_accessmode(log, cmd, transfertype, jobparams, trf_name):
+## SHOULD NOT BE USED since payload cmd should be properly generated from the beginning (consider final directio settings) (anisyonk)
+def update_forced_accessmode(log, cmd, transfertype, jobparams, trf_name):  ## DEPRECATE ME (anisyonk)
     """
     Update the payload command for forced accessmode.
     accessmode is an option that comes from HammerCloud and is used to force a certain input file access mode; i.e.
@@ -607,7 +621,7 @@ def get_guids_from_jobparams(jobparams, infiles, infilesguids):
     return guidlist
 
 
-def get_file_transfer_info(job):
+def get_file_transfer_info(job):   ## TO BE DEPRECATED, NOT USED (anisyonk)
     """
     Return information about desired file transfer.
 

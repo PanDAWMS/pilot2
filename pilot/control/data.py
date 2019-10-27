@@ -158,7 +158,7 @@ def _stage_in(args, job):
         else:
             client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
             activity = 'pr'
-        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)  #, mode='stage-in')
+        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
         client.prepare_sources(job.indata)
         client.transfer(job.indata, activity=activity, **kwargs)
     except PilotException as error:
@@ -172,10 +172,7 @@ def _stage_in(args, job):
 
     log.info('summary of transferred files:')
     for e in job.indata:
-        if not e.status:
-            status = "(not transferred)"
-        else:
-            status = e.status
+        status = e.status if e.status else "(not transferred)"
         log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, status))
 
     # write time stamps to pilot timing file
@@ -522,24 +519,24 @@ def get_input_file_dictionary(indata, workdir):
     Format: {'guid': 'pfn', ..}
     Normally use_turl would be set to True if direct access is used.
 
-    :param indata: FileSpec object.
+    :param indata: list of FileSpec objects.
     :param workdir: job.workdir (string).
     :return: file dictionary.
     """
 
-    file_dictionary = {}
+    ret = {}
 
-    for e in indata:
-        # dst = e.workdir or workdir or '.'
-        file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else e.lfn  #os.path.join(dst, e.lfn)
-        # file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else e.surl
+    for fspec in indata:
+        # dst = fspec.workdir or workdir or '.'
+        ret[fspec.guid] = fspec.turl if fspec.status == 'remote_io' else fspec.lfn  #os.path.join(dst, fspec.lfn)
+        # ret[fspec.guid] = fspec.turl if fspec.accessmode == 'direct' else fspec.surl
 
         # correction for ND and mv
         # in any case use the lfn instead of pfn since there are trf's that have problems with pfn's
-        if not file_dictionary[e.guid]:
-            file_dictionary[e.guid] = e.lfn
+        if not ret[fspec.guid]:   # this case never works (turl/lfn is always non empty), deprecated code?
+            ret[fspec.guid] = fspec.lfn
 
-    return file_dictionary
+    return ret
 
 
 def filter_files_for_log(directory):
