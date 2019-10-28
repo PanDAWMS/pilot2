@@ -66,7 +66,7 @@ def interrupt(args, signum, frame):
         logging.shutdown()
         kill_processes(getpid())
 
-    add_to_pilot_timing('0', PILOT_KILL_SIGNAL, time(), args)
+    add_to_pilot_timing('1', PILOT_KILL_SIGNAL, time(), args)
     logger.warning('caught signal: %s' % sig)
     args.signal = sig
     logger.warning('will instruct threads to abort and update the server')
