@@ -1584,7 +1584,7 @@ def wait_for_aborted_job_stageout(args, queues, job):
     log = get_logger(job.jobid)
 
     # if the pilot received a kill signal, how much time has passed since the signal was intercepted?
-    time_since_kill = get_time_since('0', PILOT_KILL_SIGNAL, args)
+    time_since_kill = get_time_since('1', PILOT_KILL_SIGNAL, args)
     log.info('%d s passed since kill signal was intercepted - make sure that stage-out has finished' % time_since_kill)
 
     # if stage-out has not finished, we need to wait (less than two minutes or the batch system will issue
