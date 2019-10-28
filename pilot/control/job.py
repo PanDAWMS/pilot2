@@ -1771,7 +1771,7 @@ def check_job(args, queues):
             # do not set graceful stop if pilot has not finished sending the final job update
             # i.e. wait until SERVER_UPDATE is DONE_FINAL
             #check_for_final_server_update(args.update_server)
-            #args.job_aborted.set()
+            args.job_aborted.set()
 
     return job
 
