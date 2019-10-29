@@ -1705,6 +1705,11 @@ def queue_monitor(queues, traces, args):
         if abort:
             break
 
+    # fail safe: this thread must not end if final server update has not been sent
+    if not sentfinal and job:
+        logger.warning('fail-safe activated: final server update has not been done but thread is about to end')
+        update_server(job, args)
+
     logger.debug('[job] queue monitor thread has finished')
 
 
