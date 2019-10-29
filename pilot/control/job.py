@@ -1755,6 +1755,8 @@ def check_job(args, queues):
         job = has_job_failed(queues)
         if job:
             logger.debug('check_job: job has failed')
+            job.state = 'failed'
+            args.job_aborted.set()
 
             # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
             log_transfer = get_job_status(job, 'LOG_TRANSFER')
@@ -1771,7 +1773,7 @@ def check_job(args, queues):
             # do not set graceful stop if pilot has not finished sending the final job update
             # i.e. wait until SERVER_UPDATE is DONE_FINAL
             #check_for_final_server_update(args.update_server)
-            args.job_aborted.set()
+            #args.job_aborted.set()
 
     return job
 
