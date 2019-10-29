@@ -1547,16 +1547,12 @@ def get_utility_command_kill_signal(name):
     """
     Return the proper kill signal used to stop the utility command.
 
-    :param name:
+    :param name: name of utility command (string).
     :return: kill signal
     """
 
-    if name == 'MemoryMonitor':
-        sig = SIGUSR1
-    else:
-        # note that the NetworkMonitor does not require killing (to be confirmed)
-        sig = SIGTERM
-
+    # note that the NetworkMonitor does not require killing (to be confirmed)
+    sig = SIGUSR1 if name == 'MemoryMonitor' else sig = SIGTERM
     return sig
 
 
