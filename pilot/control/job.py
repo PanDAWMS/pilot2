@@ -1675,7 +1675,8 @@ def queue_monitor(queues, traces, args):  # noqa: C901
                 pause_queue_monitor(60)
 
         # job has not been defined if it's still running
-        if job:
+        completed_jobs = queues.completed_jobs.queue if queues.completed_jobs else []
+        if job and job not in completed_jobs:
             log = get_logger(job.jobid)
             log.info("preparing for final server update for job %s (state=\'%s\')" % (job.jobid, job.state))
 
