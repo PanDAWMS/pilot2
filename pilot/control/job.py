@@ -1532,11 +1532,10 @@ def is_queue_empty(queues, q):
     return status
 
 
-def order_log_transfer(args, queues, job):
+def order_log_transfer(queues, job):
     """
     Order a log transfer for a failed job.
 
-    :param args: pilot args object.
     :param queues: pilot queues object.
     :param job: job object.
     :return:
@@ -1763,7 +1762,7 @@ def check_job(args, queues):
 
             if log_transfer == LOG_TRANSFER_NOT_DONE:
                 # order a log transfer for a failed job
-                order_log_transfer(args, queues, job)
+                order_log_transfer(queues, job)
 
     # check if the job has failed
     if job and job.state == 'failed':
