@@ -1552,7 +1552,7 @@ def get_utility_command_kill_signal(name):
     """
 
     # note that the NetworkMonitor does not require killing (to be confirmed)
-    sig = SIGUSR1 if name == 'MemoryMonitor' else sig = SIGTERM
+    sig = SIGUSR1 if name == 'MemoryMonitor' else SIGTERM
     return sig
 
 
