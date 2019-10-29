@@ -1583,16 +1583,25 @@ def wait_for_aborted_job_stageout(args, queues, job):
     log = get_logger(job.jobid)
 
     # if the pilot received a kill signal, how much time has passed since the signal was intercepted?
-    time_since_kill = get_time_since('1', PILOT_KILL_SIGNAL, args)
-    log.info('%d s passed since kill signal was intercepted - make sure that stage-out has finished' % time_since_kill)
+    try:
+        time_since_kill = get_time_since('1', PILOT_KILL_SIGNAL, args)
+        log.info('%d s passed since kill signal was intercepted - make sure that stage-out has finished' % time_since_kill)
+    except Exception as e:
+        log.warning('exception caught: %s' % e)
+        time_since_kill = 60
+    else:
+        if time_since_kill > 60 or time_since_kill < 0:  # fail-safe
+            log.warning('reset time_since_kill to 60 since value is out of allowed limits')
+            time_since_kill = 60
 
     # if stage-out has not finished, we need to wait (less than two minutes or the batch system will issue
     # a hard SIGKILL)
-    max_wait_time = 2 * 60 - time_since_kill - 5  # assume that we only need 5 more seconds to wrap up
+    max_wait_time = 2 * 60 - time_since_kill - 5
+    log.debug('using max_wait_time = %d s' % max_wait_time)
     t0 = time.time()
     while time.time() - t0 < max_wait_time:
         if job not in queues.finished_data_out.queue and job not in queues.failed_data_out.queue:
-            time.sleep(0.1)
+            time.sleep(0.5)
         else:
             log.info('stage-out has finished, proceed with final server update')
             break
