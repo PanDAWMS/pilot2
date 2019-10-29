@@ -168,7 +168,7 @@ class JobData(BaseData):
 
         #logger.debug('Final parsed Job content:\n%s' % self)
 
-    def prepare_infiles(self, data):
+    def prepare_infiles(self, data):  # noqa: C901
         """
             Construct FileSpec objects for input files from raw dict `data`
             :return: list of validated `FileSpec` objects

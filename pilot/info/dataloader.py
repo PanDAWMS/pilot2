@@ -19,7 +19,9 @@ import os
 import time
 import json
 try:
-    import urllib.request, urllib.error, urllib.parse  # Python 3
+    import urllib.request  # Python 3
+    import urllib.error  # Python 3
+    import urllib.parse  # Python 3
 except Exception:
     import urllib2  # Python 2
 
@@ -68,7 +70,7 @@ class DataLoader(object):
 
         return lastupdate
 
-    @classmethod
+    @classmethod  # noqa: C901
     def load_url_data(self, url, fname=None, cache_time=0, nretry=3, sleep_time=60):
         """
         Download data from url or file resource and optionally save it into cache file fname.

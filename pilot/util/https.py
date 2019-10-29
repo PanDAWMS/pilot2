@@ -21,7 +21,9 @@ import platform
 import ssl
 import sys
 try:
-    import urllib.request, urllib.parse, urllib.error  # Python 3
+    import urllib.request  # Python 3
+    import urllib.error  # Python 3
+    import urllib.parse  # Python 3
 except Exception:
     import urllib  # Python 2
     import urllib2  # Python 2

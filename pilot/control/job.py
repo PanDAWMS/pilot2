@@ -1629,7 +1629,7 @@ def get_job_status(job, key):
     return value
 
 
-def queue_monitor(queues, traces, args):
+def queue_monitor(queues, traces, args):  # noqa: C901
     """
     Monitoring of queues.
     This function monitors queue activity, specifically if a job has finished or failed and then reports to the server.

@@ -101,6 +101,7 @@ class TimedThread(object):
                 _r = ret[1][0], ret[1][1], ret[1][2]
             raise _r
 
+
 class TimedProcess(object):
     """
         Process-based Timer implementation (`multiprocessing` module). Uses shared Queue to keep result.

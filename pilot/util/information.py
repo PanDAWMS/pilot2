@@ -21,7 +21,9 @@ import hashlib
 import json
 import os
 try:
-    import urllib.request, urllib.error, urllib.parse  # Python 3
+    import urllib.request  # Python 3
+    import urllib.error  # Python 3
+    import urllib.parse  # Python 3
 except Exception:
     import urllib2  # Python 3
 from datetime import datetime, timedelta
