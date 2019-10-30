@@ -161,6 +161,9 @@ def move_all_files(files, copy_type, workdir):
             source = os.path.join(workdir, name)
             destination = os.path.join(os.path.dirname(workdir), name)
 
+        # resolve canonical path
+        source = os.path.realpath(source)
+
         logger.info("transferring file %s from %s to %s" % (name, source, destination))
 
         exit_code, stdout, stderr = copy_method(source, destination)
@@ -223,9 +226,7 @@ def symlink(source, destination):
     :return: exit_code, stdout, stderr
     """
 
-    # resolve canonical path
-    realsource = os.path.realpath(source)
-    executable = ['/usr/bin/env', 'ln', '-s', realsource, destination]
+    executable = ['/usr/bin/env', 'ln', '-s', source, destination]
     cmd = ' '.join(executable)
     exit_code, stdout, stderr = execute(cmd)
 
