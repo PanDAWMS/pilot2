@@ -1492,6 +1492,7 @@ def get_job_from_queue(queues, state):
 
     return job
 
+
 def is_queue_empty(queues, q):
     """
     Check if the given queue is empty (without pulling).
