@@ -1529,14 +1529,14 @@ def order_log_transfer(queues, job):
 
     # add the job object to the data_out queue to have it staged out
     job.stageout = 'log'  # only stage-out log file
-    set_pilot_state(job=job, state='stageout')
+    #set_pilot_state(job=job, state='stageout')
     put_in_queue(job, queues.data_out)
 
-    log.info('job added to data_out queue')
+    log.debug('job added to data_out queue')
 
     # wait for the log transfer to finish
     n = 0
-    nmax = 30
+    nmax = 60
     while n < nmax:
         # refresh the log_transfer since it might have changed
         log_transfer = job.get_status('LOG_TRANSFER')
@@ -1747,18 +1747,18 @@ def get_finished_or_failed_job(args, queues):
 
     job = get_job_from_queue(queues, "finished")
     if job:
-        logger.debug('get_finished_or_failed_job: job has finished')
+        # logger.debug('get_finished_or_failed_job: job has finished')
+        pass
     else:
-        # logger.info('check_job: job has not finished')
+        # logger.debug('check_job: job has not finished')
         job = get_job_from_queue(queues, "failed")
         if job:
             logger.debug('get_finished_or_failed_job: job has failed')
             job.state = 'failed'
             args.job_aborted.set()
 
-            # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
+            # get the current log transfer status
             log_transfer = get_job_status(job, 'LOG_TRANSFER')
-
             if log_transfer == LOG_TRANSFER_NOT_DONE:
                 # order a log transfer for a failed job
                 order_log_transfer(queues, job)

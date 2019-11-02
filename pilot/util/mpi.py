@@ -17,6 +17,7 @@ try:
 except Exception:
     logger = None
 
+
 def get_ranks_info():
     """
     Return current MPI rank and number of ranks
