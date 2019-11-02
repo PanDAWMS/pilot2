@@ -1467,46 +1467,30 @@ def has_job_completed(queues):
     return False
 
 
-def has_job_finished(queues):
+def get_job_from_queue(queues, state):
     """
-    Check if the job has finished.
+    Check if the job has finished or failed and if so return it.
 
-    :param queues:
-    :return: job object.
-    """
-
-    try:
-        job = queues.finished_jobs.get(block=True, timeout=1)
-    except queue.Empty:
-        # logger.info("(job still running)")
-        job = None
-    else:
-        logger.info("job %s has finished" % job.jobid)
-        # make sure that state=finished
-        set_pilot_state(job=job, state="finished")
-
-    return job
-
-
-def has_job_failed(queues):
-    """
-    Check if the job has failed.
-
-    :param queues:
+    :param queues: pilot queues.
+    :param state: job state (e.g. finished/failed) (string).
     :return: job object.
     """
     try:
-        job = queues.failed_jobs.get(block=True, timeout=1)
+        if state == "finished":
+            job = queues.finished_jobs.get(block=True, timeout=1)
+        elif state == "failed":
+            job = queues.failed_jobs.get(block=True, timeout=1)
+        else:
+            job = None
     except queue.Empty:
         # logger.info("(job still running)")
         job = None
     else:
         # make sure that state=failed
-        set_pilot_state(job=job, state="failed")
+        set_pilot_state(job=job, state=state)
         logger.info("job %s has state=%s" % (job.jobid, job.state))
 
     return job
-
 
 def is_queue_empty(queues, q):
     """
@@ -1664,7 +1648,7 @@ def queue_monitor(queues, traces, args):  # noqa: C901
         while i < imax and os.environ.get('PILOT_WRAP_UP', '') == 'NORMAL':
             job = get_finished_or_failed_job(args, queues)
             if job:
-                logger.debug('check_job returned job with state=%s' % job.state)
+                logger.debug('returned job has state=%s' % job.state)
                 break
             i += 1
             state = get_pilot_state()  # the job object is not available, but the state is also kept in PILOT_JOB_STATE
@@ -1753,7 +1737,7 @@ def pause_queue_monitor(delay):
 
 def get_finished_or_failed_job(args, queues):
     """
-    Check if the job has either finished or failed.
+    Check if the job has either finished or failed and if so return it.
     If failed, order a log transfer. If the job is in state 'failed' and abort_job is set, set job_aborted.
 
     :param args: pilot args object.
@@ -1761,14 +1745,14 @@ def get_finished_or_failed_job(args, queues):
     :return: job object.
     """
 
-    job = has_job_finished(queues)
+    job = get_job_from_queue(queues, "finished")
     if job:
-        logger.debug('check_job: job has finished')
+        logger.debug('get_finished_or_failed_job: job has finished')
     else:
         # logger.info('check_job: job has not finished')
-        job = has_job_failed(queues)
+        job = get_job_from_queue(queues, "failed")
         if job:
-            logger.debug('check_job: job has failed')
+            logger.debug('get_finished_or_failed_job: job has failed')
             job.state = 'failed'
             args.job_aborted.set()
 
