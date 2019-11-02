@@ -1662,7 +1662,7 @@ def queue_monitor(queues, traces, args):  # noqa: C901
         imax = 20
         i = 0
         while i < imax and os.environ.get('PILOT_WRAP_UP', '') == 'NORMAL':
-            job = check_job(args, queues)
+            job = get_finished_or_failed_job(args, queues)
             if job:
                 logger.debug('check_job returned job with state=%s' % job.state)
                 break
@@ -1751,9 +1751,9 @@ def pause_queue_monitor(delay):
     time.sleep(delay)
 
 
-def check_job(args, queues):
+def get_finished_or_failed_job(args, queues):
     """
-    Check if the job has completed (either finished or failed).
+    Check if the job has either finished or failed.
     If failed, order a log transfer. If the job is in state 'failed' and abort_job is set, set job_aborted.
 
     :param args: pilot args object.
@@ -1763,7 +1763,7 @@ def check_job(args, queues):
 
     job = has_job_finished(queues)
     if job:
-        logger.info('check_job: job has finished')
+        logger.debug('check_job: job has finished')
     else:
         # logger.info('check_job: job has not finished')
         job = has_job_failed(queues)
