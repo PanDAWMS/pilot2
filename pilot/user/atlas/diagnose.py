@@ -730,7 +730,7 @@ def get_pilot_log_extracts(job):
         if _tail != "":
             if extracts != "":
                 extracts += "\n"
-            extracts += "- Log from %s -" % config.Pilot.pilotlog
+            extracts += "- Log from %s -\n" % config.Pilot.pilotlog
             extracts += _tail
 
         # grep for fatal/critical errors in the pilot log

@@ -428,6 +428,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     """
 
     log = get_logger(job.jobid, logger)
+    log.debug('building data structure to be sent to server with heartbeat')
 
     data = {'jobId': job.jobid,
             'state': state,
@@ -573,12 +574,14 @@ def add_timing_and_extracts(data, job, state, args):
                           (time_getjob, time_stagein, time_payload, time_stageout, time_total_setup)
 
     # add log extracts (for failed/holding jobs or for jobs with outbound connections)
-    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
-    extracts = user.get_log_extracts(job, state)
-    if extracts != "":
-        logger.warning('pilot log extracts:\n%s' % extracts)
-        data['pilotLog'] = extracts[:1024]
+    extracts = ""
+    if job.state == 'failed' or job.state == 'holding':
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+        extracts = user.get_log_extracts(job, state)
+        if extracts != "":
+            logger.warning('\nXXXXXXXXXXXXXXXXXXXXX[begin log extracts]\n%s\nXXXXXXXXXXXXXXXXXXXXX[end log extracts]' % extracts)
+    data['pilotLog'] = extracts[:1024]
 
 
 def add_memory_info(data, workdir, name=""):
