@@ -115,19 +115,19 @@ def abort_jobs_in_queues(queues, sig):
         declare_failed_by_kill(job, queues.failed_jobs, sig)
 
 
-def put_in_queue(job, queue):
+def put_in_queue(obj, queue):
     """
-    Put the job object in the given queue.
+    Put the given object in the given queue.
 
-    :param job: job object.
+    :param obj: object.
     :param queue: queue object.
     :return:
     """
 
     # update job object size (currently not used)
     #try:
-    #size = get_size(job)
-    #job.add_size(size)
+    #size = get_size(obj)
+    #job.add_size(size) - only if obj = job
     #except:
     #pass
-    queue.put(job)
+    queue.put(obj)
