@@ -1362,6 +1362,8 @@ def retrieve(queues, traces, args):
                 jobnumber += 1
                 while not args.graceful_stop.is_set():
                     if has_job_completed(queues):
+                        args.job_aborted.clear()
+                        args.abort_job.clear()
                         logger.info('ready for new job')
 
                         # re-establish logging
