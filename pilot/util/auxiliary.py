@@ -303,7 +303,7 @@ def set_pilot_state(job=None, state=''):
 
     os.environ['PILOT_JOB_STATE'] = state
 
-    if job and job.state != 'finished' and job.state != 'failed':
+    if job and job.state != 'failed':
         job.state = state
 
 
