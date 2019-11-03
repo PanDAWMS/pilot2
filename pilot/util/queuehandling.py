@@ -10,7 +10,7 @@
 import time
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.util.auxiliary import get_logger, get_size, set_pilot_state
+from pilot.util.auxiliary import get_logger, set_pilot_state  #, get_size
 
 import logging
 logger = logging.getLogger(__name__)
