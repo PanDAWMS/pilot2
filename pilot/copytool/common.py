@@ -146,7 +146,7 @@ def output_line_scan(ret, output):
     """
 
     for line in output.split('\n'):
-        m = re.search("[Dd]etails\s*:\s*(?P<error>.*)", line)
+        m = re.search(r"[Dd]etails\s*:\s*(?P<error>.*)", line)  # Python 3 (added r)
         if m:
             ret['error'] = m.group('error')
         elif 'service_unavailable' in line:

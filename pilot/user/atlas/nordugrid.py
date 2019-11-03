@@ -145,5 +145,5 @@ def convert_to_prettyprint(xmlstr):
     :return: XML string (pretty printed)
     """
 
-    text_re = re.compile('>\n\s+([^<>\s].*?)\n\s+</', re.DOTALL)
-    return text_re.sub('>\g<1></', xmlstr)
+    text_re = re.compile(r'>\n\s+([^<>\s].*?)\n\s+</', re.DOTALL)  # Python 3 (added r)
+    return text_re.sub(r'>\g<1></', xmlstr)  # Python 3 (added r)

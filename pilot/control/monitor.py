@@ -140,9 +140,9 @@ def get_process_info(cmd, user=getuser(), args='aufx', pid=None):
       get_processes_for_command('sshd:')
 
       nilspal   1362  0.0  0.0 183424  2528 ?        S    12:39   0:00 sshd: nilspal@pts/28
-      nilspal   1363  0.0  0.0 136628  2640 pts/28   Ss   12:39   0:00  \_ -tcsh
-      nilspal   8603  0.0  0.0  34692  5072 pts/28   S+   12:44   0:00      \_ python monitor.py
-      nilspal   8604  0.0  0.0  62036  1776 pts/28   R+   12:44   0:00          \_ ps -u nilspal aufx --no-headers
+      nilspal   1363  0.0  0.0 136628  2640 pts/28   Ss   12:39   0:00  _ -tcsh
+      nilspal   8603  0.0  0.0  34692  5072 pts/28   S+   12:44   0:00      _ python monitor.py
+      nilspal   8604  0.0  0.0  62036  1776 pts/28   R+   12:44   0:00          _ ps -u nilspal aufx --no-headers
 
       -> ['0.0', '0.0', 'sshd: nilspal@pts/28', 1]
 

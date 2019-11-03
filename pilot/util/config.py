@@ -52,7 +52,7 @@ def read(config_file):
         for key, value in config.items(section):
             # handle environmental variables
             if value.startswith('$'):
-                tmpmatch = re.search('\$\{*([^\}]+)\}*', value)
+                tmpmatch = re.search(r'\$\{*([^\}]+)\}*', value)  # Python 3 (added r)
                 envname = tmpmatch.group(1)
                 if envname not in os.environ:
                     raise KeyError('{0} in the cfg is an undefined environment variable.'.format(envname))
@@ -64,7 +64,7 @@ def read(config_file):
                 value = False
             elif value == 'None' or value == 'none':
                 value = None
-            elif re.match('^\d+$', value):
+            elif re.match(r'^\d+$', value):  # Python 3 (added r)
                 value = int(value)
             setattr(settings, key, value)
 

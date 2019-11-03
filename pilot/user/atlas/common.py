@@ -591,10 +591,10 @@ def get_guids_from_jobparams(jobparams, infiles, infilesguids):
     if directreadinginputfiles != []:
         _infiles = directreadinginputfiles[0].split(",")
     else:
-        match = re.search("-i ([A-Za-z0-9.\[\],_-]+) ", jobparams)
+        match = re.search(r"-i ([A-Za-z0-9.\[\],_-]+) ", jobparams)  # Python 3 (added r)
         if match is not None:
             compactinfiles = match.group(1)
-            match = re.search('(.*)\[(.+)\](.*)\[(.+)\]', compactinfiles)
+            match = re.search(r'(.*)\[(.+)\](.*)\[(.+)\]', compactinfiles)  # Python 3 (added r)
             if match is not None:
                 infiles = []
                 head = match.group(1)

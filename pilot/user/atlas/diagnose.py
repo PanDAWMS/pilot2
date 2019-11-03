@@ -428,12 +428,12 @@ def get_number_of_events_from_summary_file(oldest_summary_file):
             for line in lines:
                 if "Events Read:" in line:
                     try:
-                        n1 = int(re.match('Events Read\: *(\d+)', line).group(1))
+                        n1 = int(re.match(r'Events Read\: *(\d+)', line).group(1))  # Python 3 (added r)
                     except ValueError as e:
                         logger.warning('failed to convert number of read events to int: %s' % e)
                 if "Events Written:" in line:
                     try:
-                        n2 = int(re.match('Events Written\: *(\d+)', line).group(1))
+                        n2 = int(re.match(r'Events Written\: *(\d+)', line).group(1))  # Python 3 (added r)
                     except ValueError as e:
                         logger.warning('failed to convert number of written events to int: %s' % e)
                 if n1 > 0 and n2 > 0:
