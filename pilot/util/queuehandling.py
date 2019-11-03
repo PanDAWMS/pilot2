@@ -118,13 +118,16 @@ def abort_jobs_in_queues(queues, sig):
 def put_in_queue(job, queue):
     """
     Put the job object in the given queue.
-    The function also updates the job object size.
 
     :param job: job object.
     :param queue: queue object.
     :return:
     """
 
-    size = get_size(job)
-    job.add_size(size)
+    # update job object size (currently not used)
+    #try:
+    #size = get_size(job)
+    #job.add_size(size)
+    #except:
+    #pass
     queue.put(job)

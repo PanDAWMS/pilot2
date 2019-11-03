@@ -311,13 +311,13 @@ def check_for_final_server_update(update_server):
     """
     Do not set graceful stop if pilot has not finished sending the final job update
     i.e. wait until SERVER_UPDATE is DONE_FINAL. This function sleeps for a maximum
-    of 20*10 s until SERVER_UPDATE env variable has been set to SERVER_UPDATE_FINAL.
+    of 20*30 s until SERVER_UPDATE env variable has been set to SERVER_UPDATE_FINAL.
 
     :param update_server: args.update_server boolean.
     :return:
     """
 
-    max_i = 200
+    max_i = 20
     i = 0
 
     # abort if in startup stage or if in final update stage
