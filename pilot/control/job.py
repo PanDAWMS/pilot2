@@ -1637,7 +1637,7 @@ def queue_monitor(queues, traces, args):  # noqa: C901
     job = None
     sentfinal = False
     while True:  # will abort when graceful_stop has been set or if enough time has passed after kill signal
-        time.sleep(0.5)
+        time.sleep(1)
 
         if traces.pilot['command'] == 'abort':
             logger.warning('job queue monitor received an abort instruction')
@@ -1661,12 +1661,14 @@ def queue_monitor(queues, traces, args):  # noqa: C901
             if state != 'stage-out':
                 # logger.info("no need to wait since job state=\'%s\'" % state)
                 break
-            if abort:
-                pause_queue_monitor(60)
+            pause_queue_monitor(1) if not abort else pause_queue_monitor(10)
 
         # job has not been defined if it's still running
+        if not job:
+            continue
+
         completed_jobids = queues.completed_jobids.queue if queues.completed_jobids else []
-        if job and job.jobid not in completed_jobids:
+        if job.jobid not in completed_jobids:
             log = get_logger(job.jobid)
             log.info("preparing for final server update for job %s (state=\'%s\')" % (job.jobid, job.state))
 
@@ -1689,10 +1691,12 @@ def queue_monitor(queues, traces, args):  # noqa: C901
             else:
                 logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
                 # now ready for the next job (or quit)
-                put_in_queue(job.jobid, queues.completed_jobids)
-                put_in_queue(job, queues.completed_jobs)
+                put_in_queue(_job.jobid, queues.completed_jobids)
+                put_in_queue(_job, queues.completed_jobs)
                 # reset the sentfinal since we will now get another job
                 sentfinal = False
+                del job
+                del _job
 
         if abort:
             break
