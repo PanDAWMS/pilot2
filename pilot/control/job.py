@@ -575,7 +575,7 @@ def add_timing_and_extracts(data, job, state, args):
 
     # add log extracts (for failed/holding jobs or for jobs with outbound connections)
     extracts = ""
-    if job.state == 'failed' or job.state == 'holding':
+    if state == 'failed' or state == 'holding':
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
         extracts = user.get_log_extracts(job, state)
