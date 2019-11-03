@@ -102,7 +102,7 @@ def run(args):
                                    'validated_jobs', 'validated_payloads', 'monitored_payloads',
                                    'finished_jobs', 'finished_payloads', 'finished_data_in', 'finished_data_out',
                                    'failed_jobs', 'failed_payloads', 'failed_data_in', 'failed_data_out',
-                                   'completed_jobs'])
+                                   'completed_jobs', 'completed_jobids'])
 
     queues.jobs = queue.Queue()
     queues.payloads = queue.Queue()
@@ -125,6 +125,7 @@ def run(args):
     queues.failed_data_out = queue.Queue()
 
     queues.completed_jobs = queue.Queue()
+    queues.completed_jobids = queue.Queue()
 
     logger.info('setting up tracing')
     traces = namedtuple('traces', ['pilot'])

@@ -1660,8 +1660,8 @@ def queue_monitor(queues, traces, args):  # noqa: C901
                 pause_queue_monitor(60)
 
         # job has not been defined if it's still running
-        completed_jobs = queues.completed_jobs.queue if queues.completed_jobs else []
-        if job and job not in completed_jobs:
+        completed_jobids = queues.completed_jobids.queue if queues.completed_jobids else []
+        if job and job.jobid not in completed_jobids:
             log = get_logger(job.jobid)
             log.info("preparing for final server update for job %s (state=\'%s\')" % (job.jobid, job.state))
 
@@ -1684,6 +1684,7 @@ def queue_monitor(queues, traces, args):  # noqa: C901
             else:
                 logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
                 # now ready for the next job (or quit)
+                put_in_queue(job.jobid, queues.completed_jobids)
                 put_in_queue(job, queues.completed_jobs)
                 # reset the sentfinal since we will now get another job
                 sentfinal = False
