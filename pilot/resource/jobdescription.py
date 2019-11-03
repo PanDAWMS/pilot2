@@ -429,20 +429,20 @@ class JobDescription(object):
 
             if key in self.__input_file_keys:
                 log.warning(("Old key JobDescription.%s is used. Better to use JobDescription.input_files[][%s] to"
-                             " access and manipulate this value.\n" % (key, self.__input_file_keys[key])) +
-                            self.get_traceback())
+                             " access and manipulate this value.\n" % (key, self.__input_file_keys[key]))
+                            + self.get_traceback())
                 return self.get_input_file_prop(key)
             if key in self.__output_file_keys:
                 log.warning(("Old key JobDescription.%s is used. Better to use JobDescription.output_files[][%s] to"
-                             " access and manipulate this value.\n" % (key, self.__output_file_keys[key])) +
-                            self.get_traceback())
+                             " access and manipulate this value.\n" % (key, self.__output_file_keys[key]))
+                            + self.get_traceback())
                 return self.get_output_file_prop(key)
 
             snake_key = camel_to_snake(key)
             if snake_key in self.__key_aliases_snake:
                 log.warning(("Old key JobDescription.%s is used. Better to use JobDescription.%s to access and "
-                             "manipulate this value.\n" % (key, self.__key_aliases_snake[snake_key])) +
-                            self.get_traceback())
+                             "manipulate this value.\n" % (key, self.__key_aliases_snake[snake_key]))
+                            + self.get_traceback())
                 return stringify_weird(self.__holder[self.__key_aliases_snake[snake_key]])
 
             if key in self.__soft_key_aliases:
@@ -477,8 +477,8 @@ class JobDescription(object):
             snake_key = camel_to_snake(key)
             if snake_key in self.__key_aliases_snake:
                 log.warning(("Old key JobDescription.%s is used. Better to use JobDescription.%s to access and"
-                             "manipulate this value.\n" % (key, self.__key_aliases_snake[snake_key])) +
-                            self.get_traceback())
+                             "manipulate this value.\n" % (key, self.__key_aliases_snake[snake_key]))
+                            + self.get_traceback())
                 self.__holder[self.__key_aliases_snake[snake_key]] = parse_value(value)
 
             if key in self.__soft_key_aliases:
