@@ -1691,14 +1691,14 @@ def queue_monitor(queues, traces, args):  # noqa: C901
             else:
                 logger.debug('job %s was dequeued from the monitored payloads queue' % _job.jobid)
                 # now ready for the next job (or quit)
-                try:
-                    put_in_queue(job.jobid, queues.completed_jobids)
-                    put_in_queue(job, queues.completed_jobs)
+                put_in_queue(job.jobid, queues.completed_jobids)
+                put_in_queue(job, queues.completed_jobs)
+                if sentfinal and not abort:
                     job = None
-                    del _job
-                    logger.debug('job object deleted')
-                except Exception as e:
-                    logger.warning('exception caught: %s' % e)
+                    logger.debug('job object reset')
+                del _job
+                logger.debug('tmp job object deleted')
+
                 # reset the sentfinal since we will now get another job
                 if not abort:
                     sentfinal = False
