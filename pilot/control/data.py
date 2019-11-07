@@ -693,9 +693,9 @@ def _stage_out_new(job, args):
 
     log = get_logger(job.jobid)
 
-    #log.info('testing sending SIGUSR1')
-    #import signal
-    #os.kill(os.getpid(), signal.SIGUSR1)
+    log.info('testing sending SIGUSR1')
+    import signal
+    os.kill(os.getpid(), signal.SIGUSR1)
 
     # write time stamps to pilot timing file
     add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEOUT, time.time(), args)
@@ -786,6 +786,7 @@ def queue_monitoring(queues, traces, args):
         time.sleep(0.5)
         if traces.pilot['command'] == 'abort':
             logger.warning('data queue monitor saw the abort instruction')
+            args.graceful_stop.set()
 
         # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
         # (abort at the end of the loop)
