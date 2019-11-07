@@ -66,11 +66,13 @@ def control(queues, traces, args):
         while not args.graceful_stop.is_set():
             # every seconds, run the monitoring checks
             if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility
+                logger.warning('aborting monitor loop since graceful_stop has been set')
                 break
 
             # abort if kill signal arrived too long time ago, ie loop is stuck
             if args.kill_time and int(time.time()) - args.kill_time > MAX_KILL_WAIT_TIME:
                 logger.warning('loop has run for too long time - will abort')
+                args.graceful_stop.set()
                 break
 
             # check if the pilot has run out of time (stop ten minutes before PQ limit)

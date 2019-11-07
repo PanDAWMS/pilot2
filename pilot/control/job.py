@@ -1694,14 +1694,14 @@ def queue_monitor(queues, traces, args):  # noqa: C901
                 # now ready for the next job (or quit)
                 put_in_queue(job.jobid, queues.completed_jobids)
                 put_in_queue(job, queues.completed_jobs)
-                if sentfinal and not abort:
+                if sentfinal and not abort and not args.job_aborted.is_set():
                     job = None
                     logger.debug('job object reset')
                 del _job
                 logger.debug('tmp job object deleted')
 
                 # reset the sentfinal since we will now get another job
-                if not abort:
+                if not abort and not args.job_aborted.is_set():
                     sentfinal = False
 
         if abort:
