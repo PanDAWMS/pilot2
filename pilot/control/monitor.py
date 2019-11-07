@@ -69,7 +69,7 @@ def control(queues, traces, args):
                 break
 
             # abort if kill signal arrived too long time ago, ie loop is stuck
-            if args.kill_time and args.kill_time > MAX_KILL_WAIT_TIME:
+            if args.kill_time and int(time.time()) - args.kill_time > MAX_KILL_WAIT_TIME:
                 logger.warning('loop has run for too long time - will abort')
                 break
 

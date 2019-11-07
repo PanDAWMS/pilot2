@@ -1554,7 +1554,7 @@ def order_log_transfer(queues, job):
         else:
             if log_transfer == LOG_TRANSFER_IN_PROGRESS:  # set in data component, job object is singleton
                 log.info('log transfer is in progress')
-            time.sleep(1)
+            time.sleep(2)
             n += 1
 
     log.info('proceeding with server update (n=%d)' % n)
