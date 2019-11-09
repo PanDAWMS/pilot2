@@ -60,7 +60,9 @@ def main():
     config.read(args.config)
 
     # perform https setup
-    https_setup(args, get_pilot_version())
+    # DPB skip if harvester
+    if not args.harvester:
+        https_setup(args, get_pilot_version())
 
     # initialize InfoService
     try:
@@ -81,6 +83,7 @@ def main():
 
     # set requested workflow
     logger.info('pilot arguments: %s' % str(args))
+    #logger.debug('pilot envars: %s' %str(environ))
     logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
 
@@ -437,11 +440,13 @@ def wrap_up(initdir, mainworkdir, args):
 
     exit_code = 0
 
+    logging.debug("wrap_up initdir: %s mainworkdir: %s " % (initdir, mainworkdir))
     # cleanup pilot workdir if created
     if initdir != mainworkdir:
         chdir(initdir)
         try:
-            rmtree(mainworkdir)
+            if not (args.harvester and args.debug):
+                rmtree(mainworkdir)
         except Exception as e:
             logging.warning("failed to remove %s: %s" % (mainworkdir, e))
         else:
