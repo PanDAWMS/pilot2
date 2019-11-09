@@ -8,6 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch
 
 import subprocess
+#DPB import traceback
 from os import environ, getcwd, setpgrp  #, getpgid  #setsid
 
 import logging
@@ -34,6 +35,14 @@ def execute(executable, **kwargs):
     mute = kwargs.get('mute', False)
     job = kwargs.get('job')
 
+    #DPB#traceback stack trace
+    #DPBstack_str = ''.join(traceback.format_stack())
+    #DPBlogger.debug(stack_str)
+
+    logger.debug('usecontainer value: {}'.format(str(usecontainer)))
+    logger.debug('Initial type(executable): {}'.format(type(executable)))
+    logger.debug('Initial executable value: {}'.format(str(executable)))
+
     # convert executable to string if it is a list
     if type(executable) is list:
         executable = ' '.join(executable)
@@ -52,10 +61,16 @@ def execute(executable, **kwargs):
             # should a container really be used?
             do_use_container = job.usecontainer if job else container.do_use_container(**kwargs)
 
+            logger.debug('do_use_container value: {}'.format(str(do_use_container)))
+
             if do_use_container:
                 diagnostics = ""
                 try:
+                    logger.debug('before container.wrapper type(executable): {}'.format(type(executable)))
+                    logger.debug('Before container.wrapper executable value: {}'.format(str(executable)))
                     executable = container.wrapper(executable, **kwargs)
+                    logger.debug('after container.wrapper type(executable): {}'.format(type(executable)))
+                    logger.debug('after container.wrapper executable value: {}'.format(str(executable)))
                 except Exception as e:
                     diagnostics = 'failed to execute wrapper function: %s' % e
                     logger.fatal(diagnostics)
