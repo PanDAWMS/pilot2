@@ -35,9 +35,9 @@ from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
-from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json, establish_logging, write_file
+from pilot.util.filehandling import get_files, tail, is_json, copy, read_file, write_json, establish_logging, write_file
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file, \
-    is_harvester_mode, get_worker_attributes_file, publish_work_report, get_event_status_file, \
+    is_harvester_mode, get_worker_attributes_file, publish_job_report, publish_work_report, get_event_status_file, \
     publish_stageout_files
 from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
@@ -238,6 +238,7 @@ def send_state(job, args, state, xml=None, metadata=None):
                 path = get_worker_attributes_file(args)
                 # Should publish work report return a Boolean for pass/fail?
                 publish_work_report(data, path)
+                publish_job_report(job, args, config.Payload.jobreport)
                 return True
             else:
                 log.debug('Warning - could not write log and output files to file %s' % event_status_file)
@@ -676,8 +677,8 @@ def validate(queues, traces, args):
             # Define a new parent group
             os.setpgrp()
 
-            log.debug('creating job working directory')
             job_dir = os.path.join(args.mainworkdir, 'PanDA_Pilot-%s' % job.jobid)
+            log.debug('creating job working directory : %s' % job_dir)
             try:
                 os.mkdir(job_dir)
                 os.chmod(job_dir, 0770)
@@ -1001,7 +1002,8 @@ def get_job_definition_from_file(path, harvester):
                 # remove the job definition file from the original location, place a renamed copy in the pilot dir
                 new_path = os.path.join(os.environ.get('PILOT_HOME'), 'job_definition.json')
                 copy(path, new_path)
-                remove(path)
+
+                #DPB remove(path)
 
                 # note: the pilot can only handle one job at the time from Harvester
                 return job_definition_list[0]
@@ -1056,7 +1058,9 @@ def locate_job_definition(args):
 
     paths = [os.path.join("%s/.." % args.sourcedir, config.Pilot.pandajobdata),
              os.path.join(args.sourcedir, config.Pilot.pandajobdata),
-             os.path.join(os.environ['PILOT_WORK_DIR'], config.Pilot.pandajobdata)]
+             os.path.join(os.environ['PILOT_WORK_DIR'], config.Pilot.pandajobdata),
+             os.path.join(args.harvester_workdir, config.Harvester.pandajob_file),
+             os.path.join(os.environ['HARVESTER_WORKDIR'], config.Harvester.pandajob_file)]
 
     path = ""
     for _path in paths:
@@ -1406,8 +1410,7 @@ def create_job(dispatcher_response, queue):
 
     jobinfosys = InfoService()
     jobinfosys.init(queue, infosys.confinfo, infosys.extinfo, JobInfoProvider(job))
-    job.init(infosys)
-
+    job.infosys = jobinfosys
     #job.workdir = os.getcwd()
 
     logger.info('received job: %s (sleep until the job has finished)' % job.jobid)
