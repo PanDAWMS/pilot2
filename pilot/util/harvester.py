@@ -27,8 +27,9 @@ def is_harvester_mode(args):
     :return: Boolean.
     """
 
-    if (args.harvester_workdir != '' or args.harvester_datadir != '' or args.harvester_eventstatusdump != '' or
-            args.harvester_workerattributes != '') and not args.update_server:
+    if (args.harvester_workdir != '' or args.harvester_datadir != '') and not args.update_server:
+        harvester = True
+    elif (args.harvester_eventstatusdump != '' or args.harvester_workerattributes != '') and not args.update_server:
         harvester = True
     elif ('HARVESTER_ID' in environ or 'HARVESTER_WORKER_ID' in environ) and args.harvester_submitmode.lower() == 'push':
         harvester = True
@@ -232,8 +233,8 @@ def publish_stageout_files(job, event_status_file):
             logger.debug('Failed to declare stagout in: {0}'.format(event_status_file))
             return False
     else:
-            logger.debug('No Report for stageout')
-            return False
+        logger.debug('No Report for stageout')
+        return False
 
 
 def publish_work_report(work_report=None, worker_attributes_file="worker_attributes.json"):
@@ -256,6 +257,35 @@ def publish_work_report(work_report=None, worker_attributes_file="worker_attribu
             del (work_report["xml"])
         if write_json(worker_attributes_file, work_report):
             logger.info("work report published: {0}".format(work_report))
+
+
+def publish_job_report(job, args, job_report_file="jobReport.json"):
+    """
+    Copy job report file to make it accessible by Harvester. Shrink job report file.
+
+    :param job: job object.
+    :param args: Pilot arguments object.
+    :param job_report_file: name of job report (string).
+    :raises FileHandlingFailure: in case of IOError.
+    """
+
+    src_file = join(job.workdir, job_report_file)
+    dst_file = join(args.harvester_workdir, job_report_file)
+
+    try:
+        logger.info(
+            "Copy of payload report [{0}] to access point: {1}".format(job_report_file, args.harvester_workdir))
+        # shrink jobReport
+        job_report = read_json(src_file)
+        if 'executor' in job_report:
+            for executor in job_report['executor']:
+                if 'logfileReport' in executor:
+                    executor['logfileReport'] = {}
+
+        write_json(dst_file, job_report)
+
+    except IOError:
+        logger.error("Job report copy failed")
 
 
 def parse_job_definition_file(filename):
