@@ -1590,11 +1590,11 @@ def wait_for_aborted_job_stageout(args, queues, job):
     log.debug('using max_wait_time = %d s' % max_wait_time)
     t0 = time.time()
     while time.time() - t0 < max_wait_time:
-        if job not in queues.finished_data_out.queue and job not in queues.failed_data_out.queue:
-            time.sleep(0.5)
-        else:
+        if job in queues.finished_data_out.queue or job in queues.failed_data_out.queue:
             log.info('stage-out has finished, proceed with final server update')
             break
+        else:
+            time.sleep(0.5)
 
     log.info('proceeding with final server update')
 
@@ -1635,7 +1635,6 @@ def queue_monitor(queues, traces, args):  # noqa: C901
         logger.warning('queues are still empty of jobs - will begin queue monitoring anyway')
 
     job = None
-    sentfinal = False
     while True:  # will abort when graceful_stop has been set or if enough time has passed after kill signal
         time.sleep(1)
 
@@ -1678,9 +1677,7 @@ def queue_monitor(queues, traces, args):  # noqa: C901
                 wait_for_aborted_job_stageout(args, queues, job)
 
             # send final server update
-            if not sentfinal:
-                update_server(job, args)
-                sentfinal = True
+            update_server(job, args)
 
             # we can now stop monitoring this job, so remove it from the monitored_payloads queue and add it to the
             # completed_jobs queue which will tell retrieve() that it can download another job
@@ -1694,23 +1691,11 @@ def queue_monitor(queues, traces, args):  # noqa: C901
                 # now ready for the next job (or quit)
                 put_in_queue(job.jobid, queues.completed_jobids)
                 put_in_queue(job, queues.completed_jobs)
-                if sentfinal and not abort and not args.job_aborted.is_set():
-                    job = None
-                    logger.debug('job object reset')
                 del _job
                 logger.debug('tmp job object deleted')
 
-                # reset the sentfinal since we will now get another job
-                if not abort and not args.job_aborted.is_set():
-                    sentfinal = False
-
         if abort:
             break
-
-    # fail safe: this thread must not end if final server update has not been sent
-    if not sentfinal and job:
-        logger.warning('fail-safe activated: final server update has not been done but thread is about to end')
-        update_server(job, args)
 
     logger.debug('[job] queue monitor thread has finished')
 
