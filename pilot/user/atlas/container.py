@@ -20,9 +20,38 @@ from pilot.util.config import config
 from pilot.util.filehandling import write_file
 # import pilot.info.infoservice as infosys
 
+# imports for get_payload_proxy()
+from pilot.util import https
+import traceback
+
 import logging
 logger = logging.getLogger(__name__)
 
+
+def get_payload_proxy(proxy_outfile_name, voms_role=''):
+    try:
+        # it assumes that https_setup() was done already
+        res = https.request('{pandaserver}/server/panda/getProxy'.format(pandaserver=config.Pilot.pandaserver),
+                            data={'role': voms_role})
+        logger.info("Get proxy with role '%s' from panda server returned: %s" % (voms_role, res))
+
+        if res is None:
+            logger.error("Unable to get proxy with role '%s' from panda server" % voms_role)
+            return False
+
+        if res['StatusCode'] != 0:
+            logger.error("When get proxy with role '%s' panda server returned: %s" % (voms_role, res['errorDialog']))
+            return False
+
+        proxyContents = res['userProxy']
+        _outfile = open(proxy_outfile_name, 'w')
+        _outfile.write(proxyContents)
+        _outfile.close()
+        return True
+
+    except Exception, e:
+        logger.error("Get proxy from panda server failed: %s, %s" % (e, traceback.format_exc()))
+        return False
 
 def do_use_container(**kwargs):
     """
@@ -181,7 +210,6 @@ def get_middleware_type():
 
     return middleware_type
 
-
 def alrb_wrapper(cmd, workdir, job=None):
     """
     Wrap the given command with the special ALRB setup for containers
@@ -222,6 +250,14 @@ def alrb_wrapper(cmd, workdir, job=None):
         # do not include the X509_USER_PROXY in the command the container will execute
         x509 = os.environ.get('X509_USER_PROXY')
         if x509 != "":
+
+            # substitute pilot proxy with payload proxy
+            x509new = x509 + "-payload"
+            if get_payload_proxy(x509new):
+                x509 = x509new
+            else:
+                log.warning("get payload failed -- use pilot X509")
+
             cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, "")
             # add it instead to the container setup command
             _cmd = "export X509_USER_PROXY=%s;" % x509 + _cmd
