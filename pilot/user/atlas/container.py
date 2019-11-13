@@ -210,6 +210,7 @@ def get_middleware_type():
 
     return middleware_type
 
+
 def alrb_wrapper(cmd, workdir, job=None):
     """
     Wrap the given command with the special ALRB setup for containers
