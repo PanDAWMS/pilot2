@@ -20,9 +20,9 @@ For Python 2.6 you need to install ``flake8<3.0.0``, which can miss a few things
 
 The pilot is a dependency-less Python application and relies on ``/usr/bin/env python``. The minimum pilot can be called like:
 
-    ./pilot.py -q <PANDA_QUEUE> -r <PANDA_RESOURCE> -s <PANDA_SITE>
+    ./pilot.py -q <PANDA_QUEUE>
 
-where ``QUEUE_NAME`` correspond to the ATLAS PandaQueue as defined in AGIS etc. This will launch the default ``generic`` workflow.
+where ``PANDA_QUEUE`` correspond to the ATLAS PandaQueue as defined in AGIS. This will launch the default ``generic`` workflow.
 
 ## Running the testcases
 
