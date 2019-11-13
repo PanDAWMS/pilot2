@@ -298,7 +298,7 @@ class StagingClient(object):
 
         logger.info('Number of resolved replicas:\n' +
                     '\n'.join(["lfn=%s: replicas=%s, is_directaccess=%s"
-                               % (f.lfn, len(f.replicas), f.is_directaccess(ensure_replica=False)) for f in files]))
+                               % (f.lfn, len(f.replicas or []), f.is_directaccess(ensure_replica=False)) for f in files]))
 
         return files
 
