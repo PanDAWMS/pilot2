@@ -553,8 +553,7 @@ class StageInClient(StagingClient):
             Primary schemas ignore replica priority (used to resolve direct access replica, which could be not with top priority set)
             :param fspec: input `FileSpec` objects
             :param allowed_schemas: list of allowed schemas or any if None
-            :return: dict(surl, ddmendpoint, pfn, domain)
-            :raise PilotException: if replica not found
+            :return: dict(surl, ddmendpoint, pfn, domain) or None if replica not found
         """
 
         if not fspec.replicas:
@@ -585,9 +584,11 @@ class StageInClient(StagingClient):
 
         if not replica:  # replica not found
             schemas = 'any' if not allowed_schemas[0] else ','.join(allowed_schemas)
-            error = 'Failed to find replica for input file=%s, domain=%s, allowed_schemas=%s, fspec=%s' % (fspec.lfn, domain, schemas, fspec)
-            self.logger.error("resolve_replica: %s" % error)
-            raise PilotException(error, code=ErrorCodes.REPLICANOTFOUND)
+            pschemas = 'any' if primary_schemas and not primary_schemas[0] else ','.join(primary_schemas or [])
+
+            error = 'Failed to find replica for file=%s, domain=%s, allowed_schemas=%s, pschemas=%s, fspec=%s' % (fspec.lfn, domain, schemas, pschemas, fspec)
+            self.logger.info("resolve_replica: %s" % error)
+            return
 
         # prefer SRM protocol for surl -- to be verified, can it be deprecaed?
         rse_replicas = replicas.get(replica['ddmendpoint'], [])
