@@ -113,7 +113,8 @@ def get_copysetup(copytools, copytool_name):
     """
     copysetup = ""
 
-    for ct in list(copytools.keys()):  # Python 2/3
+    # for ct in list(copytools.keys()):  # Python 2/3
+    for ct in copytools.keys():  # Python 2
         if copytool_name == ct:
             copysetup = copytools[ct].get('setup')
             break
