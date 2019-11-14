@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
 import os
 from xml.dom import minidom
@@ -44,7 +44,7 @@ def create_input_file_metadata(file_dictionary, workdir, filename="PoolFileCatal
     # create the file structure
     data = ElementTree.Element('POOLFILECATALOG')
 
-    for fileid in file_dictionary.keys():
+    for fileid in list(file_dictionary.keys()):  # Python 2/3
         _file = ElementTree.SubElement(data, 'File')
         _file.set('ID', fileid)
         _physical = ElementTree.SubElement(_file, 'physical')

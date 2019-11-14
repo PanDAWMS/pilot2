@@ -61,7 +61,7 @@ def copy_in(files, **kwargs):
         :raise: PilotException in case of controlled error
     """
 
-    allow_direct_access = kwargs.get('allow_direct_access')
+    #allow_direct_access = kwargs.get('allow_direct_access')
     ignore_errors = kwargs.get('ignore_errors')
     trace_report = kwargs.get('trace_report')
 
@@ -78,12 +78,12 @@ def copy_in(files, **kwargs):
         trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
 
         # continue loop for files that are to be accessed directly
-        if fspec.is_directaccess(ensure_replica=False) and allow_direct_access and fspec.accessmode == 'direct':
-            fspec.status_code = 0
-            fspec.status = 'remote_io'
-            trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
-            trace_report.send()
-            continue
+        #if fspec.is_directaccess(ensure_replica=False) and allow_direct_access and fspec.accessmode == 'direct':
+        #    fspec.status_code = 0
+        #    fspec.status = 'remote_io'
+        #    trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
+        #    trace_report.send()
+        #    continue
 
         trace_report.update(catStart=time())  ## is this metric still needed? LFC catalog
         fspec.status_code = 0
@@ -267,13 +267,9 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out):
 
     # download client raises an exception if any file failed
     if fspec.turl:
-        # restore the following line when it is supported on the rucio client
-        #result = download_client.download_pfns([f], 1, trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
-        result = download_client.download_pfns([f], 1, trace_custom_fields=trace_pattern)
+        result = download_client.download_pfns([f], 1, trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
     else:
-        # restore the following line when it is supported on the rucio client
-        #result = download_client.download_dids([f], trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
-        result = download_client.download_dids([f], trace_custom_fields=trace_pattern)
+        result = download_client.download_dids([f], trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
 
     logger.debug('Rucio download client returned %s' % result)
 
@@ -314,8 +310,7 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out):
 
     # upload client raises an exception if any file failed
     try:
-        # TODO: Add traces_copy_out=trace_report_out when supported in rucio
-        result = upload_client.upload([f], summary_file_path=summary_file_path)
+        result = upload_client.upload([f], summary_file_path=summary_file_path, traces_copy_out=trace_report_out)
     except UnboundLocalError:
         logger.warning('rucio still needs a bug fix of the summary in the uploadclient')
 

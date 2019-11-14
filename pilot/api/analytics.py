@@ -265,10 +265,11 @@ class Fit(object):
 
         y_observed = self._y
         y_expected = []
-        i = 0
+        #i = 0
         for x in self._x:
-            y_expected.append(self.value(x) - y_observed[i])
-            i += 1
+            #y_expected.append(self.value(x) - y_observed[i])
+            y_expected.append(self.value(x))
+            #i += 1
         if y_observed and y_observed != [] and y_expected and y_expected != []:
             self._chi2 = chi2(y_observed, y_expected)
         else:

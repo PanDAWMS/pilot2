@@ -38,7 +38,7 @@ class MemoryMonitoring(Services):
             self.workdir = getcwd()
 
         if self.user:
-            user_utility = __import__('pilot.user.%s.utilities' % self.user, globals(), locals(), [self.user], -1)
+            user_utility = __import__('pilot.user.%s.utilities' % self.user, globals(), locals(), [self.user], 0)  # Python 2/3
             self._cmd = user_utility.get_memory_monitor_setup(self.pid, self.workdir)
 
     def get_command(self):

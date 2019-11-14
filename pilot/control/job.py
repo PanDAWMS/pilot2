@@ -117,8 +117,8 @@ def _validate_job(job):
     """
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
-    container = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [user], -1)
+    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+    container = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [user], 0)  # Python 2/3
 
     # should a container be used for the payload?
     try:
@@ -428,6 +428,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     """
 
     log = get_logger(job.jobid, logger)
+    log.debug('building data structure to be sent to server with heartbeat')
 
     data = {'jobId': job.jobid,
             'state': state,
@@ -573,12 +574,14 @@ def add_timing_and_extracts(data, job, state, args):
                           (time_getjob, time_stagein, time_payload, time_stageout, time_total_setup)
 
     # add log extracts (for failed/holding jobs or for jobs with outbound connections)
-    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
-    extracts = user.get_log_extracts(job, state)
-    if extracts != "":
-        logger.warning('pilot log extracts:\n%s' % extracts)
-        data['pilotLog'] = extracts[:1024]
+    extracts = ""
+    if state == 'failed' or state == 'holding':
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+        extracts = user.get_log_extracts(job, state)
+        if extracts != "":
+            logger.warning('\nXXXXXXXXXXXXXXXXXXXXX[begin log extracts]\n%s\nXXXXXXXXXXXXXXXXXXXXX[end log extracts]' % extracts)
+    data['pilotLog'] = extracts[:1024]
 
 
 def add_memory_info(data, workdir, name=""):
@@ -593,7 +596,7 @@ def add_memory_info(data, workdir, name=""):
     """
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user], -1)
+    utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
     try:
         #for key in job.utilities
         utility_node = utilities.get_memory_monitor_info(workdir, name=name)
@@ -680,7 +683,7 @@ def validate(queues, traces, args):
             job_dir = os.path.join(args.mainworkdir, 'PanDA_Pilot-%s' % job.jobid)
             try:
                 os.mkdir(job_dir)
-                os.chmod(job_dir, 0770)
+                os.chmod(job_dir, 0o770)
                 job.workdir = job_dir
             except Exception as e:
                 log.debug('cannot create working directory: %s' % str(e))
@@ -895,7 +898,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # should the proxy be verified?
     if verify_proxy:
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-        userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
+        userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
         # is the proxy still valid?
         exit_code, diagnostics = userproxy.verify_proxy()
@@ -1362,6 +1365,8 @@ def retrieve(queues, traces, args):
                 jobnumber += 1
                 while not args.graceful_stop.is_set():
                     if has_job_completed(queues):
+                        args.job_aborted.clear()
+                        args.abort_job.clear()
                         logger.info('ready for new job')
 
                         # re-establish logging
@@ -1406,7 +1411,8 @@ def create_job(dispatcher_response, queue):
 
     jobinfosys = InfoService()
     jobinfosys.init(queue, infosys.confinfo, infosys.extinfo, JobInfoProvider(job))
-    job.infosys = jobinfosys
+    job.init(infosys)
+
     #job.workdir = os.getcwd()
 
     logger.info('received job: %s (sleep until the job has finished)' % job.jobid)
@@ -1466,42 +1472,27 @@ def has_job_completed(queues):
     return False
 
 
-def has_job_finished(queues):
+def get_job_from_queue(queues, state):
     """
-    Check if the job has finished.
+    Check if the job has finished or failed and if so return it.
 
-    :param queues:
-    :return: job object.
-    """
-
-    try:
-        job = queues.finished_jobs.get(block=True, timeout=1)
-    except queue.Empty:
-        # logger.info("(job still running)")
-        job = None
-    else:
-        logger.info("job %s has finished" % job.jobid)
-        # make sure that state=finished
-        set_pilot_state(job=job, state="finished")
-
-    return job
-
-
-def has_job_failed(queues):
-    """
-    Check if the job has failed.
-
-    :param queues:
+    :param queues: pilot queues.
+    :param state: job state (e.g. finished/failed) (string).
     :return: job object.
     """
     try:
-        job = queues.failed_jobs.get(block=True, timeout=1)
+        if state == "finished":
+            job = queues.finished_jobs.get(block=True, timeout=1)
+        elif state == "failed":
+            job = queues.failed_jobs.get(block=True, timeout=1)
+        else:
+            job = None
     except queue.Empty:
         # logger.info("(job still running)")
         job = None
     else:
         # make sure that state=failed
-        set_pilot_state(job=job, state="failed")
+        set_pilot_state(job=job, state=state)
         logger.info("job %s has state=%s" % (job.jobid, job.state))
 
     return job
@@ -1531,11 +1522,10 @@ def is_queue_empty(queues, q):
     return status
 
 
-def order_log_transfer(args, queues, job):
+def order_log_transfer(queues, job):
     """
     Order a log transfer for a failed job.
 
-    :param args: pilot args object.
     :param queues: pilot queues object.
     :param job: job object.
     :return:
@@ -1545,14 +1535,14 @@ def order_log_transfer(args, queues, job):
 
     # add the job object to the data_out queue to have it staged out
     job.stageout = 'log'  # only stage-out log file
-    set_pilot_state(job=job, state='stageout')
+    #set_pilot_state(job=job, state='stageout')
     put_in_queue(job, queues.data_out)
 
-    log.info('job added to data_out queue')
+    log.debug('job added to data_out queue')
 
     # wait for the log transfer to finish
     n = 0
-    nmax = 30
+    nmax = 60
     while n < nmax:
         # refresh the log_transfer since it might have changed
         log_transfer = job.get_status('LOG_TRANSFER')
@@ -1564,7 +1554,7 @@ def order_log_transfer(args, queues, job):
         else:
             if log_transfer == LOG_TRANSFER_IN_PROGRESS:  # set in data component, job object is singleton
                 log.info('log transfer is in progress')
-            time.sleep(1)
+            time.sleep(2)
             n += 1
 
     log.info('proceeding with server update (n=%d)' % n)
@@ -1583,19 +1573,28 @@ def wait_for_aborted_job_stageout(args, queues, job):
     log = get_logger(job.jobid)
 
     # if the pilot received a kill signal, how much time has passed since the signal was intercepted?
-    time_since_kill = get_time_since('0', PILOT_KILL_SIGNAL, args)
-    log.info('%d s passed since kill signal was intercepted - make sure that stage-out has finished' % time_since_kill)
+    try:
+        time_since_kill = get_time_since('1', PILOT_KILL_SIGNAL, args)
+        log.info('%d s passed since kill signal was intercepted - make sure that stage-out has finished' % time_since_kill)
+    except Exception as e:
+        log.warning('exception caught: %s' % e)
+        time_since_kill = 60
+    else:
+        if time_since_kill > 60 or time_since_kill < 0:  # fail-safe
+            log.warning('reset time_since_kill to 60 since value is out of allowed limits')
+            time_since_kill = 60
 
     # if stage-out has not finished, we need to wait (less than two minutes or the batch system will issue
     # a hard SIGKILL)
-    max_wait_time = 2 * 60 - time_since_kill - 5  # assume that we only need 5 more seconds to wrap up
+    max_wait_time = 2 * 60 - time_since_kill - 5
+    log.debug('using max_wait_time = %d s' % max_wait_time)
     t0 = time.time()
     while time.time() - t0 < max_wait_time:
-        if job not in queues.finished_data_out.queue and job not in queues.failed_data_out.queue:
-            time.sleep(0.1)
-        else:
+        if job in queues.finished_data_out.queue or job in queues.failed_data_out.queue:
             log.info('stage-out has finished, proceed with final server update')
             break
+        else:
+            time.sleep(0.5)
 
     log.info('proceeding with final server update')
 
@@ -1620,7 +1619,7 @@ def get_job_status(job, key):
     return value
 
 
-def queue_monitor(queues, traces, args):
+def queue_monitor(queues, traces, args):  # noqa: C901
     """
     Monitoring of queues.
     This function monitors queue activity, specifically if a job has finished or failed and then reports to the server.
@@ -1636,12 +1635,12 @@ def queue_monitor(queues, traces, args):
         logger.warning('queues are still empty of jobs - will begin queue monitoring anyway')
 
     job = None
-    sentfinal = False
     while True:  # will abort when graceful_stop has been set or if enough time has passed after kill signal
-        time.sleep(0.5)
+        time.sleep(1)
 
         if traces.pilot['command'] == 'abort':
             logger.warning('job queue monitor received an abort instruction')
+            args.graceful_stop.set()
 
         # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
         # (abort at the end of the loop)
@@ -1653,31 +1652,32 @@ def queue_monitor(queues, traces, args):
         imax = 20
         i = 0
         while i < imax and os.environ.get('PILOT_WRAP_UP', '') == 'NORMAL':
-            job = check_job(args, queues)
+            job = get_finished_or_failed_job(args, queues)
             if job:
-                logger.debug('check_job returned job with state=%s' % job.state)
+                logger.debug('returned job has state=%s' % job.state)
                 break
             i += 1
             state = get_pilot_state()  # the job object is not available, but the state is also kept in PILOT_JOB_STATE
             if state != 'stage-out':
                 # logger.info("no need to wait since job state=\'%s\'" % state)
                 break
-            if abort:
-                pause_queue_monitor(60)
+            pause_queue_monitor(1) if not abort else pause_queue_monitor(10)
 
         # job has not been defined if it's still running
-        if job:
+        if not job and not abort:
+            continue
+
+        completed_jobids = queues.completed_jobids.queue if queues.completed_jobids else []
+        if job and job.jobid not in completed_jobids:
             log = get_logger(job.jobid)
-            log.info("preparing for final server update for job %s (state=\'%s\')" % (job.jobid, job.state))
+            log.info("preparing for final server update for job %s in state=\'%s\'" % (job.jobid, job.state))
 
             if args.job_aborted.is_set():
                 # wait for stage-out to finish for aborted job
                 wait_for_aborted_job_stageout(args, queues, job)
 
             # send final server update
-            if not sentfinal:
-                update_server(job, args)
-                sentfinal = True
+            update_server(job, args)
 
             # we can now stop monitoring this job, so remove it from the monitored_payloads queue and add it to the
             # completed_jobs queue which will tell retrieve() that it can download another job
@@ -1687,11 +1687,12 @@ def queue_monitor(queues, traces, args):
                 logger.warning('failed to dequeue job: queue is empty (did job fail before job monitor started?)')
                 make_job_report(job)
             else:
-                logger.info('job %s was dequeued from the monitored payloads queue' % _job.jobid)
+                logger.debug('job %s was dequeued from the monitored payloads queue' % _job.jobid)
                 # now ready for the next job (or quit)
+                put_in_queue(job.jobid, queues.completed_jobids)
                 put_in_queue(job, queues.completed_jobs)
-                # reset the sentfinal since we will now get another job
-                sentfinal = False
+                del _job
+                logger.debug('tmp job object deleted')
 
         if abort:
             break
@@ -1736,9 +1737,9 @@ def pause_queue_monitor(delay):
     time.sleep(delay)
 
 
-def check_job(args, queues):
+def get_finished_or_failed_job(args, queues):
     """
-    Check if the job has completed (either finished or failed).
+    Check if the job has either finished or failed and if so return it.
     If failed, order a log transfer. If the job is in state 'failed' and abort_job is set, set job_aborted.
 
     :param args: pilot args object.
@@ -1746,31 +1747,33 @@ def check_job(args, queues):
     :return: job object.
     """
 
-    job = has_job_finished(queues)
+    job = get_job_from_queue(queues, "finished")
     if job:
-        logger.info('check_job: job has finished')
+        # logger.debug('get_finished_or_failed_job: job has finished')
+        pass
     else:
-        # logger.info('check_job: job has not finished')
-        job = has_job_failed(queues)
+        # logger.debug('check_job: job has not finished')
+        job = get_job_from_queue(queues, "failed")
         if job:
-            logger.debug('check_job: job has failed')
+            logger.debug('get_finished_or_failed_job: job has failed')
+            job.state = 'failed'
+            args.job_aborted.set()
 
-            # get the current log transfer status (LOG_TRANSFER_NOT_DONE is returned if job object is not defined)
+            # get the current log transfer status
             log_transfer = get_job_status(job, 'LOG_TRANSFER')
-
             if log_transfer == LOG_TRANSFER_NOT_DONE:
                 # order a log transfer for a failed job
-                order_log_transfer(args, queues, job)
+                order_log_transfer(queues, job)
 
     # check if the job has failed
     if job and job.state == 'failed':
         # set job_aborted in case of kill signals
         if args.abort_job.is_set():
-            logger.warning('queue monitor detected a set abort_job (due to a kill signal), setting job_aborted')
+            logger.warning('queue monitor detected a set abort_job (due to a kill signal)')
             # do not set graceful stop if pilot has not finished sending the final job update
             # i.e. wait until SERVER_UPDATE is DONE_FINAL
-            check_for_final_server_update(args.update_server)
-            args.job_aborted.set()
+            #check_for_final_server_update(args.update_server)
+            #args.job_aborted.set()
 
     return job
 

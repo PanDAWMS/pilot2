@@ -232,8 +232,8 @@ def publish_stageout_files(job, event_status_file):
             logger.debug('Failed to declare stagout in: {0}'.format(event_status_file))
             return False
     else:
-            logger.debug('No Report for stageout')
-            return False
+        logger.debug('No Report for stageout')
+        return False
 
 
 def publish_work_report(work_report=None, worker_attributes_file="worker_attributes.json"):

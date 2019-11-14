@@ -9,7 +9,7 @@
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 
-from __future__ import print_function
+from __future__ import print_function  # Python 2 (2to3 complains about this)
 
 import argparse
 import logging
@@ -22,7 +22,6 @@ from shutil import rmtree
 from pilot.common.exception import PilotException
 from pilot.info import infosys
 from pilot.util.auxiliary import pilot_version_banner, shell_exit_code
-from pilot.util.config import config
 from pilot.util.constants import SUCCESS, FAILURE, ERRNO_NOJOBS, PILOT_START_TIME, PILOT_END_TIME, get_pilot_version, \
     SERVER_UPDATE_NOT_DONE, PILOT_MULTIJOB_START_TIME
 from pilot.util.filehandling import get_pilot_work_dir, mkdirs, establish_logging
@@ -56,9 +55,6 @@ def main():
     args.signal_counter = 0  # keep track of number of received kill signal (suicide counter)
     args.kill_time = 0  # keep track of when first kill signal arrived
 
-    # read and parse config file
-    config.read(args.config)
-
     # perform https setup
     https_setup(args, get_pilot_version())
 
@@ -82,7 +78,7 @@ def main():
     # set requested workflow
     logger.info('pilot arguments: %s' % str(args))
     logger.info('selected workflow: %s' % args.workflow)
-    workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], -1)
+    workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], 0)  # Python 3, -1 -> 0
 
     # execute workflow
     try:
@@ -125,7 +121,6 @@ def import_module(**kwargs):
                            '--capath': kwargs.get('capath'),
                            '--url': kwargs.get('url', ''),
                            '-p': kwargs.get('port', '25443'),
-                           '--config': kwargs.get('config', ''),
                            '--country-group': kwargs.get('country_group', ''),
                            '--working-group': kwargs.get('working_group', ''),
                            '--allow-other-country': kwargs.get('allow_other_country', 'False'),
@@ -144,7 +139,11 @@ def import_module(**kwargs):
 
     args = Args()
     parser = argparse.ArgumentParser()
-    for key, value in argument_dictionary.iteritems():
+    try:
+        _items = argument_dictionary.items()  # Python 3
+    except Exception:
+        _items = argument_dictionary.iteritems()  # Python 2
+    for key, value in _items:
         print(key, value)
         parser.add_argument(key)
         parser.parse_args(args=[key, value], namespace=args)  # convert back int and bool strings to int and bool??
@@ -222,11 +221,11 @@ def get_args():
     arg_parser.add_argument('-r',
                             dest='resource',
                             required=False,  # From v 2.2.0 the resource name is internally set
-                            help='MANDATORY: resource name (e.g., AGLT2_TEST')
+                            help='OBSOLETE: resource name (e.g., AGLT2_TEST')
     arg_parser.add_argument('-s',
                             dest='site',
                             required=False,  # From v 2.2.1 the site name is internally set
-                            help='MANDATORY: site name (e.g., AGLT2_TEST')
+                            help='OBSOLETE: site name (e.g., AGLT2_TEST')
 
     # graciously stop pilot process after hard limit
     arg_parser.add_argument('-j',
@@ -273,13 +272,6 @@ def get_args():
                             dest='port',
                             default=25443,
                             help='PanDA server port')
-
-    # Configuration option
-    arg_parser.add_argument('--config',
-                            dest='config',
-                            default='',
-                            help='Config file path',
-                            metavar='path/to/pilot.cfg')
 
     # Country group
     arg_parser.add_argument('--country-group',

@@ -5,6 +5,7 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
 """
 The implementation of base data structure to host various settings collected
@@ -67,14 +68,23 @@ class BaseData(object):
                           None: self.clean_string,  # default validator
                           }
 
-        for ktype, knames in self._keys.iteritems():
+        try:
+            _items = self._keys.items()  # Python 3
+        except Exception:
+            _items = self._keys.iteritems()  # Python 2
+        for ktype, knames in _items:
 
             for kname in knames:
                 raw, value = None, None
 
                 ext_names = kmap.get(kname) or kname
-                if isinstance(ext_names, basestring):
-                    ext_names = [ext_names]
+                try:
+                    if isinstance(ext_names, basestring):  # Python 2
+                        ext_names = [ext_names]
+                except Exception:
+                    if isinstance(ext_names, str):  # Python 3
+                        ext_names = [ext_names]
+
                 for name in ext_names:
                     raw = data.get(name)
                     if raw is not None:
@@ -116,8 +126,13 @@ class BaseData(object):
         if isinstance(raw, ktype):
             return raw
 
-        if isinstance(raw, basestring):
-            raw = raw.strip()
+        try:
+            if isinstance(raw, basestring):  # Python 2
+                raw = raw.strip()
+        except Exception:
+            if isinstance(raw, str):  # Python 3
+                raw = raw.strip()
+
         try:
             return ktype(raw)
         except Exception:
@@ -136,10 +151,15 @@ class BaseData(object):
         if isinstance(raw, ktype):
             return raw
 
-        if isinstance(raw, basestring):
-            raw = raw.strip()
-        elif raw is None:
+        if raw is None:
             return defval
+        else:
+            try:
+                if isinstance(raw, basestring):  # Python 2
+                    raw = raw.strip()
+            except Exception:
+                if isinstance(raw, str):  # Python 3
+                    raw = raw.strip()
         try:
             return ktype(raw)
         except Exception:
@@ -156,6 +176,9 @@ class BaseData(object):
 
         if isinstance(raw, ktype):
             return raw
+
+        if raw is None:  ## not set value, use default
+            return defval
 
         val = str(raw).strip().lower()
         allowed_values = ['', 'none', 'true', 'false', 'yes', 'no', '1', '0']
@@ -198,8 +221,13 @@ class BaseData(object):
 
         elif raw is None:
             return defval
-        elif isinstance(raw, basestring):
-            raw = raw.split(',')
+        else:
+            try:
+                if isinstance(raw, basestring):  # Python 2
+                    raw = raw.split(',')
+            except Exception:
+                if isinstance(raw, str):  # Python 3
+                    raw = raw.split(',')
         try:
             return ktype(raw)
         except Exception:

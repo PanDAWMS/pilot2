@@ -4,7 +4,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Alexey Anisenkov, anisyonk@cern.ch, 2018-2019
 
 """
 The implementation of data structure to host queuedata settings.
@@ -66,8 +66,12 @@ class QueueData(BaseData):
     status = ""   # PQ status, e.g. online
     site = None   # ATLAS Site name
 
-    direct_access_lan = False
-    direct_access_wan = False
+    direct_access_lan = False  # Prefer remote io (True) or use only copy2scratch method (False) for stage-in over LAN
+    direct_access_wan = False  # Prefer remote io (True) or use only copy2scratch method (False) for stage-in over WAN
+
+    allow_lan = True  # Allow LAN access (whatever method) for stage-in
+    allow_wan = False  # Allow WAN access (whatever method) for stage-in
+
     use_pcache = False
 
     maxwdir = 0    # in MB
@@ -87,7 +91,7 @@ class QueueData(BaseData):
              str: ['name', 'appdir', 'catchall', 'platform', 'container_options', 'container_type',
                    'resource', 'state', 'status', 'site'],
              dict: ['copytools', 'acopytools', 'astorages', 'aprotocols', 'acopytools_schemas'],
-             bool: ['direct_access_lan', 'direct_access_wan', 'use_pcache']
+             bool: ['allow_lan', 'allow_wan', 'direct_access_lan', 'direct_access_wan', 'use_pcache']
              }
 
     def __init__(self, data):

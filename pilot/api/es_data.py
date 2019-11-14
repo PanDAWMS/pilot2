@@ -7,6 +7,7 @@
 # Authors:
 # - Wen Guan, wen.guan@cern,ch, 2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
 import traceback
 import logging
@@ -87,7 +88,7 @@ class StagingESClient(StagingClient):
                         raise PilotException('passed unknown copytool with name=%s .. skipped' % name)
                     module = self.copytool_modules[name]['module_name']
                     logger.info('Trying to use copytool=%s for activity=%s' % (name, act))
-                    copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], -1)
+                    copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], 0)  # Python 2/3
                 except PilotException as e:
                     errors.append(e)
                     logger.debug('Error: %s' % e)

@@ -47,7 +47,7 @@ def execute(executable, **kwargs):
     # Note: the container.wrapper() function must at least be declared
     if usecontainer:
         user = environ.get('PILOT_USER', 'generic').lower()  # TODO: replace with singleton
-        container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], -1)
+        container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], 0)  # Python 2/3
         if container:
             # should a container really be used?
             do_use_container = job.usecontainer if job else container.do_use_container(**kwargs)
@@ -95,7 +95,7 @@ def execute(executable, **kwargs):
         exit_code = process.poll()
 
         # remove any added \n
-        if stdout and stdout.endswith('\n'):
+        if stdout and stdout.endswith(b'\n'):  # Python 2/3 (endswith first arg must be bytes or a tuple of bytes, not str)
             stdout = stdout[:-1]
 
         return exit_code, stdout, stderr

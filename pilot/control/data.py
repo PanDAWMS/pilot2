@@ -158,7 +158,7 @@ def _stage_in(args, job):
         else:
             client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
             activity = 'pr'
-        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)  #, mode='stage-in')
+        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
         client.prepare_sources(job.indata)
         client.transfer(job.indata, activity=activity, **kwargs)
     except PilotException as error:
@@ -172,10 +172,7 @@ def _stage_in(args, job):
 
     log.info('summary of transferred files:')
     for e in job.indata:
-        if not e.status:
-            status = "(not transferred)"
-        else:
-            status = e.status
+        status = e.status if e.status else "(not transferred)"
         log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, status))
 
     # write time stamps to pilot timing file
@@ -319,19 +316,19 @@ def stage_out_auto(site, files):
 
         tmp_executable += ['--rse', f['rse']]
 
-        if 'no_register' in f.keys() and f['no_register']:
+        if 'no_register' in list(f.keys()) and f['no_register']:  # Python 2/3
             tmp_executable += ['--no-register']
 
-        if 'summary' in f.keys() and f['summary']:
+        if 'summary' in list(f.keys()) and f['summary']:  # Python 2/3
             tmp_executable += ['--summary']
 
-        if 'lifetime' in f.keys():
+        if 'lifetime' in list(f.keys()):  # Python 2/3
             tmp_executable += ['--lifetime', str(f['lifetime'])]
 
-        if 'guid' in f.keys():
+        if 'guid' in list(f.keys()):  # Python 2/3
             tmp_executable += ['--guid', f['guid']]
 
-        if 'attach' in f.keys():
+        if 'attach' in list(f.keys()):  # Python 2/3
             tmp_executable += ['--scope', f['scope'], '%s:%s' % (f['attach']['scope'], f['attach']['name']), f['file']]
         else:
             tmp_executable += ['--scope', f['scope'], f['file']]
@@ -418,7 +415,7 @@ def copytool_in(queues, traces, args):
                 # now create input file metadata if required by the payload
                 try:
                     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-                    user = __import__('pilot.user.%s.metadata' % pilot_user, globals(), locals(), [pilot_user], -1)
+                    user = __import__('pilot.user.%s.metadata' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
                     _dir = '/srv' if job.usecontainer else job.workdir
                     file_dictionary = get_input_file_dictionary(job.indata, _dir)
                     #file_dictionary = get_input_file_dictionary(job.indata, job.workdir)
@@ -522,24 +519,24 @@ def get_input_file_dictionary(indata, workdir):
     Format: {'guid': 'pfn', ..}
     Normally use_turl would be set to True if direct access is used.
 
-    :param indata: FileSpec object.
+    :param indata: list of FileSpec objects.
     :param workdir: job.workdir (string).
     :return: file dictionary.
     """
 
-    file_dictionary = {}
+    ret = {}
 
-    for e in indata:
-        # dst = e.workdir or workdir or '.'
-        file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else e.lfn  #os.path.join(dst, e.lfn)
-        # file_dictionary[e.guid] = e.turl if e.accessmode == 'direct' else e.surl
+    for fspec in indata:
+        # dst = fspec.workdir or workdir or '.'
+        ret[fspec.guid] = fspec.turl if fspec.status == 'remote_io' else fspec.lfn  #os.path.join(dst, fspec.lfn)
+        # ret[fspec.guid] = fspec.turl if fspec.accessmode == 'direct' else fspec.surl
 
         # correction for ND and mv
         # in any case use the lfn instead of pfn since there are trf's that have problems with pfn's
-        if not file_dictionary[e.guid]:
-            file_dictionary[e.guid] = e.lfn
+        if not ret[fspec.guid]:   # this case never works (turl/lfn is always non empty), deprecated code?
+            ret[fspec.guid] = fspec.lfn
 
-    return file_dictionary
+    return ret
 
 
 def filter_files_for_log(directory):
@@ -575,7 +572,7 @@ def create_log(job, logfile, tarball_name):
 
     # perform special cleanup (user specific) prior to log file creation
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
     user.remove_redundant_files(job.workdir)
 
     input_files = [e.lfn for e in job.indata]
@@ -789,6 +786,7 @@ def queue_monitoring(queues, traces, args):
         time.sleep(0.5)
         if traces.pilot['command'] == 'abort':
             logger.warning('data queue monitor saw the abort instruction')
+            args.graceful_stop.set()
 
         # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
         # (abort at the end of the loop)
