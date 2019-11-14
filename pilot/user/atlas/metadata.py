@@ -44,7 +44,8 @@ def create_input_file_metadata(file_dictionary, workdir, filename="PoolFileCatal
     # create the file structure
     data = ElementTree.Element('POOLFILECATALOG')
 
-    for fileid in list(file_dictionary.keys()):  # Python 2/3
+    # for fileid in list(file_dictionary.keys()):  # Python 2/3
+    for fileid in file_dictionary.keys():  # Python 2
         _file = ElementTree.SubElement(data, 'File')
         _file.set('ID', fileid)
         _physical = ElementTree.SubElement(_file, 'physical')
