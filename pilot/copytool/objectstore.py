@@ -7,6 +7,7 @@
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
 import os
 import json

@@ -517,7 +517,7 @@ def update_forced_accessmode(log, cmd, transfertype, jobparams, trf_name):  ## D
                            "--accessmode=direct": ["direct access mode", " --directIn"]}
 
         # update run_command according to jobPars
-        for _mode in _accessmode_dic.keys():
+        for _mode in list(_accessmode_dic.keys()):  # Python 2/3
             if _mode in jobparams:
                 # any accessmode set in jobPars should overrule schedconfig
                 log.info("enforcing %s" % _accessmode_dic[_mode][0])
@@ -591,10 +591,10 @@ def get_guids_from_jobparams(jobparams, infiles, infilesguids):
     if directreadinginputfiles != []:
         _infiles = directreadinginputfiles[0].split(",")
     else:
-        match = re.search("-i ([A-Za-z0-9.\[\],_-]+) ", jobparams)
+        match = re.search(r"-i ([A-Za-z0-9.\[\],_-]+) ", jobparams)  # Python 3 (added r)
         if match is not None:
             compactinfiles = match.group(1)
-            match = re.search('(.*)\[(.+)\](.*)\[(.+)\]', compactinfiles)
+            match = re.search(r'(.*)\[(.+)\](.*)\[(.+)\]', compactinfiles)  # Python 3 (added r)
             if match is not None:
                 infiles = []
                 head = match.group(1)
@@ -1089,7 +1089,7 @@ def get_number_of_events_deprecated(jobreport_dictionary):  # TODO: remove this 
 
     executor_dictionary = get_executor_dictionary(jobreport_dictionary)
     if executor_dictionary != {}:
-        for format in executor_dictionary.keys():  # "RAWtoESD", ..
+        for format in list(executor_dictionary.keys()):  # "RAWtoESD", .., Python 2/3
             if 'nevents' in executor_dictionary[format]:
                 if format in nevents:
                     nevents[format] += executor_dictionary[format]['nevents']
@@ -1128,7 +1128,7 @@ def get_db_info(jobreport_dictionary):
 
     executor_dictionary = get_executor_dictionary(jobreport_dictionary)
     if executor_dictionary != {}:
-        for format in executor_dictionary.keys():  # "RAWtoESD", ..
+        for format in list(executor_dictionary.keys()):  # "RAWtoESD", .., Python 2/3
             if 'dbData' in executor_dictionary[format]:
                 try:
                     db_data += executor_dictionary[format]['dbData']
@@ -1184,7 +1184,7 @@ def get_cpu_times(jobreport_dictionary):
 
     executor_dictionary = get_executor_dictionary(jobreport_dictionary)
     if executor_dictionary != {}:
-        for format in executor_dictionary.keys():  # "RAWtoESD", ..
+        for format in list(executor_dictionary.keys()):  # "RAWtoESD", .., Python 2/3
             if 'cpuTime' in executor_dictionary[format]:
                 try:
                     total_cpu_time += executor_dictionary[format]['cpuTime']
@@ -1547,16 +1547,12 @@ def get_utility_command_kill_signal(name):
     """
     Return the proper kill signal used to stop the utility command.
 
-    :param name:
+    :param name: name of utility command (string).
     :return: kill signal
     """
 
-    if name == 'MemoryMonitor':
-        sig = SIGUSR1
-    else:
-        # note that the NetworkMonitor does not require killing (to be confirmed)
-        sig = SIGTERM
-
+    # note that the NetworkMonitor does not require killing (to be confirmed)
+    sig = SIGUSR1 if name == 'MemoryMonitor' else SIGTERM
     return sig
 
 

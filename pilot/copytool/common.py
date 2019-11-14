@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 
 import logging
 import os
@@ -113,7 +113,7 @@ def get_copysetup(copytools, copytool_name):
     """
     copysetup = ""
 
-    for ct in copytools.keys():
+    for ct in list(copytools.keys()):  # Python 2/3
         if copytool_name == ct:
             copysetup = copytools[ct].get('setup')
             break
@@ -146,7 +146,7 @@ def output_line_scan(ret, output):
     """
 
     for line in output.split('\n'):
-        m = re.search("[Dd]etails\s*:\s*(?P<error>.*)", line)
+        m = re.search(r"[Dd]etails\s*:\s*(?P<error>.*)", line)  # Python 3 (added r)
         if m:
             ret['error'] = m.group('error')
         elif 'service_unavailable' in line:
@@ -166,8 +166,7 @@ def resolve_common_transfer_errors(output, is_stagein=True):
     """
 
     # default to make sure dictionary exists and all fields are populated (some of which might be overwritten below)
-    ret = get_error_info(ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED,
-                         'COPY_ERROR', 'Copy operation failed [is_stagein=%s]: %s' % (is_stagein, output))
+    ret = get_error_info(ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED, 'COPY_ERROR', output)
 
     if "timeout" in output:
         ret = get_error_info(ErrorCodes.STAGEINTIMEOUT if is_stagein else ErrorCodes.STAGEOUTTIMEOUT,

@@ -4,7 +4,9 @@
 # You may obtain a copy of the License at
 # http://www.apache.org/licenses/LICENSE-2.0
 #
-# Authors: Pavlo Svirin <pavlo.svirin@gmail.com>
+# Authors:
+# - Pavlo Svirin, pavlo.svirin@gmail.com, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
 import unittest
 import string
@@ -127,7 +129,7 @@ class TestCopytoolMv(unittest.TestCase):
         # here check files linked
         self.assertEqual(self.__dirs_content_equal(self.tmp_src_dir, self.tmp_dst_dir), 0)
         # check dst files are links
-        _, stdout, _ = execute('find %s -type l -exec echo -n l \;' % self.tmp_dst_dir)
+        _, stdout, _ = execute(r'find %s -type l -exec echo -n l \;' % self.tmp_dst_dir)  # Python 3 (added r)
         self.assertEqual(stdout, ''.join('l' for i in range(self.numfiles)))
 
     def test_copy_in_invalid(self):

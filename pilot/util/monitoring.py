@@ -16,11 +16,11 @@ from glob import glob
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import get_logger
-from pilot.util.config import config, human2bytes
+from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.filehandling import get_directory_size, remove_files, get_local_file_size
 from pilot.util.loopingjob import looping_job
-from pilot.util.math import convert_mb_to_b
+from pilot.util.math import convert_mb_to_b, human2bytes
 from pilot.util.parameters import convert_to_int, get_maximum_input_sizes
 from pilot.util.processes import get_current_cpu_consumption_time, kill_processes, get_number_of_child_processes
 from pilot.util.workernode import get_local_disk_space, check_hz
@@ -152,7 +152,7 @@ def verify_memory_usage(current_time, mt, job):
     """
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    memory = __import__('pilot.user.%s.memory' % pilot_user, globals(), locals(), [pilot_user], -1)
+    memory = __import__('pilot.user.%s.memory' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
     if not memory.allow_memory_usage_verifications():
         return 0, ""
@@ -187,7 +187,7 @@ def verify_user_proxy(current_time, mt):
     """
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], -1)
+    userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
     # is it time to verify the proxy?
     proxy_verification_time = convert_to_int(config.Pilot.proxy_verification_time, default=600)
@@ -324,12 +324,12 @@ def utility_monitor(job):
     """
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    usercommon = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+    usercommon = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
     log = get_logger(job.jobid)
 
     # loop over all utilities
-    for utcmd in job.utilities.keys():  # E.g. utcmd = MemoryMonitor
+    for utcmd in list(job.utilities.keys()):  # E.g. utcmd = MemoryMonitor, Python 2/3
 
         # make sure the subprocess is still running
         utproc = job.utilities[utcmd][0]

@@ -316,19 +316,19 @@ def stage_out_auto(site, files):
 
         tmp_executable += ['--rse', f['rse']]
 
-        if 'no_register' in f.keys() and f['no_register']:
+        if 'no_register' in list(f.keys()) and f['no_register']:  # Python 2/3
             tmp_executable += ['--no-register']
 
-        if 'summary' in f.keys() and f['summary']:
+        if 'summary' in list(f.keys()) and f['summary']:  # Python 2/3
             tmp_executable += ['--summary']
 
-        if 'lifetime' in f.keys():
+        if 'lifetime' in list(f.keys()):  # Python 2/3
             tmp_executable += ['--lifetime', str(f['lifetime'])]
 
-        if 'guid' in f.keys():
+        if 'guid' in list(f.keys()):  # Python 2/3
             tmp_executable += ['--guid', f['guid']]
 
-        if 'attach' in f.keys():
+        if 'attach' in list(f.keys()):  # Python 2/3
             tmp_executable += ['--scope', f['scope'], '%s:%s' % (f['attach']['scope'], f['attach']['name']), f['file']]
         else:
             tmp_executable += ['--scope', f['scope'], f['file']]
@@ -415,7 +415,7 @@ def copytool_in(queues, traces, args):
                 # now create input file metadata if required by the payload
                 try:
                     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-                    user = __import__('pilot.user.%s.metadata' % pilot_user, globals(), locals(), [pilot_user], -1)
+                    user = __import__('pilot.user.%s.metadata' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
                     _dir = '/srv' if job.usecontainer else job.workdir
                     file_dictionary = get_input_file_dictionary(job.indata, _dir)
                     #file_dictionary = get_input_file_dictionary(job.indata, job.workdir)
@@ -572,7 +572,7 @@ def create_log(job, logfile, tarball_name):
 
     # perform special cleanup (user specific) prior to log file creation
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
     user.remove_redundant_files(job.workdir)
 
     input_files = [e.lfn for e in job.indata]
@@ -786,6 +786,7 @@ def queue_monitoring(queues, traces, args):
         time.sleep(0.5)
         if traces.pilot['command'] == 'abort':
             logger.warning('data queue monitor saw the abort instruction')
+            args.graceful_stop.set()
 
         # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
         # (abort at the end of the loop)

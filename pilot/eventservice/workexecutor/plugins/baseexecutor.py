@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
 import os
 import threading
@@ -99,7 +100,7 @@ class BaseExecutor(threading.Thread, PluginFactory):
 
             # get the payload command from the user specific code
             pilot_user = os.environ.get('PILOT_USER', 'atlas').lower()
-            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
             cmd = user.get_payload_command(job)
             logger.info("payload execution command: %s" % cmd)
 
@@ -115,7 +116,7 @@ class BaseExecutor(threading.Thread, PluginFactory):
             return self.payload
 
     def get_job(self):
-        return self.payload['job'] if self.payload and 'job' in self.payload.keys() else None
+        return self.payload['job'] if self.payload and 'job' in list(self.payload.keys()) else None  # Python 2/3
 
     def get_event_ranges(self, num_event_ranges=1, queue_factor=2):
         logger.info("Getting event ranges: (num_ranges: %s)" % num_event_ranges)

@@ -180,8 +180,8 @@ def get_cpu_model():
     cpucache = ""
     modelstring = ""
 
-    re_model = re.compile('^model name\s+:\s+(\w.+)')
-    re_cache = re.compile('^cache size\s+:\s+(\d+ KB)')
+    re_model = re.compile(r'^model name\s+:\s+(\w.+)')  # Python 3 (added r)
+    re_cache = re.compile(r'^cache size\s+:\s+(\d+ KB)')  # Python 3 (added r)
 
     with open("/proc/cpuinfo", "r") as f:
 

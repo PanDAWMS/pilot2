@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 
 from __future__ import print_function
 
@@ -67,6 +67,7 @@ def interrupt(args, signum, frame):
         kill_processes(getpid())
 
     add_to_pilot_timing('0', PILOT_KILL_SIGNAL, time(), args)
+    add_to_pilot_timing('1', PILOT_KILL_SIGNAL, time(), args)
     logger.warning('caught signal: %s' % sig)
     args.signal = sig
     logger.warning('will instruct threads to abort and update the server')
@@ -101,7 +102,7 @@ def run(args):
                                    'validated_jobs', 'validated_payloads', 'monitored_payloads',
                                    'finished_jobs', 'finished_payloads', 'finished_data_in', 'finished_data_out',
                                    'failed_jobs', 'failed_payloads', 'failed_data_in', 'failed_data_out',
-                                   'completed_jobs'])
+                                   'completed_jobs', 'completed_jobids'])
 
     queues.jobs = queue.Queue()
     queues.payloads = queue.Queue()
@@ -124,6 +125,7 @@ def run(args):
     queues.failed_data_out = queue.Queue()
 
     queues.completed_jobs = queue.Queue()
+    queues.completed_jobids = queue.Queue()
 
     logger.info('setting up tracing')
     traces = namedtuple('traces', ['pilot'])
@@ -134,7 +136,8 @@ def run(args):
 
     # initial sanity check defined by pilot user
     try:
-        user = __import__('pilot.user.%s.common' % args.pilot_user.lower(), globals(), locals(), [args.pilot_user.lower()], -1)
+        user = __import__('pilot.user.%s.common' % args.pilot_user.lower(), globals(), locals(),
+                          [args.pilot_user.lower()], 0)  # Python 2/3
         exit_code = user.sanity_check()
     except Exception as e:
         logger.info('skipping sanity check since: %s' % e)

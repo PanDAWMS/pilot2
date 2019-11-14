@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
 import functools
 import signal
@@ -47,7 +47,7 @@ def run(args):
             return traces
 
         # get the resource reference
-        resource = __import__('pilot.resource.%s' % args.hpc_resource, globals(), locals(), [args.hpc_resource], -1)
+        resource = __import__('pilot.resource.%s' % args.hpc_resource, globals(), locals(), [args.hpc_resource], 0)  # Python 2/3
 
         # example usage:
         logger.info('setup for resource %s: %s' % (args.hpc_resource, str(resource.get_setup())))

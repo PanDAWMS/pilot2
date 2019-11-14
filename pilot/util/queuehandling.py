@@ -5,12 +5,12 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
 import time
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.util.auxiliary import get_logger, get_size, set_pilot_state
+from pilot.util.auxiliary import get_logger, set_pilot_state  #, get_size
 
 import logging
 logger = logging.getLogger(__name__)
@@ -115,16 +115,19 @@ def abort_jobs_in_queues(queues, sig):
         declare_failed_by_kill(job, queues.failed_jobs, sig)
 
 
-def put_in_queue(job, queue):
+def put_in_queue(obj, queue):
     """
-    Put the job object in the given queue.
-    The function also updates the job object size.
+    Put the given object in the given queue.
 
-    :param job: job object.
+    :param obj: object.
     :param queue: queue object.
     :return:
     """
 
-    size = get_size(job)
-    job.add_size(size)
-    queue.put(job)
+    # update job object size (currently not used)
+    #try:
+    #size = get_size(obj)
+    #job.add_size(size) - only if obj = job
+    #except Exception:
+    #pass
+    queue.put(obj)

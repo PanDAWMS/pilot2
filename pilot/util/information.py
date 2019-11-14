@@ -20,7 +20,12 @@ import collections
 import hashlib
 import json
 import os
-import urllib2
+try:
+    import urllib.request  # Python 3
+    import urllib.error  # Python 3
+    import urllib.parse  # Python 3
+except Exception:
+    import urllib2  # Python 3
 from datetime import datetime, timedelta
 
 from pilot.util.config import config
@@ -165,7 +170,10 @@ def retrieve_json(url):
     if j is not None:
         logger.debug('cached version found: %s' % url)
         return j
-    j = json.loads(urllib2.urlopen(url).read())
+    try:
+        j = json.loads(urllib.request.urlopen(url).read())  # Python 3
+    except Exception:
+        j = json.loads(urllib2.urlopen(url).read())  # Python 2
     logger.info('caching: %s' % url)
     _write_cache(url, j)
 
@@ -263,7 +271,10 @@ def load_url_data(url, fname=None, cache_time=0, nretry=3, sleeptime=60):
                         content = f.read()
                 else:
                     logger.info('[attempt=%s] loading data from url=%s' % (trial, url))
-                    content = urllib2.urlopen(url, timeout=20).read()
+                    try:
+                        content = urllib.request.urlopen(url, timeout=20).read()  # Python 3
+                    except Exception:
+                        content = urllib2.urlopen(url, timeout=20).read()  # Python 2
 
                 if fname:  # save to cache
                     with open(fname, "w+") as f:
@@ -469,10 +480,17 @@ def resolve_panda_copytools(pandaqueues, activity, defval=[]):
             cptools = defval[:]
         else:
             explicit_copytools = set()
-            for v in r.get(pandaqueue, {}).get('acopytools', {}).itervalues():
-                explicit_copytools.update(v or [])
+            try:
+                for v in r.get(pandaqueue, {}).get('acopytools', {}).values():  # Python 3
+                    explicit_copytools.update(v or [])
+            except Exception:
+                for v in r.get(pandaqueue, {}).get('acopytools', {}).itervalues():  # Python 2
+                    explicit_copytools.update(v or [])
 
-            cptools = [(cp, v) for cp, v in copytools.iteritems() if cp not in explicit_copytools]
+            try:
+                cptools = [(cp, v) for cp, v in copytools.items() if cp not in explicit_copytools]  # Python 3
+            except Exception:
+                cptools = [(cp, v) for cp, v in copytools.iteritems() if cp not in explicit_copytools]  # Python 2
 
         ret.setdefault(pandaqueue, cptools)
 
