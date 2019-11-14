@@ -27,12 +27,12 @@ def extract_version(name):
     """
     version = ""
 
-    re_v = re.compile('DBRelease-(\d+\.\d+\.\d+)\.tar\.gz')
+    re_v = re.compile(r'DBRelease-(\d+\.\d+\.\d+)\.tar\.gz')  # Python 3 (added r)
     v = re_v.search(name)
     if v:
         version = v.group(1)
     else:
-        re_v = re.compile('DBRelease-(\d+\.\d+\.\d+\.\d+)\.tar\.gz')
+        re_v = re.compile(r'DBRelease-(\d+\.\d+\.\d+\.\d+)\.tar\.gz')  # Python 3 (added r)
         v = re_v.search(name)
         if v:
             version = v.group(1)

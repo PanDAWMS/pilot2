@@ -8,7 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
 
 import os
@@ -129,7 +129,7 @@ def _validate_payload(job):
 
     # perform user specific validation
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
     try:
         status = user.validate(job)
     except Exception as e:
@@ -219,7 +219,7 @@ def execute_payloads(queues, traces, args):
                 exit_code_interpret = 1
             else:
                 pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-                user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], -1)
+                user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
                 try:
                     exit_code_interpret = user.interpret(job)
                 except Exception as e:

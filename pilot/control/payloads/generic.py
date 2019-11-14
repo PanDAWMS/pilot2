@@ -8,7 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-8
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 import time
@@ -93,7 +93,7 @@ class Executor(object):
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
         # should we run any additional commands? (e.g. special monitoring commands)
         cmds = user.get_utility_commands_list(order=UTILITY_BEFORE_PAYLOAD)
@@ -113,7 +113,7 @@ class Executor(object):
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
         # should any additional commands be prepended to the payload execution string?
         cmds = user.get_utility_commands_list(order=UTILITY_WITH_PAYLOAD)
@@ -131,7 +131,7 @@ class Executor(object):
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
         # should any additional commands be executed after the payload?
         cmds = user.get_utility_commands_list(order=UTILITY_AFTER_PAYLOAD_STARTED)
@@ -164,7 +164,7 @@ class Executor(object):
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
         # should any additional commands be prepended to the payload execution string?
         cmds = user.get_utility_commands_list(order=UTILITY_AFTER_PAYLOAD_FINISHED)
@@ -204,7 +204,7 @@ class Executor(object):
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
         self.post_setup(job)
 
@@ -320,11 +320,11 @@ class Executor(object):
 
                 # stop any running utilities
                 if self.__job.utilities != {}:
-                    for utcmd in self.__job.utilities.keys():
+                    for utcmd in list(self.__job.utilities.keys()):  # Python 2/3
                         utproc = self.__job.utilities[utcmd][0]
                         if utproc:
                             user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user],
-                                              -1)
+                                              0)  # Python 2/3
                             sig = user.get_utility_command_kill_signal(utcmd)
                             log.info("stopping process \'%s\' with signal %d" % (utcmd, sig))
                             try:

@@ -6,12 +6,16 @@
 #
 # Authors:
 # - Danila Oleynik, danila.oleynik@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
 # Note: The Pilot 2 utilities to provide MPI related functionality through mpi4py
 # Required for HPC workflow where Pilot 2 acts like an MPI application
 
 import logging
-logger = logging.getLogger(__name__)
+try:
+    logger = logging.getLogger(__name__)
+except Exception:
+    logger = None
 
 
 def get_ranks_info():
@@ -30,6 +34,8 @@ def get_ranks_info():
         rank = comm.Get_rank()
         max_rank = comm.Get_size()
     except ImportError:
-        logger.info("mpi4py not found")
-
+        if logger:
+            logger.info("mpi4py not found")
+        else:
+            print("mpi4py not found")
     return rank, max_rank

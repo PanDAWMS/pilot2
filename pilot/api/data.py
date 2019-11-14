@@ -17,6 +17,11 @@ import hashlib
 import logging
 import time
 
+try:
+    from functools import reduce  # Python 3
+except Exception:
+    pass
+
 from pilot.info import infosys
 from pilot.common.exception import PilotException, ErrorCodes, SizeTooLarge, NoLocalSpace, ReplicasNotFound
 from pilot.util.filehandling import calculate_checksum
@@ -65,8 +70,13 @@ class StagingClient(object):
         self.logger = logger
         self.infosys = infosys_instance or infosys
 
-        if isinstance(acopytools, basestring):
-            acopytools = {'default': [acopytools]} if acopytools else {}
+        try:
+            if isinstance(acopytools, basestring):  # Python 2
+                acopytools = {'default': [acopytools]} if acopytools else {}
+        except Exception:
+            if isinstance(acopytools, str):  # Python 3
+                acopytools = {'default': [acopytools]} if acopytools else {}
+
         if isinstance(acopytools, (list, tuple)):
             acopytools = {'default': acopytools} if acopytools else {}
 
@@ -76,7 +86,7 @@ class StagingClient(object):
             if not self.acopytools:  ## resolve from queuedata.acopytools using infosys
                 self.acopytools = (self.infosys.queuedata.acopytools or {}).copy()
             if not self.acopytools:  ## resolve from queuedata.copytools using infosys
-                self.acopytools = dict(default=(self.infosys.queuedata.copytools or {}).keys())
+                self.acopytools = dict(default=list(self.infosys.queuedata.copytools or {}).keys())  # Python 2/3
 
         if not self.acopytools.get('default'):
             if isinstance(default_copytools, basestring):
@@ -398,7 +408,7 @@ class StagingClient(object):
 
                 module = self.copytool_modules[name]['module_name']
                 self.logger.info('trying to use copytool=%s for activity=%s' % (name, activity))
-                copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], -1)
+                copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], 0)  # Python 2/3
                 self.trace_report.update(protocol=name)
 
             except PilotException as e:

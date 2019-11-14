@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
 import os
 import time
@@ -331,7 +331,7 @@ def kill_orphans():
 
     cmd = "ps -o pid,ppid,args -u %s" % whoami()
     exit_code, _processes, stderr = execute(cmd)
-    pattern = re.compile('(\d+)\s+(\d+)\s+(\S+)')
+    pattern = re.compile(r'(\d+)\s+(\d+)\s+(\S+)')  # Python 3 (added r)
 
     count = 0
     for line in _processes.split('\n'):

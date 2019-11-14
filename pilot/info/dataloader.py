@@ -5,6 +5,7 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
 """
 Base loader class to retrive data from Ext sources (file, url)
@@ -17,7 +18,12 @@ Base loader class to retrive data from Ext sources (file, url)
 import os
 import time
 import json
-import urllib2
+try:
+    import urllib.request  # Python 3
+    import urllib.error  # Python 3
+    import urllib.parse  # Python 3
+except Exception:
+    import urllib2  # Python 2
 
 from datetime import datetime, timedelta
 
@@ -64,7 +70,7 @@ class DataLoader(object):
 
         return lastupdate
 
-    @classmethod
+    @classmethod  # noqa: C901
     def load_url_data(self, url, fname=None, cache_time=0, nretry=3, sleep_time=60):
         """
         Download data from url or file resource and optionally save it into cache file fname.
@@ -100,11 +106,13 @@ class DataLoader(object):
                         content = _readfile(url)
                     else:
                         logger.info('[attempt=%s/%s] loading data from url=%s' % (trial, nretry, url))
-                        content = urllib2.urlopen(url, timeout=20).read()
-
+                        try:
+                            content = urllib.request.urlopen(url, timeout=20).read()  # Python 3
+                        except Exception:
+                            content = urllib2.urlopen(url, timeout=20).read()  # Python 2
                     if fname:  # save to cache
                         with open(fname, "w+") as f:
-                            f.write(content)
+                            f.write(str(content))  # Python 3, added str (write() argument must be str, not bytes; JSON OK)
                             logger.info('saved data from "%s" resource into file=%s, length=%.1fKb' %
                                         (url, fname, len(content) / 1024.))
                     return content
@@ -146,8 +154,8 @@ class DataLoader(object):
         :return: Data loaded and processed by parser callback
         """
 
-        if not priority:  # no priority set ## rundomly order if need (FIX ME LATER)
-            priority = sources.keys()
+        if not priority:  # no priority set ## randomly order if need (FIX ME LATER)
+            priority = list(sources.keys())  # Python 3
 
         for key in priority:
             dat = sources.get(key)

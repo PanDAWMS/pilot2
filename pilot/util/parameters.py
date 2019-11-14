@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 
 # This module contains functions that are used with the get_parameters() function defined in the information module.
 
@@ -30,8 +30,17 @@ def get_maximum_input_sizes():
     except TypeError as e:
         from pilot.util.config import config
         _maxinputsizes = config.Pilot.maximum_input_file_sizes  # MB
-        logger.warning('could not convert schedconfig value for maxwdir: %s (will use default value instead - %d GB)' %
+        logger.warning('could not convert schedconfig value for maxwdir: %s (will use default value instead - %s)' %
                        (e, _maxinputsizes))
+
+        if type(_maxinputsizes) == str and ' MB' in _maxinputsizes:
+            _maxinputsizes = _maxinputsizes.replace(' MB', '')
+
+    try:
+        _maxinputsizes = int(_maxinputsizes)
+    except Exception as e:
+        _maxinputsizes = 14336 + 2000
+        logger.warning('failed to convert maxinputsizes to int: %s (using value: %d MB)' % (e, _maxinputsizes))
 
     return _maxinputsizes
 

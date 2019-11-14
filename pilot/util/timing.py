@@ -98,7 +98,7 @@ def get_initial_setup_time(job_id, args):
     :return: time in seconds (int).
     """
 
-    return get_time_difference(job_id, PILOT_START_TIME, PILOT_PRE_GETJOB, args)
+    return get_time_difference(job_id, PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, args)
 
 
 def get_getjob_time(job_id, args):

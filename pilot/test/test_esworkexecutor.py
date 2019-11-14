@@ -5,6 +5,7 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
 import logging
 import os
@@ -95,7 +96,7 @@ class TestESWorkExecutorGrid(unittest.TestCase):
 
             # get the payload command from the user specific code
             pilot_user = os.environ.get('PILOT_USER', 'atlas').lower()
-            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], -1)
+            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
             cmd = user.get_payload_command(job)
             logger.info("payload execution command: %s" % cmd)
 

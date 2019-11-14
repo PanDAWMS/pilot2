@@ -45,6 +45,7 @@ def interrupt(args, signum, frame):
 
     sig = [v for v, k in signal.__dict__.iteritems() if k == signum][0]
     add_to_pilot_timing('0', PILOT_KILL_SIGNAL, time(), args)
+    add_to_pilot_timing('1', PILOT_KILL_SIGNAL, time(), args)
     logger.warning('caught signal: %s' % sig)
     args.signal = sig
     logger.warning('will instruct threads to abort and update the server')

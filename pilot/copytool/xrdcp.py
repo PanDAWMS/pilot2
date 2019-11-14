@@ -246,7 +246,7 @@ def get_file_info_from_output(output):
         logger.warning("WARNING: Failed to extract checksum: Unexpected output: %s" % output)
         return None, None, None
 
-    pattern = "(?P<type>md5|adler32):\ (?P<checksum>[a-zA-Z0-9]+)\ \S+\ (?P<filesize>[0-9]+)"
+    pattern = r"(?P<type>md5|adler32):\ (?P<checksum>[a-zA-Z0-9]+)\ \S+\ (?P<filesize>[0-9]+)"  # Python 3 (added r)
     filesize, checksum, checksum_type = None, None, None
 
     m = re.search(pattern, output)

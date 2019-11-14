@@ -133,7 +133,7 @@ def get_asetup_options(release, homepackage):
     if 'AnalysisTransforms' in homepackage:
 
         _homepackage = re.sub('^AnalysisTransforms-*', '', homepackage)
-        if _homepackage == '' or re.search('^\d+\.\d+\.\d+$', release) is None:
+        if _homepackage == '' or re.search(r'^\d+\.\d+\.\d+$', release) is None:  # Python 3 (added r)
             if release != "":
                 asetupopt.append(release)
         if _homepackage != '':

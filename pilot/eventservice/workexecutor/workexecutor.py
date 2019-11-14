@@ -6,6 +6,8 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
+
 
 import time
 
@@ -44,7 +46,7 @@ class WorkExecutor(PluginFactory):
 
     def get_plugin_confs(self):
         plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.genericexecutor.GenericExecutor'}
-        if self.args and 'executor_type' in self.args.keys():
+        if self.args and 'executor_type' in list(self.args.keys()):  # Python 2/3
             if self.args['executor_type'] == 'base':
                 plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.baseexecutor.BaseExecutor'}
             if self.args['executor_type'] == 'nl':  # network-less

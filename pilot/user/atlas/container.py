@@ -41,6 +41,8 @@ def do_use_container(**kwargs):
         # for user jobs, TRF option --containerImage must have been used, ie imagename must be set
         if job.is_analysis() and job.imagename:
             use_container = False
+        elif not (job.platform or job.alrbuserplatform):
+            use_container = False
         else:
             queuedata = job.infosys.queuedata
             container_name = queuedata.container_type.get("pilot")
