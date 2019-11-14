@@ -128,6 +128,6 @@ def put_in_queue(obj, queue):
     #try:
     #size = get_size(obj)
     #job.add_size(size) - only if obj = job
-    #except:
+    #except Exception:
     #pass
     queue.put(obj)
