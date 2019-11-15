@@ -86,9 +86,8 @@ class StagingClient(object):
             if not self.acopytools:  ## resolve from queuedata.acopytools using infosys
                 self.acopytools = (self.infosys.queuedata.acopytools or {}).copy()
             if not self.acopytools:  ## resolve from queuedata.copytools using infosys
-                #_copytools = self.infosys.queuedata.copytools or {}
-                #self.acopytools = dict(default=list(_copytools).keys())  # Python 2/3
-                self.acopytools = dict(default=(self.infosys.queuedata.copytools or {}).keys())  # Python 2
+                #self.acopytools = dict(default=(self.infosys.queuedata.copytools or {}).keys())  # Python 2
+                self.acopytools = dict(default=list((self.infosys.queuedata.copytools or {}).keys()))  # Python 2/3
 
         if not self.acopytools.get('default'):
             if isinstance(default_copytools, basestring):
