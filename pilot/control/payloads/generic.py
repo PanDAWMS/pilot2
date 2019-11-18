@@ -256,12 +256,12 @@ class Executor(object):
 
         breaker = False
         exit_code = None
-        iteration = 0L
+        iteration = long(0)  # Python 2/3
         while True:
             time.sleep(0.1)
 
             iteration += 1
-            for i in xrange(60):
+            for i in range(60):  # Python 2/3
                 if args.graceful_stop.is_set():
                     breaker = True
                     log.info('breaking -- sending SIGTERM pid=%s' % proc.pid)
