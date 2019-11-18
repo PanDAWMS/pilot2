@@ -332,3 +332,13 @@ def check_for_final_server_update(update_server):
         logger.info('server update not finished (#%d/#%d)' % (i + 1, max_i))
         sleep(30)
         i += 1
+
+
+def is_python3():
+    """
+    Check if we are running on Python 3.
+
+    :return: boolean.
+    """
+
+    return sys.version_info >= (3, 0)
