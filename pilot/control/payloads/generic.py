@@ -256,7 +256,10 @@ class Executor(object):
 
         breaker = False
         exit_code = None
-        iteration = long(0)  # Python 2/3
+        try:
+            iteration = 0L  # Python 2
+        except Exception:
+            iteration = 0  # Python 3, long doesn't exist
         while True:
             time.sleep(0.1)
 
