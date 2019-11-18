@@ -100,7 +100,7 @@ class CommunicationRequest(object):
 
     def __str__(self):
         json_str = {}
-        for key, value in self.__dict__.items():
+        for key, value in list(self.__dict__.items()):  # Python 2/3
             if value and type(value) is list:
                 json_str[key] = []
                 for list_item in value:
