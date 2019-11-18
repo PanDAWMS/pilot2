@@ -16,7 +16,10 @@ import logging
 import os
 import threading
 import time
-import Queue
+try:
+    import Queue as queue  # noqa: N813
+except Exception:
+    import queue  # Python 3
 
 from pilot.common import exception
 from pilot.common.pluginfactory import PluginFactory
@@ -122,14 +125,14 @@ class CommunicationManager(threading.Thread, PluginFactory):
         self.setName("CommunicationManager")
         self.post_get_jobs = None
         self.post_get_event_ranges_hook = None
-        self.queues = {'request_get_jobs': Queue.Queue(),
-                       'update_jobs': Queue.Queue(),
-                       'request_get_events': Queue.Queue(),
-                       'update_events': Queue.Queue(),
-                       'processing_get_jobs': Queue.Queue(),
-                       'processing_update_jobs': Queue.Queue(),
-                       'processing_get_events': Queue.Queue(),
-                       'processing_update_events': Queue.Queue()}
+        self.queues = {'request_get_jobs': queue.Queue(),
+                       'update_jobs': queue.Queue(),
+                       'request_get_events': queue.Queue(),
+                       'update_events': queue.Queue(),
+                       'processing_get_jobs': queue.Queue(),
+                       'processing_update_jobs': queue.Queue(),
+                       'processing_get_events': queue.Queue(),
+                       'processing_update_events': queue.Queue()}
         self.queue_limits = {'request_get_jobs': None,
                              'update_jobs': None,
                              'request_get_events': None,
