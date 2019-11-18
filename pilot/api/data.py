@@ -411,7 +411,7 @@ class StagingClient(object):
                                           _f]  # Python 3
             else:
                 try:
-                    fspec.ddm_activity = filter(None, ['write_lan' if fspec.ddmendpoint in fspec.inputddms else None, 'write_wan'])
+                    fspec.ddm_activity = filter(None, ['write_lan' if fspec.ddmendpoint in fspec.inputddms else None, 'write_wan'])  # Python 2
                 except Exception:
                     fspec.ddm_activity = [_f for _f in
                                           ['write_lan' if fspec.ddmendpoint in fspec.inputddms else None, 'write_wan']
