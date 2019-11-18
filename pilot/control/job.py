@@ -1258,14 +1258,17 @@ def get_fake_job(input=True):
             res['outFiles'] = ''
 
         # convert to unicode for Python 2
-        if not is_python3():
-            _res = {}
-        for entry in res:
-            if type(a[entry]) is str:
-                _res[u'%s' % entry] = u'%s' % res[entry]
-            else:
-                _res[u'%s' % entry] = res[entry]
-        res = _res
+        try:  # in case some later version of Python 3 has problems using u'' (seems ok with 3.7 at least)
+            if not is_python3():
+                _res = {}
+                for entry in res:
+                    if type(a[entry]) is str:
+                        _res[u'%s' % entry] = u'%s' % res[entry]
+                    else:
+                        _res[u'%s' % entry] = res[entry]
+                res = _res
+        except Exception:
+            pass
     return res
 
 
