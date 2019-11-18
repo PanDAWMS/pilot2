@@ -11,7 +11,10 @@
 # - Tomas Javurek, tomas.javurek@cern.ch, 2019
 # - David Cameron, david.cameron@cern.ch, 2019
 
-from __future__ import absolute_import
+try:
+    from __future__ import absolute_import  # Python 2
+except Exception:
+    pass
 
 import os
 import json
