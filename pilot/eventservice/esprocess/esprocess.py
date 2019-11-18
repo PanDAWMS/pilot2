@@ -19,7 +19,7 @@ import traceback
 try:
     import Queue as queue  # noqa: N813
 except Exception:
-    import queue  # python 3
+    import queue  # Python 3
 
 from pilot.common.exception import PilotException, MessageFailure, SetupFailure, RunPayloadFailure, UnknownException
 from pilot.eventservice.esprocess.esmessage import MessageThread

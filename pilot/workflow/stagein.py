@@ -18,7 +18,7 @@ from sys import stderr
 try:
     import Queue as queue  # noqa: N813
 except Exception:
-    import queue  # python 3
+    import queue  # Python 3
 
 from collections import namedtuple
 

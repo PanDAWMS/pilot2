@@ -18,7 +18,7 @@ import traceback
 try:
     import Queue as queue  # noqa: N813
 except Exception:
-    import queue  # python 3
+    import queue  # Python 3
 
 from pilot.control.payloads import generic, eventservice, eventservicemerge
 from pilot.control.job import send_state

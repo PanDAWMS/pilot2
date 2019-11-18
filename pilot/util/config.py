@@ -12,7 +12,7 @@ import re
 
 try:
     import ConfigParser
-except Exception:  # python 3
+except Exception:  # Python 3
     import configparser as ConfigParser  # noqa: N812
 
 _default_cfg = os.path.join(os.path.dirname(__file__), 'default.cfg')
