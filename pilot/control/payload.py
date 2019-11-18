@@ -49,7 +49,7 @@ def control(queues, traces, args):
     targets = {'validate_pre': validate_pre, 'execute_payloads': execute_payloads, 'validate_post': validate_post,
                'failed_post': failed_post}
     threads = [ExcThread(bucket=queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
-                         name=name) for name, target in targets.items()]
+                         name=name) for name, target in list(targets.items())]
 
     [thread.start() for thread in threads]
 
@@ -181,7 +181,7 @@ def execute_payloads(queues, traces, args):
             if len(peek) == 0:
                 #queues.validated_payloads.put(job)
                 put_in_queue(job, queues.validated_payloads)
-                for i in xrange(10):
+                for i in range(10):
                     if args.graceful_stop.is_set():
                         break
                     time.sleep(1)
