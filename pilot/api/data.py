@@ -259,7 +259,7 @@ class StagingClient(object):
             try:
                 sorted_replicas = sorted(r.get('pfns', {}).iteritems(), key=lambda x: x[1]['priority'])  # Python 2
             except Exception:
-                sorted_replicas = sorted(iter(r.get('pfns', {}).items()), key=lambda x: x[1]['priority'])  # Python 3
+                sorted_replicas = sorted(iter(list(r.get('pfns', {}).items())), key=lambda x: x[1]['priority'])  # Python 3
 
             # prefer replicas from inputddms first
             xreplicas = self.sort_replicas(sorted_replicas, fdat.inputddms)

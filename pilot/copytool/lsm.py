@@ -184,7 +184,7 @@ def copy_out(files, **kwargs):
         try:
             opts = " ".join(["%s %s" % (k, v) for (k, v) in opts.iteritems()])  # Python 2
         except Exception:
-            opts = " ".join(["%s %s" % (k, v) for (k, v) in opts.items()])  # Python 3
+            opts = " ".join(["%s %s" % (k, v) for (k, v) in list(opts.items())])  # Python 3
 
         logger.info("transferring file %s from %s to %s" % (fspec.lfn, source, destination))
 

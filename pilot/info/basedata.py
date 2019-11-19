@@ -69,7 +69,7 @@ class BaseData(object):
                           }
 
         try:
-            _items = self._keys.items()  # Python 3
+            _items = list(self._keys.items())  # Python 3
         except Exception:
             _items = self._keys.iteritems()  # Python 2
         for ktype, knames in _items:

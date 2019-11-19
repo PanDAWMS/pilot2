@@ -488,7 +488,7 @@ def resolve_panda_copytools(pandaqueues, activity, defval=[]):
                     explicit_copytools.update(v or [])
 
             try:
-                cptools = [(cp, v) for cp, v in copytools.items() if cp not in explicit_copytools]  # Python 3
+                cptools = [(cp, v) for cp, v in list(copytools.items()) if cp not in explicit_copytools]  # Python 3
             except Exception:
                 cptools = [(cp, v) for cp, v in copytools.iteritems() if cp not in explicit_copytools]  # Python 2
 
