@@ -1,9 +1,21 @@
+#!/usr/bin/env python
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Authors:
+# - Danila?
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
+
 import re
 import logging
 import json
 import numbers
 import traceback
 import threading
+
+from pilot.util.auxiliary import is_python3
 
 log = logging.getLogger(__name__)
 
@@ -82,6 +94,20 @@ def is_float(val):
         return False
 
 
+def is_int(val):
+    """
+    Test int of the string value.
+
+    :param val: string or whatever
+    :return: True if the value may be converted to int
+    """
+    try:
+        int(val)
+        return True
+    except ValueError:
+        return False
+
+
 def is_long(s):
     """
     Test value to be convertable to integer.
@@ -89,12 +115,16 @@ def is_long(s):
     :param s: string or whatever
     :return: True if the value may be converted to Long
     """
-    if not isinstance(s, basestring):
-        try:
-            long(s)
-            return True
-        except ValueError:
-            return False
+
+    try:
+        if not isinstance(s, basestring):  # Python 2
+            try:
+                long(s)
+                return True
+            except ValueError:
+                return False
+    except Exception:
+        return False  # Python 3 - this function should not be used on Python 3
 
     if s and s[0] in ('-', '+'):
         return s[1:].isdigit()
@@ -109,12 +139,23 @@ def parse_value(value):
     :param value:
     :return: mixed
     """
-    if not isinstance(value, basestring):
-        return value
-    if is_long(value):
-        return long(value)
+
+    try:
+        if not isinstance(value, basestring):  # Python 2
+            return value
+    except Exception:
+        if not isinstance(value, str):  # Python 3
+            return value
+
+    if is_python3():  # Python 3
+        if is_int(value):  # Python 3
+            return int(value)
+    else:
+        if is_long(value):  # Python 2
+            return long(value)
     if is_float(value):
         return float(value)
+
     return get_nulls(value)
 
 
@@ -363,8 +404,12 @@ class JobDescription(object):
         return join(ret)
 
     def load(self, new_desc):
-        if isinstance(new_desc, basestring):
-            new_desc = json.loads(new_desc)
+        try:
+            if isinstance(new_desc, basestring):  # Python 2
+                new_desc = json.loads(new_desc)
+        except Exception:
+            if isinstance(new_desc, str):  # Python 3
+                new_desc = json.loads(new_desc)
 
         if "PandaID" in new_desc:
             log.info("Parsing description to be of readable, easy to use format")
