@@ -20,7 +20,10 @@ logger = logging.getLogger(__name__)
 
 
 def interrupt(args, signum, frame):
-    logger.info('caught signal: %s' % [v for v, k in signal.__dict__.iteritems() if k == signum][0])
+    try:
+        logger.info('caught signal: %s' % [v for v, k in signal.__dict__.iteritems() if k == signum][0])
+    except Exception:
+        logger.info('caught signal: %s' % [v for v, k in signal.__dict__.items() if k == signum][0])
     args.graceful_stop.set()
 
 
