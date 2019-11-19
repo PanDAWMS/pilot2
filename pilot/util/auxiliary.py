@@ -14,11 +14,11 @@ from collections import Set, Mapping, deque, OrderedDict
 from numbers import Number
 from time import sleep
 
-try:  # Python 2
-    zero_depth_bases = (basestring, Number, xrange, bytearray)
+try:
+    zero_depth_bases = (basestring, Number, xrange, bytearray)  # Python 2
     iteritems = 'iteritems'
-except NameError:  # Python 3
-    zero_depth_bases = (str, bytes, Number, range, bytearray)
+except NameError:
+    zero_depth_bases = (str, bytes, Number, range, bytearray)  # Python 3
     iteritems = 'items'
 
 from pilot.common.errorcodes import ErrorCodes
@@ -116,13 +116,21 @@ def get_batchsystem_jobid():
                         'clusterid': 'Condor',  # Condor (variable sent through job submit file)
                         'SLURM_JOB_ID': 'SLURM'}
 
-    for key, value in batchsystem_dict.iteritems():
-        if key in os.environ:
-            return value, os.environ.get(key, '')
+    try:
+        for key, value in batchsystem_dict.iteritems():
+            if key in os.environ:
+                return value, os.environ.get(key, '')
+    except Exception:
+        for key, value in batchsystem_dict.items():
+            if key in os.environ:
+                return value, os.environ.get(key, '')
 
     # Condor (get jobid from classad file)
     if '_CONDOR_JOB_AD' in os.environ:
-        from commands import getoutput
+        try:
+            from commands import getoutput
+        except Exception:
+            from subprocess import getoutput
         return "Condor", getoutput(
             'sed -n "s/GlobalJobId.*\\"\\(.*\\)\\".*/\\1/p" %s' % os.environ.get("_CONDOR_JOB_AD"))
 
