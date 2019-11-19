@@ -23,7 +23,7 @@ def interrupt(args, signum, frame):
     try:
         logger.info('caught signal: %s' % [v for v, k in signal.__dict__.iteritems() if k == signum][0])
     except Exception:
-        logger.info('caught signal: %s' % [v for v, k in signal.__dict__.items() if k == signum][0])
+        logger.info('caught signal: %s' % [v for v, k in list(signal.__dict__.items()) if k == signum][0])
     args.graceful_stop.set()
 
 
