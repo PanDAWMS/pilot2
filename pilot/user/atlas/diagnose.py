@@ -390,7 +390,7 @@ def find_most_recent_and_oldest_summary_files(file_list):
             # get the modification time
             try:
                 st_mtime = os.path.getmtime(summary_file)
-            except Exception, e:
+            except Exception as e:  # Python 2/3
                 logger.warning("could not read modification time of file %s: %s" % (summary_file, e))
             else:
                 if st_mtime > recent_time:
