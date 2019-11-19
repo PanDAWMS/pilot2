@@ -25,7 +25,7 @@ try:
     import urllib.error  # Python 3
     import urllib.parse  # Python 3
 except Exception:
-    import urllib2  # Python 3
+    import urllib2  # Python 2
 from datetime import datetime, timedelta
 
 from pilot.util.config import config
@@ -481,7 +481,7 @@ def resolve_panda_copytools(pandaqueues, activity, defval=[]):
         else:
             explicit_copytools = set()
             try:
-                for v in r.get(pandaqueue, {}).get('acopytools', {}).values():  # Python 3
+                for v in list(r.get(pandaqueue, {}).get('acopytools', {}).values()):  # Python 3
                     explicit_copytools.update(v or [])
             except Exception:
                 for v in r.get(pandaqueue, {}).get('acopytools', {}).itervalues():  # Python 2
