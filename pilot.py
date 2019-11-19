@@ -140,7 +140,7 @@ def import_module(**kwargs):
     args = Args()
     parser = argparse.ArgumentParser()
     try:
-        _items = argument_dictionary.items()  # Python 3
+        _items = list(argument_dictionary.items())  # Python 3
     except Exception:
         _items = argument_dictionary.iteritems()  # Python 2
     for key, value in _items:
