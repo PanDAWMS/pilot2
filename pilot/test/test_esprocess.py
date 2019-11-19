@@ -133,8 +133,8 @@ class TestESMessageThread(unittest.TestCase):
         """
         Make sure that es message thread works as expected.
         """
-        queue = queue.Queue()  # Python 2/3
-        msg_thread = MessageThread(queue, socket_name='test', context='local')
+        _queue = queue.Queue()  # Python 2/3
+        msg_thread = MessageThread(_queue, socket_name='test', context='local')
         self.assertIsInstance(msg_thread, threading.Thread)
 
         msg_thread.start()
