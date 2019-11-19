@@ -1031,7 +1031,8 @@ def parse_jobreport_data(job_report):
         try:
             _tmplist = filter(lambda d: 'memory' in d and ('Max' or 'Avg' in d['memory']), j.itervalues())  # Python 2
         except Exception:
-            _tmplist = [d for d in iter(j.values()) if 'memory' in d and ('Max' or 'Avg' in d['memory'])]  # Python 3
+            _tmplist = [d for d in iter(list(j.values())) if
+                        'memory' in d and ('Max' or 'Avg' in d['memory'])]  # Python 3
         for v in _tmplist:
             if 'Avg' in v['memory']:
                 exc_report.extend(list(v['memory']['Avg'].items()))  # Python 2/3
