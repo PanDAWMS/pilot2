@@ -51,7 +51,7 @@ def interrupt(args, signum, frame):
     try:
         sig = [v for v, k in signal.__dict__.iteritems() if k == signum][0]
     except Exception:
-        sig = [v for v, k in signal.__dict__.items() if k == signum][0]
+        sig = [v for v, k in list(signal.__dict__.items()) if k == signum][0]
 
     args.signal_counter += 1
 
