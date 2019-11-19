@@ -1259,7 +1259,7 @@ def get_fake_job(input=True):
             if not is_python3():
                 _res = {}
                 for entry in res:
-                    if type(a[entry]) is str:
+                    if type(res[entry]) is str:
                         _res[u'%s' % entry] = u'%s' % res[entry]
                     else:
                         _res[u'%s' % entry] = res[entry]
