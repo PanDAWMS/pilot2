@@ -257,7 +257,7 @@ class Executor(object):
         breaker = False
         exit_code = None
         try:
-            iteration = 0L  # Python 2
+            iteration = long(0)  # Python 2, do not use 0L since it will create a syntax error in spite of the try
         except Exception:
             iteration = 0  # Python 3, long doesn't exist
         while True:

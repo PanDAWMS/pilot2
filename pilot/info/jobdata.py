@@ -647,15 +647,15 @@ class JobData(BaseData):
         """
 
         # Convert to long if necessary
-        try:  # Python 2
-            if not isinstance(workdir_size, (int, long)):
+        try:
+            if not isinstance(workdir_size, (int, long)):  # Python 2
                 try:
                     workdir_size = long(workdir_size)
                 except Exception as e:
                     logger.warning('failed to convert %s to long: %s' % (workdir_size, e))
                     return
-        except Exception:  # Python 3, note order
-            if not isinstance(workdir_size, int):
+        except Exception:
+            if not isinstance(workdir_size, int):  # Python 3, note order
                 try:
                     workdir_size = long(workdir_size)
                 except Exception as e:
