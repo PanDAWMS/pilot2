@@ -21,7 +21,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_job_metrics(job):
+def get_job_metrics(job):  # noqa: C901
     """
     Return a properly formatted job metrics string.
     The format of the job metrics string is defined by the server. It will be reported to the server during updateJob.
