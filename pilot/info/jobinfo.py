@@ -84,7 +84,7 @@ class JobInfoProvider(object):
         try:
             data.update((k, v) for k, v in master_data.iteritems() if k in set(ddmendpoints or master_data) & set(master_data))  # Python 2
         except Exception:
-            data.update((k, v) for k, v in master_data.items() if k in set(ddmendpoints or master_data) & set(master_data))  # Python 3
+            data.update((k, v) for k, v in list(master_data.items()) if k in set(ddmendpoints or master_data) & set(master_data))  # Python 3
 
         if data:
             logger.info('storagedata: following data extracted from Job definition will be used: %s' % data)
