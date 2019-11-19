@@ -141,7 +141,7 @@ class TestUtils(unittest.TestCase):
 }
         """
         report_data = json.loads(report)
-        print(json.dumps(parse_jobreport_data(report_data), sort_keys=True, indent=2))
+        print((json.dumps(parse_jobreport_data(report_data), sort_keys=True, indent=2)))
 
     def test_successful_jobreport(self):
         """
@@ -360,7 +360,7 @@ class TestUtils(unittest.TestCase):
 }
         """
         report_data = json.loads(report)
-        print(json.dumps(parse_jobreport_data(report_data), sort_keys=True, indent=2))
+        print((json.dumps(parse_jobreport_data(report_data), sort_keys=True, indent=2)))
 
 
 if __name__ == '__main__':
