@@ -10,10 +10,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 # - Wen Guan, wen.guan@cern.ch, 2018
 
-try:
-    from __future__ import print_function  # Python 2
-except Exception:
-    pass
+from __future__ import print_function  # Python 2
 
 import os
 import time
