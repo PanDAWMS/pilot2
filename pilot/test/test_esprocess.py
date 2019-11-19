@@ -5,15 +5,20 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
 import json
 import logging
 import os
-import Queue
 import subprocess
 import sys
 import threading
 import time
+
+try:
+    import Queue as queue  # noqa: N813
+except Exception:
+    import queue  # Python 3
 
 from pilot.eventservice.esprocess.eshook import ESHook
 from pilot.eventservice.esprocess.esmanager import ESManager
@@ -128,7 +133,7 @@ class TestESMessageThread(unittest.TestCase):
         """
         Make sure that es message thread works as expected.
         """
-        queue = Queue.Queue()
+        queue = queue.Queue()  # Python 2/3
         msg_thread = MessageThread(queue, socket_name='test', context='local')
         self.assertIsInstance(msg_thread, threading.Thread)
 
