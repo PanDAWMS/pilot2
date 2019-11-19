@@ -117,20 +117,20 @@ def get_batchsystem_jobid():
                         'SLURM_JOB_ID': 'SLURM'}
 
     try:
-        for key, value in batchsystem_dict.iteritems():
+        for key, value in batchsystem_dict.iteritems():  # Python 2
             if key in os.environ:
                 return value, os.environ.get(key, '')
     except Exception:
-        for key, value in batchsystem_dict.items():
+        for key, value in list(batchsystem_dict.items()):  # Python 3
             if key in os.environ:
                 return value, os.environ.get(key, '')
 
     # Condor (get jobid from classad file)
     if '_CONDOR_JOB_AD' in os.environ:
         try:
-            from commands import getoutput
+            from commands import getoutput  # Python 2
         except Exception:
-            from subprocess import getoutput
+            from subprocess import getoutput  # Python 3
         return "Condor", getoutput(
             'sed -n "s/GlobalJobId.*\\"\\(.*\\)\\".*/\\1/p" %s' % os.environ.get("_CONDOR_JOB_AD"))
 
