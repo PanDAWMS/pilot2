@@ -80,7 +80,7 @@ def set_info(args):   ## should be DEPRECATED: use `infosys.init(queuename)`
     try:
         args.info.storages = [ddm for ddm, dat in infosys.storages_info.iteritems() if dat.site == infosys.queuedata.site]  # Python 2
     except Exception:
-        args.info.storages = [ddm for ddm, dat in infosys.storages_info.items() if dat.site == infosys.queuedata.site]  # Python 3
+        args.info.storages = [ddm for ddm, dat in list(infosys.storages_info.items()) if dat.site == infosys.queuedata.site]  # Python 3
 
     #args.info.sites_info = infosys.sites_info
 

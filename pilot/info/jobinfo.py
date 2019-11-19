@@ -5,6 +5,8 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
+
 
 """
 Job specific info provider mainly used to customize Queue, Site, etc data of Information Service
