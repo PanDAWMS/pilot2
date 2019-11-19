@@ -46,7 +46,7 @@ def interrupt(args, signum, frame):
     try:
         sig = [v for v, k in signal.__dict__.iteritems() if k == signum][0]  # Python 2
     except Exception:
-        sig = [v for v, k in signal.__dict__.items() if k == signum][0]  # Python 3
+        sig = [v for v, k in list(signal.__dict__.items()) if k == signum][0]  # Python 3
     add_to_pilot_timing('0', PILOT_KILL_SIGNAL, time(), args)
     add_to_pilot_timing('1', PILOT_KILL_SIGNAL, time(), args)
     logger.warning('caught signal: %s' % sig)
