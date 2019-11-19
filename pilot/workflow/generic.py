@@ -9,7 +9,7 @@
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 
-from __future__ import print_function
+from __future__ import print_function  # Python 2, 2to3 complains about this
 
 import functools
 import signal
@@ -48,7 +48,11 @@ def interrupt(args, signum, frame):
     :return:
     """
 
-    sig = [v for v, k in signal.__dict__.iteritems() if k == signum][0]
+    try:
+        sig = [v for v, k in signal.__dict__.iteritems() if k == signum][0]
+    except Exception:
+        sig = [v for v, k in signal.__dict__.items() if k == signum][0]
+
     args.signal_counter += 1
 
     # keep track of when first kill signal arrived, any stuck loops should abort at a defined cut off time
