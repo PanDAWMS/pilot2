@@ -15,6 +15,11 @@ from collections import defaultdict
 from glob import glob
 from signal import SIGTERM, SIGUSR1
 
+try:
+    from functools import reduce  # Python 3
+except Exception:
+    pass
+
 from .dbrelease import get_dbrelease_version, create_dbrelease
 from .setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
     set_inds, get_analysis_trf, get_payload_environment_variables, replace_lfns_with_turls
@@ -23,7 +28,7 @@ from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import TrfDownloadFailure, PilotException
-from pilot.util.auxiliary import get_logger
+from pilot.util.auxiliary import get_logger, is_python3
 from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
     UTILITY_WITH_STAGEIN
@@ -1012,18 +1017,26 @@ def parse_jobreport_data(job_report):
     work_attributes['outputfiles'] = outputfiles_dict
 
     if work_attributes['inputfiles']:
-        work_attributes['nInputFiles'] = reduce(lambda a, b: a + b, map(lambda inpfiles: len(inpfiles['subFiles']),
-                                                                        work_attributes['inputfiles']))
+        if is_python3():
+            work_attributes['nInputFiles'] = reduce(lambda a, b: a + b, [len(inpfiles['subFiles']) for inpfiles in
+                                                                         work_attributes['inputfiles']])
+        else:
+            work_attributes['nInputFiles'] = reduce(lambda a, b: a + b, map(lambda inpfiles: len(inpfiles['subFiles']),
+                                                                            work_attributes['inputfiles']))
 
     if 'resource' in job_report and 'executor' in job_report['resource']:
         j = job_report['resource']['executor']
         exc_report = []
         fin_report = defaultdict(int)
-        for v in filter(lambda d: 'memory' in d and ('Max' or 'Avg' in d['memory']), j.itervalues()):
+        try:
+            _tmplist = filter(lambda d: 'memory' in d and ('Max' or 'Avg' in d['memory']), j.itervalues())  # Python 2
+        except Exception:
+            _tmplist = [d for d in iter(j.values()) if 'memory' in d and ('Max' or 'Avg' in d['memory'])]  # Python 3
+        for v in _tmplist:
             if 'Avg' in v['memory']:
-                exc_report.extend(v['memory']['Avg'].items())
+                exc_report.extend(list(v['memory']['Avg'].items()))  # Python 2/3
             if 'Max' in v['memory']:
-                exc_report.extend(v['memory']['Max'].items())
+                exc_report.extend(list(v['memory']['Max'].items()))  # Python 2/3
         for x in exc_report:
             fin_report[x[0]] += x[1]
         work_attributes.update(fin_report)
@@ -1124,7 +1137,10 @@ def get_db_info(jobreport_dictionary):
     """
 
     db_time = 0
-    db_data = 0L
+    try:
+        db_data = long(0)  # Python 2
+    except Exception:
+        db_data = 0  # Python 3
 
     executor_dictionary = get_executor_dictionary(jobreport_dictionary)
     if executor_dictionary != {}:
@@ -1157,7 +1173,12 @@ def get_db_info_str(db_time, db_data):
     :return: db_time_s, db_data_s (strings)
     """
 
-    if db_data != 0L:
+    try:
+        zero = long(0)  # Python 2
+    except Exception:
+        zero = 0  # Python 3
+
+    if db_data != zero:
         db_data_s = "%s" % (db_data)
     else:
         db_data_s = ""
@@ -1180,7 +1201,10 @@ def get_cpu_times(jobreport_dictionary):
     :return: cpu_conversion_unit (unit), total_cpu_time, conversion_factor (output consistent with set_time_consumed())
     """
 
-    total_cpu_time = 0L
+    try:
+        total_cpu_time = long(0)  # Python 2
+    except Exception:
+        total_cpu_time = 0  # Python 3
 
     executor_dictionary = get_executor_dictionary(jobreport_dictionary)
     if executor_dictionary != {}:
