@@ -7,7 +7,7 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
-from __future__ import print_function
+from __future__ import print_function  # Python 2, 2to3 complains about this
 
 import functools
 import signal
@@ -43,7 +43,10 @@ def interrupt(args, signum, frame):
     :return:
     """
 
-    sig = [v for v, k in signal.__dict__.iteritems() if k == signum][0]
+    try:
+        sig = [v for v, k in signal.__dict__.iteritems() if k == signum][0]  # Python 2
+    except Exception:
+        sig = [v for v, k in signal.__dict__.items() if k == signum][0]  # Python 3
     add_to_pilot_timing('0', PILOT_KILL_SIGNAL, time(), args)
     add_to_pilot_timing('1', PILOT_KILL_SIGNAL, time(), args)
     logger.warning('caught signal: %s' % sig)
