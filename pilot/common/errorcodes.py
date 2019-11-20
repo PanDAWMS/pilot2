@@ -357,6 +357,8 @@ class ErrorCodes:
             ec = self.SINGULARITYGENERALFAILURE
         elif exit_code == 64 and "Singularity is not installed" in stderr:
             ec = self.SINGULARITYNOTINSTALLED
+        elif exit_code == 64 and "cannot create directory" in stderr:
+            ec = self.MKDIR
         elif exit_code == -1:
             ec = self.UNKNOWNTRFFAILURE
         else:

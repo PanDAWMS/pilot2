@@ -567,3 +567,5 @@ def cleanup(job):
 
     logger.info("will now attempt to kill all subprocesses of pid=%d" % job.pid)
     kill_processes(job.pid)
+    logger.info("resetting job object")
+    job = None
