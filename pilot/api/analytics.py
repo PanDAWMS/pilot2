@@ -155,7 +155,7 @@ class Analytics(Services):
                 else:
                     if _slope:
                         slope = float_to_rounded_string(fit.slope(), precision=precision)
-                        chi2 = float_to_rounded_string(fit.chi2(), precision=precision
+                        chi2 = float_to_rounded_string(fit.chi2(), precision=precision)
                         if slope != "":
                             logger.info('current memory leak: %s B/s (using %d data points, chi2=%s)' %
                                         (slope, len(x), chi2))
