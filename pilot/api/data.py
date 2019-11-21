@@ -978,6 +978,12 @@ class StageOutClient(StagingClient):
         # check if files exist before actual processing
         # populate filesize if need, calc checksum
         for fspec in files:
+
+            if not fspec.ddmendpoint:  # ensure that output destination is properly set
+                msg = 'No output RSE defined for file=%s' % fspec.lfn
+                self.logger.error(msg)
+                raise PilotException(msg, code=ErrorCodes.NOSTORAGE, state='NO_OUTPUTSTORAGE_DEFINED')
+
             pfn = fspec.surl or getattr(fspec, 'pfn', None) or os.path.join(kwargs.get('workdir', ''), fspec.lfn)
             if not os.path.isfile(pfn) or not os.access(pfn, os.R_OK):
                 msg = "Error: output pfn file does not exist: %s" % pfn
