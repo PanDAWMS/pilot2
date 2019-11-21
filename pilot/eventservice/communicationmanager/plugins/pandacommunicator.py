@@ -68,7 +68,7 @@ class PandaCommunicator(BaseCommunicator):
             data = {'getProxyKey': 'False'}
             kmap = {'node': 'node', 'mem': 'mem', 'getProxyKey': 'getProxyKey', 'computingElement': 'queue', 'diskSpace': 'disk_space',
                     'siteName': 'site', 'prodSourceLabel': 'job_label', 'workingGroup': 'working_group', 'cpu': 'cpu'}
-            for key, value in kmap.items():
+            for key, value in list(kmap.items()):  # Python 2/3
                 if hasattr(req, value):
                     data[key] = getattr(req, value)
 
@@ -99,7 +99,7 @@ class PandaCommunicator(BaseCommunicator):
                 resp_attrs = {'status': -1, 'content': None, 'exception': exception.UnknownException("Failed to get jobs")}
 
             resp = CommunicationResponse(resp_attrs)
-        except Exception, e:
+        except Exception as e:  # Python 2/3
             logger.error("Failed to get jobs: %s, %s" % (e, traceback.format_exc()))
             resp_attrs = {'status': -1, 'content': None, 'exception': exception.UnknownException("Failed to get jobs: %s" % (traceback.format_exc()))}
             resp = CommunicationResponse(resp_attrs)
@@ -158,7 +158,7 @@ class PandaCommunicator(BaseCommunicator):
                               'exception': exception.CommunicationFailure("Get events from panda returns non-zero value: %s" % res['StatusCode'])}
 
             resp = CommunicationResponse(resp_attrs)
-        except Exception, e:
+        except Exception as e:  # Python 2/3
             log.error("Failed to download event ranges: %s, %s" % (e, traceback.format_exc()))
             resp_attrs = {'status': -1, 'content': None, 'exception': exception.UnknownException("Failed to get events: %s" % (traceback.format_exc()))}
             resp = CommunicationResponse(resp_attrs)
@@ -174,7 +174,7 @@ class PandaCommunicator(BaseCommunicator):
         self.update_events_lock.acquire()
         try:
             pass
-        except Exception, e:
+        except Exception as e:  # Python 2/3
             logger.error("Failed to pre_check_update_events: %s, %s" % (e, traceback.format_exc()))
         self.update_events_lock.release()
         return CommunicationResponse({'status': 0})
@@ -195,7 +195,7 @@ class PandaCommunicator(BaseCommunicator):
             logger.info("Updated event ranges status: %s" % res)
             resp_attrs = {'status': 0, 'content': res, 'exception': None}
             resp = CommunicationResponse(resp_attrs)
-        except Exception, e:
+        except Exception as e:  # Python 2/3
             logger.error("Failed to update event ranges: %s, %s" % (e, traceback.format_exc()))
             resp_attrs = {'status': -1, 'content': None, 'exception': exception.UnknownException("Failed to update events: %s" % (traceback.format_exc()))}
             resp = CommunicationResponse(resp_attrs)
@@ -210,7 +210,7 @@ class PandaCommunicator(BaseCommunicator):
         self.update_jobs_lock.acquire()
         try:
             pass
-        except Exception, e:
+        except Exception as e:  # Python 2/3
             logger.error("Failed to pre_check_update_jobs: %s, %s" % (e, traceback.format_exc()))
         self.update_jobs_lock.release()
         return CommunicationResponse({'status': 0})
@@ -227,7 +227,7 @@ class PandaCommunicator(BaseCommunicator):
 
             logger.info("Updated jobs status: %s" % res)
             return res
-        except Exception, e:
+        except Exception as e:  # Python 2/3
             logger.error("Failed to update jobs: %s, %s" % (e, traceback.format_exc()))
             return -1
 
@@ -246,7 +246,7 @@ class PandaCommunicator(BaseCommunicator):
                 res_list.append(res)
             resp_attrs = {'status': 0, 'content': res_list, 'exception': None}
             resp = CommunicationResponse(resp_attrs)
-        except Exception, e:
+        except Exception as e:  # Python 2/3
             logger.error("Failed to update jobs: %s, %s" % (e, traceback.format_exc()))
             resp_attrs = {'status': -1, 'content': None, 'exception': exception.UnknownException("Failed to update jobs: %s" % (traceback.format_exc()))}
             resp = CommunicationResponse(resp_attrs)
@@ -271,7 +271,7 @@ class PandaCommunicator(BaseCommunicator):
             logger.info("Updated jobs status: %s" % res)
             resp_attrs = {'status': 0, 'content': res, 'exception': None}
             resp = CommunicationResponse(resp_attrs)
-        except Exception, e:
+        except Exception as e:  # Python 2/3
             logger.error("Failed to update jobs: %s, %s" % (e, traceback.format_exc()))
             resp_attrs = {'status': -1, 'content': None, 'exception': exception.UnknownException("Failed to update jobs: %s" % (traceback.format_exc()))}
             resp = CommunicationResponse(resp_attrs)

@@ -43,7 +43,7 @@ def create_output_list(files, init_dir, ddmconf):
             arcturl = '/'.join([rucio, arcturl, rse, activity])
         else:
             # Add ARC options to TURL
-            checksumtype, checksum = fspec.checksum.items()[0]
+            checksumtype, checksum = list(fspec.checksum.items())[0]  # Python 2/3
             # resolve token value from fspec.ddmendpoint
             token = ddmconf.get(fspec.ddmendpoint).token
             if not token:

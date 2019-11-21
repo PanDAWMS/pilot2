@@ -30,6 +30,7 @@ except Exception:
 import pipes
 
 from .filehandling import write_file
+from .auxiliary import is_python3
 
 import logging
 logger = logging.getLogger(__name__)
@@ -242,7 +243,7 @@ def request(url, data=None, plain=False, secure=True):  # noqa: C901
             req.add_header('User-Agent', _ctx.user_agent)
         context = _ctx.ssl_context if secure else None
 
-        try:  # Python 3
+        if is_python3():  # Python 3
             try:
                 output = urllib.request.urlopen(req, context=context)
             except urllib.error.HTTPError as e:
@@ -251,7 +252,7 @@ def request(url, data=None, plain=False, secure=True):  # noqa: C901
             except urllib.error.URLError as e:
                 logger.warn('connection error: %s' % e.reason)
                 return None
-        except Exception:  # Python 2
+        else:  # Python 2
             try:
                 output = urllib2.urlopen(req, context=context)
             except urllib2.HTTPError as e:

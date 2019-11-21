@@ -21,7 +21,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_job_metrics(job):
+def get_job_metrics(job):  # noqa: C901
     """
     Return a properly formatted job metrics string.
     The format of the job metrics string is defined by the server. It will be reported to the server during updateJob.
@@ -89,7 +89,13 @@ def get_job_metrics(job):
     # get the max disk space used by the payload (at the end of a job)
     if job.state == "finished" or job.state == "failed" or job.state == "holding":
         max_space = job.get_max_workdir_size()
-        if max_space > 0L:
+
+        try:
+            zero = long(0)  # Python 2
+        except Exception:
+            zero = 0  # Python 3
+
+        if max_space > zero:
             job_metrics += get_job_metrics_entry("workDirSize", max_space)
         else:
             log.info("will not add max space = %d B to job metrics" % (max_space))

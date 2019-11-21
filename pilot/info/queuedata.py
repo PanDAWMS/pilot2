@@ -5,6 +5,8 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018-2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
+
 
 """
 The implementation of data structure to host queuedata settings.
@@ -139,8 +141,12 @@ class QueueData(BaseData):
 
         if not activity:
             activity = 'default'
-        if isinstance(activity, basestring):
-            activity = [activity]
+        try:
+            if isinstance(activity, basestring):  # Python 2
+                activity = [activity]
+        except Exception:
+            if isinstance(activity, str):  # Python 3
+                activity = [activity]
 
         if 'default' not in activity:
             activity = activity + ['default']

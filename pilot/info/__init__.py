@@ -5,6 +5,7 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
 """
 Pilot Information component
@@ -76,7 +77,10 @@ def set_info(args):   ## should be DEPRECATED: use `infosys.init(queuename)`
     #args.location.storages_info = infosys.storages_info
 
     # find all enabled storages at site
-    args.info.storages = [ddm for ddm, dat in infosys.storages_info.iteritems() if dat.site == infosys.queuedata.site]
+    try:
+        args.info.storages = [ddm for ddm, dat in infosys.storages_info.iteritems() if dat.site == infosys.queuedata.site]  # Python 2
+    except Exception:
+        args.info.storages = [ddm for ddm, dat in list(infosys.storages_info.items()) if dat.site == infosys.queuedata.site]  # Python 3
 
     #args.info.sites_info = infosys.sites_info
 

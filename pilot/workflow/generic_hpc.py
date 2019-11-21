@@ -17,6 +17,11 @@ import time
 from collections import namedtuple
 from datetime import datetime
 
+try:
+    from functools import reduce  # Python 3
+except Exception:
+    pass
+
 from pilot.common.exception import FileHandlingFailure
 from pilot.util.auxiliary import set_pilot_state
 from pilot.util.config import config
@@ -31,7 +36,22 @@ logger = logging.getLogger(__name__)
 
 
 def interrupt(args, signum, frame):
-    logger.info('caught signal: %s' % [v for v, k in signal.__dict__.iteritems() if k == signum][0])
+    """
+    Interrupt function on the receiving end of kill signals.
+    This function is forwarded any incoming signals (SIGINT, SIGTERM, etc) and will set abort_job which instructs
+    the threads to abort the job.
+
+    :param args: pilot arguments.
+    :param signum: signal.
+    :param frame: stack/execution frame pointing to the frame that was interrupted by the signal.
+    :return:
+    """
+
+    try:
+        logger.info('caught signal: %s' % [v for v, k in signal.__dict__.iteritems() if k == signum][0])  # Python 2
+    except Exception:
+        logger.info('caught signal: %s' % [v for v, k in list(signal.__dict__.items()) if k == signum][0])  # Python 3
+
     args.graceful_stop.set()
 
 
@@ -125,7 +145,7 @@ def run(args):
         t1 = os.times()
         exetime = time.time() - stime
         end_time = time.asctime(time.localtime(time.time()))
-        t = map(lambda x, y: x - y, t1, t0)
+        t = list(map(lambda x, y: x - y, t1, t0))  # Python 2/3
         t_tot = reduce(lambda x, y: x + y, t[2:3])
         job.endTime = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         payloadstdout.close()

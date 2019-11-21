@@ -53,7 +53,7 @@ class StagingClient(object):
     # list of allowed schemas to be used for transfers from REMOTE sites
     remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm', 'storm', 'https']
 
-    def __init__(self, infosys_instance=None, acopytools=None, logger=None, default_copytools='rucio', trace_report=None):
+    def __init__(self, infosys_instance=None, acopytools=None, logger=None, default_copytools='rucio', trace_report=None):  # noqa: C901
         """
             If `acopytools` is not specified then it will be automatically resolved via infosys. In this case `infosys` requires initialization.
             :param acopytools: dict of copytool names per activity to be used for transfers. Accepts also list of names or string value without activity passed.
@@ -86,13 +86,16 @@ class StagingClient(object):
             if not self.acopytools:  ## resolve from queuedata.acopytools using infosys
                 self.acopytools = (self.infosys.queuedata.acopytools or {}).copy()
             if not self.acopytools:  ## resolve from queuedata.copytools using infosys
-                #_copytools = self.infosys.queuedata.copytools or {}
-                #self.acopytools = dict(default=list(_copytools).keys())  # Python 2/3
-                self.acopytools = dict(default=(self.infosys.queuedata.copytools or {}).keys())  # Python 2
+                #self.acopytools = dict(default=(self.infosys.queuedata.copytools or {}).keys())  # Python 2
+                self.acopytools = dict(default=list((self.infosys.queuedata.copytools or {}).keys()))  # Python 2/3
 
         if not self.acopytools.get('default'):
-            if isinstance(default_copytools, basestring):
-                default_copytools = [default_copytools] if default_copytools else []
+            try:
+                if isinstance(default_copytools, basestring):  # Python 2
+                    default_copytools = [default_copytools] if default_copytools else []
+            except Exception:
+                if isinstance(default_copytools, str):  # Python 3
+                    default_copytools = [default_copytools] if default_copytools else []
             self.acopytools['default'] = default_copytools
 
         if not self.acopytools:
@@ -139,8 +142,12 @@ class StagingClient(object):
         """
 
         activities = activities or 'read_lan'
-        if isinstance(activities, basestring):
-            activities = [activities]
+        try:
+            if isinstance(activities, basestring):  # Python 2
+                activities = [activities]
+        except Exception:
+            if isinstance(activities, str):  # Python 3
+                activities = [activities]
 
         astorages = self.infosys.queuedata.astorages if self.infosys and self.infosys.queuedata else {}
 
@@ -249,7 +256,10 @@ class StagingClient(object):
             fdat.replicas = []  # reset replicas list
 
             # sort replicas by priority value
-            sorted_replicas = sorted(r.get('pfns', {}).iteritems(), key=lambda x: x[1]['priority'])
+            try:
+                sorted_replicas = sorted(r.get('pfns', {}).iteritems(), key=lambda x: x[1]['priority'])  # Python 2
+            except Exception:
+                sorted_replicas = sorted(iter(list(r.get('pfns', {}).items())), key=lambda x: x[1]['priority'])  # Python 3
 
             # prefer replicas from inputddms first
             xreplicas = self.sort_replicas(sorted_replicas, fdat.inputddms)
@@ -366,8 +376,12 @@ class StagingClient(object):
 
         self.trace_report.update(relativeStart=time.time(), transferStart=time.time())
 
-        if isinstance(activity, basestring):
-            activity = [activity]
+        try:
+            if isinstance(activity, basestring):  # Python 2
+                activity = [activity]
+        except Exception:
+            if isinstance(activity, str):  # Python 3
+                activity = [activity]
         if 'default' not in activity:
             activity.append('default')
 
@@ -389,10 +403,19 @@ class StagingClient(object):
             if fspec.ddm_activity:  # skip already initialized data
                 continue
             if self.mode == 'stage-in':
-                fspec.ddm_activity = filter(None, ['read_lan' if fspec.ddmendpoint in fspec.inputddms else None, 'read_wan'])
+                try:
+                    fspec.ddm_activity = filter(None, ['read_lan' if fspec.ddmendpoint in fspec.inputddms else None, 'read_wan'])  # Python 2
+                except Exception:
+                    fspec.ddm_activity = [_f for _f in
+                                          ['read_lan' if fspec.ddmendpoint in fspec.inputddms else None, 'read_wan'] if
+                                          _f]  # Python 3
             else:
-                fspec.ddm_activity = filter(None, ['write_lan' if fspec.ddmendpoint in fspec.inputddms else None, 'write_wan'])
-
+                try:
+                    fspec.ddm_activity = filter(None, ['write_lan' if fspec.ddmendpoint in fspec.inputddms else None, 'write_wan'])  # Python 2
+                except Exception:
+                    fspec.ddm_activity = [_f for _f in
+                                          ['write_lan' if fspec.ddmendpoint in fspec.inputddms else None, 'write_wan']
+                                          if _f]  # Python 3
         caught_errors = []
 
         for name in copytools:
@@ -851,8 +874,12 @@ class StageOutClient(StagingClient):
         if not self.infosys.queuedata:  ## infosys is not initialized: not able to fix destination if need, nothing to do
             return files
 
-        if isinstance(activities, (str, unicode)):
-            activities = [activities]
+        try:
+            if isinstance(activities, (str, unicode)):  # Python 2
+                activities = [activities]
+        except Exception:
+            if isinstance(activities, str):  # Python 3
+                activities = [activities]
 
         if not activities:
             raise PilotException("Failed to resolve destination: passed empty activity list. Internal error.",
@@ -903,7 +930,10 @@ class StageOutClient(StagingClient):
         #paths = [prefix] + scope.split('.') + [hash_hex[0:2], hash_hex[2:4], lfn]
         # exclude prefix from the path: this should be properly considered in protocol/AGIS for today
         paths = scope.split('.') + [hash_hex[0:2], hash_hex[2:4], lfn]
-        paths = filter(None, paths)  # remove empty parts to avoid double /-chars
+        try:
+            paths = filter(None, paths)  # remove empty parts to avoid double /-chars, Python 2
+        except Exception:
+            paths = [_f for _f in paths if _f]  # remove empty parts to avoid double /-chars, Python 3
 
         return '/'.join(paths)
 

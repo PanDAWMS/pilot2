@@ -122,7 +122,7 @@ def control(queues, traces, args):
             n += 1
 
     except Exception as e:
-        print("monitor: exception caught: %s" % e)
+        print(("monitor: exception caught: %s" % e))
         raise PilotException(e)
 
     logger.info('[monitor] control thread has ended')

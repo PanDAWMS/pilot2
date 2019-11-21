@@ -84,7 +84,7 @@ def copy_in(files, **kwargs):
         cmd = ['gfal-copy --verbose -f', ' -t %s' % timeout]
 
         if fspec.checksum:
-            cmd += ['-K', '%s:%s' % fspec.checksum.items()[0]]
+            cmd += ['-K', '%s:%s' % list(fspec.checksum.items())[0]]  # Python 2/3
 
         cmd += [source, destination]
 
@@ -140,7 +140,7 @@ def copy_out(files, **kwargs):
         cmd = ['gfal-copy --verbose -f', ' -t %s' % timeout]
 
         if fspec.checksum:
-            cmd += ['-K', '%s:%s' % fspec.checksum.items()[0]]
+            cmd += ['-K', '%s:%s' % list(fspec.checksum.items())[0]]  # Python 2/3
 
         cmd += [source, destination]
 
