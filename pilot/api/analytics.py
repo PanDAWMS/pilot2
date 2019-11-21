@@ -124,10 +124,11 @@ class Analytics(Services):
         :param y_name: optional string, name selector for table column.
         :param precision: optional precision for fitted slope parameter, default 2.
         :param tails: should tails (first and last values) be used? (boolean).
-        :return: slope (float string with desired precision).
+        :return: {"slope": slope, "chi2": chi2} (float strings with desired precision).
         """
 
         slope = ""
+        chi2 = ""
         table = self.get_table(filename)
 
         if table:
@@ -154,13 +155,14 @@ class Analytics(Services):
                 else:
                     if _slope:
                         slope = float_to_rounded_string(fit.slope(), precision=precision)
+                        chi2 = float_to_rounded_string(fit.chi2(), precision=precision
                         if slope != "":
-                            logger.info('current memory leak: %s B/s (using %d data points, chi2=%f)' %
-                                        (slope, len(x), fit.chi2()))
+                            logger.info('current memory leak: %s B/s (using %d data points, chi2=%s)' %
+                                        (slope, len(x), chi2))
             else:
                 logger.warning('wrong length of table data, x=%s, y=%s (must be same and length>=2)' % (str(x), str(y)))
 
-        return slope
+        return {"slope": slope, "chi2": chi2}
 
     def extract_from_table(self, table, x_name, y_name):
         """

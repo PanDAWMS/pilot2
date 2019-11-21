@@ -106,9 +106,13 @@ def get_job_metrics(job):  # noqa: C901
         client = analytics.Analytics()
         # do not include tails on final update
         tails = False if (job.state == "finished" or job.state == "failed" or job.state == "holding") else True
-        slope = client.get_fitted_data(path, tails=tails)
+        data = client.get_fitted_data(path, tails=tails)
+        slope = data.get("slope", "")
+        chi2 = data.get("chi2", "")
         if slope != "":
             job_metrics += get_job_metrics_entry("leak", slope)
+        if chi2 != "":
+            job_metrics += get_job_metrics_entry("chi2", chi2)
 
     # done with job metrics, now verify the string
 
