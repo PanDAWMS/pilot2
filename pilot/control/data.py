@@ -650,8 +650,9 @@ def _do_stageout(job, xdata, activity, title):
     try:
         client = StageOutClient(job.infosys, logger=log, trace_report=trace_report)
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)  #, mode='stage-out')
-        # prod analy unification: use destination preferences from PanDA server
-        #client.prepare_destinations(xdata, activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
+        # prod analy unification: use destination preferences from PanDA server for unified queues
+        if job.infosys.queuedata.type != 'unified':
+            client.prepare_destinations(xdata, activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
         client.transfer(xdata, activity, **kwargs)
     except PilotException as error:
         import traceback
