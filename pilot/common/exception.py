@@ -21,6 +21,7 @@ from .errorcodes import ErrorCodes
 errors = ErrorCodes()
 
 
+# note: duplicate function to avoid cyclic import problem (also defined in pilot/util/auxiliary)
 def is_python3():
     """
     Check if we are running on Python 3.

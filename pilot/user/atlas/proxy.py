@@ -13,6 +13,7 @@ import os
 import logging
 
 from pilot.user.atlas.setup import get_file_system_root_path
+from pilot.util.auxiliary import is_python3
 from pilot.util.container import execute
 from pilot.common.errorcodes import ErrorCodes
 
@@ -85,7 +86,7 @@ def verify_arcproxy(envsetup, limit):
 
     exit_code, stdout, stderr = execute(cmd, shell=True)
     if stdout is not None:
-        if "command not found" in stdout:
+        if 'command not found' in stdout:
             logger.warning("arcproxy is not available on this queue,"
                            "this can lead to memory issues with voms-proxy-info on SL6: %s" % (stdout))
         else:

@@ -10,6 +10,8 @@
 import subprocess
 from os import environ, getcwd, setpgrp  #, getpgid  #setsid
 
+from pilot.util.auxiliary import is_python3
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -94,8 +96,12 @@ def execute(executable, **kwargs):
         stdout, stderr = process.communicate()
         exit_code = process.poll()
 
+        # for Python 3, convert from byte-like object to str
+        if is_python3():
+            stdout = stdout.decode('utf-8')
+            stderr = stderr.decode('utf-8')
         # remove any added \n
-        if stdout and stdout.endswith(b'\n'):  # Python 2/3 (endswith first arg must be bytes or a tuple of bytes, not str)
+        if stdout and stdout.endswith('\n'):
             stdout = stdout[:-1]
 
         return exit_code, stdout, stderr
