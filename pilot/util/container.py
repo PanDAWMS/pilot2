@@ -10,7 +10,7 @@
 import subprocess
 from os import environ, getcwd, setpgrp  #, getpgid  #setsid
 
-from pilot.util.auxiliary import is_python3
+from pilot.util.common import is_python3
 
 import logging
 logger = logging.getLogger(__name__)

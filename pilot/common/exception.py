@@ -15,21 +15,11 @@ Exceptions in pilot
 import time
 import threading
 import traceback
-from sys import exc_info, version_info
+from sys import exc_info
 
+from pilot.util.common import is_python3
 from .errorcodes import ErrorCodes
 errors = ErrorCodes()
-
-
-# note: duplicate function to avoid cyclic import problem (also defined in pilot/util/auxiliary)
-def is_python3():
-    """
-    Check if we are running on Python 3.
-
-    :return: boolean.
-    """
-
-    return version_info >= (3, 0)
 
 
 class PilotException(Exception):
