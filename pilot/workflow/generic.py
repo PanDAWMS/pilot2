@@ -14,6 +14,8 @@ from __future__ import print_function  # Python 2, 2to3 complains about this
 import functools
 import signal
 import threading
+import traceback
+
 from time import time, sleep
 from sys import stderr
 from os import getpid
@@ -72,7 +74,8 @@ def interrupt(args, signum, frame):
 
     add_to_pilot_timing('0', PILOT_KILL_SIGNAL, time(), args)
     add_to_pilot_timing('1', PILOT_KILL_SIGNAL, time(), args)
-    logger.warning('caught signal: %s' % sig)
+    logger.warning('caught signal: %s in FRAME=\n%s' % (sig, '\n'.join(traceback.format_stack(frame))))
+
     args.signal = sig
     logger.warning('will instruct threads to abort and update the server')
     args.abort_job.set()
