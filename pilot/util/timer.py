@@ -141,12 +141,15 @@ class TimedProcess(object):
             ret = queue.get(block=True, timeout=timeout)
         except Empty:
             self.is_timeout = True
+            process.terminate()
             raise TimeoutException("Timeout reached", timeout=timeout)
         finally:
             while process.is_alive():
-                process.terminate()
                 process.join(1)
-                if process.is_alive() and process.pid:
+                if process.is_alive():  ## still alive, force terminate
+                    process.terminate()
+                    process.join(1)
+                if process.is_alive() and process.pid:  ## still alive, hard kill
                     os.kill(process.pid, signal.SIGKILL)
 
             multiprocessing.active_children()
