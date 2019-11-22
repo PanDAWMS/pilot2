@@ -57,6 +57,7 @@ class TestAnalytics(unittest.TestCase):
         :return: (assertion).
         """
 
+        # old MemoryMonitor format
         filename = 'pilot/test/resource/memory_monitor_output.txt'
         self.assertEqual(os.path.exists(filename), True)
 
@@ -65,7 +66,7 @@ class TestAnalytics(unittest.TestCase):
         self.assertEqual(type(table), dict)
 
         x = table['Time']
-        y = table['PSS']
+        y = table['PSS']  # old MemoryMonitor format
         fit = self.client.fit(x, y)
 
         slope = fit.slope()
