@@ -17,6 +17,7 @@ import threading
 import traceback
 from sys import exc_info
 
+from pilot.util.auxiliary import is_python3
 from .errorcodes import ErrorCodes
 errors = ErrorCodes()
 
@@ -415,7 +416,10 @@ class ExcThread(threading.Thread):
         :return:
         """
         try:
-            self._Thread__target(**self._Thread__kwargs)
+            if is_python3():
+                self._target(**self._kwargs)
+            else:
+                self._Thread__target(**self._Thread__kwargs)
         except Exception:
             # logger object can't be used here for some reason:
             # IOError: [Errno 2] No such file or directory: '/state/partition1/scratch/PanDA_Pilot2_*/pilotlog.txt'
@@ -424,7 +428,10 @@ class ExcThread(threading.Thread):
             print(traceback.print_tb(exc_info()[2]))
             self.bucket.put(exc_info())
             print("exception has been put in bucket queue belonging to thread \'%s\'" % self.name)
-            args = self._Thread__kwargs.get('args', None)
+            if is_python3():
+                args = self._kwargs.get('args', None)
+            else:
+                args = self._Thread__kwargs.get('args', None)
             if args:
                 # the sleep is needed to allow the threads to catch up
                 print('setting graceful stop in 10 s since there is no point in continuing')
