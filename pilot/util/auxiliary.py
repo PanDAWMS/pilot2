@@ -88,7 +88,7 @@ def display_architecture_info():
     logger.info("architecture information:")
 
     exit_code, stdout, stderr = execute("lsb_release -a", mute=True)
-    if 'Command not found' in stdout or s in stderr:
+    if 'Command not found' in stdout or 'Command not found' in stderr:
         # Dump standard architecture info files if available
         dump("/etc/lsb-release")
         dump("/etc/SuSE-release")
