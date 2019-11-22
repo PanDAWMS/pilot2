@@ -76,7 +76,7 @@ def get_cpuinfo():
     with open("/proc/cpuinfo", "r") as fd:
         lines = fd.readlines()
         for line in lines:
-            if not find(line, "cpu MHz"):
+            if line.find("cpu MHz") != -1:  # Python 2/3
                 try:
                     cpu = float(line.split(":")[1])
                 except ValueError as e:
