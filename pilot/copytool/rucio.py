@@ -20,7 +20,7 @@ from time import time
 
 from .common import resolve_common_transfer_errors, verify_catalog_checksum, get_timeout
 from pilot.common.exception import PilotException, StageOutFailure, ErrorCodes
-#from pilot.util.timer import timeout
+from pilot.util.timer import timeout
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -92,9 +92,9 @@ def copy_in(files, **kwargs):
 
         trace_report_out = []
         try:
-            #transfer_timeout = get_timeout(fspec.filesize, add=10)  # give the API a chance to do the time-out first
-            #timeout(transfer_timeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out)
-            _stage_in_api(dst, fspec, trace_report, trace_report_out)
+            transfer_timeout = get_timeout(fspec.filesize, add=10)  # give the API a chance to do the time-out first
+            timeout(transfer_timeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out)
+            #_stage_in_api(dst, fspec, trace_report, trace_report_out)
         except Exception as error:
             error_msg = str(error)
             # Try to get a better error message from the traces
