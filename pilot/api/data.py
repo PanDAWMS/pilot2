@@ -925,7 +925,8 @@ class StageOutClient(StagingClient):
 
         # <prefix=rucio>/<scope>/md5(<scope>:<lfn>)[0:2]/md5(<scope:lfn>)[2:4]/<lfn>
 
-        hash_hex = hashlib.md5('%s:%s' % (scope, lfn)).hexdigest()
+        s = '%s:%s' % (scope, lfn)
+        hash_hex = hashlib.md5(s.encode('utf-8')).hexdigest()  # Python 2/3
 
         #paths = [prefix] + scope.split('.') + [hash_hex[0:2], hash_hex[2:4], lfn]
         # exclude prefix from the path: this should be properly considered in protocol/AGIS for today
