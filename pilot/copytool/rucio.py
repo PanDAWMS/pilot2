@@ -91,9 +91,12 @@ def copy_in(files, **kwargs):
         logger.info('the file will be stored in %s' % str(dst))
 
         trace_report_out = []
+        transfer_timeout = get_timeout(fspec.filesize)
+        ctimeout = transfer_timeout + 10  # give the API a chance to do the time-out first
+        logger.info('overall transfer timeout=%s' % ctimeout)
+
         try:
-            transfer_timeout = get_timeout(fspec.filesize, add=10)  # give the API a chance to do the time-out first
-            timeout(transfer_timeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out)
+            timeout(ctimeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out, transfer_timeout)
             #_stage_in_api(dst, fspec, trace_report, trace_report_out)
         except Exception as error:
             error_msg = str(error)
@@ -308,7 +311,7 @@ def copy_out(files, **kwargs):
 
 
 # stageIn using rucio api.
-def _stage_in_api(dst, fspec, trace_report, trace_report_out):
+def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout):
 
     # init. download client
     from rucio.client.downloadclient import DownloadClient
@@ -329,8 +332,8 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out):
     if fspec.turl:
         f['pfn'] = fspec.turl
 
-    if fspec.filesize:
-        f['transfer_timeout'] = get_timeout(fspec.filesize)
+    if transfer_timeout:
+        f['transfer_timeout'] = transfer_timeout
 
     # proceed with the download
     logger.info('_stage_in_api file: %s' % str(f))
