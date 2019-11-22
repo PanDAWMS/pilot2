@@ -74,7 +74,7 @@ def interrupt(args, signum, frame):
 
     add_to_pilot_timing('0', PILOT_KILL_SIGNAL, time(), args)
     add_to_pilot_timing('1', PILOT_KILL_SIGNAL, time(), args)
-    logger.warning('caught signal: %s in FRAME=\n' % (sig, '\n'.join(traceback.format_stack(frame))))
+    logger.warning('caught signal: %s in FRAME=\n%s' % (sig, '\n'.join(traceback.format_stack(frame))))
 
     args.signal = sig
     logger.warning('will instruct threads to abort and update the server')
