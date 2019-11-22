@@ -9,7 +9,6 @@
 
 import os
 import re
-from string import find
 
 from pilot.util.disk import disk_usage
 from pilot.info import infosys
