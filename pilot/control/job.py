@@ -1062,7 +1062,9 @@ def locate_job_definition(args):
 
     paths = [os.path.join("%s/.." % args.sourcedir, config.Pilot.pandajobdata),
              os.path.join(args.sourcedir, config.Pilot.pandajobdata),
-             os.path.join(os.environ['PILOT_WORK_DIR'], config.Pilot.pandajobdata)]
+             os.path.join(os.environ['PILOT_WORK_DIR'], config.Pilot.pandajobdata),
+             os.path.join(args.harvester_workdir, config.Harvester.pandajob_file),
+             os.path.join(os.environ['HARVESTER_WORKDIR'], config.Harvester.pandajob_file)]
 
     path = ""
     for _path in paths:
