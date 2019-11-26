@@ -138,14 +138,14 @@ class Analytics(Services):
             # remove tails if desired
             # this is useful e.g. for memory monitor data where the first and last values
             # represent allocation and de-allocation, ie not interesting
-            if not tails and len(x) > 4 and len(y) > 4:
+            if not tails and len(x) > 7 and len(y) > 7:
                 logger.debug('removing tails from data to be fitted')
-                x = x[2:]
+                x = x[5:]
                 x = x[:-2]
-                y = y[2:]
+                y = y[5:]
                 y = y[:-2]
 
-            if len(x) > 4 and len(y) > 4:
+            if len(x) > 7 and len(y) > 7:
                 logger.info('fitting %s vs %s' % (y_name, x_name))
                 try:
                     fit = self.fit(x, y)
