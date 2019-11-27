@@ -56,7 +56,8 @@ def main():
     args.kill_time = 0  # keep track of when first kill signal arrived
 
     # perform https setup
-    https_setup(args, get_pilot_version())
+    if args.use_https:
+        https_setup(args, get_pilot_version())
 
     # initialize InfoService
     try:
@@ -333,6 +334,12 @@ def get_args():
                             type=str,
                             choices=['SCORE', 'MCORE', 'SCORE_HIMEM', 'MCORE_HIMEM'],
                             help='Resource type; MCORE, SCORE, SCORE_HIMEM or MCORE_HIMEM')
+    arg_parser.add_argument('--use-https',
+                            dest='use_https',
+                            type=str2bool,
+                            default=True,
+                            help='Use HTTPS protocol for communications with server')
+
 
     # Harvester and Nordugrid specific options
     arg_parser.add_argument('--input-dir',
