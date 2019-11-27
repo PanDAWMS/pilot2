@@ -423,6 +423,9 @@ def set_environment_variables(args, mainworkdir):
     # keep track of the server updates, if any
     environ['SERVER_UPDATE'] = SERVER_UPDATE_NOT_DONE
 
+    # set the (HPC) resource name (if set in options)
+    environ['PILOT_RESOURCE_NAME'] = args.hpc_resource
+
 
 def wrap_up(initdir, mainworkdir, args):
     """
