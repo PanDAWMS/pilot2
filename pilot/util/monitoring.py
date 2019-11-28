@@ -334,8 +334,8 @@ def utility_monitor(job):
         # make sure the subprocess is still running
         utproc = job.utilities[utcmd][0]
         if not utproc.poll() is None:
-            if job.state == 'finished' or job.state == 'failed':
-                log.debug('no need to restart utility command since payload has finished')
+            if job.state == 'finished' or job.state == 'failed' or job.state == 'stageout':
+                log.debug('no need to restart utility command since payload has finished running')
                 continue
 
             # if poll() returns anything but None it means that the subprocess has ended - which it
