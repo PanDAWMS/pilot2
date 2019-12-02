@@ -340,7 +340,6 @@ def get_args():
                             default=True,
                             help='Use HTTPS protocol for communications with server')
 
-
     # Harvester and Nordugrid specific options
     arg_parser.add_argument('--input-dir',
                             dest='input_dir',

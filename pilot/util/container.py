@@ -25,7 +25,7 @@ def is_python3():
     return version_info >= (3, 0)
 
 
-def execute(executable, **kwargs):
+def execute(executable, **kwargs):  # noqa: C901
     """
     Execute the command and its options in the provided executable list.
     The function also determines whether the command should be executed within a container.
