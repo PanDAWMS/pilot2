@@ -21,7 +21,7 @@ except Exception:
     pass
 
 from .dbrelease import get_dbrelease_version, create_dbrelease
-from .setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
+from .setup import should_pilot_prepare_asetup, is_standard_atlas_job,\
     set_inds, get_analysis_trf, get_payload_environment_variables, replace_lfns_with_turls
 from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
     get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
@@ -100,6 +100,19 @@ def validate(job):
     return status
 
 
+def get_resource_name():
+    """
+    Return the name of the resource (only set for HPC resources; e.g. Cori, otherwise return 'grid').
+
+    :return: resource_name (string).
+    """
+
+    resource_name = os.environ.get('PILOT_RESOURCE_NAME', '').lower()
+    if not resource_name:
+        resource_name = 'grid'
+    return resource_name
+
+
 def get_payload_command(job):
     """
     Return the full command for execuring the payload, including the sourcing of all setup files and setting of
@@ -121,9 +134,12 @@ def get_payload_command(job):
     # Is it a user job or not?
     userjob = job.is_analysis()
 
-    # get the general setup command and then verify it
-    cmd = get_setup_command(job, prepareasetup)
-    ec, diagnostics = verify_setup_command(cmd)
+    resource_name = get_resource_name()  # 'grid' if no hpc_resource is set
+    resource = __import__('pilot.user.atlas.resource.%s' % resource_name, globals(), locals(), [resource_name], 0)  # Python 3, -1 -> 0
+
+    # get the general setup command and then verify it if required
+    cmd = resource.get_setup_command(job, prepareasetup)
+    ec, diagnostics = resource.verify_setup_command(cmd)
     if ec != 0:
         raise PilotException(diagnostics, code=ec)
 
@@ -169,29 +185,6 @@ def get_payload_command(job):
     log.info('payload run command: %s' % cmd)
 
     return cmd
-
-
-def verify_setup_command(cmd):
-    """
-    Verify the setup command.
-
-    :param cmd: command string to be verified (string).
-    :return: pilot error code (int), diagnostics (string).
-    """
-
-    ec = 0
-    diagnostics = ""
-
-    exit_code, stdout, stderr = execute(cmd, timeout=5 * 60)
-    if exit_code != 0:
-        if "No release candidates found" in stdout:
-            logger.info('exit_code=%d' % exit_code)
-            logger.info('stdout=%s' % stdout)
-            logger.info('stderr=%s' % stderr)
-            ec = errors.NORELEASEFOUND
-            diagnostics = stdout + stderr
-
-    return ec, diagnostics
 
 
 def get_normal_payload_command(cmd, job, prepareasetup, userjob):
@@ -341,46 +334,6 @@ def add_athena_proc_number(cmd):
             logger.info("will not add ATHENA_CORE_NUMBER to cmd since the value is %s" % str(value2))
     else:
         logger.warning('there is no ATHENA_CORE_NUMBER in os.environ (cannot add it to payload command)')
-
-    return cmd
-
-
-def get_setup_command(job, prepareasetup):
-    """
-    Return the path to asetup command, the asetup command itself and add the options (if desired).
-    If prepareasetup is False, the function will only return the path to the asetup script. It is then assumed
-    to be part of the job parameters.
-
-    :param job: job object.
-    :param prepareasetup: should the pilot prepare the asetup command itself? boolean.
-    :return:
-    """
-
-    # return immediately if there is no release or if user containers are used
-    if job.swrelease == 'NULL' or '--containerImage' in job.jobparams:
-        return ""
-
-    # Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
-    cmd = get_asetup(asetup=prepareasetup)
-
-    if prepareasetup:
-        options = get_asetup_options(job.swrelease, job.homepackage)
-        asetupoptions = " " + options + " --platform " + job.platform
-
-        # Always set the --makeflags option (to prevent asetup from overwriting it)
-        asetupoptions += " --makeflags=\'$MAKEFLAGS\'"
-
-        # Verify that the setup works
-        # exitcode, output = timedCommand(cmd, timeout=5 * 60)
-        # if exitcode != 0:
-        #     if "No release candidates found" in output:
-        #         pilotErrorDiag = "No release candidates found"
-        #         logger.warning(pilotErrorDiag)
-        #         return self.__error.ERR_NORELEASEFOUND, pilotErrorDiag, "", special_setup_cmd, JEM, cmtconfig
-        # else:
-        #     logger.info("verified setup command")
-
-        cmd += asetupoptions
 
     return cmd
 

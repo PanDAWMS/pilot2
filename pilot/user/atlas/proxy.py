@@ -85,7 +85,7 @@ def verify_arcproxy(envsetup, limit):
 
     exit_code, stdout, stderr = execute(cmd, shell=True)
     if stdout is not None:
-        if "command not found" in stdout:
+        if 'command not found' in stdout:
             logger.warning("arcproxy is not available on this queue,"
                            "this can lead to memory issues with voms-proxy-info on SL6: %s" % (stdout))
         else:
