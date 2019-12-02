@@ -14,7 +14,7 @@ from re import search
 
 # from pilot.info import infosys
 from .setup import get_asetup
-from pilot.util.auxiliary import get_logger
+from pilot.util.auxiliary import get_logger, is_python3
 from pilot.util.container import execute
 from pilot.util.filehandling import read_json, copy
 from pilot.util.parameters import convert_to_int
@@ -566,7 +566,10 @@ def get_average_summary_dictionary_prmon(path):
                 try:
                     # Remove empty entries from list (caused by multiple \t)
                     _l = line.replace('\n', '')
-                    _l = filter(None, _l.split('\t'))
+                    if is_python3():
+                        _l = [_f for _f in _l.split('\t') if _f]  # Python 3
+                    else:
+                        _l = filter(None, _l.split('\t'))  # Python 2
 
                     # define dictionary keys
                     if type(_l[0]) == str and not header_locked:
@@ -597,7 +600,7 @@ def get_average_summary_dictionary_prmon(path):
         keys = ['vmem', 'pss', 'rss', 'swap']
         values = {}
         for key in keys:
-            value_list = filter(filter_value, dictionary.get(key, 0))
+            value_list = list(filter(filter_value, dictionary.get(key, 0)))  # Python 2/3
             n = len(value_list)
             average = int(float(sum(value_list)) / float(n)) if n > 0 else 0
             maximum = max(value_list)
@@ -665,7 +668,10 @@ def get_average_summary_dictionary(path):
             if line != "":
                 try:
                     # Remove empty entries from list (caused by multiple \t)
-                    _l = filter(None, line.split('\t'))
+                    if is_python3():
+                        _l = [_f for _f in line.split('\t') if _f]  # Python 3
+                    else:
+                        _l = filter(None, line.split('\t'))  # Python 2
                     # _time = _l[0]  # 'Time' not user
                     vmem = _l[1]
                     pss = _l[2]

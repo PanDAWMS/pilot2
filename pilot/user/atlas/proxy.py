@@ -85,7 +85,7 @@ def verify_arcproxy(envsetup, limit):
 
     exit_code, stdout, stderr = execute(cmd, shell=True)
     if stdout is not None:
-        if "command not found" in stdout:
+        if 'command not found' in stdout:
             logger.warning("arcproxy is not available on this queue,"
                            "this can lead to memory issues with voms-proxy-info on SL6: %s" % (stdout))
         else:
@@ -223,7 +223,7 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
             # on EMI-3 the time output is different (HH:MM:SS as compared to SS on EMI-2)
             if ":" in stdout:
                 ftr = [3600, 60, 1]
-                stdout = sum([a * b for a, b in zip(ftr, map(int, stdout.split(':')))])
+                stdout = sum([a * b for a, b in zip(ftr, list(map(int, stdout.split(':'))))])  # Python 2/3
             try:
                 validity = int(stdout)
                 if validity >= limit * 3600:

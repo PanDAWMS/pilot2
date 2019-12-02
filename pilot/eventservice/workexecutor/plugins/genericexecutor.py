@@ -329,7 +329,10 @@ class GenericExecutor(BaseExecutor):
             log.info('ESProcess started to run')
 
             exit_code = None
-            iteration = 0L
+            try:
+                iteration = 0L  # Python 2
+            except Exception:
+                iteration = 0  # Python 3
             while proc.is_alive():
                 iteration += 1
                 if self.is_stop():

@@ -5,6 +5,8 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
+
 
 """
 Job specific info provider mainly used to customize Queue, Site, etc data of Information Service
@@ -81,7 +83,10 @@ class JobInfoProvider(object):
 
         ## use job.overwrite_storagedata as a master source
         master_data = self.job.overwrite_storagedata or {}
-        data.update((k, v) for k, v in master_data.iteritems() if k in set(ddmendpoints or master_data) & set(master_data))
+        try:
+            data.update((k, v) for k, v in master_data.iteritems() if k in set(ddmendpoints or master_data) & set(master_data))  # Python 2
+        except Exception:
+            data.update((k, v) for k, v in list(master_data.items()) if k in set(ddmendpoints or master_data) & set(master_data))  # Python 3
 
         if data:
             logger.info('storagedata: following data extracted from Job definition will be used: %s' % data)

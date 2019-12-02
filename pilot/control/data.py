@@ -20,7 +20,7 @@ import time
 try:
     import Queue as queue  # noqa: N813
 except Exception:
-    import queue  # python 3
+    import queue  # Python 3
 
 #from contextlib import closing  # for Python 2.6 compatibility - to fix a problem with tarfile
 
@@ -50,7 +50,7 @@ def control(queues, traces, args):
 
     targets = {'copytool_in': copytool_in, 'copytool_out': copytool_out, 'queue_monitoring': queue_monitoring}
     threads = [ExcThread(bucket=queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
-                         name=name) for name, target in targets.items()]
+                         name=name) for name, target in list(targets.items())]  # Python 2/3
 
     [thread.start() for thread in threads]
 
@@ -650,7 +650,9 @@ def _do_stageout(job, xdata, activity, title):
     try:
         client = StageOutClient(job.infosys, logger=log, trace_report=trace_report)
         kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)  #, mode='stage-out')
-        client.prepare_destinations(xdata, activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
+        # prod analy unification: use destination preferences from PanDA server for unified queues
+        if job.infosys.queuedata.type != 'unified':
+            client.prepare_destinations(xdata, activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
         client.transfer(xdata, activity, **kwargs)
     except PilotException as error:
         import traceback

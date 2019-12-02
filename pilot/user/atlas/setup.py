@@ -237,9 +237,9 @@ def get_analysis_trf(transform, workdir):
 
     logger.info("successfully downloaded transform")
     path = os.path.join(workdir, transform_name)
-    logger.debug("changing permission of %s to 0755" % path)
+    logger.debug("changing permission of %s to 0o755" % path)
     try:
-        os.chmod(path, 0755)
+        os.chmod(path, 0o755)  # Python 2/3
     except Exception as e:
         diagnostics = "failed to chmod %s: %s" % (transform_name, e)
         return errors.CHMODTRF, diagnostics, ""

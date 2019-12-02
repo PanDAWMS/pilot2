@@ -14,7 +14,7 @@ import shutil
 import sys
 import time
 
-from jobdescription import JobDescription
+from .jobdescription import JobDescription  # Python 2/3
 from pilot.common.exception import FileHandlingFailure
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN

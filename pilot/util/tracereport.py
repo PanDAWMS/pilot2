@@ -74,7 +74,7 @@ class TraceReport(dict):
 
         data = {
             'clientState': 'INIT_REPORT',
-            'usr': hashlib.md5(job.produserid).hexdigest(),  # anonymise user and pilot id's
+            'usr': hashlib.md5(job.produserid.encode('utf-8')).hexdigest(),  # anonymise user and pilot id's, Python 2/3
             'appid': job.jobid,
             'usrdn': job.produserid,
             'taskid': job.taskid
@@ -93,7 +93,8 @@ class TraceReport(dict):
             logger.debug("unable to detect host IP for trace report")
 
         if job.jobdefinitionid:
-            self['uuid'] = hashlib.md5('ppilot_%s' % job.jobdefinitionid).hexdigest()  # hash_pilotid
+            s = 'ppilot_%s' % job.jobdefinitionid
+            self['uuid'] = hashlib.md5(s.encode('utf-8')).hexdigest()  # hash_pilotid, Python 2/3
         else:
             #self['uuid'] = commands.getoutput('uuidgen -t 2> /dev/null').replace('-', '')  # all LFNs of one request have the same uuid
             cmd = 'uuidgen -t 2> /dev/null'

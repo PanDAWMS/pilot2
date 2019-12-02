@@ -357,6 +357,8 @@ class ErrorCodes:
             ec = self.SINGULARITYGENERALFAILURE
         elif exit_code == 64 and "Singularity is not installed" in stderr:
             ec = self.SINGULARITYNOTINSTALLED
+        elif exit_code == 64 and "cannot create directory" in stderr:
+            ec = self.MKDIR
         elif exit_code == -1:
             ec = self.UNKNOWNTRFFAILURE
         else:
@@ -372,7 +374,12 @@ class ErrorCodes:
         :return: string.
         """
 
-        return self.get_message_for_pattern([r"ERROR\s*:\s*(.*)", r"Error\s*:\s*(.*)", r"error\s*:\s*(.*)"], stderr)
+        # first look for special messages (ie cases not containing ERROR, Error or error labels)
+        if "command not found" in stderr:
+            msg = stderr
+        else:
+            msg = self.get_message_for_pattern([r"ERROR\s*:\s*(.*)", r"Error\s*:\s*(.*)", r"error\s*:\s*(.*)"], stderr)
+        return msg
 
     def extract_stderr_warning(self, stderr):
         """

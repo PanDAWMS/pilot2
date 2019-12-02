@@ -20,7 +20,7 @@ from time import time
 
 from .common import resolve_common_transfer_errors, verify_catalog_checksum, get_timeout
 from pilot.common.exception import PilotException, StageOutFailure, ErrorCodes
-#from pilot.util.timer import timeout
+from pilot.util.timer import timeout
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -61,7 +61,6 @@ def copy_in(files, **kwargs):
         :raise: PilotException in case of controlled error
     """
 
-    #allow_direct_access = kwargs.get('allow_direct_access')
     ignore_errors = kwargs.get('ignore_errors')
     trace_report = kwargs.get('trace_report')
 
@@ -77,24 +76,19 @@ def copy_in(files, **kwargs):
         trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
         trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
 
-        # continue loop for files that are to be accessed directly
-        #if fspec.is_directaccess(ensure_replica=False) and allow_direct_access and fspec.accessmode == 'direct':
-        #    fspec.status_code = 0
-        #    fspec.status = 'remote_io'
-        #    trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
-        #    trace_report.send()
-        #    continue
-
         trace_report.update(catStart=time())  ## is this metric still needed? LFC catalog
         fspec.status_code = 0
         dst = fspec.workdir or kwargs.get('workdir') or '.'
         logger.info('the file will be stored in %s' % str(dst))
 
         trace_report_out = []
+        transfer_timeout = get_timeout(fspec.filesize)
+        ctimeout = transfer_timeout + 10  # give the API a chance to do the time-out first
+        logger.info('overall transfer timeout=%s' % ctimeout)
+
         try:
-            #transfer_timeout = get_timeout(fspec.filesize, add=10)  # give the API a chance to do the time-out first
-            #timeout(transfer_timeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out)
-            _stage_in_api(dst, fspec, trace_report, trace_report_out)
+            timeout(ctimeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out, transfer_timeout)
+            #_stage_in_api(dst, fspec, trace_report, trace_report_out)
         except Exception as error:
             error_msg = str(error)
             # Try to get a better error message from the traces
@@ -111,6 +105,79 @@ def copy_in(files, **kwargs):
                 trace_report.send()
                 msg = ' %s:%s from %s, %s' % (fspec.scope, fspec.lfn, fspec.ddmendpoint, error_details.get('error'))
                 raise PilotException(msg, code=error_details.get('rcode'), state=error_details.get('state'))
+
+        # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
+        destination = os.path.join(dst, fspec.lfn)
+        if os.path.exists(destination):
+            state, diagnostics = verify_catalog_checksum(fspec, destination)
+            if diagnostics != "" and not ignore_errors:
+                trace_report.update(clientState=state or 'STAGEIN_ATTEMPT_FAILED', stateReason=diagnostics,
+                                    timeEnd=time())
+                trace_report.send()
+                raise PilotException(diagnostics, code=fspec.status_code, state=state)
+        else:
+            diagnostics = 'file does not exist: %s (cannot verify catalog checksum)' % destination
+            logger.warning(diagnostics)
+            state = 'STAGEIN_ATTEMPT_FAILED'
+            fspec.status_code = ErrorCodes.STAGEINFAILED
+            trace_report.update(clientState=state, stateReason=diagnostics,
+                                timeEnd=time())
+            trace_report.send()
+            raise PilotException(diagnostics, code=fspec.status_code, state=state)
+
+        if not fspec.status_code:
+            fspec.status_code = 0
+            fspec.status = 'transferred'
+            trace_report.update(clientState='DONE', stateReason='OK', timeEnd=time())
+
+        trace_report.send()
+
+    return files
+
+
+def copy_in_bulk(files, **kwargs):
+    """
+        Download given files using rucio copytool.
+
+        :param files: list of `FileSpec` objects
+        :param ignore_errors: boolean, if specified then transfer failures will be ignored
+        :raise: PilotException in case of controlled error
+    """
+
+    #allow_direct_access = kwargs.get('allow_direct_access')
+    ignore_errors = kwargs.get('ignore_errors')
+    trace_report = kwargs.get('trace_report')
+    trace_reports = [trace_report]
+
+    # don't spoil the output, we depend on stderr parsing
+    os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
+
+    dst = kwargs.get('workdir') or '.'
+
+    trace_report_out = []
+    try:
+        #transfer_timeout = get_timeout(fspec.filesize, add=10)  # give the API a chance to do the time-out first
+        #timeout(transfer_timeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out)
+        _stage_in_api_bulk(dst, files, trace_reports, trace_report_out)
+    except Exception as error:
+        error_msg = str(error)
+        # Try to get a better error message from the traces
+        if trace_report_out and trace_report_out[0].get('stateReason'):
+            error_msg = trace_report_out[0].get('stateReason')
+        logger.info('rucio returned an error: %s' % error_msg)
+
+        error_details = resolve_common_transfer_errors(error_msg, is_stagein=True)
+        for fspec, trace_report in zip(files, trace_reports):
+            fspec.status = 'failed'
+            fspec.status_code = error_details.get('rcode')
+            trace_report.update(clientState=error_details.get('state', 'STAGEIN_ATTEMPT_FAILED'),
+                                stateReason=error_details.get('error'), timeEnd=time())
+            if not ignore_errors:
+                trace_report.send()
+                msg = ' %s:%s from %s, %s' % (fspec.scope, fspec.lfn, fspec.ddmendpoint, error_details.get('error'))
+            raise PilotException(msg, code=error_details.get('rcode'), state=error_details.get('state'))
+
+    for fspec, trace_report in zip(files, trace_reports):
 
         # verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type
         destination = os.path.join(dst, fspec.lfn)
@@ -174,10 +241,13 @@ def copy_out(files, **kwargs):
 
         logger.info('the file will be uploaded to %s' % str(fspec.ddmendpoint))
         trace_report_out = []
+        transfer_timeout = get_timeout(fspec.filesize)
+        ctimeout = transfer_timeout + 10  # give the API a chance to do the time-out first
+        logger.info('overall transfer timeout=%s' % ctimeout)
+
         try:
-            #transfer_timeout = get_timeout(fspec.filesize, add=10)  # give the API a chance to do the time-out first
-            #timeout(transfer_timeout)(_stage_out_api)(fspec, summary_file_path, trace_report, trace_report_out)
-            _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out)
+            timeout(ctimeout)(_stage_out_api)(fspec, summary_file_path, trace_report, trace_report_out, transfer_timeout)
+            #_stage_out_api(fspec, summary_file_path, trace_report, trace_report_out)
         except Exception as error:
             error_msg = str(error)
             # Try to get a better error message from the traces
@@ -235,7 +305,7 @@ def copy_out(files, **kwargs):
 
 
 # stageIn using rucio api.
-def _stage_in_api(dst, fspec, trace_report, trace_report_out):
+def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout):
 
     # init. download client
     from rucio.client.downloadclient import DownloadClient
@@ -256,8 +326,8 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out):
     if fspec.turl:
         f['pfn'] = fspec.turl
 
-    if fspec.filesize:
-        f['transfer_timeout'] = get_timeout(fspec.filesize)
+    if transfer_timeout:
+        f['transfer_timeout'] = transfer_timeout
 
     # proceed with the download
     logger.info('_stage_in_api file: %s' % str(f))
@@ -274,7 +344,71 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out):
     logger.debug('Rucio download client returned %s' % result)
 
 
-def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out):
+def _stage_in_api_bulk(dst, files, trace_reports, trace_report_out):
+    """
+    Stage-in files in bulk using the Rucio API.
+
+    :param dst: destination (string).
+    :param files: list of fspec objects.
+    :param trace_report:
+    :param trace_report_out:
+    :return:
+    """
+    # init. download client
+    from rucio.client.downloadclient import DownloadClient
+    download_client = DownloadClient(logger=logger)
+
+    # traces are switched off
+    if hasattr(download_client, 'tracing'):
+        download_client.tracing = tracing_rucio
+
+    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', os.environ.get('DQ2_LOCAL_SITE_ID', None))
+
+    # build the list of file dictionaries before calling the download function
+    file_list = []
+    trace_report = trace_reports.pop()
+
+    for fspec in files:
+        # update the trace report
+        localsite = localsite if localsite else fspec.ddmendpoint
+        trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
+        trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
+        trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
+        trace_report.update(catStart=time())  ## is this metric still needed? LFC catalog
+        trace_reports.append(trace_report)
+
+        fspec.status_code = 0
+
+        # file specifications before the actual download
+        f = {}
+        f['did_scope'] = fspec.scope
+        f['did_name'] = fspec.lfn
+        f['did'] = '%s:%s' % (fspec.scope, fspec.lfn)
+        f['rse'] = fspec.ddmendpoint
+        f['base_dir'] = fspec.workdir or dst
+        f['no_subdir'] = True
+        if fspec.turl:
+            f['pfn'] = fspec.turl
+        else:
+            logger.warning('cannot perform bulk download since fspec.turl is not set (required by download_pfns()')
+            # fail somehow
+
+        if fspec.filesize:
+            f['transfer_timeout'] = get_timeout(fspec.filesize)
+
+        file_list.append(f)
+
+    # proceed with the download
+    trace_pattern = {}
+    if trace_report:
+        trace_pattern = trace_report
+
+    # download client raises an exception if any file failed
+    result = download_client.download_pfns(file_list, 1, trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
+    logger.debug('Rucio download client returned %s' % result)
+
+
+def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, transfer_timeout):
 
     # init. download client
     from rucio.client.uploadclient import UploadClient
@@ -293,8 +427,8 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out):
     f['did_scope'] = fspec.scope
     f['no_register'] = True
 
-    if fspec.filesize:
-        f['transfer_timeout'] = get_timeout(fspec.filesize)
+    if transfer_timeout:
+        f['transfer_timeout'] = transfer_timeout
 
     # if fspec.storageId and int(fspec.storageId) > 0:
     #     if fspec.turl and fspec.is_nondeterministic:
