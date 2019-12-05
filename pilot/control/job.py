@@ -44,7 +44,7 @@ from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.processes import cleanup
 from pilot.util.proxy import get_distinguished_name
-from pilot.util.queuehandling import scan_for_jobs, put_in_queue
+from pilot.util.queuehandling import scan_for_jobs, put_in_queue, queue_report
 from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since, time_stamp
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, get_cpu_model
 
@@ -1465,8 +1465,9 @@ def has_job_completed(queues):
         log = get_logger(job.jobid, logger)
 
         make_job_report(job)
-
-        log.info("job %s has completed" % job.jobid)
+        queue_report(queues)
+        job.reset_errors()
+        log.info("job %s has completed (purged errors)" % job.jobid)
 
         # cleanup of any remaining processes
         if job.pid:
@@ -1712,6 +1713,7 @@ def queue_monitor(queues, traces, args):  # noqa: C901
                 logger.debug('job %s was dequeued from the monitored payloads queue' % _job.jobid)
                 # now ready for the next job (or quit)
                 put_in_queue(job.jobid, queues.completed_jobids)
+
                 put_in_queue(job, queues.completed_jobs)
                 del _job
                 logger.debug('tmp job object deleted')

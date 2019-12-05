@@ -115,6 +115,19 @@ def abort_jobs_in_queues(queues, sig):
         declare_failed_by_kill(job, queues.failed_jobs, sig)
 
 
+def queue_report(queues):
+    """
+
+    :param queues:
+    :return:
+    """
+
+    for q in queues._fields:
+        _q = getattr(queues, q)
+        jobs = list(_q.queue)
+        logger.info('queue %s has %d job(s)' % (str(_q), len(jobs)))
+
+
 def put_in_queue(obj, queue):
     """
     Put the given object in the given queue.
