@@ -171,15 +171,17 @@ def get_proper_state(job, state):
     :return: valid server state (string).
     """
 
-    if job.serverstate == "" and state != "finished" and state != "failed":
+    logger.debug('state=%s' % state)
+    logger.debug('serverstate=%s' % job.serverstate)
+    if job.serverstate == "finished" or job.serverstate == "failed":
+        pass
+    elif job.serverstate == "" and state != "finished" and state != "failed":
         job.serverstate = 'starting'
     elif state == "finished" or state == "failed" or state == "holding":
         job.serverstate = state
     else:
-        if job.serverstate == "failed" or job.serverstate == "finished" or job.serverstate == "holding":
-            pass  # do not overwrite these states
-        else:
-            job.serverstate = 'running'
+        job.serverstate = 'running'
+    logger.debug('serverstate=%s' % job.serverstate)
 
     return job.serverstate
 
@@ -1932,8 +1934,9 @@ def send_heartbeat_if_time(job, args, update_time):
     """
 
     if int(time.time()) - update_time >= get_heartbeat_period(job.debug):
-        send_state(job, args, 'running')
-        update_time = int(time.time())
+        if job.serverstate != 'finished' and job.serverstate != 'failed':
+            send_state(job, args, 'running')
+            update_time = int(time.time())
 
     return update_time
 
