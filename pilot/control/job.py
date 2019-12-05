@@ -176,7 +176,10 @@ def get_proper_state(job, state):
     elif state == "finished" or state == "failed" or state == "holding":
         job.serverstate = state
     else:
-        job.serverstate = 'running'
+        if job.serverstate == "failed" or job.serverstate == "finished" or job.serverstate == "holding":
+            pass  # do not overwrite these states
+        else:
+            job.serverstate = 'running'
 
     return job.serverstate
 
