@@ -257,6 +257,10 @@ def send_state(job, args, state, xml=None, metadata=None):
             else:
                 return False
 
+    #if state == 'running':
+    #    log.info('skipping reporting running for now')
+    #    return True
+
     try:
         # get the URL for the PanDA server from pilot options or from config
         pandaserver = get_panda_server(args.url, args.port)
