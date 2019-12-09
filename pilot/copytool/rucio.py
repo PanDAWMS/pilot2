@@ -190,7 +190,7 @@ def copy_in_bulk(files, **kwargs):
         if len(trace_candidates) == 0:
             diagnostics = 'No trace retrieved for given file.'
             logger.error('No trace retrieved for given file. %s' % fspec.lfn)
-        elif len(traces_candidate) != 1:
+        elif len(trace_candidates) != 1:
             diagnostics = 'Too many traces for given file.'
             logger.error('Rucio returned too many traces for given file. %s' % fspec.lfn)
         else:
@@ -245,9 +245,9 @@ def _get_trace(fspec, traces):
     try:
         trace_candidates = list(filter(lambda t: t['filename'] == fspec.lfn and t['scope'] == fspec.scope, traces))
         if trace_candidates:
-           return trace_candidates
+            return trace_candidates
         else:
-            logger.warning('File does not match to any trace received from Rucio: %s %s' % (file_name, file_scope))
+            logger.warning('File does not match to any trace received from Rucio: %s %s' % (fspec.lfn, fspec.scope))
     except Exception as error:
         logger.warning('Traces from pilot and rucio could not be merged: %s' % str(error))
         return []
