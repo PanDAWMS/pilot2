@@ -1038,6 +1038,9 @@ def get_job_definition_from_file(path, harvester):
             for d in datalist:
                 res[d[0]] = d[1]
 
+    if os.path.exists(path):
+        remove(path)
+
     return res
 
 
@@ -1729,6 +1732,8 @@ def queue_monitor(queues, traces, args):  # noqa: C901
                 put_in_queue(job, queues.completed_jobs)
                 del _job
                 logger.debug('tmp job object deleted')
+
+                copy('pilotlog.txt', '/scratch/pilotlog.txt')
 
         if abort:
             break
