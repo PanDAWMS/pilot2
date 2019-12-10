@@ -60,10 +60,12 @@ def get_setup_command(job, prepareasetup):
         cmd = "source {};".format(setupfile)
         # test if HARVESTER_LD_LIBRARY_PATH is defined
         if os.environ.get('HARVESTER_LD_LIBRARY_PATH', '') != "":
-            cmd += "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HARVESTER_LD_LIBRARY_PATH;"
+            cmd += "export LD_LIBRARY_PATH=$HARVESTER_LD_LIBRARY_PATH:$LD_LIBRARY_PATH;"
         # test if HARVESTER_PYTHONPATH is defined
         if os.environ.get('HARVESTER_PYTHONPATH', '') != "":
-            cmd += "export PYTHONPATH=$PYTHONPATH:$HARVESTER_PYTHONPATH"
+            cmd += "export PYTHONPATH=$HARVESTER_PYTHONPATH:$PYTHONPATH;"
+        #unset FRONTIER_SERVER variable
+        cmd += "unset FRONTIER_SERVER"
 
         logger.debug('get_setup_command return value: {}'.format(str(cmd)))
 
