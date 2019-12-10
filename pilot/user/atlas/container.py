@@ -252,7 +252,7 @@ def alrb_wrapper(cmd, workdir, job=None):
         _cmd += "export PANDAID=%s;" % job.jobid
 
         # add TMPDIR
-        cmd = "export TMPDIR=/srv;" + cmd
+        cmd = "export TMPDIR=/srv;GFORTRAN_TMPDIR=/srv;" + cmd
 
         # write the full payload command to a script file
         script_file = config.Container.script_file

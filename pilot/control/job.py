@@ -1687,6 +1687,9 @@ def queue_monitor(queues, traces, args):  # noqa: C901
             job = get_finished_or_failed_job(args, queues)
             if job:
                 logger.debug('returned job has state=%s' % job.state)
+                if job.state == 'failed':
+                    logger.warning('will abort failed job (should prepare for final server update)')
+                    abort = True
                 break
             i += 1
             state = get_pilot_state()  # the job object is not available, but the state is also kept in PILOT_JOB_STATE
