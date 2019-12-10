@@ -5,7 +5,7 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
 """
 Information provider from external source(s)
@@ -72,10 +72,13 @@ class ExtInfoProvider(DataLoader):
                              'nretry': 1,
                              'cache_time': 3 * 60 * 60,  # 3 hours
                              'fname': os.path.join(cache_dir, 'agis_schedconf.json')},
+                   'INITDIR': {'url': None,
+                               'nretry': 1,
+                               'fname': os.path.join(os.environ.get('PILOT_SOURCE_DIR'), 'agis_schedconf.json')},
                    'PANDA': None  ## NOT implemented, FIX ME LATER
                    }
 
-        priority = priority or ['LOCAL', 'CVMFS', 'AGIS', 'PANDA']
+        priority = priority or ['LOCAL', 'INITDIR', 'CVMFS', 'AGIS', 'PANDA']
 
         return self.load_data(sources, priority, cache_time)
 
@@ -123,6 +126,9 @@ class ExtInfoProvider(DataLoader):
                              'fname': os.path.join(cache_dir, 'queuedata.json'),
                              'parser': jsonparser_panda
                              },
+                   'INITDIR': {'url': None,
+                               'nretry': 1,
+                               'fname': os.path.join(os.environ.get('PILOT_SOURCE_DIR'), 'queuedata.json')},
                    # FIX ME LATER: move hardcoded urls to the Config?
                    'PANDA': {'url': 'http://pandaserver.cern.ch:25085/cache/schedconfig/%s.all.json' % pandaqueues[0],
                              'nretry': 3,
@@ -133,7 +139,7 @@ class ExtInfoProvider(DataLoader):
                              }
                    }
 
-        priority = priority or ['LOCAL', 'PANDA', 'CVMFS', 'AGIS']
+        priority = priority or ['LOCAL', 'INITDIR', 'PANDA', 'CVMFS', 'AGIS']
 
         return self.load_data(sources, priority, cache_time)
 
@@ -169,10 +175,13 @@ class ExtInfoProvider(DataLoader):
                              'nretry': 1,
                              'cache_time': 3 * 60 * 60,  # 3 hours
                              'fname': os.path.join(cache_dir, 'agis_ddmendpoints.json')},
+                   'INITDIR': {'url': None,
+                             'nretry': 1,
+                             'fname': os.path.join(os.environ.get('PILOT_SOURCE_DIR'), 'agis_ddmendpoints.json')},
                    'PANDA': None  ## NOT implemented, FIX ME LATER if need
                    }
 
-        priority = priority or ['LOCAL', 'CVMFS', 'AGIS', 'PANDA']
+        priority = priority or ['LOCAL', 'INITDIR', 'CVMFS', 'AGIS', 'PANDA']
 
         return self.load_data(sources, priority, cache_time)
 
