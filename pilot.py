@@ -360,6 +360,10 @@ def get_args():
                             dest='hpc_resource',
                             default='',
                             help='Name of the HPC (e.g. Titan)')
+    arg_parser.add_argument('--hpc-mode',
+                            dest='hpc_mode',
+                            default='manytoone',
+                            help='HPC mode (manytoone, jumbojobs)')
 
     return arg_parser.parse_args()
 

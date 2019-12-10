@@ -125,7 +125,7 @@ def queue_report(queues):
     for q in queues._fields:
         _q = getattr(queues, q)
         jobs = list(_q.queue)
-        logger.info('queue %s has %d job(s)' % (str(_q), len(jobs)))
+        logger.info('queue %s has %d job(s)' % (q, len(jobs)))
 
 
 def put_in_queue(obj, queue):

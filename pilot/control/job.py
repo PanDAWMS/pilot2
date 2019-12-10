@@ -1733,8 +1733,6 @@ def queue_monitor(queues, traces, args):  # noqa: C901
                 del _job
                 logger.debug('tmp job object deleted')
 
-                copy('pilotlog.txt', '/scratch/pilotlog.txt')
-
         if abort:
             break
 
