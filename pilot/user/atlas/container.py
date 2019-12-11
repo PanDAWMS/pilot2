@@ -28,7 +28,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_payload_proxy(proxy_outfile_name, voms_role=''):
+def get_payload_proxy(proxy_outfile_name, voms_role='atlas'):
     try:
         # it assumes that https_setup() was done already
         res = https.request('{pandaserver}/server/panda/getProxy'.format(pandaserver=config.Pilot.pandaserver),
