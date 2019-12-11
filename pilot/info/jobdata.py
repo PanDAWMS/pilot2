@@ -184,7 +184,10 @@ class JobData(BaseData):
         access_keys = ['allow_lan', 'allow_wan', 'direct_access_lan', 'direct_access_wan']
         if not self.infosys or not self.infosys.queuedata:
             dat = dict([k, getattr(FileSpec, k, None)] for k in access_keys)
-            msg = ', '.join(["%s=%s" % (k, v) for k, v in sorted(dat.iteritems())])
+            try:
+                msg = ', '.join(["%s=%s" % (k, v) for k, v in sorted(dat.iteritems())])  # Python 2
+            except Exception:
+                msg = ', '.join(["%s=%s" % (k, v) for k, v in sorted(dat.items())])  # Python 3
             logger.info('job.infosys.queuedata is not initialized: following access settings will be used by default: %s' % msg)
 
         # form raw list data from input comma-separated values for further validation by FileSpec
@@ -200,7 +203,7 @@ class JobData(BaseData):
         }
 
         try:
-            ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.values())  # Python 3
+            ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in list(kmap.values()))  # Python 3
         except Exception:
             ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())  # Python 2
         logger.debug('ksources=%s' % str(ksources))
@@ -212,7 +215,7 @@ class JobData(BaseData):
             idat = {}
 
             try:
-                for attrname, k in kmap.items():  # Python 3
+                for attrname, k in list(kmap.items()):  # Python 3
                     idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
             except Exception:
                 for attrname, k in kmap.iteritems():  # Python 2
@@ -261,7 +264,7 @@ class JobData(BaseData):
         }
 
         try:
-            ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.values())  # Python 3
+            ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in list(kmap.values()))  # Python 3
         except Exception:
             ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())  # Python 2
 
@@ -287,7 +290,7 @@ class JobData(BaseData):
             lfns.add(lfn)
             idat = {}
             try:
-                for attrname, k in kmap.items():  # Python 3
+                for attrname, k in list(kmap.items()):  # Python 3
                     idat[attrname] = ksources[k][ind] if len(ksources[k]) > ind else None
             except Exception:
                 for attrname, k in kmap.iteritems():  # Python 2
@@ -609,7 +612,7 @@ class JobData(BaseData):
 
         ret = {}
         try:
-            _items = options.items()  # Python 3
+            _items = list(options.items())  # Python 3
         except Exception:
             _items = options.iteritems()  # Python 2
         for opt, fcast in _items:
@@ -647,19 +650,19 @@ class JobData(BaseData):
         """
 
         # Convert to long if necessary
-        try:  # Python 2
-            if not isinstance(workdir_size, (int, long)):
+        try:
+            if not isinstance(workdir_size, (int, long)):  # Python 2
                 try:
                     workdir_size = long(workdir_size)
                 except Exception as e:
                     logger.warning('failed to convert %s to long: %s' % (workdir_size, e))
                     return
-        except Exception:  # Python 3, note order
-            if not isinstance(workdir_size, int):
+        except Exception:
+            if not isinstance(workdir_size, int):  # Python 3, note order
                 try:
-                    workdir_size = long(workdir_size)
+                    workdir_size = int(workdir_size)  # Python 3
                 except Exception as e:
-                    logger.warning('failed to convert %s to long: %s' % (workdir_size, e))
+                    logger.warning('failed to convert %s to int: %s' % (workdir_size, e))
                     return
         try:  # Python 2
             total_size = long(0)  # B, note do not use 0L as it will generate a syntax error in Python 3

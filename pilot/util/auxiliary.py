@@ -14,11 +14,11 @@ from collections import Set, Mapping, deque, OrderedDict
 from numbers import Number
 from time import sleep
 
-try:  # Python 2
-    zero_depth_bases = (basestring, Number, xrange, bytearray)
+try:
+    zero_depth_bases = (basestring, Number, xrange, bytearray)  # Python 2
     iteritems = 'iteritems'
-except NameError:  # Python 3
-    zero_depth_bases = (str, bytes, Number, range, bytearray)
+except NameError:
+    zero_depth_bases = (str, bytes, Number, range, bytearray)  # Python 3
     iteritems = 'items'
 
 from pilot.common.errorcodes import ErrorCodes
@@ -88,7 +88,7 @@ def display_architecture_info():
     logger.info("architecture information:")
 
     exit_code, stdout, stderr = execute("lsb_release -a", mute=True)
-    if "Command not found" in stdout or "Command not found" in stderr:
+    if 'Command not found' in stdout or 'Command not found' in stderr:
         # Dump standard architecture info files if available
         dump("/etc/lsb-release")
         dump("/etc/SuSE-release")
@@ -116,13 +116,21 @@ def get_batchsystem_jobid():
                         'clusterid': 'Condor',  # Condor (variable sent through job submit file)
                         'SLURM_JOB_ID': 'SLURM'}
 
-    for key, value in batchsystem_dict.iteritems():
-        if key in os.environ:
-            return value, os.environ.get(key, '')
+    try:
+        for key, value in batchsystem_dict.iteritems():  # Python 2
+            if key in os.environ:
+                return value, os.environ.get(key, '')
+    except Exception:
+        for key, value in list(batchsystem_dict.items()):  # Python 3
+            if key in os.environ:
+                return value, os.environ.get(key, '')
 
     # Condor (get jobid from classad file)
     if '_CONDOR_JOB_AD' in os.environ:
-        from commands import getoutput
+        try:
+            from commands import getoutput  # Python 2
+        except Exception:
+            from subprocess import getoutput  # Python 3
         return "Condor", getoutput(
             'sed -n "s/GlobalJobId.*\\"\\(.*\\)\\".*/\\1/p" %s' % os.environ.get("_CONDOR_JOB_AD"))
 
@@ -332,3 +340,13 @@ def check_for_final_server_update(update_server):
         logger.info('server update not finished (#%d/#%d)' % (i + 1, max_i))
         sleep(30)
         i += 1
+
+
+def is_python3():
+    """
+    Check if we are running on Python 3.
+
+    :return: boolean.
+    """
+
+    return sys.version_info >= (3, 0)

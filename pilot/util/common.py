@@ -8,6 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 import os
+import sys
 
 from pilot.util.constants import PILOT_KILL_SIGNAL
 from pilot.util.timing import get_time_since
@@ -39,3 +40,13 @@ def should_abort(args, limit=30, label=''):
             abort = True
 
     return abort
+
+
+def is_python3():
+    """
+    Check if we are running on Python 3.
+
+    :return: boolean.
+    """
+
+    return sys.version_info >= (3, 0)

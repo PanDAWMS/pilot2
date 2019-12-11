@@ -16,7 +16,10 @@ import logging
 import os
 import threading
 import time
-import Queue
+try:
+    import Queue as queue  # noqa: N813
+except Exception:
+    import queue  # Python 3
 
 from pilot.common import exception
 from pilot.common.pluginfactory import PluginFactory
@@ -48,7 +51,7 @@ class CommunicationResponse(object):
 
     def __str__(self):
         json_str = {}
-        for key, value in self.__dict__.items():
+        for key, value in list(self.__dict__.items()):  # Python 2/3
             if value and type(value) is list:
                 json_str[key] = []
                 for list_item in value:
@@ -97,7 +100,7 @@ class CommunicationRequest(object):
 
     def __str__(self):
         json_str = {}
-        for key, value in self.__dict__.items():
+        for key, value in list(self.__dict__.items()):  # Python 2/3
             if value and type(value) is list:
                 json_str[key] = []
                 for list_item in value:
@@ -122,14 +125,14 @@ class CommunicationManager(threading.Thread, PluginFactory):
         self.setName("CommunicationManager")
         self.post_get_jobs = None
         self.post_get_event_ranges_hook = None
-        self.queues = {'request_get_jobs': Queue.Queue(),
-                       'update_jobs': Queue.Queue(),
-                       'request_get_events': Queue.Queue(),
-                       'update_events': Queue.Queue(),
-                       'processing_get_jobs': Queue.Queue(),
-                       'processing_update_jobs': Queue.Queue(),
-                       'processing_get_events': Queue.Queue(),
-                       'processing_update_events': Queue.Queue()}
+        self.queues = {'request_get_jobs': queue.Queue(),  # Python 2/3
+                       'update_jobs': queue.Queue(),
+                       'request_get_events': queue.Queue(),
+                       'update_events': queue.Queue(),
+                       'processing_get_jobs': queue.Queue(),
+                       'processing_update_jobs': queue.Queue(),
+                       'processing_get_events': queue.Queue(),
+                       'processing_update_events': queue.Queue()}
         self.queue_limits = {'request_get_jobs': None,
                              'update_jobs': None,
                              'request_get_events': None,
@@ -173,13 +176,13 @@ class CommunicationManager(threading.Thread, PluginFactory):
         if args:
             if not type(args) is dict:
                 args = vars(args)
-            for key, value in args.items():
+            for key, value in list(args.items()):  # Python 2/3
                 req_attrs[key] = value
 
         other_req_attrs = {'request_type': CommunicationRequest.RequestType.RequestJobs,
                            'num_jobs': njobs,
                            'post_hook': post_hook}
-        for key, value in other_req_attrs.items():
+        for key, value in list(other_req_attrs.items()):  # Python 2/3
             req_attrs[key] = value
 
         req = CommunicationRequest(req_attrs)
@@ -315,7 +318,7 @@ class CommunicationManager(threading.Thread, PluginFactory):
             plugin_confs = {'class': 'pilot.eventservice.communicationmanager.plugins.pandacommunicator.PandaCommunicator'}
 
         if self.args:
-            for key, value in vars(self.args).items():
+            for key, value in list(vars(self.args).items()):  # Python 2/3
                 plugin_confs[key] = value
         return plugin_confs
 

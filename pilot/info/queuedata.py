@@ -5,6 +5,8 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018-2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019
+
 
 """
 The implementation of data structure to host queuedata settings.
@@ -88,7 +90,7 @@ class QueueData(BaseData):
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['timefloor', 'maxwdir', 'pledgedcpu', 'es_stageout_gap',
                    'corecount', 'maxrss', 'maxtime'],
-             str: ['name', 'appdir', 'catchall', 'platform', 'container_options', 'container_type',
+             str: ['name', 'type', 'appdir', 'catchall', 'platform', 'container_options', 'container_type',
                    'resource', 'state', 'status', 'site'],
              dict: ['copytools', 'acopytools', 'astorages', 'aprotocols', 'acopytools_schemas'],
              bool: ['allow_lan', 'allow_wan', 'direct_access_lan', 'direct_access_wan', 'use_pcache']
@@ -139,8 +141,12 @@ class QueueData(BaseData):
 
         if not activity:
             activity = 'default'
-        if isinstance(activity, basestring):
-            activity = [activity]
+        try:
+            if isinstance(activity, basestring):  # Python 2
+                activity = [activity]
+        except Exception:
+            if isinstance(activity, str):  # Python 3
+                activity = [activity]
 
         if 'default' not in activity:
             activity = activity + ['default']

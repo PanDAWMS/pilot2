@@ -7,7 +7,7 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2019
 
-from __future__ import print_function
+from __future__ import print_function  # Python 2, 2to3 complains about this
 
 import functools
 import signal
@@ -18,7 +18,7 @@ from sys import stderr
 try:
     import Queue as queue  # noqa: N813
 except Exception:
-    import queue  # python 3
+    import queue  # Python 3
 
 from collections import namedtuple
 
@@ -43,7 +43,10 @@ def interrupt(args, signum, frame):
     :return:
     """
 
-    sig = [v for v, k in signal.__dict__.iteritems() if k == signum][0]
+    try:
+        sig = [v for v, k in signal.__dict__.iteritems() if k == signum][0]  # Python 2
+    except Exception:
+        sig = [v for v, k in list(signal.__dict__.items()) if k == signum][0]  # Python 3
     add_to_pilot_timing('0', PILOT_KILL_SIGNAL, time(), args)
     add_to_pilot_timing('1', PILOT_KILL_SIGNAL, time(), args)
     logger.warning('caught signal: %s' % sig)
@@ -107,7 +110,7 @@ def run(args):
     # define the threads
     targets = {'job': job.control, 'data': data.control, 'monitor': monitor.control}
     threads = [ExcThread(bucket=queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
-                         name=name) for name, target in targets.items()]
+                         name=name) for name, target in list(targets.items())]
 
     logger.info('starting threads')
     [thread.start() for thread in threads]

@@ -10,7 +10,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 # - Wen Guan, wen.guan@cern.ch, 2018
 
-from __future__ import print_function
+from __future__ import print_function  # Python 2
 
 import os
 import time
@@ -19,7 +19,7 @@ import hashlib
 try:
     import Queue as queue  # noqa: N813
 except Exception:
-    import queue  # python 3
+    import queue  # Python 3
 
 from json import dumps
 from re import findall
@@ -29,7 +29,7 @@ from pilot.common.exception import ExcThread, PilotException  #, JobAlreadyRunni
 from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
-    set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine
+    set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine, is_python3
 from pilot.util.config import config
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
@@ -37,7 +37,7 @@ from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PI
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
 from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json, establish_logging, write_file
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file, \
-    is_harvester_mode, get_worker_attributes_file, publish_work_report, get_event_status_file, \
+    is_harvester_mode, get_worker_attributes_file, publish_job_report, publish_work_report, get_event_status_file, \
     publish_stageout_files
 from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
@@ -70,7 +70,7 @@ def control(queues, traces, args):
     targets = {'validate': validate, 'retrieve': retrieve, 'create_data_payload': create_data_payload,
                'queue_monitor': queue_monitor, 'job_monitor': job_monitor}
     threads = [ExcThread(bucket=queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
-                         name=name) for name, target in targets.items()]
+                         name=name) for name, target in list(targets.items())]  # Python 2/3
 
     [thread.start() for thread in threads]
 
@@ -238,6 +238,7 @@ def send_state(job, args, state, xml=None, metadata=None):
                 path = get_worker_attributes_file(args)
                 # Should publish work report return a Boolean for pass/fail?
                 publish_work_report(data, path)
+                publish_job_report(job, args, config.Payload.jobreport)
                 return True
             else:
                 log.debug('Warning - could not write log and output files to file %s' % event_status_file)
@@ -679,8 +680,8 @@ def validate(queues, traces, args):
             # Define a new parent group
             os.setpgrp()
 
-            log.debug('creating job working directory')
             job_dir = os.path.join(args.mainworkdir, 'PanDA_Pilot-%s' % job.jobid)
+            log.debug('creating job working directory: %s' % job_dir)
             try:
                 os.mkdir(job_dir)
                 os.chmod(job_dir, 0o770)
@@ -1018,7 +1019,10 @@ def get_job_definition_from_file(path, harvester):
             res = None  # this is a fatal error, no point in continuing as the file will not be replaced
         else:
             # parse response message
-            from urlparse import parse_qsl
+            try:
+                from urlparse import parse_qsl  # Python 2
+            except Exception:
+                from urllib.parse import parse_qsl  # Python 3
             datalist = parse_qsl(response, keep_blank_values=True)
 
             # convert to dictionary
@@ -1060,6 +1064,11 @@ def locate_job_definition(args):
     paths = [os.path.join("%s/.." % args.sourcedir, config.Pilot.pandajobdata),
              os.path.join(args.sourcedir, config.Pilot.pandajobdata),
              os.path.join(os.environ['PILOT_WORK_DIR'], config.Pilot.pandajobdata)]
+
+    if args.harvester_workdir:
+        paths.append(os.path.join(args.harvester_workdir, config.Harvester.pandajob_file))
+    if 'HARVESTER_WORKDIR' in os.environ:
+        paths.append(os.path.join(os.environ['HARVESTER_WORKDIR'], config.Harvester.pandajob_file))
 
     path = ""
     for _path in paths:
@@ -1123,122 +1132,122 @@ def get_fake_job(input=True):
 
     if config.Pilot.testjobtype == 'production':
         logger.info('creating fake test production job definition')
-        res = {u'jobsetID': u'NULL',
-               u'logGUID': log_guid,
-               u'cmtConfig': u'x86_64-slc6-gcc48-opt',
-               u'prodDBlocks': u'user.mlassnig:user.mlassnig.pilot.test.single.hits',
-               u'dispatchDBlockTokenForOut': u'NULL,NULL',
-               u'destinationDBlockToken': u'NULL,NULL',
-               u'destinationSE': u'AGLT2_TEST',
-               u'realDatasets': job_name,
-               u'prodUserID': u'no_one',
-               u'GUID': guid,
-               u'realDatasetsIn': u'user.mlassnig:user.mlassnig.pilot.test.single.hits',
-               u'nSent': 0,
-               u'cloud': u'US',
-               u'StatusCode': 0,
-               u'homepackage': u'AtlasProduction/20.1.4.14',
-               u'inFiles': u'HITS.06828093._000096.pool.root.1',
-               u'processingType': u'pilot-ptest',
-               u'ddmEndPointOut': u'UTA_SWT2_DATADISK,UTA_SWT2_DATADISK',
-               u'fsize': u'94834717',
-               u'fileDestinationSE': u'AGLT2_TEST,AGLT2_TEST',
-               u'scopeOut': u'panda',
-               u'minRamCount': 0,
-               u'jobDefinitionID': 7932,
-               u'maxWalltime': u'NULL',
-               u'scopeLog': u'panda',
-               u'transformation': u'Reco_tf.py',
-               u'maxDiskCount': 0,
-               u'coreCount': 1,
-               u'prodDBlockToken': u'NULL',
-               u'transferType': u'NULL',
-               u'destinationDblock': job_name,
-               u'dispatchDBlockToken': u'NULL',
-               u'jobPars': u'--maxEvents=1 --inputHITSFile HITS.06828093._000096.pool.root.1 --outputRDOFile RDO_%s.root' % job_name,
-               u'attemptNr': 0,
-               u'swRelease': u'Atlas-20.1.4',
-               u'nucleus': u'NULL',
-               u'maxCpuCount': 0,
-               u'outFiles': u'RDO_%s.root,%s.job.log.tgz' % (job_name, job_name),
-               u'currentPriority': 1000,
-               u'scopeIn': u'mc15_13TeV',
-               u'PandaID': '0',
-               u'sourceSite': u'NULL',
-               u'dispatchDblock': u'NULL',
-               u'prodSourceLabel': u'ptest',
-               u'checksum': u'ad:5d000974',
-               u'jobName': job_name,
-               u'ddmEndPointIn': u'UTA_SWT2_DATADISK',
-               u'taskID': u'NULL',
-               u'logFile': u'%s.job.log.tgz' % job_name}
+        res = {'jobsetID': 'NULL',
+               'logGUID': log_guid,
+               'cmtConfig': 'x86_64-slc6-gcc48-opt',
+               'prodDBlocks': 'user.mlassnig:user.mlassnig.pilot.test.single.hits',
+               'dispatchDBlockTokenForOut': 'NULL,NULL',
+               'destinationDBlockToken': 'NULL,NULL',
+               'destinationSE': 'AGLT2_TEST',
+               'realDatasets': job_name,
+               'prodUserID': 'no_one',
+               'GUID': guid,
+               'realDatasetsIn': 'user.mlassnig:user.mlassnig.pilot.test.single.hits',
+               'nSent': 0,
+               'cloud': 'US',
+               'StatusCode': 0,
+               'homepackage': 'AtlasProduction/20.1.4.14',
+               'inFiles': 'HITS.06828093._000096.pool.root.1',
+               'processingType': 'pilot-ptest',
+               'ddmEndPointOut': 'UTA_SWT2_DATADISK,UTA_SWT2_DATADISK',
+               'fsize': '94834717',
+               'fileDestinationSE': 'AGLT2_TEST,AGLT2_TEST',
+               'scopeOut': 'panda',
+               'minRamCount': 0,
+               'jobDefinitionID': 7932,
+               'maxWalltime': 'NULL',
+               'scopeLog': 'panda',
+               'transformation': 'Reco_tf.py',
+               'maxDiskCount': 0,
+               'coreCount': 1,
+               'prodDBlockToken': 'NULL',
+               'transferType': 'NULL',
+               'destinationDblock': job_name,
+               'dispatchDBlockToken': 'NULL',
+               'jobPars': '--maxEvents=1 --inputHITSFile HITS.06828093._000096.pool.root.1 --outputRDOFile RDO_%s.root' % job_name,
+               'attemptNr': 0,
+               'swRelease': 'Atlas-20.1.4',
+               'nucleus': 'NULL',
+               'maxCpuCount': 0,
+               'outFiles': 'RDO_%s.root,%s.job.log.tgz' % (job_name, job_name),
+               'currentPriority': 1000,
+               'scopeIn': 'mc15_13TeV',
+               'PandaID': '0',
+               'sourceSite': 'NULL',
+               'dispatchDblock': 'NULL',
+               'prodSourceLabel': 'ptest',
+               'checksum': 'ad:5d000974',
+               'jobName': job_name,
+               'ddmEndPointIn': 'UTA_SWT2_DATADISK',
+               'taskID': 'NULL',
+               'logFile': '%s.job.log.tgz' % job_name}
     elif config.Pilot.testjobtype == 'user':
         logger.info('creating fake test user job definition')
-        res = {u'jobsetID': u'NULL',
-               u'logGUID': log_guid,
-               u'cmtConfig': u'x86_64-slc6-gcc49-opt',
-               u'prodDBlocks': u'data15_13TeV:data15_13TeV.00276336.physics_Main.merge.AOD.r7562_p2521_tid07709524_00',
-               u'dispatchDBlockTokenForOut': u'NULL,NULL',
-               u'destinationDBlockToken': u'NULL,NULL',
-               u'destinationSE': u'ANALY_SWT2_CPB',
-               u'realDatasets': job_name,
-               u'prodUserID': u'noone',
-               u'GUID': guid,
-               u'realDatasetsIn': u'data15_13TeV:data15_13TeV.00276336.physics_Main.merge.AOD.r7562_p2521_tid07709524_00',
-               u'nSent': u'0',
-               u'cloud': u'US',
-               u'StatusCode': 0,
-               u'homepackage': u'AnalysisTransforms-AtlasDerivation_20.7.6.4',
-               u'inFiles': u'AOD.07709524._000050.pool.root.1',
-               u'processingType': u'pilot-ptest',
-               u'ddmEndPointOut': u'SWT2_CPB_SCRATCHDISK,SWT2_CPB_SCRATCHDISK',
-               u'fsize': u'1564780952',
-               u'fileDestinationSE': u'ANALY_SWT2_CPB,ANALY_SWT2_CPB',
-               u'scopeOut': u'user.gangarbt',
-               u'minRamCount': u'0',
-               u'jobDefinitionID': u'9445',
-               u'maxWalltime': u'NULL',
-               u'scopeLog': u'user.gangarbt',
-               u'transformation': u'http://pandaserver.cern.ch:25080/trf/user/runAthena-00-00-11',
-               u'maxDiskCount': u'0',
-               u'coreCount': u'1',
-               u'prodDBlockToken': u'NULL',
-               u'transferType': u'NULL',
-               u'destinationDblock': job_name,
-               u'dispatchDBlockToken': u'NULL',
-               u'jobPars': u'-a sources.20115461.derivation.tgz -r ./ -j "Reco_tf.py '
-                           u'--inputAODFile AOD.07709524._000050.pool.root.1 --outputDAODFile test.pool.root '
-                           u'--reductionConf HIGG3D1" -i "[\'AOD.07709524._000050.pool.root.1\']" -m "[]" -n "[]" --trf'
-                           u' --useLocalIO --accessmode=copy -o '
-                           u'"{\'IROOT\': [(\'DAOD_HIGG3D1.test.pool.root\', \'%s.root\')]}" '
-                           u'--sourceURL https://aipanda012.cern.ch:25443' % (job_name),
-               u'attemptNr': u'0',
-               u'swRelease': u'Atlas-20.7.6',
-               u'nucleus': u'NULL',
-               u'maxCpuCount': u'0',
-               u'outFiles': u'%s.root,%s.job.log.tgz' % (job_name, job_name),
-               u'currentPriority': u'1000',
-               u'scopeIn': u'data15_13TeV',
-               u'PandaID': u'0',
-               u'sourceSite': u'NULL',
-               u'dispatchDblock': u'data15_13TeV:data15_13TeV.00276336.physics_Main.merge.AOD.r7562_p2521_tid07709524_00',
-               u'prodSourceLabel': u'ptest',
-               u'checksum': u'ad:b11f45a7',
-               u'jobName': job_name,
-               u'ddmEndPointIn': u'SWT2_CPB_SCRATCHDISK',
-               u'taskID': u'NULL',
-               u'logFile': u'%s.job.log.tgz' % job_name}
+        res = {'jobsetID': 'NULL',
+               'logGUID': log_guid,
+               'cmtConfig': 'x86_64-slc6-gcc49-opt',
+               'prodDBlocks': 'data15_13TeV:data15_13TeV.00276336.physics_Main.merge.AOD.r7562_p2521_tid07709524_00',
+               'dispatchDBlockTokenForOut': 'NULL,NULL',
+               'destinationDBlockToken': 'NULL,NULL',
+               'destinationSE': 'ANALY_SWT2_CPB',
+               'realDatasets': job_name,
+               'prodUserID': 'None',
+               'GUID': guid,
+               'realDatasetsIn': 'data15_13TeV:data15_13TeV.00276336.physics_Main.merge.AOD.r7562_p2521_tid07709524_00',
+               'nSent': '0',
+               'cloud': 'US',
+               'StatusCode': 0,
+               'homepackage': 'AnalysisTransforms-AtlasDerivation_20.7.6.4',
+               'inFiles': 'AOD.07709524._000050.pool.root.1',
+               'processingType': 'pilot-ptest',
+               'ddmEndPointOut': 'SWT2_CPB_SCRATCHDISK,SWT2_CPB_SCRATCHDISK',
+               'fsize': '1564780952',
+               'fileDestinationSE': 'ANALY_SWT2_CPB,ANALY_SWT2_CPB',
+               'scopeOut': 'user.gangarbt',
+               'minRamCount': '0',
+               'jobDefinitionID': '9445',
+               'maxWalltime': 'NULL',
+               'scopeLog': 'user.gangarbt',
+               'transformation': 'http://pandaserver.cern.ch:25080/trf/user/runAthena-00-00-11',
+               'maxDiskCount': '0',
+               'coreCount': '1',
+               'prodDBlockToken': 'NULL',
+               'transferType': 'NULL',
+               'destinationDblock': job_name,
+               'dispatchDBlockToken': 'NULL',
+               'jobPars': '-a sources.20115461.derivation.tgz -r ./ -j "Reco_tf.py '
+                           '--inputAODFile AOD.07709524._000050.pool.root.1 --outputDAODFile test.pool.root '
+                           '--reductionConf HIGG3D1" -i "[\'AOD.07709524._000050.pool.root.1\']" -m "[]" -n "[]" --trf'
+                           ' --useLocalIO --accessmode=copy -o '
+                           '"{\'IROOT\': [(\'DAOD_HIGG3D1.test.pool.root\', \'%s.root\')]}" '
+                           '--sourceURL https://aipanda012.cern.ch:25443' % (job_name),
+               'attemptNr': '0',
+               'swRelease': 'Atlas-20.7.6',
+               'nucleus': 'NULL',
+               'maxCpuCount': '0',
+               'outFiles': '%s.root,%s.job.log.tgz' % (job_name, job_name),
+               'currentPriority': '1000',
+               'scopeIn': 'data15_13TeV',
+               'PandaID': '0',
+               'sourceSite': 'NULL',
+               'dispatchDblock': 'data15_13TeV:data15_13TeV.00276336.physics_Main.merge.AOD.r7562_p2521_tid07709524_00',
+               'prodSourceLabel': 'ptest',
+               'checksum': 'ad:b11f45a7',
+               'jobName': job_name,
+               'ddmEndPointIn': 'SWT2_CPB_SCRATCHDISK',
+               'taskID': 'NULL',
+               'logFile': '%s.job.log.tgz' % job_name}
     else:
         logger.warning('unknown test job type: %s' % config.Pilot.testjobtype)
 
     if res:
         if not input:
-            res['inFiles'] = u'NULL'
-            res['GUID'] = u'NULL'
-            res['scopeIn'] = u'NULL'
-            res['fsize'] = u'NULL'
-            res['realDatasetsIn'] = u'NULL'
-            res['checksum'] = u'NULL'
+            res['inFiles'] = 'NULL'
+            res['GUID'] = 'NULL'
+            res['scopeIn'] = 'NULL'
+            res['fsize'] = 'NULL'
+            res['realDatasetsIn'] = 'NULL'
+            res['checksum'] = 'NULL'
 
         if config.Pilot.testtransfertype == "NULL" or config.Pilot.testtransfertype == 'direct':
             res['transferType'] = config.Pilot.testtransfertype
@@ -1250,6 +1259,19 @@ def get_fake_job(input=True):
             res['jobPars'] = '1'
             res['inFiles'] = ''
             res['outFiles'] = ''
+
+        # convert to unicode for Python 2
+        try:  # in case some later version of Python 3 has problems using u'' (seems ok with 3.7 at least)
+            if not is_python3():
+                _res = {}
+                for entry in res:
+                    if type(res[entry]) is str:
+                        _res[u'%s' % entry] = u'%s' % res[entry]
+                    else:
+                        _res[u'%s' % entry] = res[entry]
+                res = _res
+        except Exception:
+            pass
     return res
 
 
@@ -1323,7 +1345,7 @@ def retrieve(queues, traces, args):
             delay = get_job_retrieval_delay(args.harvester)
             if not args.harvester:
                 logger.warning('did not get a job -- sleep %d s and repeat' % delay)
-            for i in xrange(delay):
+            for i in range(delay):
                 if args.graceful_stop.is_set():
                     break
                 time.sleep(1)
@@ -1332,7 +1354,7 @@ def retrieve(queues, traces, args):
             # note: StatusCode keyword is not available in job definition files from Harvester (not needed)
             if 'StatusCode' in res and res['StatusCode'] != '0' and res['StatusCode'] != 0:
                 logger.warning('did not get a job -- sleep 60s and repeat -- status: %s' % res['StatusCode'])
-                for i in xrange(60):
+                for i in range(60):
                     if args.graceful_stop.is_set():
                         break
                     time.sleep(1)

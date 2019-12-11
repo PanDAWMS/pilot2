@@ -15,15 +15,20 @@ from collections import defaultdict
 from glob import glob
 from signal import SIGTERM, SIGUSR1
 
+try:
+    from functools import reduce  # Python 3
+except Exception:
+    pass
+
 from .dbrelease import get_dbrelease_version, create_dbrelease
-from .setup import should_pilot_prepare_asetup, get_asetup, get_asetup_options, is_standard_atlas_job,\
+from .setup import should_pilot_prepare_asetup, is_standard_atlas_job,\
     set_inds, get_analysis_trf, get_payload_environment_variables, replace_lfns_with_turls
 from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
     get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import TrfDownloadFailure, PilotException
-from pilot.util.auxiliary import get_logger
+from pilot.util.auxiliary import get_logger, is_python3
 from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
     UTILITY_WITH_STAGEIN
@@ -95,6 +100,19 @@ def validate(job):
     return status
 
 
+def get_resource_name():
+    """
+    Return the name of the resource (only set for HPC resources; e.g. Cori, otherwise return 'grid').
+
+    :return: resource_name (string).
+    """
+
+    resource_name = os.environ.get('PILOT_RESOURCE_NAME', '').lower()
+    if not resource_name:
+        resource_name = 'grid'
+    return resource_name
+
+
 def get_payload_command(job):
     """
     Return the full command for execuring the payload, including the sourcing of all setup files and setting of
@@ -116,9 +134,12 @@ def get_payload_command(job):
     # Is it a user job or not?
     userjob = job.is_analysis()
 
-    # get the general setup command and then verify it
-    cmd = get_setup_command(job, prepareasetup)
-    ec, diagnostics = verify_setup_command(cmd)
+    resource_name = get_resource_name()  # 'grid' if no hpc_resource is set
+    resource = __import__('pilot.user.atlas.resource.%s' % resource_name, globals(), locals(), [resource_name], 0)  # Python 3, -1 -> 0
+
+    # get the general setup command and then verify it if required
+    cmd = resource.get_setup_command(job, prepareasetup)
+    ec, diagnostics = resource.verify_setup_command(cmd)
     if ec != 0:
         raise PilotException(diagnostics, code=ec)
 
@@ -164,29 +185,6 @@ def get_payload_command(job):
     log.info('payload run command: %s' % cmd)
 
     return cmd
-
-
-def verify_setup_command(cmd):
-    """
-    Verify the setup command.
-
-    :param cmd: command string to be verified (string).
-    :return: pilot error code (int), diagnostics (string).
-    """
-
-    ec = 0
-    diagnostics = ""
-
-    exit_code, stdout, stderr = execute(cmd, timeout=5 * 60)
-    if exit_code != 0:
-        if "No release candidates found" in stdout:
-            logger.info('exit_code=%d' % exit_code)
-            logger.info('stdout=%s' % stdout)
-            logger.info('stderr=%s' % stderr)
-            ec = errors.NORELEASEFOUND
-            diagnostics = stdout + stderr
-
-    return ec, diagnostics
 
 
 def get_normal_payload_command(cmd, job, prepareasetup, userjob):
@@ -336,46 +334,6 @@ def add_athena_proc_number(cmd):
             logger.info("will not add ATHENA_CORE_NUMBER to cmd since the value is %s" % str(value2))
     else:
         logger.warning('there is no ATHENA_CORE_NUMBER in os.environ (cannot add it to payload command)')
-
-    return cmd
-
-
-def get_setup_command(job, prepareasetup):
-    """
-    Return the path to asetup command, the asetup command itself and add the options (if desired).
-    If prepareasetup is False, the function will only return the path to the asetup script. It is then assumed
-    to be part of the job parameters.
-
-    :param job: job object.
-    :param prepareasetup: should the pilot prepare the asetup command itself? boolean.
-    :return:
-    """
-
-    # return immediately if there is no release or if user containers are used
-    if job.swrelease == 'NULL' or '--containerImage' in job.jobparams:
-        return ""
-
-    # Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
-    cmd = get_asetup(asetup=prepareasetup)
-
-    if prepareasetup:
-        options = get_asetup_options(job.swrelease, job.homepackage)
-        asetupoptions = " " + options + " --platform " + job.platform
-
-        # Always set the --makeflags option (to prevent asetup from overwriting it)
-        asetupoptions += " --makeflags=\'$MAKEFLAGS\'"
-
-        # Verify that the setup works
-        # exitcode, output = timedCommand(cmd, timeout=5 * 60)
-        # if exitcode != 0:
-        #     if "No release candidates found" in output:
-        #         pilotErrorDiag = "No release candidates found"
-        #         logger.warning(pilotErrorDiag)
-        #         return self.__error.ERR_NORELEASEFOUND, pilotErrorDiag, "", special_setup_cmd, JEM, cmtconfig
-        # else:
-        #     logger.info("verified setup command")
-
-        cmd += asetupoptions
 
     return cmd
 
@@ -1012,18 +970,27 @@ def parse_jobreport_data(job_report):
     work_attributes['outputfiles'] = outputfiles_dict
 
     if work_attributes['inputfiles']:
-        work_attributes['nInputFiles'] = reduce(lambda a, b: a + b, map(lambda inpfiles: len(inpfiles['subFiles']),
-                                                                        work_attributes['inputfiles']))
+        if is_python3():
+            work_attributes['nInputFiles'] = reduce(lambda a, b: a + b, [len(inpfiles['subFiles']) for inpfiles in
+                                                                         work_attributes['inputfiles']])
+        else:
+            work_attributes['nInputFiles'] = reduce(lambda a, b: a + b, map(lambda inpfiles: len(inpfiles['subFiles']),
+                                                                            work_attributes['inputfiles']))
 
     if 'resource' in job_report and 'executor' in job_report['resource']:
         j = job_report['resource']['executor']
         exc_report = []
         fin_report = defaultdict(int)
-        for v in filter(lambda d: 'memory' in d and ('Max' or 'Avg' in d['memory']), j.itervalues()):
+        try:
+            _tmplist = filter(lambda d: 'memory' in d and ('Max' or 'Avg' in d['memory']), j.itervalues())  # Python 2
+        except Exception:
+            _tmplist = [d for d in iter(list(j.values())) if
+                        'memory' in d and ('Max' or 'Avg' in d['memory'])]  # Python 3
+        for v in _tmplist:
             if 'Avg' in v['memory']:
-                exc_report.extend(v['memory']['Avg'].items())
+                exc_report.extend(list(v['memory']['Avg'].items()))  # Python 2/3
             if 'Max' in v['memory']:
-                exc_report.extend(v['memory']['Max'].items())
+                exc_report.extend(list(v['memory']['Max'].items()))  # Python 2/3
         for x in exc_report:
             fin_report[x[0]] += x[1]
         work_attributes.update(fin_report)
@@ -1124,7 +1091,10 @@ def get_db_info(jobreport_dictionary):
     """
 
     db_time = 0
-    db_data = 0L
+    try:
+        db_data = long(0)  # Python 2
+    except Exception:
+        db_data = 0  # Python 3
 
     executor_dictionary = get_executor_dictionary(jobreport_dictionary)
     if executor_dictionary != {}:
@@ -1157,7 +1127,12 @@ def get_db_info_str(db_time, db_data):
     :return: db_time_s, db_data_s (strings)
     """
 
-    if db_data != 0L:
+    try:
+        zero = long(0)  # Python 2
+    except Exception:
+        zero = 0  # Python 3
+
+    if db_data != zero:
         db_data_s = "%s" % (db_data)
     else:
         db_data_s = ""
@@ -1180,7 +1155,10 @@ def get_cpu_times(jobreport_dictionary):
     :return: cpu_conversion_unit (unit), total_cpu_time, conversion_factor (output consistent with set_time_consumed())
     """
 
-    total_cpu_time = 0L
+    try:
+        total_cpu_time = long(0)  # Python 2
+    except Exception:
+        total_cpu_time = 0  # Python 3
 
     executor_dictionary = get_executor_dictionary(jobreport_dictionary)
     if executor_dictionary != {}:

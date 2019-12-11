@@ -124,10 +124,11 @@ class Analytics(Services):
         :param y_name: optional string, name selector for table column.
         :param precision: optional precision for fitted slope parameter, default 2.
         :param tails: should tails (first and last values) be used? (boolean).
-        :return: slope (float string with desired precision).
+        :return: {"slope": slope, "chi2": chi2} (float strings with desired precision).
         """
 
         slope = ""
+        chi2 = ""
         table = self.get_table(filename)
 
         if table:
@@ -137,14 +138,14 @@ class Analytics(Services):
             # remove tails if desired
             # this is useful e.g. for memory monitor data where the first and last values
             # represent allocation and de-allocation, ie not interesting
-            if not tails and len(x) > 2 and len(y) > 2:
+            if not tails and len(x) > 7 and len(y) > 7:
                 logger.debug('removing tails from data to be fitted')
-                x = x[1:]
-                x = x[:-1]
-                y = y[1:]
-                y = y[:-1]
+                x = x[5:]
+                x = x[:-2]
+                y = y[5:]
+                y = y[:-2]
 
-            if len(x) > 2 and len(y) > 2:
+            if len(x) > 7 and len(y) > 7:
                 logger.info('fitting %s vs %s' % (y_name, x_name))
                 try:
                     fit = self.fit(x, y)
@@ -154,13 +155,14 @@ class Analytics(Services):
                 else:
                     if _slope:
                         slope = float_to_rounded_string(fit.slope(), precision=precision)
+                        chi2 = float_to_rounded_string(fit.chi2(), precision=0)  # decimals are not needed for chi2
                         if slope != "":
-                            logger.info('current memory leak: %s B/s (using %d data points, chi2=%f)' %
-                                        (slope, len(x), fit.chi2()))
+                            logger.info('current memory leak: %s B/s (using %d data points, chi2=%s)' %
+                                        (slope, len(x), chi2))
             else:
-                logger.warning('wrong length of table data, x=%s, y=%s (must be same and length>=2)' % (str(x), str(y)))
+                logger.warning('wrong length of table data, x=%s, y=%s (must be same and length>=4)' % (str(x), str(y)))
 
-        return slope
+        return {"slope": slope, "chi2": chi2}
 
     def extract_from_table(self, table, x_name, y_name):
         """

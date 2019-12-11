@@ -316,7 +316,7 @@ def human2bytes(s, divider=None):
     if len(letter) == 0:
         letter = "B"
 
-    for name, sset in SYMBOLS.items():
+    for name, sset in list(SYMBOLS.items()):
         if letter in sset:
             break
     else:

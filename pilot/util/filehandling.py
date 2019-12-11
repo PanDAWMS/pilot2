@@ -261,7 +261,7 @@ def convert(data):
         return str(data)
     elif isinstance(data, collections.Mapping):
         try:
-            ret = dict(list(map(convert, iter(data.items()))))  # Python 3
+            ret = dict(list(map(convert, iter(list(data.items())))))  # Python 3
         except Exception:
             ret = dict(map(convert, data.iteritems()))  # Python 2
         return ret
