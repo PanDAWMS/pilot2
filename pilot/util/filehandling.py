@@ -40,8 +40,7 @@ def get_pilot_work_dir(workdir):
     :return: The name of main work directory
     """
 
-    jobworkdir = "PanDA_Pilot2_%d_%s" % (os.getpid(), str(int(time.time())))
-    return os.path.join(workdir, jobworkdir)
+    return os.path.join(workdir, "PanDA_Pilot2_%d_%s" % (os.getpid(), str(int(time.time()))))
 
 
 def mkdirs(workdir, chmod=0o770):  # Python 2/3
