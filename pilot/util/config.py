@@ -15,7 +15,9 @@ try:
 except Exception:  # Python 3
     import configparser as ConfigParser  # noqa: N812
 
-_default_cfg = os.path.join(os.path.dirname(__file__), 'default.cfg')
+_default_path = os.path.join(os.path.dirname(__file__), 'default.cfg')
+_path = os.environ.get('HARVESTER_PILOT_CONFIG', _default_path)
+_default_cfg = _path if os.path.exists(_path) else _default_path
 
 
 class _ConfigurationSection(object):

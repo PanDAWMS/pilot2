@@ -874,3 +874,19 @@ class JobData(BaseData):
                 return False
 
         return True
+
+    def reset_errors(self):  # temporary fix, make sure all queues are empty before starting new job
+        """
+
+        :return:
+        """
+
+        self.piloterrorcode = 0
+        self.piloterrorcodes = []
+        self.piloterrordiag = ""
+        self.piloterrordiags = []
+        self.transexitcode = 0
+        self.exeerrorcode = 0
+        self.exeerrordiag = ""
+        self.exitcode = 0
+        self.exitmsg = ""

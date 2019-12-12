@@ -44,7 +44,7 @@ from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.processes import cleanup
 from pilot.util.proxy import get_distinguished_name
-from pilot.util.queuehandling import scan_for_jobs, put_in_queue
+from pilot.util.queuehandling import scan_for_jobs, put_in_queue, queue_report
 from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since, time_stamp
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, get_cpu_model
 
@@ -171,12 +171,17 @@ def get_proper_state(job, state):
     :return: valid server state (string).
     """
 
-    if job.serverstate == "" and state != "finished" and state != "failed":
+    logger.debug('state=%s' % state)
+    logger.debug('serverstate=%s' % job.serverstate)
+    if job.serverstate == "finished" or job.serverstate == "failed":
+        pass
+    elif job.serverstate == "" and state != "finished" and state != "failed":
         job.serverstate = 'starting'
     elif state == "finished" or state == "failed" or state == "holding":
         job.serverstate = state
     else:
         job.serverstate = 'running'
+    logger.debug('serverstate=%s' % job.serverstate)
 
     return job.serverstate
 
@@ -251,6 +256,10 @@ def send_state(job, args, state, xml=None, metadata=None):
                 return True
             else:
                 return False
+
+    #if state == 'running':
+    #    log.info('skipping reporting running for now')
+    #    return True
 
     try:
         # get the URL for the PanDA server from pilot options or from config
@@ -1029,6 +1038,9 @@ def get_job_definition_from_file(path, harvester):
             for d in datalist:
                 res[d[0]] = d[1]
 
+    if os.path.exists(path):
+        remove(path)
+
     return res
 
 
@@ -1465,8 +1477,9 @@ def has_job_completed(queues):
         log = get_logger(job.jobid, logger)
 
         make_job_report(job)
-
-        log.info("job %s has completed" % job.jobid)
+        queue_report(queues)
+        job.reset_errors()
+        log.info("job %s has completed (purged errors)" % job.jobid)
 
         # cleanup of any remaining processes
         if job.pid:
@@ -1677,6 +1690,9 @@ def queue_monitor(queues, traces, args):  # noqa: C901
             job = get_finished_or_failed_job(args, queues)
             if job:
                 logger.debug('returned job has state=%s' % job.state)
+                if job.state == 'failed':
+                    logger.warning('will abort failed job (should prepare for final server update)')
+                    abort = True
                 break
             i += 1
             state = get_pilot_state()  # the job object is not available, but the state is also kept in PILOT_JOB_STATE
@@ -1712,6 +1728,7 @@ def queue_monitor(queues, traces, args):  # noqa: C901
                 logger.debug('job %s was dequeued from the monitored payloads queue' % _job.jobid)
                 # now ready for the next job (or quit)
                 put_in_queue(job.jobid, queues.completed_jobids)
+
                 put_in_queue(job, queues.completed_jobs)
                 del _job
                 logger.debug('tmp job object deleted')
@@ -1927,8 +1944,9 @@ def send_heartbeat_if_time(job, args, update_time):
     """
 
     if int(time.time()) - update_time >= get_heartbeat_period(job.debug):
-        send_state(job, args, 'running')
-        update_time = int(time.time())
+        if job.serverstate != 'finished' and job.serverstate != 'failed':
+            send_state(job, args, 'running')
+            update_time = int(time.time())
 
     return update_time
 
