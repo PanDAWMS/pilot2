@@ -88,7 +88,7 @@ def copy_in(files, **kwargs):
         logger.info('overall transfer timeout=%s' % ctimeout)
 
         try:
-            timeout(ctimeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out, transfer_timeout)
+            trace_report_out = timeout(ctimeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out, transfer_timeout)
             #_stage_in_api(dst, fspec, trace_report, trace_report_out)
         except Exception as error:
             error_msg = str(error)
@@ -291,7 +291,7 @@ def copy_out(files, **kwargs):
         logger.info('overall transfer timeout=%s' % ctimeout)
 
         try:
-            timeout(ctimeout)(_stage_out_api)(fspec, summary_file_path, trace_report, trace_report_out, transfer_timeout)
+            trace_report_out = timeout(ctimeout)(_stage_out_api)(fspec, summary_file_path, trace_report, trace_report_out, transfer_timeout)
             #_stage_out_api(fspec, summary_file_path, trace_report, trace_report_out)
         except Exception as error:
             error_msg = str(error)
@@ -387,6 +387,8 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout):
         result = download_client.download_dids([f], trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
 
     logger.debug('Rucio download client returned %s' % result)
+
+    return trace_report_out
 
 
 def _stage_in_bulk(dst, files, trace_report_out=None, trace_common_fields=None):
@@ -492,3 +494,5 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, tra
         msg = 'stageOut: File existence verification failed with: %s' % str(e)
         logger.info(msg)
         raise StageOutFailure(msg)
+
+    return trace_report_out
