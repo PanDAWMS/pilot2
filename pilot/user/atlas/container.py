@@ -42,9 +42,9 @@ def get_payload_proxy(proxy_outfile_name, voms_role='atlas'):
             logger.error("When get proxy with role '%s' panda server returned: %s" % (voms_role, res['errorDialog']))
             return False
 
-        proxyContents = res['userProxy']
+        proxy_contents = res['userProxy']
         _outfile = open(proxy_outfile_name, 'w')
-        _outfile.write(proxyContents)
+        _outfile.write(proxy_contents)
         _outfile.close()
         return True
 
