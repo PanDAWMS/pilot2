@@ -19,6 +19,7 @@ _default_path = os.path.join(os.path.dirname(__file__), 'default.cfg')
 _path = os.environ.get('HARVESTER_PILOT_CONFIG', _default_path)
 _default_cfg = _path if os.path.exists(_path) else _default_path
 
+
 class _ConfigurationSection(object):
     """
     Keep the settings for a section of the configuration file

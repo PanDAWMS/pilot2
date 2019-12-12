@@ -176,8 +176,8 @@ class ExtInfoProvider(DataLoader):
                              'cache_time': 3 * 60 * 60,  # 3 hours
                              'fname': os.path.join(cache_dir, 'agis_ddmendpoints.json')},
                    'INITDIR': {'url': None,
-                             'nretry': 1,
-                             'fname': os.path.join(os.environ.get('PILOT_SOURCE_DIR'), 'agis_ddmendpoints.json')},
+                               'nretry': 1,
+                               'fname': os.path.join(os.environ.get('PILOT_SOURCE_DIR'), 'agis_ddmendpoints.json')},
                    'PANDA': None  ## NOT implemented, FIX ME LATER if need
                    }
 
