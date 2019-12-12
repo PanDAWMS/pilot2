@@ -53,10 +53,6 @@ def control(queues, traces, args):
     tcpu = t0
 
     queuedata = get_queuedata_from_job(queues)
-    if queuedata:
-        logger.debug('extracted queuedata from job object')
-    else:
-        logger.debug('failed to extract queuedata from job object')
     max_running_time = get_max_running_time(args.lifetime, queuedata)
 
     try:

@@ -339,6 +339,11 @@ def get_args():
                             type=str2bool,
                             default=True,
                             help='Use HTTPS protocol for communications with server')
+    arg_parser.add_argument('--cleanup',
+                            dest='cleanup',
+                            type=str2bool,
+                            default=True,
+                            help='Cleanup work directory after pilot has finished')
 
     # Harvester and Nordugrid specific options
     arg_parser.add_argument('--input-dir',
@@ -355,6 +360,10 @@ def get_args():
                             dest='hpc_resource',
                             default='',
                             help='Name of the HPC (e.g. Titan)')
+    arg_parser.add_argument('--hpc-mode',
+                            dest='hpc_mode',
+                            default='manytoone',
+                            help='HPC mode (manytoone, jumbojobs)')
 
     return arg_parser.parse_args()
 
@@ -439,7 +448,7 @@ def wrap_up(initdir, mainworkdir, args):
     exit_code = 0
 
     # cleanup pilot workdir if created
-    if initdir != mainworkdir:
+    if initdir != mainworkdir and args.cleanup:
         chdir(initdir)
         try:
             rmtree(mainworkdir)
