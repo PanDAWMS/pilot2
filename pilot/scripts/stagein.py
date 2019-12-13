@@ -4,7 +4,7 @@ import os
 
 from pilot.api import data
 from pilot.info import InfoService, FileSpec, infosys
-from pilot.util.filehandling import establish_logging
+from pilot.util.filehandling import establish_logging, read_json
 
 import logging
 
@@ -15,7 +15,9 @@ GENERAL_ERROR = 1
 NO_QUEUENAME = 2
 NO_SCOPES = 3
 NO_LFNS = 4
-TRANSFER_ERROR = 5
+NO_TRACEREPORTNAME = 5
+NO_TRACEREPORT = 6
+TRANSFER_ERROR = 7
 
 
 def get_args():
@@ -48,6 +50,10 @@ def get_args():
                             dest='lfns',
                             required=True,
                             help='LFN list (e.g., filename1,filename2')
+    arg_parser.add_argument('--tracereportname',
+                            dest='tracereportname',
+                            required=True,
+                            help='Trace report file name')
     arg_parser.add_argument('--no-pilot-log',
                             dest='nopilotlog',
                             action='store_true',
@@ -73,6 +79,10 @@ def verify_args():
         message('LFNs not set')
         return NO_LFNS
 
+    if not args.tracereportname:
+        message('No trace report file name provided')
+        return NO_TRACEREPORTNAME
+
     return 0
 
 
@@ -96,9 +106,21 @@ if __name__ == '__main__':
     if ret:
         exit(ret)
 
+    # get the file info
     lfns, scopes = get_file_lists(args.lfns, args.scopes)
     if len(lfns) != len(scopes):
         message('file lists not same length: len(lfns)=%d, len(scopes)=%d' % (len(lfns), len(scopes)))
+
+    # get the initial trace report
+    path = os.path.join(args.workdir, args.tracereportname)
+    if not os.path.exists(path):
+        message('file does not exist: %s' % path)
+        exit(NO_TRACEREPORT)
+
+    trace_report = read_json(args.tracereportname)
+    if not trace_report:
+        message('failed to read trace report')
+        exit(NO_TRACEREPORT)
 
     try:
         infoservice = InfoService()
@@ -110,7 +132,7 @@ if __name__ == '__main__':
     err = ""
     for lfn, scope in list(zip(lfns, scopes)):
         try:
-            client = data.StageInClient(infoservice)
+            client = data.StageInClient(infoservice, logger=logger, trace_report=trace_report)
             files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir}]
             xfiles = [FileSpec(type='input', **f) for f in files]
             r = client.transfer(xfiles)

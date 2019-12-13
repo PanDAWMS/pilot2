@@ -131,10 +131,6 @@ def _stage_in(args, job):
             fspec.status = 'no_transfer'
 
     event_type = "get_sm"
-    #if log_transfer:
-    #    eventType += '_logs'
-    #if special_log_transfer:
-    #    eventType += '_logs_os'
     if job.is_analysis():
         event_type += "_a"
     rse = get_rse(job.indata)
