@@ -11,7 +11,7 @@
 # - Tomas Javurek, tomas.javurek@cern.ch, 2019
 # - David Cameron, david.cameron@cern.ch, 2019
 
-from __future__ import absolute_import
+from __future__ import absolute_import  # Python 2 (2to3 complains about this)
 
 import os
 import json
@@ -243,7 +243,10 @@ def _get_trace(fspec, traces):
     :return: trace_candiates that correspond to the given file
     """
     try:
-        trace_candidates = list(filter(lambda t: t['filename'] == fspec.lfn and t['scope'] == fspec.scope, traces))
+        try:
+            trace_candidates = list(filter(lambda t: t['filename'] == fspec.lfn and t['scope'] == fspec.scope, traces))  # Python 2
+        except Exception:
+            trace_candidates = list([t for t in traces if t['filename'] == fspec.lfn and t['scope'] == fspec.scope])  # Python 3
         if trace_candidates:
             return trace_candidates
         else:
