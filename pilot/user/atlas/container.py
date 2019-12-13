@@ -251,7 +251,7 @@ def alrb_wrapper(cmd, workdir, job=None):
         _cmd = asetup
 
         # do not include the X509_USER_PROXY in the command the container will execute
-        x509 = os.environ.get('X509_USER_PROXY')
+        x509 = os.environ.get('X509_USER_PROXY', '')
         if x509 != "":
 
             # substitute pilot proxy with payload proxy
