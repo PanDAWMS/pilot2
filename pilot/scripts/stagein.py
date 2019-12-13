@@ -106,7 +106,7 @@ if __name__ == '__main__':
     except Exception as e:
         message(e)
 
-    # perform stage-in
+    # perform stage-in (single transfers)
     err = ""
     for lfn, scope in list(zip(lfns, scopes)):
         try:

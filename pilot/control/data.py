@@ -158,7 +158,7 @@ def _stage_in(args, job):
         else:
             client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
             activity = 'pr'
-        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
+        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job, use_bulk=False)
         client.prepare_sources(job.indata)
         client.transfer(job.indata, activity=activity, **kwargs)
     except PilotException as error:

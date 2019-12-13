@@ -791,6 +791,9 @@ class StageInClient(StagingClient):
         kwargs['trace_report'] = self.trace_report
         self.logger.info('ready to transfer (stage-in) files: %s' % remain_files)
 
+        # use bulk downloads if necessary
+        # if kwargs['use_bulk_transfer']
+        # return copytool.copy_in_bulk(remain_files, **kwargs)
         return copytool.copy_in(remain_files, **kwargs)
 
     def set_status_for_direct_access(self, files):
