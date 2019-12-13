@@ -165,11 +165,11 @@ def _stage_in(args, job):
 
     ########### bulk transfer test
     filename = 'initial_trace_report.json'
-    write_json(os.path.join(job.workdir, filename))
+    write_json(os.path.join(job.workdir, filename), trace_report)
     lfns, scopes = get_filedata_strings(job.indata)
     script = 'python pilot/scripts/stagein.py --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
              (lfns, scopes, filename, job.workdir, args.queue)
-    logger.debug('could have executed: %s' %  script)
+    logger.debug('could have executed: %s' % script)
     ########### bulk transfer test
 
     try:
