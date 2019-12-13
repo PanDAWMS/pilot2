@@ -35,7 +35,7 @@ from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME
 from pilot.util.container import execute
-from pilot.util.filehandling import find_executable, remove
+from pilot.util.filehandling import find_executable, remove, write_json
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.tracereport import TraceReport
 from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
@@ -110,6 +110,22 @@ def use_container(cmd):
     return usecontainer
 
 
+def get_filedata_strings(indata):
+    """
+
+    :param indata:
+    :return:
+    """
+
+    lfns = ""
+    scopes = ""
+    for fspec in indata:
+        lfns = fspec.lfn if lfns == "" else lfns + ",%s" % fspec.lfn
+        scopes = fspec.scope if scopes == "" else scopes + ",%s" % fspec.scope
+
+    return lfns, scopes
+
+
 def _stage_in(args, job):
     """
         :return: True in case of success
@@ -146,6 +162,15 @@ def _stage_in(args, job):
     for fspec in toberemoved:
         logger.info('removing fspec object (lfn=%s) from list of input files' % fspec.lfn)
         job.indata.remove(fspec)
+
+    ########### bulk transfer test
+    filename = 'initial_trace_report.json'
+    write_json(os.path.join(job.workdir, filename))
+    lfns, scopes = get_filedata_strings(job.indata)
+    script = 'python pilot/scripts/stagein.py --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
+             (lfns, scopes, filename, job.workdir, args.queue)
+    logger.debug('could have executed: %s' %  script)
+    ########### bulk transfer test
 
     try:
         if job.is_eventservicemerge:
