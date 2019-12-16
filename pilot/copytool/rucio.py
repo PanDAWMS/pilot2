@@ -391,7 +391,7 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout):
             result = download_client.download_dids([f], trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
     except Exception as e:
         logger.warning('caught exception: %s' % e)
-        logger.debug('traces_copy_out=%s' % traces_copy_out)
+        logger.debug('trace_report_out=%s' % trace_report_out)
         raise e
     logger.debug('Rucio download client returned %s' % result)
 
@@ -487,6 +487,10 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, tra
     # upload client raises an exception if any file failed
     try:
         result = upload_client.upload([f], summary_file_path=summary_file_path, traces_copy_out=trace_report_out)
+    except Exception as e:
+        logger.warning('caught exception: %s' % e)
+        logger.debug('trace_report_out=%s' % trace_report_out)
+        raise e
     except UnboundLocalError:
         logger.warning('rucio still needs a bug fix of the summary in the uploadclient')
 
