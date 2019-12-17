@@ -173,7 +173,7 @@ def _stage_in(args, job):
     scriptpath = os.path.join(os.path.join(srcdir, 'pilot/scripts'), script)
     copy(scriptpath, srcdir)
     cmd = 'python %s --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
-          (script, lfns, scopes, tpath, job.workdir, args.queue)
+          (os.path.join(srcdir, script), lfns, scopes, tpath, job.workdir, args.queue)
     logger.debug('could have executed: %s' % script)
     exit_code, stdout, stderr = execute(cmd)
     logger.debug('exit_code=%d' % exit_code)
