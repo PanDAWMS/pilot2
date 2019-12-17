@@ -164,21 +164,22 @@ def _stage_in(args, job):
         job.indata.remove(fspec)
 
     ########### bulk transfer test
-    filename = 'initial_trace_report.json'
-    tpath = os.path.join(job.workdir, filename)
-    write_json(tpath, trace_report)
-    lfns, scopes = get_filedata_strings(job.indata)
-    script = 'stagein.py'
-    srcdir = os.environ.get('PILOT_SOURCE_DIR')
-    scriptpath = os.path.join(os.path.join(srcdir, 'pilot/scripts'), script)
-    copy(scriptpath, srcdir)
-    cmd = 'python %s --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
-          (os.path.join(srcdir, script), lfns, scopes, tpath, job.workdir, args.queue)
-    logger.debug('could have executed: %s' % script)
-    exit_code, stdout, stderr = execute(cmd)
-    logger.debug('exit_code=%d' % exit_code)
-    logger.debug('stdout=%s' % stdout)
-    logger.debug('stderr=%s' % stderr)
+    # THE FOLLOWING WORKS BUT THERE IS AN ISSUE WITH TRACES, CHECK STAGEIN SCRIPT IF STORED CORRECTLY
+    #filename = 'initial_trace_report.json'
+    #tpath = os.path.join(job.workdir, filename)
+    #write_json(tpath, trace_report)
+    #lfns, scopes = get_filedata_strings(job.indata)
+    #script = 'stagein.py'
+    #srcdir = os.environ.get('PILOT_SOURCE_DIR')
+    #scriptpath = os.path.join(os.path.join(srcdir, 'pilot/scripts'), script)
+    #copy(scriptpath, srcdir)
+    #cmd = 'python %s --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
+    #      (os.path.join(srcdir, script), lfns, scopes, tpath, job.workdir, args.queue)
+    #logger.debug('could have executed: %s' % script)
+    #exit_code, stdout, stderr = execute(cmd)
+    #logger.debug('exit_code=%d' % exit_code)
+    #logger.debug('stdout=%s' % stdout)
+    #logger.debug('stderr=%s' % stderr)
     ########### bulk transfer test
 
     try:

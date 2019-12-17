@@ -131,6 +131,7 @@ if __name__ == '__main__':
     try:
         infoservice = InfoService()
         infoservice.init(args.queuename, infosys.confinfo, infosys.extinfo)
+        infosys.init(args.queuename)  # is this correct? otherwise infosys.queuedata doesn't get set
     except Exception as e:
         message(e)
 
