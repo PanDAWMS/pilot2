@@ -421,7 +421,7 @@ class StagingClient(object):
         for name in copytools:
 
             # get remain files that need to be transferred by copytool
-            remain_files = [e for e in files if e.status not in ['remote_io', 'transferred', 'no_trasfer']]
+            remain_files = [e for e in files if e.status not in ['remote_io', 'transferred', 'no_transfer']]
 
             if not remain_files:
                 break
@@ -464,7 +464,7 @@ class StagingClient(object):
                     caught_errors[-1].get_error_code() == ErrorCodes.MISSINGOUTPUTFILE:
                 raise caught_errors[-1]
 
-        remain_files = [f for f in files if f.status not in ['remote_io', 'transferred', 'no_trasfer']]
+        remain_files = [f for f in files if f.status not in ['remote_io', 'transferred', 'no_transfer']]
 
         if remain_files:  ## failed or incomplete transfer
             # Propagate message from first error back up
@@ -765,7 +765,7 @@ class StageInClient(StagingClient):
         self.set_status_for_direct_access(files)
 
         # get remain files that need to be transferred by copytool
-        remain_files = [e for e in files if e.status not in ['remote_io', 'transferred', 'no_trasfer']]
+        remain_files = [e for e in files if e.status not in ['remote_io', 'transferred', 'no_transfer']]
 
         if not remain_files:
             return files

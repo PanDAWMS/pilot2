@@ -41,6 +41,7 @@ def get_args():
     arg_parser.add_argument('-w',
                             dest='workdir',
                             required=False,
+                            default=os.getcwd(),
                             help='Working directory')
     arg_parser.add_argument('--scopes',
                             dest='scopes',
@@ -64,6 +65,11 @@ def get_args():
 
 
 def verify_args():
+    """
+    Make sure required arguments are set, and if they are not then set them.
+    (deprecated)
+    :return:
+    """
     if not args.workdir:
         args.workdir = os.getcwd()
 
@@ -102,9 +108,9 @@ if __name__ == '__main__':
     # get the args from the arg parser
     args = get_args()
     establish_logging(args)
-    ret = verify_args()
-    if ret:
-        exit(ret)
+    #ret = verify_args()
+    #if ret:
+    #    exit(ret)
 
     # get the file info
     lfns, scopes = get_file_lists(args.lfns, args.scopes)
