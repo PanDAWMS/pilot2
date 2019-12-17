@@ -11,7 +11,7 @@
 # - Wen Guan, wen.guan@cern.ch, 2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
 
-import copy
+import copy as objectcopy
 import os
 import subprocess
 #import tarfile
@@ -271,7 +271,7 @@ def stage_in_auto(site, files):
         if f['errno'] == 1:
             continue
 
-        tmp_executable = copy.deepcopy(executable)
+        tmp_executable = objectcopy.deepcopy(executable)
 
         tmp_executable += ['--dir', f['destination']]
         tmp_executable.append('%s:%s' % (f['scope'],
@@ -333,7 +333,7 @@ def stage_out_auto(site, files):
         if f['errno'] == 1:
             continue
 
-        tmp_executable = copy.deepcopy(executable)
+        tmp_executable = objectcopy.deepcopy(executable)
 
         tmp_executable += ['--rse', f['rse']]
 
