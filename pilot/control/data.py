@@ -176,6 +176,9 @@ def _stage_in(args, job):
           (script, lfns, scopes, tpath, job.workdir, args.queue)
     logger.debug('could have executed: %s' % script)
     exit_code, stdout, stderr = execute(cmd)
+    logger.debug('exit_code=%d' % exit_code)
+    logger.debug('stdout=%s' % stdout)
+    logger.debug('stderr=%s' % stderr)
     ########### bulk transfer test
 
     try:
