@@ -41,7 +41,7 @@ def get_args():
     arg_parser.add_argument('-w',
                             dest='workdir',
                             required=False,
-                            default=os.getcwd()
+                            default=os.getcwd(),
                             help='Working directory')
     arg_parser.add_argument('--scopes',
                             dest='scopes',
