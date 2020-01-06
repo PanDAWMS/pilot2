@@ -88,8 +88,9 @@ def copy_in(files, **kwargs):
         logger.info('overall transfer timeout=%s' % ctimeout)
 
         error_msg = ""
+        ec = 0
         try:
-            trace_report_out = timeout(ctimeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out, transfer_timeout)
+            ec, trace_report_out = timeout(ctimeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out, transfer_timeout)
             #_stage_in_api(dst, fspec, trace_report, trace_report_out)
         except Exception as error:
             error_msg = str(error)
@@ -104,7 +105,7 @@ def copy_in(files, **kwargs):
         # (using the timeout decorator prevents the trace_report_out from being updated - rucio API should return
         # the proper error immediately instead of encoding it into a dictionary)
         state_reason = None if not trace_report_out else trace_report_out[0].get('stateReason')
-        if state_reason and not error_msg:
+        if ec and state_reason and not error_msg:
             error_details = handle_rucio_error(state_reason, trace_report, trace_report_out, fspec, stagein=True)
 
             if not ignore_errors:
@@ -324,8 +325,9 @@ def copy_out(files, **kwargs):
         logger.info('overall transfer timeout=%s' % ctimeout)
 
         error_msg = ""
+        ec = 0
         try:
-            trace_report_out = timeout(ctimeout)(_stage_out_api)(fspec, summary_file_path, trace_report, trace_report_out, transfer_timeout)
+            ec, trace_report_out = timeout(ctimeout)(_stage_out_api)(fspec, summary_file_path, trace_report, trace_report_out, transfer_timeout)
             #_stage_out_api(fspec, summary_file_path, trace_report, trace_report_out)
         except Exception as error:
             error_msg = str(error)
@@ -340,7 +342,7 @@ def copy_out(files, **kwargs):
         # (using the timeout decorator prevents the trace_report_out from being updated - rucio API should return
         # the proper error immediately instead of encoding it into a dictionary)
         state_reason = None if not trace_report_out else trace_report_out[0].get('stateReason')
-        if state_reason and not error_msg:
+        if ec and state_reason and not error_msg:
             error_details = handle_rucio_error(state_reason, trace_report, trace_report_out, fspec, stagein=False)
 
             if not ignore_errors:
@@ -390,6 +392,8 @@ def copy_out(files, **kwargs):
 # stageIn using rucio api.
 def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout):
 
+    ec = 0
+
     # init. download client
     from rucio.client.downloadclient import DownloadClient
     download_client = DownloadClient(logger=logger)
@@ -430,9 +434,10 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout):
         # only raise an exception if the error info cannot be extracted
         if not trace_report_out[0].get('stateReason'):
             raise e
+        ec = -1
     logger.debug('Rucio download client returned %s' % result)
 
-    return trace_report_out
+    return ec, trace_report_out
 
 
 def _stage_in_bulk(dst, files, trace_report_out=None, trace_common_fields=None):
@@ -489,6 +494,8 @@ def _stage_in_bulk(dst, files, trace_report_out=None, trace_common_fields=None):
 
 def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, transfer_timeout):
 
+    ec = 0
+
     # init. download client
     from rucio.client.uploadclient import UploadClient
     upload_client = UploadClient(logger=logger)
@@ -529,7 +536,7 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, tra
         logger.debug('trace_report_out=%s' % trace_report_out)
         if not trace_report_out[0].get('stateReason'):
             raise e
-
+        ec = -1
     except UnboundLocalError:
         logger.warning('rucio still needs a bug fix of the summary in the uploadclient')
 
@@ -545,4 +552,4 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, tra
         logger.info(msg)
         raise StageOutFailure(msg)
 
-    return trace_report_out
+    return ec, trace_report_out
