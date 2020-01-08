@@ -153,7 +153,8 @@ def handle_rucio_error(error_msg, trace_report, trace_report_out, fspec, stagein
     """
 
     # Try to get a better error message from the traces
-    error_msg = trace_report_out[0].get('stateReason')
+    if trace_report_out:
+        error_msg = trace_report_out[0].get('stateReason')
     logger.info('rucio returned an error: %s' % error_msg)
 
     error_details = resolve_common_transfer_errors(error_msg, is_stagein=stagein)
@@ -432,6 +433,8 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout):
         logger.warning('caught exception: %s' % e)
         logger.debug('trace_report_out=%s' % trace_report_out)
         # only raise an exception if the error info cannot be extracted
+        if not trace_report_out:
+            raise e
         if not trace_report_out[0].get('stateReason'):
             raise e
         ec = -1
@@ -534,6 +537,8 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, tra
     except Exception as e:
         logger.warning('caught exception: %s' % e)
         logger.debug('trace_report_out=%s' % trace_report_out)
+        if not trace_report_out:
+            raise e
         if not trace_report_out[0].get('stateReason'):
             raise e
         ec = -1
