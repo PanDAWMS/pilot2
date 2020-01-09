@@ -330,6 +330,14 @@ def copy_out(files, **kwargs):
         try:
             ec, trace_report_out = timeout(ctimeout)(_stage_out_api)(fspec, summary_file_path, trace_report, trace_report_out, transfer_timeout)
             #_stage_out_api(fspec, summary_file_path, trace_report, trace_report_out)
+        except PilotException as error:
+            error_msg = str(error)
+            error_details = handle_rucio_error(error_msg, trace_report, trace_report_out, fspec, stagein=False)
+
+            if not ignore_errors:
+                trace_report.send()
+                msg = ' %s:%s to %s, %s' % (fspec.scope, fspec.lfn, fspec.ddmendpoint, error_details.get('error'))
+                raise PilotException(msg, code=error_details.get('rcode'), state=error_details.get('state'))
         except Exception as error:
             error_msg = str(error)
             error_details = handle_rucio_error(error_msg, trace_report, trace_report_out, fspec, stagein=False)
