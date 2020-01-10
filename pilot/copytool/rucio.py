@@ -142,10 +142,10 @@ def copy_in(files, **kwargs):
     return files
 
 
-def handle_rucio_error(error_msg_exc, trace_report, trace_report_out, fspec, stagein=True):
+def handle_rucio_error(error_msg, trace_report, trace_report_out, fspec, stagein=True):
     """
 
-    :param error_msg_exc:
+    :param error_msg:
     :param trace_report:
     :param trace_report_out:
     :param fspec:
@@ -153,8 +153,8 @@ def handle_rucio_error(error_msg_exc, trace_report, trace_report_out, fspec, sta
     """
 
     # try to get a better error message from the traces
-    _error_msg = trace_report_out[0].get('stateReason', '')
-    error_msg = _error_msg if _error_msg else error_msg_exc
+    if trace_report_out:
+        error_msg = trace_report_out[0].get('stateReason', '')
     logger.info('rucio returned an error: %s' % error_msg)
 
     error_details = resolve_common_transfer_errors(error_msg, is_stagein=stagein)
