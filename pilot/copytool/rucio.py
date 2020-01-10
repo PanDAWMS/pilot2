@@ -330,6 +330,14 @@ def copy_out(files, **kwargs):
         try:
             ec, trace_report_out = timeout(ctimeout)(_stage_out_api)(fspec, summary_file_path, trace_report, trace_report_out, transfer_timeout)
             #_stage_out_api(fspec, summary_file_path, trace_report, trace_report_out)
+        except PilotException as error:
+            error_msg = str(error)
+            error_details = handle_rucio_error(error_msg, trace_report, trace_report_out, fspec, stagein=False)
+
+            if not ignore_errors:
+                trace_report.send()
+                msg = ' %s:%s to %s, %s' % (fspec.scope, fspec.lfn, fspec.ddmendpoint, error_details.get('error'))
+                raise PilotException(msg, code=error_details.get('rcode'), state=error_details.get('state'))
         except Exception as error:
             error_msg = str(error)
             error_details = handle_rucio_error(error_msg, trace_report, trace_report_out, fspec, stagein=False)
@@ -433,6 +441,8 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout):
         logger.warning('caught exception: %s' % e)
         logger.debug('trace_report_out=%s' % trace_report_out)
         # only raise an exception if the error info cannot be extracted
+        if not trace_report_out:
+            raise e
         if not trace_report_out[0].get('stateReason'):
             raise e
         ec = -1
@@ -535,6 +545,8 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, tra
     except Exception as e:
         logger.warning('caught exception: %s' % e)
         logger.debug('trace_report_out=%s' % trace_report_out)
+        if not trace_report_out:
+            raise e
         if not trace_report_out[0].get('stateReason'):
             raise e
         ec = -1
