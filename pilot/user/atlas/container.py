@@ -43,14 +43,12 @@ def get_payload_proxy(proxy_outfile_name, voms_role='atlas'):
             return False
 
         proxy_contents = res['userProxy']
-        _outfile = open(proxy_outfile_name, 'w')
-        _outfile.write(proxy_contents)
-        _outfile.close()
-        return True
 
     except Exception, e:
         logger.error("Get proxy from panda server failed: %s, %s" % (e, traceback.format_exc()))
         return False
+
+    return write_file(proxy_outfile_name, proxy_contents, mute=False)
 
 
 def do_use_container(**kwargs):
