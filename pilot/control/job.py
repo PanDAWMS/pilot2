@@ -903,7 +903,6 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # use for testing thread exceptions. the exception will be picked up by ExcThread run() and caught in job.control()
     # raise NoLocalSpace('testing exception from proceed_with_getjob')
 
-    timefloor = 600
     currenttime = time.time()
 
     # should the proxy be verified?
