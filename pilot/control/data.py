@@ -796,7 +796,8 @@ def _stage_out_new(job, args):
 
     log.info('stage-out finished correctly')
 
-    if not job.state:  # is the job state already set? if so, don't change the state
+    if not job.state or (job.state and job.state == 'stageout'):  # is the job state already set? if so, don't change the state (unless it's the stageout state)
+        log.debug('changing job state from %s to finished' % job.state)
         set_pilot_state(job=job, state="finished")
 
     # send final server update since all transfers have finished correctly
