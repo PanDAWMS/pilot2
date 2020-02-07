@@ -446,6 +446,8 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout):
         if not trace_report_out[0].get('stateReason'):
             raise e
         ec = -1
+
+    logger.debug('trace_report_out=%s' % trace_report_out)
     logger.debug('Rucio download client returned %s' % result)
 
     return ec, trace_report_out
