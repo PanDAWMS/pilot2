@@ -432,6 +432,7 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout):
         trace_pattern = trace_report
 
     # download client raises an exception if any file failed
+    result = None
     try:
         if fspec.turl:
             result = download_client.download_pfns([f], 1, trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
@@ -448,7 +449,8 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout):
         ec = -1
 
     logger.debug('trace_report_out=%s' % trace_report_out)
-    logger.debug('Rucio download client returned %s' % result)
+    if result:
+        logger.debug('Rucio download client returned %s' % result)
 
     return ec, trace_report_out
 
