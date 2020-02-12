@@ -176,7 +176,7 @@ def _stage_in(args, job):
     #cmd = 'python %s --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
     #      (os.path.join(srcdir, script), lfns, scopes, tpath, job.workdir, args.queue)
     #logger.debug('could have executed: %s' % script)
-    #exit_code, stdout, stderr = execute(cmd)
+    #exit_code, stdout, stderr = execute(cmd, mode='python')
     #logger.debug('exit_code=%d' % exit_code)
     #logger.debug('stdout=%s' % stdout)
     #logger.debug('stderr=%s' % stderr)
