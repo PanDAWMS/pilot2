@@ -176,7 +176,7 @@ def _stage_in(args, job):
     #cmd = 'python %s --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
     #      (os.path.join(srcdir, script), lfns, scopes, tpath, job.workdir, args.queue)
     #logger.debug('could have executed: %s' % script)
-    #exit_code, stdout, stderr = execute(cmd)
+    #exit_code, stdout, stderr = execute(cmd, mode='python')
     #logger.debug('exit_code=%d' % exit_code)
     #logger.debug('stdout=%s' % stdout)
     #logger.debug('stderr=%s' % stderr)
@@ -796,7 +796,8 @@ def _stage_out_new(job, args):
 
     log.info('stage-out finished correctly')
 
-    if not job.state:  # is the job state already set? if so, don't change the state
+    if not job.state or (job.state and job.state == 'stageout'):  # is the job state already set? if so, don't change the state (unless it's the stageout state)
+        log.debug('changing job state from %s to finished' % job.state)
         set_pilot_state(job=job, state="finished")
 
     # send final server update since all transfers have finished correctly
