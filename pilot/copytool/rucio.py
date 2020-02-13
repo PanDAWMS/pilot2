@@ -446,7 +446,8 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout):
         if not trace_report_out[0].get('stateReason'):
             raise e
         ec = -1
-    logger.debug('Rucio download client returned %s' % result)
+    else:
+        logger.debug('Rucio download client returned %s' % result)
 
     return ec, trace_report_out
 
@@ -537,7 +538,6 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, tra
 
     # process with the upload
     logger.info('_stage_out_api: %s' % str(f))
-    result = None
 
     # upload client raises an exception if any file failed
     try:
@@ -552,8 +552,8 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, tra
         ec = -1
     except UnboundLocalError:
         logger.warning('rucio still needs a bug fix of the summary in the uploadclient')
-
-    logger.debug('Rucio upload client returned %s' % result)
+    else:
+        logger.debug('Rucio upload client returned %s' % result)
 
     try:
         file_exists = verify_stage_out(fspec)
