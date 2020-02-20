@@ -193,6 +193,8 @@ def copy_out(files, **kwargs):
             exit_code, stdout, stderr = move(source, destination, dst_in=False, copysetup=copysetup, options=opts)
 
             if exit_code != 0:
+                if stderr == "":
+                    stderr = stdout
                 error = resolve_common_transfer_errors(stderr, is_stagein=False)
                 fspec.status = 'failed'
                 fspec.status_code = error.get('exit_code')
