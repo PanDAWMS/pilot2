@@ -241,11 +241,11 @@ def send_state(job, args, state, xml=None, metadata=None):
             path = get_worker_attributes_file(args)
             # add jobStatus (state) for Harvester
             data['jobStatus'] = state
-            # publish work report 
+            # publish work report
             if publish_work_report(data, path):
-                log.debug('wrote to workerAttributesFile %s' %path)
+                log.debug('wrote to workerAttributesFile %s' % path)
             else:
-                log.debug('Failed to write to workerAttributesFile %s' %path)
+                log.debug('Failed to write to workerAttributesFile %s' % path)
                 return False
             # publish job report
             if publish_job_report(job, args, config.Payload.jobreport):
@@ -253,7 +253,7 @@ def send_state(job, args, state, xml=None, metadata=None):
             else:
                 log.debug('Failed to write job report file')
                 return False
-            # check if we are in final state then write out information for output files    
+            # check if we are in final state then write out information for output files
             if final:
                 if publish_stageout_files(job, event_status_file):
                     log.debug('wrote log and output files to file %s' % event_status_file)

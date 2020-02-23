@@ -261,8 +261,8 @@ def publish_work_report(work_report=None, worker_attributes_file="worker_attribu
                 logger.info("work report published: {0}".format(work_report))
                 return True
             else:
-               logger.info("work report publish failed: {0}".format(work_report))
-               return False
+                logger.info("work report publish failed: {0}".format(work_report))
+                return False
         except IOError:
             logger.error("job report copy failed")
             return False
@@ -272,7 +272,6 @@ def publish_work_report(work_report=None, worker_attributes_file="worker_attribu
     else:
         # No work_report return False
         return False
-
 
 
 def publish_job_report(job, args, job_report_file="jobReport.json"):
@@ -310,6 +309,7 @@ def publish_job_report(job, args, job_report_file="jobReport.json"):
     except:
         logger.error("write json file failed")
         return False
+
 
 def parse_job_definition_file(filename):
     """
