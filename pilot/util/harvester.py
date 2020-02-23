@@ -244,19 +244,35 @@ def publish_work_report(work_report=None, worker_attributes_file="worker_attribu
 
     :param work_report: work report dictionary.
     :param worker_attributes_file:
-    :return:
+    :raises FileHandlingFailure: in case of IOError.
+    :return: True or False
     """
 
     if work_report:
-        work_report['timestamp'] = time_stamp()
-        if "outputfiles" in work_report:
-            del(work_report["outputfiles"])
-        if "inputfiles" in work_report:
-            del (work_report["inputfiles"])
-        if "xml" in work_report:
-            del (work_report["xml"])
-        if write_json(worker_attributes_file, work_report):
-            logger.info("work report published: {0}".format(work_report))
+        try:
+            work_report['timestamp'] = time_stamp()
+            if "outputfiles" in work_report:
+                del(work_report["outputfiles"])
+            if "inputfiles" in work_report:
+                del (work_report["inputfiles"])
+            if "xml" in work_report:
+                del (work_report["xml"])
+            if write_json(worker_attributes_file, work_report):
+                logger.info("work report published: {0}".format(work_report))
+                return True
+            else:
+               logger.info("work report publish failed: {0}".format(work_report))
+               return False
+        except IOError:
+            logger.error("job report copy failed")
+            return False
+        except:
+            logger.error("write json file failed")
+            return False
+    else:
+        # No work_report return False
+        return False
+
 
 
 def publish_job_report(job, args, job_report_file="jobReport.json"):
@@ -267,6 +283,7 @@ def publish_job_report(job, args, job_report_file="jobReport.json"):
     :param args: Pilot arguments object.
     :param job_report_file: name of job report (string).
     :raises FileHandlingFailure: in case of IOError.
+    :return True or False
     """
 
     src_file = join(job.workdir, job_report_file)
@@ -282,11 +299,17 @@ def publish_job_report(job, args, job_report_file="jobReport.json"):
                 if 'logfileReport' in executor:
                     executor['logfileReport'] = {}
 
-        write_json(dst_file, job_report)
+        if write_json(dst_file, job_report):
+            return True
+        else:
+            return False
 
     except IOError:
         logger.error("job report copy failed")
-
+        return False
+    except:
+        logger.error("write json file failed")
+        return False
 
 def parse_job_definition_file(filename):
     """
