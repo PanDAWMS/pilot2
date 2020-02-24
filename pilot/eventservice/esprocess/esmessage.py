@@ -117,7 +117,7 @@ class MessageThread(threading.Thread):
 
                 size, buf = self.__message_server.try_recv_raw()
                 if size == -1:
-                    time.sleep(1)
+                    time.sleep(0.01)
                 else:
                     self.__message_queue.put(buf)
         except PilotException as e:

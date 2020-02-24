@@ -498,7 +498,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
 
     # in debug mode, also send a tail of the latest log file touched by the payload
     if job.debug:
-        stdout_tail = get_payload_log_tail()
+        stdout_tail = get_payload_log_tail(job)
         if stdout_tail:
             data['stdout'] = stdout_tail
 
@@ -920,6 +920,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # use for testing thread exceptions. the exception will be picked up by ExcThread run() and caught in job.control()
     # raise NoLocalSpace('testing exception from proceed_with_getjob')
 
+    # timefloor = 600
     currenttime = time.time()
 
     # should the proxy be verified?
