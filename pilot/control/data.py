@@ -11,7 +11,7 @@
 # - Wen Guan, wen.guan@cern.ch, 2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
 
-import copy
+import copy as objectcopy
 import os
 import subprocess
 #import tarfile
@@ -35,7 +35,7 @@ from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME
 from pilot.util.container import execute
-from pilot.util.filehandling import find_executable, remove
+from pilot.util.filehandling import find_executable, remove  #, write_json, copy
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.tracereport import TraceReport
 from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
@@ -110,6 +110,22 @@ def use_container(cmd):
     return usecontainer
 
 
+def get_filedata_strings(indata):
+    """
+
+    :param indata:
+    :return:
+    """
+
+    lfns = ""
+    scopes = ""
+    for fspec in indata:
+        lfns = fspec.lfn if lfns == "" else lfns + ",%s" % fspec.lfn
+        scopes = fspec.scope if scopes == "" else scopes + ",%s" % fspec.scope
+
+    return lfns, scopes
+
+
 def _stage_in(args, job):
     """
         :return: True in case of success
@@ -131,10 +147,6 @@ def _stage_in(args, job):
             fspec.status = 'no_transfer'
 
     event_type = "get_sm"
-    #if log_transfer:
-    #    eventType += '_logs'
-    #if special_log_transfer:
-    #    eventType += '_logs_os'
     if job.is_analysis():
         event_type += "_a"
     rse = get_rse(job.indata)
@@ -151,6 +163,25 @@ def _stage_in(args, job):
         logger.info('removing fspec object (lfn=%s) from list of input files' % fspec.lfn)
         job.indata.remove(fspec)
 
+    ########### bulk transfer test
+    # THE FOLLOWING WORKS BUT THERE IS AN ISSUE WITH TRACES, CHECK STAGEIN SCRIPT IF STORED CORRECTLY
+    #filename = 'initial_trace_report.json'
+    #tpath = os.path.join(job.workdir, filename)
+    #write_json(tpath, trace_report)
+    #lfns, scopes = get_filedata_strings(job.indata)
+    #script = 'stagein.py'
+    #srcdir = os.environ.get('PILOT_SOURCE_DIR')
+    #scriptpath = os.path.join(os.path.join(srcdir, 'pilot/scripts'), script)
+    #copy(scriptpath, srcdir)
+    #cmd = 'python %s --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
+    #      (os.path.join(srcdir, script), lfns, scopes, tpath, job.workdir, args.queue)
+    #logger.debug('could have executed: %s' % script)
+    #exit_code, stdout, stderr = execute(cmd, mode='python')
+    #logger.debug('exit_code=%d' % exit_code)
+    #logger.debug('stdout=%s' % stdout)
+    #logger.debug('stderr=%s' % stderr)
+    ########### bulk transfer test
+
     try:
         if job.is_eventservicemerge:
             client = StageInESClient(job.infosys, logger=log, trace_report=trace_report)
@@ -158,7 +189,7 @@ def _stage_in(args, job):
         else:
             client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
             activity = 'pr'
-        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)
+        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job, use_bulk=False)
         client.prepare_sources(job.indata)
         client.transfer(job.indata, activity=activity, **kwargs)
     except PilotException as error:
@@ -250,7 +281,7 @@ def stage_in_auto(site, files):
         if f['errno'] == 1:
             continue
 
-        tmp_executable = copy.deepcopy(executable)
+        tmp_executable = objectcopy.deepcopy(executable)
 
         tmp_executable += ['--dir', f['destination']]
         tmp_executable.append('%s:%s' % (f['scope'],
@@ -312,7 +343,7 @@ def stage_out_auto(site, files):
         if f['errno'] == 1:
             continue
 
-        tmp_executable = copy.deepcopy(executable)
+        tmp_executable = objectcopy.deepcopy(executable)
 
         tmp_executable += ['--rse', f['rse']]
 
@@ -765,7 +796,8 @@ def _stage_out_new(job, args):
 
     log.info('stage-out finished correctly')
 
-    if not job.state:  # is the job state already set? if so, don't change the state
+    if not job.state or (job.state and job.state == 'stageout'):  # is the job state already set? if so, don't change the state (unless it's the stageout state)
+        log.debug('changing job state from %s to finished' % job.state)
         set_pilot_state(job=job, state="finished")
 
     # send final server update since all transfers have finished correctly

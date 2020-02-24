@@ -174,6 +174,9 @@ def resolve_common_transfer_errors(output, is_stagein=True):
     if "timeout" in output:
         ret = get_error_info(ErrorCodes.STAGEINTIMEOUT if is_stagein else ErrorCodes.STAGEOUTTIMEOUT,
                              'CP_TIMEOUT', 'copy command timed out: %s' % output)
+    elif "failed xrdadler32" in output:
+        ret = get_error_info(ErrorCodes.GETADMISMATCH if is_stagein else ErrorCodes.PUTADMISMATCH,
+                             'AD_MISMATCH', output)
     elif "does not match the checksum" in output and 'adler32' in output:
         ret = get_error_info(ErrorCodes.GETADMISMATCH if is_stagein else ErrorCodes.PUTADMISMATCH,
                              'AD_MISMATCH', output)

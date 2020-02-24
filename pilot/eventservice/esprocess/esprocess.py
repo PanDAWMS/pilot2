@@ -572,7 +572,7 @@ class ESProcess(threading.Thread):
             try:
                 self.monitor()
                 self.handle_messages()
-                time.sleep(1)
+                time.sleep(0.01)
             except PilotException as e:
                 logger.error('PilotException caught in the main loop: %s, %s' % (e.get_detail(), traceback.format_exc()))
                 # TODO: define output message exception. If caught 3 output message exception, terminate

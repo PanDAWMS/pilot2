@@ -110,9 +110,12 @@ def abort_jobs_in_queues(queues, sig):
 
     logger.info('found %d job(s) in %d queues' % (len(jobs_list), len(queues._fields)))
     for job in jobs_list:
-        log = get_logger(job.jobid)
-        log.info('aborting job %s' % job.jobid)
-        declare_failed_by_kill(job, queues.failed_jobs, sig)
+        try:
+            log = get_logger(job.jobid)
+            log.info('aborting job %s' % job.jobid)
+            declare_failed_by_kill(job, queues.failed_jobs, sig)
+        except Exception as e:
+            logger.warning('failed to declare job as failed: %s' % e)
 
 
 def queue_report(queues):

@@ -331,7 +331,8 @@ def kill_orphans():
 
     cmd = "ps -o pid,ppid,args -u %s" % whoami()
     exit_code, _processes, stderr = execute(cmd)
-    pattern = re.compile(r'(\d+)\s+(\d+)\s+(\S+)')  # Python 3 (added r)
+    #pattern = re.compile(r'(\d+)\s+(\d+)\s+(\S+)')  # Python 3 (added r)
+    pattern = re.compile(r'(\d+)\s+(\d+)\s+([\S\s]+)')  # Python 3 (added r)
 
     count = 0
     for line in _processes.split('\n'):
@@ -348,7 +349,8 @@ def kill_orphans():
             elif ppid == '1':
                 count += 1
                 logger.info("found orphan process: pid=%s, ppid=%s, args='%s'" % (pid, ppid, args))
-                if args.endswith('bash'):
+                #if args.endswith('bash'):
+                if 'bash' in args:
                     logger.info("will not kill bash process")
                 else:
                     try:

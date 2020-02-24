@@ -44,6 +44,7 @@ def execute(executable, **kwargs):  # noqa: C901
     returnproc = kwargs.get('returnproc', False)
     mute = kwargs.get('mute', False)
     job = kwargs.get('job')
+    mode = kwargs.get('mode', 'bash')
 
     # convert executable to string if it is a list
     if type(executable) is list:
@@ -91,7 +92,11 @@ def execute(executable, **kwargs):  # noqa: C901
                 executable_readable = executable_readable.replace(secret_key, 'S3_SECRET_KEY=********')
         logger.info('executing command: %s' % executable_readable)
 
-    exe = ['/bin/bash', '-c', executable]
+    if mode == 'python':
+        exe = ['/usr/bin/python', executable]
+    else:
+        exe = ['/bin/bash', '-c', executable]
+
     # try: intercept exception such as OSError -> report e.g. error.RESOURCEUNAVAILABLE: "Resource temporarily unavailable"
     process = subprocess.Popen(exe,
                                bufsize=-1,
