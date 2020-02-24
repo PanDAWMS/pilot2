@@ -20,6 +20,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def dump(obj):
+    for attr in dir(obj):
+        print("obj.%s = %r" % (attr, getattr(obj, attr)))
+
+
 def is_harvester_mode(args):
     """
     Determine if the pilot is running in Harvester mode.
@@ -46,6 +51,7 @@ def get_job_request_file_name():
     :return: job request file name.
     """
 
+    #logger.debug('config.Harvester.__dict__ : {0}'.format(config.Harvester.__dict__))
     return join(environ['PILOT_HOME'], config.Harvester.job_request_file)
 
 
@@ -126,11 +132,14 @@ def get_event_status_file(args):
     :param args: Pilot arguments object.
     :return: event staus file name.
     """
+
+    logger.debug('config.Harvester.__dict__ : {0}'.format(config.Harvester.__dict__))
+
     if args.harvester_workdir != '':
         work_dir = args.harvester_workdir
     else:
         work_dir = environ['PILOT_HOME']
-    event_status_file = config.Harvester.StageOutnFile
+    event_status_file = config.Harvester.stageoutnfile
     event_status_file = join(work_dir, event_status_file)
     logger.debug('event_status_file = {}'.format(event_status_file))
 
@@ -145,11 +154,14 @@ def get_worker_attributes_file(args):
     :param args: Pilot arguments object.
     :return: worker attributes file name.
     """
+
+    logger.debug('config.Harvester.__dict__ : {0}'.format(config.Harvester.__dict__))
+
     if args.harvester_workdir != '':
         work_dir = args.harvester_workdir
     else:
         work_dir = environ['PILOT_HOME']
-    worker_attributes_file = config.Harvester.workerAttributesFile
+    worker_attributes_file = config.Harvester.workerattributesfile
     worker_attributes_file = join(work_dir, worker_attributes_file)
     logger.debug('worker_attributes_file = {}'.format(worker_attributes_file))
 
@@ -306,9 +318,9 @@ def publish_job_report(job, args, job_report_file="jobReport.json"):
     except IOError:
         logger.error("job report copy failed")
         return False
-    except:
-        logger.error("write json file failed")
-        return False
+    #except:
+    #    logger.error("write json file failed")
+    #    return False
 
 
 def parse_job_definition_file(filename):
