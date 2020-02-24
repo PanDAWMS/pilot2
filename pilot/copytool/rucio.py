@@ -289,7 +289,7 @@ def _get_trace(fspec, traces):
 
 
 #@timeout(seconds=10800)
-def copy_out(files, **kwargs):
+def copy_out(files, **kwargs):  # noqa: C901
     """
         Upload given files using rucio copytool.
 
