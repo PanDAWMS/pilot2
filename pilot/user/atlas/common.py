@@ -1442,7 +1442,7 @@ def get_utility_commands_list(order=None):
         elif order == UTILITY_WITH_PAYLOAD:
             return ['NetworkMonitor']
         elif order == UTILITY_AFTER_PAYLOAD_STARTED:
-            return ['MemoryMonitor']
+            return [config.Pilot.utility_after_payload_started]
         elif order == UTILITY_WITH_STAGEIN:
             return ['Benchmark']
     return []
