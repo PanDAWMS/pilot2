@@ -65,7 +65,7 @@ def copy_in(files, **kwargs):
     ignore_errors = kwargs.get('ignore_errors')
     trace_report = kwargs.get('trace_report')
     job = kwargs.get('job')
-    use_pcache =  job.infosys.queuedata.use_pcache if job else False
+    use_pcache = job.infosys.queuedata.use_pcache if job else False
 
     # don't spoil the output, we depend on stderr parsing
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
