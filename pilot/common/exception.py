@@ -66,7 +66,7 @@ class PilotException(Exception):
             try:
                 args = ["%s" % arg for arg in self.args if arg]
             except Exception:
-                args = ["%s" % self.args]
+                args = ["{}".format(self.args)]
             self._error_string = (self._error_string + "\ndetails: %s" % '\n'.join(args))
         return self._error_string.strip()
 
