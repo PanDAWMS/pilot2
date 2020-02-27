@@ -661,7 +661,7 @@ def update_job_data(job):
 
     # extract output files from the job report if required, in case the trf has created additional (overflow) files
     # also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
-    if job.metadata and not job.is_eventservice and not job.is_analysis():
+    if job.metadata and not job.is_eventservice:  # and not job.is_analysis():
         extract_output_files(job)  # keep this for now, complicated to merge with verify_output_files?
         try:
             verify_output_files(job)
