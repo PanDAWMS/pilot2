@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
+# - Alexander Bogdanchikov, Alexander.Bogdanchikov@cern.ch, 2019-2020
 
 import os
 import pipes
@@ -20,8 +21,39 @@ from pilot.util.config import config
 from pilot.util.filehandling import write_file
 # import pilot.info.infoservice as infosys
 
+# imports for get_payload_proxy()
+from pilot.util import https
+import traceback
+
 import logging
 logger = logging.getLogger(__name__)
+
+def get_payload_proxy(proxy_outfile_name, voms_role='atlas'):
+    """
+    :param proxy_outfile_name: specify the file to store proxy
+    :param voms_role: what proxy (role) to request. It should exist on Panda node
+    :return: True on success
+    """
+    try:
+        # it assumes that https_setup() was done already
+        res = https.request('{pandaserver}/server/panda/getProxy'.format(pandaserver=config.Pilot.pandaserver),
+                            data={'role': voms_role})
+
+        if res is None:
+            logger.error("Unable to get proxy with role '%s' from panda server" % voms_role)
+            return False
+
+        if res['StatusCode'] != 0:
+            logger.error("When get proxy with role '%s' panda server returned: %s" % (voms_role, res['errorDialog']))
+            return False
+
+        proxy_contents = res['userProxy']
+
+    except Exception as e:
+        logger.error("Get proxy from panda server failed: %s, %s" % (e, traceback.format_exc()))
+        return False
+
+    return write_file(proxy_outfile_name, proxy_contents, mute=False)
 
 
 def do_use_container(**kwargs):
@@ -221,12 +253,25 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         _cmd = asetup
 
-        # do not include the X509_USER_PROXY in the command the container will execute
-        x509 = os.environ.get('X509_USER_PROXY')
+        # X509_USER_PROXY in the command the container will execute
+        x509 = os.environ.get('X509_USER_PROXY', '')
         if x509 != "":
-            cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, "")
-            # add it instead to the container setup command
-            _cmd = "export X509_USER_PROXY=%s;" % x509 + _cmd
+            # substitute pilot proxy with payload proxy
+            log.info("try to get payload proxy...")
+            x509new = x509 + "-payload"
+            if get_payload_proxy(x509new):
+                log.info("payload proxy was received")
+                # container run command: replace pilot->payload proxy
+                cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, "export X509_USER_PROXY=%s;" % x509new)
+                # add payload proxy to the container setup command
+                _cmd = "export X509_USER_PROXY=%s;" % x509new + _cmd
+                log.info("pilot->payload proxy substitution was successful")
+            else:
+                log.warning("get_payload_proxy() failed -- no proxy will be used in container")
+                # container run command -- clear from pilot proxy
+                cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, '')
+                # add pilot proxy to the container setup command
+                _cmd = "export X509_USER_PROXY=%s;" % x509 + _cmd
 
         if job.alrbuserplatform:
             _cmd += 'export thePlatform=\"%s\";' % job.alrbuserplatform
