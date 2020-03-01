@@ -318,9 +318,6 @@ def publish_job_report(job, args, job_report_file="jobReport.json"):
     except IOError:
         logger.error("job report copy failed")
         return False
-    #except:
-    #    logger.error("write json file failed")
-    #    return False
 
 
 def parse_job_definition_file(filename):
