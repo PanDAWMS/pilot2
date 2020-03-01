@@ -278,8 +278,8 @@ def publish_work_report(work_report=None, worker_attributes_file="worker_attribu
         except IOError:
             logger.error("job report copy failed")
             return False
-        except Exception:
-            logger.error("write json file failed")
+        except Exception as e:
+            logger.error("write json file failed: {0}".format(e))
             return False
     else:
         # No work_report return False
