@@ -64,6 +64,8 @@ def copy_in(files, **kwargs):
 
     ignore_errors = kwargs.get('ignore_errors')
     trace_report = kwargs.get('trace_report')
+    job = kwargs.get('job')
+    use_pcache = job.infosys.queuedata.use_pcache if job else False
 
     # don't spoil the output, we depend on stderr parsing
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
@@ -90,7 +92,7 @@ def copy_in(files, **kwargs):
         error_msg = ""
         ec = 0
         try:
-            ec, trace_report_out = timeout(ctimeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out, transfer_timeout)
+            ec, trace_report_out = timeout(ctimeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out, transfer_timeout, use_pcache)
             #_stage_in_api(dst, fspec, trace_report, trace_report_out)
         except Exception as error:
             error_msg = str(error)
@@ -399,13 +401,15 @@ def copy_out(files, **kwargs):  # noqa: C901
 
 
 # stageIn using rucio api.
-def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout):
+def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout, use_pcache):
 
     ec = 0
 
     # init. download client
     from rucio.client.downloadclient import DownloadClient
     download_client = DownloadClient(logger=logger)
+    if use_pcache:
+        download_client.check_pcache = True
 
     # traces are switched off
     if hasattr(download_client, 'tracing'):
