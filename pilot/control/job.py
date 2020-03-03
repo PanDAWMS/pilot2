@@ -643,7 +643,7 @@ def get_payload_log_tail(job):
     stdout_tail = ""
 
     # find the latest updated log file
-    list_of_files = get_list_of_log_files(job)
+    list_of_files = get_list_of_log_files()
     if not list_of_files:
         log.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
         list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]  # get_files(pattern=config.Payload.payloadstdout)
