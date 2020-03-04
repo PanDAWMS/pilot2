@@ -186,7 +186,7 @@ def get_proper_state(job, state):
     return job.serverstate
 
 
-def send_state(job, args, state, xml=None, metadata=None):
+def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
     """
     Update the server (send heartbeat message).
     Interpret and handle any server instructions arriving with the updateJob backchannel.
