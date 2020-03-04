@@ -7,9 +7,9 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
-from os import environ, walk
-from os.path import join, exists, dirname, basename
-from socket import gethostname
+import os
+import os.path
+import socket
 
 from pilot.common.exception import FileHandlingFailure
 from pilot.util.config import config
@@ -21,6 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 def dump(obj):
+    """
+    function for debugging - dumps object to sysout
+    """
     for attr in dir(obj):
         print("obj.%s = %r" % (attr, getattr(obj, attr)))
 
@@ -36,7 +39,7 @@ def is_harvester_mode(args):
         harvester = True
     elif (args.harvester_eventstatusdump != '' or args.harvester_workerattributes != '') and not args.update_server:
         harvester = True
-    elif ('HARVESTER_ID' in environ or 'HARVESTER_WORKER_ID' in environ) and args.harvester_submitmode.lower() == 'push':
+    elif ('HARVESTER_ID' in os.environ or 'HARVESTER_WORKER_ID' in os.environ) and args.harvester_submitmode.lower() == 'push':
         harvester = True
     else:
         harvester = False
@@ -52,7 +55,7 @@ def get_job_request_file_name():
     """
 
     #logger.debug('config.Harvester.__dict__ : {0}'.format(config.Harvester.__dict__))
-    return join(environ['PILOT_HOME'], config.Harvester.job_request_file)
+    return os.path.join(os.environ['PILOT_HOME'], config.Harvester.job_request_file)
 
 
 def remove_job_request_file():
@@ -63,7 +66,7 @@ def remove_job_request_file():
     """
 
     path = get_job_request_file_name()
-    if exists(path):
+    if os.path.exists(path):
         if remove(path) == 0:
             logger.info('removed %s' % path)
     else:
@@ -98,7 +101,7 @@ def kill_worker():
     :return:
     """
 
-    touch(join(environ['PILOT_HOME'], config.Harvester.kill_worker_file))
+    touch(os.path.join(os.environ['PILOT_HOME'], config.Harvester.kill_worker_file))
 
 
 def get_initial_work_report():
@@ -113,7 +116,7 @@ def get_initial_work_report():
                    'messageLevel': logging.getLevelName(logger.getEffectiveLevel()),
                    'cpuConversionFactor': 1.0,
                    'cpuConsumptionTime': '',
-                   'node': gethostname(),
+                   'node': socket.gethostname(),
                    'workdir': '',
                    'timestamp': time_stamp(),
                    'endTime': '',
@@ -138,9 +141,9 @@ def get_event_status_file(args):
     if args.harvester_workdir != '':
         work_dir = args.harvester_workdir
     else:
-        work_dir = environ['PILOT_HOME']
+        work_dir = os.environ['PILOT_HOME']
     event_status_file = config.Harvester.stageoutnfile
-    event_status_file = join(work_dir, event_status_file)
+    event_status_file = os.path.join(work_dir, event_status_file)
     logger.debug('event_status_file = {}'.format(event_status_file))
 
     return event_status_file
@@ -160,9 +163,9 @@ def get_worker_attributes_file(args):
     if args.harvester_workdir != '':
         work_dir = args.harvester_workdir
     else:
-        work_dir = environ['PILOT_HOME']
+        work_dir = os.environ['PILOT_HOME']
     worker_attributes_file = config.Harvester.workerattributesfile
-    worker_attributes_file = join(work_dir, worker_attributes_file)
+    worker_attributes_file = os.path.join(work_dir, worker_attributes_file)
     logger.debug('worker_attributes_file = {}'.format(worker_attributes_file))
 
     return worker_attributes_file
@@ -178,9 +181,9 @@ def findfile(path, name):
     :return: the path to the first instance of the file
     """
 
-    for root, dirs, files in walk(path):
+    for root, dirs, files in os.walk(path):
         if name in files:
-            return join(root, name)
+            return os.path.join(root, name)
     return ''
 
 
@@ -197,7 +200,7 @@ def publish_stageout_files(job, event_status_file):
     """
 
     # get the harvester workdir from the event_status_file
-    work_dir = dirname(event_status_file)
+    work_dir = os.path.dirname(event_status_file)
 
     out_file_report = {}
     out_file_report[job.jobid] = []
@@ -206,7 +209,7 @@ def publish_stageout_files(job, event_status_file):
     for fspec in job.logdata:
         logger.debug("File {} will be checked and declared for stage out".format(fspec.lfn))
         # find the first instance of the file
-        filename = basename(fspec.surl)
+        filename = os.path.basename(fspec.surl)
         path = findfile(work_dir, filename)
         logger.debug("Found File {} at path - {}".format(fspec.lfn, path))
         #
@@ -223,7 +226,7 @@ def publish_stageout_files(job, event_status_file):
     for fspec in job.outdata:
         logger.debug("File {} will be checked and declared for stage out".format(fspec.lfn))
         # find the first instance of the file
-        filename = basename(fspec.surl)
+        filename = os.path.basename(fspec.surl)
         path = findfile(work_dir, filename)
         logger.debug("Found File {} at path - {}".format(fspec.lfn, path))
         #
@@ -278,8 +281,8 @@ def publish_work_report(work_report=None, worker_attributes_file="worker_attribu
         except IOError:
             logger.error("job report copy failed")
             return False
-        except:
-            logger.error("write json file failed")
+        except Exception as e:
+            logger.error("write json file failed: {0}".format(e))
             return False
     else:
         # No work_report return False
@@ -297,8 +300,8 @@ def publish_job_report(job, args, job_report_file="jobReport.json"):
     :return True or False
     """
 
-    src_file = join(job.workdir, job_report_file)
-    dst_file = join(args.harvester_workdir, job_report_file)
+    src_file = os.path.join(job.workdir, job_report_file)
+    dst_file = os.path.join(args.harvester_workdir, job_report_file)
 
     try:
         logger.info(
@@ -318,9 +321,6 @@ def publish_job_report(job, args, job_report_file="jobReport.json"):
     except IOError:
         logger.error("job report copy failed")
         return False
-    #except:
-    #    logger.error("write json file failed")
-    #    return False
 
 
 def parse_job_definition_file(filename):
