@@ -276,7 +276,7 @@ def publish_work_report(work_report=None, worker_attributes_file="worker_attribu
                 logger.info("work report published: {0}".format(work_report))
                 return True
             else:
-                logger.info("work report publish failed: {0}".format(work_report))
+                logger.error("work report publish failed: {0}".format(work_report))
                 return False
         except IOError:
             logger.error("job report copy failed")
