@@ -1905,8 +1905,8 @@ def job_monitor(queues, traces, args):
             peeking_time = int(time.time())
             for i in range(len(jobs)):
                 log = get_logger(jobs[i].jobid)
-
-                log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
+                current_id = jobs[i].jobid
+                log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, current_id, jobs[i].state))
                 if jobs[i].state == 'finished' or jobs[i].state == 'failed':
                     log.info('aborting job monitoring since job state=%s' % jobs[i].state)
                     break
@@ -1914,13 +1914,19 @@ def job_monitor(queues, traces, args):
                 # perform the monitoring tasks
                 exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
                 if exit_code != 0:
-                    fail_monitored_job(jobs[i], exit_code, diagnostics, queues, traces)
+                    try:
+                        fail_monitored_job(jobs[i], exit_code, diagnostics, queues, traces)
+                    except Exception as e:
+                        log.warning('(1) exception caught: %s (job id=%d)' % (e, current_id))
                     break
 
                 # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
                 # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
-                update_time = send_heartbeat_if_time(jobs[i], args, update_time)
-
+                try:
+                    update_time = send_heartbeat_if_time(jobs[i], args, update_time)
+                except Exception as e:
+                    log.warning('(2) exception caught: %s (job id=%d)' % (e, current_id))
+                    break
         elif os.environ.get('PILOT_JOB_STATE') == 'stagein':
             logger.info('job monitoring is waiting for stage-in to finish')
         else:
