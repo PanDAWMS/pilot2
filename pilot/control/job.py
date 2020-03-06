@@ -858,6 +858,9 @@ def get_dispatcher_dictionary(args):
         'node': _nodename
     }
 
+    if args.jobtype != "":
+        data['jobType'] = args.jobtype
+
     if args.allow_other_country != "":
         data['allowOtherCountry'] = args.allow_other_country
 
