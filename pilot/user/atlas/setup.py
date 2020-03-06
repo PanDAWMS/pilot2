@@ -9,6 +9,7 @@
 
 import os
 import re
+import glob
 from time import sleep
 
 from pilot.common.errorcodes import ErrorCodes
@@ -16,7 +17,7 @@ from pilot.common.exception import NoSoftwareDir
 from pilot.info import infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
-from pilot.util.filehandling import read_file, write_file
+from pilot.util.filehandling import read_file, write_file, copy
 
 from .metadata import get_file_info_from_xml
 
@@ -202,6 +203,20 @@ def get_analysis_trf(transform, workdir):
     ec = 0
     diagnostics = ""
 
+    # test if $HARVESTER_WORKDIR is set
+    harvester_workdir = os.environ.get('HARVESTER_WORKDIR')
+    if harvester_workdir is not None:
+        logger.debug("$HARVESTER_WORKDIR = %s" % (harvester_workdir))
+        search_pattern = "%s/jobO.*.tar.gz" % (harvester_workdir)
+        logger.debug("search_pattern - %s" % (search_pattern))
+        jobO_files = glob.glob(search_pattern)
+        for jobO_file in jobO_files:
+            logger.debug("jobO_file = %s workdir = %s" % (jobO_file, workdir))
+            try:
+                copy(jobO_file, workdir)
+            except Exception as e:
+                logger.error("could not copy file %s to %s : %s" % (jobO_file, workdir, e))
+
     #pilot_initdir = os.environ.get('PILOT_HOME', '')
     if '/' in transform:
         transform_name = transform.split('/')[-1]
@@ -262,6 +277,20 @@ def download_transform(url, transform_name, workdir):
     cmd = 'curl -sS \"%s\" > %s' % (url, path)
     trial = 1
     max_trials = 3
+
+    # test if $HARVESTER_WORKDIR is set
+    harvester_workdir = os.environ.get('HARVESTER_WORKDIR')
+    if harvester_workdir is not None:
+        # skip curl by setting max_trials = 0
+        max_trials = 0
+        source_path = os.path.join(harvester_workdir, transform_name)
+        try:
+            copy(source_path, path)
+            status = True
+        except Exception as error:
+            status = False
+            diagnostics = "Failed to copy file %s to %s : %s" % (source_path, path, error)
+            logger.error(diagnostics)
 
     # try to download the trf a maximum of 3 times
     while trial <= max_trials:
