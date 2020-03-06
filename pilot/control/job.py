@@ -904,7 +904,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # use for testing thread exceptions. the exception will be picked up by ExcThread run() and caught in job.control()
     # raise NoLocalSpace('testing exception from proceed_with_getjob')
 
-    # timefloor = 600
+    #timefloor = 600
     currenttime = time.time()
 
     # should the proxy be verified?
@@ -1917,7 +1917,15 @@ def job_monitor(queues, traces, args):
                     try:
                         fail_monitored_job(jobs[i], exit_code, diagnostics, queues, traces)
                     except Exception as e:
-                        log.warning('(1) exception caught: %s (job id=%d)' % (e, current_id))
+                        log.warning('(1) exception caught: %s (job id=%s)' % (e, current_id))
+                    break
+
+                # run this check again in case job_monitor_tasks() takes a long time to finish (and the job object
+                # has expired in the mean time)
+                try:
+                    _job = jobs[i]
+                except Exception:
+                    log.info('aborting job monitoring since job object (job id=%s) has expired' % current_id)
                     break
 
                 # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
@@ -1925,7 +1933,7 @@ def job_monitor(queues, traces, args):
                 try:
                     update_time = send_heartbeat_if_time(jobs[i], args, update_time)
                 except Exception as e:
-                    log.warning('(2) exception caught: %s (job id=%d)' % (e, current_id))
+                    log.warning('(2) exception caught: %s (job id=%s)' % (e, current_id))
                     break
         elif os.environ.get('PILOT_JOB_STATE') == 'stagein':
             logger.info('job monitoring is waiting for stage-in to finish')
