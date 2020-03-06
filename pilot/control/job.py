@@ -858,6 +858,9 @@ def get_dispatcher_dictionary(args):
         'node': _nodename
     }
 
+    if args.jobtype != "":
+        data['jobType'] = args.jobtype
+
     if args.allow_other_country != "":
         data['allowOtherCountry'] = args.allow_other_country
 
@@ -904,7 +907,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # use for testing thread exceptions. the exception will be picked up by ExcThread run() and caught in job.control()
     # raise NoLocalSpace('testing exception from proceed_with_getjob')
 
-    # timefloor = 600
+    #timefloor = 600
     currenttime = time.time()
 
     # should the proxy be verified?
