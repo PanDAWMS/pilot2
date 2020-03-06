@@ -209,13 +209,13 @@ def get_analysis_trf(transform, workdir):
         logger.debug("$HARVESTER_WORKDIR = %s" % (harvester_workdir))
         search_pattern = "%s/jobO.*.tar.gz" % (harvester_workdir)
         logger.debug("search_pattern - %s" % (search_pattern))
-        jobO_files = glob.glob(search_pattern)
-        for jobO_file in jobO_files:
-            logger.debug("jobO_file = %s workdir = %s" % (jobO_file, workdir))
+        jobopt_files = glob.glob(search_pattern)
+        for jobopt_file in jobopt_files:
+            logger.debug("jobopt_file = %s workdir = %s" % (jobopt_file, workdir))
             try:
-                copy(jobO_file, workdir)
+                copy(jobopt_file, workdir)
             except Exception as e:
-                logger.error("could not copy file %s to %s : %s" % (jobO_file, workdir, e))
+                logger.error("could not copy file %s to %s : %s" % (jobopt_file, workdir, e))
 
     #pilot_initdir = os.environ.get('PILOT_HOME', '')
     if '/' in transform:
