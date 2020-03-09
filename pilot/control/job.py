@@ -186,7 +186,7 @@ def get_proper_state(job, state):
     return job.serverstate
 
 
-def send_state(job, args, state, xml=None, metadata=None):
+def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
     """
     Update the server (send heartbeat message).
     Interpret and handle any server instructions arriving with the updateJob backchannel.
@@ -233,21 +233,38 @@ def send_state(job, args, state, xml=None, metadata=None):
 
     # write the heartbeat message to file if the server is not to be updated by the pilot (Nordugrid mode)
     if not args.update_server:
+        log.debug('is_harvester_mode(args) : {0}'.format(is_harvester_mode(args)))
         # if in harvester mode write to files required by harvester
-        if is_harvester_mode(args) and final:
-            # Use the job information to write Harvester event_status.dump file
-            event_status_file = get_event_status_file(args)
-            if publish_stageout_files(job, event_status_file):
-                log.debug('wrote log and output files to file %s' % event_status_file)
-                # write part of the heartbeat message to worker attributes files needed by Harvester
-                path = get_worker_attributes_file(args)
-                # Should publish work report return a Boolean for pass/fail?
-                publish_work_report(data, path)
-                publish_job_report(job, args, config.Payload.jobreport)
-                return True
+        if is_harvester_mode(args):
+            # write part of the heartbeat message to worker attributes files needed by Harvester
+            path = get_worker_attributes_file(args)
+            # add jobStatus (state) for Harvester
+            data['jobStatus'] = state
+            # publish work report
+            if publish_work_report(data, path):
+                log.debug('wrote to workerAttributesFile %s' % path)
             else:
-                log.debug('Warning - could not write log and output files to file %s' % event_status_file)
+                log.debug('Failed to write to workerAttributesFile %s' % path)
                 return False
+            # check if we are in final state then write out information for output files
+            if final:
+                # Use the job information to write Harvester event_status.dump file
+                event_status_file = get_event_status_file(args)
+                if publish_stageout_files(job, event_status_file):
+                    log.debug('wrote log and output files to file %s' % event_status_file)
+                else:
+                    log.debug('Warning - could not write log and output files to file %s' % event_status_file)
+                    return False
+                # publish job report
+                if publish_job_report(job, args, config.Payload.jobreport):
+                    log.debug('wrote job report file')
+                    return True
+                else:
+                    log.debug('Failed to write job report file')
+                    return False
+            else:
+                log.info('finish writing various report files in Harvester mode')
+                return True
         else:
             # store the file in the main workdir
             path = os.path.join(os.environ.get('PILOT_HOME'), config.Pilot.heartbeat_message)
