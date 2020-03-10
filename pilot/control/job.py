@@ -1856,7 +1856,7 @@ def get_heartbeat_period(debug=False):
         return 1800
 
 
-def job_monitor(queues, traces, args):
+def job_monitor(queues, traces, args):  # noqa: C901
     """
     Monitoring of job parameters.
     This function monitors certain job parameters, such as job looping, at various time intervals. The main loop
