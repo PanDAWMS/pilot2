@@ -1951,7 +1951,7 @@ def job_monitor(queues, traces, args):
                 # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
                 # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
                 try:
-                    update_time = send_heartbeat_if_time(jobs[i], args, update_time)
+                    update_time = send_heartbeat_if_time(_job, args, update_time)
                 except Exception as e:
                     log.warning('(2) exception caught: %s (job id=%s)' % (e, current_id))
                     break
