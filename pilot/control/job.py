@@ -15,6 +15,8 @@ from __future__ import print_function  # Python 2
 import os
 import time
 import hashlib
+import random
+import socket
 
 try:
     import Queue as queue  # noqa: N813
@@ -404,6 +406,13 @@ def get_panda_server(url, port):
         pandaserver = '%s:%s' % (url, port)
     else:
         pandaserver = config.Pilot.pandaserver
+
+    # add randomization for PanDA server
+    default = 'pandaserver.cern.ch'
+    if default in pandaserver:
+        rnd = random.choice([socket.getfqdn(vv) for vv in set([v[-1][0] for v in socket.getaddrinfo(default, 25443, socket.AF_INET)])])
+        pandaserver = pandaserver.replace(default, rnd)
+        logger.debug('updated %s to %s' % (default, pandaserver))
 
     return pandaserver
 
