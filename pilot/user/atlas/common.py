@@ -33,7 +33,7 @@ from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
     UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
-from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list
+from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps
 
 from pilot.info import FileSpec
 
@@ -1192,11 +1192,14 @@ def get_exit_info(jobreport_dictionary):
 def cleanup_payload(workdir, outputfiles=[]):
     """
     Cleanup of payload (specifically AthenaMP) sub directories prior to log file creation.
+    Also remove core dumps.
 
     :param workdir: working directory (string)
     :param outputfiles: list of output files
     :return:
     """
+
+    remove_core_dumps(workdir)
 
     for ampdir in glob('%s/athenaMP-workers-*' % (workdir)):
         for (p, d, f) in os.walk(ampdir):
