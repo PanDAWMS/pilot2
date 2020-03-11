@@ -354,6 +354,10 @@ def get_args():
                             dest='output_dir',
                             default='',
                             help='Output directory')
+    arg_parser.add_argument('--job-type',
+                            dest='jobtype',
+                            default='',
+                            help='Job type (managed, user)')
 
     # HPC options
     arg_parser.add_argument('--hpc-resource',

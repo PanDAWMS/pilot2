@@ -660,7 +660,7 @@ def get_payload_log_tail(job):
     stdout_tail = ""
 
     # find the latest updated log file
-    list_of_files = get_list_of_log_files(job)
+    list_of_files = get_list_of_log_files()
     if not list_of_files:
         log.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
         list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]  # get_files(pattern=config.Payload.payloadstdout)
@@ -875,6 +875,9 @@ def get_dispatcher_dictionary(args):
         'node': _nodename
     }
 
+    if args.jobtype != "":
+        data['jobType'] = args.jobtype
+
     if args.allow_other_country != "":
         data['allowOtherCountry'] = args.allow_other_country
 
@@ -921,7 +924,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # use for testing thread exceptions. the exception will be picked up by ExcThread run() and caught in job.control()
     # raise NoLocalSpace('testing exception from proceed_with_getjob')
 
-    # timefloor = 600
+    #timefloor = 600
     currenttime = time.time()
 
     # should the proxy be verified?
@@ -1853,7 +1856,7 @@ def get_heartbeat_period(debug=False):
         return 1800
 
 
-def job_monitor(queues, traces, args):
+def job_monitor(queues, traces, args):  # noqa: C901
     """
     Monitoring of job parameters.
     This function monitors certain job parameters, such as job looping, at various time intervals. The main loop
@@ -1922,8 +1925,8 @@ def job_monitor(queues, traces, args):
             peeking_time = int(time.time())
             for i in range(len(jobs)):
                 log = get_logger(jobs[i].jobid)
-
-                log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
+                current_id = jobs[i].jobid
+                log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, current_id, jobs[i].state))
                 if jobs[i].state == 'finished' or jobs[i].state == 'failed':
                     log.info('aborting job monitoring since job state=%s' % jobs[i].state)
                     break
@@ -1931,13 +1934,27 @@ def job_monitor(queues, traces, args):
                 # perform the monitoring tasks
                 exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
                 if exit_code != 0:
-                    fail_monitored_job(jobs[i], exit_code, diagnostics, queues, traces)
+                    try:
+                        fail_monitored_job(jobs[i], exit_code, diagnostics, queues, traces)
+                    except Exception as e:
+                        log.warning('(1) exception caught: %s (job id=%s)' % (e, current_id))
+                    break
+
+                # run this check again in case job_monitor_tasks() takes a long time to finish (and the job object
+                # has expired in the mean time)
+                try:
+                    _job = jobs[i]
+                except Exception:
+                    log.info('aborting job monitoring since job object (job id=%s) has expired' % current_id)
                     break
 
                 # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
                 # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
-                update_time = send_heartbeat_if_time(jobs[i], args, update_time)
-
+                try:
+                    update_time = send_heartbeat_if_time(_job, args, update_time)
+                except Exception as e:
+                    log.warning('(2) exception caught: %s (job id=%s)' % (e, current_id))
+                    break
         elif os.environ.get('PILOT_JOB_STATE') == 'stagein':
             logger.info('job monitoring is waiting for stage-in to finish')
         else:

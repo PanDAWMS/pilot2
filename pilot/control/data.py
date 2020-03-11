@@ -490,6 +490,7 @@ def copytool_out(queues, traces, args):
     if args.graceful_stop.is_set():
         logger.debug('graceful_stop already set')
 
+    processed_jobs = []
 #    while not args.graceful_stop.is_set() and cont:
     while cont:
 
@@ -507,7 +508,16 @@ def copytool_out(queues, traces, args):
             job = queues.data_out.get(block=True, timeout=1)
             if job:
                 log = get_logger(job.jobid)
-                log.info('will perform stage-out')
+
+                # hack to prevent stage-out to be called more than once for same job object (can apparently happen
+                # in multi-output jobs)
+                # should not be necessary unless job object is added to queues.data_out more than once - check this
+                # for multiple output files
+                if processed_jobs:
+                    if is_already_processed(queues, processed_jobs):
+                        continue
+
+                log.info('will perform stage-out for job id=%s' % job.jobid)
 
                 if args.abort_job.is_set():
                     traces.pilot['command'] = 'abort'
@@ -523,6 +533,7 @@ def copytool_out(queues, traces, args):
                         break
 
                     #queues.finished_data_out.put(job)
+                    processed_jobs.append(job.jobid)
                     put_in_queue(job, queues.finished_data_out)
                     log.debug('job object added to finished_data_out queue')
                 else:
@@ -542,6 +553,32 @@ def copytool_out(queues, traces, args):
             break
 
     logger.debug('[data] copytool_out thread has finished')
+
+
+def is_already_processed(queues, processed_jobs):
+    """
+    Skip stage-out in case the job has already been processed.
+    This should not be necessary so this is a fail-safe but it seems there is a case when a job with multiple output
+    files enters the stage-out more than once.
+
+    :param queues: queues object.
+    :param processed_jobs: list of already processed jobs.
+    :return: True if stage-out queues contain a job object that has already been processed.
+    """
+
+    snapshots = list(queues.finished_data_out.queue) + list(queues.failed_data_out.queue)
+    jobids = [obj.jobid for obj in snapshots]
+    found = False
+
+    for jobid in processed_jobs:
+        if jobid in jobids:
+            logger.warning('output from job %s has already been staged out' % jobid)
+            found = True
+            break
+    if found:
+        time.sleep(5)
+
+    return found
 
 
 def get_input_file_dictionary(indata, workdir):
