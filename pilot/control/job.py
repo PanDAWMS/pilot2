@@ -15,6 +15,8 @@ from __future__ import print_function  # Python 2
 import os
 import time
 import hashlib
+import random
+import socket
 
 try:
     import Queue as queue  # noqa: N813
@@ -186,7 +188,7 @@ def get_proper_state(job, state):
     return job.serverstate
 
 
-def send_state(job, args, state, xml=None, metadata=None):
+def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
     """
     Update the server (send heartbeat message).
     Interpret and handle any server instructions arriving with the updateJob backchannel.
@@ -233,21 +235,38 @@ def send_state(job, args, state, xml=None, metadata=None):
 
     # write the heartbeat message to file if the server is not to be updated by the pilot (Nordugrid mode)
     if not args.update_server:
+        log.debug('is_harvester_mode(args) : {0}'.format(is_harvester_mode(args)))
         # if in harvester mode write to files required by harvester
-        if is_harvester_mode(args) and final:
-            # Use the job information to write Harvester event_status.dump file
-            event_status_file = get_event_status_file(args)
-            if publish_stageout_files(job, event_status_file):
-                log.debug('wrote log and output files to file %s' % event_status_file)
-                # write part of the heartbeat message to worker attributes files needed by Harvester
-                path = get_worker_attributes_file(args)
-                # Should publish work report return a Boolean for pass/fail?
-                publish_work_report(data, path)
-                publish_job_report(job, args, config.Payload.jobreport)
-                return True
+        if is_harvester_mode(args):
+            # write part of the heartbeat message to worker attributes files needed by Harvester
+            path = get_worker_attributes_file(args)
+            # add jobStatus (state) for Harvester
+            data['jobStatus'] = state
+            # publish work report
+            if publish_work_report(data, path):
+                log.debug('wrote to workerAttributesFile %s' % path)
             else:
-                log.debug('Warning - could not write log and output files to file %s' % event_status_file)
+                log.debug('Failed to write to workerAttributesFile %s' % path)
                 return False
+            # check if we are in final state then write out information for output files
+            if final:
+                # Use the job information to write Harvester event_status.dump file
+                event_status_file = get_event_status_file(args)
+                if publish_stageout_files(job, event_status_file):
+                    log.debug('wrote log and output files to file %s' % event_status_file)
+                else:
+                    log.debug('Warning - could not write log and output files to file %s' % event_status_file)
+                    return False
+                # publish job report
+                if publish_job_report(job, args, config.Payload.jobreport):
+                    log.debug('wrote job report file')
+                    return True
+                else:
+                    log.debug('Failed to write job report file')
+                    return False
+            else:
+                log.info('finish writing various report files in Harvester mode')
+                return True
         else:
             # store the file in the main workdir
             path = os.path.join(os.environ.get('PILOT_HOME'), config.Pilot.heartbeat_message)
@@ -387,6 +406,13 @@ def get_panda_server(url, port):
         pandaserver = '%s:%s' % (url, port)
     else:
         pandaserver = config.Pilot.pandaserver
+
+    # add randomization for PanDA server
+    default = 'pandaserver.cern.ch'
+    if default in pandaserver:
+        rnd = random.choice([socket.getfqdn(vv) for vv in set([v[-1][0] for v in socket.getaddrinfo(default, 25443, socket.AF_INET)])])
+        pandaserver = pandaserver.replace(default, rnd)
+        logger.debug('updated %s to %s' % (default, pandaserver))
 
     return pandaserver
 
@@ -592,6 +618,7 @@ def add_timing_and_extracts(data, job, state, args):
         if extracts != "":
             logger.warning('\nXXXXXXXXXXXXXXXXXXXXX[begin log extracts]\n%s\nXXXXXXXXXXXXXXXXXXXXX[end log extracts]' % extracts)
     data['pilotLog'] = extracts[:1024]
+    data['endTime'] = time.time()
 
 
 def add_memory_info(data, workdir, name=""):
@@ -642,7 +669,7 @@ def get_payload_log_tail(job):
     stdout_tail = ""
 
     # find the latest updated log file
-    list_of_files = get_list_of_log_files(job)
+    list_of_files = get_list_of_log_files()
     if not list_of_files:
         log.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
         list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]  # get_files(pattern=config.Payload.payloadstdout)
@@ -857,6 +884,9 @@ def get_dispatcher_dictionary(args):
         'node': _nodename
     }
 
+    if args.jobtype != "":
+        data['jobType'] = args.jobtype
+
     if args.allow_other_country != "":
         data['allowOtherCountry'] = args.allow_other_country
 
@@ -903,7 +933,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
     # use for testing thread exceptions. the exception will be picked up by ExcThread run() and caught in job.control()
     # raise NoLocalSpace('testing exception from proceed_with_getjob')
 
-    # timefloor = 600
+    #timefloor = 600
     currenttime = time.time()
 
     # should the proxy be verified?
@@ -1835,7 +1865,7 @@ def get_heartbeat_period(debug=False):
         return 1800
 
 
-def job_monitor(queues, traces, args):
+def job_monitor(queues, traces, args):  # noqa: C901
     """
     Monitoring of job parameters.
     This function monitors certain job parameters, such as job looping, at various time intervals. The main loop
@@ -1904,8 +1934,8 @@ def job_monitor(queues, traces, args):
             peeking_time = int(time.time())
             for i in range(len(jobs)):
                 log = get_logger(jobs[i].jobid)
-
-                log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, jobs[i].jobid, jobs[i].state))
+                current_id = jobs[i].jobid
+                log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, current_id, jobs[i].state))
                 if jobs[i].state == 'finished' or jobs[i].state == 'failed':
                     log.info('aborting job monitoring since job state=%s' % jobs[i].state)
                     break
@@ -1913,13 +1943,27 @@ def job_monitor(queues, traces, args):
                 # perform the monitoring tasks
                 exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
                 if exit_code != 0:
-                    fail_monitored_job(jobs[i], exit_code, diagnostics, queues, traces)
+                    try:
+                        fail_monitored_job(jobs[i], exit_code, diagnostics, queues, traces)
+                    except Exception as e:
+                        log.warning('(1) exception caught: %s (job id=%s)' % (e, current_id))
+                    break
+
+                # run this check again in case job_monitor_tasks() takes a long time to finish (and the job object
+                # has expired in the mean time)
+                try:
+                    _job = jobs[i]
+                except Exception:
+                    log.info('aborting job monitoring since job object (job id=%s) has expired' % current_id)
                     break
 
                 # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
                 # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
-                update_time = send_heartbeat_if_time(jobs[i], args, update_time)
-
+                try:
+                    update_time = send_heartbeat_if_time(_job, args, update_time)
+                except Exception as e:
+                    log.warning('(2) exception caught: %s (job id=%s)' % (e, current_id))
+                    break
         elif os.environ.get('PILOT_JOB_STATE') == 'stagein':
             logger.info('job monitoring is waiting for stage-in to finish')
         else:

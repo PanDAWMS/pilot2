@@ -15,6 +15,7 @@ import re
 import tarfile
 import time
 import uuid
+from glob import glob
 from json import load
 from json import dump as dumpjson
 from shutil import copy2, rmtree
@@ -936,3 +937,24 @@ def establish_logging(args):
     logging.Formatter.converter = time.gmtime
     #if not len(_logger.handlers):
     _logger.addHandler(console)
+
+
+def remove_core_dumps(workdir):
+    """
+    Remove any remaining core dumps so they do not end up in the log tarball
+
+    :param workdir:
+    :return: Boolean (True if a core dump is found)
+    """
+
+    found = False
+    coredumps1 = glob("%s/core.*" % workdir)
+    coredumps2 = glob("%s/core" % workdir)
+    coredumps = coredumps1 + coredumps2
+    if coredumps:
+        for coredump in coredumps:
+            logger.info("removing core dump: %s" % str(coredump))
+            remove(coredump)
+        found = True
+
+    return found

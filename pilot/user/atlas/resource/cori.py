@@ -51,7 +51,7 @@ def get_setup_command(job, prepareasetup):
 
     # return immediately if there is no release or if user containers are used
     if job.swrelease == 'NULL' or '--containerImage' in job.jobparams:
-        logger.debug('get_setup_command return value: {}'.format(str(cmd)))
+        logger.debug('get_setup_command return value: {0}'.format(str(cmd)))
         return cmd
 
     # test if environmental variable HARVESTER_CONTAINER_RELEASE_SETUP_FILE is defined
@@ -67,6 +67,6 @@ def get_setup_command(job, prepareasetup):
         #unset FRONTIER_SERVER variable
         cmd += "unset FRONTIER_SERVER"
 
-        logger.debug('get_setup_command return value: {}'.format(str(cmd)))
+        logger.debug('get_setup_command return value: {0}'.format(str(cmd)))
 
     return cmd
