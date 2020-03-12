@@ -428,7 +428,7 @@ def get_analysis_run_command(job, trf_name):
             log.debug("$PAYLOAD_CONTAINER_LOCATION = %s" % payload_container_location)
             # get container name
             containername = imagename.rsplit('/')[-1]
-            image_location = os.join.path(payload_container_location, containername)
+            image_location = os.path.join(payload_container_location, containername)
             if os.path.exists(image_location):
                 log.debug("image exists at %s" % image_location)
                 imagename = image_location
