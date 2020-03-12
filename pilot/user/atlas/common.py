@@ -421,8 +421,21 @@ def get_analysis_run_command(job, trf_name):
     else:
         cmd += 'python %s %s' % (trf_name, job.jobparams)
 
+        imagename = job.imagename
+        # check if image is on disk as defined by envar PAYLOAD_CONTAINER_LOCATION
+        payload_container_location = os.environ.get('PAYLOAD_CONTAINER_LOCATION')
+        if payload_container_location is not None:
+            log.debug("$PAYLOAD_CONTAINER_LOCATION = %s" % payload_container_location)
+            # get container name
+            containername = imagename.rsplit('/')[-1]
+            image_location = os.path.join(payload_container_location, containername)
+            if os.path.exists(image_location):
+                log.debug("image exists at %s" % image_location)
+                imagename = image_location
+
         # restore the image name
-        cmd += ' --containerImage=%s' % job.imagename
+        log.debug(" restore image name : --containerImage=%s" % imagename)
+        cmd += ' --containerImage=%s' % imagename
 
     # add control options for PFC turl and direct access
     #if job.indata:   ## DEPRECATE ME (anisyonk)
