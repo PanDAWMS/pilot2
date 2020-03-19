@@ -35,7 +35,7 @@ from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, U
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps
 
-from pilot.info import FileSpec
+#from pilot.info import FileSpec
 
 import logging
 logger = logging.getLogger(__name__)
@@ -699,9 +699,9 @@ def extract_output_files(job):
     if not job.allownooutput:
         output = job.metadata.get('files', {}).get('output', [])
         if output:
-            logger.info('verified that job report contains metadata for %d file(s)' % len(output))
+            log.info('verified that job report contains metadata for %d file(s)' % len(output))
         else:
-            logger.warning('job report contains no output files and allowNoOutput is not set')  #- will fail job since allowNoOutput is not set')
+            log.warning('job report contains no output files and allowNoOutput is not set')  #- will fail job since allowNoOutput is not set')
             #job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOOUTPUTINJOBREPORT)
             return
 
