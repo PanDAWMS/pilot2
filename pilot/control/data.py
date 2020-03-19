@@ -625,7 +625,7 @@ def filter_files_for_log(directory):
     return filtered_files
 
 
-def create_log(job, logfile, tarball_name):
+def create_log(job, logfile, tarball_name, args):
     """
 
     :param job:
@@ -639,9 +639,12 @@ def create_log(job, logfile, tarball_name):
     log.debug('preparing to create log file')
 
     # perform special cleanup (user specific) prior to log file creation
-    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
-    user.remove_redundant_files(job.workdir)
+    if args.cleanup:
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+        user.remove_redundant_files(job.workdir)
+    else:
+        log.debug('user specific cleanup not performed')
 
     input_files = [e.lfn for e in job.indata]
     output_files = [e.lfn for e in job.outdata]
@@ -792,7 +795,7 @@ def _stage_out_new(job, args):
         logfile = job.logdata[0]
 
         try:
-            create_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue))
+            create_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue), args)
         except LogFileCreationFailure as e:
             log.warning('failed to create tar file: %s' % e)
             set_pilot_state(job=job, state="failed")

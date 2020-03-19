@@ -544,7 +544,7 @@ def is_process_running(process_id):
         return False
 
 
-def cleanup(job):
+def cleanup(job, args):
     """
     Cleanup called after completion of job.
 
@@ -555,13 +555,16 @@ def cleanup(job):
     logger.info("overall cleanup function is called")
 
     # make sure the workdir is deleted
-    if remove_dir_tree(job.workdir):
-        logger.info('removed %s' % job.workdir)
+    if args.cleanup:
+        if remove_dir_tree(job.workdir):
+            logger.info('removed %s' % job.workdir)
 
-    if os.path.exists(job.workdir):
-        logger.warning('work directory still exists: %s' % job.workdir)
+        if os.path.exists(job.workdir):
+            logger.warning('work directory still exists: %s' % job.workdir)
+        else:
+            logger.debug('work directory was removed: %s' % job.workdir)
     else:
-        logger.debug('work directory was removed: %s' % job.workdir)
+        logger.info('workdir not removed %s' % job.workdir)
 
     # collect any zombie processes
     job.collect_zombies(tn=10)
