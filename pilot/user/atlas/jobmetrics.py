@@ -56,7 +56,7 @@ def get_job_metrics(job):  # noqa: C901
 
     # add metadata from job report
     if job.metadata:
-        db_time, db_data = get_db_info(job.metadata)
+        job.dbtime, job.dbdata = get_db_info(job.metadata)
     if job.dbtime and job.dbtime != "":
         job_metrics += get_job_metrics_entry("dbTime", job.dbtime)
     if job.dbdata and job.dbdata != "":
