@@ -777,6 +777,7 @@ def verify_output_files(job):  # noqa: C901
         failed = False
         for lfn in lfns_jobdef:
             if lfn not in job.allownooutput:
+                log.debug('transformation = %s' % job.transformation)
                 if job.is_analysis():
                     log.warning('lfn %s is not in allowNoOutput list' % lfn)
                 else:
