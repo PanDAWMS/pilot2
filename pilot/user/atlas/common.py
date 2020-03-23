@@ -661,8 +661,8 @@ def update_job_data(job):
 
     # extract output files from the job report if required, in case the trf has created additional (overflow) files
     # also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
-    if job.metadata and not job.is_eventservice:  # and not job.is_analysis():
-        extract_output_files(job)  # keep this for now, complicated to merge with verify_output_files?
+    if job.metadata and not job.is_eventservice:
+        extract_output_file_guids(job)  # keep this for now, complicated to merge with verify_output_files?
         try:
             verify_output_files(job)
         except Exception as e:
@@ -683,7 +683,7 @@ def update_job_data(job):
             log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
 
 
-def extract_output_files(job):
+def extract_output_file_guids(job):
     """
     Extract output file info from the job report and make sure all guids are assigned (use job report value if present,
     otherwise generate the guid - note: guid generation is done later, not in this function since this function
@@ -777,7 +777,6 @@ def verify_output_files(job):  # noqa: C901
         failed = False
         for lfn in lfns_jobdef:
             if lfn not in job.allownooutput:
-                log.debug('transformation = %s' % job.transformation)
                 if job.is_analysis():
                     log.warning('lfn %s is not in allowNoOutput list' % lfn)
                 else:
@@ -808,10 +807,13 @@ def verify_output_files(job):  # noqa: C901
         # now make sure that the known output files are in the job report dictionary
         for lfn in lfns_jobdef:
             if lfn not in output_jobrep and lfn not in job.allownooutput:
-                log.warning('output file %s from job definition is not present in job report and is not listed in allowNoOutput - job will fail' % lfn)
-                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGOUTPUTFILE)
-                failed = True
-                break
+                if job.is_analysis():
+                    log.warning('output file %s from job definition is not present in job report and is not listed in allowNoOutput' % lfn)
+                else:
+                    log.warning('output file %s from job definition is not present in job report and is not listed in allowNoOutput - job will fail' % lfn)
+                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGOUTPUTFILE)
+                    failed = True
+                    break
             if lfn not in output_jobrep and lfn in job.allownooutput:
                 log.warning('output file %s from job definition is not present in job report but is listed in allowNoOutput - remove from stage-out' % lfn)
                 remove_from_stageout(lfn, job)
@@ -828,9 +830,6 @@ def verify_output_files(job):  # noqa: C901
                     remove_from_stageout(lfn, job)
                 elif type(nentries) is int and nentries == 0 and lfn not in job.allownooutput:
                     log.warning('output file %s is listed in job report, has zero events and is not listed in allowNoOutput - will ignore' % lfn)
-                    #job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.EMPTYOUTPUTFILE)
-                    #failed = True
-                    #break
                 elif type(nentries) is int and nentries == 0 and lfn in job.allownooutput:
                     log.warning('output file %s is listed in job report, has zero events and is listed in allowNoOutput - remove from stage-out' % lfn)
                     remove_from_stageout(lfn, job)
