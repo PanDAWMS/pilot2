@@ -717,7 +717,7 @@ def extract_output_file_guids(job):
             if lfn in data:
                 data[lfn].guid = fdat['file_guid']
                 logger.info('set guid=%s for lfn=%s (value taken from job report)' % (data[lfn].guid, lfn))
-            else:  # found new entry, create filespec
+            else:  # found new entry
                 logger.warning('pilot no longer considers output files not mentioned in job definition (lfn=%s)' % lfn)
                 continue
 
@@ -778,7 +778,7 @@ def verify_output_files(job):  # noqa: C901
         for lfn in lfns_jobdef:
             if lfn not in job.allownooutput:
                 if job.is_analysis():
-                    log.warning('lfn %s is not in allowNoOutput list' % lfn)
+                    log.warning('lfn %s is not in allowNoOutput list - ignore for user job' % lfn)
                 else:
                     failed = True
                     log.warning('lfn %s is not in allowNoOutput list - job will fail' % lfn)
