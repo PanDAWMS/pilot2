@@ -1429,7 +1429,7 @@ def retrieve(queues, traces, args):
 
                 jobnumber += 1
                 while not args.graceful_stop.is_set():
-                    if has_job_completed(queues):
+                    if has_job_completed(queues, args):
                         args.job_aborted.clear()
                         args.abort_job.clear()
                         logger.info('ready for new job')
@@ -1489,7 +1489,7 @@ def create_job(dispatcher_response, queue):
     return job
 
 
-def has_job_completed(queues):
+def has_job_completed(queues, args):
     """
     Has the current job completed (finished or failed)?
     Note: the job object was extracted from monitored_payloads queue before this function was called.
@@ -1515,7 +1515,7 @@ def has_job_completed(queues):
         # cleanup of any remaining processes
         if job.pid:
             job.zombies.append(job.pid)
-        cleanup(job)
+        cleanup(job, args)
 
         return True
 
