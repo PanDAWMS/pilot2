@@ -35,7 +35,7 @@ from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, U
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps
 
-from pilot.info import FileSpec
+#from pilot.info import FileSpec
 
 import logging
 logger = logging.getLogger(__name__)
@@ -421,8 +421,21 @@ def get_analysis_run_command(job, trf_name):
     else:
         cmd += 'python %s %s' % (trf_name, job.jobparams)
 
+        imagename = job.imagename
+        # check if image is on disk as defined by envar PAYLOAD_CONTAINER_LOCATION
+        payload_container_location = os.environ.get('PAYLOAD_CONTAINER_LOCATION')
+        if payload_container_location is not None:
+            log.debug("$PAYLOAD_CONTAINER_LOCATION = %s" % payload_container_location)
+            # get container name
+            containername = imagename.rsplit('/')[-1]
+            image_location = os.path.join(payload_container_location, containername)
+            if os.path.exists(image_location):
+                log.debug("image exists at %s" % image_location)
+                imagename = image_location
+
         # restore the image name
-        cmd += ' --containerImage=%s' % job.imagename
+        log.debug(" restore image name : --containerImage=%s" % imagename)
+        cmd += ' --containerImage=%s' % imagename
 
     # add control options for PFC turl and direct access
     #if job.indata:   ## DEPRECATE ME (anisyonk)
@@ -661,8 +674,8 @@ def update_job_data(job):
 
     # extract output files from the job report if required, in case the trf has created additional (overflow) files
     # also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
-    if job.metadata and not job.is_eventservice:  # and not job.is_analysis():
-        extract_output_files(job)  # keep this for now, complicated to merge with verify_output_files?
+    if job.metadata and not job.is_eventservice:
+        extract_output_file_guids(job)  # keep this for now, complicated to merge with verify_output_files?
         try:
             verify_output_files(job)
         except Exception as e:
@@ -683,10 +696,11 @@ def update_job_data(job):
             log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
 
 
-def extract_output_files(job):
+def extract_output_file_guids(job):
     """
-    Extract output files from the job report if required (not for user jobs), in case the trf has created additional
-    (overflow) files also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
+    Extract output file info from the job report and make sure all guids are assigned (use job report value if present,
+    otherwise generate the guid - note: guid generation is done later, not in this function since this function
+    might not be called if metadata info is not found prior to the call).
 
     :param job: job object.
     :return:
@@ -698,39 +712,49 @@ def extract_output_files(job):
     if not job.allownooutput:
         output = job.metadata.get('files', {}).get('output', [])
         if output:
-            logger.info('verified that job report contains metadata for %d file(s)' % len(output))
+            log.info('verified that job report contains metadata for %d file(s)' % len(output))
         else:
-            logger.warning('job report contains no output files - will fail job since allowNoOutput is not set')
-            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOOUTPUTINJOBREPORT)
+            log.warning('job report contains no output files and allowNoOutput is not set')  #- will fail job since allowNoOutput is not set')
+            #job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOOUTPUTINJOBREPORT)
+            return
 
     # extract info from metadata (job report JSON)
     data = dict([e.lfn, e] for e in job.outdata)
-    extra = []
+    #extra = []
     for dat in job.metadata.get('files', {}).get('output', []):
         for fdat in dat.get('subFiles', []):
             lfn = fdat['name']
 
             # verify the guid if the lfn is known
+            # only extra guid if the file is known by the job definition (March 18 change, v 2.5.2)
             if lfn in data:
                 data[lfn].guid = fdat['file_guid']
                 logger.info('set guid=%s for lfn=%s (value taken from job report)' % (data[lfn].guid, lfn))
-            else:  # found new entry, create filespec
-                #if not job.outdata:
-                #    raise PilotException("job.outdata is empty, will not be able to construct FileSpecs",
-                #                         code=errors.INTERNALPILOTPROBLEM)
-                if job.outdata:
-                    kw = {'lfn': lfn,
-                          'scope': job.outdata[0].scope,  ## take value from 1st output file?
-                          'guid': fdat['file_guid'],
-                          'filesize': fdat['file_size'],
-                          'dataset': dat.get('dataset') or job.outdata[0].dataset  ## take value from 1st output file?
-                          }
-                    spec = FileSpec(filetype='output', **kw)
-                    extra.append(spec)
+            else:  # found new entry
+                logger.warning('pilot no longer considers output files not mentioned in job definition (lfn=%s)' % lfn)
+                continue
 
-    if extra:
-        log.info('found extra output files in job report, will overwrite output file list: extra=%s' % extra)
-        job.outdata = extra
+                #if job.outdata:
+                #    kw = {'lfn': lfn,
+                #          'scope': job.outdata[0].scope,  ## take value from 1st output file?
+                #          'guid': fdat['file_guid'],
+                #          'filesize': fdat['file_size'],
+                #          'dataset': dat.get('dataset') or job.outdata[0].dataset  ## take value from 1st output file?
+                #          }
+                #    spec = FileSpec(filetype='output', **kw)
+                #    extra.append(spec)
+
+    # make sure the output list has set guids from job report
+    for fspec in job.outdata:
+        if fspec.guid != data[fspec.lfn].guid:
+            fspec.guid = data[fspec.lfn].guid
+            logger.debug('reset guid=%s for lfn=%s' % (fspec.guid, fspec.lfn))
+        else:
+            logger.debug('verified guid=%s for lfn=%s' % (fspec.guid, fspec.lfn))
+
+    #if extra:
+        #log.info('found extra output files in job report, will overwrite output file list: extra=%s' % extra)
+        #job.outdata = extra
 
 
 def verify_output_files(job):  # noqa: C901
@@ -766,10 +790,13 @@ def verify_output_files(job):  # noqa: C901
         failed = False
         for lfn in lfns_jobdef:
             if lfn not in job.allownooutput:
-                failed = True
-                log.warning('lfn %s is not in allowNoOutput list - job will fail' % lfn)
-                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGOUTPUTFILE)
-                break
+                if job.is_analysis():
+                    log.warning('lfn %s is not in allowNoOutput list - ignore for user job' % lfn)
+                else:
+                    failed = True
+                    log.warning('lfn %s is not in allowNoOutput list - job will fail' % lfn)
+                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGOUTPUTFILE)
+                    break
             else:
                 log.info('lfn %s listed in allowNoOutput - will be removed from stage-out' % lfn)
                 remove_from_stageout(lfn, job)
@@ -793,10 +820,13 @@ def verify_output_files(job):  # noqa: C901
         # now make sure that the known output files are in the job report dictionary
         for lfn in lfns_jobdef:
             if lfn not in output_jobrep and lfn not in job.allownooutput:
-                log.warning('output file %s from job definition is not present in job report and is not listed in allowNoOutput - job will fail' % lfn)
-                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGOUTPUTFILE)
-                failed = True
-                break
+                if job.is_analysis():
+                    log.warning('output file %s from job definition is not present in job report and is not listed in allowNoOutput' % lfn)
+                else:
+                    log.warning('output file %s from job definition is not present in job report and is not listed in allowNoOutput - job will fail' % lfn)
+                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGOUTPUTFILE)
+                    failed = True
+                    break
             if lfn not in output_jobrep and lfn in job.allownooutput:
                 log.warning('output file %s from job definition is not present in job report but is listed in allowNoOutput - remove from stage-out' % lfn)
                 remove_from_stageout(lfn, job)
@@ -813,9 +843,6 @@ def verify_output_files(job):  # noqa: C901
                     remove_from_stageout(lfn, job)
                 elif type(nentries) is int and nentries == 0 and lfn not in job.allownooutput:
                     log.warning('output file %s is listed in job report, has zero events and is not listed in allowNoOutput - will ignore' % lfn)
-                    #job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.EMPTYOUTPUTFILE)
-                    #failed = True
-                    #break
                 elif type(nentries) is int and nentries == 0 and lfn in job.allownooutput:
                     log.warning('output file %s is listed in job report, has zero events and is listed in allowNoOutput - remove from stage-out' % lfn)
                     remove_from_stageout(lfn, job)
