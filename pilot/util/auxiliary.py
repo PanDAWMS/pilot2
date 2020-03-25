@@ -23,7 +23,7 @@ except NameError:
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.container import execute
-from pilot.util.constants import SUCCESS, FAILURE, SERVER_UPDATE_FINAL, SERVER_UPDATE_NOT_DONE, get_pilot_version
+from pilot.util.constants import SUCCESS, FAILURE, SERVER_UPDATE_FINAL, SERVER_UPDATE_NOT_DONE, SERVER_UPDATE_TROUBLE, get_pilot_version
 from pilot.util.filehandling import dump
 
 import logging
@@ -334,7 +334,8 @@ def check_for_final_server_update(update_server):
         return
 
     while i < max_i and update_server:
-        if os.environ.get('SERVER_UPDATE', '') == SERVER_UPDATE_FINAL:
+        server_update = os.environ.get('SERVER_UPDATE', '')
+        if server_update == SERVER_UPDATE_FINAL or server_update == SERVER_UPDATE_TROUBLE:
             logger.info('server update done, finishing')
             break
         logger.info('server update not finished (#%d/#%d)' % (i + 1, max_i))
