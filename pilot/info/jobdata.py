@@ -65,7 +65,7 @@ class JobData(BaseData):
     allownooutput = ""             # used to disregard empty files from job report
 
     # set by the pilot (not from job definition)
-    workdir = ""                   # working directoty for this job
+    workdir = ""                   # working directory for this job
     workdirsizes = []              # time ordered list of work dir sizes
     fileinfo = {}                  #
     piloterrorcode = 0             # current pilot error code
