@@ -211,6 +211,11 @@ def execute_payloads(queues, traces, args):
             out.close()
             err.close()
 
+            #if traces.pilot['nr_jobs'] == 1:
+            #    log.debug('faking job failure in first multi-job')
+            #    job.transexitcode = 1
+            #    exit_code = 1
+
             # analyze and interpret the payload execution output
             perform_initial_payload_error_analysis(job, exit_code)
 

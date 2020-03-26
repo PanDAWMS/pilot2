@@ -290,6 +290,7 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
             time_after = int(time.time())
             log.info('server updateJob request completed in %ds for job %s' % (time_after - time_before, job.jobid))
             log.info("server responded with: res = %s" % str(res))
+
             if res is not None:
                 # does the server update contain any backchannel information? if so, update the job object
                 handle_backchannel_command(res, job, args)
@@ -1713,8 +1714,8 @@ def queue_monitor(queues, traces, args):  # noqa: C901
 
         # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
         # (abort at the end of the loop)
-        abort = should_abort(args, label='job:queue_monitor')
-        if abort and os.environ.get('PILOT_WRAP_UP', '') == 'NORMAL':
+        abort_thread = should_abort(args, label='job:queue_monitor')
+        if abort_thread and os.environ.get('PILOT_WRAP_UP', '') == 'NORMAL':
             pause_queue_monitor(20)
 
         # check if the job has finished
@@ -1724,19 +1725,18 @@ def queue_monitor(queues, traces, args):  # noqa: C901
             job = get_finished_or_failed_job(args, queues)
             if job:
                 logger.debug('returned job has state=%s' % job.state)
-                if job.state == 'failed':
-                    logger.warning('will abort failed job (should prepare for final server update)')
-                    abort = True
+                #if job.state == 'failed':
+                #    logger.warning('will abort failed job (should prepare for final server update)')
                 break
             i += 1
             state = get_pilot_state()  # the job object is not available, but the state is also kept in PILOT_JOB_STATE
             if state != 'stage-out':
                 # logger.info("no need to wait since job state=\'%s\'" % state)
                 break
-            pause_queue_monitor(1) if not abort else pause_queue_monitor(10)
+            pause_queue_monitor(1) if not abort_thread else pause_queue_monitor(10)
 
         # job has not been defined if it's still running
-        if not job and not abort:
+        if not job and not abort_thread:
             continue
 
         completed_jobids = queues.completed_jobids.queue if queues.completed_jobids else []
@@ -1767,7 +1767,7 @@ def queue_monitor(queues, traces, args):  # noqa: C901
                 del _job
                 logger.debug('tmp job object deleted')
 
-        if abort:
+        if abort_thread:
             break
 
     logger.debug('[job] queue monitor thread has finished')
@@ -1931,7 +1931,6 @@ def job_monitor(queues, traces, args):  # noqa: C901
 
         # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
         jobs = queues.monitored_payloads.queue
-
         if jobs:
             # update the peeking time
             peeking_time = int(time.time())
