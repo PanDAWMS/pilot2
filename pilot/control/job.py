@@ -285,16 +285,18 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
         pandaserver = get_panda_server(args.url, args.port)
 
         if config.Pilot.pandajob == 'real':
+            time_before = int(time.time())
             res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver), data=data)
-            log.info("res = %s" % str(res))
+            time_after = int(time.time())
+            log.info('server updateJob request completed in %ds for job %s' % (time_after - time_after, job.jobid))
+            log.info("server responded with: res = %s" % str(res))
             if res is not None:
-                log.info('server updateJob request completed for job %s' % job.jobid)
-
                 # does the server update contain any backchannel information? if so, update the job object
                 handle_backchannel_command(res, job, args)
 
                 if final:
                     os.environ['SERVER_UPDATE'] = SERVER_UPDATE_FINAL
+                    log.debug('set SERVER_UPDATE=SERVER_UPDATE_FINAL')
                 return True
         else:
             log.info('skipping job update for fake test job')
@@ -306,6 +308,7 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
 
     if final:
         os.environ['SERVER_UPDATE'] = SERVER_UPDATE_TROUBLE
+        log.debug('set SERVER_UPDATE=SERVER_UPDATE_TROUBLE')
 
     return False
 
