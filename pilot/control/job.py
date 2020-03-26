@@ -288,7 +288,7 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
             time_before = int(time.time())
             res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver), data=data)
             time_after = int(time.time())
-            log.info('server updateJob request completed in %ds for job %s' % (time_after - time_after, job.jobid))
+            log.info('server updateJob request completed in %ds for job %s' % (time_after - time_before, job.jobid))
             log.info("server responded with: res = %s" % str(res))
             if res is not None:
                 # does the server update contain any backchannel information? if so, update the job object
