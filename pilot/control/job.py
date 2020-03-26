@@ -33,7 +33,7 @@ from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
     set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine, is_python3
 from pilot.util.config import config
-from pilot.util.common import should_abort
+from pilot.util.common import should_abort, was_pilot_killed
 from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
@@ -1645,7 +1645,9 @@ def wait_for_aborted_job_stageout(args, queues, job):
     # if the pilot received a kill signal, how much time has passed since the signal was intercepted?
     try:
         time_since_kill = get_time_since('1', PILOT_KILL_SIGNAL, args)
-        log.info('%d s passed since kill signal was intercepted - make sure that stage-out has finished' % time_since_kill)
+        was_killed = was_pilot_killed(args.timing)
+        if was_killed:
+            log.info('%d s passed since kill signal was intercepted - make sure that stage-out has finished' % time_since_kill)
     except Exception as e:
         log.warning('exception caught: %s' % e)
         time_since_kill = 60
@@ -1939,7 +1941,7 @@ def job_monitor(queues, traces, args):  # noqa: C901
                 current_id = jobs[i].jobid
                 log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, current_id, jobs[i].state))
                 if jobs[i].state == 'finished' or jobs[i].state == 'failed':
-                    log.info('aborting job monitoring since job state=%s' % jobs[i].state)
+                    log.info('will abort job monitoring soon since job state=%s (job is still in queue)' % jobs[i].state)
                     break
 
                 # perform the monitoring tasks
