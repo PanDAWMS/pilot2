@@ -30,8 +30,13 @@ def should_abort(args, limit=30, label=''):
     abort = False
     if args.graceful_stop.wait(1) or args.graceful_stop.is_set():  # 'or' added for 2.6 compatibility reasons
         if os.environ.get('REACHED_MAXTIME', None) and limit:
+            # was the pilot killed?
+            was_killed = False
+            for i in args.timing:
+                if PILOT_KILL_SIGNAL in args.timing[i]:
+                    was_killed = True
             time_since = get_time_since('0', PILOT_KILL_SIGNAL, args)
-            if time_since < limit:
+            if time_since < limit and was_killed:
                 logger.warning('%s:received graceful stop - %d s ago, continue for now' % (label, time_since))
             else:
                 abort = True
