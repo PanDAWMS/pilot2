@@ -11,6 +11,7 @@ import os
 import time
 import signal
 import re
+import threading
 
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
@@ -544,7 +545,7 @@ def is_process_running(process_id):
         return False
 
 
-def cleanup(job):
+def cleanup(job, args):
     """
     Cleanup called after completion of job.
 
@@ -555,13 +556,16 @@ def cleanup(job):
     logger.info("overall cleanup function is called")
 
     # make sure the workdir is deleted
-    if remove_dir_tree(job.workdir):
-        logger.info('removed %s' % job.workdir)
+    if args.cleanup:
+        if remove_dir_tree(job.workdir):
+            logger.info('removed %s' % job.workdir)
 
-    if os.path.exists(job.workdir):
-        logger.warning('work directory still exists: %s' % job.workdir)
+        if os.path.exists(job.workdir):
+            logger.warning('work directory still exists: %s' % job.workdir)
+        else:
+            logger.debug('work directory was removed: %s' % job.workdir)
     else:
-        logger.debug('work directory was removed: %s' % job.workdir)
+        logger.info('workdir not removed %s' % job.workdir)
 
     # collect any zombie processes
     job.collect_zombies(tn=10)
@@ -571,3 +575,30 @@ def cleanup(job):
     kill_processes(job.pid)
     #logger.info("deleting job object")
     #del job
+
+
+def threads_aborted(abort_at=2):
+    """
+    Have the threads been aborted?
+
+    :param abort_at: 1 for workflow finish, 2 for thread finish (since check is done just before thread finishes) (int).
+    :return: Boolean.
+    """
+
+    aborted = False
+    thread_count = threading.activeCount()
+
+    # count all non-daemon threads
+    daemon_threads = 0
+    for thread in threading.enumerate():
+        if thread.isDaemon():  # ignore any daemon threads, they will be aborted when python ends
+            daemon_threads += 1
+
+    if thread_count - daemon_threads == abort_at:
+        logger.debug('aborting since this thread is about to finish')
+        aborted = True
+    else:
+        logger.debug('thread count at %d threads' % thread_count)
+        logger.debug('daemon thread count at %d threads' % daemon_threads)
+
+    return aborted
