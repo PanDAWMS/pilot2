@@ -62,7 +62,7 @@ class Executor(generic.Executor):
             log.debug("payload: %s" % payload)
 
             log.info("Starting EventService WorkExecutor")
-            executor = WorkExecutor(args=config.Payload.executor_type)
+            executor = WorkExecutor(args={'executor_type': config.Payload.executor_type})
             executor.set_payload(payload)
             executor.start()
             log.info("EventService WorkExecutor started")

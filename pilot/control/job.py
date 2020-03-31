@@ -115,6 +115,9 @@ def control(queues, traces, args):
         logger.debug('will not set job_aborted yet')
 
     logger.debug('[job] control thread has finished')
+    # test kill signal during end of generic workflow
+    #import signal
+    #os.kill(os.getpid(), signal.SIGBUS)
 
 
 def _validate_job(job):
