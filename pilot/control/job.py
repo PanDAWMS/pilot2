@@ -1358,7 +1358,7 @@ def get_job_retrieval_delay(harvester):
     return 1 if harvester else 60
 
 
-def retrieve(queues, traces, args):
+def retrieve(queues, traces, args):  # noqa: C901
     """
     Retrieve all jobs from a source.
 
