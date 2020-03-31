@@ -16,6 +16,7 @@ from pilot.common import exception
 from pilot.control.payloads import generic
 from pilot.eventservice.workexecutor.workexecutor import WorkExecutor
 from pilot.util.auxiliary import get_logger
+from pilot.util.config import config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -61,7 +62,7 @@ class Executor(generic.Executor):
             log.debug("payload: %s" % payload)
 
             log.info("Starting EventService WorkExecutor")
-            executor = WorkExecutor()
+            executor = WorkExecutor(args={'executor_type': config.Payload.executor_type})
             executor.set_payload(payload)
             executor.start()
             log.info("EventService WorkExecutor started")

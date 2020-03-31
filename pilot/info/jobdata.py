@@ -65,7 +65,7 @@ class JobData(BaseData):
     allownooutput = ""             # used to disregard empty files from job report
 
     # set by the pilot (not from job definition)
-    workdir = ""                   # working directoty for this job
+    workdir = ""                   # working directory for this job
     workdirsizes = []              # time ordered list of work dir sizes
     fileinfo = {}                  #
     piloterrorcode = 0             # current pilot error code
@@ -105,7 +105,8 @@ class JobData(BaseData):
     overwrite_storagedata = {}     # custom settings extracted from job parameters (--overwriteStorageData) to be used as master values for `StorageData`
 
     zipmap = ""                    # ZIP MAP values extracted from jobparameters
-    imagename = ""                 # user defined container image name extracted from job parameters
+    imagename = ""                 # container image name extracted from job parameters or job definition
+    imagename_test = ""
     usecontainer = False           # boolean, True if a container is to be used for the payload
 
     # from job definition
@@ -141,7 +142,7 @@ class JobData(BaseData):
                    'state', 'serverstate', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg', 'produserid', 'jobdefinitionid', 'writetofile',
                    'cpuconsumptionunit', 'homepackage', 'jobsetid', 'payload', 'processingtype',
-                   'swrelease', 'zipmap', 'imagename', 'accessmode', 'transfertype',
+                   'swrelease', 'zipmap', 'imagename', 'imagename_test', 'accessmode', 'transfertype',
                    'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    'infilesguids', 'memorymonitor', 'allownooutput'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'zombies'],
@@ -384,6 +385,7 @@ class JobData(BaseData):
             'is_eventservicemerge': 'eventServiceMerge',
             'maxcpucount': 'maxCpuCount',
             'allownooutput': 'allowNoOutput',
+            'imagename_test': 'container_name'
         }
 
         self._load_data(data, kmap)
@@ -545,6 +547,12 @@ class JobData(BaseData):
         """
 
         imagename = ""
+
+        # take the imagename ("container_name") from the job definition if it is set there
+        if self.imagename_test:
+            logger.debug('imagename_test=%s' % self.imagename_test)
+        else:
+            logger.debug('imagename_test/container_name not set?')
 
         # define regexp pattern for the full container image option
         _pattern = r'(\ \-\-containerImage\=?\s?[\S]+)'

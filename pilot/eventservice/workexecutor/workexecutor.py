@@ -45,18 +45,22 @@ class WorkExecutor(PluginFactory):
         return self.payload
 
     def get_plugin_confs(self):
-        plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.genericexecutor.GenericExecutor'}
+        plugin_confs = {}
         if self.args and 'executor_type' in list(self.args.keys()):  # Python 2/3
-            if self.args['executor_type'] == 'base':
+            if self.args['executor_type'] == 'generic':
+                plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.genericexecutor.GenericExecutor'}
+            elif self.args['executor_type'] == 'base':
                 plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.baseexecutor.BaseExecutor'}
-            if self.args['executor_type'] == 'nl':  # network-less
+            elif self.args['executor_type'] == 'nl':  # network-less
                 plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.nlexecutor.NLExecutor'}
-            if self.args['executor_type'] == 'boinc':
+            elif self.args['executor_type'] == 'boinc':
                 plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.boincexecutor.BOINCExecutor'}
-            if self.args['executor_type'] == 'hammercloud':  # hammercloud test: refine normal simul to ES
+            elif self.args['executor_type'] == 'hammercloud':  # hammercloud test: refine normal simul to ES
                 plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.hammercloudexecutor.HammerCloudExecutor'}
-            if self.args['executor_type'] == 'mpi':  # network-less
+            elif self.args['executor_type'] == 'mpi':  # network-less
                 plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.mpiexecutor.MPIExecutor'}
+        else:
+            plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.genericexecutor.GenericExecutor'}
 
         plugin_confs['args'] = self.args
         return plugin_confs

@@ -33,7 +33,7 @@ from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
     set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine, is_python3
 from pilot.util.config import config
-from pilot.util.common import should_abort
+from pilot.util.common import should_abort, was_pilot_killed
 from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
@@ -44,7 +44,7 @@ from pilot.util.harvester import request_new_jobs, remove_job_request_file, pars
 from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
-from pilot.util.processes import cleanup
+from pilot.util.processes import cleanup, threads_aborted
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.queuehandling import scan_for_jobs, put_in_queue, queue_report
 from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since, time_stamp
@@ -107,7 +107,17 @@ def control(queues, traces, args):
             # find all running jobs and stop them, find all jobs in queues relevant to this module
             #abort_jobs_in_queues(queues, args.signal)
 
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
+
     logger.debug('[job] control thread has finished')
+    # test kill signal during end of generic workflow
+    #import signal
+    #os.kill(os.getpid(), signal.SIGBUS)
 
 
 def _validate_job(job):
@@ -285,16 +295,19 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
         pandaserver = get_panda_server(args.url, args.port)
 
         if config.Pilot.pandajob == 'real':
+            time_before = int(time.time())
             res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver), data=data)
-            log.info("res = %s" % str(res))
-            if res is not None:
-                log.info('server updateJob request completed for job %s' % job.jobid)
+            time_after = int(time.time())
+            log.info('server updateJob request completed in %ds for job %s' % (time_after - time_before, job.jobid))
+            log.info("server responded with: res = %s" % str(res))
 
+            if res is not None:
                 # does the server update contain any backchannel information? if so, update the job object
                 handle_backchannel_command(res, job, args)
 
                 if final:
                     os.environ['SERVER_UPDATE'] = SERVER_UPDATE_FINAL
+                    log.debug('set SERVER_UPDATE=SERVER_UPDATE_FINAL')
                 return True
         else:
             log.info('skipping job update for fake test job')
@@ -306,6 +319,7 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
 
     if final:
         os.environ['SERVER_UPDATE'] = SERVER_UPDATE_TROUBLE
+        log.debug('set SERVER_UPDATE=SERVER_UPDATE_TROUBLE')
 
     return False
 
@@ -745,6 +759,13 @@ def validate(queues, traces, args):
             log.debug('Failed to validate job=%s' % job.jobid)
             put_in_queue(job, queues.failed_jobs)
 
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
+
     logger.debug('[job] validate thread has finished')
 
 
@@ -794,6 +815,13 @@ def create_data_payload(queues, traces, args):
             put_in_queue(job, queues.finished_data_in)
 
         put_in_queue(job, queues.payloads)
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
 
     logger.debug('[job] create_data_payload thread has finished')
 
@@ -1330,7 +1358,7 @@ def get_job_retrieval_delay(harvester):
     return 1 if harvester else 60
 
 
-def retrieve(queues, traces, args):
+def retrieve(queues, traces, args):  # noqa: C901
     """
     Retrieve all jobs from a source.
 
@@ -1444,6 +1472,13 @@ def retrieve(queues, traces, args):
                         add_to_pilot_timing('1', PILOT_MULTIJOB_START_TIME, time.time(), args)
                         break
                     time.sleep(0.5)
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
 
     logger.debug('[job] retrieve thread has finished')
 
@@ -1641,7 +1676,9 @@ def wait_for_aborted_job_stageout(args, queues, job):
     # if the pilot received a kill signal, how much time has passed since the signal was intercepted?
     try:
         time_since_kill = get_time_since('1', PILOT_KILL_SIGNAL, args)
-        log.info('%d s passed since kill signal was intercepted - make sure that stage-out has finished' % time_since_kill)
+        was_killed = was_pilot_killed(args.timing)
+        if was_killed:
+            log.info('%d s passed since kill signal was intercepted - make sure that stage-out has finished' % time_since_kill)
     except Exception as e:
         log.warning('exception caught: %s' % e)
         time_since_kill = 60
@@ -1710,8 +1747,8 @@ def queue_monitor(queues, traces, args):  # noqa: C901
 
         # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
         # (abort at the end of the loop)
-        abort = should_abort(args, label='job:queue_monitor')
-        if abort and os.environ.get('PILOT_WRAP_UP', '') == 'NORMAL':
+        abort_thread = should_abort(args, label='job:queue_monitor')
+        if abort_thread and os.environ.get('PILOT_WRAP_UP', '') == 'NORMAL':
             pause_queue_monitor(20)
 
         # check if the job has finished
@@ -1721,19 +1758,18 @@ def queue_monitor(queues, traces, args):  # noqa: C901
             job = get_finished_or_failed_job(args, queues)
             if job:
                 logger.debug('returned job has state=%s' % job.state)
-                if job.state == 'failed':
-                    logger.warning('will abort failed job (should prepare for final server update)')
-                    abort = True
+                #if job.state == 'failed':
+                #    logger.warning('will abort failed job (should prepare for final server update)')
                 break
             i += 1
             state = get_pilot_state()  # the job object is not available, but the state is also kept in PILOT_JOB_STATE
             if state != 'stage-out':
                 # logger.info("no need to wait since job state=\'%s\'" % state)
                 break
-            pause_queue_monitor(1) if not abort else pause_queue_monitor(10)
+            pause_queue_monitor(1) if not abort_thread else pause_queue_monitor(10)
 
         # job has not been defined if it's still running
-        if not job and not abort:
+        if not job and not abort_thread:
             continue
 
         completed_jobids = queues.completed_jobids.queue if queues.completed_jobids else []
@@ -1764,8 +1800,15 @@ def queue_monitor(queues, traces, args):  # noqa: C901
                 del _job
                 logger.debug('tmp job object deleted')
 
-        if abort:
+        if abort_thread:
             break
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
 
     logger.debug('[job] queue monitor thread has finished')
 
@@ -1928,7 +1971,6 @@ def job_monitor(queues, traces, args):  # noqa: C901
 
         # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
         jobs = queues.monitored_payloads.queue
-
         if jobs:
             # update the peeking time
             peeking_time = int(time.time())
@@ -1937,7 +1979,7 @@ def job_monitor(queues, traces, args):  # noqa: C901
                 current_id = jobs[i].jobid
                 log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, current_id, jobs[i].state))
                 if jobs[i].state == 'finished' or jobs[i].state == 'failed':
-                    log.info('aborting job monitoring since job state=%s' % jobs[i].state)
+                    log.info('will abort job monitoring soon since job state=%s (job is still in queue)' % jobs[i].state)
                     break
 
                 # perform the monitoring tasks
@@ -1974,6 +2016,13 @@ def job_monitor(queues, traces, args):  # noqa: C901
 
         if abort or abort_job:
             break
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
 
     logger.debug('[job] job monitor thread has finished')
 

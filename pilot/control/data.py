@@ -36,9 +36,10 @@ from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PR
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME
 from pilot.util.container import execute
 from pilot.util.filehandling import find_executable, remove  #, write_json, copy
+from pilot.util.processes import threads_aborted
+from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.tracereport import TraceReport
-from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
 
 import logging
 
@@ -84,6 +85,13 @@ def control(queues, traces, args):
 
             # find all running jobs and stop them, find all jobs in queues relevant to this module
             #abort_jobs_in_queues(queues, args.signal)
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
 
     logger.debug('[data] control thread has finished')
 
@@ -471,6 +479,13 @@ def copytool_in(queues, traces, args):
         except queue.Empty:
             continue
 
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
+
     logger.debug('[data] copytool_in thread has finished')
 
 
@@ -491,7 +506,6 @@ def copytool_out(queues, traces, args):
         logger.debug('graceful_stop already set')
 
     processed_jobs = []
-#    while not args.graceful_stop.is_set() and cont:
     while cont:
 
         time.sleep(0.5)
@@ -551,6 +565,13 @@ def copytool_out(queues, traces, args):
         if abort:
             cont = False
             break
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
 
     logger.debug('[data] copytool_out thread has finished')
 
@@ -930,5 +951,12 @@ def queue_monitoring(queues, traces, args):
 
         if abort:
             break
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
 
     logger.debug('[data] queue_monitor thread has finished')
