@@ -26,6 +26,7 @@ from pilot.util.auxiliary import get_logger, set_pilot_state
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
 from pilot.util.filehandling import read_file, remove_core_dumps
+from pilot.util.processes import threads_aborted
 from pilot.util.queuehandling import put_in_queue
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
@@ -84,6 +85,13 @@ def control(queues, traces, args):
             # find all running jobs and stop them, find all jobs in queues relevant to this module
             #abort_jobs_in_queues(queues, args.signal)
 
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
+
     logger.debug('[payload] control thread has finished')
 
 
@@ -109,6 +117,20 @@ def validate_pre(queues, traces, args):
         else:
             #queues.failed_payloads.put(job)
             put_in_queue(job, queues.failed_payloads)
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
 
     logger.info('[payload] validate_pre thread has finished')
 
@@ -257,6 +279,13 @@ def execute_payloads(queues, traces, args):
                 # let stage-out of log finish, but stop running payloads as there should be a problem with the pilot
                 time.sleep(5)
 
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
+
     logger.info('[payload] execute_payloads thread has finished')
 
 
@@ -383,6 +412,13 @@ def validate_post(queues, traces, args):
         #queues.data_out.put(job)
         set_pilot_state(job=job, state='stageout')
         put_in_queue(job, queues.data_out)
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
 
     logger.info('[payload] validate_post thread has finished')
 

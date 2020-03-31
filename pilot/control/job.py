@@ -44,7 +44,7 @@ from pilot.util.harvester import request_new_jobs, remove_job_request_file, pars
 from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
-from pilot.util.processes import cleanup
+from pilot.util.processes import cleanup, threads_aborted
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.queuehandling import scan_for_jobs, put_in_queue, queue_report
 from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since, time_stamp
@@ -106,6 +106,13 @@ def control(queues, traces, args):
 
             # find all running jobs and stop them, find all jobs in queues relevant to this module
             #abort_jobs_in_queues(queues, args.signal)
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
 
     logger.debug('[job] control thread has finished')
 
@@ -749,6 +756,13 @@ def validate(queues, traces, args):
             log.debug('Failed to validate job=%s' % job.jobid)
             put_in_queue(job, queues.failed_jobs)
 
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
+
     logger.debug('[job] validate thread has finished')
 
 
@@ -798,6 +812,13 @@ def create_data_payload(queues, traces, args):
             put_in_queue(job, queues.finished_data_in)
 
         put_in_queue(job, queues.payloads)
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
 
     logger.debug('[job] create_data_payload thread has finished')
 
@@ -1449,6 +1470,13 @@ def retrieve(queues, traces, args):
                         break
                     time.sleep(0.5)
 
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
+
     logger.debug('[job] retrieve thread has finished')
 
 
@@ -1772,6 +1800,13 @@ def queue_monitor(queues, traces, args):  # noqa: C901
         if abort_thread:
             break
 
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
+
     logger.debug('[job] queue monitor thread has finished')
 
 
@@ -1978,6 +2013,13 @@ def job_monitor(queues, traces, args):  # noqa: C901
 
         if abort or abort_job:
             break
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
 
     logger.debug('[job] job monitor thread has finished')
 
