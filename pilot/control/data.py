@@ -35,7 +35,7 @@ from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME
 from pilot.util.container import execute
-from pilot.util.filehandling import find_executable, remove  #, write_json, copy
+from pilot.util.filehandling import find_executable, remove, write_json, copy
 from pilot.util.processes import threads_aborted
 from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
 from pilot.util.timing import add_to_pilot_timing
@@ -96,7 +96,7 @@ def control(queues, traces, args):
     logger.debug('[data] control thread has finished')
 
 
-def use_container(cmd):
+def use_middleware_container(cmd):
     """
     Should the pilot use a container for the stage-in/out?
 
@@ -106,7 +106,7 @@ def use_container(cmd):
 
     usecontainer = False
     if not config.Container.middleware_container:
-        logger.info('container usage is not allowed by pilot config')
+        logger.info('container usage for middleware is not allowed by pilot config')
     else:
         # if the middleware is available locally, do not use container
         if find_executable(cmd) == "":
@@ -171,19 +171,22 @@ def _stage_in(args, job):
         logger.info('removing fspec object (lfn=%s) from list of input files' % fspec.lfn)
         job.indata.remove(fspec)
 
-    ########### bulk transfer test
+    ########### script based transfer test
     # THE FOLLOWING WORKS BUT THERE IS AN ISSUE WITH TRACES, CHECK STAGEIN SCRIPT IF STORED CORRECTLY
-    #filename = 'initial_trace_report.json'
-    #tpath = os.path.join(job.workdir, filename)
-    #write_json(tpath, trace_report)
-    #lfns, scopes = get_filedata_strings(job.indata)
-    #script = 'stagein.py'
-    #srcdir = os.environ.get('PILOT_SOURCE_DIR')
-    #scriptpath = os.path.join(os.path.join(srcdir, 'pilot/scripts'), script)
-    #copy(scriptpath, srcdir)
-    #cmd = 'python %s --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
-    #      (os.path.join(srcdir, script), lfns, scopes, tpath, job.workdir, args.queue)
-    #logger.debug('could have executed: %s' % script)
+    try:
+        filename = 'initial_trace_report.json'
+        tpath = os.path.join(job.workdir, filename)
+        write_json(tpath, trace_report)
+        lfns, scopes = get_filedata_strings(job.indata)
+        script = config.Container.middleware_container_stagein_script
+        srcdir = os.environ.get('PILOT_SOURCE_DIR')
+        scriptpath = os.path.join(os.path.join(srcdir, 'pilot/scripts'), script)
+        copy(scriptpath, srcdir)
+        cmd = 'python %s --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
+              (os.path.join(srcdir, script), lfns, scopes, tpath, job.workdir, args.queue)
+        logger.debug('could have executed: %s' % cmd)
+    except Exception as e:
+        logger.warning('exception caught: %s' % e)
     #exit_code, stdout, stderr = execute(cmd, mode='python')
     #logger.debug('exit_code=%d' % exit_code)
     #logger.debug('stdout=%s' % stdout)
