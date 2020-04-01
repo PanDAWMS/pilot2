@@ -168,9 +168,13 @@ class JobData(BaseData):
         self.outdata, self.logdata = self.prepare_outfiles(self._rawdata)
 
         # overwrites
-        if self.imagename_jobdef:
-            logger.debug('overwriting imagename (if set in jobPars: \"%s\") since imagename_jobdef is set (\"%s\")' % (self.imagename, self.imagename_jobdef))
+        if self.imagename_jobdef and not self.imagename:
+            logger.debug('using imagename_jobdef as imagename (\"%s\")' % (self.imagename, self.imagename_jobdef))
             self.imagename = self.imagename_jobdef
+        elif self.imagename_jobdef and self.imagename:
+            logger.debug('using imagename from jobparams (ignoring imagename_jobdef)')
+        elif not self.imagename_jobdef and self.imagename:
+            logger.debug('using imagename from jobparams (imagename_jobdef not set)')
 
         #logger.debug('Final parsed Job content:\n%s' % self)
 
