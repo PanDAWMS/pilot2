@@ -180,7 +180,7 @@ def _stage_in(args, job):
         lfns, scopes = get_filedata_strings(job.indata)
         script = config.Container.middleware_container_stagein_script
         srcdir = os.environ.get('PILOT_SOURCE_DIR')
-        scriptpath = os.path.join(os.path.join(srcdir, 'pilot/scripts'), script)
+        scriptpath = os.path.join(os.path.join(srcdir, 'pilot2/pilot/scripts'), script)
         copy(scriptpath, srcdir)
         cmd = 'python %s --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
               (os.path.join(srcdir, script), lfns, scopes, tpath, job.workdir, args.queue)
