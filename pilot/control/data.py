@@ -262,7 +262,7 @@ def containerize_middleware(job, queue, script, trace_report, stagein=True):
         scriptpath = os.path.join(os.path.join(srcdir, 'pilot2/pilot/scripts'), script)
         copy(scriptpath, srcdir)
         if stagein:
-            cmd = 'python %s --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
+            cmd = '%s --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
                   (os.path.join(srcdir, script), lfns, scopes, tpath, job.workdir, queue)
         else:
             raise NotImplemented("stage-out script not implemented")
