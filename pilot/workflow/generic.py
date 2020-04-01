@@ -85,6 +85,19 @@ def interrupt(args, signum, frame):
     args.graceful_stop.set()
 
 
+def register_signals(signals, args):
+    """
+    Register kill signals for intercept function.
+
+    :param signals: list of signals.
+    :param args: pilot args.
+    :return:
+    """
+
+    for sig in signals:
+        signal.signal(sig, functools.partial(interrupt, args))
+
+
 def run(args):
     """
     Main execution function for the generic workflow.
@@ -96,13 +109,7 @@ def run(args):
     """
 
     logger.info('setting up signal handling')
-    signal.signal(signal.SIGINT, functools.partial(interrupt, args))
-    signal.signal(signal.SIGTERM, functools.partial(interrupt, args))
-    signal.signal(signal.SIGQUIT, functools.partial(interrupt, args))
-    signal.signal(signal.SIGSEGV, functools.partial(interrupt, args))
-    signal.signal(signal.SIGXCPU, functools.partial(interrupt, args))
-    signal.signal(signal.SIGUSR1, functools.partial(interrupt, args))
-    signal.signal(signal.SIGBUS, functools.partial(interrupt, args))
+    register_signals([signal.SIGINT, signal.SIGTERM, signal.SIGQUIT, signal.SIGSEGV, signal.SIGXCPU, signal.SIGUSR1, signal.SIGBUS], args)
 
     logger.info('setting up queues')
     queues = namedtuple('queues', ['jobs', 'payloads', 'data_in', 'data_out', 'current_data_in',
