@@ -31,7 +31,7 @@ from collections import namedtuple
 from pilot.common.exception import ExcThread
 from pilot.control import job, payload, data, monitor
 from pilot.util.constants import SUCCESS, PILOT_KILL_SIGNAL, MAX_KILL_WAIT_TIME
-from pilot.util.processes import kill_processes
+from pilot.util.processes import kill_processes, threads_aborted
 from pilot.util.timing import add_to_pilot_timing
 
 import logging
@@ -184,20 +184,10 @@ def run(args):
 
         abort = False
         if thread_count != threading.activeCount():
-            thread_count = threading.activeCount()
-            logger.debug('thread count now at %d threads' % thread_count)
-            logger.debug('enumerate: %s' % str(threading.enumerate()))
-            # count all non-daemon threads
-            daemon_threads = 0
-            for thread in threading.enumerate():
-                if thread.isDaemon():  # ignore any daemon threads, they will be aborted when python ends
-                    daemon_threads += 1
-            if thread_count - daemon_threads == 1:
-                logger.debug('aborting since there is[are] %d daemon thread[s] which can be ignored' % daemon_threads)
-                abort = True
-
-        if abort:
-            break
+            # has all threads finished?
+            abort = threads_aborted(abort_at=1)
+            if abort:
+                break
 
         sleep(1)
 
