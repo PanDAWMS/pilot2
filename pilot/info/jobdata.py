@@ -167,6 +167,11 @@ class JobData(BaseData):
         self.indata = self.prepare_infiles(self._rawdata)
         self.outdata, self.logdata = self.prepare_outfiles(self._rawdata)
 
+        # overwrites
+        if self.imagename_jobdef:
+            logger.debug('overwriting imagename (if set in jobPars: \"%s\") since imagename_jobdef is set (\"%s\")' % (self.imagename, self.imagename_jobdef))
+            self.imagename = self.imagename_jobdef
+
         #logger.debug('Final parsed Job content:\n%s' % self)
 
     def prepare_infiles(self, data):  # noqa: C901
