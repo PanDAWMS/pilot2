@@ -28,7 +28,7 @@ from pilot.api.data import StageInClient, StageOutClient
 from pilot.api.es_data import StageInESClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import ExcThread, PilotException, LogFileCreationFailure
+from pilot.common.exception import ExcThread, PilotException, LogFileCreationFailure, NotImplemented
 from pilot.util.auxiliary import get_logger, set_pilot_state, check_for_final_server_update  #, abort_jobs_in_queues
 from pilot.util.common import should_abort
 from pilot.util.config import config
@@ -171,46 +171,32 @@ def _stage_in(args, job):
         logger.info('removing fspec object (lfn=%s) from list of input files' % fspec.lfn)
         job.indata.remove(fspec)
 
-    ########### script based transfer test
-    # THE FOLLOWING WORKS BUT THERE IS AN ISSUE WITH TRACES, CHECK STAGEIN SCRIPT IF STORED CORRECTLY
-    try:
-        filename = 'initial_trace_report.json'
-        tpath = os.path.join(job.workdir, filename)
-        write_json(tpath, trace_report)
-        lfns, scopes = get_filedata_strings(job.indata)
-        script = config.Container.middleware_container_stagein_script
-        srcdir = os.environ.get('PILOT_SOURCE_DIR')
-        scriptpath = os.path.join(os.path.join(srcdir, 'pilot2/pilot/scripts'), script)
-        copy(scriptpath, srcdir)
-        cmd = 'python %s --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
-              (os.path.join(srcdir, script), lfns, scopes, tpath, job.workdir, args.queue)
-        logger.debug('could have executed: %s' % cmd)
-    except Exception as e:
-        logger.warning('exception caught: %s' % e)
-    #exit_code, stdout, stderr = execute(cmd, mode='python')
-    #logger.debug('exit_code=%d' % exit_code)
-    #logger.debug('stdout=%s' % stdout)
-    #logger.debug('stderr=%s' % stderr)
-    ########### bulk transfer test
-
-    try:
-        if job.is_eventservicemerge:
-            client = StageInESClient(job.infosys, logger=log, trace_report=trace_report)
-            activity = 'es_events_read'
-        else:
-            client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
-            activity = 'pr'
-        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job, use_bulk=False)
-        client.prepare_sources(job.indata)
-        client.transfer(job.indata, activity=activity, **kwargs)
-    except PilotException as error:
-        import traceback
-        error_msg = traceback.format_exc()
-        log.error(error_msg)
-        msg = errors.format_diagnostics(error.get_error_code(), error_msg)
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=msg)
-    except Exception as error:
-        log.error('failed to stage-in: error=%s' % error)
+    # should stage-in be done by a script (for containerization) or by invoking the API (ie classic mode)?
+    script = config.Container.middleware_container_stagein_script
+    if script:
+        try:
+            containerize_middleware(job, args.queue, script, trace_report, stagein=True)
+        except Exception as e:
+            logger.warning('stage-in containerization threw an exception: %s' % e)
+    else:
+        try:
+            if job.is_eventservicemerge:
+                client = StageInESClient(job.infosys, logger=log, trace_report=trace_report)
+                activity = 'es_events_read'
+            else:
+                client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
+                activity = 'pr'
+            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job, use_bulk=False)
+            client.prepare_sources(job.indata)
+            client.transfer(job.indata, activity=activity, **kwargs)
+        except PilotException as error:
+            import traceback
+            error_msg = traceback.format_exc()
+            log.error(error_msg)
+            msg = errors.format_diagnostics(error.get_error_code(), error_msg)
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=msg)
+        except Exception as error:
+            log.error('failed to stage-in: error=%s' % error)
 
     log.info('summary of transferred files:')
     for e in job.indata:
@@ -227,6 +213,43 @@ def _stage_in(args, job):
         log.info("stage-in failed")
 
     return not remain_files
+
+
+def containerize_middleware(job, queue, script, trace_report, stagein=True):
+    """
+
+    :param job: job object.
+    :param queue: queue name (string).
+    :param script:
+    :param trace_report: trace report.
+    :param stagein: Boolean.
+    :return:
+    :raises NotImplemented: if stagein=False, until stage-out script has been written
+    """
+
+    try:
+        filename = 'initial_trace_report.json'
+        tpath = os.path.join(job.workdir, filename)
+        write_json(tpath, trace_report)
+        lfns, scopes = get_filedata_strings(job.indata)
+        srcdir = os.environ.get('PILOT_SOURCE_DIR')
+        scriptpath = os.path.join(os.path.join(srcdir, 'pilot2/pilot/scripts'), script)
+        copy(scriptpath, srcdir)
+        if stagein:
+            cmd = 'python %s --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
+                  (os.path.join(srcdir, script), lfns, scopes, tpath, job.workdir, queue)
+        else:
+            raise NotImplemented("stage-out script not implemented")
+        logger.debug('could have executed: %s' % cmd)
+        exit_code, stdout, stderr = execute(cmd, mode='python')
+        logger.debug('exit_code=%d' % exit_code)
+        logger.debug('stdout=%s' % stdout)
+        logger.debug('stderr=%s' % stderr)
+    except Exception as e:
+        logger.warning('exception caught: %s' % e)
+
+    # handle errors (script could write errors to a json file; look for that file and set errors accordingly, ie add to job object)
+    # ..
 
 
 def get_rse(data, lfn=""):
