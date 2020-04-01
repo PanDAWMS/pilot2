@@ -106,7 +106,7 @@ class JobData(BaseData):
 
     zipmap = ""                    # ZIP MAP values extracted from jobparameters
     imagename = ""                 # container image name extracted from job parameters or job definition
-    imagename_test = ""
+    imagename_jobdef = ""
     usecontainer = False           # boolean, True if a container is to be used for the payload
 
     # from job definition
@@ -142,7 +142,7 @@ class JobData(BaseData):
                    'state', 'serverstate', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg', 'produserid', 'jobdefinitionid', 'writetofile',
                    'cpuconsumptionunit', 'homepackage', 'jobsetid', 'payload', 'processingtype',
-                   'swrelease', 'zipmap', 'imagename', 'imagename_test', 'accessmode', 'transfertype',
+                   'swrelease', 'zipmap', 'imagename', 'imagename_jobdef', 'accessmode', 'transfertype',
                    'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    'infilesguids', 'memorymonitor', 'allownooutput'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'zombies'],
@@ -385,7 +385,7 @@ class JobData(BaseData):
             'is_eventservicemerge': 'eventServiceMerge',
             'maxcpucount': 'maxCpuCount',
             'allownooutput': 'allowNoOutput',
-            'imagename_test': 'container_name'
+            'imagename_jobdef': 'container_name'
         }
 
         self._load_data(data, kmap)
@@ -547,12 +547,6 @@ class JobData(BaseData):
         """
 
         imagename = ""
-
-        # take the imagename ("container_name") from the job definition if it is set there
-        if self.imagename_test:
-            logger.debug('imagename_test=%s' % self.imagename_test)
-        else:
-            logger.debug('imagename_test/container_name not set?')
 
         # define regexp pattern for the full container image option
         _pattern = r'(\ \-\-containerImage\=?\s?[\S]+)'
