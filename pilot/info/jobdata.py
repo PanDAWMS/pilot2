@@ -169,7 +169,7 @@ class JobData(BaseData):
 
         # overwrites
         if self.imagename_jobdef and not self.imagename:
-            logger.debug('using imagename_jobdef as imagename (\"%s\")' % (self.imagename, self.imagename_jobdef))
+            logger.debug('using imagename_jobdef as imagename (\"%s\")' % (self.imagename_jobdef))
             self.imagename = self.imagename_jobdef
         elif self.imagename_jobdef and self.imagename:
             logger.debug('using imagename from jobparams (ignoring imagename_jobdef)')
