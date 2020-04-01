@@ -105,7 +105,7 @@ def use_container(cmd):
     """
 
     usecontainer = False
-    if config.Container.allow_container == "False":
+    if not config.Container.middleware_container:
         logger.info('container usage is not allowed by pilot config')
     else:
         # if the middleware is available locally, do not use container
