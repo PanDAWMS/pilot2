@@ -134,6 +134,40 @@ def get_filedata_strings(indata):
     return lfns, scopes
 
 
+def skip_special_files(job):
+    """
+    Consult user defined code if any files should be skipped during stage-in.
+    ATLAS code will skip DBRelease files e.g. as they should already be available in CVMFS.
+
+    :param job: job object.
+    :return:
+    """
+
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+    try:
+        user.update_stagein(job)
+    except Exception as e:
+        logger.warning('caught exception: %s' % e)
+
+
+def update_indata(job):
+    """
+    In case file were marked as no_transfer files, remove them from stage-in.
+
+    :param job: job object.
+    :return:
+    """
+
+    toberemoved = []
+    for fspec in job.indata:
+        if fspec.status == 'no_transfer':
+            toberemoved.append(fspec)
+    for fspec in toberemoved:
+        logger.info('removing fspec object (lfn=%s) from list of input files' % fspec.lfn)
+        job.indata.remove(fspec)
+
+
 def _stage_in(args, job):
     """
         :return: True in case of success
@@ -150,26 +184,18 @@ def _stage_in(args, job):
     add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN, time.time(), args)
 
     # any DBRelease files should not be staged in
-    for fspec in job.indata:
-        if 'DBRelease' in fspec.lfn:
-            fspec.status = 'no_transfer'
+    skip_special_files(job)
 
+    # create the trace report
     event_type = "get_sm"
     if job.is_analysis():
         event_type += "_a"
-    rse = get_rse(job.indata)
-    localsite = remotesite = rse
+    localsite = remotesite = get_rse(job.indata)
     trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''), localSite=localsite, remoteSite=remotesite, dataset="", eventType=event_type)
     trace_report.init(job)
 
     # now that the trace report has been created, remove any files that are not to be transferred (DBRelease files) from the indata list
-    toberemoved = []
-    for fspec in job.indata:
-        if fspec.status == 'no_transfer':
-            toberemoved.append(fspec)
-    for fspec in toberemoved:
-        logger.info('removing fspec object (lfn=%s) from list of input files' % fspec.lfn)
-        job.indata.remove(fspec)
+    update_indata(job)
 
     # should stage-in be done by a script (for containerization) or by invoking the API (ie classic mode)?
     script = config.Container.middleware_container_stagein_script

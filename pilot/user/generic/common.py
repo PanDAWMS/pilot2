@@ -167,3 +167,15 @@ def verify_job(job):
     """
 
     return True
+
+
+def update_stagein(job):
+    """
+    In case special files need to be skipped during stage-in, the job.indata list can be updated here.
+    See ATLAS code for an example.
+
+    :param job: job object.
+    :return:
+    """
+
+    pass

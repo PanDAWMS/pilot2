@@ -1664,3 +1664,16 @@ def verify_job(job):
     verify_ncores(job.corecount)
 
     return status
+
+
+def update_stagein(job):
+    """
+    Skip DBRelease files during stage-in.
+
+    :param job: job object.
+    :return:
+    """
+
+    for fspec in job.indata:
+        if 'DBRelease' in fspec.lfn:
+            fspec.status = 'no_transfer'
