@@ -161,9 +161,10 @@ class JobData(BaseData):
         self.load(data)
 
     def init(self, infosys):
-
+        """
+            :param infosys: infosys object
+        """
         self.infosys = infosys
-
         self.indata = self.prepare_infiles(self._rawdata)
         self.outdata, self.logdata = self.prepare_outfiles(self._rawdata)
 
@@ -175,8 +176,6 @@ class JobData(BaseData):
             logger.debug('using imagename from jobparams (ignoring imagename_jobdef)')
         elif not self.imagename_jobdef and self.imagename:
             logger.debug('using imagename from jobparams (imagename_jobdef not set)')
-
-        #logger.debug('Final parsed Job content:\n%s' % self)
 
     def prepare_infiles(self, data):  # noqa: C901
         """
