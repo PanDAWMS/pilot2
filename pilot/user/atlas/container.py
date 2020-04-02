@@ -213,6 +213,7 @@ def alrb_wrapper(cmd, workdir, job=None):
         cmd = cmd.replace(_asetup, "asetup ")
         # get simplified ALRB setup (export)
         asetup = get_asetup(alrb=True)
+        logger.debug('asetup: %s' % asetup)
 
         _cmd = asetup
 
