@@ -245,10 +245,10 @@ def alrb_wrapper(cmd, workdir, job=None):
         logger.debug('command to be written to file: %s' % cmd)
 
         # write the full payload command to a script file
-        script_file = config.Container.script_file
-        status = write_file(os.path.join(job.workdir, script_file), cmd, mute=False)
+        container_script = config.Container.container_script
+        status = write_file(os.path.join(job.workdir, container_script), cmd, mute=False)
         if status:
-            script_cmd = '. /srv/' + script_file
+            script_cmd = '. /srv/' + container_script
             _cmd += "export ALRB_CONT_RUNPAYLOAD=\'%s\';" % script_cmd
         else:
             log.warning('attempting to quote command instead')
