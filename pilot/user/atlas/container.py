@@ -214,11 +214,6 @@ def alrb_wrapper(cmd, workdir, job=None):
         # get simplified ALRB setup (export)
         asetup = get_asetup(alrb=True)
 
-        # Get the singularity options
-        singularity_options = queuedata.container_options
-        log.debug(
-            "resolved singularity_options from queuedata.container_options: %s" % singularity_options)
-
         _cmd = asetup
 
         # do not include the X509_USER_PROXY in the command the container will execute
@@ -232,15 +227,9 @@ def alrb_wrapper(cmd, workdir, job=None):
             _cmd += 'export thePlatform=\"%s\";' % job.alrbuserplatform
         elif job.platform:
             _cmd += 'export thePlatform=\"%s\";' % job.platform
-        #elif '--containerImage' in job.jobparams:
-        #    if job.alrbuserplatform:
-        #        _cmd += 'export thePlatform=\"%s\";' % job.alrbuserplatform
-        #    else:
-        #        # set a default platform for user defined containers
-        #        _cmd += 'export thePlatform=\"centos7\";'
 
-        #if '--containall' not in singularity_options:
-        #    singularity_options += ' --containall'
+        # Get the singularity options
+        singularity_options = queuedata.container_options
         if singularity_options != "":
             _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % singularity_options
         else:
@@ -253,6 +242,7 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         # add TMPDIR
         cmd = "export TMPDIR=/srv;export GFORTRAN_TMPDIR=/srv;" + cmd
+        logger.debug('command to be written to file: %s' % cmd)
 
         # write the full payload command to a script file
         script_file = config.Container.script_file
