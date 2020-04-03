@@ -391,9 +391,6 @@ def alrb_wrapper(cmd, workdir, job=None):
             if not status:
                 log.warning('failed to create release setup file')
 
-        # update the ALRB setup command
-        cmd = update_alrb_setup(cmd)
-
         # write the full payload command to a script file
         logger.debug('command to be written to container script file: %s' % cmd)
         container_script = config.Container.container_script
@@ -424,6 +421,8 @@ def alrb_wrapper(cmd, workdir, job=None):
             if job.platform or job.alrbuserplatform:
                 _cmd += '-c $thePlatform'
 
+        # update the ALRB setup command
+        _cmd = update_alrb_setup(_cmd)
         _cmd = _cmd.replace('  ', ' ')
         cmd = _cmd
 
