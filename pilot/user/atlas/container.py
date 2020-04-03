@@ -224,7 +224,7 @@ def extract_full_atlas_setup(cmd, atlas_setup):
                 extracted_asetup = subcmd
             else:
                 updated_cmds.append(subcmd)
-        updated_cmd = '; '.join(updated_cmds)
+        updated_cmd = ';'.join(updated_cmds)
     except Exception as e:
         logger.warning('exception caught while extracting full atlas setup: %s' % e)
         updated_cmd = cmd
@@ -254,7 +254,7 @@ def update_alrb_setup(cmd):
                 updated_cmds.append(subcmd)
             else:
                 updated_cmds.append(subcmd)
-        updated_cmd = '; '.join(updated_cmds)
+        updated_cmd = ';'.join(updated_cmds)
     except Exception as e:
         logger.warning('exception caught while extracting full atlas setup: %s' % e)
         updated_cmd = cmd
@@ -355,7 +355,7 @@ def alrb_wrapper(cmd, workdir, job=None):
         #     --quiet;source $AtlasSetup/scripts/asetup.sh
         logger.debug('asetup 1: %s' % _asetup)
         atlas_setup = extract_atlas_setup(_asetup)  # $AtlasSetup/scripts/asetup.sh
-        cmd = cmd.replace(_asetup, "asetup") if not new_mode else cmd.replace(_asetup, atlas_setup)
+        cmd = cmd.replace(_asetup, "asetup") if not new_mode else: pass  #cmd.replace(_asetup, atlas_setup)
 
         # get_asetup(asetup=False)
         # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
