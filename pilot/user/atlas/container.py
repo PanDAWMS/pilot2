@@ -75,7 +75,7 @@ def wrapper(executable, **kwargs):
         workdir = pilot_home
 
     # if job.imagename (from --containerimage <image>) is set, then always use raw singularity
-    if config.Container.setup_type == "ALRB" and job and not job.imagename:
+    if config.Container.setup_type == "ALRB":  # and job and not job.imagename:
         fctn = alrb_wrapper
     else:
         fctn = singularity_wrapper
@@ -184,6 +184,60 @@ def get_middleware_type():
     return middleware_type
 
 
+def extract_atlas_setup(asetup):
+    """
+    Extract the asetup command from the full setup command.
+    export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
+      source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;source $AtlasSetup/scripts/asetup.sh
+    -> $AtlasSetup/scripts/asetup.sh
+
+    :param asetup: full asetup command (string).
+    :return: asetup command (string).
+    """
+
+    try:
+        atlas_setup = asetup.split(';')[-1]  # source $AtlasSetup/scripts/asetup.sh
+        atlas_setup = atlas_setup.replace('source ', '')
+    except Exception as e:
+        logger.debug('exception caught while extracting asetup command: %s' % e)
+        atlas_setup = ''
+
+    return atlas_setup
+
+
+def extract_full_atlas_setup(cmd, atlas_setup):
+    """
+    Extract the full asetup (including options) from the payload setup command.
+    atlas_setup is typically '$AtlasSetup/scripts/asetup.sh'.
+
+    :param cmd: full payload setup command (string).
+    :param atlas_setup: asetup command (string).
+    :return: extracted full asetup command, updated full payload setup command without asetup part (string).
+    """
+
+    updated_cmds = []
+    extracted_asetup = ""
+    try:
+        _cmd = cmd.split(';')
+        for subcmd in _cmd:
+            if atlas_setup in subcmd:
+                extracted_asetup = subcmd
+            elif subcmd.startswith('export ATLAS_LOCAL_ROOT_BASE'):
+                updated_cmds.append('if [ -z $ATLAS_LOCAL_ROOT_BASE ]; then ' + subcmd + ' fi;')
+            elif subcmd.startswith('source ${ATLAS_LOCAL_ROOT_BASE}'):
+                updated_cmds.append('export ALRB_CONT_SETUPFILE="/srv/%s";' % config.Container.release_setup)
+                updated_cmds.append(subcmd)
+            else:
+                updated_cmds.append(subcmd)
+        updated_cmd = ''.join(updated_cmds)
+    except Exception as e:
+        logger.warning('exception caught while extracting full atlas setup: %s' % e)
+        updated_cmd = cmd
+    logger.debug('updated command: %s' % updated_cmd)
+
+    return extracted_asetup, updated_cmd
+
+
 def alrb_wrapper(cmd, workdir, job=None):
     """
     Wrap the given command with the special ALRB setup for containers
@@ -206,14 +260,26 @@ def alrb_wrapper(cmd, workdir, job=None):
     log = get_logger(job.jobid)
     queuedata = job.infosys.queuedata
 
+    new_mode = True
+
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
     if container_name == 'singularity':
         # first get the full setup, which should be removed from cmd (or ALRB setup won't work)
         _asetup = get_asetup()
-        cmd = cmd.replace(_asetup, "asetup ")
+        # get_asetup()
+        # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;source $AtlasSetup/scripts/asetup.sh
+        logger.debug('asetup 1: %s' % _asetup)
+        atlas_setup = extract_atlas_setup(_asetup)  # $AtlasSetup/scripts/asetup.sh
+        cmd = cmd.replace(_asetup, "asetup") if not new_mode else cmd.replace(_asetup, atlas_setup)
+
+        # get_asetup(asetup=False)
+        # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
+
         # get simplified ALRB setup (export)
         asetup = get_asetup(alrb=True)
-        logger.debug('asetup: %s' % asetup)
+        # get_asetup(alrb=True)
+        # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
+        logger.debug('asetup 3: %s' % asetup)
 
         _cmd = asetup
 
@@ -226,6 +292,8 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         if job.alrbuserplatform:
             _cmd += 'export thePlatform=\"%s\";' % job.alrbuserplatform
+        elif job.imagename:
+            _cmd += 'export thePlatform=\"%s\";' % job.imagename
         elif job.platform:
             _cmd += 'export thePlatform=\"%s\";' % job.platform
 
@@ -243,9 +311,18 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         # add TMPDIR
         cmd = "export TMPDIR=/srv;export GFORTRAN_TMPDIR=/srv;" + cmd
-        logger.debug('command to be written to file: %s' % cmd)
+
+        if new_mode:
+            extracted_asetup, cmd = extract_full_atlas_setup(cmd, atlas_setup)
+            # in the new mode, extracted_asetup should be written to 'my_release_setup.sh' and cmd to 'container_script.sh'
+            logger.debug('command to be written to release setup file: %s' % extracted_asetup)
+            release_setup = config.Container.release_setup
+            status = write_file(os.path.join(job.workdir, release_setup), cmd, mute=False)
+            if status:
+
 
         # write the full payload command to a script file
+        logger.debug('command to be written to container script file: %s' % cmd)
         container_script = config.Container.container_script
         status = write_file(os.path.join(job.workdir, container_script), cmd, mute=False)
         if status:
@@ -266,18 +343,12 @@ def alrb_wrapper(cmd, workdir, job=None):
                 _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % job.alrbuserplatform
             elif container_path != "":
                 _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % container_path
-
-                #if not job.platform:
-                #    # add the default platform if not set by the job definition
-                #    _cmd += ' $thePlatform'
             else:
                 log.warning('failed to extract container path from %s' % job.jobparams)
                 _cmd = ""
         else:
-            # _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c images'
             _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh '
             if job.platform or job.alrbuserplatform:
-                # _cmd += '+$thePlatform'
                 _cmd += '-c $thePlatform'
 
         _cmd = _cmd.replace('  ', ' ')
