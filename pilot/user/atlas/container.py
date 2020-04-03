@@ -229,7 +229,7 @@ def extract_full_atlas_setup(cmd, atlas_setup):
                 updated_cmds.append(subcmd)
             else:
                 updated_cmds.append(subcmd)
-        updated_cmd = ''.join(updated_cmds)
+        updated_cmd = '; '.join(updated_cmds)
     except Exception as e:
         logger.warning('exception caught while extracting full atlas setup: %s' % e)
         updated_cmd = cmd
@@ -238,7 +238,7 @@ def extract_full_atlas_setup(cmd, atlas_setup):
     return extracted_asetup, updated_cmd
 
 
-def add_user_proxy(_cmd, cmd):
+def update_for_user_proxy(_cmd, cmd):
     """
     Add the X509 user proxy to the container sub command string if set, and remove it from the main container command.
 
@@ -343,8 +343,8 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         _cmd = asetup
 
-        # add user proxy if necessary
-        _cmd, cmd = add_user_proxy(_cmd, cmd)
+        # add user proxy if necessary (actually it should also be removed from cmd)
+        _cmd, cmd = update_for_user_proxy(_cmd, cmd)
 
         # set the platform info
         _cmd = set_platform(job, new_mode, _cmd)
