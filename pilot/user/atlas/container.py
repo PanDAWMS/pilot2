@@ -238,6 +238,65 @@ def extract_full_atlas_setup(cmd, atlas_setup):
     return extracted_asetup, updated_cmd
 
 
+def add_user_proxy(_cmd, cmd):
+    """
+    Add the X509 user proxy to the container sub command string if set, and remove it from the main container command.
+
+    :param _cmd:
+    :param cmd:
+    :return:
+    """
+
+    x509 = os.environ.get('X509_USER_PROXY')
+    if x509 != "":
+        # do not include the X509_USER_PROXY in the command the container will execute
+        cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, "")
+        # add it instead to the container setup command
+        _cmd = "export X509_USER_PROXY=%s;" % x509 + _cmd
+
+    return _cmd, cmd
+
+
+def set_platform(job, new_mode, _cmd):
+    """
+    Set thePlatform variable and add it to the sub container command.
+
+    :param job:
+    :param new_mode:
+    :param _cmd:
+    :return:
+    """
+
+    if job.alrbuserplatform:
+        _cmd += 'export thePlatform=\"%s\";' % job.alrbuserplatform
+    elif job.imagename and new_mode:
+        _cmd += 'export thePlatform=\"%s\";' % job.imagename
+    elif job.platform:
+        _cmd += 'export thePlatform=\"%s\";' % job.platform
+
+    return _cmd
+
+
+def add_container_options(_cmd, container_options):
+    """
+    Add the singularity options from queuedata to the sub container command.
+
+    :param _cmd:
+    :param container_options:
+    :return:
+    """
+
+    # Set the singularity options
+    if container_options != "":
+        _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % container_options
+    else:
+        # consider using options "-c -i -p" instead of "-C". The difference is that the latter blocks all environment
+        # variables by default and the former does not
+        _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -C\";'
+
+    return _cmd
+
+
 def alrb_wrapper(cmd, workdir, job=None):
     """
     Wrap the given command with the special ALRB setup for containers
@@ -267,7 +326,8 @@ def alrb_wrapper(cmd, workdir, job=None):
         # first get the full setup, which should be removed from cmd (or ALRB setup won't work)
         _asetup = get_asetup()
         # get_asetup()
-        # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;source $AtlasSetup/scripts/asetup.sh
+        # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
+        #     --quiet;source $AtlasSetup/scripts/asetup.sh
         logger.debug('asetup 1: %s' % _asetup)
         atlas_setup = extract_atlas_setup(_asetup)  # $AtlasSetup/scripts/asetup.sh
         cmd = cmd.replace(_asetup, "asetup") if not new_mode else cmd.replace(_asetup, atlas_setup)
@@ -283,28 +343,14 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         _cmd = asetup
 
-        # do not include the X509_USER_PROXY in the command the container will execute
-        x509 = os.environ.get('X509_USER_PROXY')
-        if x509 != "":
-            cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, "")
-            # add it instead to the container setup command
-            _cmd = "export X509_USER_PROXY=%s;" % x509 + _cmd
+        # add user proxy if necessary
+        _cmd, cmd = add_user_proxy(_cmd, cmd)
 
-        if job.alrbuserplatform:
-            _cmd += 'export thePlatform=\"%s\";' % job.alrbuserplatform
-        elif job.imagename:
-            _cmd += 'export thePlatform=\"%s\";' % job.imagename
-        elif job.platform:
-            _cmd += 'export thePlatform=\"%s\";' % job.platform
+        # set the platform info
+        _cmd = set_platform(job, new_mode, _cmd)
 
-        # Get the singularity options
-        singularity_options = queuedata.container_options
-        if singularity_options != "":
-            _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % singularity_options
-        else:
-            # consider using options "-c -i -p" instead of "-C". The difference is that the latter blocks all environment
-            # variables by default and the former does not
-            _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -C\";'
+        # add singularity options
+        _cmd = add_container_options(_cmd, queuedata.container_options)
 
         # add the jobid to be used as an identifier for the payload running inside the container
         _cmd += "export PANDAID=%s;" % job.jobid
