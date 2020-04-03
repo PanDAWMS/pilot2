@@ -318,8 +318,7 @@ def alrb_wrapper(cmd, workdir, job=None):
             logger.debug('command to be written to release setup file: %s' % extracted_asetup)
             release_setup = config.Container.release_setup
             status = write_file(os.path.join(job.workdir, release_setup), cmd, mute=False)
-            if status:
-
+            #if status:
 
         # write the full payload command to a script file
         logger.debug('command to be written to container script file: %s' % cmd)
