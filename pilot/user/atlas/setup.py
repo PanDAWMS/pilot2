@@ -337,7 +337,8 @@ def get_valid_base_urls(order=None):
                         "http://atlpan.web.cern.ch/atlpan",
                         "https://atlpan.web.cern.ch/atlpan",
                         "http://classis01.roma1.infn.it",
-                        "http://atlas-install.roma1.infn.it"]
+                        "http://atlas-install.roma1.infn.it",
+                        "http://walkerr.web.cern.ch"]
 
     if order:
         valid_base_urls.append(order)
