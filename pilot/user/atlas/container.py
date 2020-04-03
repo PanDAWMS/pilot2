@@ -222,7 +222,32 @@ def extract_full_atlas_setup(cmd, atlas_setup):
         for subcmd in _cmd:
             if atlas_setup in subcmd:
                 extracted_asetup = subcmd
-            elif subcmd.startswith('export ATLAS_LOCAL_ROOT_BASE'):
+            else:
+                updated_cmds.append(subcmd)
+        updated_cmd = '; '.join(updated_cmds)
+    except Exception as e:
+        logger.warning('exception caught while extracting full atlas setup: %s' % e)
+        updated_cmd = cmd
+    logger.debug('updated payload setup command: %s' % updated_cmd)
+
+    return extracted_asetup, updated_cmd
+
+
+def update_alrb_setup(cmd):
+    """
+    Update the ALRB setup command.
+=   Add the ALRB_CONT_SETUPFILE.
+
+    :param cmd: full ALRB setup command (string).
+    :return: updated ALRB setup command (string).
+    """
+
+    updated_cmds = []
+    extracted_asetup = ""
+    try:
+        _cmd = cmd.split(';')
+        for subcmd in _cmd:
+            if subcmd.startswith('export ATLAS_LOCAL_ROOT_BASE'):
                 updated_cmds.append('if [ -z $ATLAS_LOCAL_ROOT_BASE ]; then ' + subcmd + ' fi;')
             elif subcmd.startswith('source ${ATLAS_LOCAL_ROOT_BASE}'):
                 updated_cmds.append('export ALRB_CONT_SETUPFILE="/srv/%s";' % config.Container.release_setup)
@@ -233,7 +258,7 @@ def extract_full_atlas_setup(cmd, atlas_setup):
     except Exception as e:
         logger.warning('exception caught while extracting full atlas setup: %s' % e)
         updated_cmd = cmd
-    logger.debug('updated command: %s' % updated_cmd)
+    logger.debug('updated ALRB command: %s' % updated_cmd)
 
     return extracted_asetup, updated_cmd
 
@@ -357,14 +382,17 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         # add TMPDIR
         cmd = "export TMPDIR=/srv;export GFORTRAN_TMPDIR=/srv;" + cmd
-
+        logger.debug('cmd = %s' % cmd)
         if new_mode:
             extracted_asetup, cmd = extract_full_atlas_setup(cmd, atlas_setup)
             # in the new mode, extracted_asetup should be written to 'my_release_setup.sh' and cmd to 'container_script.sh'
             logger.debug('command to be written to release setup file: %s' % extracted_asetup)
-            release_setup = config.Container.release_setup
-            status = write_file(os.path.join(job.workdir, release_setup), cmd, mute=False)
-            #if status:
+            status = write_file(os.path.join(job.workdir, config.Container.release_setup), extracted_asetup, mute=False)
+            if not status:
+                log.warning('failed to create release setup file')
+
+        # update the ALRB setup command
+        cmd = update_alrb_setup(cmd)
 
         # write the full payload command to a script file
         logger.debug('command to be written to container script file: %s' % cmd)
