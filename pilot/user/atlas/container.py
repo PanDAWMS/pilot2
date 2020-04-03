@@ -243,7 +243,6 @@ def update_alrb_setup(cmd):
     """
 
     updated_cmds = []
-    extracted_asetup = ""
     try:
         _cmd = cmd.split(';')
         for subcmd in _cmd:
@@ -260,7 +259,7 @@ def update_alrb_setup(cmd):
         updated_cmd = cmd
     logger.debug('updated ALRB command: %s' % updated_cmd)
 
-    return extracted_asetup, updated_cmd
+    return updated_cmd
 
 
 def update_for_user_proxy(_cmd, cmd):
