@@ -73,10 +73,8 @@ def get_alrb_export():
     """
 
     path = "%s/atlas.cern.ch/repo" % get_file_system_root_path()
-    if os.path.exists(path):
-        cmd = "export ATLAS_LOCAL_ROOT_BASE=%s/ATLASLocalRootBase;" % path
-    else:
-        cmd = ""
+    cmd = "export ATLAS_LOCAL_ROOT_BASE=%s/ATLASLocalRootBase;" % path if os.path.exists(path) else ""
+
     return cmd
 
 
