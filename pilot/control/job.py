@@ -70,7 +70,7 @@ def control(queues, traces, args):
     # logger.debug('job.control is run by thread: %s' % t.name)
 
     targets = {'validate': validate, 'retrieve': retrieve, 'create_data_payload': create_data_payload,
-               'queue_monitor': queue_monitor, 'job_monitor': job_monitor}
+               'queue_monitor': queue_monitor, 'job_monitor': job_monitor, 'interceptor': interceptor}
     threads = [ExcThread(bucket=queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
                          name=name) for name, target in list(targets.items())]  # Python 2/3
 
@@ -1908,6 +1908,63 @@ def get_heartbeat_period(debug=False):
         return 1800
 
 
+def check_for_abort_job(args, caller=''):
+    """
+    Check if args.abort_job.is_set().
+    This flag should
+
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
+    :param caller: function name of caller (string).
+    :return: Boolean, True if args_job.is_set()
+    """
+    abort_job = False
+    if args.abort_job.is_set():
+        logger.warning('%s detected an abort_job request (signal=%s)' % (caller, args.signal)
+        logger.warning('in case pilot is running more than one job, all jobs will be aborted')
+        abort_job = True
+
+    return abort_job
+
+
+def interceptor(queues, traces, args):
+    """
+
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
+    :return:
+    """
+
+    # overall loop counter (ignoring the fact that more than one job may be running)
+    n = 0
+    while not args.graceful_stop.is_set():
+        time.sleep(0.1)
+
+        # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
+        # (abort at the end of the loop)
+        abort = should_abort(args, label='job:interceptor')
+
+        # check for any abort_job requests
+        abort_job = check_for_abort_job(args, caller='interceptor')
+        if not abort_job:
+            logger.info('interceptor loop %d: looking for communcation file' % n)
+            time.sleep(30)
+
+        n += 1
+
+        if abort_job:
+            break
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
+
+    logger.debug('[job] interceptor thread has finished')
+
+
 def job_monitor(queues, traces, args):  # noqa: C901
     """
     Monitoring of job parameters.
@@ -1943,30 +2000,25 @@ def job_monitor(queues, traces, args):  # noqa: C901
             logger.warning('job monitor received an abort command')
 
         # check for any abort_job requests
-        abort_job = False
-        if args.abort_job.is_set():
-            logger.warning('job monitor detected an abort_job request (signal=%s)' % args.signal)
-            logger.warning('in case pilot is running more than one job, all jobs will be aborted')
-            abort_job = True
-        elif not queues.current_data_in.empty():
-            # make sure to send heartbeat regularly if stage-in takes a long time
-            jobs = queues.current_data_in.queue
-            if jobs:
-                for i in range(len(jobs)):
-                    # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
-                    # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
-                    update_time = send_heartbeat_if_time(jobs[i], args, update_time)
+        abort_job = check_for_abort_job(args, caller='job monitor')
+        if not abort_job:
+            if not queues.current_data_in.empty():
+                # make sure to send heartbeat regularly if stage-in takes a long time
+                jobs = queues.current_data_in.queue
+                if jobs:
+                    for i in range(len(jobs)):
+                        # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
+                        # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
+                        update_time = send_heartbeat_if_time(jobs[i], args, update_time)
 
+                    # sleep for a while if stage-in has not completed
+                    time.sleep(1)
+                    continue
+            elif queues.finished_data_in.empty():
                 # sleep for a while if stage-in has not completed
                 time.sleep(1)
                 continue
-        elif queues.finished_data_in.empty():
-            # sleep for a while if stage-in has not completed
-            time.sleep(1)
-            continue
 
-        # wait a minute unless we are to abort
-        if not abort_job:
             time.sleep(60)
 
         # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
