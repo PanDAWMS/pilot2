@@ -58,7 +58,7 @@ errors = ErrorCodes()
 
 def control(queues, traces, args):
     """
-    (add description)
+    Main function of job control.
 
     :param queues: internal queues for job handling.
     :param traces: tuple containing internal pilot states.
@@ -70,7 +70,7 @@ def control(queues, traces, args):
     # logger.debug('job.control is run by thread: %s' % t.name)
 
     targets = {'validate': validate, 'retrieve': retrieve, 'create_data_payload': create_data_payload,
-               'queue_monitor': queue_monitor, 'job_monitor': job_monitor, 'interceptor': interceptor}
+               'queue_monitor': queue_monitor, 'job_monitor': job_monitor}
     threads = [ExcThread(bucket=queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
                          name=name) for name, target in list(targets.items())]  # Python 2/3
 
@@ -1928,6 +1928,7 @@ def check_for_abort_job(args, caller=''):
 
 def interceptor(queues, traces, args):
     """
+    MOVE THIS TO INTERCEPTOR.PY; TEMPLATE FOR THREADS
 
     :param queues: internal queues for job handling.
     :param traces: tuple containing internal pilot states.
@@ -1947,7 +1948,12 @@ def interceptor(queues, traces, args):
         # check for any abort_job requests
         abort_job = check_for_abort_job(args, caller='interceptor')
         if not abort_job:
-            logger.info('interceptor loop %d: looking for communcation file' % n)
+            # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
+            jobs = queues.monitored_payloads.queue
+            if jobs:
+                for i in range(len(jobs)):
+
+                    logger.info('interceptor loop %d: looking for communication file' % n)
             time.sleep(30)
 
         n += 1
