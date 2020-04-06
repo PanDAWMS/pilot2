@@ -1919,7 +1919,7 @@ def check_for_abort_job(args, caller=''):
     """
     abort_job = False
     if args.abort_job.is_set():
-        logger.warning('%s detected an abort_job request (signal=%s)' % (caller, args.signal)
+        logger.warning('%s detected an abort_job request (signal=%s)' % (caller, args.signal))
         logger.warning('in case pilot is running more than one job, all jobs will be aborted')
         abort_job = True
 
