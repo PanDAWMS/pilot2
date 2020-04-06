@@ -1952,7 +1952,7 @@ def interceptor(queues, traces, args):
 
         n += 1
 
-        if abort_job:
+        if abort or abort_job:
             break
 
     # proceed to set the job_aborted flag?
