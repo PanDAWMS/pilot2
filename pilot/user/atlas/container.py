@@ -40,7 +40,7 @@ def do_use_container(**kwargs):
     if job:
         # for user jobs, TRF option --containerImage must have been used, ie imagename must be set
         if job.is_analysis() and job.imagename:
-            use_container = False
+            use_container = True  #False   WARNING will this change break runcontainer usage?
         elif not (job.platform or job.alrbuserplatform):
             use_container = False
         else:

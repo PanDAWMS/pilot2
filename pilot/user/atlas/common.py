@@ -415,11 +415,14 @@ def get_analysis_run_command(job, trf_name):
     if 'X509_USER_PROXY' in os.environ and not job.imagename:
         cmd += 'export X509_USER_PROXY=%s;' % os.environ.get('X509_USER_PROXY')
 
-    # set up analysis trf
-    if job.imagename == "":
+    # set up trfs
+    if job.imagename == "":  # user jobs with no imagename defined
         cmd += './%s %s' % (trf_name, job.jobparams)
     else:
-        cmd += 'python %s %s' % (trf_name, job.jobparams)
+        if job.is_analysis() and job.imagename:
+            cmd += './%s %s' % (trf_name, job.jobparams)
+        else:
+            cmd += 'python %s %s' % (trf_name, job.jobparams)
 
         imagename = job.imagename
         # check if image is on disk as defined by envar PAYLOAD_CONTAINER_LOCATION
@@ -433,9 +436,9 @@ def get_analysis_run_command(job, trf_name):
                 log.debug("image exists at %s" % image_location)
                 imagename = image_location
 
-        # restore the image name
-        log.debug(" restore image name : --containerImage=%s" % imagename)
-        cmd += ' --containerImage=%s' % imagename
+        # restore the image name if necessary
+        if 'containerImage' not in cmd and 'runcontainer' in trf_name:
+            cmd += ' --containerImage=%s' % imagename
 
     # add control options for PFC turl and direct access
     #if job.indata:   ## DEPRECATE ME (anisyonk)
