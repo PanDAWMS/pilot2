@@ -93,7 +93,7 @@ def execute(executable, **kwargs):  # noqa: C901
         logger.info('executing command: %s' % executable_readable)
 
     if mode == 'python':
-        exe = ['/usr/bin/python', executable]
+        exe = ['/usr/bin/python'] + executable.split()
     else:
         exe = ['/bin/bash', '-c', executable]
 
