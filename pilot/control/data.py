@@ -258,9 +258,13 @@ def containerize_middleware(job, queue, script, trace_report, stagein=True):
         tpath = os.path.join(job.workdir, filename)
         write_json(tpath, trace_report)
         lfns, scopes = get_filedata_strings(job.indata)
-        srcdir = os.environ.get('PILOT_SOURCE_DIR')
+        srcdir = os.path.join(os.environ.get('PILOT_SOURCE_DIR'), 'pilot2')
+        path = os.path.join(srcdir, 'pilot2/pilot/scripts')
         scriptpath = os.path.join(os.path.join(srcdir, 'pilot2/pilot/scripts'), script)
         copy(scriptpath, srcdir)
+        cmd = 'ls -lF %s' % srcdir
+        exit_code, stdout, stderr = execute(cmd)
+        logger.debug(stdout)
         if stagein:
             cmd = '%s --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
                   (os.path.join(srcdir, script), lfns, scopes, tpath, job.workdir, queue)
