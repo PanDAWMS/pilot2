@@ -92,7 +92,7 @@ def verify_args():
 
 
 def message(msg):
-    print(msg) if not logger else logger.fatal(msg)
+    print(msg) if not logger else logger.info(msg)
 
 
 def get_file_lists(lfns, scopes):
@@ -117,9 +117,9 @@ if __name__ == '__main__':
         message('file lists not same length: len(lfns)=%d, len(scopes)=%d' % (len(lfns), len(scopes)))
 
     # get the initial trace report
-    if not os.path.exists(args.tracereportpath):
-        message('file does not exist: %s' % args.tracereportpath)
-        exit(NO_TRACEREPORT)
+    #if not os.path.exists(args.tracereportpath):
+    #    message('file does not exist: %s' % args.tracereportpath)
+    #    exit(NO_TRACEREPORT)
 
     trace_report = read_file(args.tracereportpath, mode='rb')
     if not trace_report:

@@ -254,8 +254,8 @@ def containerize_middleware(job, queue, script, trace_report, stagein=True):
     """
 
     try:
-        tracereportpath = os.path.join(job.workdir, 'initial_trace_report.json')
-        write_file(tracereportpath, trace_report, mode='wb')
+        tracereportpath = os.path.join(job.workdir, 'trace_report.bin')
+        write_file(tracereportpath, trace_report, mute=False, mode='wb')
         lfns, scopes = get_filedata_strings(job.indata)
         srcdir = os.path.join(os.environ.get('PILOT_SOURCE_DIR'), 'pilot2')
         path = os.path.join(srcdir, 'pilot/scripts')

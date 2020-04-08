@@ -107,7 +107,7 @@ def write_file(path, contents, mute=True, mode='w'):
     :param path: full path for file (string).
     :param contents: file contents (object).
     :param mute: boolean to control stdout info message.
-    :param mode: file mode (e.g. 'w', 'r', 'a', 'wb', 'wr') (string).
+    :param mode: file mode (e.g. 'w', 'r', 'a', 'wb', 'rb') (string).
     :raises PilotException: FileHandlingFailure.
     :return: True if successful, otherwise False.
     """
