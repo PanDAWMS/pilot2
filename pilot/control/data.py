@@ -254,9 +254,8 @@ def containerize_middleware(job, queue, script, trace_report, stagein=True):
     """
 
     try:
-        filename = 'initial_trace_report.json'
-        tpath = os.path.join(job.workdir, filename)
-        write_file(tpath, trace_report, mode='wb')
+        tracereportpath = os.path.join(job.workdir, 'initial_trace_report.json')
+        write_file(tracereportpath, trace_report, mode='wb')
         lfns, scopes = get_filedata_strings(job.indata)
         srcdir = os.path.join(os.environ.get('PILOT_SOURCE_DIR'), 'pilot2')
         path = os.path.join(srcdir, 'pilot/scripts')
@@ -267,8 +266,8 @@ def containerize_middleware(job, queue, script, trace_report, stagein=True):
         logger.debug(stdout)
         newscriptpath = os.path.join(srcdir, script)
         if stagein:
-            cmd = '%s --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
-                  (newscriptpath, lfns, scopes, tpath, job.workdir, queue)
+            cmd = '%s --lfns=%s --scopes=%s --tracereportpath=%s -w %s -d -q %s' %\
+                  (newscriptpath, lfns, scopes, tracereportpath, job.workdir, queue)
         else:
             raise NotImplemented("stage-out script not implemented")
         logger.debug('could have executed: %s' % cmd)

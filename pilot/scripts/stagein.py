@@ -117,12 +117,11 @@ if __name__ == '__main__':
         message('file lists not same length: len(lfns)=%d, len(scopes)=%d' % (len(lfns), len(scopes)))
 
     # get the initial trace report
-    path = os.path.join(args.workdir, args.tracereportname)
-    if not os.path.exists(path):
-        message('file does not exist: %s' % path)
+    if not os.path.exists(args.tracereportpath):
+        message('file does not exist: %s' % args.tracereportpath)
         exit(NO_TRACEREPORT)
 
-    trace_report = read_file(args.tracereportname, mode='rb')
+    trace_report = read_file(args.tracereportpath, mode='rb')
     if not trace_report:
         message('failed to read trace report')
         exit(NO_TRACEREPORT)
