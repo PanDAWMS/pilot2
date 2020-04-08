@@ -4,6 +4,7 @@ import os
 from pilot.api import data
 from pilot.info import InfoService, FileSpec, infosys
 from pilot.util.filehandling import establish_logging, read_file
+from pilot.util.tracereport import TraceReport
 
 import logging
 
@@ -14,9 +15,14 @@ GENERAL_ERROR = 1
 NO_QUEUENAME = 2
 NO_SCOPES = 3
 NO_LFNS = 4
-NO_TRACEREPORTNAME = 5
-NO_TRACEREPORT = 6
-TRANSFER_ERROR = 7
+NO_EVENTTYPE = 5
+NO_LOCALSITE = 6
+NO_REMOTESITE = 7
+NO_PRODUSERID = 8
+NO_JOBID = 9
+NO_TASKID = 10
+NO_JOBDEFINITIONID = 11
+TRANSFER_ERROR = 12
 
 
 def get_args():
@@ -50,10 +56,34 @@ def get_args():
                             dest='lfns',
                             required=True,
                             help='LFN list (e.g., filename1,filename2')
-    arg_parser.add_argument('--tracereportname',
-                            dest='tracereportname',
+    arg_parser.add_argument('--eventtype',
+                            dest='eventtype',
                             required=True,
-                            help='Trace report file name')
+                            help='Event type')
+    arg_parser.add_argument('--localsite',
+                            dest='localsite',
+                            required=True,
+                            help='Local site')
+    arg_parser.add_argument('--remotesite',
+                            dest='remotesite',
+                            required=True,
+                            help='Remote site')
+    arg_parser.add_argument('--produserid',
+                            dest='produserid',
+                            required=True,
+                            help='produserid')
+    arg_parser.add_argument('--jobid',
+                            dest='jobid',
+                            required=True,
+                            help='PanDA job id')
+    arg_parser.add_argument('--taskid',
+                            dest='taskid',
+                            required=True,
+                            help='PanDA task id')
+    arg_parser.add_argument('--jobdefinitionid',
+                            dest='jobdefinitionid',
+                            required=True,
+                            help='Job definition id')
     arg_parser.add_argument('--no-pilot-log',
                             dest='nopilotlog',
                             action='store_true',
@@ -84,9 +114,33 @@ def verify_args():
         message('LFNs not set')
         return NO_LFNS
 
-    if not args.tracereportname:
-        message('No trace report file name provided')
-        return NO_TRACEREPORTNAME
+    if not args.eventtype:
+        message('No event type provided')
+        return NO_EVENTTYPE
+
+    if not args.localsite:
+        message('No local site provided')
+        return NO_LOCALSITE
+
+    if not args.remotesite:
+        message('No remote site provided')
+        return NO_REMOTESITE
+
+    if not args.produserid:
+        message('No produserid provided')
+        return NO_PRODUSERID
+
+    if not args.jobid:
+        message('No jobid provided')
+        return NO_JOBID
+
+    if not args.taskid:
+        message('No taskid provided')
+        return NO_TASKID
+
+    if not args.jobdefinitionid:
+        message('No jobdefinitionid provided')
+        return NO_JOBDEFINITIONID
 
     return 0
 
@@ -97,6 +151,23 @@ def message(msg):
 
 def get_file_lists(lfns, scopes):
     return lfns.split(','), scopes.split(',')
+
+
+class Job():
+    """
+    A minimal implementation of the Pilot Job class with data members necessary for the trace report only.
+    """
+
+    produserid = ""
+    jobid = ""
+    taskid = ""
+    jobdefinitionid = ""
+
+    def __init__(self, produserid="", jobid="", taskid="", jobdefinitionid=""):
+        self.produserid = produserid
+        self.jobid = jobid
+        self.taskid = taskid
+        self.jobdefinitionid = jobdefinitionid
 
 
 if __name__ == '__main__':
@@ -116,15 +187,10 @@ if __name__ == '__main__':
     if len(lfns) != len(scopes):
         message('file lists not same length: len(lfns)=%d, len(scopes)=%d' % (len(lfns), len(scopes)))
 
-    # get the initial trace report
-    #if not os.path.exists(args.tracereportpath):
-    #    message('file does not exist: %s' % args.tracereportpath)
-    #    exit(NO_TRACEREPORT)
-
-    trace_report = read_file(args.tracereportpath, mode='rb')
-    if not trace_report:
-        message('failed to read trace report')
-        exit(NO_TRACEREPORT)
+    # generate the trace report
+    trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''), localSite=args.localsite, remoteSite=args.remotesite, dataset="", eventType=args.eventtype)
+    job = Job(produserid=args.produserid, jobid=args.jobid, taskid=args.taskid, jobdefinitionid=args.jobdefinitionid)
+    trace_report.init(job)
 
     try:
         infoservice = InfoService()

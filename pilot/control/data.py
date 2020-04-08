@@ -168,6 +168,37 @@ def update_indata(job):
         job.indata.remove(fspec)
 
 
+def get_trace_report_variables(job):
+    """
+    Get some of the variables needed for creating the trace report.
+
+    :param job: job object
+    :return: event_type (string), localsite (string), remotesite (string).
+    """
+
+    event_type = "get_sm"
+    if job.is_analysis():
+        event_type += "_a"
+    localsite = remotesite = get_rse(job.indata)
+
+    return event_type, localsite, remotesite
+
+
+def create_trace_report(job):
+    """
+    Create the trace report object.
+
+    :param job: job object.
+    :return: trace report object.
+    """
+
+    event_type, localsite, remotesite = get_trace_report_variables(job)
+    trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''), localSite=localsite, remoteSite=remotesite, dataset="", eventType=event_type)
+    trace_report.init(job)
+
+    return trace_report
+
+
 def _stage_in(args, job):
     """
         :return: True in case of success
@@ -186,14 +217,6 @@ def _stage_in(args, job):
     # any DBRelease files should not be staged in
     skip_special_files(job)
 
-    # create the trace report
-    event_type = "get_sm"
-    if job.is_analysis():
-        event_type += "_a"
-    localsite = remotesite = get_rse(job.indata)
-    trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''), localSite=localsite, remoteSite=remotesite, dataset="", eventType=event_type)
-    trace_report.init(job)
-
     # now that the trace report has been created, remove any files that are not to be transferred (DBRelease files) from the indata list
     update_indata(job)
 
@@ -201,11 +224,14 @@ def _stage_in(args, job):
     script = config.Container.middleware_container_stagein_script
     if script:
         try:
-            containerize_middleware(job, args.queue, script, trace_report, stagein=True)
+            containerize_middleware(job, args.queue, script, stagein=True)
         except Exception as e:
             logger.warning('stage-in containerization threw an exception: %s' % e)
     else:
         try:
+            # create the trace report
+            trace_report = create_trace_report(job)
+
             if job.is_eventservicemerge:
                 client = StageInESClient(job.infosys, logger=log, trace_report=trace_report)
                 activity = 'es_events_read'
@@ -241,8 +267,9 @@ def _stage_in(args, job):
     return not remain_files
 
 
-def containerize_middleware(job, queue, script, trace_report, stagein=True):
+def containerize_middleware(job, queue, script, stagein=True):
     """
+    Containerise the middleware by performing stage-in/out steps in a script that in turn can be run in a container.
 
     :param job: job object.
     :param queue: queue name (string).
@@ -253,9 +280,8 @@ def containerize_middleware(job, queue, script, trace_report, stagein=True):
     :raises NotImplemented: if stagein=False, until stage-out script has been written
     """
 
+    eventtype, localsite, remotesite = get_trace_report_variables(job)
     try:
-        tracereportpath = os.path.join(job.workdir, 'trace_report.bin')
-        write_file(tracereportpath, trace_report, mute=False, mode='wb')
         lfns, scopes = get_filedata_strings(job.indata)
         srcdir = os.path.join(os.environ.get('PILOT_SOURCE_DIR'), 'pilot2')
         path = os.path.join(srcdir, 'pilot/scripts')
@@ -266,8 +292,10 @@ def containerize_middleware(job, queue, script, trace_report, stagein=True):
         logger.debug(stdout)
         newscriptpath = os.path.join(srcdir, script)
         if stagein:
-            cmd = '%s --lfns=%s --scopes=%s --tracereportpath=%s -w %s -d -q %s' %\
-                  (newscriptpath, lfns, scopes, tracereportpath, job.workdir, queue)
+            cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
+                  '--remotesite=%s --produserid=%s --jobid=%s --taskid=%s --jobdefinitionid=%s' %\
+                  (newscriptpath, lfns, scopes, job.workdir, queue, eventtype, localsite,
+                   remotesite, job.produserid, job.jobid, job.taskid, job.jobdefinitionid)
         else:
             raise NotImplemented("stage-out script not implemented")
         logger.debug('could have executed: %s' % cmd)
