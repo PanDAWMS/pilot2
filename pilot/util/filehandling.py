@@ -83,15 +83,16 @@ def rmdirs(path):
     return status
 
 
-def read_file(filename):
+def read_file(filename, mode='r'):
     """
     Open, read and close a file.
     :param filename: file name (string).
+    :param mode:
     :return: file contents (string).
     """
 
     out = ""
-    f = open_file(filename, 'r')
+    f = open_file(filename, mode)
     if f:
         out = f.read()
         f.close()
@@ -104,9 +105,9 @@ def write_file(path, contents, mute=True, mode='w'):
     Write the given contents to a file.
 
     :param path: full path for file (string).
-    :param contents: file contents (string).
+    :param contents: file contents (object).
     :param mute: boolean to control stdout info message.
-    :param mode: file mode (e.g. 'w', 'a') (string).
+    :param mode: file mode (e.g. 'w', 'r', 'a', 'wb', 'wr') (string).
     :raises PilotException: FileHandlingFailure.
     :return: True if successful, otherwise False.
     """

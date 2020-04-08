@@ -35,7 +35,7 @@ from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME
 from pilot.util.container import execute
-from pilot.util.filehandling import find_executable, remove, write_json, copy
+from pilot.util.filehandling import find_executable, remove, write_file, copy
 from pilot.util.processes import threads_aborted
 from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
 from pilot.util.timing import add_to_pilot_timing
@@ -247,7 +247,7 @@ def containerize_middleware(job, queue, script, trace_report, stagein=True):
     :param job: job object.
     :param queue: queue name (string).
     :param script:
-    :param trace_report: trace report.
+    :param trace_report: trace report (object).
     :param stagein: Boolean.
     :return:
     :raises NotImplemented: if stagein=False, until stage-out script has been written
@@ -256,7 +256,7 @@ def containerize_middleware(job, queue, script, trace_report, stagein=True):
     try:
         filename = 'initial_trace_report.json'
         tpath = os.path.join(job.workdir, filename)
-        write_json(tpath, trace_report)
+        write_file(tpath, trace_report, mode='wb')
         lfns, scopes = get_filedata_strings(job.indata)
         srcdir = os.path.join(os.environ.get('PILOT_SOURCE_DIR'), 'pilot2')
         path = os.path.join(srcdir, 'pilot/scripts')

@@ -3,7 +3,7 @@ import os
 
 from pilot.api import data
 from pilot.info import InfoService, FileSpec, infosys
-from pilot.util.filehandling import establish_logging, read_json
+from pilot.util.filehandling import establish_logging, read_file
 
 import logging
 
@@ -122,7 +122,7 @@ if __name__ == '__main__':
         message('file does not exist: %s' % path)
         exit(NO_TRACEREPORT)
 
-    trace_report = read_json(args.tracereportname)
+    trace_report = read_file(args.tracereportname, mode='rb')
     if not trace_report:
         message('failed to read trace report')
         exit(NO_TRACEREPORT)
