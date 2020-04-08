@@ -145,9 +145,6 @@ def open_file(filename, mode):
     """
 
     f = None
-    if not mode == 'w' and not os.path.exists(filename):
-        raise NoSuchFile("File does not exist: %s" % filename)
-
     try:
         f = open(filename, mode)
     except IOError as e:
