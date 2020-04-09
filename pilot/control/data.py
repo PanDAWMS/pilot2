@@ -35,7 +35,7 @@ from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME
 from pilot.util.container import execute
-from pilot.util.filehandling import find_executable, remove, copy, establish_logging
+from pilot.util.filehandling import find_executable, remove, copy, establish_logging, read_json
 from pilot.util.processes import threads_aborted
 from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
 from pilot.util.timing import add_to_pilot_timing
@@ -224,12 +224,11 @@ def _stage_in(args, job):
     script = config.Container.middleware_container_stagein_script
     if script:
         try:
-            containerize_middleware(job, args.queue, script, stagein=True)
+            containerize_middleware(job, args.queue, script, args, stagein=True)
         except Exception as e:
             logger.warning('stage-in containerization threw an exception: %s' % e)
-
-        # update indata from file
-        # ..
+        except PilotException as e:
+            logger.warning('stage-in containerization threw a pilot exception: %s' % e)
     else:
         try:
             # create the trace report
@@ -262,22 +261,19 @@ def _stage_in(args, job):
     add_to_pilot_timing(job.jobid, PILOT_POST_STAGEIN, time.time(), args)
 
     remain_files = [e for e in job.indata if e.status not in ['remote_io', 'transferred', 'no_transfer']]
-    if not remain_files:
-        log.info("stage-in finished")
-    else:
-        log.info("stage-in failed")
+    log.info("stage-in finished") if not remain_files else log.info("stage-in failed")
 
     return not remain_files
 
 
-def containerize_middleware(job, queue, script, stagein=True):
+def containerize_middleware(job, queue, script, args, stagein=True):
     """
     Containerise the middleware by performing stage-in/out steps in a script that in turn can be run in a container.
 
     :param job: job object.
     :param queue: queue name (string).
     :param script:
-    :param trace_report: trace report (object).
+    :param args: pilot args object.
     :param stagein: Boolean.
     :return:
     :raises NotImplemented: if stagein=False, until stage-out script has been written
@@ -298,7 +294,7 @@ def containerize_middleware(job, queue, script, stagein=True):
                    remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid)
         else:
             raise NotImplemented("stage-out script not implemented")
-        logger.debug('could have executed: %s' % cmd)
+
         exit_code, stdout, stderr = execute(cmd, mode='python')
         logger.debug('exit_code=%d' % exit_code)
         logger.debug('stdout=%s' % stdout)
@@ -313,7 +309,20 @@ def containerize_middleware(job, queue, script, stagein=True):
     establish_logging(args)
 
     # handle errors (script could write errors to a json file; look for that file and set errors accordingly, ie add to job object)
-    # ..
+    file_dictionary = read_json(os.path.join(job.workdir, config.Container.stagein_dictionary))
+    # update the job object accordingly
+    if file_dictionary:
+        for fspec in job.indata:
+            try:
+                _l = file_dictionary[fspec.lfn]
+                fspec.status = _l[0]
+                fspec.status_code = _l[1]
+            except Exception as e:
+                logger.warning('exception caught: %s' % e)
+                # raise PilotException
+    else:
+        logger.warning('stage-in file dictionary not found')
+        # raise PilotException
 
 
 def get_rse(data, lfn=""):

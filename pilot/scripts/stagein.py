@@ -3,7 +3,8 @@ import os
 
 from pilot.api import data
 from pilot.info import InfoService, FileSpec, infosys
-from pilot.util.filehandling import establish_logging
+from pilot.util.config import config
+from pilot.util.filehandling import establish_logging, write_json
 from pilot.util.tracereport import TraceReport
 
 import logging
@@ -164,10 +165,25 @@ class Job():
     jobdefinitionid = ""
 
     def __init__(self, produserid="", jobid="", taskid="", jobdefinitionid=""):
-        self.produserid = produserid
+        self.produserid = produserid.replace('%20', ' ')
         self.jobid = jobid
         self.taskid = taskid
         self.jobdefinitionid = jobdefinitionid
+
+
+def add_to_dictionary(dictionary, key, value1, value2):
+    """
+    Add key: [value1, value2] to dictionary.
+
+    :param dictionary: dictionary to be updated.
+    :param key: key to be added (string).
+    :param value1: value1 to be added to list belonging to key.
+    :param value1: value2 to be added to list belonging to key.
+    :return: updated dictionary.
+    """
+
+    dictionary[key] = [value1, value2]
+    return dictionary
 
 
 if __name__ == '__main__':
@@ -177,8 +193,11 @@ if __name__ == '__main__':
 
     # get the args from the arg parser
     args = get_args()
-    args.debug = True
-    args.nopilotlog = False
+    try:
+        args.debug = True
+        args.nopilotlog = False
+    except Exception as e:
+        print(e)
     establish_logging(args, filename=config.Pilot.stageinlog)
     #ret = verify_args()
     #if ret:
@@ -203,6 +222,8 @@ if __name__ == '__main__':
 
     # perform stage-in (single transfers)
     err = ""
+    errcode = 0
+    xfiles = None
     for lfn, scope in list(zip(lfns, scopes)):
         try:
             client = data.StageInClient(infoservice, logger=logger, trace_report=trace_report)
@@ -211,14 +232,21 @@ if __name__ == '__main__':
             r = client.transfer(xfiles)
         except Exception as e:
             err = str(e)
+            errcode = -1
             message(err)
             # break
 
-    log.info('stagein script summary of transferred files:')
-    for e in job.indata:
-        status = e.status if e.status else "(not transferred)"
-        log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, status))
+    file_dictionary = {}  # { 'error': [error_diag, -1], 'lfn1': [status, status_code], 'lfn2':.., .. }
+    if xfiles:
+        message('stagein script summary of transferred files:')
+        for f in xfiles:
+            add_to_dictionary(file_dictionary, f.lfn, f.status, f.status_code)
+            status = f.status if f.status else "(not transferred)"
+            message(" -- lfn=%s, status_code=%s, status=%s" % (f.lfn, f.status_code, status))
 
+    # add error info, if any
+    add_to_dictionary(file_dictionary, 'error', err, errcode)
+    _status = write_json(os.path.join(args.workdir, config.Container.stagein_dictionary), file_dictionary)
     if err:
         message("file transfer failed: %s" % err)
         exit(TRANSFER_ERROR)
