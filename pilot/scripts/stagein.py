@@ -3,7 +3,7 @@ import os
 
 from pilot.api import data
 from pilot.info import InfoService, FileSpec, infosys
-from pilot.util.filehandling import establish_logging, read_file
+from pilot.util.filehandling import establish_logging
 from pilot.util.tracereport import TraceReport
 
 import logging
@@ -177,7 +177,9 @@ if __name__ == '__main__':
 
     # get the args from the arg parser
     args = get_args()
-    establish_logging(args)
+    args.debug = True
+    args.nopilotlog = False
+    establish_logging(args, filename=config.Pilot.stageinlog)
     #ret = verify_args()
     #if ret:
     #    exit(ret)

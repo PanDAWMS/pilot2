@@ -904,7 +904,7 @@ def dump(path, cmd="cat"):
         logger.info("path %s does not exist" % path)
 
 
-def establish_logging(args):
+def establish_logging(args, filename=config.Pilot.pilotlog):
     """
     Setup and establish logging.
 
@@ -929,7 +929,7 @@ def establish_logging(args):
     if args.nopilotlog:
         logging.basicConfig(level=level, format=format_str, filemode='w')
     else:
-        logging.basicConfig(filename=config.Pilot.pilotlog, level=level, format=format_str, filemode='w')
+        logging.basicConfig(filename=filename, level=level, format=format_str, filemode='w')
     console.setLevel(level)
     console.setFormatter(logging.Formatter(format_str))
     logging.Formatter.converter = time.gmtime

@@ -35,7 +35,7 @@ from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME
 from pilot.util.container import execute
-from pilot.util.filehandling import find_executable, remove, write_file, copy
+from pilot.util.filehandling import find_executable, remove, copy, establish_logging
 from pilot.util.processes import threads_aborted
 from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
 from pilot.util.timing import add_to_pilot_timing
@@ -300,10 +300,12 @@ def containerize_middleware(job, queue, script, stagein=True):
         logger.debug('exit_code=%d' % exit_code)
         logger.debug('stdout=%s' % stdout)
         logger.debug('stderr=%s' % stderr)
-        cmd = 'ls -lF %s' % newscriptpath
-        exit_code, stdout, stderr = execute(cmd)
-        logger.debug(stdout)
 
+        # re-establish logging
+        logging.info('stage-in has finished - re-establishing pilot logging')
+        logging.handlers = []
+        logging.shutdown()
+        establish_logging(args)
     except Exception as e:
         logger.warning('exception caught: %s' % e)
 
