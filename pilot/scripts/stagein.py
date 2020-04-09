@@ -213,6 +213,12 @@ if __name__ == '__main__':
             err = str(e)
             message(err)
             # break
+
+    log.info('stagein script summary of transferred files:')
+    for e in job.indata:
+        status = e.status if e.status else "(not transferred)"
+        log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, status))
+
     if err:
         message("file transfer failed: %s" % err)
         exit(TRANSFER_ERROR)

@@ -227,6 +227,9 @@ def _stage_in(args, job):
             containerize_middleware(job, args.queue, script, stagein=True)
         except Exception as e:
             logger.warning('stage-in containerization threw an exception: %s' % e)
+
+        # update indata from file
+        # ..
     else:
         try:
             # create the trace report
@@ -300,14 +303,14 @@ def containerize_middleware(job, queue, script, stagein=True):
         logger.debug('exit_code=%d' % exit_code)
         logger.debug('stdout=%s' % stdout)
         logger.debug('stderr=%s' % stderr)
-
-        # re-establish logging
-        logging.info('stage-in has finished - re-establishing pilot logging')
-        logging.handlers = []
-        logging.shutdown()
-        establish_logging(args)
     except Exception as e:
         logger.warning('exception caught: %s' % e)
+
+    # re-establish logging
+    logging.info('stage-in has finished - re-establishing pilot logging')
+    logging.handlers = []
+    logging.shutdown()
+    establish_logging(args)
 
     # handle errors (script could write errors to a json file; look for that file and set errors accordingly, ie add to job object)
     # ..
