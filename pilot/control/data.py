@@ -287,15 +287,12 @@ def containerize_middleware(job, queue, script, stagein=True):
         path = os.path.join(srcdir, 'pilot/scripts')
         scriptpath = os.path.join(path, script)
         copy(scriptpath, srcdir)
-        cmd = 'ls -lF %s' % srcdir
-        exit_code, stdout, stderr = execute(cmd)
-        logger.debug(stdout)
         newscriptpath = os.path.join(srcdir, script)
         if stagein:
             cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
-                  '--remotesite=%s --produserid=\\"%s\\" --jobid=%s --taskid=%s --jobdefinitionid=%s' %\
+                  '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s' %\
                   (newscriptpath, lfns, scopes, job.workdir, queue, eventtype, localsite,
-                   remotesite, job.produserid, job.jobid, job.taskid, job.jobdefinitionid)
+                   remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid)
         else:
             raise NotImplemented("stage-out script not implemented")
         logger.debug('could have executed: %s' % cmd)
