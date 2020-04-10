@@ -299,8 +299,10 @@ def containerise_middleware(job, queue, script, args, stagein=True):
         else:
             raise NotImplemented("stage-out script not implemented")
 
+    usecontainer = True  # get from config
+    mode = 'python' if not usecontainer else ''
     try:
-        exit_code, stdout, stderr = execute(cmd, mode='python', job=job, usecontainer=True)
+        exit_code, stdout, stderr = execute(cmd, mode=mode, job=job, usecontainer=usecontainer)
     except Exception as e:
         logger.warning('exception caught: %s' % e)
     else:
