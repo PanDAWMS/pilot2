@@ -418,7 +418,7 @@ def alrb_wrapper(cmd, workdir, job=None):
                 _cmd = ""
         else:
             _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh '
-            if job.platform or job.alrbuserplatform:
+            if job.platform or job.alrbuserplatform or (job.imagename and new_mode):
                 _cmd += '-c $thePlatform'
 
         # update the ALRB setup command
