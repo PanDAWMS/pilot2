@@ -283,8 +283,13 @@ def containerise_middleware(job, queue, script, args, stagein=True):
         lfns, scopes = get_filedata_strings(job.indata)
         srcdir = os.path.join(os.environ.get('PILOT_SOURCE_DIR'), 'pilot2')
         copy(os.path.join(os.path.join(srcdir, 'pilot/scripts'), script), srcdir)
-    except Exception as e:
-        logger.warning('exception caught: %s' % e)
+    except PilotException as e:
+        msg = 'exception caught: %s' % e
+        logger.warning(msg)
+        if stagein:
+            raise StageInFailure(msg)
+        else:
+            raise StageOutFailure(msg)
     else:
         if stagein:
             cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
@@ -295,17 +300,22 @@ def containerise_middleware(job, queue, script, args, stagein=True):
             raise NotImplemented("stage-out script not implemented")
 
     try:
-        exit_code, stdout, stderr = execute(cmd, mode='python')
+        exit_code, stdout, stderr = execute(cmd, mode='python', job=job, usecontainer=True)
     except Exception as e:
         logger.warning('exception caught: %s' % e)
     else:
-        logger.debug('exit_code=%d' % exit_code)
-        logger.debug('stderr=%s' % stderr)
+        logger.debug('stage-in script returned exit_code=%d' % exit_code)
 
         # write stdout+stderr to files
-        logger.debug('len(stdout)=%d' % len(stdout))
-        write_file(os.path.join(job.workdir, 'stagein_stdout.txt'), stdout)
-        write_file(os.path.join(job.workdir, 'stagein_stderr.txt'), stderr)
+        try:
+            write_file(os.path.join(job.workdir, 'stagein_stdout.txt'), stdout, mute=False)
+            write_file(os.path.join(job.workdir, 'stagein_stderr.txt'), stderr, mute=False)
+        except PilotException as e:
+            msg = 'exception caught: %s' % e
+            if stagein:
+                raise StageInFailure(msg)
+            else:
+                raise StageOutFailure(msg)
 
     # handle errors and file statuses (the stage-in script writes errors and file status to a json file)
     file_dictionary = read_json(os.path.join(job.workdir, config.Container.stagein_dictionary))

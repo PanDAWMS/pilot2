@@ -41,16 +41,24 @@ def do_use_container(**kwargs):
         # for user jobs, TRF option --containerImage must have been used, ie imagename must be set
         if job.is_analysis() and job.imagename:
             use_container = True  #False   WARNING will this change break runcontainer usage?
+            logger.debug('job.is_analysis() and job.imagename -> use_container = True')
         elif not (job.platform or job.alrbuserplatform):
             use_container = False
+            logger.debug('not (job.platform or job.alrbuserplatform) -> use_container = False')
         else:
             queuedata = job.infosys.queuedata
             container_name = queuedata.container_type.get("pilot")
             if container_name == 'singularity':
                 use_container = True
+                logger.debug('container_name == \'singularity\' -> use_container = True')
+            else:
+                logger.debug('else -> use_container = False')
     elif copytool:
         # override for copytools - use a container for stage-in/out
         use_container = True
+        logger.debug('copytool -> use_container = False')
+    else:
+        logger.debug('not job -> use_container = False')
 
     return use_container
 
