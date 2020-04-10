@@ -14,7 +14,6 @@
 import copy as objectcopy
 import os
 import subprocess
-#import tarfile
 import time
 
 try:
@@ -22,20 +21,18 @@ try:
 except Exception:
     import queue  # Python 3
 
-#from contextlib import closing  # for Python 2.6 compatibility - to fix a problem with tarfile
-
 from pilot.api.data import StageInClient, StageOutClient
 from pilot.api.es_data import StageInESClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import ExcThread, PilotException, LogFileCreationFailure, NotImplemented
+from pilot.common.exception import ExcThread, PilotException, LogFileCreationFailure, NotImplemented, StageInFailure, StageOutFailure
 from pilot.util.auxiliary import get_logger, set_pilot_state, check_for_final_server_update  #, abort_jobs_in_queues
 from pilot.util.common import should_abort
 from pilot.util.config import config
-from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
-    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME
+from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT, LOG_TRANSFER_IN_PROGRESS,\
+    LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME
 from pilot.util.container import execute
-from pilot.util.filehandling import find_executable, remove, copy, establish_logging, read_json
+from pilot.util.filehandling import find_executable, remove, copy, read_json, write_file
 from pilot.util.processes import threads_aborted
 from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
 from pilot.util.timing import add_to_pilot_timing
@@ -220,15 +217,15 @@ def _stage_in(args, job):
     # now that the trace report has been created, remove any files that are not to be transferred (DBRelease files) from the indata list
     update_indata(job)
 
-    # should stage-in be done by a script (for containerization) or by invoking the API (ie classic mode)?
+    # should stage-in be done by a script (for containerisation) or by invoking the API (ie classic mode)?
     script = config.Container.middleware_container_stagein_script
     if script:
         try:
-            containerize_middleware(job, args.queue, script, args, stagein=True)
+            containerise_middleware(job, args.queue, script, args, stagein=True)
         except Exception as e:
-            logger.warning('stage-in containerization threw an exception: %s' % e)
+            logger.warning('stage-in containerisation threw an exception: %s' % e)
         except PilotException as e:
-            logger.warning('stage-in containerization threw a pilot exception: %s' % e)
+            logger.warning('stage-in containerisation threw a pilot exception: %s' % e)
     else:
         try:
             # create the trace report
@@ -266,7 +263,7 @@ def _stage_in(args, job):
     return not remain_files
 
 
-def containerize_middleware(job, queue, script, args, stagein=True):
+def containerise_middleware(job, queue, script, args, stagein=True):
     """
     Containerise the middleware by performing stage-in/out steps in a script that in turn can be run in a container.
 
@@ -277,52 +274,61 @@ def containerize_middleware(job, queue, script, args, stagein=True):
     :param stagein: Boolean.
     :return:
     :raises NotImplemented: if stagein=False, until stage-out script has been written
+    :raises StageInFailure: for stage-in failures
+    :raises StageOutFailure: for stage-out failures
     """
 
     eventtype, localsite, remotesite = get_trace_report_variables(job)
     try:
         lfns, scopes = get_filedata_strings(job.indata)
         srcdir = os.path.join(os.environ.get('PILOT_SOURCE_DIR'), 'pilot2')
-        path = os.path.join(srcdir, 'pilot/scripts')
-        scriptpath = os.path.join(path, script)
-        copy(scriptpath, srcdir)
-        newscriptpath = os.path.join(srcdir, script)
+        copy(os.path.join(os.path.join(srcdir, 'pilot/scripts'), script), srcdir)
+    except Exception as e:
+        logger.warning('exception caught: %s' % e)
+    else:
         if stagein:
             cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
                   '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s' %\
-                  (newscriptpath, lfns, scopes, job.workdir, queue, eventtype, localsite,
+                  (os.path.join(srcdir, script), lfns, scopes, job.workdir, queue, eventtype, localsite,
                    remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid)
         else:
             raise NotImplemented("stage-out script not implemented")
 
+    try:
         exit_code, stdout, stderr = execute(cmd, mode='python')
-        logger.debug('exit_code=%d' % exit_code)
-        logger.debug('stdout=%s' % stdout)
-        logger.debug('stderr=%s' % stderr)
     except Exception as e:
         logger.warning('exception caught: %s' % e)
+    else:
+        logger.debug('exit_code=%d' % exit_code)
+        logger.debug('stderr=%s' % stderr)
 
-    # re-establish logging
-    logging.info('stage-in has finished - re-establishing pilot logging')
-    logging.handlers = []
-    logging.shutdown()
-    establish_logging(args)
+        # write stdout+stderr to files
+        logger.debug('len(stdout)=%d' % len(stdout))
+        write_file(os.path.join(job.workdir, 'stagein_stdout.txt'), stdout)
+        write_file(os.path.join(job.workdir, 'stagein_stderr.txt'), stderr)
 
-    # handle errors (script could write errors to a json file; look for that file and set errors accordingly, ie add to job object)
+    # handle errors and file statuses (the stage-in script writes errors and file status to a json file)
     file_dictionary = read_json(os.path.join(job.workdir, config.Container.stagein_dictionary))
     # update the job object accordingly
     if file_dictionary:
         for fspec in job.indata:
             try:
-                _l = file_dictionary[fspec.lfn]
-                fspec.status = _l[0]
-                fspec.status_code = _l[1]
+                fspec.status = file_dictionary[fspec.lfn][0]
+                fspec.status_code = file_dictionary[fspec.lfn][1]
             except Exception as e:
-                logger.warning('exception caught: %s' % e)
-                # raise PilotException
+                msg = "exception caught while reading file dictionary: %s" % e
+                logger.warning(msg)
+                if stagein:
+                    raise StageInFailure(msg)
+                else:
+                    raise StageOutFailure(msg)
     else:
-        logger.warning('stage-in file dictionary not found')
-        # raise PilotException
+        msg = "stage-in file dictionary not found"
+        logger.warning(msg)
+        if stagein:
+            raise StageInFailure(msg)
+        else:
+            raise StageOutFailure(msg)
 
 
 def get_rse(data, lfn=""):

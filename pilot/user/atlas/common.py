@@ -1334,7 +1334,8 @@ def get_redundants():
                 "_joproxy15",
                 "HAHM_*",
                 "Process",
-                "merged_lhef._0.events-new"]
+                "merged_lhef._0.events-new",
+                "container_script.sh"]
 
     return dir_list
 

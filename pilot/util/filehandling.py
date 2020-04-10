@@ -909,6 +909,7 @@ def establish_logging(args, filename=config.Pilot.pilotlog):
     Setup and establish logging.
 
     :param args: pilot arguments object.
+    :param filename: name of log file.
     :return:
     """
 

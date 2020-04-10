@@ -9,8 +9,6 @@ from pilot.util.tracereport import TraceReport
 
 import logging
 
-logger = logging.getLogger(__name__)
-
 # error codes
 GENERAL_ERROR = 1
 NO_QUEUENAME = 2
@@ -193,12 +191,12 @@ if __name__ == '__main__':
 
     # get the args from the arg parser
     args = get_args()
-    try:
-        args.debug = True
-        args.nopilotlog = False
-    except Exception as e:
-        print(e)
+    args.debug = True
+    args.nopilotlog = False
+
     establish_logging(args, filename=config.Pilot.stageinlog)
+    logger = logging.getLogger(__name__)
+
     #ret = verify_args()
     #if ret:
     #    exit(ret)
@@ -236,13 +234,14 @@ if __name__ == '__main__':
             message(err)
             # break
 
+    # put file statuses in a dictionary to be written to file
     file_dictionary = {}  # { 'error': [error_diag, -1], 'lfn1': [status, status_code], 'lfn2':.., .. }
     if xfiles:
         message('stagein script summary of transferred files:')
-        for f in xfiles:
-            add_to_dictionary(file_dictionary, f.lfn, f.status, f.status_code)
-            status = f.status if f.status else "(not transferred)"
-            message(" -- lfn=%s, status_code=%s, status=%s" % (f.lfn, f.status_code, status))
+        for fspec in xfiles:
+            add_to_dictionary(file_dictionary, fspec.lfn, fspec.status, fspec.status_code)
+            status = fspec.status if fspec.status else "(not transferred)"
+            message(" -- lfn=%s, status_code=%s, status=%s" % (fspec.lfn, fspec.status_code, status))
 
     # add error info, if any
     add_to_dictionary(file_dictionary, 'error', err, errcode)
