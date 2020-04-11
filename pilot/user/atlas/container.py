@@ -241,12 +241,13 @@ def extract_full_atlas_setup(cmd, atlas_setup):
     return extracted_asetup, updated_cmd
 
 
-def update_alrb_setup(cmd):
+def update_alrb_setup(cmd, new_mode):
     """
     Update the ALRB setup command.
 =   Add the ALRB_CONT_SETUPFILE.
 
     :param cmd: full ALRB setup command (string).
+    :param new_mode: Boolean
     :return: updated ALRB setup command (string).
     """
 
@@ -256,7 +257,7 @@ def update_alrb_setup(cmd):
         for subcmd in _cmd:
             if subcmd.startswith('export ATLAS_LOCAL_ROOT_BASE'):
                 updated_cmds.append('if [ -z $ATLAS_LOCAL_ROOT_BASE ]; then ' + subcmd + '; fi')
-            elif subcmd.startswith('source ${ATLAS_LOCAL_ROOT_BASE}'):
+            elif subcmd.startswith('source ${ATLAS_LOCAL_ROOT_BASE}') and new_mode:
                 updated_cmds.append('export ALRB_CONT_SETUPFILE="/srv/%s"' % config.Container.release_setup)
                 updated_cmds.append(subcmd)
             else:
@@ -430,7 +431,7 @@ def alrb_wrapper(cmd, workdir, job=None):
                 _cmd += '-c $thePlatform'
 
         # update the ALRB setup command
-        _cmd = update_alrb_setup(_cmd)
+        _cmd = update_alrb_setup(_cmd, new_mode)
         _cmd = _cmd.replace('  ', ' ')
         cmd = _cmd
 
