@@ -1,5 +1,5 @@
-#!/bin/python
-import argparse
+#!/usr/bin/env python
+# import argparse
 import os
 
 from pilot.api import data
