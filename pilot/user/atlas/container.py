@@ -255,9 +255,9 @@ def update_alrb_setup(cmd, new_mode):
     try:
         _cmd = cmd.split(';')
         for subcmd in _cmd:
-            if subcmd.startswith('export ATLAS_LOCAL_ROOT_BASE'):
-                updated_cmds.append('if [ -z $ATLAS_LOCAL_ROOT_BASE ]; then ' + subcmd + '; fi')
-            elif subcmd.startswith('source ${ATLAS_LOCAL_ROOT_BASE}') and new_mode:
+            #if subcmd.startswith('export ATLAS_LOCAL_ROOT_BASE'):
+            #    updated_cmds.append('if [ -z $ATLAS_LOCAL_ROOT_BASE ]; then ' + subcmd + '; fi')
+            if subcmd.startswith('source ${ATLAS_LOCAL_ROOT_BASE}') and new_mode:
                 updated_cmds.append('export ALRB_CONT_SETUPFILE="/srv/%s"' % config.Container.release_setup)
                 updated_cmds.append(subcmd)
             else:
