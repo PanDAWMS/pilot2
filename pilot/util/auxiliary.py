@@ -234,7 +234,7 @@ def shell_exit_code(exit_code):
     if exit_code in error_code_translation_dictionary:
         return error_code_translation_dictionary.get(exit_code)[0]  # Only return the shell exit code, not the error meaning
     elif exit_code != 0:
-        print("no translation to shell exit code for error code %d" % (exit_code))
+        print("no translation to shell exit code for error code %d" % exit_code)
         return FAILURE
     else:
         return SUCCESS

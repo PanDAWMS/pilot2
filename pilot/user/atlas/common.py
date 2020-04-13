@@ -115,7 +115,7 @@ def get_resource_name():
 
 def get_payload_command(job):
     """
-    Return the full command for execuring the payload, including the sourcing of all setup files and setting of
+    Return the full command for executing the payload, including the sourcing of all setup files and setting of
     environment variables.
 
     :param job: job object.
