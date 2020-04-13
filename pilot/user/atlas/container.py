@@ -392,7 +392,9 @@ def alrb_wrapper(cmd, workdir, job=None):
         # add TMPDIR
         cmd = "export TMPDIR=/srv;export GFORTRAN_TMPDIR=/srv;" + cmd
         logger.debug('cmd = %s' % cmd)
-        if new_mode:
+        logger.debug('queuedata.is_cmvfs = %s' % str(queuedata.is_cvmfs))
+
+        if new_mode and queuedata.is_cvmfs:
             extracted_asetup, cmd = extract_full_atlas_setup(cmd, atlas_setup)
             # in the new mode, extracted_asetup should be written to 'my_release_setup.sh' and cmd to 'container_script.sh'
             logger.debug('command to be written to release setup file: %s' % extracted_asetup)
