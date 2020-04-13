@@ -84,6 +84,14 @@ def get_args():
                             dest='jobdefinitionid',
                             required=True,
                             help='Job definition id')
+    arg_parser.add_argument('--eventservicemerge',
+                            dest='eventservicemerge',
+                            default=False,
+                            help='Event service merge boolean')
+    arg_parser.add_argument('--usepcache',
+                            dest='usepcache',
+                            default=False,
+                            help='pcache boolean from queuedata')
     arg_parser.add_argument('--no-pilot-log',
                             dest='nopilotlog',
                             action='store_true',
@@ -224,12 +232,18 @@ if __name__ == '__main__':
     err = ""
     errcode = 0
     xfiles = None
+    if args.eventservicemerge:
+        client = data.StageInESClient(infoservice, logger=logger, trace_report=trace_report)
+        activity = 'es_events_read'
+    else:
+        client = data.StageInClient(infoservice, logger=logger, trace_report=trace_report)
+        activity = 'pr'
+    kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, use_pcache=args.usepcache, use_bulk=False)
     for lfn, scope in list(zip(lfns, scopes)):
         try:
-            client = data.StageInClient(infoservice, logger=logger, trace_report=trace_report)
             files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir}]
             xfiles = [FileSpec(type='input', **f) for f in files]
-            r = client.transfer(xfiles)
+            r = client.transfer(xfiles, activity=activity, **kwargs)
         except Exception as e:
             err = str(e)
             errcode = -1

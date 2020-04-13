@@ -24,7 +24,7 @@ from pilot.util.constants import PILOT_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_
     PILOT_POST_SETUP, PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, PILOT_PRE_STAGEOUT,\
     PILOT_POST_STAGEOUT, PILOT_PRE_FINAL_UPDATE, PILOT_POST_FINAL_UPDATE, PILOT_END_TIME, PILOT_MULTIJOB_START_TIME
 from pilot.util.filehandling import read_json, write_json
-from pilot.util.mpi import get_ranks_info
+#from pilot.util.mpi import get_ranks_info
 
 import logging
 logger = logging.getLogger(__name__)
@@ -54,9 +54,9 @@ def write_pilot_timing(pilot_timing_dictionary):
     :return:
     """
     timing_file = config.Pilot.timing_file
-    rank, max_ranks = get_ranks_info()
-    if rank is not None:
-        timing_file += '_{0}'.format(rank)
+    #rank, max_ranks = get_ranks_info()
+    #if rank is not None:
+    #    timing_file += '_{0}'.format(rank)
     path = os.path.join(os.environ.get('PILOT_HOME', ''), timing_file)
     if write_json(path, pilot_timing_dictionary):
         logger.debug('updated pilot timing dictionary: %s' % path)

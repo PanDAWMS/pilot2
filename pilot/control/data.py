@@ -221,7 +221,7 @@ def _stage_in(args, job):
     script = config.Container.middleware_container_stagein_script
     if script:
         try:
-            containerise_middleware(job, args.queue, script, args, stagein=True)
+            containerise_middleware(job, args.queue, script, stagein=True)
         except Exception as e:
             logger.warning('stage-in containerisation threw an exception: %s' % e)
         except PilotException as e:
@@ -237,7 +237,9 @@ def _stage_in(args, job):
             else:
                 client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
                 activity = 'pr'
-            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job, use_bulk=False)
+            use_pcache = job.infosys.queuedata.use_pcache
+            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, use_pcache=use_pcache, use_bulk=False)
+            #kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job, use_bulk=False)
             client.prepare_sources(job.indata)
             client.transfer(job.indata, activity=activity, **kwargs)
         except PilotException as error:
@@ -263,14 +265,13 @@ def _stage_in(args, job):
     return not remain_files
 
 
-def containerise_middleware(job, queue, script, args, stagein=True):
+def containerise_middleware(job, queue, script, stagein=True):
     """
     Containerise the middleware by performing stage-in/out steps in a script that in turn can be run in a container.
 
     :param job: job object.
     :param queue: queue name (string).
     :param script:
-    :param args: pilot args object.
     :param stagein: Boolean.
     :return:
     :raises NotImplemented: if stagein=False, until stage-out script has been written
@@ -293,16 +294,18 @@ def containerise_middleware(job, queue, script, args, stagein=True):
     else:
         if stagein:
             cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
-                  '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s' %\
+                  '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s' \
+                  '--eventservicemerge=%s --usepcache=%s' %\
                   (os.path.join(srcdir, script), lfns, scopes, job.workdir, queue, eventtype, localsite,
-                   remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid)
+                   remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
+                   job.is_eventservicemerge, job.infosys.queuedata.use_pcache)
         else:
             raise NotImplemented("stage-out script not implemented")
 
-    usecontainer = True  # get from config
-    mode = 'python' if not usecontainer else ''
+    usecontainer = config.Container.use_middleware_container
+    #mode = 'python' if not usecontainer else ''
     try:
-        exit_code, stdout, stderr = execute(cmd, mode=mode, job=job, usecontainer=usecontainer)
+        exit_code, stdout, stderr = execute(cmd, job=job, usecontainer=usecontainer)
     except Exception as e:
         logger.warning('exception caught: %s' % e)
     else:
