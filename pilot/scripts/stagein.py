@@ -39,6 +39,7 @@ def get_args():
     arg_parser.add_argument('-d',
                             dest='debug',
                             action='store_true',
+                            type=str2bool,
                             default=False,
                             help='Enable debug mode for logging messages')
     arg_parser.add_argument('-q',
@@ -88,19 +89,35 @@ def get_args():
                             help='Job definition id')
     arg_parser.add_argument('--eventservicemerge',
                             dest='eventservicemerge',
+                            type=str2bool,
                             default=False,
                             help='Event service merge boolean')
     arg_parser.add_argument('--usepcache',
                             dest='usepcache',
+                            type=str2bool,
                             default=False,
                             help='pcache boolean from queuedata')
     arg_parser.add_argument('--no-pilot-log',
                             dest='nopilotlog',
                             action='store_true',
+                            type=str2bool,
                             default=False,
                             help='Do not write the pilot log to file')
 
     return arg_parser.parse_args()
+
+
+def str2bool(v):
+    """ Helper function to convert string to bool """
+
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
 def verify_args():
@@ -252,7 +269,7 @@ if __name__ == '__main__':
     errcode = 0
     xfiles = None
     message('args.eventservicemerge=%s' % args.eventservicemerge)
-    if args.eventservicemerge and False:
+    if args.eventservicemerge:
         client = StageInESClient(infoservice, logger=logger, trace_report=trace_report)
         activity = 'es_events_read'
     else:
@@ -260,13 +277,13 @@ if __name__ == '__main__':
         activity = 'pr'
     message('args.workdir=%s' % args.workdir)
     message('args.usepcache=%s' % args.usepcache)
-    #kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, use_pcache=args.usepcache, use_bulk=False)
+    kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, use_pcache=args.usepcache, use_bulk=False)
+    message('kwargs=%s' % str(kwargs))
     for lfn, scope in list(zip(lfns, scopes)):
         try:
             files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir}]
             xfiles = [FileSpec(type='input', **f) for f in files]
-            #r = client.transfer(xfiles, activity=activity, **kwargs)
-            r = client.transfer(xfiles, activity=activity)
+            r = client.transfer(xfiles, activity=activity, **kwargs)
         except Exception as e:
             err = str(e)
             errcode = -1
