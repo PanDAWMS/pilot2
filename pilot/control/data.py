@@ -296,7 +296,7 @@ def containerise_middleware(job, queue, script, stagein=True):
     else:
         if stagein:
             cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
-                  '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s' \
+                  '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
                   '--eventservicemerge=%s --usepcache=%s' %\
                   (final_script_path, lfns, scopes, job.workdir, queue, eventtype, localsite,
                    remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
@@ -315,8 +315,9 @@ def containerise_middleware(job, queue, script, stagein=True):
 
         # write stdout+stderr to files
         try:
-            write_file(os.path.join(job.workdir, 'stagein_stdout.txt'), stdout, mute=False)
-            write_file(os.path.join(job.workdir, 'stagein_stderr.txt'), stderr, mute=False)
+            stagein_stdout, stagein_stderr = get_stagein_logfile_names()
+            write_file(os.path.join(job.workdir, stagein_stdout), stdout, mute=False)
+            write_file(os.path.join(job.workdir, stagein_stderr), stderr, mute=False)
         except PilotException as e:
             msg = 'exception caught: %s' % e
             if stagein:
@@ -328,6 +329,7 @@ def containerise_middleware(job, queue, script, stagein=True):
     file_dictionary = read_json(os.path.join(job.workdir, config.Container.stagein_dictionary))
     # update the job object accordingly
     if file_dictionary:
+        # get file info
         for fspec in job.indata:
             try:
                 fspec.status = file_dictionary[fspec.lfn][0]
@@ -339,6 +341,11 @@ def containerise_middleware(job, queue, script, stagein=True):
                     raise StageInFailure(msg)
                 else:
                     raise StageOutFailure(msg)
+        # get main error info ('error': [error_diag, error_code])
+        error_diag = file_dictionary['error'][0]
+        error_code = file_dictionary['error'][1]
+        if error_code:
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error_code, msg=error_diag)
     else:
         msg = "stage-in file dictionary not found"
         logger.warning(msg)
@@ -346,6 +353,23 @@ def containerise_middleware(job, queue, script, stagein=True):
             raise StageInFailure(msg)
         else:
             raise StageOutFailure(msg)
+
+
+def get_stagein_logfile_names():
+    """
+    Get the proper names for the redirected stage-in logs.
+
+    :return: stagein_stdout (string), stagein_stderr (string).
+    """
+
+    stagein_stdout = config.Container.middleware_stagein_stdout
+    if not stagein_stdout:
+        stagein_stdout = 'stagein_stdout.txt'
+    stagein_stderr = config.Container.middleware_stagein_stderr
+    if not stagein_stderr:
+        stagein_stderr = 'stagein_stderr.txt'
+
+    return stagein_stdout, stagein_stderr
 
 
 def get_rse(data, lfn=""):

@@ -83,7 +83,7 @@ class WorkExecutor(PluginFactory):
 
         logger.info("Starting plugin: %s" % self.plugin)
         self.plugin.start()
-        logger.info("Waiting payload to start")
+        logger.info("Waiting for payload to start")
         while self.plugin.is_alive():
             if self.plugin.is_payload_started():
                 logger.info("Payload started with pid: %s" % self.get_pid())

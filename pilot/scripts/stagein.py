@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 import argparse
 import os
+import re
 
-from pilot.api import data
+from pilot.api.data import StageInClient
+from pilot.api.es_data import StageInESClient
 from pilot.info import InfoService, FileSpec, infosys
 from pilot.util.config import config
 from pilot.util.filehandling import establish_logging, write_json
@@ -193,6 +195,23 @@ def add_to_dictionary(dictionary, key, value1, value2):
     return dictionary
 
 
+def extract_error_info(err):
+
+    error_code = 0
+    error_message = ""
+
+    _code = re.search('error code: (\d+)', err)
+    if _code:
+        error_code = _code.group(1)
+
+    _msg = re.search('details: (.+)', err)
+    if _msg:
+        error_message = _msg.group(1)
+        error_message = error_message.replace('[PilotException(', '').strip()
+
+    return error_code, error_message
+
+
 if __name__ == '__main__':
     """
     Main function of the stage-in script.
@@ -232,18 +251,22 @@ if __name__ == '__main__':
     err = ""
     errcode = 0
     xfiles = None
-    if args.eventservicemerge:
-        client = data.StageInESClient(infoservice, logger=logger, trace_report=trace_report)
+    message('args.eventservicemerge=%s' % args.eventservicemerge)
+    if args.eventservicemerge and False:
+        client = StageInESClient(infoservice, logger=logger, trace_report=trace_report)
         activity = 'es_events_read'
     else:
-        client = data.StageInClient(infoservice, logger=logger, trace_report=trace_report)
+        client = StageInClient(infoservice, logger=logger, trace_report=trace_report)
         activity = 'pr'
-    kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, use_pcache=args.usepcache, use_bulk=False)
+    message('args.workdir=%s' % args.workdir)
+    message('args.usepcache=%s' % args.usepcache)
+    #kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, use_pcache=args.usepcache, use_bulk=False)
     for lfn, scope in list(zip(lfns, scopes)):
         try:
             files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir}]
             xfiles = [FileSpec(type='input', **f) for f in files]
-            r = client.transfer(xfiles, activity=activity, **kwargs)
+            #r = client.transfer(xfiles, activity=activity, **kwargs)
+            r = client.transfer(xfiles, activity=activity)
         except Exception as e:
             err = str(e)
             errcode = -1
@@ -260,6 +283,8 @@ if __name__ == '__main__':
             message(" -- lfn=%s, status_code=%s, status=%s" % (fspec.lfn, fspec.status_code, status))
 
     # add error info, if any
+    if err:
+        errcode, err = extract_error_info(err)
     add_to_dictionary(file_dictionary, 'error', err, errcode)
     _status = write_json(os.path.join(args.workdir, config.Container.stagein_dictionary), file_dictionary)
     if err:
