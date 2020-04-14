@@ -25,14 +25,14 @@ from pilot.api.data import StageInClient, StageOutClient
 from pilot.api.es_data import StageInESClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import ExcThread, PilotException, LogFileCreationFailure, NotImplemented, StageInFailure, StageOutFailure
+from pilot.common.exception import ExcThread, PilotException, LogFileCreationFailure
 from pilot.util.auxiliary import get_logger, set_pilot_state, check_for_final_server_update  #, abort_jobs_in_queues
 from pilot.util.common import should_abort
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT, LOG_TRANSFER_IN_PROGRESS,\
     LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME
-from pilot.util.container import execute
-from pilot.util.filehandling import find_executable, remove, copy, read_json, write_file
+from pilot.util.container import execute, containerise_middleware
+from pilot.util.filehandling import remove
 from pilot.util.processes import threads_aborted
 from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
 from pilot.util.timing import add_to_pilot_timing
@@ -91,44 +91,6 @@ def control(queues, traces, args):
         logger.debug('will not set job_aborted yet')
 
     logger.debug('[data] control thread has finished')
-
-
-def use_middleware_container(cmd):
-    """
-    Should the pilot use a container for the stage-in/out?
-
-    :param cmd: middleware command, used to determine if the container should be used or not (string).
-    :return: Boolean.
-    """
-
-    usecontainer = False
-    if not config.Container.middleware_container:
-        logger.info('container usage for middleware is not allowed by pilot config')
-    else:
-        # if the middleware is available locally, do not use container
-        if find_executable(cmd) == "":
-            usecontainer = True
-            logger.info('command %s is not available locally, will attempt to use container' % cmd)
-        else:
-            logger.info('command %s is available locally, no need to use container' % cmd)
-
-    return usecontainer
-
-
-def get_filedata_strings(indata):
-    """
-
-    :param indata:
-    :return:
-    """
-
-    lfns = ""
-    scopes = ""
-    for fspec in indata:
-        lfns = fspec.lfn if lfns == "" else lfns + ",%s" % fspec.lfn
-        scopes = fspec.scope if scopes == "" else scopes + ",%s" % fspec.scope
-
-    return lfns, scopes
 
 
 def skip_special_files(job):
@@ -221,7 +183,8 @@ def _stage_in(args, job):
     script = config.Container.middleware_container_stagein_script
     if script:
         try:
-            containerise_middleware(job, args.queue, script, stagein=True)
+            eventtype, localsite, remotesite = get_trace_report_variables(job)
+            containerise_middleware(job, args.queue, script, eventtype, localsite, remotesite, stagein=True)
         except Exception as e:
             logger.warning('stage-in containerisation threw an exception: %s' % e)
         except PilotException as e:
@@ -263,146 +226,6 @@ def _stage_in(args, job):
     log.info("stage-in finished") if not remain_files else log.info("stage-in failed")
 
     return not remain_files
-
-
-def get_stagein_command(job, queue, script):
-    """
-
-    :param job: job object.
-    :param queue: queue name (string).
-    :param script:
-    :return: stage-in command (string).
-    :raises StageInFailure: for stage-in failures
-    """
-
-    eventtype, localsite, remotesite = get_trace_report_variables(job)
-
-    try:
-        lfns, scopes = get_filedata_strings(job.indata)
-        srcdir = os.path.join(os.environ.get('PILOT_SOURCE_DIR'), 'pilot2')
-        copy(os.path.join(os.path.join(srcdir, 'pilot/scripts'), script), srcdir)
-        final_script_path = os.path.join(srcdir, script)
-        os.chmod(final_script_path, 0o755)  # Python 2/3
-    except PilotException as e:
-        msg = 'exception caught: %s' % e
-        logger.warning(msg)
-        raise StageInFailure(msg)
-    else:
-        cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
-              '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
-              '--eventservicemerge=%s --usepcache=%s' % \
-              (final_script_path, lfns, scopes, job.workdir, queue, eventtype, localsite,
-               remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
-               job.is_eventservicemerge, job.infosys.queuedata.use_pcache)
-
-    return cmd
-
-
-def containerise_middleware(job, queue, script, stagein=True):
-    """
-    Containerise the middleware by performing stage-in/out steps in a script that in turn can be run in a container.
-
-    :param job: job object.
-    :param queue: queue name (string).
-    :param script: full path to stage-in/out script (string).
-    :param stagein: Boolean.
-    :return:
-    :raises NotImplemented: if stagein=False, until stage-out script has been written
-    :raises StageInFailure: for stage-in failures
-    :raises StageOutFailure: for stage-out failures
-    """
-
-    try:
-        if stagein:
-            cmd = get_stagein_command(job, queue, script)
-        else:
-            raise NotImplemented("stage-out script not implemented yet")
-    except PilotException as e:
-        raise e
-
-    usecontainer = config.Container.use_middleware_container
-    #mode = 'python' if not usecontainer else ''
-    try:
-        exit_code, stdout, stderr = execute(cmd, job=job, usecontainer=usecontainer)
-    except Exception as e:
-        logger.warning('exception caught: %s' % e)
-    else:
-        logger.debug('stage-in script returned exit_code=%d' % exit_code)
-
-        # write stdout+stderr to files
-        try:
-            stagein_stdout, stagein_stderr = get_stagein_logfile_names()
-            write_file(os.path.join(job.workdir, stagein_stdout), stdout, mute=False)
-            write_file(os.path.join(job.workdir, stagein_stderr), stderr, mute=False)
-        except PilotException as e:
-            msg = 'exception caught: %s' % e
-            if stagein:
-                raise StageInFailure(msg)
-            else:
-                raise StageOutFailure(msg)
-
-    # handle errors and file statuses (the stage-in script writes errors and file status to a json file)
-    try:
-        handle_containerised_errors(job)
-    except PilotException as e:
-        raise e
-
-
-def handle_containerised_errors(job, stagein=True):
-    """
-
-    :param job: job object.
-    :param stagein: Boolean.
-    :return:
-    :raises: StageInFailure, StageOutFailure
-    """
-
-    # read the JSON file created by the stage-in/out script
-    file_dictionary = read_json(os.path.join(job.workdir, config.Container.stagein_dictionary))
-
-    # update the job object accordingly
-    if file_dictionary:
-        # get file info
-        for fspec in job.indata:
-            try:
-                fspec.status = file_dictionary[fspec.lfn][0]
-                fspec.status_code = file_dictionary[fspec.lfn][1]
-            except Exception as e:
-                msg = "exception caught while reading file dictionary: %s" % e
-                logger.warning(msg)
-                if stagein:
-                    raise StageInFailure(msg)
-                else:
-                    raise StageOutFailure(msg)
-        # get main error info ('error': [error_diag, error_code])
-        error_diag = file_dictionary['error'][0]
-        error_code = file_dictionary['error'][1]
-        if error_code:
-            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error_code, msg=error_diag)
-    else:
-        msg = "stage-in file dictionary not found"
-        logger.warning(msg)
-        if stagein:
-            raise StageInFailure(msg)
-        else:
-            raise StageOutFailure(msg)
-
-
-def get_stagein_logfile_names():
-    """
-    Get the proper names for the redirected stage-in logs.
-
-    :return: stagein_stdout (string), stagein_stderr (string).
-    """
-
-    stagein_stdout = config.Container.middleware_stagein_stdout
-    if not stagein_stdout:
-        stagein_stdout = 'stagein_stdout.txt'
-    stagein_stderr = config.Container.middleware_stagein_stderr
-    if not stagein_stderr:
-        stagein_stderr = 'stagein_stderr.txt'
-
-    return stagein_stdout, stagein_stderr
 
 
 def get_rse(data, lfn=""):
