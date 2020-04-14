@@ -33,11 +33,11 @@ from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PR
     LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME
 from pilot.util.container import execute
 from pilot.util.filehandling import remove
-from pilot.util.middleware import containerise_middleware
 from pilot.util.processes import threads_aborted
 from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.tracereport import TraceReport
+import pilot.util.middleware
 
 import logging
 
@@ -185,7 +185,7 @@ def _stage_in(args, job):
     if script:
         try:
             eventtype, localsite, remotesite = get_trace_report_variables(job)
-            containerise_middleware(job, args.queue, script, eventtype, localsite, remotesite, stagein=True)
+            pilot.util.middleware.containerise_middleware(job, args.queue, script, eventtype, localsite, remotesite, stagein=True)
         except PilotException as e:
             logger.warning('stage-in containerisation threw a pilot exception: %s' % e)
         except Exception as e:
