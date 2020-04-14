@@ -249,7 +249,6 @@ def get_args():
     arg_parser.add_argument('-t',
                             dest='verify_proxy',
                             action='store_false',
-                            type=str2bool,
                             default=True,
                             help='Disable proxy verification')
 
