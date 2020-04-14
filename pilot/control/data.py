@@ -265,21 +265,18 @@ def _stage_in(args, job):
     return not remain_files
 
 
-def containerise_middleware(job, queue, script, stagein=True):
+def get_stagein_command(job, queue, script):
     """
-    Containerise the middleware by performing stage-in/out steps in a script that in turn can be run in a container.
 
     :param job: job object.
     :param queue: queue name (string).
     :param script:
-    :param stagein: Boolean.
-    :return:
-    :raises NotImplemented: if stagein=False, until stage-out script has been written
+    :return: stage-in command (string).
     :raises StageInFailure: for stage-in failures
-    :raises StageOutFailure: for stage-out failures
     """
 
     eventtype, localsite, remotesite = get_trace_report_variables(job)
+
     try:
         lfns, scopes = get_filedata_strings(job.indata)
         srcdir = os.path.join(os.environ.get('PILOT_SOURCE_DIR'), 'pilot2')
@@ -289,20 +286,39 @@ def containerise_middleware(job, queue, script, stagein=True):
     except PilotException as e:
         msg = 'exception caught: %s' % e
         logger.warning(msg)
-        if stagein:
-            raise StageInFailure(msg)
-        else:
-            raise StageOutFailure(msg)
+        raise StageInFailure(msg)
     else:
+        cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
+              '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
+              '--eventservicemerge=%s --usepcache=%s' % \
+              (final_script_path, lfns, scopes, job.workdir, queue, eventtype, localsite,
+               remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
+               job.is_eventservicemerge, job.infosys.queuedata.use_pcache)
+
+    return cmd
+
+
+def containerise_middleware(job, queue, script, stagein=True):
+    """
+    Containerise the middleware by performing stage-in/out steps in a script that in turn can be run in a container.
+
+    :param job: job object.
+    :param queue: queue name (string).
+    :param script: full path to stage-in/out script (string).
+    :param stagein: Boolean.
+    :return:
+    :raises NotImplemented: if stagein=False, until stage-out script has been written
+    :raises StageInFailure: for stage-in failures
+    :raises StageOutFailure: for stage-out failures
+    """
+
+    try:
         if stagein:
-            cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
-                  '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
-                  '--eventservicemerge=%s --usepcache=%s' %\
-                  (final_script_path, lfns, scopes, job.workdir, queue, eventtype, localsite,
-                   remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
-                   job.is_eventservicemerge, job.infosys.queuedata.use_pcache)
+            cmd = get_stagein_command(job, queue, script)
         else:
-            raise NotImplemented("stage-out script not implemented")
+            raise NotImplemented("stage-out script not implemented yet")
+    except PilotException as e:
+        raise e
 
     usecontainer = config.Container.use_middleware_container
     #mode = 'python' if not usecontainer else ''
@@ -326,7 +342,24 @@ def containerise_middleware(job, queue, script, stagein=True):
                 raise StageOutFailure(msg)
 
     # handle errors and file statuses (the stage-in script writes errors and file status to a json file)
+    try:
+        handle_containerised_errors(job)
+    except PilotException as e:
+        raise e
+
+
+def handle_containerised_errors(job, stagein=True):
+    """
+
+    :param job: job object.
+    :param stagein: Boolean.
+    :return:
+    :raises: StageInFailure, StageOutFailure
+    """
+
+    # read the JSON file created by the stage-in/out script
     file_dictionary = read_json(os.path.join(job.workdir, config.Container.stagein_dictionary))
+
     # update the job object accordingly
     if file_dictionary:
         # get file info
