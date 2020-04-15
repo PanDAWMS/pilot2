@@ -39,7 +39,6 @@ def get_args():
     arg_parser.add_argument('-d',
                             dest='debug',
                             action='store_true',
-                            type=str2bool,
                             default=False,
                             help='Enable debug mode for logging messages')
     arg_parser.add_argument('-q',
@@ -100,7 +99,6 @@ def get_args():
     arg_parser.add_argument('--no-pilot-log',
                             dest='nopilotlog',
                             action='store_true',
-                            type=str2bool,
                             default=False,
                             help='Do not write the pilot log to file')
 
