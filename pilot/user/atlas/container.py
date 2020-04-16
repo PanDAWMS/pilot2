@@ -12,6 +12,7 @@ import pipes
 import re
 # for user container test: import urllib
 
+from pilot.common.exception import PilotException
 from pilot.user.atlas.setup import get_asetup
 from pilot.user.atlas.setup import get_file_system_root_path
 from pilot.info import InfoService, infosys
@@ -522,3 +523,49 @@ def singularity_wrapper(cmd, workdir, job=None):
         logger.info("updated command: %s" % cmd)
 
     return cmd
+
+
+def create_stagein_container_command(workdir, cmd):
+    """
+    Create the stage-in container command.
+
+    The function takes the isolated stage-in command, adds bits and pieces needed for the containerisation and stores
+    it in a stagein.sh script file. It then generates the actual command that will execute the stage-in script in a
+    container.
+
+    new cmd:
+      lsetup rucio davis xrootd
+      old cmd
+      exit $?
+    write new cmd to stagein.sh script
+    create container command and return it
+
+    :param workdir: working directory where script will be stored (string).
+    :param cmd: isolated stage-in command (string).
+    :return: container command to be executed (string).
+    """
+
+    command = ''
+
+    # add bits and pieces for the containerisation
+    content = 'lsetup rucio davix xrootd\n%s\nexit $?' % cmd
+    logger.debug('setup.sh content:\n%s' % content)
+
+    # store it in setup.sh
+    script_name = 'stagein.sh'
+    try:
+        status = write_file(os.path.join(workdir, script_name), content)
+    except PilotException as e:
+        raise e
+    else:
+        if status:
+            # generate the final container command
+            x509 = os.environ.get('X509_USER_PROXY', '')
+            if x509:
+                command = 'export X509_USER_PROXY=%s;' % x509
+            command += 'export ALRB_CONT_PAYLOAD=\"source /srv/%s\";' % script_name
+            command += get_asetup(alrb=True)  # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
+            command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c centos7'
+
+    logger.debug('container command: %s' % command)
+    return command

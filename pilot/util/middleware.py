@@ -44,10 +44,18 @@ def containerise_middleware(job, queue, script, eventtype, localsite, remotesite
     except PilotException as e:
         raise e
 
-    usecontainer = config.Container.use_middleware_container
+    if config.Container.use_middleware_container:
+        # add bits and pieces needed to run the cmd in a container
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+        try:
+            cmd = user.create_stagein_container_command(job.workdir, cmd)
+        except PilotException as e:
+            raise e
+
     #mode = 'python' if not usecontainer else ''
     try:
-        exit_code, stdout, stderr = execute(cmd, job=job, usecontainer=usecontainer)
+        exit_code, stdout, stderr = execute(cmd, job=job, usecontainer=False)
     except Exception as e:
         logger.warning('exception caught: %s' % e)
     else:
@@ -85,21 +93,27 @@ def get_stagein_command(job, queue, script, eventtype, localsite, remotesite):
     :raises StageInFailure: for stage-in failures
     """
 
-    try:
-        lfns, scopes = get_filedata_strings(job.indata)
-        srcdir = path.join(environ.get('PILOT_SOURCE_DIR'), 'pilot2')
-        copy(path.join(path.join(srcdir, 'pilot/scripts'), script), srcdir)
+    lfns, scopes = get_filedata_strings(job.indata)
+    srcdir = path.join(environ.get('PILOT_SOURCE_DIR'), 'pilot2')
+    if config.Container.use_middleware_container:
+        final_script_path = path.join('./srv', script)
+        workdir = '/srv'
+    else:
         final_script_path = path.join(srcdir, script)
+        workdir = job.workdir
+    try:
+        copy(path.join(path.join(srcdir, 'pilot/scripts'), script), srcdir)
         chmod(final_script_path, 0o755)  # Python 2/3
     except PilotException as e:
         msg = 'exception caught: %s' % e
         logger.warning(msg)
         raise StageInFailure(msg)
     else:
+
         cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
               '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
               '--eventservicemerge=%s --usepcache=%s' % \
-              (final_script_path, lfns, scopes, job.workdir, queue, eventtype, localsite,
+              (final_script_path, lfns, scopes, workdir, queue, eventtype, localsite,
                remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
                job.is_eventservicemerge, job.infosys.queuedata.use_pcache)
 
