@@ -328,7 +328,6 @@ class GenericExecutor(BaseExecutor):
             proc.start()
             log.info('ESProcess started to run')
 
-            exit_code = None
             try:
                 iteration = long(0)  # Python 2
             except Exception:
