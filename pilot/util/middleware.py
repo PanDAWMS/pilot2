@@ -46,7 +46,7 @@ def containerise_middleware(job, queue, script, eventtype, localsite, remotesite
 
     if config.Container.use_middleware_container:
         # add bits and pieces needed to run the cmd in a container
-        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        pilot_user = environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
         try:
             cmd = user.create_stagein_container_command(job.workdir, cmd)
