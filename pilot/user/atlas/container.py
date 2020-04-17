@@ -434,7 +434,7 @@ def alrb_wrapper(cmd, workdir, job=None):
                 _cmd += '-c $thePlatform'
 
         # update the ALRB setup command
-        _cmd = update_alrb_setup(_cmd, new_mode)
+        _cmd = update_alrb_setup(_cmd, new_mode and queuedata.is_cvmfs)
         _cmd = _cmd.replace('  ', ' ')
         cmd = _cmd
 
@@ -545,7 +545,7 @@ def create_stagein_container_command(workdir, cmd):
     :return: container command to be executed (string).
     """
 
-    command = ''
+    command = 'cd %s;' % workdir
 
     # add bits and pieces for the containerisation
     content = 'lsetup rucio davix xrootd\n%s\nexit $?' % cmd

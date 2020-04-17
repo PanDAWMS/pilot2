@@ -51,6 +51,10 @@ def get_setup_command(job, prepareasetup):
     :return:
     """
 
+    # if cvmfs is not available, assume that asetup is not needed
+    if not job.infosys.queuedata.is_cvmfs:
+        return ""
+
     # return immediately if there is no release or if user containers are used
     if job.swrelease == 'NULL' or '--containerImage' in job.jobparams:
         return ""

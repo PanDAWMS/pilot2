@@ -37,7 +37,6 @@ def containerise_middleware(job, queue, script, eventtype, localsite, remotesite
     """
 
     cwd = getcwd()
-    logger.debug('0 cwd=%s' % cwd)
 
     try:
         if stagein:
@@ -58,10 +57,8 @@ def containerise_middleware(job, queue, script, eventtype, localsite, remotesite
 
     #mode = 'python' if not usecontainer else ''
     try:
-        cwd = getcwd()
-        logger.debug('01 cwd=%s' % cwd)
-        n, out, err = execute('ls -lF')
-        logger.debug('ls -lF\n%s' % out)
+        n, out, err = execute('ls -lF %s' % job.workdir)
+        logger.debug('ls -lF %s\n%s' % (job.workdir, out))
         exit_code, stdout, stderr = execute(cmd, job=job, usecontainer=False)
     except Exception as e:
         logger.warning('exception caught: %s' % e)
