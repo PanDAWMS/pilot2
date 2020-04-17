@@ -39,6 +39,9 @@ def execute(executable, **kwargs):
     :return: exit code, stdout and stderr (or process if requested via returnproc argument)
     """
 
+    mute = kwargs.get('mute', False)
+    mode = kwargs.get('mode', 'bash')
+
     cwd = kwargs.get('cwd', getcwd())
     stdout = kwargs.get('stdout', subprocess.PIPE)
     stderr = kwargs.get('stderr', subprocess.PIPE)
@@ -62,8 +65,23 @@ def execute(executable, **kwargs):
         if not executable:
             return None if returnproc else -1, "", diagnostics
 
+    if not mute:
+        executable_readable = executable
+        executables = executable_readable.split(";")
+        for sub_cmd in executables:
+            if 'S3_SECRET_KEY=' in sub_cmd:
+                secret_key = sub_cmd.split('S3_SECRET_KEY=')[1]
+                secret_key = 'S3_SECRET_KEY=' + secret_key
+                executable_readable = executable_readable.replace(secret_key, 'S3_SECRET_KEY=********')
+        logger.info('executing command: %s' % executable_readable)
+
+    if mode == 'python':
+        exe = ['/usr/bin/python'] + executable.split()
+    else:
+        exe = ['/bin/bash', '-c', executable]
+
     # try: intercept exception such as OSError -> report e.g. error.RESOURCEUNAVAILABLE: "Resource temporarily unavailable"
-    process = subprocess.Popen(executable,
+    process = subprocess.Popen(exe,
                                bufsize=-1,
                                stdout=stdout,
                                stderr=stderr,
@@ -96,8 +114,6 @@ def containerise_executable(executable, job, **kwargs):
     :return: containerised executable (list).
     """
 
-    mute = kwargs.get('mute', False)
-    mode = kwargs.get('mode', 'bash')
     user = environ.get('PILOT_USER', 'generic').lower()  # TODO: replace with singleton
     container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], 0)  # Python 2/3
     if container:
@@ -122,19 +138,4 @@ def containerise_executable(executable, job, **kwargs):
     else:
         logger.warning('container module could not be imported')
 
-    if not mute:
-        executable_readable = executable
-        executables = executable_readable.split(";")
-        for sub_cmd in executables:
-            if 'S3_SECRET_KEY=' in sub_cmd:
-                secret_key = sub_cmd.split('S3_SECRET_KEY=')[1]
-                secret_key = 'S3_SECRET_KEY=' + secret_key
-                executable_readable = executable_readable.replace(secret_key, 'S3_SECRET_KEY=********')
-        logger.info('executing command: %s' % executable_readable)
-
-    if mode == 'python':
-        exe = ['/usr/bin/python'] + executable.split()
-    else:
-        exe = ['/bin/bash', '-c', executable]
-
-    return exe, ""
+    return executable, ""
