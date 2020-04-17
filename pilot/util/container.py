@@ -41,7 +41,6 @@ def execute(executable, **kwargs):
 
     mute = kwargs.get('mute', False)
     mode = kwargs.get('mode', 'bash')
-
     cwd = kwargs.get('cwd', getcwd())
     stdout = kwargs.get('stdout', subprocess.PIPE)
     stderr = kwargs.get('stderr', subprocess.PIPE)
@@ -61,7 +60,7 @@ def execute(executable, **kwargs):
     # Import user specific code if necessary (in case the command should be executed in a container)
     # Note: the container.wrapper() function must at least be declared
     if usecontainer:
-        executable, diagnostics = containerise_executable(executable, job, **kwargs)
+        executable, diagnostics = containerise_executable(executable, **kwargs)
         if not executable:
             return None if returnproc else -1, "", diagnostics
 
@@ -104,15 +103,16 @@ def execute(executable, **kwargs):
         return exit_code, stdout, stderr
 
 
-def containerise_executable(executable, job, **kwargs):
+def containerise_executable(executable, **kwargs):
     """
     Wrap the containerisation command around the executable.
 
     :param executable: command to be wrapper (string).
-    :param job: job object.
     :param kwargs: kwargs dictionary.
     :return: containerised executable (list).
     """
+
+    job = kwargs.get('job')
 
     user = environ.get('PILOT_USER', 'generic').lower()  # TODO: replace with singleton
     container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], 0)  # Python 2/3

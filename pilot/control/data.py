@@ -32,7 +32,7 @@ from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT, LOG_TRANSFER_IN_PROGRESS,\
     LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME
 from pilot.util.container import execute
-from pilot.util.filehandling import remove
+from pilot.util.filehandling import remove, get_local_file_size
 from pilot.util.processes import threads_aborted
 from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
 from pilot.util.timing import add_to_pilot_timing
@@ -708,6 +708,13 @@ def create_log(job, logfile, tarball_name, args):
     except Exception as e:
         log.debug('exception caught: %s' % e)
     job.workdir = orgworkdir
+
+    # verify the size of the log file
+    size = get_local_file_size(fullpath)
+    if size < 1024:
+        logger.warning('log file size too small: %d B')
+    else:
+        logger.info('log file size: %d B' % size)
 
     #fullpath = os.path.join(job.workdir, logfile.lfn)  # reset fullpath since workdir has changed since above
     #return {'scope': logfile.scope,
