@@ -1403,7 +1403,7 @@ def remove_redundant_files(workdir, outputfiles=[]):
 
     cmd = 'ls -lF %s' % workdir
     ec, stdout, stderr = execute(cmd)
-    logger.debug('%s:\n' % stdout+stderr)
+    logger.debug('%s:\n' % stdout + stderr)
 
     # get list of redundant files and directories (to be removed)
     dir_list = get_redundants()
