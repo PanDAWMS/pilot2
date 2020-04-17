@@ -563,7 +563,7 @@ def create_stagein_container_command(workdir, cmd):
             x509 = os.environ.get('X509_USER_PROXY', '')
             if x509:
                 command = 'export X509_USER_PROXY=%s;' % x509
-            command += 'export ALRB_CONT_PAYLOAD=\"source /srv/%s\";' % script_name
+            command += 'export ALRB_CONT_RUNPAYLOAD=\"source /srv/%s\";' % script_name
             command += get_asetup(alrb=True)  # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
             command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c centos7'
 

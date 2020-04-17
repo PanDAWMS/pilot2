@@ -1399,8 +1399,11 @@ def remove_redundant_files(workdir, outputfiles=[]):
     """
 
     logger.debug("removing redundant files prior to log creation")
-
     workdir = os.path.abspath(workdir)
+
+    cmd = 'ls -lF %s' % workdir
+    ec, stdout, stderr = execute(cmd)
+    logger.debug('%s:\n' % stdout+stderr)
 
     # get list of redundant files and directories (to be removed)
     dir_list = get_redundants()

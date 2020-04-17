@@ -28,7 +28,7 @@ def is_python3():
     return version_info >= (3, 0)
 
 
-def execute(executable, **kwargs):  # noqa: C901
+def execute(executable, **kwargs):
     """
     Execute the command and its options in the provided executable list.
     The function also determines whether the command should be executed within a container.
@@ -42,12 +42,9 @@ def execute(executable, **kwargs):  # noqa: C901
     cwd = kwargs.get('cwd', getcwd())
     stdout = kwargs.get('stdout', subprocess.PIPE)
     stderr = kwargs.get('stderr', subprocess.PIPE)
-    timeout = kwargs.get('timeout', None)
     usecontainer = kwargs.get('usecontainer', False)
     returnproc = kwargs.get('returnproc', False)
-    mute = kwargs.get('mute', False)
     job = kwargs.get('job')
-    mode = kwargs.get('mode', 'bash')
 
     # convert executable to string if it is a list
     if type(executable) is list:
@@ -61,47 +58,12 @@ def execute(executable, **kwargs):  # noqa: C901
     # Import user specific code if necessary (in case the command should be executed in a container)
     # Note: the container.wrapper() function must at least be declared
     if usecontainer:
-        user = environ.get('PILOT_USER', 'generic').lower()  # TODO: replace with singleton
-        container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], 0)  # Python 2/3
-        if container:
-            # should a container really be used?
-            do_use_container = job.usecontainer if job else container.do_use_container(**kwargs)
-
-            if do_use_container:
-                diagnostics = ""
-                try:
-                    executable = container.wrapper(executable, **kwargs)
-                except Exception as e:
-                    diagnostics = 'failed to execute wrapper function: %s' % e
-                    logger.fatal(diagnostics)
-                else:
-                    if executable == "":
-                        diagnostics = 'failed to prepare container command'
-                        logger.fatal(diagnostics)
-                if diagnostics != "":
-                    return None if returnproc else -1, "", diagnostics
-            else:
-                logger.info('pilot user container module has decided to not use a container')
-        else:
-            logger.warning('container module could not be imported')
-
-    if not mute:
-        executable_readable = executable
-        executables = executable_readable.split(";")
-        for sub_cmd in executables:
-            if 'S3_SECRET_KEY=' in sub_cmd:
-                secret_key = sub_cmd.split('S3_SECRET_KEY=')[1]
-                secret_key = 'S3_SECRET_KEY=' + secret_key
-                executable_readable = executable_readable.replace(secret_key, 'S3_SECRET_KEY=********')
-        logger.info('executing command: %s' % executable_readable)
-
-    if mode == 'python':
-        exe = ['/usr/bin/python'] + executable.split()
-    else:
-        exe = ['/bin/bash', '-c', executable]
+        executable, diagnostics = containerise_executable(executable, job, **kwargs)
+        if not executable:
+            return None if returnproc else -1, "", diagnostics
 
     # try: intercept exception such as OSError -> report e.g. error.RESOURCEUNAVAILABLE: "Resource temporarily unavailable"
-    process = subprocess.Popen(exe,
+    process = subprocess.Popen(executable,
                                bufsize=-1,
                                stdout=stdout,
                                stderr=stderr,
@@ -122,3 +84,57 @@ def execute(executable, **kwargs):  # noqa: C901
             stdout = stdout[:-1]
 
         return exit_code, stdout, stderr
+
+
+def containerise_executable(executable, job, **kwargs):
+    """
+    Wrap the containerisation command around the executable.
+
+    :param executable: command to be wrapper (string).
+    :param job: job object.
+    :param kwargs: kwargs dictionary.
+    :return: containerised executable (list).
+    """
+
+    mute = kwargs.get('mute', False)
+    mode = kwargs.get('mode', 'bash')
+    user = environ.get('PILOT_USER', 'generic').lower()  # TODO: replace with singleton
+    container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], 0)  # Python 2/3
+    if container:
+        # should a container really be used?
+        do_use_container = job.usecontainer if job else container.do_use_container(**kwargs)
+
+        if do_use_container:
+            diagnostics = ""
+            try:
+                executable = container.wrapper(executable, **kwargs)
+            except Exception as e:
+                diagnostics = 'failed to execute wrapper function: %s' % e
+                logger.fatal(diagnostics)
+            else:
+                if executable == "":
+                    diagnostics = 'failed to prepare container command'
+                    logger.fatal(diagnostics)
+            if diagnostics != "":
+                return None, diagnostics
+        else:
+            logger.info('pilot user container module has decided to not use a container')
+    else:
+        logger.warning('container module could not be imported')
+
+    if not mute:
+        executable_readable = executable
+        executables = executable_readable.split(";")
+        for sub_cmd in executables:
+            if 'S3_SECRET_KEY=' in sub_cmd:
+                secret_key = sub_cmd.split('S3_SECRET_KEY=')[1]
+                secret_key = 'S3_SECRET_KEY=' + secret_key
+                executable_readable = executable_readable.replace(secret_key, 'S3_SECRET_KEY=********')
+        logger.info('executing command: %s' % executable_readable)
+
+    if mode == 'python':
+        exe = ['/usr/bin/python'] + executable.split()
+    else:
+        exe = ['/bin/bash', '-c', executable]
+
+    return exe, ""

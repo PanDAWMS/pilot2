@@ -7,7 +7,7 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2020
 
-from os import environ, path, chmod
+from os import environ, path, chmod, getcwd
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import PilotException, NotImplemented, StageInFailure, StageOutFailure
 from pilot.util.config import config
@@ -36,6 +36,9 @@ def containerise_middleware(job, queue, script, eventtype, localsite, remotesite
     :raises StageOutFailure: for stage-out failures
     """
 
+    cwd = getcwd()
+    logger.debug('0 cwd=%s' % cwd)
+
     try:
         if stagein:
             cmd = get_stagein_command(job, queue, script, eventtype, localsite, remotesite)
@@ -49,12 +52,16 @@ def containerise_middleware(job, queue, script, eventtype, localsite, remotesite
         pilot_user = environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
         try:
-            cmd = user.create_stagein_container_command(job.workdir, cmd)
+            cmd = user.create_stagein_container_command(path.join(environ.get('PILOT_SOURCE_DIR'), 'pilot2'), cmd)
         except PilotException as e:
             raise e
 
     #mode = 'python' if not usecontainer else ''
     try:
+        cwd = getcwd()
+        logger.debug('01 cwd=%s' % cwd)
+        n, out, err = execute('ls -lF')
+        logger.debug('ls -lF\n%s' % out)
         exit_code, stdout, stderr = execute(cmd, job=job, usecontainer=False)
     except Exception as e:
         logger.warning('exception caught: %s' % e)
@@ -95,20 +102,28 @@ def get_stagein_command(job, queue, script, eventtype, localsite, remotesite):
 
     lfns, scopes = get_filedata_strings(job.indata)
     srcdir = path.join(environ.get('PILOT_SOURCE_DIR'), 'pilot2')
-    if config.Container.use_middleware_container:
-        final_script_path = path.join('./srv', script)
-        workdir = '/srv'
-    else:
-        final_script_path = path.join(srcdir, script)
-        workdir = job.workdir
+    final_script_path = path.join(srcdir, script)
     try:
         copy(path.join(path.join(srcdir, 'pilot/scripts'), script), srcdir)
-        chmod(final_script_path, 0o755)  # Python 2/3
     except PilotException as e:
         msg = 'exception caught: %s' % e
         logger.warning(msg)
         raise StageInFailure(msg)
     else:
+        try:
+            # make the script executable
+            chmod(final_script_path, 0o755)  # Python 2/3
+        except Exception as e:
+            msg = 'exception caught: %s' % e
+            logger.warning(msg)
+            raise StageInFailure(msg)
+
+        if config.Container.use_middleware_container:
+            # correct the path when containers have been used
+            final_script_path = path.join('.', script)
+            workdir = '/srv'
+        else:
+            workdir = job.workdir
 
         cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
               '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
