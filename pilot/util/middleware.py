@@ -8,6 +8,8 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2020
 
 from os import environ, path, chmod, getcwd
+from shutil import copytree
+
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import PilotException, NotImplemented, StageInFailure, StageOutFailure
 from pilot.util.config import config
@@ -114,6 +116,14 @@ def get_stagein_command(job, queue, script, eventtype, localsite, remotesite):
             chmod(final_script_path, 0o755)  # Python 2/3
         except Exception as e:
             msg = 'exception caught: %s' % e
+            logger.warning(msg)
+            raise StageInFailure(msg)
+
+        # copy pilot source for now - investigate why there is a config read error when source is set to cvmfs pilot dir
+        try:
+            copytree(srcdir, path.join(job.workdir, 'pilot2'))
+        except Exception as e:
+            msg = 'exception caught when copying pilot2 source: %s' % e
             logger.warning(msg)
             raise StageInFailure(msg)
 
