@@ -23,6 +23,7 @@ except Exception:
 
 from pilot.common.exception import PilotException, MessageFailure, SetupFailure, RunPayloadFailure, UnknownException
 from pilot.eventservice.esprocess.esmessage import MessageThread
+from pilot.util.container import containerise_executable
 from pilot.util.processes import kill_child_processes
 
 
@@ -184,6 +185,14 @@ class ESProcess(threading.Thread):
             else:
                 error_file = os.path.join(workdir, "ES_payload_error.txt")
                 error_file_fd = open(error_file, 'w')
+
+            # containerise executable if required
+            if 'job' in self.__payload and self.__payload['job']:
+                executable, diagnostics = containerise_executable(executable, job=self.__payload['job'])
+                if diagnostics:
+                    logger.warning('containerisation of executable failed: %s' % diagnostics)
+            else:
+                logger.warning('could not containerise executable')
 
             self.__process = subprocess.Popen(executable, stdout=output_file_fd, stderr=error_file_fd, shell=True)
             self.pid = self.__process.pid

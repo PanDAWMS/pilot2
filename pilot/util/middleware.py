@@ -51,7 +51,8 @@ def containerise_middleware(job, queue, script, eventtype, localsite, remotesite
         pilot_user = environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
         try:
-            cmd = user.create_stagein_container_command(path.join(environ.get('PILOT_SOURCE_DIR'), 'pilot2'), cmd)
+            cmd = user.create_stagein_container_command(job.workdir, cmd)
+            #cmd = user.create_stagein_container_command(path.join(environ.get('PILOT_SOURCE_DIR'), 'pilot2'), cmd)
         except PilotException as e:
             raise e
 
@@ -99,9 +100,10 @@ def get_stagein_command(job, queue, script, eventtype, localsite, remotesite):
 
     lfns, scopes = get_filedata_strings(job.indata)
     srcdir = path.join(environ.get('PILOT_SOURCE_DIR'), 'pilot2')
-    final_script_path = path.join(srcdir, script)
+    final_script_path = path.join(job.workdir, script)
+    #final_script_path = path.join(srcdir, script)
     try:
-        copy(path.join(path.join(srcdir, 'pilot/scripts'), script), srcdir)
+        copy(path.join(path.join(srcdir, 'pilot/scripts'), script), job.workdir)  # srcdir)
     except PilotException as e:
         msg = 'exception caught: %s' % e
         logger.warning(msg)
@@ -142,7 +144,11 @@ def handle_containerised_errors(job, stagein=True):
     """
 
     # read the JSON file created by the stage-in/out script
-    file_dictionary = read_json(path.join(job.workdir, config.Container.stagein_dictionary))
+    _path = path.join(job.workdir)
+    file_dictionary = read_json(path.join(_path, config.Container.stagein_dictionary))
+    if not file_dictionary:
+        _path = path.join(_path, '..')
+        file_dictionary = read_json(path.join(_path, config.Container.stagein_dictionary))
 
     # update the job object accordingly
     if file_dictionary:

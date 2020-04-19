@@ -562,8 +562,9 @@ def create_stagein_container_command(workdir, cmd):
             # generate the final container command
             x509 = os.environ.get('X509_USER_PROXY', '')
             if x509:
-                command = 'export X509_USER_PROXY=%s;' % x509
-            command += 'export ALRB_CONT_RUNPAYLOAD=\"source /srv/%s\";' % script_name
+                command += 'export X509_USER_PROXY=%s;' % x509
+            pythonpath = 'export PYTHONPATH=/cvmfs/atlas.cern.ch/repo/sw/PandaPilot/pilot2/latest:$PYTHONPATH'
+            command += 'export ALRB_CONT_RUNPAYLOAD=\"%s;source /srv/%s\";' % (pythonpath, script_name)
             command += get_asetup(alrb=True)  # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
             command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c centos7'
 

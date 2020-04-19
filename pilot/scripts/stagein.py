@@ -301,10 +301,12 @@ if __name__ == '__main__':
     if err:
         errcode, err = extract_error_info(err)
     add_to_dictionary(file_dictionary, 'error', err, errcode)
-    _status = write_json(os.path.join(args.workdir, config.Container.stagein_dictionary), file_dictionary)
+    path = os.path.join(args.workdir, config.Container.stagein_dictionary)
+    _status = write_json(path, file_dictionary)
     if err:
         message("file transfer failed: %s" % err)
         exit(TRANSFER_ERROR)
 
+    message("wrote %s" % path)
     message("file transfers finished")
     exit(0)
