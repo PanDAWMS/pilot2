@@ -514,7 +514,7 @@ def check_work_dir(job):
                 log.fatal("%s" % diagnostics)
 
                 cmd = 'ls -altrR %s' % job.workdir
-                exit_code, stdout, stderr = execute(cmd, mute=True)
+                _ec, stdout, stderr = execute(cmd, mute=True)
                 log.info("%s: %s" % (cmd + '\n', stdout))
 
                 # kill the job
