@@ -702,19 +702,20 @@ def create_log(job, logfile, tarball_name, args):
         raise LogFileCreationFailure(e)
     else:
         log.debug('stdout = %s' % stdout)
+
+        # verify the size of the log file
+        size = get_local_file_size(fullpath)
+        if size < 1024:
+            logger.warning('log file size too small: %d B')
+        else:
+            logger.info('log file size: %d B' % size)
+
     log.debug('renaming %s back to %s' % (job.workdir, orgworkdir))
     try:
         os.rename(job.workdir, orgworkdir)
     except Exception as e:
         log.debug('exception caught: %s' % e)
     job.workdir = orgworkdir
-
-    # verify the size of the log file
-    size = get_local_file_size(fullpath)
-    if size < 1024:
-        logger.warning('log file size too small: %d B')
-    else:
-        logger.info('log file size: %d B' % size)
 
     #fullpath = os.path.join(job.workdir, logfile.lfn)  # reset fullpath since workdir has changed since above
     #return {'scope': logfile.scope,

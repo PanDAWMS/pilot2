@@ -101,7 +101,8 @@ def get_stagein_command(job, queue, script, eventtype, localsite, remotesite):
     """
 
     lfns, scopes = get_filedata_strings(job.indata)
-    srcdir = path.join(environ.get('PILOT_SOURCE_DIR'), 'pilot2')
+    srcdir = environ.get('PILOT_SOURCE_DIR', '.')
+
     final_script_path = path.join(job.workdir, script)
     #final_script_path = path.join(srcdir, script)
     try:
