@@ -432,18 +432,20 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout, 
         f['transfer_timeout'] = transfer_timeout
 
     # proceed with the download
-    logger.info('_stage_in_api file: %s' % str(f))
+    logger.info('rucio API stage-in dictionary: %s' % f)
     trace_pattern = {}
     if trace_report:
         trace_pattern = trace_report
 
     # download client raises an exception if any file failed
     try:
+        logger.info('*** rucio API downloading file (taking over logging) ***')
         if fspec.turl:
             result = download_client.download_pfns([f], 1, trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
         else:
             result = download_client.download_dids([f], trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
     except Exception as e:
+        logger.warning('*** rucio API download client failed ***')
         logger.warning('caught exception: %s' % e)
         logger.debug('trace_report_out=%s' % trace_report_out)
         # only raise an exception if the error info cannot be extracted
@@ -453,7 +455,8 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout, 
             raise e
         ec = -1
     else:
-        logger.debug('Rucio download client returned %s' % result)
+        logger.info('*** rucio API download client finished ***')
+        logger.debug('client returned %s' % result)
 
     logger.debug('trace_report_out=%s' % trace_report_out)
 
@@ -508,8 +511,21 @@ def _stage_in_bulk(dst, files, trace_report_out=None, trace_common_fields=None):
 
     # download client raises an exception if any file failed
     num_threads = len(file_list)
-    result = download_client.download_pfns(file_list, num_threads, trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
-    logger.debug('Rucio download client returned %s' % result)
+    logger.info('*** rucio API downloading files (taking over logging) ***')
+    try:
+        result = download_client.download_pfns(file_list, num_threads, trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
+    except Exception as e:
+        logger.warning('*** rucio API download client failed ***')
+        logger.warning('caught exception: %s' % e)
+        logger.debug('trace_report_out=%s' % trace_report_out)
+        # only raise an exception if the error info cannot be extracted
+        if not trace_report_out:
+            raise e
+        if not trace_report_out[0].get('stateReason'):
+            raise e
+    else:
+        logger.info('*** rucio API download client finished ***')
+        logger.debug('client returned %s' % result)
 
 
 def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, transfer_timeout):
@@ -544,13 +560,14 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, tra
     if fspec.lfn and '.root' in fspec.lfn:
         f['guid'] = fspec.guid
 
-    # process with the upload
-    logger.info('_stage_out_api: %s' % str(f))
+    logger.info('rucio API stage-out dictionary: %s' % f)
 
     # upload client raises an exception if any file failed
     try:
+        logger.info('*** rucio API uploading file (taking over logging) ***')
         result = upload_client.upload([f], summary_file_path=summary_file_path, traces_copy_out=trace_report_out)
     except Exception as e:
+        logger.warning('*** rucio API upload client failed ***')
         logger.warning('caught exception: %s' % e)
         logger.debug('trace_report_out=%s' % trace_report_out)
         if not trace_report_out:
@@ -559,17 +576,19 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, tra
             raise e
         ec = -1
     except UnboundLocalError:
+        logger.warning('*** rucio API upload client failed ***')
         logger.warning('rucio still needs a bug fix of the summary in the uploadclient')
     else:
-        logger.debug('Rucio upload client returned %s' % result)
+        logger.warning('*** rucio API upload client finished ***')
+        logger.debug('client returned %s' % result)
 
     try:
         file_exists = verify_stage_out(fspec)
-        logger.info('File exists at the storage: %s' % str(file_exists))
+        logger.info('file exists at the storage: %s' % str(file_exists))
         if not file_exists:
-            raise StageOutFailure('stageOut: Physical check after upload failed.')
+            raise StageOutFailure('physical check after upload failed')
     except Exception as e:
-        msg = 'stageOut: File existence verification failed with: %s' % str(e)
+        msg = 'file existence verification failed with: %s' % e
         logger.info(msg)
         raise StageOutFailure(msg)
 

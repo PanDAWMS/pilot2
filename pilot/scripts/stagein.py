@@ -266,17 +266,13 @@ if __name__ == '__main__':
     err = ""
     errcode = 0
     xfiles = None
-    message('args.eventservicemerge=%s' % args.eventservicemerge)
     if args.eventservicemerge:
         client = StageInESClient(infoservice, logger=logger, trace_report=trace_report)
         activity = 'es_events_read'
     else:
         client = StageInClient(infoservice, logger=logger, trace_report=trace_report)
         activity = 'pr'
-    message('args.workdir=%s' % args.workdir)
-    message('args.usepcache=%s' % args.usepcache)
     kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, use_pcache=args.usepcache, use_bulk=False)
-    message('kwargs=%s' % str(kwargs))
     for lfn, scope in list(zip(lfns, scopes)):
         try:
             files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir}]
@@ -304,9 +300,9 @@ if __name__ == '__main__':
     path = os.path.join(args.workdir, config.Container.stagein_dictionary)
     _status = write_json(path, file_dictionary)
     if err:
-        message("file transfer failed: %s" % err)
+        message("containerised file transfers failed: %s" % err)
         exit(TRANSFER_ERROR)
 
     message("wrote %s" % path)
-    message("file transfers finished")
+    message("containerised file transfers finished")
     exit(0)
