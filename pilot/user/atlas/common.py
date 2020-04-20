@@ -1335,7 +1335,8 @@ def get_redundants():
                 "HAHM_*",
                 "Process",
                 "merged_lhef._0.events-new",
-                "container_script.sh"]
+                "container_script.sh",  # new
+                "pilot2"]  # new
 
     return dir_list
 
