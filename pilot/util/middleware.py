@@ -27,7 +27,7 @@ def containerise_middleware(job, queue, script, eventtype, localsite, remotesite
 
     :param job: job object.
     :param queue: queue name (string).
-    :param script: full path to stage-in/out script (string).
+    :param script: name of stage-in/out script (string).
     :param eventtype:
     :param localsite:
     :param remotesite:
@@ -60,12 +60,16 @@ def containerise_middleware(job, queue, script, eventtype, localsite, remotesite
 
     #mode = 'python' if not usecontainer else ''
     try:
-        n, out, err = execute('ls -lF %s' % job.workdir)
-        logger.debug('ls -lF %s\n%s' % (job.workdir, out))
+        logger.info('*** executing containerised stage-in (logging will be redirected) ***')
         exit_code, stdout, stderr = execute(cmd, job=job, usecontainer=False)
     except Exception as e:
+        logger.info('*** containerised stage-in has failed ***')
         logger.warning('exception caught: %s' % e)
     else:
+        if exit_code == 0:
+            logger.info('*** containerised stage-in has finished ***')
+        else:
+            logger.info('*** containerised stage-in has failed ***')
         logger.debug('stage-in script returned exit_code=%d' % exit_code)
 
         # write stdout+stderr to files
@@ -92,7 +96,7 @@ def get_stagein_command(job, queue, script, eventtype, localsite, remotesite):
 
     :param job: job object.
     :param queue: queue name (string).
-    :param script:
+    :param script: name of stage-in script (string).
     :param eventtype:
     :param localsite:
     :param remotesite:
@@ -103,15 +107,14 @@ def get_stagein_command(job, queue, script, eventtype, localsite, remotesite):
     lfns, scopes = get_filedata_strings(job.indata)
     srcdir = environ.get('PILOT_SOURCE_DIR', '.')
 
-    final_script_path = path.join(job.workdir, script)
-    #final_script_path = path.join(srcdir, script)
     try:
-        copy(path.join(path.join(srcdir, 'pilot/scripts'), script), job.workdir)  # srcdir)
+        copy(path.join(path.join(srcdir, 'pilot/scripts'), script), job.workdir)
     except PilotException as e:
         msg = 'exception caught: %s' % e
         logger.warning(msg)
         raise StageInFailure(msg)
     else:
+        final_script_path = path.join(job.workdir, script)
         try:
             # make the script executable
             chmod(final_script_path, 0o755)  # Python 2/3
@@ -122,7 +125,7 @@ def get_stagein_command(job, queue, script, eventtype, localsite, remotesite):
 
         # copy pilot source for now - investigate why there is a config read error when source is set to cvmfs pilot dir
         try:
-            copytree(srcdir, path.join(job.workdir, 'pilot2'))
+            copytree(srcdir, job.workdir)
         except Exception as e:
             msg = 'exception caught when copying pilot2 source: %s' % e
             logger.warning(msg)
