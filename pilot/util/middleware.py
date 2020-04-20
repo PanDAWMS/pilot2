@@ -125,7 +125,7 @@ def get_stagein_command(job, queue, script, eventtype, localsite, remotesite):
 
         # copy pilot source for now - investigate why there is a config read error when source is set to cvmfs pilot dir
         try:
-            copytree(srcdir, job.workdir)
+            copytree(srcdir, path.join(job.workdir, '.'))
         except Exception as e:
             msg = 'exception caught when copying pilot2 source: %s' % e
             logger.warning(msg)
