@@ -197,6 +197,7 @@ def _stage_in(args, job):
     # should stage-in be done by a script (for containerisation) or by invoking the API (ie classic mode)?
     use_container = should_containerise_middleware(job.infosys.queuedata.container_type.get("middleware"))
     if use_container:
+        logger.info('stage-in will be done in a container')
         try:
             eventtype, localsite, remotesite = get_trace_report_variables(job)
             pilot.util.middleware.containerise_middleware(job, args.queue, eventtype, localsite, remotesite, stagein=True)
@@ -206,6 +207,8 @@ def _stage_in(args, job):
             logger.warning('stage-in containerisation threw an exception: %s' % e)
     else:
         try:
+            logger.info('stage-in will not be done in a container')
+
             # create the trace report
             trace_report = create_trace_report(job)
 
