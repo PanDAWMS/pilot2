@@ -228,18 +228,17 @@ def get_filedata_strings(indata):
     return lfns, scopes
 
 
-def use_middleware_container(cmd):
+def use_middleware_container(container_type):
     """
     Should the pilot use a container for the stage-in/out?
+    Check the container_type (from queuedata) if 'middleware' is set to 'container'.
 
-    :param cmd: middleware command, used to determine if the container should be used or not (string).
-    :return: Boolean.
+    :param container_type: container type (string).
+    :return: Boolean (True if middleware should be containerised).
     """
 
-    # currently not used
-
     # see definition in atlas/container.py, but also see useful code below (in case middleware is available locally)
-
+    #:param cmd: middleware command, used to determine if the container should be used or not (string).
     #usecontainer = False
     #if not config.Container.middleware_container:
     #    logger.info('container usage for middleware is not allowed by pilot config')
@@ -251,4 +250,6 @@ def use_middleware_container(cmd):
     #    else:
     #        logger.info('command %s is available locally, no need to use container' % cmd)
 
-    return False  #usecontainer
+    # FOR TESTING
+    #return True if config.Container.middleware_container_stagein_script else False
+    return True if container_type == 'container' else False

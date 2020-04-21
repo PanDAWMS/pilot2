@@ -159,20 +159,6 @@ def create_trace_report(job):
     return trace_report
 
 
-def should_containerise_middleware(container_type):
-    """
-    Should the middleware be containerised?
-    Check the container_type (from queuedata) if 'middleware' is set to 'container'.
-
-    :param container_type: container type (string).
-    :return: Boolean (True if middleware should be containerised).
-    """
-
-    # FOR TESTING
-    return True if config.Container.middleware_container_stagein_script else False
-    # return True if container_type == 'container' else False
-
-
 def _stage_in(args, job):
     """
         :return: True in case of success
@@ -195,7 +181,7 @@ def _stage_in(args, job):
     update_indata(job)
 
     # should stage-in be done by a script (for containerisation) or by invoking the API (ie classic mode)?
-    use_container = should_containerise_middleware(job.infosys.queuedata.container_type.get("middleware"))
+    use_container = pilot.util.middleware.use_middleware_container(job.infosys.queuedata.container_type.get("middleware"))
     if use_container:
         logger.info('stage-in will be done in a container')
         try:
