@@ -21,13 +21,12 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def containerise_middleware(job, queue, script, eventtype, localsite, remotesite, stagein=True):
+def containerise_middleware(job, queue, eventtype, localsite, remotesite, stagein=True):
     """
     Containerise the middleware by performing stage-in/out steps in a script that in turn can be run in a container.
 
     :param job: job object.
     :param queue: queue name (string).
-    :param script: name of stage-in/out script (string).
     :param eventtype:
     :param localsite:
     :param remotesite:
@@ -39,6 +38,9 @@ def containerise_middleware(job, queue, script, eventtype, localsite, remotesite
     """
 
     cwd = getcwd()
+
+    # get the name of the stage-in isolation script
+    script = config.Container.middleware_container_stagein_script
 
     try:
         if stagein:
