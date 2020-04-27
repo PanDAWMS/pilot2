@@ -187,19 +187,19 @@ class ESProcess(threading.Thread):
                 error_file_fd = open(error_file, 'w')
 
             # containerise executable if required
-            #if 'job' in self.__payload and self.__payload['job']:
-            #    try:
-            #        executable, diagnostics = containerise_executable(executable, job=self.__payload['job'], workdir=workdir)
-            #        if diagnostics:
-            #            msg = 'containerisation of executable failed: %s' % diagnostics
-            #            logger.warning(msg)
-            #            raise SetupFailure(msg)
-            #    except Exception as e:
-            #        msg = 'exception caught while preparing container command: %s' % e
-            #        logger.warning(msg)
-            #        raise SetupFailure(msg)
-            #else:
-            #    logger.warning('could not containerise executable')
+            if 'job' in self.__payload and self.__payload['job']:
+                try:
+                    executable, diagnostics = containerise_executable(executable, job=self.__payload['job'], workdir=workdir)
+                    if diagnostics:
+                        msg = 'containerisation of executable failed: %s' % diagnostics
+                        logger.warning(msg)
+                        raise SetupFailure(msg)
+                except Exception as e:
+                    msg = 'exception caught while preparing container command: %s' % e
+                    logger.warning(msg)
+                    raise SetupFailure(msg)
+            else:
+                logger.warning('could not containerise executable')
 
             self.__process = subprocess.Popen(executable, stdout=output_file_fd, stderr=error_file_fd, shell=True)
             self.pid = self.__process.pid

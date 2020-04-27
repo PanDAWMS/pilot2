@@ -1231,7 +1231,7 @@ def cleanup_payload(workdir, outputfiles=[]):
 
     remove_core_dumps(workdir)
 
-    for ampdir in glob('%s/athenaMP-workers-*' % (workdir)):
+    for ampdir in glob('%s/athenaMP-workers-*' % workdir):
         for (p, d, f) in os.walk(ampdir):
             for filename in f:
                 if 'core' in filename or 'pool.root' in filename or 'tmp.' in filename:
@@ -1390,6 +1390,12 @@ def cleanup_broken_links(workdir):
             remove(p)
 
 
+def ls(workdir):
+    cmd = 'ls -lF %s' % workdir
+    ec, stdout, stderr = execute(cmd)
+    logger.debug('%s:\n' % stdout + stderr)
+
+
 def remove_redundant_files(workdir, outputfiles=[]):
     """
     Remove redundant files and directories prior to creating the log file.
@@ -1402,21 +1408,21 @@ def remove_redundant_files(workdir, outputfiles=[]):
     logger.debug("removing redundant files prior to log creation")
     workdir = os.path.abspath(workdir)
 
-    cmd = 'ls -lF %s' % workdir
-    ec, stdout, stderr = execute(cmd)
-    logger.debug('%s:\n' % stdout + stderr)
+    ls(workdir)
 
     # get list of redundant files and directories (to be removed)
     dir_list = get_redundants()
 
     # remove core and pool.root files from AthenaMP sub directories
     try:
+        logger.debug('cleaning up payload')
         cleanup_payload(workdir, outputfiles)
     except Exception as e:
         logger.warning("failed to execute cleanup_payload(): %s" % e)
 
     # explicitly remove any soft linked archives (.a files) since they will be dereferenced by the tar command
     # (--dereference option)
+    logger.debug('removing archives')
     remove_archives(workdir)
 
     # note: these should be partial file/dir names, not containing any wildcards
@@ -1442,6 +1448,8 @@ def remove_redundant_files(workdir, outputfiles=[]):
     exclude_files = []
     for of in outputfiles:
         exclude_files.append(os.path.join(workdir, of))
+    logger.debug('to_delete=%s' % to_delete)
+    logger.debug('exclude_files=%s' % exclude_files)
     for f in to_delete:
         if f not in exclude_files:
             if os.path.isfile(f):
@@ -1450,11 +1458,13 @@ def remove_redundant_files(workdir, outputfiles=[]):
                 remove_dir_tree(f)
 
     # run a second pass to clean up any broken links
+    logger.debug('cleaning up broken links')
     cleanup_broken_links(workdir)
 
     # remove any present user workDir
     path = os.path.join(workdir, 'workDir')
     if os.path.exists(path):
+        logger.debug('removing workDir')
         remove_dir_tree(path)
 
 

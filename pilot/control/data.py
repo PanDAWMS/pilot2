@@ -663,6 +663,11 @@ def create_log(job, logfile, tarball_name, args):
 
     log = get_logger(job.jobid)
     log.debug('preparing to create log file')
+    pilot_home = os.environ.get('PILOT_HOME', os.getcwd())
+    current_dir = os.getcwd()
+    if pilot_home != current_dir:
+        log.debug('cd from %s to %s for log creation' % (current_dir, pilot_home))
+        os.chdir(pilot_home)
 
     # perform special cleanup (user specific) prior to log file creation
     if args.cleanup:
@@ -698,17 +703,21 @@ def create_log(job, logfile, tarball_name, args):
         #os.rename(job.workdir, newdirnm)
         cmd = "pwd;tar cvfz %s %s --dereference --one-file-system; echo $?" % (fullpath, tarball_name)
         exit_code, stdout, stderr = execute(cmd)
+
         #with closing(tarfile.open(name=fullpath, mode='w:gz', dereference=True)) as archive:
         #    archive.add(os.path.basename(job.workdir), recursive=True)
     except Exception as e:
         raise LogFileCreationFailure(e)
     else:
+        if pilot_home != current_dir:
+            log.debug('cd from %s to %s after log creation' % (pilot_home, current_dir))
+            os.chdir(pilot_home)
         log.debug('stdout = %s' % stdout)
 
         # verify the size of the log file
         size = get_local_file_size(fullpath)
         if size < 1024:
-            logger.warning('log file size too small: %d B')
+            logger.warning('log file size too small: %d B' % size)
         else:
             logger.info('log file size: %d B' % size)
 

@@ -311,22 +311,33 @@ def set_platform(job, new_mode, _cmd):
     return _cmd
 
 
-def add_container_options(_cmd, container_options):
+def add_container_options(_cmd, container_options, is_eventservice):
     """
     Add the singularity options from queuedata to the sub container command.
 
-    :param _cmd:
-    :param container_options:
-    :return:
+    :param _cmd: container command (string).
+    :param container_options: container options from AGIS (string).
+    :param is_eventservice: is this an event service job? (boolean).
+    :return: updated container command (string).
     """
 
     # Set the singularity options
-    if container_options != "":
-        _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % container_options
+    if container_options:
+        # the event service payload cannot use -C/--containall since it will prevent yampl from working
+        if is_eventservice:
+            if '-C' in container_options:
+                container_options = container_options.remove('-C', '')
+            if '--containall' in container_options:
+                container_options = container_options.remove('--containall', '')
+        if container_options:
+            _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % container_options
     else:
         # consider using options "-c -i -p" instead of "-C". The difference is that the latter blocks all environment
         # variables by default and the former does not
-        _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -C\";'
+        if not is_eventservice:
+            _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -C\";'
+
+    _cmd = _cmd.replace('  ', ' ')
 
     return _cmd
 
@@ -385,7 +396,7 @@ def alrb_wrapper(cmd, workdir, job=None):
         _cmd = set_platform(job, new_mode, _cmd)
 
         # add singularity options
-        _cmd = add_container_options(_cmd, queuedata.container_options)
+        _cmd = add_container_options(_cmd, queuedata.container_options, job.is_eventservice)
 
         # add the jobid to be used as an identifier for the payload running inside the container
         _cmd += "export PANDAID=%s;" % job.jobid
