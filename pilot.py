@@ -17,6 +17,7 @@ import sys
 import threading
 import time
 from os import getcwd, chdir, environ
+from os.path import exists, join
 from shutil import rmtree
 
 from pilot.common.exception import PilotException
@@ -492,6 +493,23 @@ def wrap_up(initdir, mainworkdir, args):
     return shell_exit_code(exit_code)
 
 
+def get_pilot_source_dir():
+    """
+    Return the pilot source directory.
+
+    :return: full path to pilot source directory.
+    """
+
+    cwd = getcwd()
+    if exists(join(join(cwd, 'pilot2'), 'pilot.py')):  # in case wrapper has untarred src as pilot2 in init dir
+        return join(cwd, 'pilot2')
+    elif exists(join(cwd, 'pilot.py')):  # in case pilot gets launched from within the src dir
+        return cwd
+    else:
+        # could throw error here, but logging is not setup yet - fail later
+        return cwd
+
+
 if __name__ == '__main__':
     """
     Main function of pilot module.
@@ -514,7 +532,7 @@ if __name__ == '__main__':
     add_to_pilot_timing('1', PILOT_MULTIJOB_START_TIME, time.time(), args)
 
     # if requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
-    args.sourcedir = getcwd()
+    args.sourcedir = get_pilot_source_dir()
 
     exit_code, mainworkdir = create_main_work_dir(args)
     if exit_code != 0:

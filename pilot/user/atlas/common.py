@@ -115,7 +115,7 @@ def get_resource_name():
 
 def get_payload_command(job):
     """
-    Return the full command for execuring the payload, including the sourcing of all setup files and setting of
+    Return the full command for executing the payload, including the sourcing of all setup files and setting of
     environment variables.
 
     :param job: job object.
@@ -415,11 +415,14 @@ def get_analysis_run_command(job, trf_name):
     if 'X509_USER_PROXY' in os.environ and not job.imagename:
         cmd += 'export X509_USER_PROXY=%s;' % os.environ.get('X509_USER_PROXY')
 
-    # set up analysis trf
-    if job.imagename == "":
+    # set up trfs
+    if job.imagename == "":  # user jobs with no imagename defined
         cmd += './%s %s' % (trf_name, job.jobparams)
     else:
-        cmd += 'python %s %s' % (trf_name, job.jobparams)
+        if job.is_analysis() and job.imagename:
+            cmd += './%s %s' % (trf_name, job.jobparams)
+        else:
+            cmd += 'python %s %s' % (trf_name, job.jobparams)
 
         imagename = job.imagename
         # check if image is on disk as defined by envar PAYLOAD_CONTAINER_LOCATION
@@ -433,9 +436,9 @@ def get_analysis_run_command(job, trf_name):
                 log.debug("image exists at %s" % image_location)
                 imagename = image_location
 
-        # restore the image name
-        log.debug(" restore image name : --containerImage=%s" % imagename)
-        cmd += ' --containerImage=%s' % imagename
+        # restore the image name if necessary
+        if 'containerImage' not in cmd and 'runcontainer' in trf_name:
+            cmd += ' --containerImage=%s' % imagename
 
     # add control options for PFC turl and direct access
     #if job.indata:   ## DEPRECATE ME (anisyonk)
@@ -1228,7 +1231,7 @@ def cleanup_payload(workdir, outputfiles=[]):
 
     remove_core_dumps(workdir)
 
-    for ampdir in glob('%s/athenaMP-workers-*' % (workdir)):
+    for ampdir in glob('%s/athenaMP-workers-*' % workdir):
         for (p, d, f) in os.walk(ampdir):
             for filename in f:
                 if 'core' in filename or 'pool.root' in filename or 'tmp.' in filename:
@@ -1331,7 +1334,9 @@ def get_redundants():
                 "_joproxy15",
                 "HAHM_*",
                 "Process",
-                "merged_lhef._0.events-new"]
+                "merged_lhef._0.events-new",
+                "container_script.sh",  # new
+                "/pilot2"]  # new
 
     return dir_list
 
@@ -1385,6 +1390,12 @@ def cleanup_broken_links(workdir):
             remove(p)
 
 
+def ls(workdir):
+    cmd = 'ls -lF %s' % workdir
+    ec, stdout, stderr = execute(cmd)
+    logger.debug('%s:\n' % stdout + stderr)
+
+
 def remove_redundant_files(workdir, outputfiles=[]):
     """
     Remove redundant files and directories prior to creating the log file.
@@ -1395,20 +1406,23 @@ def remove_redundant_files(workdir, outputfiles=[]):
     """
 
     logger.debug("removing redundant files prior to log creation")
-
     workdir = os.path.abspath(workdir)
+
+    ls(workdir)
 
     # get list of redundant files and directories (to be removed)
     dir_list = get_redundants()
 
     # remove core and pool.root files from AthenaMP sub directories
     try:
+        logger.debug('cleaning up payload')
         cleanup_payload(workdir, outputfiles)
     except Exception as e:
         logger.warning("failed to execute cleanup_payload(): %s" % e)
 
     # explicitly remove any soft linked archives (.a files) since they will be dereferenced by the tar command
     # (--dereference option)
+    logger.debug('removing archives')
     remove_archives(workdir)
 
     # note: these should be partial file/dir names, not containing any wildcards
@@ -1434,6 +1448,8 @@ def remove_redundant_files(workdir, outputfiles=[]):
     exclude_files = []
     for of in outputfiles:
         exclude_files.append(os.path.join(workdir, of))
+    logger.debug('to_delete=%s' % to_delete)
+    logger.debug('exclude_files=%s' % exclude_files)
     for f in to_delete:
         if f not in exclude_files:
             if os.path.isfile(f):
@@ -1442,11 +1458,13 @@ def remove_redundant_files(workdir, outputfiles=[]):
                 remove_dir_tree(f)
 
     # run a second pass to clean up any broken links
+    logger.debug('cleaning up broken links')
     cleanup_broken_links(workdir)
 
     # remove any present user workDir
     path = os.path.join(workdir, 'workDir')
     if os.path.exists(path):
+        logger.debug('removing workDir')
         remove_dir_tree(path)
 
 
@@ -1664,3 +1682,16 @@ def verify_job(job):
     verify_ncores(job.corecount)
 
     return status
+
+
+def update_stagein(job):
+    """
+    Skip DBRelease files during stage-in.
+
+    :param job: job object.
+    :return:
+    """
+
+    for fspec in job.indata:
+        if 'DBRelease' in fspec.lfn:
+            fspec.status = 'no_transfer'

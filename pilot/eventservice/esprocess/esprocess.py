@@ -23,6 +23,7 @@ except Exception:
 
 from pilot.common.exception import PilotException, MessageFailure, SetupFailure, RunPayloadFailure, UnknownException
 from pilot.eventservice.esprocess.esmessage import MessageThread
+from pilot.util.container import containerise_executable
 from pilot.util.processes import kill_child_processes
 
 
@@ -135,11 +136,11 @@ class ESProcess(threading.Thread):
                     new_str = "--preExec \'from AthenaMP.AthenaMPFlags import jobproperties as jps;jps.AthenaMPFlags.EventRangeChannel=\"%s\"\' " % socket_name
                     executable = executable.replace("--preExec ", new_str)
                 else:
-                    logger.warn("!!WARNING!!43431! --preExec has an unknown format - expected \'--preExec \"\' or \"--preExec \'\", got: %s" % (executable))
+                    logger.warn("--preExec has an unknown format - expected \'--preExec \"\' or \"--preExec \'\", got: %s" % (executable))
 
         return executable
 
-    def init_payload_process(self):
+    def init_payload_process(self):  # noqa: C901
         """
         init payload process.
 
@@ -184,6 +185,21 @@ class ESProcess(threading.Thread):
             else:
                 error_file = os.path.join(workdir, "ES_payload_error.txt")
                 error_file_fd = open(error_file, 'w')
+
+            # containerise executable if required
+            if 'job' in self.__payload and self.__payload['job']:
+                try:
+                    executable, diagnostics = containerise_executable(executable, job=self.__payload['job'], workdir=workdir)
+                    if diagnostics:
+                        msg = 'containerisation of executable failed: %s' % diagnostics
+                        logger.warning(msg)
+                        raise SetupFailure(msg)
+                except Exception as e:
+                    msg = 'exception caught while preparing container command: %s' % e
+                    logger.warning(msg)
+                    raise SetupFailure(msg)
+            else:
+                logger.warning('could not containerise executable')
 
             self.__process = subprocess.Popen(executable, stdout=output_file_fd, stderr=error_file_fd, shell=True)
             self.pid = self.__process.pid

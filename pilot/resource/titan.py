@@ -20,7 +20,7 @@ from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN
 from pilot.util.disk import disk_usage
 from pilot.util.filehandling import read_json, write_json, remove
-from pilot.util.mpi import get_ranks_info
+#from pilot.util.mpi import get_ranks_info
 from pilot.util.timing import add_to_pilot_timing
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ def get_job(harvesterpath):
         return job, rank
 
     harvesterpath = os.path.abspath(harvesterpath)
-    rank, max_ranks = get_ranks_info()
+    #rank, max_ranks = get_ranks_info()
 
     pandaids = read_json(pandaids_list_filename)
     logger.info('Got {0} job ids'.format(len(pandaids)))

@@ -25,7 +25,7 @@ from zlib import adler32
 from pilot.common.exception import ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile, \
     NotImplemented
 from pilot.util.config import config
-from pilot.util.mpi import get_ranks_info
+#from pilot.util.mpi import get_ranks_info
 from .container import execute
 from .math import diff_lists
 
@@ -83,15 +83,16 @@ def rmdirs(path):
     return status
 
 
-def read_file(filename):
+def read_file(filename, mode='r'):
     """
     Open, read and close a file.
     :param filename: file name (string).
+    :param mode:
     :return: file contents (string).
     """
 
     out = ""
-    f = open_file(filename, 'r')
+    f = open_file(filename, mode)
     if f:
         out = f.read()
         f.close()
@@ -104,9 +105,9 @@ def write_file(path, contents, mute=True, mode='w'):
     Write the given contents to a file.
 
     :param path: full path for file (string).
-    :param contents: file contents (string).
+    :param contents: file contents (object).
     :param mute: boolean to control stdout info message.
-    :param mode: file mode (e.g. 'w', 'a') (string).
+    :param mode: file mode (e.g. 'w', 'r', 'a', 'wb', 'rb') (string).
     :raises PilotException: FileHandlingFailure.
     :return: True if successful, otherwise False.
     """
@@ -144,9 +145,6 @@ def open_file(filename, mode):
     """
 
     f = None
-    if not mode == 'w' and not os.path.exists(filename):
-        raise NoSuchFile("File does not exist: %s" % filename)
-
     try:
         f = open(filename, mode)
     except IOError as e:
@@ -906,11 +904,12 @@ def dump(path, cmd="cat"):
         logger.info("path %s does not exist" % path)
 
 
-def establish_logging(args):
+def establish_logging(args, filename=config.Pilot.pilotlog):
     """
     Setup and establish logging.
 
     :param args: pilot arguments object.
+    :param filename: name of log file.
     :return:
     """
 
@@ -925,13 +924,13 @@ def establish_logging(args):
     else:
         format_str = '%(asctime)s | %(levelname)-8s | %(message)s'
         level = logging.INFO
-    rank, maxrank = get_ranks_info()
-    if rank is not None:
-        format_str = 'Rank {0} |'.format(rank) + format_str
+    #rank, maxrank = get_ranks_info()
+    #if rank is not None:
+    #    format_str = 'Rank {0} |'.format(rank) + format_str
     if args.nopilotlog:
         logging.basicConfig(level=level, format=format_str, filemode='w')
     else:
-        logging.basicConfig(filename=config.Pilot.pilotlog, level=level, format=format_str, filemode='w')
+        logging.basicConfig(filename=filename, level=level, format=format_str, filemode='w')
     console.setLevel(level)
     console.setFormatter(logging.Formatter(format_str))
     logging.Formatter.converter = time.gmtime

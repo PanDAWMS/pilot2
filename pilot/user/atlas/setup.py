@@ -50,7 +50,6 @@ def should_pilot_prepare_asetup(noexecstrcnv, jobpars):
     :return: boolean
     """
 
-    prepareasetup = True
     if noexecstrcnv:
         if "asetup.sh" in jobpars:
             logger.info("asetup will be taken from jobPars")
@@ -73,10 +72,8 @@ def get_alrb_export():
     """
 
     path = "%s/atlas.cern.ch/repo" % get_file_system_root_path()
-    if os.path.exists(path):
-        cmd = "export ATLAS_LOCAL_ROOT_BASE=%s/ATLASLocalRootBase;" % path
-    else:
-        cmd = ""
+    cmd = "export ATLAS_LOCAL_ROOT_BASE=%s/ATLASLocalRootBase;" % path if os.path.exists(path) else ""
+
     return cmd
 
 
@@ -115,6 +112,10 @@ def get_asetup(asetup=True, alrb=False):
                 raise NoSoftwareDir(msg)
             if asetup:
                 cmd = "source %s/scripts/asetup.sh" % appdir
+
+    # do not return an empty string
+    #if not cmd:
+    #    cmd = "what?"
 
     return cmd
 

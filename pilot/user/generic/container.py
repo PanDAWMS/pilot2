@@ -32,3 +32,19 @@ def wrapper(executable):
     """
 
     return executable
+
+
+def create_stagein_container_command(workdir, cmd):
+    """
+    Create the stage-in container command.
+
+    The function takes the isolated stage-in command, adds bits and pieces needed for the containerisation and stores
+    it in a stagein.sh script file. It then generates the actual command that will execute the stage-in script in a
+    container.
+
+    :param workdir: working directory where script will be stored (string).
+    :param cmd: isolated stage-in command (string).
+    :return: container command to be executed (string).
+    """
+
+    return cmd

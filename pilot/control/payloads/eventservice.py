@@ -62,7 +62,8 @@ class Executor(generic.Executor):
             log.debug("payload: %s" % payload)
 
             log.info("Starting EventService WorkExecutor")
-            executor = WorkExecutor(args={'executor_type': config.Payload.executor_type})
+            executor_type = self.get_executor_type(job)
+            executor = WorkExecutor(args=executor_type)
             executor.set_payload(payload)
             executor.start()
             log.info("EventService WorkExecutor started")
@@ -78,6 +79,20 @@ class Executor(generic.Executor):
             return None
 
         return executor
+
+    def get_executor_type(self, job):
+        """
+        Get the executor type.
+        This is usually the 'generic' type, which means normal event service. It can also be 'raythena' if specified
+        in the pilot config file, and can also be dynamically decided using the job object (in the case of interceptor
+        job).
+
+        :param job: job object.
+        :return: executor type dictionary.
+        """
+
+        # use the job object once the interceptor field is available, for now return the config info
+        return {'executor_type': config.Payload.executor_type}
 
     def wait_graceful(self, args, proc, job):
         """

@@ -12,6 +12,7 @@ import pipes
 import re
 # for user container test: import urllib
 
+from pilot.common.exception import PilotException
 from pilot.user.atlas.setup import get_asetup
 from pilot.user.atlas.setup import get_file_system_root_path
 from pilot.info import InfoService, infosys
@@ -40,17 +41,25 @@ def do_use_container(**kwargs):
     if job:
         # for user jobs, TRF option --containerImage must have been used, ie imagename must be set
         if job.is_analysis() and job.imagename:
-            use_container = False
+            use_container = True  #False   WARNING will this change break runcontainer usage?
+            logger.debug('job.is_analysis() and job.imagename -> use_container = True')
         elif not (job.platform or job.alrbuserplatform):
             use_container = False
+            logger.debug('not (job.platform or job.alrbuserplatform) -> use_container = False')
         else:
             queuedata = job.infosys.queuedata
             container_name = queuedata.container_type.get("pilot")
             if container_name == 'singularity':
                 use_container = True
+                logger.debug('container_name == \'singularity\' -> use_container = True')
+            else:
+                logger.debug('else -> use_container = False')
     elif copytool:
         # override for copytools - use a container for stage-in/out
         use_container = True
+        logger.debug('copytool -> use_container = False')
+    else:
+        logger.debug('not job -> use_container = False')
 
     return use_container
 
@@ -75,34 +84,11 @@ def wrapper(executable, **kwargs):
         workdir = pilot_home
 
     # if job.imagename (from --containerimage <image>) is set, then always use raw singularity
-    if config.Container.setup_type == "ALRB" and job and not job.imagename:
+    if config.Container.setup_type == "ALRB":  # and job and not job.imagename:
         fctn = alrb_wrapper
     else:
         fctn = singularity_wrapper
     return fctn(executable, workdir, job=job)
-
-
-# def use_payload_container(job):
-#     pass
-
-
-def use_middleware_container():
-    """
-    Should middleware from container be used?
-    In case middleware, i.e. the copy command for stage-in/out, should be taken from a container this function should
-    return True.
-
-    :return: True if middleware should be taken from container. False otherwise.
-    """
-
-    if get_middleware_type() == 'container':
-        return True
-    else:
-        return False
-
-
-def get_middleware_container():
-    pass
 
 
 def extract_platform_and_os(platform):
@@ -184,6 +170,164 @@ def get_middleware_type():
     return middleware_type
 
 
+def extract_atlas_setup(asetup):
+    """
+    Extract the asetup command from the full setup command.
+    export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
+      source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;source $AtlasSetup/scripts/asetup.sh
+    -> $AtlasSetup/scripts/asetup.sh
+
+    :param asetup: full asetup command (string).
+    :return: asetup command (string).
+    """
+
+    try:
+        atlas_setup = asetup.split(';')[-1]  # source $AtlasSetup/scripts/asetup.sh
+        atlas_setup = atlas_setup.replace('source ', '')
+    except Exception as e:
+        logger.debug('exception caught while extracting asetup command: %s' % e)
+        atlas_setup = ''
+
+    return atlas_setup
+
+
+def extract_full_atlas_setup(cmd, atlas_setup):
+    """
+    Extract the full asetup (including options) from the payload setup command.
+    atlas_setup is typically '$AtlasSetup/scripts/asetup.sh'.
+
+    :param cmd: full payload setup command (string).
+    :param atlas_setup: asetup command (string).
+    :return: extracted full asetup command, updated full payload setup command without asetup part (string).
+    """
+
+    updated_cmds = []
+    extracted_asetup = ""
+
+    if not atlas_setup:
+        return extracted_asetup, cmd
+
+    try:
+        _cmd = cmd.split(';')
+        for subcmd in _cmd:
+            if atlas_setup in subcmd:
+                extracted_asetup = subcmd
+            else:
+                updated_cmds.append(subcmd)
+        updated_cmd = ';'.join(updated_cmds)
+    except Exception as e:
+        logger.warning('exception caught while extracting full atlas setup: %s' % e)
+        updated_cmd = cmd
+    logger.debug('updated payload setup command: %s' % updated_cmd)
+
+    return extracted_asetup, updated_cmd
+
+
+def update_alrb_setup(cmd, new_mode):
+    """
+    Update the ALRB setup command.
+=   Add the ALRB_CONT_SETUPFILE.
+
+    :param cmd: full ALRB setup command (string).
+    :param new_mode: Boolean
+    :return: updated ALRB setup command (string).
+    """
+
+    updated_cmds = []
+    try:
+        _cmd = cmd.split(';')
+        for subcmd in _cmd:
+            #if subcmd.startswith('export ATLAS_LOCAL_ROOT_BASE'):
+            #    updated_cmds.append('if [ -z $ATLAS_LOCAL_ROOT_BASE ]; then ' + subcmd + '; fi')
+            if subcmd.startswith('source ${ATLAS_LOCAL_ROOT_BASE}') and new_mode:
+                updated_cmds.append('export ALRB_CONT_SETUPFILE="/srv/%s"' % config.Container.release_setup)
+                updated_cmds.append(subcmd)
+            else:
+                updated_cmds.append(subcmd)
+        updated_cmd = ';'.join(updated_cmds)
+    except Exception as e:
+        logger.warning('exception caught while extracting full atlas setup: %s' % e)
+        updated_cmd = cmd
+    logger.debug('updated ALRB command: %s' % updated_cmd)
+
+    return updated_cmd
+
+
+def update_for_user_proxy(_cmd, cmd):
+    """
+    Add the X509 user proxy to the container sub command string if set, and remove it from the main container command.
+
+    :param _cmd:
+    :param cmd:
+    :return:
+    """
+
+    x509 = os.environ.get('X509_USER_PROXY')
+    if x509 != "":
+        # do not include the X509_USER_PROXY in the command the container will execute
+        cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, "")
+        # add it instead to the container setup command
+        _cmd = "export X509_USER_PROXY=%s;" % x509 + _cmd
+
+    return _cmd, cmd
+
+
+def set_platform(job, new_mode, _cmd):
+    """
+    Set thePlatform variable and add it to the sub container command.
+
+    :param job:
+    :param new_mode:
+    :param _cmd:
+    :return:
+    """
+
+    if job.alrbuserplatform:
+        _cmd += 'export thePlatform=\"%s\";' % job.alrbuserplatform
+    elif job.imagename and new_mode:
+        _cmd += 'export thePlatform=\"%s\";' % job.imagename
+    elif job.platform:
+        _cmd += 'export thePlatform=\"%s\";' % job.platform
+
+    return _cmd
+
+
+def add_container_options(_cmd, container_options):
+    """
+    Add the singularity options from queuedata to the sub container command.
+    For Raythena ES jobs, replace the -C with "" (otherwise IPC does not work, needed by yampl).
+    :param _cmd: container command (string).
+    :param container_options: container options from AGIS (string).
+    :return: updated container command (string).
+    """
+
+    is_raythena = config.Payload.executor_type.lower() == 'raythena'
+
+    # Set the singularity options
+    if container_options:
+        # the event service payload cannot use -C/--containall since it will prevent yampl from working
+        if is_raythena:
+            if '-C' in container_options:
+                container_options = container_options.replace('-C', '')
+            if '--containall' in container_options:
+                container_options = container_options.replace('--containall', '')
+        if container_options:
+            _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % container_options
+    else:
+        # consider using options "-c -i -p" instead of "-C". The difference is that the latter blocks all environment
+        # variables by default and the former does not
+        # update: skip the -i to allow IPC, otherwise yampl won't work
+        if is_raythena:
+            pass
+            #_cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -c -i -p\";'
+        else:
+            _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -C\";'
+
+    _cmd = _cmd.replace('  ', ' ')
+
+    return _cmd
+
+
 def alrb_wrapper(cmd, workdir, job=None):
     """
     Wrap the given command with the special ALRB setup for containers
@@ -206,59 +350,62 @@ def alrb_wrapper(cmd, workdir, job=None):
     log = get_logger(job.jobid)
     queuedata = job.infosys.queuedata
 
+    new_mode = True
+
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
     if container_name == 'singularity':
         # first get the full setup, which should be removed from cmd (or ALRB setup won't work)
         _asetup = get_asetup()
-        cmd = cmd.replace(_asetup, "asetup ")
+        # get_asetup()
+        # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
+        #     --quiet;source $AtlasSetup/scripts/asetup.sh
+        logger.debug('asetup 1: %s' % _asetup)
+        atlas_setup = extract_atlas_setup(_asetup)  # $AtlasSetup/scripts/asetup.sh
+        if not new_mode:
+            cmd = cmd.replace(_asetup, "asetup")  #else: cmd.replace(_asetup, atlas_setup)
+
+        # get_asetup(asetup=False)
+        # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
+
         # get simplified ALRB setup (export)
         asetup = get_asetup(alrb=True)
-
-        # Get the singularity options
-        singularity_options = queuedata.container_options
-        log.debug(
-            "resolved singularity_options from queuedata.container_options: %s" % singularity_options)
+        # get_asetup(alrb=True)
+        # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
+        logger.debug('asetup 3: %s' % asetup)
 
         _cmd = asetup
 
-        # do not include the X509_USER_PROXY in the command the container will execute
-        x509 = os.environ.get('X509_USER_PROXY')
-        if x509 != "":
-            cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, "")
-            # add it instead to the container setup command
-            _cmd = "export X509_USER_PROXY=%s;" % x509 + _cmd
+        # add user proxy if necessary (actually it should also be removed from cmd)
+        _cmd, cmd = update_for_user_proxy(_cmd, cmd)
 
-        if job.alrbuserplatform:
-            _cmd += 'export thePlatform=\"%s\";' % job.alrbuserplatform
-        elif job.platform:
-            _cmd += 'export thePlatform=\"%s\";' % job.platform
-        #elif '--containerImage' in job.jobparams:
-        #    if job.alrbuserplatform:
-        #        _cmd += 'export thePlatform=\"%s\";' % job.alrbuserplatform
-        #    else:
-        #        # set a default platform for user defined containers
-        #        _cmd += 'export thePlatform=\"centos7\";'
+        # set the platform info
+        _cmd = set_platform(job, new_mode, _cmd)
 
-        #if '--containall' not in singularity_options:
-        #    singularity_options += ' --containall'
-        if singularity_options != "":
-            _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % singularity_options
-        else:
-            # consider using options "-c -i -p" instead of "-C". The difference is that the latter blocks all environment
-            # variables by default and the former does not
-            _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -C\";'
+        # add singularity options
+        _cmd = add_container_options(_cmd, queuedata.container_options)
 
         # add the jobid to be used as an identifier for the payload running inside the container
         _cmd += "export PANDAID=%s;" % job.jobid
 
         # add TMPDIR
         cmd = "export TMPDIR=/srv;export GFORTRAN_TMPDIR=/srv;" + cmd
+        logger.debug('cmd = %s' % cmd)
+        logger.debug('queuedata.is_cmvfs = %s' % str(queuedata.is_cvmfs))
+
+        if new_mode and queuedata.is_cvmfs:
+            extracted_asetup, cmd = extract_full_atlas_setup(cmd, atlas_setup)
+            # in the new mode, extracted_asetup should be written to 'my_release_setup.sh' and cmd to 'container_script.sh'
+            logger.debug('command to be written to release setup file: %s' % extracted_asetup)
+            status = write_file(os.path.join(job.workdir, config.Container.release_setup), extracted_asetup, mute=False)
+            if not status:
+                log.warning('failed to create release setup file')
 
         # write the full payload command to a script file
-        script_file = config.Container.script_file
-        status = write_file(os.path.join(job.workdir, script_file), cmd, mute=False)
+        logger.debug('command to be written to container script file: %s' % cmd)
+        container_script = config.Container.container_script
+        status = write_file(os.path.join(job.workdir, container_script), cmd, mute=False)
         if status:
-            script_cmd = '. /srv/' + script_file
+            script_cmd = '. /srv/' + container_script
             _cmd += "export ALRB_CONT_RUNPAYLOAD=\'%s\';" % script_cmd
         else:
             log.warning('attempting to quote command instead')
@@ -275,20 +422,16 @@ def alrb_wrapper(cmd, workdir, job=None):
                 _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % job.alrbuserplatform
             elif container_path != "":
                 _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % container_path
-
-                #if not job.platform:
-                #    # add the default platform if not set by the job definition
-                #    _cmd += ' $thePlatform'
             else:
                 log.warning('failed to extract container path from %s' % job.jobparams)
                 _cmd = ""
         else:
-            # _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c images'
             _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh '
-            if job.platform or job.alrbuserplatform:
-                # _cmd += '+$thePlatform'
+            if job.platform or job.alrbuserplatform or (job.imagename and new_mode):
                 _cmd += '-c $thePlatform'
 
+        # update the ALRB setup command
+        _cmd = update_alrb_setup(_cmd, new_mode and queuedata.is_cvmfs)
         _cmd = _cmd.replace('  ', ' ')
         cmd = _cmd
 
@@ -377,3 +520,51 @@ def singularity_wrapper(cmd, workdir, job=None):
         logger.info("updated command: %s" % cmd)
 
     return cmd
+
+
+def create_stagein_container_command(workdir, cmd):
+    """
+    Create the stage-in container command.
+
+    The function takes the isolated stage-in command, adds bits and pieces needed for the containerisation and stores
+    it in a stagein.sh script file. It then generates the actual command that will execute the stage-in script in a
+    container.
+
+    new cmd:
+      lsetup rucio davis xrootd
+      old cmd
+      exit $?
+    write new cmd to stagein.sh script
+    create container command and return it
+
+    :param workdir: working directory where script will be stored (string).
+    :param cmd: isolated stage-in command (string).
+    :return: container command to be executed (string).
+    """
+
+    command = 'cd %s;' % workdir
+
+    # add bits and pieces for the containerisation
+    content = 'lsetup rucio davix xrootd\n%s\nexit $?' % cmd
+    logger.debug('setup.sh content:\n%s' % content)
+
+    # store it in setup.sh
+    script_name = 'stagein.sh'
+    try:
+        status = write_file(os.path.join(workdir, script_name), content)
+    except PilotException as e:
+        raise e
+    else:
+        if status:
+            # generate the final container command
+            x509 = os.environ.get('X509_USER_PROXY', '')
+            if x509:
+                command += 'export X509_USER_PROXY=%s;' % x509
+            pythonpath = 'export PYTHONPATH=%s:$PYTHONPATH;' % os.path.join(workdir, 'pilot2')
+            #pythonpath = 'export PYTHONPATH=/cvmfs/atlas.cern.ch/repo/sw/PandaPilot/pilot2/latest:$PYTHONPATH;'
+            command += 'export ALRB_CONT_RUNPAYLOAD=\"%ssource /srv/%s\";' % (pythonpath, script_name)
+            command += get_asetup(alrb=True)  # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
+            command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c centos7'
+
+    logger.debug('container command: %s' % command)
+    return command

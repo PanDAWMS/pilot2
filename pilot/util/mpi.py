@@ -31,10 +31,11 @@ def get_ranks_info():
     rank = None
     max_rank = None
     try:
-        from mpi4py import MPI
-        comm = MPI.COMM_WORLD
-        rank = comm.Get_rank()
-        max_rank = comm.Get_size()
+        pass  # removed in April 2020 since it was only used on Titan and is causing import errors
+        #from mpi4py import MPI
+        #comm = MPI.COMM_WORLD
+        #rank = comm.Get_rank()
+        #max_rank = comm.Get_size()
     except ImportError:
         print("mpi4py not found")
 #        if logger:

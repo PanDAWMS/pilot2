@@ -87,13 +87,15 @@ class QueueData(BaseData):
     pledgedcpu = 0  #
     es_stageout_gap = 0  ## time gap value in seconds for ES stageout
 
+    is_cvmfs = True  # has cvmfs installed
+
     # specify the type of attributes for proper data validation and casting
     _keys = {int: ['timefloor', 'maxwdir', 'pledgedcpu', 'es_stageout_gap',
                    'corecount', 'maxrss', 'maxtime'],
              str: ['name', 'type', 'appdir', 'catchall', 'platform', 'container_options', 'container_type',
                    'resource', 'state', 'status', 'site'],
              dict: ['copytools', 'acopytools', 'astorages', 'aprotocols', 'acopytools_schemas'],
-             bool: ['allow_lan', 'allow_wan', 'direct_access_lan', 'direct_access_wan', 'use_pcache']
+             bool: ['allow_lan', 'allow_wan', 'direct_access_lan', 'direct_access_wan', 'is_cvmfs', 'use_pcache']
              }
 
     def __init__(self, data):

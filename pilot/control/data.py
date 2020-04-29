@@ -14,15 +14,12 @@
 import copy as objectcopy
 import os
 import subprocess
-#import tarfile
 import time
 
 try:
     import Queue as queue  # noqa: N813
 except Exception:
     import queue  # Python 3
-
-#from contextlib import closing  # for Python 2.6 compatibility - to fix a problem with tarfile
 
 from pilot.api.data import StageInClient, StageOutClient
 from pilot.api.es_data import StageInESClient
@@ -31,15 +28,15 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException, LogFileCreationFailure
 from pilot.util.auxiliary import get_logger, set_pilot_state, check_for_final_server_update  #, abort_jobs_in_queues
 from pilot.util.common import should_abort
-from pilot.util.config import config
-from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT,\
-    LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME
+from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT, LOG_TRANSFER_IN_PROGRESS,\
+    LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME
 from pilot.util.container import execute
-from pilot.util.filehandling import find_executable, remove  #, write_json, copy
+from pilot.util.filehandling import remove, get_local_file_size
 from pilot.util.processes import threads_aborted
 from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
 from pilot.util.timing import add_to_pilot_timing
 from pilot.util.tracereport import TraceReport
+import pilot.util.middleware
 
 import logging
 
@@ -96,42 +93,69 @@ def control(queues, traces, args):
     logger.debug('[data] control thread has finished')
 
 
-def use_container(cmd):
+def skip_special_files(job):
     """
-    Should the pilot use a container for the stage-in/out?
+    Consult user defined code if any files should be skipped during stage-in.
+    ATLAS code will skip DBRelease files e.g. as they should already be available in CVMFS.
 
-    :param cmd: middleware command, used to determine if the container should be used or not (string).
-    :return: Boolean.
-    """
-
-    usecontainer = False
-    if config.Container.allow_container == "False":
-        logger.info('container usage is not allowed by pilot config')
-    else:
-        # if the middleware is available locally, do not use container
-        if find_executable(cmd) == "":
-            usecontainer = True
-            logger.info('command %s is not available locally, will attempt to use container' % cmd)
-        else:
-            logger.info('command %s is available locally, no need to use container' % cmd)
-
-    return usecontainer
-
-
-def get_filedata_strings(indata):
-    """
-
-    :param indata:
+    :param job: job object.
     :return:
     """
 
-    lfns = ""
-    scopes = ""
-    for fspec in indata:
-        lfns = fspec.lfn if lfns == "" else lfns + ",%s" % fspec.lfn
-        scopes = fspec.scope if scopes == "" else scopes + ",%s" % fspec.scope
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+    try:
+        user.update_stagein(job)
+    except Exception as e:
+        logger.warning('caught exception: %s' % e)
 
-    return lfns, scopes
+
+def update_indata(job):
+    """
+    In case file were marked as no_transfer files, remove them from stage-in.
+
+    :param job: job object.
+    :return:
+    """
+
+    toberemoved = []
+    for fspec in job.indata:
+        if fspec.status == 'no_transfer':
+            toberemoved.append(fspec)
+    for fspec in toberemoved:
+        logger.info('removing fspec object (lfn=%s) from list of input files' % fspec.lfn)
+        job.indata.remove(fspec)
+
+
+def get_trace_report_variables(job):
+    """
+    Get some of the variables needed for creating the trace report.
+
+    :param job: job object
+    :return: event_type (string), localsite (string), remotesite (string).
+    """
+
+    event_type = "get_sm"
+    if job.is_analysis():
+        event_type += "_a"
+    localsite = remotesite = get_rse(job.indata)
+
+    return event_type, localsite, remotesite
+
+
+def create_trace_report(job):
+    """
+    Create the trace report object.
+
+    :param job: job object.
+    :return: trace report object.
+    """
+
+    event_type, localsite, remotesite = get_trace_report_variables(job)
+    trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''), localSite=localsite, remoteSite=remotesite, dataset="", eventType=event_type)
+    trace_report.init(job)
+
+    return trace_report
 
 
 def _stage_in(args, job):
@@ -150,64 +174,47 @@ def _stage_in(args, job):
     add_to_pilot_timing(job.jobid, PILOT_PRE_STAGEIN, time.time(), args)
 
     # any DBRelease files should not be staged in
-    for fspec in job.indata:
-        if 'DBRelease' in fspec.lfn:
-            fspec.status = 'no_transfer'
-
-    event_type = "get_sm"
-    if job.is_analysis():
-        event_type += "_a"
-    rse = get_rse(job.indata)
-    localsite = remotesite = rse
-    trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''), localSite=localsite, remoteSite=remotesite, dataset="", eventType=event_type)
-    trace_report.init(job)
+    skip_special_files(job)
 
     # now that the trace report has been created, remove any files that are not to be transferred (DBRelease files) from the indata list
-    toberemoved = []
-    for fspec in job.indata:
-        if fspec.status == 'no_transfer':
-            toberemoved.append(fspec)
-    for fspec in toberemoved:
-        logger.info('removing fspec object (lfn=%s) from list of input files' % fspec.lfn)
-        job.indata.remove(fspec)
+    update_indata(job)
 
-    ########### bulk transfer test
-    # THE FOLLOWING WORKS BUT THERE IS AN ISSUE WITH TRACES, CHECK STAGEIN SCRIPT IF STORED CORRECTLY
-    #filename = 'initial_trace_report.json'
-    #tpath = os.path.join(job.workdir, filename)
-    #write_json(tpath, trace_report)
-    #lfns, scopes = get_filedata_strings(job.indata)
-    #script = 'stagein.py'
-    #srcdir = os.environ.get('PILOT_SOURCE_DIR')
-    #scriptpath = os.path.join(os.path.join(srcdir, 'pilot/scripts'), script)
-    #copy(scriptpath, srcdir)
-    #cmd = 'python %s --lfns=%s --scopes=%s --tracereportname=%s -w %s -d -q %s' %\
-    #      (os.path.join(srcdir, script), lfns, scopes, tpath, job.workdir, args.queue)
-    #logger.debug('could have executed: %s' % script)
-    #exit_code, stdout, stderr = execute(cmd, mode='python')
-    #logger.debug('exit_code=%d' % exit_code)
-    #logger.debug('stdout=%s' % stdout)
-    #logger.debug('stderr=%s' % stderr)
-    ########### bulk transfer test
+    # should stage-in be done by a script (for containerisation) or by invoking the API (ie classic mode)?
+    use_container = pilot.util.middleware.use_middleware_container(job.infosys.queuedata.container_type.get("middleware"))
+    if use_container:
+        logger.info('stage-in will be done in a container')
+        try:
+            eventtype, localsite, remotesite = get_trace_report_variables(job)
+            pilot.util.middleware.containerise_middleware(job, args.queue, eventtype, localsite, remotesite, stagein=True)
+        except PilotException as e:
+            logger.warning('stage-in containerisation threw a pilot exception: %s' % e)
+        except Exception as e:
+            logger.warning('stage-in containerisation threw an exception: %s' % e)
+    else:
+        try:
+            logger.info('stage-in will not be done in a container')
 
-    try:
-        if job.is_eventservicemerge:
-            client = StageInESClient(job.infosys, logger=log, trace_report=trace_report)
-            activity = 'es_events_read'
-        else:
-            client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
-            activity = 'pr'
-        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job, use_bulk=False)
-        client.prepare_sources(job.indata)
-        client.transfer(job.indata, activity=activity, **kwargs)
-    except PilotException as error:
-        import traceback
-        error_msg = traceback.format_exc()
-        log.error(error_msg)
-        msg = errors.format_diagnostics(error.get_error_code(), error_msg)
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=msg)
-    except Exception as error:
-        log.error('failed to stage-in: error=%s' % error)
+            # create the trace report
+            trace_report = create_trace_report(job)
+
+            if job.is_eventservicemerge:
+                client = StageInESClient(job.infosys, logger=log, trace_report=trace_report)
+                activity = 'es_events_read'
+            else:
+                client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
+                activity = 'pr'
+            use_pcache = job.infosys.queuedata.use_pcache
+            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, use_pcache=use_pcache, use_bulk=False)
+            client.prepare_sources(job.indata)
+            client.transfer(job.indata, activity=activity, **kwargs)
+        except PilotException as error:
+            import traceback
+            error_msg = traceback.format_exc()
+            log.error(error_msg)
+            msg = errors.format_diagnostics(error.get_error_code(), error_msg)
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=msg)
+        except Exception as error:
+            log.error('failed to stage-in: error=%s' % error)
 
     log.info('summary of transferred files:')
     for e in job.indata:
@@ -218,10 +225,7 @@ def _stage_in(args, job):
     add_to_pilot_timing(job.jobid, PILOT_POST_STAGEIN, time.time(), args)
 
     remain_files = [e for e in job.indata if e.status not in ['remote_io', 'transferred', 'no_transfer']]
-    if not remain_files:
-        log.info("stage-in finished")
-    else:
-        log.info("stage-in failed")
+    log.info("stage-in finished") if not remain_files else log.info("stage-in failed")
 
     return not remain_files
 
@@ -658,6 +662,11 @@ def create_log(job, logfile, tarball_name, args):
 
     log = get_logger(job.jobid)
     log.debug('preparing to create log file')
+    pilot_home = os.environ.get('PILOT_HOME', os.getcwd())
+    current_dir = os.getcwd()
+    if pilot_home != current_dir:
+        log.debug('cd from %s to %s for log creation' % (current_dir, pilot_home))
+        os.chdir(pilot_home)
 
     # perform special cleanup (user specific) prior to log file creation
     if args.cleanup:
@@ -693,12 +702,24 @@ def create_log(job, logfile, tarball_name, args):
         #os.rename(job.workdir, newdirnm)
         cmd = "pwd;tar cvfz %s %s --dereference --one-file-system; echo $?" % (fullpath, tarball_name)
         exit_code, stdout, stderr = execute(cmd)
+
         #with closing(tarfile.open(name=fullpath, mode='w:gz', dereference=True)) as archive:
         #    archive.add(os.path.basename(job.workdir), recursive=True)
     except Exception as e:
         raise LogFileCreationFailure(e)
     else:
+        if pilot_home != current_dir:
+            log.debug('cd from %s to %s after log creation' % (pilot_home, current_dir))
+            os.chdir(pilot_home)
         log.debug('stdout = %s' % stdout)
+
+        # verify the size of the log file
+        size = get_local_file_size(fullpath)
+        if size < 1024:
+            logger.warning('log file size too small: %d B' % size)
+        else:
+            logger.info('log file size: %d B' % size)
+
     log.debug('renaming %s back to %s' % (job.workdir, orgworkdir))
     try:
         os.rename(job.workdir, orgworkdir)

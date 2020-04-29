@@ -125,13 +125,6 @@ def validate_pre(queues, traces, args):
     else:
         logger.debug('will not set job_aborted yet')
 
-    # proceed to set the job_aborted flag?
-    if threads_aborted():
-        logger.debug('will proceed to set job_aborted')
-        args.job_aborted.set()
-    else:
-        logger.debug('will not set job_aborted yet')
-
     logger.info('[payload] validate_pre thread has finished')
 
 

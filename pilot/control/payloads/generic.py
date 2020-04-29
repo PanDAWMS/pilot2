@@ -238,6 +238,7 @@ class Executor(object):
         log.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
         job.pid = proc.pid
         job.pgrp = os.getpgid(job.pid)
+        set_pilot_state(job=job, state="running")
 
         self.utility_after_payload_started(job)
 
@@ -301,11 +302,9 @@ class Executor(object):
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
 
         if self.setup_payload(self.__job, self.__out, self.__err):
-            log.debug('running payload')
             proc = self.run_payload(self.__job, self.__out, self.__err)
             if proc is not None:
                 # the process is now running, update the server
-                set_pilot_state(job=self.__job, state="running")
                 send_state(self.__job, self.__args, self.__job.state)
 
                 log.info('will wait for graceful exit')
@@ -326,8 +325,7 @@ class Executor(object):
                     for utcmd in list(self.__job.utilities.keys()):  # Python 2/3
                         utproc = self.__job.utilities[utcmd][0]
                         if utproc:
-                            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user],
-                                              0)  # Python 2/3
+                            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
                             sig = user.get_utility_command_kill_signal(utcmd)
                             log.info("stopping process \'%s\' with signal %d" % (utcmd, sig))
                             try:
