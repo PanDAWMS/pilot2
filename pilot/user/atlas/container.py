@@ -226,6 +226,10 @@ def extract_full_atlas_setup(cmd, atlas_setup):
 
     updated_cmds = []
     extracted_asetup = ""
+
+    if not atlas_setup:
+        return extracted_asetup, cmd
+
     try:
         _cmd = cmd.split(';')
         for subcmd in _cmd:
@@ -314,7 +318,7 @@ def set_platform(job, new_mode, _cmd):
 def add_container_options(_cmd, container_options):
     """
     Add the singularity options from queuedata to the sub container command.
-    For Raythena ES jobs, replace the -C with -c -p (otherwise IPC does not work, needed by yampl).
+    For Raythena ES jobs, replace the -C with "" (otherwise IPC does not work, needed by yampl).
     :param _cmd: container command (string).
     :param container_options: container options from AGIS (string).
     :return: updated container command (string).
@@ -327,9 +331,9 @@ def add_container_options(_cmd, container_options):
         # the event service payload cannot use -C/--containall since it will prevent yampl from working
         if is_raythena:
             if '-C' in container_options:
-                container_options = container_options.replace('-C', '-c -p')
+                container_options = container_options.replace('-C', '')
             if '--containall' in container_options:
-                container_options = container_options.replace('--containall', '-c -p')
+                container_options = container_options.replace('--containall', '')
         if container_options:
             _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % container_options
     else:
@@ -337,7 +341,8 @@ def add_container_options(_cmd, container_options):
         # variables by default and the former does not
         # update: skip the -i to allow IPC, otherwise yampl won't work
         if is_raythena:
-            _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -c -p\";'
+            pass
+            #_cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -c -i -p\";'
         else:
             _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -C\";'
 
