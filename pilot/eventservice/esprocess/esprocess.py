@@ -140,7 +140,7 @@ class ESProcess(threading.Thread):
 
         return executable
 
-    def init_payload_process(self):
+    def init_payload_process(self):  # noqa: C901
         """
         init payload process.
 

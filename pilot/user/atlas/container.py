@@ -311,30 +311,34 @@ def set_platform(job, new_mode, _cmd):
     return _cmd
 
 
-def add_container_options(_cmd, container_options, is_eventservice):
+def add_container_options(_cmd, container_options):
     """
     Add the singularity options from queuedata to the sub container command.
-
+    For Raythena ES jobs, replace the -C with -c -p (otherwise IPC does not work, needed by yampl).
     :param _cmd: container command (string).
     :param container_options: container options from AGIS (string).
-    :param is_eventservice: is this an event service job? (boolean).
     :return: updated container command (string).
     """
+
+    is_raythena = config.Payload.executor_type.lower() == 'raythena'
 
     # Set the singularity options
     if container_options:
         # the event service payload cannot use -C/--containall since it will prevent yampl from working
-        if is_eventservice:
+        if is_raythena:
             if '-C' in container_options:
-                container_options = container_options.remove('-C', '')
+                container_options = container_options.replace('-C', '-c -p')
             if '--containall' in container_options:
-                container_options = container_options.remove('--containall', '')
+                container_options = container_options.replace('--containall', '-c -p')
         if container_options:
             _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % container_options
     else:
         # consider using options "-c -i -p" instead of "-C". The difference is that the latter blocks all environment
         # variables by default and the former does not
-        if not is_eventservice:
+        # update: skip the -i to allow IPC, otherwise yampl won't work
+        if is_raythena:
+            _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -c -p\";'
+        else:
             _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -C\";'
 
     _cmd = _cmd.replace('  ', ' ')
@@ -396,7 +400,7 @@ def alrb_wrapper(cmd, workdir, job=None):
         _cmd = set_platform(job, new_mode, _cmd)
 
         # add singularity options
-        _cmd = add_container_options(_cmd, queuedata.container_options, job.is_eventservice)
+        _cmd = add_container_options(_cmd, queuedata.container_options)
 
         # add the jobid to be used as an identifier for the payload running inside the container
         _cmd += "export PANDAID=%s;" % job.jobid
