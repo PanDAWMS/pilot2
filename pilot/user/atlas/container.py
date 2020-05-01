@@ -49,9 +49,9 @@ def do_use_container(**kwargs):
         else:
             queuedata = job.infosys.queuedata
             container_name = queuedata.container_type.get("pilot")
-            if container_name == 'singularity':
+            if container_name:
                 use_container = True
-                logger.debug('container_name == \'singularity\' -> use_container = True')
+                logger.debug('container_name == \'%s\' -> use_container = True' % container_name)
             else:
                 logger.debug('else -> use_container = False')
     elif copytool:
@@ -353,7 +353,7 @@ def alrb_wrapper(cmd, workdir, job=None):
     new_mode = True
 
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
-    if container_name == 'singularity':
+    if container_name:
         # first get the full setup, which should be removed from cmd (or ALRB setup won't work)
         _asetup = get_asetup()
         # get_asetup()
@@ -439,7 +439,7 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         log.info("Updated command: %s" % cmd)
     else:
-        log.warning('container %s not supported' % container_name)
+        log.warning('container name not defined in AGIS')
 
     return cmd
 
