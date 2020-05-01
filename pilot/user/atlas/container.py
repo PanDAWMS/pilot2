@@ -389,6 +389,7 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         # add TMPDIR
         cmd = "export TMPDIR=/srv;export GFORTRAN_TMPDIR=/srv;" + cmd
+        cmd = cmd.replace(';;', ';')
         logger.debug('cmd = %s' % cmd)
         logger.debug('queuedata.is_cmvfs = %s' % str(queuedata.is_cvmfs))
 
@@ -401,6 +402,7 @@ def alrb_wrapper(cmd, workdir, job=None):
                 log.warning('failed to create release setup file')
 
         # write the full payload command to a script file
+        cmd = cmd.replace(';;', ';')
         logger.debug('command to be written to container script file: %s' % cmd)
         container_script = config.Container.container_script
         status = write_file(os.path.join(job.workdir, container_script), cmd, mute=False)
@@ -432,7 +434,7 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         # update the ALRB setup command
         _cmd = update_alrb_setup(_cmd, new_mode and queuedata.is_cvmfs)
-        _cmd = _cmd.replace('  ', ' ')
+        _cmd = _cmd.replace('  ', ' ').replace(';;', ';')
         cmd = _cmd
 
         log.info("Updated command: %s" % cmd)
