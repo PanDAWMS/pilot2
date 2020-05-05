@@ -223,13 +223,13 @@ def extract_full_atlas_setup(cmd, atlas_setup):
     return extracted_asetup, updated_cmd
 
 
-def update_alrb_setup(cmd, new_mode):
+def update_alrb_setup(cmd, use_release_setup):
     """
     Update the ALRB setup command.
-=   Add the ALRB_CONT_SETUPFILE.
+    Add the ALRB_CONT_SETUPFILE in case the release setup file was created earlier (required available cvmfs).
 
     :param cmd: full ALRB setup command (string).
-    :param new_mode: Boolean
+    :param use_release_setup: should the release setup file be added to the setup command? (Boolean).
     :return: updated ALRB setup command (string).
     """
 
@@ -239,11 +239,9 @@ def update_alrb_setup(cmd, new_mode):
         for subcmd in _cmd:
             #if subcmd.startswith('export ATLAS_LOCAL_ROOT_BASE'):
             #    updated_cmds.append('if [ -z $ATLAS_LOCAL_ROOT_BASE ]; then ' + subcmd + '; fi')
-            if subcmd.startswith('source ${ATLAS_LOCAL_ROOT_BASE}') and new_mode:
+            if subcmd.startswith('source ${ATLAS_LOCAL_ROOT_BASE}') and use_release_setup:
                 updated_cmds.append('export ALRB_CONT_SETUPFILE="/srv/%s"' % config.Container.release_setup)
-                updated_cmds.append(subcmd)
-            else:
-                updated_cmds.append(subcmd)
+            updated_cmds.append(subcmd)
         updated_cmd = ';'.join(updated_cmds)
     except Exception as e:
         logger.warning('exception caught while extracting full atlas setup: %s' % e)
@@ -393,13 +391,19 @@ def alrb_wrapper(cmd, workdir, job=None):
         logger.debug('cmd = %s' % cmd)
         logger.debug('queuedata.is_cmvfs = %s' % str(queuedata.is_cvmfs))
 
+        use_release_setup = False
         if new_mode and queuedata.is_cvmfs:
             extracted_asetup, cmd = extract_full_atlas_setup(cmd, atlas_setup)
             # in the new mode, extracted_asetup should be written to 'my_release_setup.sh' and cmd to 'container_script.sh'
-            logger.debug('command to be written to release setup file: %s' % extracted_asetup)
-            status = write_file(os.path.join(job.workdir, config.Container.release_setup), extracted_asetup, mute=False)
-            if not status:
-                log.warning('failed to create release setup file')
+            if extracted_asetup:
+                logger.debug('command to be written to release setup file: %s' % extracted_asetup)
+                status = write_file(os.path.join(job.workdir, config.Container.release_setup), extracted_asetup, mute=False)
+                if not status:
+                    log.warning('failed to create release setup file')
+                else:
+                    use_release_setup = True
+            else:
+                logger.debug('will not create a release setup file since asetup could not be extracted from command')
 
         # write the full payload command to a script file
         cmd = cmd.replace(';;', ';')
@@ -433,7 +437,7 @@ def alrb_wrapper(cmd, workdir, job=None):
                 _cmd += '-c $thePlatform'
 
         # update the ALRB setup command
-        _cmd = update_alrb_setup(_cmd, new_mode and queuedata.is_cvmfs)
+        _cmd = update_alrb_setup(_cmd, new_mode and queuedata.is_cvmfs and use_release_setup)
         _cmd = _cmd.replace('  ', ' ').replace(';;', ';')
         cmd = _cmd
 
