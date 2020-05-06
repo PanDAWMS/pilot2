@@ -157,6 +157,11 @@ def get_payload_command(job):
     # add any missing trailing ;
     if not cmd.endswith(';'):
         cmd += '; '
+
+    # prepend PanDA job id in case it is not there already (e.g. runcontainer jobs)
+    if 'export PANDAID' not in cmd:
+        cmd = "export PANDAID=%s;" % job.jobid + cmd
+
     log.debug('post cmd: %s' % cmd)
 
     # only if not using a user container
@@ -1508,7 +1513,9 @@ def get_utility_command_setup(name, job, setup=None):
     """
 
     if name == 'MemoryMonitor':
-        setup, pid = get_memory_monitor_setup(job.pid, job.pgrp, job.jobid, job.workdir, job.command, use_container=job.usecontainer,
+        # must know if payload is running in a container or not (enables search for pid in ps output)
+        use_container = job.usecontainer or 'runcontainer' in job.transformation
+        setup, pid = get_memory_monitor_setup(job.pid, job.pgrp, job.jobid, job.workdir, job.command, use_container=use_container,
                                               transformation=job.transformation, outdata=job.outdata)
         _pattern = r"([\S]+)\ ."
         pattern = re.compile(_pattern)

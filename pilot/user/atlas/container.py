@@ -369,7 +369,7 @@ def alrb_wrapper(cmd, workdir, job=None):
         asetup = get_asetup(alrb=True)
         # get_asetup(alrb=True)
         # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
-        logger.debug('asetup 3: %s' % asetup)
+        logger.debug('asetup 2: %s' % asetup)
 
         _cmd = asetup
 
@@ -383,7 +383,8 @@ def alrb_wrapper(cmd, workdir, job=None):
         _cmd = add_container_options(_cmd, queuedata.container_options)
 
         # add the jobid to be used as an identifier for the payload running inside the container
-        _cmd += "export PANDAID=%s;" % job.jobid
+        if 'export PANDAID' not in _cmd:
+            _cmd += "export PANDAID=%s;" % job.jobid
 
         # add TMPDIR
         cmd = "export TMPDIR=/srv;export GFORTRAN_TMPDIR=/srv;" + cmd
