@@ -19,7 +19,6 @@ from pilot.info import InfoService, infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 from pilot.util.filehandling import write_file
-# import pilot.info.infoservice as infosys
 
 import logging
 logger = logging.getLogger(__name__)
