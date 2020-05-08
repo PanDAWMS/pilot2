@@ -281,6 +281,7 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
             # store the file in the main workdir
             path = os.path.join(os.environ.get('PILOT_HOME'), config.Pilot.heartbeat_message)
             if write_json(path, data):
+                log.debug('heartbeat dictionary: %s' % data)
                 log.debug('wrote heartbeat to file %s' % path)
                 return True
             else:
