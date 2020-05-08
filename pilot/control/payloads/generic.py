@@ -96,13 +96,20 @@ class Executor(object):
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
         # should we run any additional commands? (e.g. special monitoring commands)
-        cmds = user.get_utility_commands_list(order=UTILITY_BEFORE_PAYLOAD)
-        if cmds != []:
-            for utcmd in cmds:
-                log.info('utility command to be executed before the payload: %s' % utcmd)
-                # add execution code here
-                # store pid in job object job.utilitypids = {<name>: <pid>}
-                job.utilitypids[utcmd] = -1
+        cmd_dictionary = user.get_utility_commands(order=UTILITY_BEFORE_PAYLOAD)
+        if cmd_dictionary:
+            cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
+            log.info('utility command to be executed before the payload: %s %s' % cmd)
+            # add execution code here
+            exit_code, stdout, stderr = execute(cmd, usecontainer=False)
+            if exit_code:
+                log.warning('failed to run command: %s (exit code = %d)' % (cmd, exit_code))
+                log.warning(stdout)
+                log.warning(stderr)
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PREPROCESSFAILURE)
+
+            # store pid in job object job.utilitypids = {<name>: <pid>} [not used since function waits for call to finish]
+            job.utilitypids[cmd_dictionary.get('command')] = -1
 
     def utility_with_payload(self, job):
         """
@@ -116,11 +123,11 @@ class Executor(object):
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
         # should any additional commands be prepended to the payload execution string?
-        cmds = user.get_utility_commands_list(order=UTILITY_WITH_PAYLOAD)
-        if cmds != []:
-            for utcmd in cmds:
-                log.info('utility command to be executed with the payload: %s' % utcmd)
-                # add execution code here
+        cmd_dictionary = user.get_utility_commands(order=UTILITY_WITH_PAYLOAD)
+        if cmd_dictionary:
+            cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
+            log.info('utility command to be executed with the payload: %s' % cmd)
+            # add execution code here
 
     def utility_after_payload_started(self, job):
         """
@@ -134,26 +141,25 @@ class Executor(object):
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
         # should any additional commands be executed after the payload?
-        cmds = user.get_utility_commands_list(order=UTILITY_AFTER_PAYLOAD_STARTED)
-        if cmds != []:
-            for utcmd in cmds:
-                log.info('utility command to be executed after the payload: %s' % utcmd)
+        cmd_dictionary = user.get_utility_commands(order=UTILITY_AFTER_PAYLOAD_STARTED)
+        if cmd_dictionary:
+            cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
+            log.info('utility command to be executed after the payload: %s' % cmd)
 
-                # how should this command be executed?
-                utilitycommand = user.get_utility_command_setup(utcmd, job)
-                if not utilitycommand:
-                    log.warning('empty utility command - nothing to run')
-                    return
-                try:
-                    proc1 = execute(utilitycommand, workdir=job.workdir, returnproc=True,
-                                    usecontainer=False, stdout=PIPE, stderr=PIPE, cwd=job.workdir,
-                                    job=job)
-                except Exception as e:
-                    log.error('could not execute: %s' % e)
-                else:
-                    # store process handle in job object, and keep track on how many times the command has been launched
-                    # also store the full command in case it needs to be restarted later (by the job_monitor() thread)
-                    job.utilities[utcmd] = [proc1, 1, utilitycommand]
+            # how should this command be executed?
+            utilitycommand = user.get_utility_command_setup(cmd_dictionary.get('command'), job)
+            if not utilitycommand:
+                log.warning('empty utility command - nothing to run')
+                return
+            try:
+                proc1 = execute(utilitycommand, workdir=job.workdir, returnproc=True, usecontainer=False,
+                                stdout=PIPE, stderr=PIPE, cwd=job.workdir, job=job)
+            except Exception as e:
+                log.error('could not execute: %s' % e)
+            else:
+                # store process handle in job object, and keep track on how many times the command has been launched
+                # also store the full command in case it needs to be restarted later (by the job_monitor() thread)
+                job.utilities[cmd_dictionary.get('command')] = [proc1, 1, utilitycommand]
 
     def utility_after_payload_finished(self, job):
         """
@@ -167,11 +173,17 @@ class Executor(object):
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
         # should any additional commands be prepended to the payload execution string?
-        cmds = user.get_utility_commands_list(order=UTILITY_AFTER_PAYLOAD_FINISHED)
-        if cmds != []:
-            for utcmd in cmds:
-                log.info('utility command to be executed with the payload: %s' % utcmd)
-                # add execution code here
+        cmd_dictionary = user.get_utility_commands(order=UTILITY_AFTER_PAYLOAD_FINISHED)
+        if cmd_dictionary:
+            cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
+            log.info('utility command to be executed with the payload: %s' % cmd)
+            # add execution code here
+            exit_code, stdout, stderr = execute(cmd, usecontainer=False)
+            if exit_code:
+                log.warning('failed to run command: %s (exit code = %d)' % (cmd, exit_code))
+                log.warning(stdout)
+                log.warning(stderr)
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.POSTPROCESSFAILURE)
 
     def pre_payload(self, job):
         """

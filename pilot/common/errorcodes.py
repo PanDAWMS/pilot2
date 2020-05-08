@@ -138,6 +138,8 @@ class ErrorCodes:
     NOSUCHPROCESS = 1353
     GENERALCPUCALCPROBLEM = 1354
     COREDUMP = 1355
+    PREPROCESSFAILURE = 1356
+    POSTPROCESSFAILURE = 1357
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -254,7 +256,9 @@ class ErrorCodes:
         STATFILEPROBLEM: "Failed to stat proc file for CPU consumption calculation",
         NOSUCHPROCESS: "CPU consumption calculation failed: No such process",
         GENERALCPUCALCPROBLEM: "General CPU consumption calculation problem (consult Pilot log)",
-        COREDUMP: "Core dump detected"
+        COREDUMP: "Core dump detected",
+        PREPROCESSFAILURE: "Pre-process command failed",
+        POSTPROCESSFAILURE: "Post-process command failed"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]

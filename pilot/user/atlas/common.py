@@ -31,7 +31,7 @@ from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import get_logger, is_python3
 from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
-    UTILITY_WITH_STAGEIN
+    UTILITY_AFTER_PAYLOAD, UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps
 
@@ -1473,9 +1473,9 @@ def remove_redundant_files(workdir, outputfiles=[]):
         remove_dir_tree(path)
 
 
-def get_utility_commands_list(order=None):
+def get_utility_commands(order=None, job=None):
     """
-    Return a list of utility commands to be executed in parallel with the payload.
+    Return a dictionary of utility commands and arguments to be executed in parallel with the payload.
     This could e.g. be memory and network monitor commands. A separate function can be used to determine the
     corresponding command setups using the utility command name.
     If the optional order parameter is set, the function should return the list of corresponding commands.
@@ -1485,20 +1485,30 @@ def get_utility_commands_list(order=None):
     should be returned. If order=UTILITY_WITH_STAGEIN, the commands that should be executed parallel with stage-in will
     be returned.
 
-    :param order: optional sorting order (see pilot.util.constants)
-    :return: list of utilities to be executed in parallel with the payload.
+    FORMAT: {'command': <command>, 'args': <args>}
+
+    :param order: optional sorting order (see pilot.util.constants).
+    :param job: optional job object.
+    :return: dictionary of utilities to be executed in parallel with the payload.
     """
 
     if order:
-        if order == UTILITY_BEFORE_PAYLOAD:
-            return ['Prefetcher']
+        if order == UTILITY_BEFORE_PAYLOAD and job and job.preprocess:
+            if job.preprocess.get('command', ''):
+                return job.preprocess  # ie already have the correct format
         elif order == UTILITY_WITH_PAYLOAD:
-            return ['NetworkMonitor']
+            return {'command': 'NetworkMonitor', 'args': ''}
         elif order == UTILITY_AFTER_PAYLOAD_STARTED:
-            return [config.Pilot.utility_after_payload_started]
+            cmd = config.Pilot.utility_after_payload_started
+            if cmd:
+                return {'command': cmd, 'args': ''}
+        elif order == UTILITY_AFTER_PAYLOAD and job and job.postprocess:
+            if job.postprocess.get('command', ''):
+                return job.postprocess  # ie already have the correct format
         elif order == UTILITY_WITH_STAGEIN:
-            return ['Benchmark']
-    return []
+            return {'command': 'Benchmark', 'args': ''}
+
+    return {}
 
 
 def get_utility_command_setup(name, job, setup=None):
