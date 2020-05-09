@@ -41,7 +41,7 @@ def do_use_container(**kwargs):
     if job:
         # for user jobs, TRF option --containerImage must have been used, ie imagename must be set
         if job.is_analysis() and job.imagename:
-            use_container = True  #False   WARNING will this change break runcontainer usage?
+            use_container = True  # False   WARNING will this change break runcontainer usage?
             logger.debug('job.is_analysis() and job.imagename -> use_container = True')
         elif not (job.platform or job.alrbuserplatform):
             use_container = False
@@ -319,7 +319,7 @@ def add_container_options(_cmd, container_options):
         # update: skip the -i to allow IPC, otherwise yampl won't work
         if is_raythena:
             pass
-            #_cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -c -i -p\";'
+            # _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -c -i -p\";'
         else:
             _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -C\";'
 
@@ -362,7 +362,7 @@ def alrb_wrapper(cmd, workdir, job=None):
         logger.debug('asetup 1: %s' % _asetup)
         atlas_setup = extract_atlas_setup(_asetup)  # $AtlasSetup/scripts/asetup.sh
         if not new_mode:
-            cmd = cmd.replace(_asetup, "asetup")  #else: cmd.replace(_asetup, atlas_setup)
+            cmd = cmd.replace(_asetup, "asetup")  # else: cmd.replace(_asetup, atlas_setup)
 
         # get_asetup(asetup=False)
         # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
@@ -419,16 +419,25 @@ def alrb_wrapper(cmd, workdir, job=None):
         if '--containerImage' in job.jobparams:
             job.jobparams, container_path = remove_container_string(job.jobparams)
             if job.alrbuserplatform:
-                _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % job.alrbuserplatform
+                if not queuedata.is_cvmfs:
+                    _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -d -c %s' % job.alrbuserplatform
+                else:
+                    _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % job.alrbuserplatform
             elif container_path != "":
-                _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % container_path
+                if not queuedata.is_cvmfs:
+                    _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -d -c %s' % container_path
+                else:
+                    _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % container_path
             else:
                 log.warning('failed to extract container path from %s' % job.jobparams)
                 _cmd = ""
         else:
             _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh '
             if job.platform or job.alrbuserplatform or (job.imagename and new_mode):
-                _cmd += '-c $thePlatform'
+                if not queuedata.is_cvmfs:
+                    _cmd += '-d -c $thePlatform'
+                else:
+                    _cmd += '-c $thePlatform'
 
         # update the ALRB setup command
         _cmd = update_alrb_setup(_cmd, new_mode and queuedata.is_cvmfs)
