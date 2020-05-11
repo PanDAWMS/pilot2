@@ -204,11 +204,11 @@ class Executor(object):
 
         # dump to file
         try:
-            write_file(os.path.join(workdir, step + '_stdout.txt'), stdout)
+            write_file(os.path.join(workdir, step + '_stdout.txt'), stdout, unique=True)
         except PilotException as e:
             logger.warning('failed to write utility stdout to file: %s, %s' % (e, stdout))
         try:
-            write_file(os.path.join(workdir, step + '_stderr.txt'), stderr)
+            write_file(os.path.join(workdir, step + '_stderr.txt'), stderr, unique=True)
         except PilotException as e:
             logger.warning('failed to write utility stderr to file: %s, %s' % (e, stderr))
 
@@ -247,7 +247,11 @@ class Executor(object):
 
         self.post_setup(job)
 
-        self.utility_before_payload(job)
+        try:
+            self.utility_before_payload(job)
+        except Exception as e:
+            log.error(e)
+
         self.pre_payload(job)
 
         self.utility_with_payload(job)
@@ -356,7 +360,10 @@ class Executor(object):
                     log.warning('detected unset exit_code from wait_graceful - reset to -1')
                     exit_code = -1
 
-                self.utility_after_payload_finished(self.__job)
+                try:
+                    self.utility_after_payload_finished(self.__job)
+                except Exception as e:
+                    log.error(e)
                 self.post_payload(self.__job)
 
                 # stop any running utilities
