@@ -22,6 +22,7 @@ from pilot.util.auxiliary import get_logger, set_pilot_state
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED, \
     UTILITY_AFTER_PAYLOAD_FINISHED, PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD
+from pilot.util.filehandling import write_file
 from pilot.util.timing import add_to_pilot_timing
 from pilot.common.exception import PilotException
 
@@ -96,10 +97,10 @@ class Executor(object):
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
         # should we run any additional commands? (e.g. special monitoring commands)
-        cmd_dictionary = user.get_utility_commands(order=UTILITY_BEFORE_PAYLOAD)
+        cmd_dictionary = user.get_utility_commands(order=UTILITY_BEFORE_PAYLOAD, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
-            log.info('utility command to be executed before the payload: %s %s' % cmd)
+            log.info('utility command to be executed before the payload: %s' % cmd)
             # add execution code here
             exit_code, stdout, stderr = execute(cmd, usecontainer=False)
             if exit_code:
@@ -107,9 +108,11 @@ class Executor(object):
                 log.warning(stdout)
                 log.warning(stderr)
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PREPROCESSFAILURE)
+            # write output to log files
+            self.write_utility_output(job.workdir, 'preprocess', stdout, stderr)
 
             # store pid in job object job.utilitypids = {<name>: <pid>} [not used since function waits for call to finish]
-            job.utilitypids[cmd_dictionary.get('command')] = -1
+            #job.utilitypids[cmd_dictionary.get('command')] = -1
 
     def utility_with_payload(self, job):
         """
@@ -123,7 +126,7 @@ class Executor(object):
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
         # should any additional commands be prepended to the payload execution string?
-        cmd_dictionary = user.get_utility_commands(order=UTILITY_WITH_PAYLOAD)
+        cmd_dictionary = user.get_utility_commands(order=UTILITY_WITH_PAYLOAD, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
             log.info('utility command to be executed with the payload: %s' % cmd)
@@ -141,7 +144,7 @@ class Executor(object):
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
         # should any additional commands be executed after the payload?
-        cmd_dictionary = user.get_utility_commands(order=UTILITY_AFTER_PAYLOAD_STARTED)
+        cmd_dictionary = user.get_utility_commands(order=UTILITY_AFTER_PAYLOAD_STARTED, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
             log.info('utility command to be executed after the payload: %s' % cmd)
@@ -173,10 +176,10 @@ class Executor(object):
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
         # should any additional commands be prepended to the payload execution string?
-        cmd_dictionary = user.get_utility_commands(order=UTILITY_AFTER_PAYLOAD_FINISHED)
+        cmd_dictionary = user.get_utility_commands(order=UTILITY_AFTER_PAYLOAD_FINISHED, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
-            log.info('utility command to be executed with the payload: %s' % cmd)
+            log.info('utility command to be executed after the payload has finished: %s' % cmd)
             # add execution code here
             exit_code, stdout, stderr = execute(cmd, usecontainer=False)
             if exit_code:
@@ -184,6 +187,30 @@ class Executor(object):
                 log.warning(stdout)
                 log.warning(stderr)
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.POSTPROCESSFAILURE)
+            self.write_utility_output(job.workdir, 'postprocess', stdout, stderr)
+
+    def write_utility_output(self, workdir, step, stdout, stderr):
+        """
+        Write the utility command output to stdout, stderr files to the job.workdir for the current step.
+        -> <step>_stdout.txt, <step>_stderr.txt
+        Example of step: preprocess, postprocess.
+
+        :param workdir: job workdir (string).
+        :param step: utility step (string).
+        :param stdout: command stdout (string).
+        :param stderr: command stderr (string).
+        :return:
+        """
+
+        # dump to file
+        try:
+            write_file(os.path.join(workdir, step + '_stdout.txt'), stdout)
+        except PilotException as e:
+            logger.warning('failed to write utility stdout to file: %s, %s' % (e, stdout))
+        try:
+            write_file(os.path.join(workdir, step + '_stderr.txt'), stderr)
+        except PilotException as e:
+            logger.warning('failed to write utility stderr to file: %s, %s' % (e, stderr))
 
     def pre_payload(self, job):
         """

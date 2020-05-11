@@ -532,7 +532,7 @@ if __name__ == '__main__':
     add_to_pilot_timing('1', PILOT_MULTIJOB_START_TIME, time.time(), args)
 
     # if requested by the wrapper via a pilot option, create the main pilot workdir and cd into it
-    args.sourcedir = get_pilot_source_dir()
+    args.sourcedir = getcwd()  #get_pilot_source_dir()
 
     exit_code, mainworkdir = create_main_work_dir(args)
     if exit_code != 0:

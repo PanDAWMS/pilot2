@@ -37,6 +37,7 @@ from pilot.util.common import should_abort, was_pilot_killed
 from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
+from pilot.util.container import execute
 from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json, establish_logging, write_file
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file, \
     is_harvester_mode, get_worker_attributes_file, publish_job_report, publish_work_report, get_event_status_file, \
@@ -781,6 +782,7 @@ def store_jobid(jobid, init_dir):
 
     try:
         path = os.path.join(os.path.join(init_dir, 'pilot2'), config.Pilot.jobid_file)
+        path = path.replace('pilot2/pilot2', 'pilot2')  # dirty fix for bad paths
         mode = 'a' if os.path.exists(path) else 'w'
         logger.debug('path=%s  mode=%s' % (path, mode))
         write_file(path, "%s\n" % str(jobid), mode=mode, mute=False)
@@ -1544,6 +1546,11 @@ def has_job_completed(queues, args):
         log = get_logger(job.jobid, logger)
 
         make_job_report(job)
+        cmd = 'ls -lF %s' % os.environ.get('PILOT_HOME')
+        log.debug('%s:\n' % cmd)
+        ec, stdout, stderr = execute(cmd)
+        log.debug(stdout)
+
         queue_report(queues)
         job.reset_errors()
         log.info("job %s has completed (purged errors)" % job.jobid)

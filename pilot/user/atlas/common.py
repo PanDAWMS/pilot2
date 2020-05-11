@@ -31,7 +31,7 @@ from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import get_logger, is_python3
 from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
-    UTILITY_AFTER_PAYLOAD, UTILITY_WITH_STAGEIN
+    UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps
 
@@ -1503,6 +1503,9 @@ def get_utility_commands(order=None, job=None):
             if cmd:
                 return {'command': cmd, 'args': ''}
         elif order == UTILITY_AFTER_PAYLOAD and job and job.postprocess:
+            if job.postprocess.get('command', ''):
+                return job.postprocess  # ie already have the correct format
+        elif order == UTILITY_AFTER_PAYLOAD_FINISHED and job and job.postprocess:
             if job.postprocess.get('command', ''):
                 return job.postprocess  # ie already have the correct format
         elif order == UTILITY_WITH_STAGEIN:

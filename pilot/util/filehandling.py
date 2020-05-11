@@ -114,6 +114,9 @@ def write_file(path, contents, mute=True, mode='w'):
 
     status = False
 
+    # add an incremental file name (add -%d if path already exists)
+    path = get_nonexistant_path(path)
+
     f = open_file(path, mode)
     if f:
         try:
@@ -957,3 +960,22 @@ def remove_core_dumps(workdir):
         found = True
 
     return found
+
+
+def get_nonexistant_path(fname_path):
+    """
+    Get the path to a filename which does not exist by incrementing path.
+
+    :param fname_path: file name path (string).
+    :return: file name path (string).
+    """
+
+    if not os.path.exists(fname_path):
+        return fname_path
+    filename, file_extension = os.path.splitext(fname_path)
+    i = 1
+    new_fname = "{}-{}{}".format(filename, i, file_extension)
+    while os.path.exists(new_fname):
+        i += 1
+        new_fname = "{}-{}{}".format(filename, i, file_extension)
+    return new_fname
