@@ -236,8 +236,6 @@ def update_alrb_setup(cmd, use_release_setup):
     try:
         _cmd = cmd.split(';')
         for subcmd in _cmd:
-            #if subcmd.startswith('export ATLAS_LOCAL_ROOT_BASE'):
-            #    updated_cmds.append('if [ -z $ATLAS_LOCAL_ROOT_BASE ]; then ' + subcmd + '; fi')
             if subcmd.startswith('source ${ATLAS_LOCAL_ROOT_BASE}') and use_release_setup:
                 updated_cmds.append('export ALRB_CONT_SETUPFILE="/srv/%s"' % config.Container.release_setup)
             updated_cmds.append(subcmd)
@@ -391,19 +389,23 @@ def alrb_wrapper(cmd, workdir, job=None):
         logger.debug('cmd = %s' % cmd)
         logger.debug('queuedata.is_cmvfs = %s' % str(queuedata.is_cvmfs))
 
-        use_release_setup = False
-        if new_mode and queuedata.is_cvmfs:
-            extracted_asetup, cmd = extract_full_atlas_setup(cmd, atlas_setup)
+        release_setup = config.Container.release_setup
+        if not release_setup:
+            release_setup = 'my_release_setup.sh'
+        if new_mode:
             # in the new mode, extracted_asetup should be written to 'my_release_setup.sh' and cmd to 'container_script.sh'
-            if extracted_asetup:
-                logger.debug('command to be written to release setup file: %s' % extracted_asetup)
-                status = write_file(os.path.join(job.workdir, config.Container.release_setup), extracted_asetup, mute=False)
-                if not status:
-                    log.warning('failed to create release setup file')
-                else:
-                    use_release_setup = True
+            content = ''
+            if queuedata.is_cvmfs:
+                content, cmd = extract_full_atlas_setup(cmd, atlas_setup)
+            if content:
+                logger.debug('command to be written to release setup file: %s' % content)
             else:
-                logger.debug('will not create a release setup file since asetup could not be extracted from command')
+                content = 'echo \"Error: this setup file should not be run since %s exists inside the container\"' % release_setup
+                logger.debug('will create an empty (almost) release setup file since asetup could not be extracted from command')
+            try:
+                write_file(os.path.join(job.workdir, release_setup), content, mute=False)
+            except Exception as e:
+                logger.warning('exception caught: %s' % e)
 
         # write the full payload command to a script file
         cmd = cmd.replace(';;', ';')
@@ -446,7 +448,9 @@ def alrb_wrapper(cmd, workdir, job=None):
                     _cmd += '-c $thePlatform'
 
         # update the ALRB setup command
-        _cmd = update_alrb_setup(_cmd, new_mode and queuedata.is_cvmfs and use_release_setup)
+        #_cmd = update_alrb_setup(_cmd, new_mode and queuedata.is_cvmfs and use_release_setup)
+        if new_mode:
+            _cmd += ' -s /srv/%s' % release_setup
         _cmd = _cmd.replace('  ', ' ').replace(';;', ';')
         cmd = _cmd
 

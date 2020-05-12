@@ -225,19 +225,25 @@ def publish_stageout_files(job, event_status_file):
     # Now look at the output file(s) information (outdata) from the FileSpec objects
     for fspec in job.outdata:
         logger.debug("File {} will be checked and declared for stage out".format(fspec.lfn))
-        # find the first instance of the file
-        filename = os.path.basename(fspec.surl)
-        path = findfile(work_dir, filename)
-        logger.debug("Found File {} at path - {}".format(fspec.lfn, path))
-        #
-        file_desc = {}
-        file_desc['type'] = fspec.filetype
-        file_desc['path'] = path
-        file_desc['guid'] = fspec.guid
-        file_desc['fsize'] = fspec.filesize
-        file_desc['chksum'] = get_checksum_value(fspec.checksum)
-        logger.debug("File description - {} ".format(file_desc))
-        out_file_report[job.jobid].append(file_desc)
+        if fspec.status != 'transferred':
+            logger.debug('will not add the output file to the json since it was not produced or transferred')
+        else:
+            # find the first instance of the file
+            filename = os.path.basename(fspec.surl)
+            path = findfile(work_dir, filename)
+            if not path:
+                logger.warning('file %s was not found - will not be added to json')
+            else:
+                logger.debug("Found File {} at path - {}".format(fspec.lfn, path))
+                #
+                file_desc = {}
+                file_desc['type'] = fspec.filetype
+                file_desc['path'] = path
+                file_desc['guid'] = fspec.guid
+                file_desc['fsize'] = fspec.filesize
+                file_desc['chksum'] = get_checksum_value(fspec.checksum)
+                logger.debug("File description - {} ".format(file_desc))
+                out_file_report[job.jobid].append(file_desc)
 
     if out_file_report[job.jobid]:
         if write_json(event_status_file, out_file_report):
