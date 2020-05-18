@@ -139,9 +139,10 @@ def get_payload_command(job):
 
     # get the general setup command and then verify it if required
     cmd = resource.get_setup_command(job, prepareasetup)
-    ec, diagnostics = resource.verify_setup_command(cmd)
-    if ec != 0:
-        raise PilotException(diagnostics, code=ec)
+    if cmd:
+        ec, diagnostics = resource.verify_setup_command(cmd)
+        if ec != 0:
+            raise PilotException(diagnostics, code=ec)
 
     if is_standard_atlas_job(job.swrelease):
 
@@ -158,17 +159,15 @@ def get_payload_command(job):
     if not cmd.endswith(';'):
         cmd += '; '
 
-    # prepend PanDA job id in case it is not there already (e.g. runcontainer jobs)
-    if 'export PANDAID' not in cmd:
-        cmd = "export PANDAID=%s;" % job.jobid + cmd
-
-    log.debug('post cmd: %s' % cmd)
-
     # only if not using a user container
     if not job.imagename:
         site = os.environ.get('PILOT_SITENAME', '')
         variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.attemptnr, job.processingtype, site, userjob)
         cmd = ''.join(variables) + cmd
+
+    # prepend PanDA job id in case it is not there already (e.g. runcontainer jobs)
+    if 'export PANDAID' not in cmd:
+        cmd = "export PANDAID=%s;" % job.jobid + cmd
 
     cmd = cmd.replace(';;', ';')
 
@@ -210,9 +209,6 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
 
     if userjob:
         # Try to download the trf (skip when user container is to be used)
-        #if job.imagename != "" or "--containerImage" in job.jobparams:
-        #    job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
-        #    log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
         ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
         if ec != 0:
             raise TrfDownloadFailure(diagnostics)
@@ -224,11 +220,8 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
         else:
             _cmd = job.jobparams
 
-        log.debug('job imagename: %s' % job.imagename)
-        if job.imagename == "":
-            # if '--containerImage' not in job.jobparams:
-            # Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
-            cmd += "; " + add_makeflags(job.corecount, "") + _cmd
+        # Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
+        cmd += "; " + add_makeflags(job.corecount, "") + _cmd
     else:
         # Add Database commands if they are set by the local site
         cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
@@ -1340,7 +1333,8 @@ def get_redundants():
                 "HAHM_*",
                 "Process",
                 "merged_lhef._0.events-new",
-                "container_script.sh",  # new
+                "/cores",  # new
+                "/work",  # new
                 "/pilot2"]  # new
 
     return dir_list
@@ -1453,8 +1447,7 @@ def remove_redundant_files(workdir, outputfiles=[]):
     exclude_files = []
     for of in outputfiles:
         exclude_files.append(os.path.join(workdir, of))
-    logger.debug('to_delete=%s' % to_delete)
-    logger.debug('exclude_files=%s' % exclude_files)
+
     for f in to_delete:
         if f not in exclude_files:
             if os.path.isfile(f):

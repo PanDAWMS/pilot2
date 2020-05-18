@@ -139,8 +139,6 @@ def _validate_payload(job):
     status = True
 
     log = get_logger(job.jobid, logger)
-    log.debug('PandaID = %s' % os.environ.get('PandaID', 'unknown'))
-    log.debug('PanDA_TaskID = %s' % os.environ.get('PanDA_TaskID', 'unknown'))
 
     # perform user specific validation
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()

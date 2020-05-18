@@ -174,20 +174,26 @@ def extract_atlas_setup(asetup):
     Extract the asetup command from the full setup command.
     export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
       source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;source $AtlasSetup/scripts/asetup.sh
-    -> $AtlasSetup/scripts/asetup.sh
+    -> $AtlasSetup/scripts/asetup.sh, export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase; source
+         ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
 
     :param asetup: full asetup command (string).
-    :return: asetup command (string).
+    :return: extracted asetup command, cleaned up full asetup command without asetup.sh (string).
     """
 
     try:
-        atlas_setup = asetup.split(';')[-1]  # source $AtlasSetup/scripts/asetup.sh
+        # source $AtlasSetup/scripts/asetup.sh
+        atlas_setup = asetup.split(';')[-1]
+        # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
+        #   source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
+        cleaned_atlas_setup = asetup.replace(atlas_setup, '')
         atlas_setup = atlas_setup.replace('source ', '')
     except Exception as e:
         logger.debug('exception caught while extracting asetup command: %s' % e)
         atlas_setup = ''
+        cleaned_atlas_setup = ''
 
-    return atlas_setup
+    return atlas_setup, cleaned_atlas_setup
 
 
 def extract_full_atlas_setup(cmd, atlas_setup):
@@ -349,26 +355,35 @@ def alrb_wrapper(cmd, workdir, job=None):
 
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
     if container_name:
+        logger.debug('cmd 1=%s' % cmd)
         # first get the full setup, which should be removed from cmd (or ALRB setup won't work)
         _asetup = get_asetup()
         # get_asetup()
         # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
         #     --quiet;source $AtlasSetup/scripts/asetup.sh
-        logger.debug('asetup 1: %s' % _asetup)
-        atlas_setup = extract_atlas_setup(_asetup)  # $AtlasSetup/scripts/asetup.sh
-        if not new_mode:
+        logger.debug('_asetup: %s' % _asetup)
+        # atlas_setup = $AtlasSetup/scripts/asetup.sh
+        # clean_asetup = export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source
+        #                   ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
+        atlas_setup, clean_asetup = extract_atlas_setup(_asetup)
+        logger.debug('atlas_setup=%s' % atlas_setup)
+        logger.debug('clean_asetup=%s' % clean_asetup)
+        if new_mode:
+            cmd = cmd.replace(clean_asetup, '')  # do not include 'clean_asetup' in the container script
+        else:
             cmd = cmd.replace(_asetup, "asetup")  # else: cmd.replace(_asetup, atlas_setup)
-
+        logger.debug('cmd 2=%s' % cmd)
         # get_asetup(asetup=False)
         # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
 
         # get simplified ALRB setup (export)
-        asetup = get_asetup(alrb=True)
+        asetup = get_asetup(alrb=True, add_if=True)
         # get_asetup(alrb=True)
         # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
-        logger.debug('asetup 2: %s' % asetup)
-
+        # get_asetup(alrb=True, add_if=True)
+        # -> if [ -z "$ATLAS_LOCAL_ROOT_BASE" ]; then export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase; fi;
         _cmd = asetup
+        logger.debug('asetup/_cmd: %s' % asetup)
 
         # add user proxy if necessary (actually it should also be removed from cmd)
         _cmd, cmd = update_for_user_proxy(_cmd, cmd)
@@ -376,18 +391,19 @@ def alrb_wrapper(cmd, workdir, job=None):
         # set the platform info
         _cmd = set_platform(job, new_mode, _cmd)
 
-        # add singularity options
+        # add container options - CAN BE SIMPLIFIED WHEN ONLY NEW_MODE IS USED - SEE ASOKA MAIL 14/05/2020
         _cmd = add_container_options(_cmd, queuedata.container_options)
 
         # add the jobid to be used as an identifier for the payload running inside the container
+        # it is used to identify the pid for the process to be tracked by the memory monitor
         if 'export PANDAID' not in _cmd:
             _cmd += "export PANDAID=%s;" % job.jobid
+        logger.debug('_cmd=%s' % _cmd)
 
         # add TMPDIR
         cmd = "export TMPDIR=/srv;export GFORTRAN_TMPDIR=/srv;" + cmd
         cmd = cmd.replace(';;', ';')
         logger.debug('cmd = %s' % cmd)
-        logger.debug('queuedata.is_cmvfs = %s' % str(queuedata.is_cvmfs))
 
         release_setup = config.Container.release_setup
         if not release_setup:
@@ -398,7 +414,7 @@ def alrb_wrapper(cmd, workdir, job=None):
             if queuedata.is_cvmfs:
                 content, cmd = extract_full_atlas_setup(cmd, atlas_setup)
             if content:
-                logger.debug('command to be written to release setup file: %s' % content)
+                logger.debug('command to be written to release setup file:\n%s' % content)
             else:
                 content = 'echo \"Error: this setup file should not be run since %s exists inside the container\"' % release_setup
                 logger.debug('will create an empty (almost) release setup file since asetup could not be extracted from command')
@@ -409,7 +425,7 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         # write the full payload command to a script file
         cmd = cmd.replace(';;', ';')
-        logger.debug('command to be written to container script file: %s' % cmd)
+        logger.debug('command to be written to container script file:\n\n%s\n' % cmd)
         container_script = config.Container.container_script
         status = write_file(os.path.join(job.workdir, container_script), cmd, mute=False)
         if status:
@@ -428,24 +444,20 @@ def alrb_wrapper(cmd, workdir, job=None):
             job.jobparams, container_path = remove_container_string(job.jobparams)
             if job.alrbuserplatform:
                 if not queuedata.is_cvmfs:
-                    _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -d -c %s' % job.alrbuserplatform
-                else:
                     _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % job.alrbuserplatform
             elif container_path != "":
-                if not queuedata.is_cvmfs:
-                    _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -d -c %s' % container_path
-                else:
-                    _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % container_path
+                _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % container_path
             else:
                 log.warning('failed to extract container path from %s' % job.jobparams)
                 _cmd = ""
+            if _cmd and not queuedata.is_cvmfs:
+                _cmd += ' -d'
         else:
             _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh '
             if job.platform or job.alrbuserplatform or (job.imagename and new_mode):
+                _cmd += '-c $thePlatform'
                 if not queuedata.is_cvmfs:
-                    _cmd += '-d -c $thePlatform'
-                else:
-                    _cmd += '-c $thePlatform'
+                    _cmd += ' -d'
 
         # update the ALRB setup command
         #_cmd = update_alrb_setup(_cmd, new_mode and queuedata.is_cvmfs and use_release_setup)
@@ -453,8 +465,7 @@ def alrb_wrapper(cmd, workdir, job=None):
             _cmd += ' -s /srv/%s' % release_setup
         _cmd = _cmd.replace('  ', ' ').replace(';;', ';')
         cmd = _cmd
-
-        log.info("Updated command: %s" % cmd)
+        logger.debug('final cmd=\n%s' % cmd)
     else:
         log.warning('container name not defined in AGIS')
 

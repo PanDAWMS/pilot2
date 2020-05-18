@@ -1521,8 +1521,8 @@ def create_job(dispatcher_response, queue):
     logger.info('received job: %s (sleep until the job has finished)' % job.jobid)
     logger.info('job details: \n%s' % job)
 
-    # payload environment wants the PandaID to be set, also used below
-    os.environ['PandaID'] = job.jobid
+    # payload environment wants the PANDAID to be set, also used below
+    os.environ['PANDAID'] = job.jobid
 
     return job
 
@@ -1561,8 +1561,6 @@ def has_job_completed(queues, args):
         cleanup(job, args)
 
         return True
-
-    #jobid = os.environ.get('PandaID')
 
     # is there anything in the finished_jobs queue?
     #finished_queue_snapshot = list(queues.finished_jobs.queue)

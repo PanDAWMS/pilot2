@@ -64,20 +64,26 @@ def should_pilot_prepare_asetup(noexecstrcnv, jobpars):
     return prepareasetup
 
 
-def get_alrb_export():
+def get_alrb_export(add_if=False):
     """
     Return the export command for the ALRB path if it exists.
     If the path does not exist, return empty string.
+
+    :param add_if: Boolean. True means that an if statement will be placed around the export.
     :return: export command
     """
 
     path = "%s/atlas.cern.ch/repo" % get_file_system_root_path()
     cmd = "export ATLAS_LOCAL_ROOT_BASE=%s/ATLASLocalRootBase;" % path if os.path.exists(path) else ""
 
+    # if [ -z "$ATLAS_LOCAL_ROOT_BASE" ]; then export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase; fi;
+    if cmd and add_if:
+        cmd = 'if [ -z \"$ATLAS_LOCAL_ROOT_BASE\" ]; then ' + cmd + ' fi;'
+
     return cmd
 
 
-def get_asetup(asetup=True, alrb=False):
+def get_asetup(asetup=True, alrb=False, add_if=False):
     """
     Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
     Only include the actual asetup script if asetup=True. This is not needed if the jobPars contain the payload command
@@ -85,12 +91,13 @@ def get_asetup(asetup=True, alrb=False):
 
     :param asetup: Boolean. True value means that the pilot should include the asetup command.
     :param alrb: Boolean. True value means that the function should return special setup used with ALRB and containers.
+    :param add_if: Boolean. True means that an if statement will be placed around the export.
     :raises: NoSoftwareDir if appdir does not exist.
     :return: source <path>/asetup.sh (string).
     """
 
     cmd = ""
-    alrb_cmd = get_alrb_export()
+    alrb_cmd = get_alrb_export(add_if=add_if)
     if alrb_cmd != "":
         cmd = alrb_cmd
         if not alrb:
@@ -371,7 +378,7 @@ def get_payload_environment_variables(cmd, job_id, task_id, attempt_nr, processi
     variables.append('export PANDA_RESOURCE=\'%s\';' % site_name)
     variables.append('export FRONTIER_ID=\"[%s_%s]\";' % (task_id, job_id))
     variables.append('export CMSSW_VERSION=$FRONTIER_ID;')
-    variables.append('export PandaID=\'%s\';' % os.environ.get('PandaID', 'unknown'))
+    variables.append('export PANDAID=%s;' % os.environ.get('PANDAID', 'unknown'))
     variables.append('export PanDA_TaskID=\'%s\';' % os.environ.get('PanDA_TaskID', 'unknown'))
     variables.append('export PanDA_AttemptNr=\'%d\';' % attempt_nr)
     variables.append('export INDS=\'%s\';' % os.environ.get('INDS', 'unknown'))
