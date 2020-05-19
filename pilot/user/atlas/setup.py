@@ -214,9 +214,8 @@ def get_analysis_trf(transform, workdir):
     # test if $HARVESTER_WORKDIR is set
     harvester_workdir = os.environ.get('HARVESTER_WORKDIR')
     if harvester_workdir is not None:
-        logger.debug("$HARVESTER_WORKDIR = %s" % (harvester_workdir))
-        search_pattern = "%s/jobO.*.tar.gz" % (harvester_workdir)
-        logger.debug("search_pattern - %s" % (search_pattern))
+        search_pattern = "%s/jobO.*.tar.gz" % harvester_workdir
+        logger.debug("search_pattern - %s" % search_pattern)
         jobopt_files = glob.glob(search_pattern)
         for jobopt_file in jobopt_files:
             logger.debug("jobopt_file = %s workdir = %s" % (jobopt_file, workdir))
@@ -225,13 +224,17 @@ def get_analysis_trf(transform, workdir):
             except Exception as e:
                 logger.error("could not copy file %s to %s : %s" % (jobopt_file, workdir, e))
 
-    #pilot_initdir = os.environ.get('PILOT_HOME', '')
     if '/' in transform:
         transform_name = transform.split('/')[-1]
     else:
-        logger.warning('did not detect any / in %s (using full transform name)' % (transform))
+        logger.warning('did not detect any / in %s (using full transform name)' % transform)
         transform_name = transform
-    logger.debug("transform_name = %s" % (transform_name))
+
+    # is the command already available? (e.g. if already downloaded by a preprocess/main process step)
+    if os.path.join(workdir, transform_name):
+        logger.info('script %s is already available - no need to download again' % transform_name)
+        return ec, diagnostics, transform_name
+
     original_base_url = ""
 
     # verify the base URL
@@ -241,16 +244,14 @@ def get_analysis_trf(transform, workdir):
             break
 
     if original_base_url == "":
-        diagnostics = "invalid base URL: %s" % (transform)
+        diagnostics = "invalid base URL: %s" % transform
         return errors.TRFDOWNLOADFAILURE, diagnostics, ""
-    else:
-        logger.debug("verified the trf base url: %s" % (original_base_url))
 
     # try to download from the required location, if not - switch to backup
     status = False
     for base_url in get_valid_base_urls(order=original_base_url):
         trf = re.sub(original_base_url, base_url, transform)
-        logger.debug("attempting to download trf: %s" % (trf))
+        logger.debug("attempting to download script: %s" % trf)
         status, diagnostics = download_transform(trf, transform_name, workdir)
         if status:
             break
@@ -258,7 +259,7 @@ def get_analysis_trf(transform, workdir):
     if not status:
         return errors.TRFDOWNLOADFAILURE, diagnostics, ""
 
-    logger.info("successfully downloaded transform")
+    logger.info("successfully downloaded script")
     path = os.path.join(workdir, transform_name)
     logger.debug("changing permission of %s to 0o755" % path)
     try:

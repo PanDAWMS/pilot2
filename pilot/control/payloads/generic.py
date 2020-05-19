@@ -102,6 +102,7 @@ class Executor(object):
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
             log.info('utility command to be executed before the payload: %s' % cmd)
             # add execution code here
+            return
             exit_code, stdout, stderr = execute(cmd, usecontainer=False)
             if exit_code:
                 log.warning('failed to run command: %s (exit code = %d)' % (cmd, exit_code))
@@ -181,6 +182,7 @@ class Executor(object):
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
             log.info('utility command to be executed after the payload has finished: %s' % cmd)
             # add execution code here
+            return
             exit_code, stdout, stderr = execute(cmd, usecontainer=False)
             if exit_code:
                 log.warning('failed to run command: %s (exit code = %d)' % (cmd, exit_code))
