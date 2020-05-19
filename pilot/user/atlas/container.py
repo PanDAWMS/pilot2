@@ -293,17 +293,18 @@ def set_platform(job, new_mode, _cmd):
     return _cmd
 
 
-def add_container_options(_cmd, container_options):
+def get_container_options(container_options):
     """
-    Add the singularity options from queuedata to the sub container command.
+    Get the container options from AGIS for the container execution command.
     For Raythena ES jobs, replace the -C with "" (otherwise IPC does not work, needed by yampl).
-    :param _cmd: container command (string).
+
     :param container_options: container options from AGIS (string).
     :return: updated container command (string).
     """
 
     is_raythena = config.Payload.executor_type.lower() == 'raythena'
 
+    opts = ''
     # Set the singularity options
     if container_options:
         # the event service payload cannot use -C/--containall since it will prevent yampl from working
@@ -313,20 +314,18 @@ def add_container_options(_cmd, container_options):
             if '--containall' in container_options:
                 container_options = container_options.replace('--containall', '')
         if container_options:
-            _cmd += 'export ALRB_CONT_CMDOPTS=\"%s\";' % container_options
+            opts += '-e \"%s\"' % container_options
     else:
         # consider using options "-c -i -p" instead of "-C". The difference is that the latter blocks all environment
         # variables by default and the former does not
         # update: skip the -i to allow IPC, otherwise yampl won't work
         if is_raythena:
             pass
-            # _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -c -i -p\";'
+            # opts += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -c -i -p\";'
         else:
-            _cmd += 'export ALRB_CONT_CMDOPTS=\"$ALRB_CONT_CMDOPTS -C\";'
+            opts += '-e \"-C\"'
 
-    _cmd = _cmd.replace('  ', ' ')
-
-    return _cmd
+    return opts
 
 
 def alrb_wrapper(cmd, workdir, job=None):
@@ -391,9 +390,6 @@ def alrb_wrapper(cmd, workdir, job=None):
         # set the platform info
         _cmd = set_platform(job, new_mode, _cmd)
 
-        # add container options - CAN BE SIMPLIFIED WHEN ONLY NEW_MODE IS USED - SEE ASOKA MAIL 14/05/2020
-        _cmd = add_container_options(_cmd, queuedata.container_options)
-
         # add the jobid to be used as an identifier for the payload running inside the container
         # it is used to identify the pid for the process to be tracked by the memory monitor
         if 'export PANDAID' not in _cmd:
@@ -405,28 +401,12 @@ def alrb_wrapper(cmd, workdir, job=None):
         cmd = cmd.replace(';;', ';')
         logger.debug('cmd = %s' % cmd)
 
-        release_setup = config.Container.release_setup
-        if not release_setup:
-            release_setup = 'my_release_setup.sh'
-        if new_mode:
-            # in the new mode, extracted_asetup should be written to 'my_release_setup.sh' and cmd to 'container_script.sh'
-            content = ''
-            if queuedata.is_cvmfs:
-                content, cmd = extract_full_atlas_setup(cmd, atlas_setup)
-            if content:
-                logger.debug('command to be written to release setup file:\n%s' % content)
-            else:
-                content = 'echo \"Error: this setup file should not be run since %s exists inside the container\"' % release_setup
-                logger.debug('will create an empty (almost) release setup file since asetup could not be extracted from command')
-            try:
-                write_file(os.path.join(job.workdir, release_setup), content, mute=False)
-            except Exception as e:
-                logger.warning('exception caught: %s' % e)
+        # get the proper release setup script name, and create the script if necessary
+        release_setup, cmd = create_release_setup(cmd, atlas_setup, job.swrelease, job.imagename, job.workdir, queuedata.is_cvmfs, new_mode)
 
         # write the full payload command to a script file
-        cmd = cmd.replace(';;', ';')
-        logger.debug('command to be written to container script file:\n\n%s\n' % cmd)
         container_script = config.Container.container_script
+        logger.debug('command to be written to container script file:\n\n%s:\n\n%s\n' % (container_script, cmd))
         status = write_file(os.path.join(job.workdir, container_script), cmd, mute=False)
         if status:
             script_cmd = '. /srv/' + container_script
@@ -462,14 +442,92 @@ def alrb_wrapper(cmd, workdir, job=None):
         # update the ALRB setup command
         #_cmd = update_alrb_setup(_cmd, new_mode and queuedata.is_cvmfs and use_release_setup)
         if new_mode:
-            _cmd += ' -s /srv/%s' % release_setup
         _cmd = _cmd.replace('  ', ' ').replace(';;', ';')
+
+        # add container options
+        _cmd += ' ' + get_container_options(queuedata.container_options)
+        _cmd = _cmd.replace('  ', ' ')
         cmd = _cmd
-        logger.debug('final cmd=\n%s' % cmd)
+        logger.debug('\n\nfinal command:\n\n%s\n' % cmd)
     else:
         log.warning('container name not defined in AGIS')
 
     return cmd
+
+
+def create_release_setup(cmd, atlas_setup, release, imagename, workdir, is_cvmfs, new_mode):
+    """
+    Get the proper release setup script name, and create the script if necessary.
+
+    This function also updates the cmd string (removes full asetup from payload command).
+
+    :param cmd: Payload execution command (string).
+    :param atlas_setup: full asetup command (string).
+    :param release: software release, needed to determine Athena environment (string).
+    :param imagename: container image name (string).
+    :param workdir: job workdir (string).
+    :param is_cvmfs: does the queue have cvmfs? (Boolean).
+    :param new_mode: temporary new_mode for new ALRB setup (REMOVE).
+    :return: proper release setup name (string), updated cmd (string).
+    """
+
+    release_setup = get_release_setup_name(release, imagename)
+
+    # note: if release_setup_name.startswith('/'), the pilot will NOT create the script
+    if new_mode and not release_setup.startswith('/'):
+        # in the new mode, extracted_asetup should be written to 'my_release_setup.sh' and cmd to 'container_script.sh'
+        content = ''
+        if is_cvmfs:
+            content, cmd = extract_full_atlas_setup(cmd, atlas_setup)
+        if not content:
+            content = 'echo \"Error: this setup file should not be run since %s exists inside the container\"' % release_setup
+            logger.debug(
+                'will create an empty (almost) release setup file since asetup could not be extracted from command')
+        logger.debug('command to be written to release setup file:\n\n%s:\n\n%s\n' % (release_setup, content))
+        try:
+            write_file(os.path.join(workdir, release_setup), content, mute=False)
+        except Exception as e:
+            logger.warning('exception caught: %s' % e)
+    else:
+        logger.info('script %s is assumed to exist in image - will not be created by pilot' % release_setup)
+
+        cmd = cmd.replace(';;', ';')
+
+    # add the /srv for OS containers
+    if not release_setup.startswith('/'):
+        release_setup = os.path.join('/srv', release_setup)
+
+    return release_setup, cmd
+
+
+def get_release_setup_name(release, imagename):
+    """
+    Return the file name for the release setup script.
+
+    NOTE: the /srv path will only be added later, in the case of OS containers.
+
+    For OS containers, return config.Container.release_setup (my_release_setup.sh);
+    for stand-alone containers (user defined containers, ie when --containerImage or job.imagename was used/set),
+    return '/release_setup.sh'.
+    The pilot will specify /release_setup.sh only when jobs use the Athena environment (ie has a set job.swrelease).
+
+    :param release: software release (string).
+    :param imagename: container image name (string).
+    :return: release setup file name (string).
+    """
+
+    if imagename and release and release != 'NULL':
+        # stand-alone containers (script is assumed to exist inside image/container)
+        release_setup_name = '/release_setup.sh'
+    else:
+        # OS containers (script will be created by pilot)
+        release_setup_name = config.Container.release_setup
+        if not release_setup_name:
+            release_setup_name = 'my_release_setup.sh'
+
+    # note: if release_setup_name.startswith('/'), the pilot will NOT create the script
+
+    return release_setup_name
 
 
 ## DEPRECATED, remove after verification with user container job
