@@ -442,6 +442,7 @@ def alrb_wrapper(cmd, workdir, job=None):
         # update the ALRB setup command
         #_cmd = update_alrb_setup(_cmd, new_mode and queuedata.is_cvmfs and use_release_setup)
         if new_mode:
+            _cmd += ' -s %s' % release_setup
         _cmd = _cmd.replace('  ', ' ').replace(';;', ';')
 
         # add container options
