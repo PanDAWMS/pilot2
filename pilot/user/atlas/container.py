@@ -408,8 +408,8 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         # correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)
         if job.preprocess and job.containeroptions:
-            _com = replace_last_command(cmd, job.containeroptions.get('containerExec'))
-            logger.debug('containerExec: %s' % _com)
+            cmd = replace_last_command(cmd, job.containeroptions.get('containerExec'))
+            logger.debug('updated cmd with containerExec: %s' % cmd)
 
         # write the full payload command to a script file
         container_script = config.Container.container_script
@@ -459,8 +459,8 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         # correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)
         if job.preprocess and job.containeroptions:
-            _com = replace_last_command(cmd, 'setupATLAS -c %s' % job.containeroptions.get('containerImage'))
-            logger.debug('could have executed: %s' % _com)
+            cmd = replace_last_command(cmd, 'setupATLAS -c %s' % job.containeroptions.get('containerImage'))
+            logger.debug('updated cmd with containerImage')
 
         logger.debug('\n\nfinal command:\n\n%s\n' % cmd)
     else:
@@ -478,6 +478,7 @@ def replace_last_command(cmd, replacement):
     :return: updated command (string).
     """
 
+    cmd = cmd.strip('; ')
     last_bit = cmd.split(';')[-1]
     cmd = cmd.replace(last_bit.strip(), replacement)
 

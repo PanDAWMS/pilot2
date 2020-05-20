@@ -1396,7 +1396,7 @@ def ls(workdir):
     logger.debug('%s:\n' % stdout + stderr)
 
 
-def remove_redundant_files(workdir, outputfiles=[]):
+def remove_redundant_files(workdir, outputfiles=[], islooping=False):
     """
     Remove redundant files and directories prior to creating the log file.
 
@@ -1465,7 +1465,7 @@ def remove_redundant_files(workdir, outputfiles=[]):
 
     # remove any present user workDir
     path = os.path.join(workdir, 'workDir')
-    if os.path.exists(path):
+    if os.path.exists(path) and not islooping:
         logger.debug('removing workDir')
         remove_dir_tree(path)
 

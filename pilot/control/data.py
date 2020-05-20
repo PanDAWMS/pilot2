@@ -672,7 +672,7 @@ def create_log(job, logfile, tarball_name, args):
     if args.cleanup:
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
-        user.remove_redundant_files(job.workdir)
+        user.remove_redundant_files(job.workdir, islooping=errors.LOOPINGJOB in job.piloterrorcodes)
     else:
         log.debug('user specific cleanup not performed')
 

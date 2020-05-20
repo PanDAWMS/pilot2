@@ -121,9 +121,9 @@ class JobData(BaseData):
     indata = []                    # list of `FileSpec` objects for input files (aggregated inFiles, ddmEndPointIn, scopeIn, filesizeIn, etc)
     outdata = []                   # list of `FileSpec` objects for output files
     logdata = []                   # list of `FileSpec` objects for log file(s)
-    preprocess = {'args': '--preprocess -j "" --sourceURL https://aipanda047.cern.ch:25443 -r . -p "ls" -a jobO.e767aca9-ef23-45fd-b5d6-49265eaa3d6b.tar.gz', 'command': 'http://pandaserver.cern.ch:25085/trf/user/runGen-00-00-02'}  #{}                # preprocess dictionary with command to execute before payload, {'command': '..', 'args': '..'}
-    postprocess = {'args': '--postprocess -j "" --sourceURL https://aipanda047.cern.ch:25443 -r . -p "ls" -a jobO.e767aca9-ef23-45fd-b5d6-49265eaa3d6b.tar.gz', 'command': 'http://pandaserver.cern.ch:25085/trf/user/runGen-00-00-02'}  #{}               # postprocess dictionary with command to execute after payload, {'command': '..', 'args': '..'}
-    containeroptions = {'containerImage': 'alpine', 'containerExec': '__run_main_exec.sh'}  #{}          #
+    preprocess = {}  #{'args': '--preprocess -j "" --sourceURL https://aipanda047.cern.ch:25443 -r . -p "ls" -a jobO.e767aca9-ef23-45fd-b5d6-49265eaa3d6b.tar.gz', 'command': 'http://pandaserver.cern.ch:25085/trf/user/runGen-00-00-02'}  #{}                # preprocess dictionary with command to execute before payload, {'command': '..', 'args': '..'}
+    postprocess = {}  #{'args': '--postprocess -j "" --sourceURL https://aipanda047.cern.ch:25443 -r . -p "ls" -a jobO.e767aca9-ef23-45fd-b5d6-49265eaa3d6b.tar.gz', 'command': 'http://pandaserver.cern.ch:25085/trf/user/runGen-00-00-02'}  #{}               # postprocess dictionary with command to execute after payload, {'command': '..', 'args': '..'}
+    containeroptions = {}  #{'containerImage': 'alpine', 'containerExec': '__run_main_exec.sh'}  #{}          #
 
     # home package string with additional payload release information; does not need to be added to
     # the conversion function since it's already lower case
