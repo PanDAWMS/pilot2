@@ -231,7 +231,7 @@ def get_analysis_trf(transform, workdir):
         transform_name = transform
 
     # is the command already available? (e.g. if already downloaded by a preprocess/main process step)
-    if os.path.join(workdir, transform_name):
+    if os.path.exists(os.path.join(workdir, transform_name)):
         logger.info('script %s is already available - no need to download again' % transform_name)
         return ec, diagnostics, transform_name
 

@@ -1329,6 +1329,7 @@ def get_redundants():
                 "pandawnutil/*",
                 "src/*",
                 "singularity_cachedir",
+                "singularity",  # new
                 "_joproxy15",
                 "HAHM_*",
                 "Process",
@@ -1485,8 +1486,6 @@ def download_command(process, workdir, label='preprocess'):
         if ec != 0:
             logger.warning('cannot execute %s command due to previous error' % label)
             return {}
-        else:
-            logger.debug('downloaded %s command: %s' % (label, cmd))
 
         # update the preprocess command (the URL should be stripped)
         process['command'] = './' + cmd
