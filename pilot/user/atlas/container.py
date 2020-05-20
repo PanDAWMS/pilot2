@@ -369,6 +369,8 @@ def alrb_wrapper(cmd, workdir, job=None):
         logger.debug('clean_asetup=%s' % clean_asetup)
         if new_mode:
             cmd = cmd.replace(clean_asetup, '')  # do not include 'clean_asetup' in the container script
+            #cmd = cmd.replace('source %s' % atlas_setup, 'asetup')  # 'source $AtlasSetup/scripts/asetup.sh' -> 'asetup'
+            #cmd = cmd.replace('source %s' % atlas_setup, 'source asetup.sh')  # 'source $AtlasSetup/scripts/asetup.sh' -> 'asetup'
         else:
             cmd = cmd.replace(_asetup, "asetup")  # else: cmd.replace(_asetup, atlas_setup)
         logger.debug('cmd 2=%s' % cmd)
@@ -403,6 +405,11 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         # get the proper release setup script name, and create the script if necessary
         release_setup, cmd = create_release_setup(cmd, atlas_setup, job.swrelease, job.imagename, job.workdir, queuedata.is_cvmfs, new_mode)
+
+        # correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)
+        if job.preprocess and job.containeroptions:
+            _com = replace_last_command(cmd, job.containeroptions.get('containerExec'))
+            logger.debug('containerExec: %s' % _com)
 
         # write the full payload command to a script file
         container_script = config.Container.container_script
@@ -449,9 +456,30 @@ def alrb_wrapper(cmd, workdir, job=None):
         _cmd += ' ' + get_container_options(queuedata.container_options)
         _cmd = _cmd.replace('  ', ' ')
         cmd = _cmd
+
+        # correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)
+        if job.preprocess and job.imagename and job.containeroptions:
+            _com = replace_last_command(cmd, 'setupATLAS -c %s' % job.containeroptions.get('containerImage'))
+            logger.debug('could have executed: %s' % _com)
+
         logger.debug('\n\nfinal command:\n\n%s\n' % cmd)
     else:
         log.warning('container name not defined in AGIS')
+
+    return cmd
+
+
+def replace_last_command(cmd, replacement):
+    """
+    Replace the last command in cmd with given replacement.
+
+    :param cmd: command (string).
+    :param replacement: replacement (string).
+    :return: updated command (string).
+    """
+
+    last_bit = cmd.split(';')[-1]
+    cmd = cmd.replace(last_bit.strip(), '%s' % replacement)
 
     return cmd
 

@@ -1329,7 +1329,7 @@ def get_redundants():
                 "pandawnutil/*",
                 "src/*",
                 "singularity_cachedir",
-                "singularity",  # new
+                "singularity/*",  # new
                 "_joproxy15",
                 "HAHM_*",
                 "Process",
@@ -1431,6 +1431,7 @@ def remove_redundant_files(workdir, outputfiles=[]):
     to_delete = []
     for _dir in dir_list:
         files = glob(os.path.join(workdir, _dir))
+        logger.debug('files=%s' % files)
         exclude = []
 
         if files:
@@ -1438,11 +1439,12 @@ def remove_redundant_files(workdir, outputfiles=[]):
                 for f in files:
                     if exc in f:
                         exclude.append(os.path.abspath(f))
-
+                        logger.debug('exceptions list add: %s' % os.path.abspath(f))
             _files = []
             for f in files:
                 if f not in exclude:
                     _files.append(os.path.abspath(f))
+                    logger.debug('_files add: %s' % os.path.abspath(f))
             to_delete += _files
 
     exclude_files = []
@@ -1451,6 +1453,7 @@ def remove_redundant_files(workdir, outputfiles=[]):
 
     for f in to_delete:
         if f not in exclude_files:
+            logger.debug('removing %s' % f)
             if os.path.isfile(f):
                 remove(f)
             else:
@@ -1465,6 +1468,8 @@ def remove_redundant_files(workdir, outputfiles=[]):
     if os.path.exists(path):
         logger.debug('removing workDir')
         remove_dir_tree(path)
+
+    ls(workdir)
 
 
 def download_command(process, workdir, label='preprocess'):
