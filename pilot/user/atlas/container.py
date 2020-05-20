@@ -458,7 +458,7 @@ def alrb_wrapper(cmd, workdir, job=None):
         cmd = _cmd
 
         # correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)
-        if job.preprocess and job.imagename and job.containeroptions:
+        if job.preprocess and job.containeroptions:
             _com = replace_last_command(cmd, 'setupATLAS -c %s' % job.containeroptions.get('containerImage'))
             logger.debug('could have executed: %s' % _com)
 
@@ -479,7 +479,7 @@ def replace_last_command(cmd, replacement):
     """
 
     last_bit = cmd.split(';')[-1]
-    cmd = cmd.replace(last_bit.strip(), '%s' % replacement)
+    cmd = cmd.replace(last_bit.strip(), replacement)
 
     return cmd
 
