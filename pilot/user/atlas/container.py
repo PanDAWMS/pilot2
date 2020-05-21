@@ -349,8 +349,7 @@ def alrb_wrapper(cmd, workdir, job=None):
 
     log = get_logger(job.jobid)
     queuedata = job.infosys.queuedata
-
-    new_mode = True
+    new_mode = True  # remove this later
 
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
     if container_name:
@@ -367,10 +366,15 @@ def alrb_wrapper(cmd, workdir, job=None):
         atlas_setup, clean_asetup = extract_atlas_setup(_asetup)
         logger.debug('atlas_setup=%s' % atlas_setup)
         logger.debug('clean_asetup=%s' % clean_asetup)
+        full_atlas_setup = get_full_asetup(cmd, 'source ' + atlas_setup)
+        logger.debug('full_atlas_setup=%s' % full_atlas_setup)
+
         if new_mode:
-            cmd = cmd.replace(clean_asetup, '')  # do not include 'clean_asetup' in the container script
-            #cmd = cmd.replace('source %s' % atlas_setup, 'asetup')  # 'source $AtlasSetup/scripts/asetup.sh' -> 'asetup'
-            #cmd = cmd.replace('source %s' % atlas_setup, 'source asetup.sh')  # 'source $AtlasSetup/scripts/asetup.sh' -> 'asetup'
+            # do not include 'clean_asetup' in the container script
+            cmd = cmd.replace(clean_asetup, '')
+            # for stand-alone containers, do not include the full atlas setup either
+            if job.imagename:
+                cmd = cmd.replace(full_atlas_setup, '')
         else:
             cmd = cmd.replace(_asetup, "asetup")  # else: cmd.replace(_asetup, atlas_setup)
         logger.debug('cmd 2=%s' % cmd)
@@ -414,57 +418,96 @@ def alrb_wrapper(cmd, workdir, job=None):
         # write the full payload command to a script file
         container_script = config.Container.container_script
         logger.debug('command to be written to container script file:\n\n%s:\n\n%s\n' % (container_script, cmd))
-        status = write_file(os.path.join(job.workdir, container_script), cmd, mute=False)
-        if status:
-            script_cmd = '. /srv/' + container_script
-            _cmd += "export ALRB_CONT_RUNPAYLOAD=\'%s\';" % script_cmd
-        else:
-            log.warning('attempting to quote command instead')
-            _cmd += 'export ALRB_CONT_RUNPAYLOAD=%s;' % pipes.quote(cmd)
+        try:
+            write_file(os.path.join(job.workdir, container_script), cmd, mute=False)
+        except Exception as e:
+            logger.warning('exception caught: %s' % e)
+            return ""
 
         # also store the command string in the job object
         job.command = cmd
 
-        # this should not be necessary after the extract_container_image() in JobData update
-        # containerImage should have been removed already
-        if '--containerImage' in job.jobparams:
-            job.jobparams, container_path = remove_container_string(job.jobparams)
-            if job.alrbuserplatform:
-                if not queuedata.is_cvmfs:
-                    _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % job.alrbuserplatform
-            elif container_path != "":
-                _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % container_path
-            else:
-                log.warning('failed to extract container path from %s' % job.jobparams)
-                _cmd = ""
-            if _cmd and not queuedata.is_cvmfs:
-                _cmd += ' -d'
-        else:
-            _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh '
-            if job.platform or job.alrbuserplatform or (job.imagename and new_mode):
-                _cmd += '-c $thePlatform'
-                if not queuedata.is_cvmfs:
-                    _cmd += ' -d'
-
-        # update the ALRB setup command
-        #_cmd = update_alrb_setup(_cmd, new_mode and queuedata.is_cvmfs and use_release_setup)
-        if new_mode:
-            _cmd += ' -s %s' % release_setup
-        _cmd = _cmd.replace('  ', ' ').replace(';;', ';')
-
-        # add container options
-        _cmd += ' ' + get_container_options(queuedata.container_options)
-        _cmd = _cmd.replace('  ', ' ')
-        cmd = _cmd
-
-        # correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)
-        if job.preprocess and job.containeroptions:
-            cmd = replace_last_command(cmd, 'setupATLAS -c %s' % job.containeroptions.get('containerImage'))
-            logger.debug('updated cmd with containerImage')
-
+        # add atlasLocalSetup command + options (overwrite the old cmd since the new cmd is the containerised version)
+        cmd = add_asetup(job, _cmd, queuedata.is_cvmfs, release_setup, container_script, queuedata.container_options, new_mode)
         logger.debug('\n\nfinal command:\n\n%s\n' % cmd)
     else:
         log.warning('container name not defined in AGIS')
+
+    return cmd
+
+
+def add_asetup(job, _cmd, is_cvmfs, release_setup, container_script, container_options, new_mode):
+    """
+    Add atlasLocalSetup and options to form the final payload command.
+
+    :param job: job object.
+    :param _cmd: partial final payload command (string).
+    :param is_cvmfs: True for cvmfs sites (Boolean).
+    :param release_setup: release setup (string).
+    :param container_script: container script name (string).
+    :param container_options: container options (string).
+    :param new_mode: temp (Boolean).
+    :return: final payload command (string).
+    """
+
+    # this should not be necessary after the extract_container_image() in JobData update
+    # containerImage should have been removed already
+    if '--containerImage' in job.jobparams:
+        job.jobparams, container_path = remove_container_string(job.jobparams)
+        if job.alrbuserplatform:
+            if not is_cvmfs:
+                _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % job.alrbuserplatform
+        elif container_path != "":
+            _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % container_path
+        else:
+            log.warning('failed to extract container path from %s' % job.jobparams)
+            _cmd = ""
+        if _cmd and not is_cvmfs:
+            _cmd += ' -d'
+    else:
+        _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh '
+        if job.platform or job.alrbuserplatform or (job.imagename and new_mode):
+            _cmd += '-c $thePlatform'
+            if not is_cvmfs:
+                _cmd += ' -d'
+
+    # update the ALRB setup command
+    # _cmd = update_alrb_setup(_cmd, new_mode and queuedata.is_cvmfs and use_release_setup)
+    if new_mode:
+        _cmd += ' -s %s' % release_setup
+        _cmd += ' -r /srv/' + container_script
+    _cmd = _cmd.replace('  ', ' ').replace(';;', ';')
+
+    # add container options
+    _cmd += ' ' + get_container_options(container_options)
+    _cmd = _cmd.replace('  ', ' ')
+    cmd = _cmd
+
+    # correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)
+    if job.preprocess and job.containeroptions:
+        cmd = replace_last_command(cmd, 'setupATLAS -c %s' % job.containeroptions.get('containerImage'))
+        logger.debug('updated cmd with containerImage')
+
+    return cmd
+
+
+def get_full_asetup(cmd, atlas_setup):
+    """
+    Extract the full asetup command from the payload execution command.
+    (Easier that generating it again). We need to remove this command for stand-alone containers.
+    Alternatively: do not include it in the first place (but this seems to trigger the need for further changes).
+    atlas_setup is "source $AtlasSetup/scripts/asetup.sh", which is extracted in a previous step.
+    The function typically returns: "source $AtlasSetup/scripts/asetup.sh 21.0,Athena,2020-05-19T2148,notest --makeflags='$MAKEFLAGS';".
+
+    :param cmd: payload execution command (string).
+    :param atlas_setup: extracted atlas setup (string).
+    :return: full atlas setup (string).
+    """
+
+    nr = cmd.find(atlas_setup)
+    cmd = cmd[nr:]  # remove everything before 'source $AtlasSetup/..'
+    nr = cmd.find(';')
+    cmd = cmd[:nr + 1]  # remove everything after the first ;, but include the trailing ;
 
     return cmd
 
