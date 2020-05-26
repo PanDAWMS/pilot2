@@ -1431,7 +1431,7 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):
     to_delete = []
     for _dir in dir_list:
         files = glob(os.path.join(workdir, _dir))
-        logger.debug('files=%s' % files)
+        logger.debug('[%s] files=%s' % (_dir, files))
         exclude = []
 
         if files:
@@ -1467,6 +1467,11 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):
     path = os.path.join(workdir, 'workDir')
     if os.path.exists(path) and not islooping:
         logger.debug('removing workDir')
+        remove_dir_tree(path)
+
+    path = os.path.join(workdir, "singularity")
+    if os.path.exists(path):
+        logger.debug('removing singularity')
         remove_dir_tree(path)
 
     ls(workdir)

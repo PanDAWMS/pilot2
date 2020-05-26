@@ -12,9 +12,9 @@ import pipes
 import re
 # for user container test: import urllib
 
+from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import PilotException
-from pilot.user.atlas.setup import get_asetup
-from pilot.user.atlas.setup import get_file_system_root_path
+from pilot.user.atlas.setup import get_asetup, get_file_system_root_path
 from pilot.info import InfoService, infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
@@ -22,6 +22,8 @@ from pilot.util.filehandling import write_file
 
 import logging
 logger = logging.getLogger(__name__)
+
+errors = ErrorCodes()
 
 
 def do_use_container(**kwargs):
@@ -273,24 +275,24 @@ def update_for_user_proxy(_cmd, cmd):
     return _cmd, cmd
 
 
-def set_platform(job, new_mode, _cmd):
+def set_platform(job, new_mode, alrb_setup):
     """
     Set thePlatform variable and add it to the sub container command.
 
-    :param job:
-    :param new_mode:
-    :param _cmd:
-    :return:
+    :param job: job object.
+    :param new_mode: tmp
+    :param alrb_setup: ALRB setup (string).
+    :return: updated ALRB setup (string).
     """
 
     if job.alrbuserplatform:
-        _cmd += 'export thePlatform=\"%s\";' % job.alrbuserplatform
+        alrb_setup += 'export thePlatform=\"%s\";' % job.alrbuserplatform
     elif job.imagename and new_mode:
-        _cmd += 'export thePlatform=\"%s\";' % job.imagename
+        alrb_setup += 'export thePlatform=\"%s\";' % job.imagename
     elif job.platform:
-        _cmd += 'export thePlatform=\"%s\";' % job.platform
+        alrb_setup += 'export thePlatform=\"%s\";' % job.platform
 
-    return _cmd
+    return alrb_setup
 
 
 def get_container_options(container_options):
@@ -382,25 +384,24 @@ def alrb_wrapper(cmd, workdir, job=None):
         # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
 
         # get simplified ALRB setup (export)
-        asetup = get_asetup(alrb=True, add_if=True)
+        alrb_setup = get_asetup(alrb=True, add_if=True)
         # get_asetup(alrb=True)
         # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
         # get_asetup(alrb=True, add_if=True)
         # -> if [ -z "$ATLAS_LOCAL_ROOT_BASE" ]; then export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase; fi;
-        _cmd = asetup
-        log.debug('asetup/_cmd: %s' % asetup)
+        log.debug('initial alrb_setup: %s' % alrb_setup)
 
         # add user proxy if necessary (actually it should also be removed from cmd)
-        _cmd, cmd = update_for_user_proxy(_cmd, cmd)
+        alrb_setup, cmd = update_for_user_proxy(alrb_setup, cmd)
 
         # set the platform info
-        _cmd = set_platform(job, new_mode, _cmd)
+        alrb_setup = set_platform(job, new_mode, alrb_setup)
 
         # add the jobid to be used as an identifier for the payload running inside the container
         # it is used to identify the pid for the process to be tracked by the memory monitor
-        if 'export PANDAID' not in _cmd:
-            _cmd += "export PANDAID=%s;" % job.jobid
-        log.debug('_cmd=%s' % _cmd)
+        if 'export PANDAID' not in alrb_setup:
+            alrb_setup += "export PANDAID=%s;" % job.jobid
+        log.debug('alrb_setup=%s' % alrb_setup)
 
         # add TMPDIR
         cmd = "export TMPDIR=/srv;export GFORTRAN_TMPDIR=/srv;" + cmd
@@ -408,7 +409,14 @@ def alrb_wrapper(cmd, workdir, job=None):
         log.debug('cmd = %s' % cmd)
 
         # get the proper release setup script name, and create the script if necessary
-        release_setup, cmd = create_release_setup(cmd, atlas_setup, job.swrelease, job.imagename, job.workdir, queuedata.is_cvmfs, new_mode)
+        release_setup, cmd = create_release_setup(cmd, atlas_setup, full_atlas_setup, job.swrelease, job.imagename,
+                                                  job.workdir, queuedata.is_cvmfs, new_mode)
+        if not cmd:
+            diagnostics = 'payload setup was reset due to missing release setup in unpacked container'
+            logger.warning(diagnostics)
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGRELEASEUNPACKED)
+            return ""
+            #raise PilotException(diagnostics, code=errors.MISSINGRELEASEUNPACKED)
 
         # correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)
         if job.preprocess and job.containeroptions:
@@ -420,15 +428,17 @@ def alrb_wrapper(cmd, workdir, job=None):
         log.debug('command to be written to container script file:\n\n%s:\n\n%s\n' % (container_script, cmd))
         try:
             write_file(os.path.join(job.workdir, container_script), cmd, mute=False)
+            os.chmod(os.path.join(job.workdir, container_script), 0o755)  # Python 2/3
         except Exception as e:
             log.warning('exception caught: %s' % e)
             return ""
+            #raise e
 
         # also store the command string in the job object
         job.command = cmd
 
         # add atlasLocalSetup command + options (overwrite the old cmd since the new cmd is the containerised version)
-        cmd = add_asetup(job, _cmd, queuedata.is_cvmfs, release_setup, container_script, queuedata.container_options, new_mode)
+        cmd = add_asetup(job, alrb_setup, queuedata.is_cvmfs, release_setup, container_script, queuedata.container_options, new_mode)
         log.debug('\n\nfinal command:\n\n%s\n' % cmd)
     else:
         log.warning('container name not defined in AGIS')
@@ -436,12 +446,36 @@ def alrb_wrapper(cmd, workdir, job=None):
     return cmd
 
 
-def add_asetup(job, _cmd, is_cvmfs, release_setup, container_script, container_options, new_mode):
+def is_release_setup(script, imagename):
+    """
+    Does the release_setup.sh file exist?
+    This check can only be made for unpacked containers. These must have the release setup file present, or setup will
+    fail. For non-unpacked containers, the function will return True and the pilot will assume that the container has
+    the setup file.
+
+    :param script: release setup script (string).
+    :param imagename: container/image name (string).
+    :return: Boolean.
+    """
+
+    if 'unpacked' in imagename:
+        exists = True if os.path.exists(os.path.join(imagename, script)) else False
+        if exists:
+            logger.info('%s is present in %s' % (script, imagename))
+        else:
+            logger.warning('%s is not present in %s - setup has failed' % (script, imagename))
+    else:
+        exists = True
+        logger.info('%s is assumed to be present in %s' % (script, imagename))
+    return exists
+
+
+def add_asetup(job, alrb_setup, is_cvmfs, release_setup, container_script, container_options, new_mode):
     """
     Add atlasLocalSetup and options to form the final payload command.
 
     :param job: job object.
-    :param _cmd: partial final payload command (string).
+    :param alrb_setup: ALRB setup (string).
     :param is_cvmfs: True for cvmfs sites (Boolean).
     :param release_setup: release setup (string).
     :param container_script: container script name (string).
@@ -456,32 +490,32 @@ def add_asetup(job, _cmd, is_cvmfs, release_setup, container_script, container_o
         job.jobparams, container_path = remove_container_string(job.jobparams)
         if job.alrbuserplatform:
             if not is_cvmfs:
-                _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % job.alrbuserplatform
+                alrb_setup += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % job.alrbuserplatform
         elif container_path != "":
-            _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % container_path
+            alrb_setup += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % container_path
         else:
             logger.warning('failed to extract container path from %s' % job.jobparams)
-            _cmd = ""
-        if _cmd and not is_cvmfs:
-            _cmd += ' -d'
+            alrb_setup = ""
+        if alrb_setup and not is_cvmfs:
+            alrb_setup += ' -d'
     else:
-        _cmd += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh '
+        alrb_setup += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh '
         if job.platform or job.alrbuserplatform or (job.imagename and new_mode):
-            _cmd += '-c $thePlatform'
+            alrb_setup += '-c $thePlatform'
             if not is_cvmfs:
-                _cmd += ' -d'
+                alrb_setup += ' -d'
 
     # update the ALRB setup command
-    # _cmd = update_alrb_setup(_cmd, new_mode and queuedata.is_cvmfs and use_release_setup)
+    # alrb_setup = update_alrb_setup(alrb_setup, new_mode and queuedata.is_cvmfs and use_release_setup)
     if new_mode:
-        _cmd += ' -s %s' % release_setup
-        _cmd += ' -r /srv/' + container_script
-    _cmd = _cmd.replace('  ', ' ').replace(';;', ';')
+        alrb_setup += ' -s %s' % release_setup
+        alrb_setup += ' -r /srv/' + container_script
+    alrb_setup = alrb_setup.replace('  ', ' ').replace(';;', ';')
 
     # add container options
-    _cmd += ' ' + get_container_options(container_options)
-    _cmd = _cmd.replace('  ', ' ')
-    cmd = _cmd
+    alrb_setup += ' ' + get_container_options(container_options)
+    alrb_setup = alrb_setup.replace('  ', ' ')
+    cmd = alrb_setup
 
     # correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)
     if job.preprocess and job.containeroptions:
@@ -528,14 +562,20 @@ def replace_last_command(cmd, replacement):
     return cmd
 
 
-def create_release_setup(cmd, atlas_setup, release, imagename, workdir, is_cvmfs, new_mode):
+def create_release_setup(cmd, atlas_setup, full_atlas_setup, release, imagename, workdir, is_cvmfs, new_mode):
     """
     Get the proper release setup script name, and create the script if necessary.
 
     This function also updates the cmd string (removes full asetup from payload command).
 
+    Note: for stand-alone containers, the function will return /release_setup.sh and assume that this script exists
+    in the container. The pilot will only create a my_release_setup.sh script for OS containers.
+
+    In case the release setup is not present in an unpacked container, the function will reset the cmd string.
+
     :param cmd: Payload execution command (string).
-    :param atlas_setup: full asetup command (string).
+    :param atlas_setup: asetup command (string).
+    :param full_atlas_setup: full asetup command (string).
     :param release: software release, needed to determine Athena environment (string).
     :param imagename: container image name (string).
     :param workdir: job workdir (string).
@@ -544,33 +584,44 @@ def create_release_setup(cmd, atlas_setup, release, imagename, workdir, is_cvmfs
     :return: proper release setup name (string), updated cmd (string).
     """
 
-    release_setup = get_release_setup_name(release, imagename)
+    release_setup_name = get_release_setup_name(release, imagename)
 
     # note: if release_setup_name.startswith('/'), the pilot will NOT create the script
-    if new_mode and not release_setup.startswith('/'):
+    if new_mode and not release_setup_name.startswith('/'):
         # in the new mode, extracted_asetup should be written to 'my_release_setup.sh' and cmd to 'container_script.sh'
         content = ''
         if is_cvmfs:
             content, cmd = extract_full_atlas_setup(cmd, atlas_setup)
+            if not content:
+                content = full_atlas_setup
         if not content:
-            content = 'echo \"Error: this setup file should not be run since %s exists inside the container\"' % release_setup
+            content = 'echo \"Error: this setup file should not be run since %s should exist inside the container\"' % release_setup_name
             logger.debug(
                 'will create an empty (almost) release setup file since asetup could not be extracted from command')
-        logger.debug('command to be written to release setup file:\n\n%s:\n\n%s\n' % (release_setup, content))
+        #else:
+        #    _content = "\echo \"This will not be run if there is a /release_setup.sh script inside the container\"\n\n"
+        #    _content += "if [ -z $AtlasSetup ]; then\n"
+        #    _content += "    \echo \"asetup not found so will try to do it from cvmfs ...\"\n"
+        #    _content += "    if [ -z \"$ATLAS_LOCAL_ROOT_BASE\" ]; then\n"
+        #    _content += "        export ATLAS_LOCAL_ROOT_BASE=%s/atlas.cern.ch/repo/ATLASLocalRootBase\n" % get_file_system_root_path()
+        #    _content += "    fi\n"
+        #    _content += "    source $ATLAS_LOCAL_ROOT_BASE/user/atlasLocalSetup.sh -q\n"
+        #    _content += "fi\n\n%s" % content
+        #    content = _content
+        logger.debug('command to be written to release setup file:\n\n%s:\n\n%s\n' % (release_setup_name, content))
         try:
-            write_file(os.path.join(workdir, release_setup), content, mute=False)
+            write_file(os.path.join(workdir, release_setup_name), content, mute=False)
         except Exception as e:
             logger.warning('exception caught: %s' % e)
     else:
-        logger.info('script %s is assumed to exist in image - will not be created by pilot' % release_setup)
-
-        cmd = cmd.replace(';;', ';')
+        # reset cmd in case release_setup.sh does not exist in unpacked image (only for those containers)
+        cmd = cmd.replace(';;', ';') if is_release_setup(release_setup_name, imagename) else ''
 
     # add the /srv for OS containers
-    if not release_setup.startswith('/'):
-        release_setup = os.path.join('/srv', release_setup)
+    if not release_setup_name.startswith('/'):
+        release_setup_name = os.path.join('/srv', release_setup_name)
 
-    return release_setup, cmd
+    return release_setup_name, cmd
 
 
 def get_release_setup_name(release, imagename):
@@ -581,7 +632,7 @@ def get_release_setup_name(release, imagename):
 
     For OS containers, return config.Container.release_setup (my_release_setup.sh);
     for stand-alone containers (user defined containers, ie when --containerImage or job.imagename was used/set),
-    return '/release_setup.sh'.
+    return '/release_setup.sh'. my_release_setup.sh will NOT be created for stand-alone containers.
     The pilot will specify /release_setup.sh only when jobs use the Athena environment (ie has a set job.swrelease).
 
     :param release: software release (string).

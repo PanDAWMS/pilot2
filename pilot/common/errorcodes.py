@@ -140,6 +140,7 @@ class ErrorCodes:
     COREDUMP = 1355
     PREPROCESSFAILURE = 1356
     POSTPROCESSFAILURE = 1357
+    MISSINGRELEASEUNPACKED = 1358
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -258,7 +259,8 @@ class ErrorCodes:
         GENERALCPUCALCPROBLEM: "General CPU consumption calculation problem (consult Pilot log)",
         COREDUMP: "Core dump detected",
         PREPROCESSFAILURE: "Pre-process command failed",
-        POSTPROCESSFAILURE: "Post-process command failed"
+        POSTPROCESSFAILURE: "Post-process command failed",
+        MISSINGRELEASEUNPACKED: "Missing release setup in unpacked container"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]

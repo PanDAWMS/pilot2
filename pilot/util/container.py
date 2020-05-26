@@ -129,7 +129,7 @@ def containerise_executable(executable, **kwargs):
                 logger.fatal(diagnostics)
             else:
                 if executable == "":
-                    diagnostics = 'failed to prepare container command'
+                    diagnostics = 'failed to prepare container command (error code should have been set)'
                     logger.fatal(diagnostics)
             if diagnostics != "":
                 return None, diagnostics

@@ -314,6 +314,10 @@ class Executor(object):
             log.error('could not execute: %s' % str(e))
             return None
 
+        if not proc:
+            log.error('failed to execute payload')
+            return None
+
         log.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
         job.pid = proc.pid
         job.pgrp = os.getpgid(job.pid)
