@@ -288,17 +288,22 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
             else:
                 return False
 
-    #if state == 'running':
-    #    log.info('skipping reporting running for now')
-    #    return True
-
     try:
         # get the URL for the PanDA server from pilot options or from config
         pandaserver = get_panda_server(args.url, args.port)
 
         if config.Pilot.pandajob == 'real':
             time_before = int(time.time())
-            res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver), data=data)
+            max_attempts = 3
+            attempt = 0
+            done = False
+            while attempt < max_attempts and not done:
+                log.info('job update attempt %d/%d' % (attempt + 1, max_attempts))
+                res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver), data=data)
+                if res is not None:
+                    done = True
+                attempt += 1
+
             time_after = int(time.time())
             log.info('server updateJob request completed in %ds for job %s' % (time_after - time_before, job.jobid))
             log.info("server responded with: res = %s" % str(res))

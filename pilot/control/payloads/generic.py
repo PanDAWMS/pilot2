@@ -313,8 +313,7 @@ class Executor(object):
         except Exception as e:
             log.error('could not execute: %s' % str(e))
             return None
-
-        if not proc:
+        if type(proc) == tuple and not proc[0]:
             log.error('failed to execute payload')
             return None
 

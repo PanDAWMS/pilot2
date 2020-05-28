@@ -416,7 +416,6 @@ def alrb_wrapper(cmd, workdir, job=None):
             logger.warning(diagnostics)
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGRELEASEUNPACKED)
             return ""
-            #raise PilotException(diagnostics, code=errors.MISSINGRELEASEUNPACKED)
 
         # correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)
         if job.preprocess and job.containeroptions:
@@ -432,7 +431,6 @@ def alrb_wrapper(cmd, workdir, job=None):
         except Exception as e:
             log.warning('exception caught: %s' % e)
             return ""
-            #raise e
 
         # also store the command string in the job object
         job.command = cmd
@@ -459,6 +457,8 @@ def is_release_setup(script, imagename):
     """
 
     if 'unpacked' in imagename:
+        if script.startswith('/'):
+            script = script[1:]
         exists = True if os.path.exists(os.path.join(imagename, script)) else False
         if exists:
             logger.info('%s is present in %s' % (script, imagename))
