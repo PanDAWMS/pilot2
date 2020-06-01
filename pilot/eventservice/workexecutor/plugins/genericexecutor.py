@@ -14,7 +14,7 @@ import time
 import traceback
 
 from pilot.api.es_data import StageOutESClient
-from pilot.common.exception import PilotException, StageOutFailure, ErrorCodes
+from pilot.common.exception import PilotException, StageOutFailure
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.eventservice.esprocess.esprocess import ESProcess

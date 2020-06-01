@@ -287,6 +287,8 @@ def set_platform(job, new_mode, alrb_setup):
 
     if job.alrbuserplatform:
         alrb_setup += 'export thePlatform=\"%s\";' % job.alrbuserplatform
+    elif job.preprocess and job.containeroptions:
+        alrb_setup += 'export thePlatform=\"%s\";' % job.containeroptions.get('containerImage')
     elif job.imagename and new_mode:
         alrb_setup += 'export thePlatform=\"%s\";' % job.imagename
     elif job.platform:
@@ -419,7 +421,7 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         # correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)
         if job.preprocess and job.containeroptions:
-            cmd = replace_last_command(cmd, job.containeroptions.get('containerExec'))
+            cmd = replace_last_command(cmd, './' + job.containeroptions.get('containerExec'))
             log.debug('updated cmd with containerExec: %s' % cmd)
 
         # write the full payload command to a script file
@@ -519,7 +521,8 @@ def add_asetup(job, alrb_setup, is_cvmfs, release_setup, container_script, conta
 
     # correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)
     if job.preprocess and job.containeroptions:
-        cmd = replace_last_command(cmd, 'setupATLAS -c %s' % job.containeroptions.get('containerImage'))
+        logger.debug('will update cmd=%s' % cmd)
+        cmd = replace_last_command(cmd, 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c $thePlatform')
         logger.debug('updated cmd with containerImage')
 
     return cmd

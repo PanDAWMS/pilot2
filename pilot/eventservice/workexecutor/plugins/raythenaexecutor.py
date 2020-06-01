@@ -12,16 +12,11 @@ import os
 import time
 import traceback
 
-from pilot.api.es_data import StageOutESClient
-from pilot.common.exception import PilotException, StageOutFailure, ErrorCodes
-
 from pilot.common.errorcodes import ErrorCodes
 from pilot.eventservice.esprocess.esprocess import ESProcess
 from pilot.info.filespec import FileSpec
-from pilot.info import infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.filehandling import calculate_checksum
-from pilot.util.container import execute
 
 from .baseexecutor import BaseExecutor
 

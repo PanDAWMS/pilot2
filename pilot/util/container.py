@@ -120,6 +120,10 @@ def containerise_executable(executable, **kwargs):
     if container:
         # should a container really be used?
         do_use_container = job.usecontainer if job else container.do_use_container(**kwargs)
+        # overrule for event service
+        if job.is_eventservice and do_use_container:
+            logger.info('overruling container decision for event service grid job')
+            do_use_container = False
 
         if do_use_container:
             diagnostics = ""

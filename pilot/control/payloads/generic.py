@@ -192,8 +192,7 @@ class Executor(object):
         """
 
         log = get_logger(job.jobid, logger)
-        cmd = 'ls -lF'
-        exit_code, stdout, stderr = execute(cmd, usecontainer=False)
+        exit_code, stdout, stderr = execute(cmd, workdir=job.workdir, cwd=job.workdir, usecontainer=False)
         if exit_code:
             log.warning('failed to run command: %s (exit code = %d) - see utility logs for details' % (cmd, exit_code))
             if label == 'preprocess':
@@ -302,6 +301,13 @@ class Executor(object):
             if exit_code:
                 log.fatal('cannot continue since preprocess failed')
                 return None
+            else:
+                # in case the preprocess produced a command, chmod it
+                path = os.path.join(job.workdir, job.containeroptions.get('containerExec', 'does_not_exist'))
+                log.debug('path=%s' % path)
+                if os.path.exists(path):
+                    log.debug('chmod 0o755: %s' % path)
+                    os.chmod(path, 0o755)
 
         log.info("\n\npayload execution command:\n\n%s\n" % cmd)
 
@@ -335,6 +341,9 @@ class Executor(object):
         :return: updated secondary command (string).
         """
 
+        # remove any trailing spaces and ;-signs
+        cmd = cmd.strip()
+        cmd = cmd[:-1] if cmd.endswith(';') else cmd
         last_bit = cmd.split(';')[-1]
         setup = cmd.replace(last_bit.strip(), '')
 
@@ -413,15 +422,16 @@ class Executor(object):
                     log.warning('detected unset exit_code from wait_graceful - reset to -1')
                     exit_code = -1
 
-                try:
-                    cmd_after_payload = self.utility_after_payload_finished(self.__job)
-                except Exception as e:
-                    log.error(e)
-                else:
-                    if cmd_after_payload:
-                        cmd_after_payload = self.__job.setup + cmd_after_payload
-                        log.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
-                        exit_code = self.execute_utility_command(cmd_after_payload, self.__job, 'postprocess')
+                if state != 'failed':
+                    try:
+                        cmd_after_payload = self.utility_after_payload_finished(self.__job)
+                    except Exception as e:
+                        log.error(e)
+                    else:
+                        if cmd_after_payload:
+                            cmd_after_payload = self.__job.setup + cmd_after_payload
+                            log.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
+                            exit_code = self.execute_utility_command(cmd_after_payload, self.__job, 'postprocess')
 
                 self.post_payload(self.__job)
 
