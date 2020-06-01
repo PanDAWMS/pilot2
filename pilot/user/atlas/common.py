@@ -1396,7 +1396,7 @@ def ls(workdir):
     logger.debug('%s:\n' % stdout + stderr)
 
 
-def remove_redundant_files(workdir, outputfiles=[], islooping=False):
+def remove_redundant_files(workdir, outputfiles=[], islooping=False):  # noqa: C901
     """
     Remove redundant files and directories prior to creating the log file.
 
