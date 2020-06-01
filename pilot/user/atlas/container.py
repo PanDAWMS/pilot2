@@ -421,7 +421,7 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         # correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)
         if job.preprocess and job.containeroptions:
-            cmd = replace_last_command(cmd, './' + job.containeroptions.get('containerExec'))
+            cmd = replace_last_command(cmd, job.containeroptions.get('containerExec'))
             log.debug('updated cmd with containerExec: %s' % cmd)
 
         # write the full payload command to a script file
@@ -520,10 +520,10 @@ def add_asetup(job, alrb_setup, is_cvmfs, release_setup, container_script, conta
     cmd = alrb_setup
 
     # correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)
-    if job.preprocess and job.containeroptions:
-        logger.debug('will update cmd=%s' % cmd)
-        cmd = replace_last_command(cmd, 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c $thePlatform')
-        logger.debug('updated cmd with containerImage')
+    #if job.preprocess and job.containeroptions:
+    #    logger.debug('will update cmd=%s' % cmd)
+    #    cmd = replace_last_command(cmd, 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c $thePlatform')
+    #    logger.debug('updated cmd with containerImage')
 
     return cmd
 

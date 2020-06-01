@@ -304,7 +304,6 @@ class Executor(object):
             else:
                 # in case the preprocess produced a command, chmod it
                 path = os.path.join(job.workdir, job.containeroptions.get('containerExec', 'does_not_exist'))
-                log.debug('path=%s' % path)
                 if os.path.exists(path):
                     log.debug('chmod 0o755: %s' % path)
                     os.chmod(path, 0o755)

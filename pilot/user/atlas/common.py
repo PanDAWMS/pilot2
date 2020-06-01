@@ -1431,7 +1431,6 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):
     to_delete = []
     for _dir in dir_list:
         files = glob(os.path.join(workdir, _dir))
-        logger.debug('[%s] files=%s' % (_dir, files))
         exclude = []
 
         if files:
@@ -1439,12 +1438,10 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):
                 for f in files:
                     if exc in f:
                         exclude.append(os.path.abspath(f))
-                        logger.debug('exceptions list add: %s' % os.path.abspath(f))
             _files = []
             for f in files:
                 if f not in exclude:
                     _files.append(os.path.abspath(f))
-                    logger.debug('_files add: %s' % os.path.abspath(f))
             to_delete += _files
 
     exclude_files = []

@@ -56,8 +56,8 @@ class RaythenaExecutor(BaseExecutor):
         filesize = os.path.getsize(pfn)
         file_data = {'scope': 'transient',
                      'lfn': os.path.basename(pfn),
-                     'checksum' : checksum,
-                     'filesize' : filesize,
+                     'checksum': checksum,
+                     'filesize': filesize,
                      }
         file_spec = FileSpec(filetype='output', **file_data)
         return file_spec
