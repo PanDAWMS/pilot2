@@ -49,7 +49,7 @@ class WorkExecutor(PluginFactory):
         if self.args and 'executor_type' in list(self.args.keys()):  # Python 2/3
             if self.args['executor_type'] == 'raythena':
                 plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.raythenaexecutor.RaythenaExecutor'}
-            if self.args['executor_type'] == 'generic':
+            elif self.args['executor_type'] == 'generic':
                 plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.genericexecutor.GenericExecutor'}
             elif self.args['executor_type'] == 'base':
                 plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.baseexecutor.BaseExecutor'}

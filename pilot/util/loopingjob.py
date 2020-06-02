@@ -152,6 +152,10 @@ def kill_looping_job(job):
     exit_code, stdout, stderr = execute(cmd, mute=True)
     log.info("%s: %s" % (cmd + '\n', stdout))
 
+    cmd = 'pstree -g -a'
+    exit_code, stdout, stderr = execute(cmd, mute=True)
+    log.info("%s: %s" % (cmd + '\n', stdout))
+
     # set the relevant error code
     if job.state == 'stagein':
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINTIMEOUT)

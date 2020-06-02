@@ -14,7 +14,7 @@ from os import environ
 RELEASE = '2'   # released number should be fixed at 2 for Pilot 2
 VERSION = '6'   # version number is '1' for first real Pilot 2 release, '0' until then, increased for bigger updates
 REVISION = '1'  # revision number should be reset to '0' for every new version release, increased for small updates
-BUILD = '37'   # build number should be reset to '1' for every new development cycle
+BUILD = '89'   # build number should be reset to '1' for every new development cycle
 
 SUCCESS = 0
 FAILURE = 1
@@ -22,11 +22,12 @@ FAILURE = 1
 ERRNO_NOJOBS = 20
 
 # Sorting order constants
-UTILITY_BEFORE_PAYLOAD = 0
-UTILITY_WITH_PAYLOAD = 1
-UTILITY_AFTER_PAYLOAD_STARTED = 2
-UTILITY_AFTER_PAYLOAD_FINISHED = 3
-UTILITY_WITH_STAGEIN = 4
+UTILITY_BEFORE_PAYLOAD = 1
+UTILITY_WITH_PAYLOAD = 2
+UTILITY_AFTER_PAYLOAD_STARTED = 3
+UTILITY_AFTER_PAYLOAD = 4
+UTILITY_AFTER_PAYLOAD_FINISHED = 5
+UTILITY_WITH_STAGEIN = 6
 
 # Timing constants that allow for additional constants to be defined for values before the pilot is started, ie for
 # wrapper timing purposes.

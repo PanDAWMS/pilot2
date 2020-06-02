@@ -31,7 +31,7 @@ from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import get_logger, is_python3
 from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
-    UTILITY_WITH_STAGEIN
+    UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps
 
@@ -139,9 +139,10 @@ def get_payload_command(job):
 
     # get the general setup command and then verify it if required
     cmd = resource.get_setup_command(job, prepareasetup)
-    ec, diagnostics = resource.verify_setup_command(cmd)
-    if ec != 0:
-        raise PilotException(diagnostics, code=ec)
+    if cmd:
+        ec, diagnostics = resource.verify_setup_command(cmd)
+        if ec != 0:
+            raise PilotException(diagnostics, code=ec)
 
     if is_standard_atlas_job(job.swrelease):
 
@@ -157,13 +158,16 @@ def get_payload_command(job):
     # add any missing trailing ;
     if not cmd.endswith(';'):
         cmd += '; '
-    log.debug('post cmd: %s' % cmd)
 
     # only if not using a user container
     if not job.imagename:
         site = os.environ.get('PILOT_SITENAME', '')
         variables = get_payload_environment_variables(cmd, job.jobid, job.taskid, job.attemptnr, job.processingtype, site, userjob)
         cmd = ''.join(variables) + cmd
+
+    # prepend PanDA job id in case it is not there already (e.g. runcontainer jobs)
+    if 'export PANDAID' not in cmd:
+        cmd = "export PANDAID=%s;" % job.jobid + cmd
 
     cmd = cmd.replace(';;', ';')
 
@@ -205,9 +209,6 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
 
     if userjob:
         # Try to download the trf (skip when user container is to be used)
-        #if job.imagename != "" or "--containerImage" in job.jobparams:
-        #    job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
-        #    log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
         ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
         if ec != 0:
             raise TrfDownloadFailure(diagnostics)
@@ -219,11 +220,8 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
         else:
             _cmd = job.jobparams
 
-        log.debug('job imagename: %s' % job.imagename)
-        if job.imagename == "":
-            # if '--containerImage' not in job.jobparams:
-            # Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
-            cmd += "; " + add_makeflags(job.corecount, "") + _cmd
+        # Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make)
+        cmd += "; " + add_makeflags(job.corecount, "") + _cmd
     else:
         # Add Database commands if they are set by the local site
         cmd += os.environ.get('PILOT_DB_LOCAL_SETUP_CMD', '')
@@ -1331,11 +1329,13 @@ def get_redundants():
                 "pandawnutil/*",
                 "src/*",
                 "singularity_cachedir",
+                "singularity/*",  # new
                 "_joproxy15",
                 "HAHM_*",
                 "Process",
                 "merged_lhef._0.events-new",
-                "container_script.sh",  # new
+                "/cores",  # new
+                "/work",  # new
                 "/pilot2"]  # new
 
     return dir_list
@@ -1396,7 +1396,7 @@ def ls(workdir):
     logger.debug('%s:\n' % stdout + stderr)
 
 
-def remove_redundant_files(workdir, outputfiles=[]):
+def remove_redundant_files(workdir, outputfiles=[], islooping=False):  # noqa: C901
     """
     Remove redundant files and directories prior to creating the log file.
 
@@ -1438,7 +1438,6 @@ def remove_redundant_files(workdir, outputfiles=[]):
                 for f in files:
                     if exc in f:
                         exclude.append(os.path.abspath(f))
-
             _files = []
             for f in files:
                 if f not in exclude:
@@ -1448,10 +1447,10 @@ def remove_redundant_files(workdir, outputfiles=[]):
     exclude_files = []
     for of in outputfiles:
         exclude_files.append(os.path.join(workdir, of))
-    logger.debug('to_delete=%s' % to_delete)
-    logger.debug('exclude_files=%s' % exclude_files)
+
     for f in to_delete:
         if f not in exclude_files:
+            logger.debug('removing %s' % f)
             if os.path.isfile(f):
                 remove(f)
             else:
@@ -1463,14 +1462,47 @@ def remove_redundant_files(workdir, outputfiles=[]):
 
     # remove any present user workDir
     path = os.path.join(workdir, 'workDir')
-    if os.path.exists(path):
+    if os.path.exists(path) and not islooping:
         logger.debug('removing workDir')
         remove_dir_tree(path)
 
+    path = os.path.join(workdir, "singularity")
+    if os.path.exists(path):
+        logger.debug('removing singularity')
+        remove_dir_tree(path)
 
-def get_utility_commands_list(order=None):
+    ls(workdir)
+
+
+def download_command(process, workdir, label='preprocess'):
     """
-    Return a list of utility commands to be executed in parallel with the payload.
+    Download the pre/postprocess commands if necessary.
+
+    :param process: pre/postprocess dictionary.
+    :param workdir: job workdir (string).
+    :param label: pre/postprocess label (string).
+    :return: updated pre/postprocess dictionary.
+    """
+
+    cmd = process.get('command', '')
+
+    # download the command if necessary
+    if cmd.startswith('http'):
+        # Try to download the trf (skip when user container is to be used)
+        ec, diagnostics, cmd = get_analysis_trf(cmd, workdir)
+        if ec != 0:
+            logger.warning('cannot execute %s command due to previous error' % label)
+            return {}
+
+        # update the preprocess command (the URL should be stripped)
+        process['command'] = './' + cmd
+
+    return process
+
+
+def get_utility_commands(order=None, job=None):
+    """
+    Return a dictionary of utility commands and arguments to be executed in parallel with the payload.
     This could e.g. be memory and network monitor commands. A separate function can be used to determine the
     corresponding command setups using the utility command name.
     If the optional order parameter is set, the function should return the list of corresponding commands.
@@ -1480,20 +1512,33 @@ def get_utility_commands_list(order=None):
     should be returned. If order=UTILITY_WITH_STAGEIN, the commands that should be executed parallel with stage-in will
     be returned.
 
-    :param order: optional sorting order (see pilot.util.constants)
-    :return: list of utilities to be executed in parallel with the payload.
+    FORMAT: {'command': <command>, 'args': <args>}
+
+    :param order: optional sorting order (see pilot.util.constants).
+    :param job: optional job object.
+    :return: dictionary of utilities to be executed in parallel with the payload.
     """
 
     if order:
-        if order == UTILITY_BEFORE_PAYLOAD:
-            return ['Prefetcher']
+        if order == UTILITY_BEFORE_PAYLOAD and job and job.preprocess:
+            if job.preprocess.get('command', ''):
+                return download_command(job.preprocess, job.workdir, label='preprocess')
         elif order == UTILITY_WITH_PAYLOAD:
-            return ['NetworkMonitor']
+            return {'command': 'NetworkMonitor', 'args': ''}
         elif order == UTILITY_AFTER_PAYLOAD_STARTED:
-            return [config.Pilot.utility_after_payload_started]
+            cmd = config.Pilot.utility_after_payload_started
+            if cmd:
+                return {'command': cmd, 'args': ''}
+        elif order == UTILITY_AFTER_PAYLOAD and job and job.postprocess:
+            if job.postprocess.get('command', ''):
+                return download_command(job.postprocess, job.workdir, label='postprocess')
+        elif order == UTILITY_AFTER_PAYLOAD_FINISHED and job and job.postprocess:
+            if job.postprocess.get('command', ''):
+                return download_command(job.postprocess, job.workdir, label='postprocess')
         elif order == UTILITY_WITH_STAGEIN:
-            return ['Benchmark']
-    return []
+            return {'command': 'Benchmark', 'args': ''}
+
+    return {}
 
 
 def get_utility_command_setup(name, job, setup=None):
@@ -1508,7 +1553,9 @@ def get_utility_command_setup(name, job, setup=None):
     """
 
     if name == 'MemoryMonitor':
-        setup, pid = get_memory_monitor_setup(job.pid, job.pgrp, job.jobid, job.workdir, job.command, use_container=job.usecontainer,
+        # must know if payload is running in a container or not (enables search for pid in ps output)
+        use_container = job.usecontainer or 'runcontainer' in job.transformation
+        setup, pid = get_memory_monitor_setup(job.pid, job.pgrp, job.jobid, job.workdir, job.command, use_container=use_container,
                                               transformation=job.transformation, outdata=job.outdata)
         _pattern = r"([\S]+)\ ."
         pattern = re.compile(_pattern)

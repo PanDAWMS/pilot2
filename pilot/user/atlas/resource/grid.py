@@ -56,7 +56,8 @@ def get_setup_command(job, prepareasetup):
         return ""
 
     # return immediately if there is no release or if user containers are used
-    if job.swrelease == 'NULL' or '--containerImage' in job.jobparams:
+    # if job.swrelease == 'NULL' or (('--containerImage' in job.jobparams or job.imagename) and job.swrelease == 'NULL'):
+    if job.swrelease == 'NULL':
         return ""
 
     # Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
@@ -64,7 +65,9 @@ def get_setup_command(job, prepareasetup):
 
     if prepareasetup:
         options = get_asetup_options(job.swrelease, job.homepackage)
-        asetupoptions = " " + options + " --platform " + job.platform
+        asetupoptions = " " + options
+        if job.platform:
+            asetupoptions += " --platform " + job.platform
 
         # Always set the --makeflags option (to prevent asetup from overwriting it)
         asetupoptions += " --makeflags=\'$MAKEFLAGS\'"

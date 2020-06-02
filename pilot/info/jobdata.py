@@ -94,6 +94,7 @@ class JobData(BaseData):
     pgrp = None                    # payload process group
     sizes = {}                     # job object sizes { timestamp: size, .. }
     command = ""                   # full payload command (set for container jobs)
+    setup = ""                     # full payload setup (needed by postprocess command)
     zombies = []                   # list of zombie process ids
     memorymonitor = ""             # memory monitor name, e.g. prmon
     actualcorecount = 0            # number of cores actually used by the payload
@@ -120,6 +121,9 @@ class JobData(BaseData):
     indata = []                    # list of `FileSpec` objects for input files (aggregated inFiles, ddmEndPointIn, scopeIn, filesizeIn, etc)
     outdata = []                   # list of `FileSpec` objects for output files
     logdata = []                   # list of `FileSpec` objects for log file(s)
+    preprocess = {}                # preprocess dictionary with command to execute before payload, {'command': '..', 'args': '..'}
+    postprocess = {}               # postprocess dictionary with command to execute after payload, {'command': '..', 'args': '..'}
+    containeroptions = {}          #
 
     # home package string with additional payload release information; does not need to be added to
     # the conversion function since it's already lower case
@@ -146,7 +150,8 @@ class JobData(BaseData):
                    'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    'infilesguids', 'memorymonitor', 'allownooutput'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'zombies'],
-             dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes'],
+             dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes', 'preprocess',
+                    'postprocess', 'containeroptions'],
              bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug', 'usecontainer']
              }
 
@@ -182,7 +187,7 @@ class JobData(BaseData):
         if not image_base and 'IMAGE_BASE' in infosys.queuedata.catchall:
             image_base = self.get_key_value(infosys.queuedata.catchall, key='IMAGE_BASE')
         if image_base and not os.path.isabs(self.imagename) and not self.imagename.startswith('docker'):
-            self.imagename = image_base + self.imagename
+            self.imagename = os.path.join(image_base, self.imagename)
 
     def get_key_value(self, catchall, key='SOMEKEY'):
         """
@@ -413,7 +418,8 @@ class JobData(BaseData):
             'is_eventservicemerge': 'eventServiceMerge',
             'maxcpucount': 'maxCpuCount',
             'allownooutput': 'allowNoOutput',
-            'imagename_jobdef': 'container_name'
+            'imagename_jobdef': 'container_name',
+            'containeroptions': 'containerOptions'
         }
 
         self._load_data(data, kmap)

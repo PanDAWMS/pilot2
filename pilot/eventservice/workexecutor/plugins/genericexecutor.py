@@ -14,8 +14,9 @@ import time
 import traceback
 
 from pilot.api.es_data import StageOutESClient
-from pilot.common.exception import PilotException, StageOutFailure, ErrorCodes
+from pilot.common.exception import PilotException, StageOutFailure
 
+from pilot.common.errorcodes import ErrorCodes
 from pilot.eventservice.esprocess.esprocess import ESProcess
 from pilot.info.filespec import FileSpec
 from pilot.info import infosys
@@ -26,6 +27,8 @@ from .baseexecutor import BaseExecutor
 
 import logging
 logger = logging.getLogger(__name__)
+
+errors = ErrorCodes()
 
 """
 Generic Executor with one process to manage EventService
@@ -96,7 +99,7 @@ class GenericExecutor(BaseExecutor):
         for message in out_messagess:
             status = message['status'] if message['status'] in ['failed', 'fatal'] else 'failed'
             # ToBeFixed errorCode
-            event_ranges.append({"errorCode": 1220, "eventRangeID": message['id'], "eventStatus": status})
+            event_ranges.append({"errorCode": errors.UNKNOWNPAYLOADFAILURE, "eventRangeID": message['id'], "eventStatus": status})
             event_range_message = {'version': 0, 'eventRanges': json.dumps(event_ranges)}
             self.update_events(event_range_message)
 

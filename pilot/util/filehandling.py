@@ -100,19 +100,24 @@ def read_file(filename, mode='r'):
     return out
 
 
-def write_file(path, contents, mute=True, mode='w'):
+def write_file(path, contents, mute=True, mode='w', unique=False):
     """
     Write the given contents to a file.
-
+    If unique=True, then if the file already exists, an index will be added (e.g. 'out.txt' -> 'out-1.txt')
     :param path: full path for file (string).
     :param contents: file contents (object).
     :param mute: boolean to control stdout info message.
     :param mode: file mode (e.g. 'w', 'r', 'a', 'wb', 'rb') (string).
+    :param unique: file must be unique (Boolean).
     :raises PilotException: FileHandlingFailure.
     :return: True if successful, otherwise False.
     """
 
     status = False
+
+    # add an incremental file name (add -%d if path already exists) if necessary
+    if unique:
+        path = get_nonexistant_path(path)
 
     f = open_file(path, mode)
     if f:
@@ -957,3 +962,22 @@ def remove_core_dumps(workdir):
         found = True
 
     return found
+
+
+def get_nonexistant_path(fname_path):
+    """
+    Get the path to a filename which does not exist by incrementing path.
+
+    :param fname_path: file name path (string).
+    :return: file name path (string).
+    """
+
+    if not os.path.exists(fname_path):
+        return fname_path
+    filename, file_extension = os.path.splitext(fname_path)
+    i = 1
+    new_fname = "{}-{}{}".format(filename, i, file_extension)
+    while os.path.exists(new_fname):
+        i += 1
+        new_fname = "{}-{}{}".format(filename, i, file_extension)
+    return new_fname

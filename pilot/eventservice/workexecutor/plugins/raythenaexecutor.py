@@ -12,20 +12,18 @@ import os
 import time
 import traceback
 
-from pilot.api.es_data import StageOutESClient
-from pilot.common.exception import PilotException, StageOutFailure, ErrorCodes
-
+from pilot.common.errorcodes import ErrorCodes
 from pilot.eventservice.esprocess.esprocess import ESProcess
 from pilot.info.filespec import FileSpec
-from pilot.info import infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.filehandling import calculate_checksum
-from pilot.util.container import execute
 
 from .baseexecutor import BaseExecutor
 
 import logging
 logger = logging.getLogger(__name__)
+
+errors = ErrorCodes()
 
 """
 Raythena Executor with one process to manage EventService
@@ -58,8 +56,8 @@ class RaythenaExecutor(BaseExecutor):
         filesize = os.path.getsize(pfn)
         file_data = {'scope': 'transient',
                      'lfn': os.path.basename(pfn),
-                     'checksum' : checksum,
-                     'filesize' : filesize,
+                     'checksum': checksum,
+                     'filesize': filesize,
                      }
         file_spec = FileSpec(filetype='output', **file_data)
         return file_spec
@@ -79,10 +77,10 @@ class RaythenaExecutor(BaseExecutor):
 
         event_ranges = []
         for out_msg in out_messagess:
-            fileSpec = self.create_file_spec(out_msg['output'])
-            event_range_status = {"eventRangeID": out_msg['id'], "eventStatus": 'finished', "pfn": out_msg['output'], "fsize": fileSpec.filesize}
-            for checksum_key in fileSpec.checksum:
-                event_range_status[checksum_key] = fileSpec.checksum[checksum_key]
+            fspec = self.create_file_spec(out_msg['output'])
+            event_range_status = {"eventRangeID": out_msg['id'], "eventStatus": 'finished', "pfn": out_msg['output'], "fsize": fspec.filesize}
+            for checksum_key in fspec.checksum:
+                event_range_status[checksum_key] = fspec.checksum[checksum_key]
             event_ranges.append(event_range_status)
         event_ranges_status = {"esOutput": {"numEvents": len(event_ranges)}, "eventRanges": event_ranges}
         event_range_message = {'version': 1, 'eventRanges': json.dumps([event_ranges_status])}
@@ -104,7 +102,7 @@ class RaythenaExecutor(BaseExecutor):
         for message in out_messagess:
             status = message['status'] if message['status'] in ['failed', 'fatal'] else 'failed'
             # ToBeFixed errorCode
-            event_ranges.append({"errorCode": 1220, "eventRangeID": message['id'], "eventStatus": status})
+            event_ranges.append({"errorCode": errors.UNKNOWNPAYLOADFAILURE, "eventRangeID": message['id'], "eventStatus": status})
             event_range_message = {'version': 0, 'eventRanges': json.dumps(event_ranges)}
             self.update_events(event_range_message)
 

@@ -61,6 +61,7 @@ def execute(executable, **kwargs):
     # Note: the container.wrapper() function must at least be declared
     if usecontainer:
         executable, diagnostics = containerise_executable(executable, **kwargs)
+        logger.debug('exe=%s , diag=%s' % (executable, diagnostics))
         if not executable:
             return None if returnproc else -1, "", diagnostics
 
@@ -119,6 +120,10 @@ def containerise_executable(executable, **kwargs):
     if container:
         # should a container really be used?
         do_use_container = job.usecontainer if job else container.do_use_container(**kwargs)
+        # overrule for event service
+        if job.is_eventservice and do_use_container:
+            logger.info('overruling container decision for event service grid job')
+            do_use_container = False
 
         if do_use_container:
             diagnostics = ""
@@ -129,7 +134,7 @@ def containerise_executable(executable, **kwargs):
                 logger.fatal(diagnostics)
             else:
                 if executable == "":
-                    diagnostics = 'failed to prepare container command'
+                    diagnostics = 'failed to prepare container command (error code should have been set)'
                     logger.fatal(diagnostics)
             if diagnostics != "":
                 return None, diagnostics
