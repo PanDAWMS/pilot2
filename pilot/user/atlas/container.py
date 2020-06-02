@@ -486,6 +486,13 @@ def add_asetup(job, alrb_setup, is_cvmfs, release_setup, container_script, conta
     :return: final payload command (string).
     """
 
+    if job:
+        queuedata = job.infosys.queuedata
+    else:
+        infoservice = InfoService()
+        infoservice.init(os.environ.get('PILOT_SITENAME'), infosys.confinfo, infosys.extinfo)
+        queuedata = infoservice.queuedata
+
     # this should not be necessary after the extract_container_image() in JobData update
     # containerImage should have been removed already
     if '--containerImage' in job.jobparams:
@@ -504,6 +511,8 @@ def add_asetup(job, alrb_setup, is_cvmfs, release_setup, container_script, conta
         alrb_setup += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh '
         if job.platform or job.alrbuserplatform or (job.imagename and new_mode):
             alrb_setup += '-c $thePlatform'
+            if queuedata.container_type.get("pilot") == "shifter":
+                alrb_setup += ' --swtype=shifter -E "--clearenv"'
             if not is_cvmfs:
                 alrb_setup += ' -d'
 
