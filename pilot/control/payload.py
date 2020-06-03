@@ -125,13 +125,6 @@ def validate_pre(queues, traces, args):
     else:
         logger.debug('will not set job_aborted yet')
 
-    # proceed to set the job_aborted flag?
-    if threads_aborted():
-        logger.debug('will proceed to set job_aborted')
-        args.job_aborted.set()
-    else:
-        logger.debug('will not set job_aborted yet')
-
     logger.info('[payload] validate_pre thread has finished')
 
 
@@ -146,8 +139,6 @@ def _validate_payload(job):
     status = True
 
     log = get_logger(job.jobid, logger)
-    log.debug('PandaID = %s' % os.environ.get('PandaID', 'unknown'))
-    log.debug('PanDA_TaskID = %s' % os.environ.get('PanDA_TaskID', 'unknown'))
 
     # perform user specific validation
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()

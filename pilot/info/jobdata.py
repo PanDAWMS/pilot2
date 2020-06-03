@@ -94,6 +94,7 @@ class JobData(BaseData):
     pgrp = None                    # payload process group
     sizes = {}                     # job object sizes { timestamp: size, .. }
     command = ""                   # full payload command (set for container jobs)
+    setup = ""                     # full payload setup (needed by postprocess command)
     zombies = []                   # list of zombie process ids
     memorymonitor = ""             # memory monitor name, e.g. prmon
     actualcorecount = 0            # number of cores actually used by the payload
@@ -106,7 +107,7 @@ class JobData(BaseData):
 
     zipmap = ""                    # ZIP MAP values extracted from jobparameters
     imagename = ""                 # container image name extracted from job parameters or job definition
-    imagename_test = ""
+    imagename_jobdef = ""
     usecontainer = False           # boolean, True if a container is to be used for the payload
 
     # from job definition
@@ -120,6 +121,9 @@ class JobData(BaseData):
     indata = []                    # list of `FileSpec` objects for input files (aggregated inFiles, ddmEndPointIn, scopeIn, filesizeIn, etc)
     outdata = []                   # list of `FileSpec` objects for output files
     logdata = []                   # list of `FileSpec` objects for log file(s)
+    preprocess = {}                # preprocess dictionary with command to execute before payload, {'command': '..', 'args': '..'}
+    postprocess = {}               # postprocess dictionary with command to execute after payload, {'command': '..', 'args': '..'}
+    containeroptions = {}          #
 
     # home package string with additional payload release information; does not need to be added to
     # the conversion function since it's already lower case
@@ -142,11 +146,12 @@ class JobData(BaseData):
                    'state', 'serverstate', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg', 'produserid', 'jobdefinitionid', 'writetofile',
                    'cpuconsumptionunit', 'homepackage', 'jobsetid', 'payload', 'processingtype',
-                   'swrelease', 'zipmap', 'imagename', 'imagename_test', 'accessmode', 'transfertype',
+                   'swrelease', 'zipmap', 'imagename', 'imagename_jobdef', 'accessmode', 'transfertype',
                    'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    'infilesguids', 'memorymonitor', 'allownooutput'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'zombies'],
-             dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes'],
+             dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes', 'preprocess',
+                    'postprocess', 'containeroptions'],
              bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug', 'usecontainer']
              }
 
@@ -161,13 +166,41 @@ class JobData(BaseData):
         self.load(data)
 
     def init(self, infosys):
-
+        """
+            :param infosys: infosys object
+        """
         self.infosys = infosys
-
         self.indata = self.prepare_infiles(self._rawdata)
         self.outdata, self.logdata = self.prepare_outfiles(self._rawdata)
 
-        #logger.debug('Final parsed Job content:\n%s' % self)
+        # overwrites
+        if self.imagename_jobdef and not self.imagename:
+            logger.debug('using imagename_jobdef as imagename (\"%s\")' % (self.imagename_jobdef))
+            self.imagename = self.imagename_jobdef
+        elif self.imagename_jobdef and self.imagename:
+            logger.debug('using imagename from jobparams (ignoring imagename_jobdef)')
+        elif not self.imagename_jobdef and self.imagename:
+            logger.debug('using imagename from jobparams (imagename_jobdef not set)')
+
+        # prepend IMAGE_BASE to imagename if necessary (for testing purposes)
+        image_base = os.environ.get('IMAGE_BASE', '')
+        if not image_base and 'IMAGE_BASE' in infosys.queuedata.catchall:
+            image_base = self.get_key_value(infosys.queuedata.catchall, key='IMAGE_BASE')
+        if image_base and not os.path.isabs(self.imagename) and not self.imagename.startswith('docker'):
+            self.imagename = os.path.join(image_base, self.imagename)
+
+    def get_key_value(self, catchall, key='SOMEKEY'):
+        """
+        Return the value corresponding to key in catchall.
+        :param catchall: catchall free string.
+        :param key: key name (string).
+        :return: value (string).
+        """
+
+        # ignore any non-key-value pairs that might be present in the catchall string
+        s = dict(s.split('=', 1) for s in catchall.split() if '=' in s)
+
+        return s.get(key)
 
     def prepare_infiles(self, data):  # noqa: C901
         """
@@ -385,7 +418,8 @@ class JobData(BaseData):
             'is_eventservicemerge': 'eventServiceMerge',
             'maxcpucount': 'maxCpuCount',
             'allownooutput': 'allowNoOutput',
-            'imagename_test': 'container_name'
+            'imagename_jobdef': 'container_name',
+            'containeroptions': 'containerOptions'
         }
 
         self._load_data(data, kmap)
@@ -547,12 +581,6 @@ class JobData(BaseData):
         """
 
         imagename = ""
-
-        # take the imagename ("container_name") from the job definition if it is set there
-        if self.imagename_test:
-            logger.debug('imagename_test=%s' % self.imagename_test)
-        else:
-            logger.debug('imagename_test/container_name not set?')
 
         # define regexp pattern for the full container image option
         _pattern = r'(\ \-\-containerImage\=?\s?[\S]+)'

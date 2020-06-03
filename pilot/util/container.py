@@ -11,8 +11,11 @@ import subprocess
 from os import environ, getcwd, setpgrp  #, getpgid  #setsid
 from sys import version_info
 
+from pilot.common.errorcodes import ErrorCodes
+
 import logging
 logger = logging.getLogger(__name__)
+errors = ErrorCodes()
 
 
 def is_python3():
@@ -25,7 +28,7 @@ def is_python3():
     return version_info >= (3, 0)
 
 
-def execute(executable, **kwargs):  # noqa: C901
+def execute(executable, **kwargs):
     """
     Execute the command and its options in the provided executable list.
     The function also determines whether the command should be executed within a container.
@@ -36,15 +39,14 @@ def execute(executable, **kwargs):  # noqa: C901
     :return: exit code, stdout and stderr (or process if requested via returnproc argument)
     """
 
+    mute = kwargs.get('mute', False)
+    mode = kwargs.get('mode', 'bash')
     cwd = kwargs.get('cwd', getcwd())
     stdout = kwargs.get('stdout', subprocess.PIPE)
     stderr = kwargs.get('stderr', subprocess.PIPE)
-    timeout = kwargs.get('timeout', None)
     usecontainer = kwargs.get('usecontainer', False)
     returnproc = kwargs.get('returnproc', False)
-    mute = kwargs.get('mute', False)
     job = kwargs.get('job')
-    mode = kwargs.get('mode', 'bash')
 
     # convert executable to string if it is a list
     if type(executable) is list:
@@ -58,29 +60,10 @@ def execute(executable, **kwargs):  # noqa: C901
     # Import user specific code if necessary (in case the command should be executed in a container)
     # Note: the container.wrapper() function must at least be declared
     if usecontainer:
-        user = environ.get('PILOT_USER', 'generic').lower()  # TODO: replace with singleton
-        container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], 0)  # Python 2/3
-        if container:
-            # should a container really be used?
-            do_use_container = job.usecontainer if job else container.do_use_container(**kwargs)
-
-            if do_use_container:
-                diagnostics = ""
-                try:
-                    executable = container.wrapper(executable, **kwargs)
-                except Exception as e:
-                    diagnostics = 'failed to execute wrapper function: %s' % e
-                    logger.fatal(diagnostics)
-                else:
-                    if executable == "":
-                        diagnostics = 'failed to prepare container command'
-                        logger.fatal(diagnostics)
-                if diagnostics != "":
-                    return None if returnproc else -1, "", diagnostics
-            else:
-                logger.info('pilot user container module has decided to not use a container')
-        else:
-            logger.warning('container module could not be imported')
+        executable, diagnostics = containerise_executable(executable, **kwargs)
+        logger.debug('exe=%s , diag=%s' % (executable, diagnostics))
+        if not executable:
+            return None if returnproc else -1, "", diagnostics
 
     if not mute:
         executable_readable = executable
@@ -93,7 +76,7 @@ def execute(executable, **kwargs):  # noqa: C901
         logger.info('executing command: %s' % executable_readable)
 
     if mode == 'python':
-        exe = ['/usr/bin/python', executable]
+        exe = ['/usr/bin/python'] + executable.split()
     else:
         exe = ['/bin/bash', '-c', executable]
 
@@ -119,3 +102,45 @@ def execute(executable, **kwargs):  # noqa: C901
             stdout = stdout[:-1]
 
         return exit_code, stdout, stderr
+
+
+def containerise_executable(executable, **kwargs):
+    """
+    Wrap the containerisation command around the executable.
+
+    :param executable: command to be wrapper (string).
+    :param kwargs: kwargs dictionary.
+    :return: containerised executable (list).
+    """
+
+    job = kwargs.get('job')
+
+    user = environ.get('PILOT_USER', 'generic').lower()  # TODO: replace with singleton
+    container = __import__('pilot.user.%s.container' % user, globals(), locals(), [user], 0)  # Python 2/3
+    if container:
+        # should a container really be used?
+        do_use_container = job.usecontainer if job else container.do_use_container(**kwargs)
+        # overrule for event service
+        if job.is_eventservice and do_use_container:
+            logger.info('overruling container decision for event service grid job')
+            do_use_container = False
+
+        if do_use_container:
+            diagnostics = ""
+            try:
+                executable = container.wrapper(executable, **kwargs)
+            except Exception as e:
+                diagnostics = 'failed to execute wrapper function: %s' % e
+                logger.fatal(diagnostics)
+            else:
+                if executable == "":
+                    diagnostics = 'failed to prepare container command (error code should have been set)'
+                    logger.fatal(diagnostics)
+            if diagnostics != "":
+                return None, diagnostics
+        else:
+            logger.info('pilot user container module has decided to not use a container')
+    else:
+        logger.warning('container module could not be imported')
+
+    return executable, ""

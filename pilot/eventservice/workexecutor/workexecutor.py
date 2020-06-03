@@ -47,7 +47,9 @@ class WorkExecutor(PluginFactory):
     def get_plugin_confs(self):
         plugin_confs = {}
         if self.args and 'executor_type' in list(self.args.keys()):  # Python 2/3
-            if self.args['executor_type'] == 'generic':
+            if self.args['executor_type'] == 'raythena':
+                plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.raythenaexecutor.RaythenaExecutor'}
+            elif self.args['executor_type'] == 'generic':
                 plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.genericexecutor.GenericExecutor'}
             elif self.args['executor_type'] == 'base':
                 plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.baseexecutor.BaseExecutor'}
@@ -83,7 +85,7 @@ class WorkExecutor(PluginFactory):
 
         logger.info("Starting plugin: %s" % self.plugin)
         self.plugin.start()
-        logger.info("Waiting payload to start")
+        logger.info("Waiting for payload to start")
         while self.plugin.is_alive():
             if self.plugin.is_payload_started():
                 logger.info("Payload started with pid: %s" % self.get_pid())

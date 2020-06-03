@@ -595,10 +595,7 @@ def threads_aborted(abort_at=2):
             daemon_threads += 1
 
     if thread_count - daemon_threads == abort_at:
-        logger.debug('aborting since this thread is about to finish')
+        logger.debug('aborting since the last relevant thread is about to finish')
         aborted = True
-    else:
-        logger.debug('thread count at %d threads' % thread_count)
-        logger.debug('daemon thread count at %d threads' % daemon_threads)
 
     return aborted
