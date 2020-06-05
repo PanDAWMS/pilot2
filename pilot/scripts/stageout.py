@@ -27,7 +27,10 @@ NO_PRODUSERID = 8
 NO_JOBID = 9
 NO_TASKID = 10
 NO_JOBDEFINITIONID = 11
-TRANSFER_ERROR = 12
+NO_DDMENDPOINTS = 12
+NO_DATASETS = 13
+NO_GUIDS = 14
+TRANSFER_ERROR = 15
 
 
 def get_args():
@@ -65,6 +68,18 @@ def get_args():
                             dest='eventtype',
                             required=True,
                             help='Event type')
+    arg_parser.add_argument('--ddmendpoints',
+                            dest='ddmendpoints',
+                            required=True,
+                            help='DDM endpoint')
+    arg_parser.add_argument('--datasets',
+                            dest='datasets',
+                            required=True,
+                            help='Dataset')
+    arg_parser.add_argument('--guids',
+                            dest='guids',
+                            required=True,
+                            help='GUIDs')
     arg_parser.add_argument('--localsite',
                             dest='localsite',
                             required=True,
@@ -162,6 +177,18 @@ def verify_args():
         message('No jobid provided')
         return NO_JOBID
 
+    if not args.ddmendpoints:
+        message('No ddmendpoint provided')
+        return NO_DDMENDPOINTS
+
+    if not args.datasets:
+        message('No dataset provided')
+        return NO_DATASETS
+
+    if not args.guids:
+        message('No GUIDs provided')
+        return NO_GUIDS
+
     if not args.taskid:
         message('No taskid provided')
         return NO_TASKID
@@ -177,8 +204,8 @@ def message(msg):
     print(msg) if not logger else logger.info(msg)
 
 
-def get_file_lists(lfns, scopes):
-    return lfns.split(','), scopes.split(',')
+def get_file_lists(lfns, scopes, ddmendpoints, datasets, guids):
+    return lfns.split(','), scopes.split(','), ddmendpoints.split(','), datasets.split(','), guids.split(',')
 
 
 class Job():
@@ -248,13 +275,14 @@ if __name__ == '__main__':
     #    exit(ret)
 
     # get the file info
-    lfns, scopes = get_file_lists(args.lfns, args.scopes)
-    if len(lfns) != len(scopes):
-        message('file lists not same length: len(lfns)=%d, len(scopes)=%d' % (len(lfns), len(scopes)))
+    lfns, scopes, ddmendpoints, datasets, guids = get_file_lists(args.lfns, args.scopes, args.ddmendpoints, args.datasets, args.guids)
+    if len(lfns) != len(scopes) or len(lfns) != len(ddmendpoints) or len(lfns) != len(datasets) or len(lfns) != len(guids):
+        message('file lists not same length: len(lfns)=%d, len(scopes)=%d, len(ddmendpoints)=%d, len(datasets)=%d, len(guids)=%d' %
+                (len(lfns), len(scopes), len(ddmendpoints), len(datasets), len(guids)))
 
     # generate the trace report
-    trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''), localSite=args.localsite, remoteSite=args.remotesite, dataset="",
-                               eventType=args.eventtype)
+    trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''), localSite=args.localsite,
+                               remoteSite=args.remotesite, dataset="", eventType=args.eventtype)
     job = Job(produserid=args.produserid, jobid=args.jobid, taskid=args.taskid, jobdefinitionid=args.jobdefinitionid)
     trace_report.init(job)
 
@@ -275,13 +303,11 @@ if __name__ == '__main__':
     kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, job=job)  # , mode='stage-out')
     # prod analy unification: use destination preferences from PanDA server for unified queues
     if infoservice.queuedata.type != 'unified':
-        client.prepare_destinations(xfiles,
-                                    activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
+        client.prepare_destinations(xfiles, activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
 
-    # dataset, ddmendpoint
-    for lfn, scope in list(zip(lfns, scopes)):
+    for lfn, scope, dataset, ddmendpoint, guid in list(zip(lfns, scopes, datasets, ddmendpoints, guids)):
         try:
-            files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir}]
+            files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir, 'dataset': dataset, 'ddmendpoint': ddmendpoint}]
             xfiles = [FileSpec(type='output', **f) for f in files]
             r = client.transfer(xfiles, activity=activity, **kwargs)
         except PilotException as error:

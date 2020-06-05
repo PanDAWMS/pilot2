@@ -127,32 +127,36 @@ def update_indata(job):
         job.indata.remove(fspec)
 
 
-def get_trace_report_variables(job):
+def get_trace_report_variables(job, label='stage-in'):
     """
     Get some of the variables needed for creating the trace report.
 
     :param job: job object
+    :param label: 'stage-[in|out]' (string).
     :return: event_type (string), localsite (string), remotesite (string).
     """
 
-    event_type = "get_sm"
+    event_type = "get_sm" if label == 'stage-in' else "put_sm"
     if job.is_analysis():
         event_type += "_a"
-    localsite = remotesite = get_rse(job.indata)
+    data = job.indata if label == 'stage-in' else job.outdata
+    localsite = remotesite = get_rse(data)
 
     return event_type, localsite, remotesite
 
 
-def create_trace_report(job):
+def create_trace_report(job, label='stage-in'):
     """
     Create the trace report object.
 
     :param job: job object.
+    :param label: 'stage-[in|out]' (string).
     :return: trace report object.
     """
 
-    event_type, localsite, remotesite = get_trace_report_variables(job)
-    trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''), localSite=localsite, remoteSite=remotesite, dataset="", eventType=event_type)
+    event_type, localsite, remotesite = get_trace_report_variables(job, label=label)
+    trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''), localSite=localsite, remoteSite=remotesite,
+                               dataset="", eventType=event_type)
     trace_report.init(job)
 
     return trace_report
@@ -184,7 +188,7 @@ def _stage_in(args, job):
     if use_container:
         logger.info('stage-in will be done in a container')
         try:
-            eventtype, localsite, remotesite = get_trace_report_variables(job)
+            eventtype, localsite, remotesite = get_trace_report_variables(job, label='stage-in')
             pilot.util.middleware.containerise_middleware(job, args.queue, eventtype, localsite, remotesite, stagein=True)
         except PilotException as e:
             logger.warning('stage-in containerisation threw a pilot exception: %s' % e)
@@ -195,7 +199,7 @@ def _stage_in(args, job):
             logger.info('stage-in will not be done in a container')
 
             # create the trace report
-            trace_report = create_trace_report(job)
+            trace_report = create_trace_report(job, label='stage-in')
 
             if job.is_eventservicemerge:
                 client = StageInESClient(job.infosys, logger=log, trace_report=trace_report)

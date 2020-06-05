@@ -737,23 +737,24 @@ def singularity_wrapper(cmd, workdir, job=None):
     return cmd
 
 
-def create_stagein_container_command(workdir, cmd):
+def create_middleware_container_command(workdir, cmd, label='stagein'):
     """
-    Create the stage-in container command.
+    Create the stage-in/out container command.
 
-    The function takes the isolated stage-in command, adds bits and pieces needed for the containerisation and stores
-    it in a stagein.sh script file. It then generates the actual command that will execute the stage-in script in a
+    The function takes the isolated stage-in/out command, adds bits and pieces needed for the containerisation and stores
+    it in a stage[in|out].sh script file. It then generates the actual command that will execute the stage-in/out script in a
     container.
 
     new cmd:
       lsetup rucio davis xrootd
       old cmd
       exit $?
-    write new cmd to stagein.sh script
+    write new cmd to stage[in|out].sh script
     create container command and return it
 
     :param workdir: working directory where script will be stored (string).
-    :param cmd: isolated stage-in command (string).
+    :param cmd: isolated stage-in/out command (string).
+    :param label: 'stage-[in|out]' (string).
     :return: container command to be executed (string).
     """
 
@@ -764,7 +765,7 @@ def create_stagein_container_command(workdir, cmd):
     logger.debug('setup.sh content:\n%s' % content)
 
     # store it in setup.sh
-    script_name = 'stagein.sh'
+    script_name = 'stagein.sh' if label == 'stage-in' else 'stageout.sh'
     try:
         status = write_file(os.path.join(workdir, script_name), content)
     except PilotException as e:
