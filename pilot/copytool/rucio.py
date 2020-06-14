@@ -332,7 +332,7 @@ def copy_out(files, **kwargs):  # noqa: C901
         error_msg = ""
         ec = 0
         try:
-            ec, trace_report_out = timeout(ctimeout, timer=TimedThread)(_stage_out_api)(fspec, summary_file_path, trace_report, trace_report_out, transfer_timeout)
+            ec, trace_report_out = timeout(ctimeout, TimedThread)(_stage_out_api)(fspec, summary_file_path, trace_report, trace_report_out, transfer_timeout)
             #_stage_out_api(fspec, summary_file_path, trace_report, trace_report_out)
         except PilotException as error:
             error_msg = str(error)
