@@ -96,9 +96,9 @@ class TimedThread(object):
             return ret[1]
         else:
             try:
-                _r = ret[1][0](ret[1][1]).with_traceback(ret[1][2])
+                _r = ret[1][0](ret[1][1]).with_traceback(ret[1][2])  # python3
             except Exception:
-                _r = ret[1][0], ret[1][1], ret[1][2]
+                exec("raise ret[1][0], ret[1][1], ret[1][2]")   # python3 compatible code for pyhon2 execution
             raise _r
 
 
