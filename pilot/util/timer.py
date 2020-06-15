@@ -96,9 +96,9 @@ class TimedThread(object):
             return ret[1]
         else:
             try:
-                _r = ret[1][0](ret[1][1]).with_traceback(ret[1][2])
-            except Exception:
-                _r = ret[1][0], ret[1][1], ret[1][2]
+                _r = ret[1][0](ret[1][1]).with_traceback(ret[1][2])  # python3
+            except AttributeError:
+                exec("raise ret[1][0], ret[1][1], ret[1][2]")   # python3 compatible code for python2 execution
             raise _r
 
 
@@ -166,17 +166,20 @@ else:  ## Windows
     Timer = TimedThread
 
 
-def timeout(seconds):
+def timeout(seconds, timer=None):
     """
     Decorator for a function which causes it to timeout (stop execution) once passed given number of seconds.
+    :param timer: timer class (by default is Timer)
     :raise: TimeoutException in case of timeout interrupt
     """
+
+    timer = timer or Timer
 
     def decorate(function):
 
         @wraps(function)
         def wrapper(*args, **kwargs):
-            return Timer(seconds).run(function, args, kwargs)
+            return timer(seconds).run(function, args, kwargs)
 
         return wrapper
 
