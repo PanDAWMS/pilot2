@@ -97,8 +97,8 @@ class TimedThread(object):
         else:
             try:
                 _r = ret[1][0](ret[1][1]).with_traceback(ret[1][2])  # python3
-            except Exception:
-                exec("raise ret[1][0], ret[1][1], ret[1][2]")   # python3 compatible code for pyhon2 execution
+            except AttributeError:
+                exec("raise ret[1][0], ret[1][1], ret[1][2]")   # python3 compatible code for python2 execution
             raise _r
 
 
