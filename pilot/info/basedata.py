@@ -22,6 +22,7 @@ The main reasons for such incapsulation are to
 :date: January 2018
 """
 
+import ast
 import copy
 import logging
 logger = logging.getLogger(__name__)
@@ -196,6 +197,9 @@ class BaseData(object):
             :param ktype: variable type to which result should be casted
             :param defval: default value to be used in case of cast error
         """
+
+        if isinstance(raw, str):
+            raw = ast.literal_eval(raw)
 
         if isinstance(raw, ktype):
             return raw
