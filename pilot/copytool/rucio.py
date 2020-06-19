@@ -565,10 +565,14 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, tra
     # upload client raises an exception if any file failed
     try:
         logger.info('*** rucio API uploading file (taking over logging) ***')
+        logger.debug('summary_file_path=%s' % summary_file_path)
+        logger.debug('trace_report_out=%s' % trace_report_out)
         result = upload_client.upload([f], summary_file_path=summary_file_path, traces_copy_out=trace_report_out)
     except Exception as e:
         logger.warning('*** rucio API upload client failed ***')
         logger.warning('caught exception: %s' % e)
+        import traceback
+        logger.error(traceback.format_exc())
         logger.debug('trace_report_out=%s' % trace_report_out)
         if not trace_report_out:
             raise e
