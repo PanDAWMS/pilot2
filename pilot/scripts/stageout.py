@@ -320,9 +320,6 @@ if __name__ == '__main__':
             errcode = -1
             message(err)
 
-
-
-
     # put file statuses in a dictionary to be written to file
     file_dictionary = {}  # { 'error': [error_diag, -1], 'lfn1': [status, status_code], 'lfn2':.., .. }
     if xfiles:
