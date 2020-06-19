@@ -21,7 +21,7 @@ from copy import deepcopy
 
 from .common import resolve_common_transfer_errors, verify_catalog_checksum, get_timeout
 from pilot.common.exception import PilotException, StageOutFailure, ErrorCodes
-from pilot.util.timer import timeout
+from pilot.util.timer import timeout, TimedThread
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -94,7 +94,7 @@ def copy_in(files, **kwargs):
         error_msg = ""
         ec = 0
         try:
-            ec, trace_report_out = timeout(ctimeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out, transfer_timeout, use_pcache)
+            ec, trace_report_out = timeout(ctimeout, timer=TimedThread)(_stage_in_api)(dst, fspec, trace_report, trace_report_out, transfer_timeout, use_pcache)
             #_stage_in_api(dst, fspec, trace_report, trace_report_out)
         except Exception as error:
             error_msg = str(error)
@@ -332,7 +332,7 @@ def copy_out(files, **kwargs):  # noqa: C901
         error_msg = ""
         ec = 0
         try:
-            ec, trace_report_out = timeout(ctimeout)(_stage_out_api)(fspec, summary_file_path, trace_report, trace_report_out, transfer_timeout)
+            ec, trace_report_out = timeout(ctimeout, TimedThread)(_stage_out_api)(fspec, summary_file_path, trace_report, trace_report_out, transfer_timeout)
             #_stage_out_api(fspec, summary_file_path, trace_report, trace_report_out)
         except PilotException as error:
             error_msg = str(error)
@@ -565,10 +565,14 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, tra
     # upload client raises an exception if any file failed
     try:
         logger.info('*** rucio API uploading file (taking over logging) ***')
+        logger.debug('summary_file_path=%s' % summary_file_path)
+        logger.debug('trace_report_out=%s' % trace_report_out)
         result = upload_client.upload([f], summary_file_path=summary_file_path, traces_copy_out=trace_report_out)
     except Exception as e:
         logger.warning('*** rucio API upload client failed ***')
         logger.warning('caught exception: %s' % e)
+        import traceback
+        logger.error(traceback.format_exc())
         logger.debug('trace_report_out=%s' % trace_report_out)
         if not trace_report_out:
             raise e
