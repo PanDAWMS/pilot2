@@ -439,6 +439,11 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         # add atlasLocalSetup command + options (overwrite the old cmd since the new cmd is the containerised version)
         cmd = add_asetup(job, alrb_setup, queuedata.is_cvmfs, release_setup, container_script, queuedata.container_options, new_mode)
+
+        # add any container options if set
+        execargs = job.containeroptions.get('execArgs', None)
+        if execargs:
+            cmd += ' ' + execargs
         log.debug('\n\nfinal command:\n\n%s\n' % cmd)
     else:
         log.warning('container name not defined in AGIS')
