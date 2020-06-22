@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def containerise_middleware(job, queue, eventtype, localsite, remotesite, stagein=True):
+def containerise_middleware(job, queue, eventtype, localsite, remotesite, label='stage-in'):
     """
     Containerise the middleware by performing stage-in/out steps in a script that in turn can be run in a container.
 
@@ -30,7 +30,7 @@ def containerise_middleware(job, queue, eventtype, localsite, remotesite, stagei
     :param eventtype:
     :param localsite:
     :param remotesite:
-    :param stagein: optional Boolean.
+    :param label: 'stage-in/out' (String).
     :return:
     :raises NotImplemented: if stagein=False, until stage-out script has been written
     :raises StageInFailure: for stage-in failures
@@ -42,7 +42,6 @@ def containerise_middleware(job, queue, eventtype, localsite, remotesite, stagei
     # get the name of the stage-in isolation script
     script = config.Container.middleware_container_stagein_script
 
-    label = 'stage-in' if stagein else 'stage-out'
     try:
         cmd = get_command(job, queue, script, eventtype, localsite, remotesite, label=label)
     except PilotException as e:
@@ -77,14 +76,14 @@ def containerise_middleware(job, queue, eventtype, localsite, remotesite, stagei
             write_file(path.join(job.workdir, _stderr_name), stderr, mute=False)
         except PilotException as e:
             msg = 'exception caught: %s' % e
-            if stagein:
+            if label == 'stage-in':
                 raise StageInFailure(msg)
             else:
                 raise StageOutFailure(msg)
 
     # handle errors and file statuses (the stage-in script writes errors and file status to a json file)
     try:
-        handle_containerised_errors(job)
+        handle_containerised_errors(job, label=label)
     except PilotException as e:
         raise e
 
@@ -161,45 +160,49 @@ def get_command(job, queue, script, eventtype, localsite, remotesite, label='sta
     return cmd
 
 
-def handle_containerised_errors(job, stagein=True):
+def handle_containerised_errors(job, label='stage-in'):
     """
 
     :param job: job object.
-    :param stagein: Boolean.
+    :param label: 'stage-in/out' (string).
     :return:
     :raises: StageInFailure, StageOutFailure
     """
 
+    dictionary = config.Container.stagein_dictionary if label == 'stage-in' else config.Container.stageout_dictionary
+    data = job.indata if label == 'stage-in' else job.outdata
+
     # read the JSON file created by the stage-in/out script
     _path = path.join(job.workdir)
-    file_dictionary = read_json(path.join(_path, config.Container.stagein_dictionary))
+    file_dictionary = read_json(path.join(_path, dictionary))
     if not file_dictionary:
         _path = path.join(_path, '..')
-        file_dictionary = read_json(path.join(_path, config.Container.stagein_dictionary))
+        file_dictionary = read_json(path.join(_path, dictionary))
 
     # update the job object accordingly
     if file_dictionary:
         # get file info
-        for fspec in job.indata:
+        for fspec in data:
             try:
                 fspec.status = file_dictionary[fspec.lfn][0]
                 fspec.status_code = file_dictionary[fspec.lfn][1]
             except Exception as e:
                 msg = "exception caught while reading file dictionary: %s" % e
                 logger.warning(msg)
-                if stagein:
+                if label == 'stage-in':
                     raise StageInFailure(msg)
                 else:
                     raise StageOutFailure(msg)
+
         # get main error info ('error': [error_diag, error_code])
         error_diag = file_dictionary['error'][0]
         error_code = file_dictionary['error'][1]
         if error_code:
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error_code, msg=error_diag)
     else:
-        msg = "stage-in file dictionary not found"
+        msg = "%s file dictionary not found" % label
         logger.warning(msg)
-        if stagein:
+        if label == 'stage-in':
             raise StageInFailure(msg)
         else:
             raise StageOutFailure(msg)

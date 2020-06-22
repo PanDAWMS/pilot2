@@ -183,13 +183,15 @@ def _stage_in(args, job):
     # now that the trace report has been created, remove any files that are not to be transferred (DBRelease files) from the indata list
     update_indata(job)
 
+    label = 'stage-in'
+
     # should stage-in be done by a script (for containerisation) or by invoking the API (ie classic mode)?
     use_container = pilot.util.middleware.use_middleware_container(job.infosys.queuedata.container_type.get("middleware"))
     if use_container:
         logger.info('stage-in will be done in a container')
         try:
-            eventtype, localsite, remotesite = get_trace_report_variables(job, label='stage-in')
-            pilot.util.middleware.containerise_middleware(job, args.queue, eventtype, localsite, remotesite, stagein=True)
+            eventtype, localsite, remotesite = get_trace_report_variables(job, label=label)
+            pilot.util.middleware.containerise_middleware(job, args.queue, eventtype, localsite, remotesite, label=label)
         except PilotException as e:
             logger.warning('stage-in containerisation threw a pilot exception: %s' % e)
         except Exception as e:
@@ -199,7 +201,7 @@ def _stage_in(args, job):
             logger.info('stage-in will not be done in a container')
 
             # create the trace report
-            trace_report = create_trace_report(job, label='stage-in')
+            trace_report = create_trace_report(job, label=label)
 
             if job.is_eventservicemerge:
                 client = StageInESClient(job.infosys, logger=log, trace_report=trace_report)
@@ -738,7 +740,7 @@ def create_log(job, logfile, tarball_name, args):
     #        'bytes': os.stat(fullpath).st_size}
 
 
-def _do_stageout(job, xdata, activity, title):
+def _do_stageout(job, xdata, activity, queue, title):
     """
     Use the `StageOutClient` in the Data API to perform stage-out.
 
@@ -746,44 +748,51 @@ def _do_stageout(job, xdata, activity, title):
     :param xdata: list of FileSpec objects.
     :param activity: copytool activity or preferred list of activities to resolve copytools
     :param title: type of stage-out (output, log) (string).
+    :param queue: PanDA queue (string).
     :return: True in case of success transfers
     """
 
     log = get_logger(job.jobid)
     log.info('prepare to stage-out %d %s file(s)' % (len(xdata), title))
+    label = 'stage-out'
 
-    event_type = "put_sm"
-    #if log_transfer:
-    #    eventType += '_logs'
-    #if special_log_transfer:
-    #    eventType += '_logs_os'
-    if job.is_analysis():
-        event_type += "_a"
-    rse = get_rse(xdata)
-    localsite = remotesite = rse
-    trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''), localSite=localsite, remoteSite=remotesite, dataset="", eventType=event_type)
-    trace_report.init(job)
-
-    try:
-        client = StageOutClient(job.infosys, logger=log, trace_report=trace_report)
-        kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)  #, mode='stage-out')
-        # prod analy unification: use destination preferences from PanDA server for unified queues
-        if job.infosys.queuedata.type != 'unified':
-            client.prepare_destinations(xdata, activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
-        client.transfer(xdata, activity, **kwargs)
-    except PilotException as error:
-        import traceback
-        error_msg = traceback.format_exc()
-        log.error(error_msg)
-        msg = errors.format_diagnostics(error.get_error_code(), error_msg)
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=msg)
-    except Exception:
-        import traceback
-        log.error(traceback.format_exc())
-        # do not raise the exception since that will prevent also the log from being staged out
-        # error = PilotException("stageOut failed with error=%s" % e, code=ErrorCodes.STAGEOUTFAILED)
+    # should stage-in be done by a script (for containerisation) or by invoking the API (ie classic mode)?
+    use_container = pilot.util.middleware.use_middleware_container(job.infosys.queuedata.container_type.get("middleware"))
+    if use_container:
+        logger.info('stage-out will be done in a container')
+        try:
+            eventtype, localsite, remotesite = get_trace_report_variables(job, label=label)
+            pilot.util.middleware.containerise_middleware(job, queue, eventtype, localsite, remotesite, label=label)
+        except PilotException as e:
+            logger.warning('stage-out containerisation threw a pilot exception: %s' % e)
+        except Exception as e:
+            logger.warning('stage-out containerisation threw an exception: %s' % e)
     else:
-        log.debug('stage-out client completed')
+        try:
+            logger.info('stage-out will not be done in a container')
+
+            # create the trace report
+            trace_report = create_trace_report(job, label=label)
+
+            client = StageOutClient(job.infosys, logger=log, trace_report=trace_report)
+            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)  #, mode='stage-out')
+            # prod analy unification: use destination preferences from PanDA server for unified queues
+            if job.infosys.queuedata.type != 'unified':
+                client.prepare_destinations(xdata, activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
+            client.transfer(xdata, activity, **kwargs)
+        except PilotException as error:
+            import traceback
+            error_msg = traceback.format_exc()
+            log.error(error_msg)
+            msg = errors.format_diagnostics(error.get_error_code(), error_msg)
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=msg)
+        except Exception:
+            import traceback
+            log.error(traceback.format_exc())
+            # do not raise the exception since that will prevent also the log from being staged out
+            # error = PilotException("stageOut failed with error=%s" % e, code=ErrorCodes.STAGEOUTFAILED)
+        else:
+            log.debug('stage-out client completed')
 
     log.info('summary of transferred files:')
     for e in xdata:
@@ -826,7 +835,7 @@ def _stage_out_new(job, args):
         job.stageout = 'log'
 
     if job.stageout != 'log':  ## do stage-out output files
-        if not _do_stageout(job, job.outdata, ['pw', 'w'], title='output'):
+        if not _do_stageout(job, job.outdata, ['pw', 'w'], args.queue, title='output'):
             is_success = False
             log.warning('transfer of output file(s) failed')
 
@@ -848,7 +857,7 @@ def _stage_out_new(job, args):
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.LOGFILECREATIONFAILURE)
             return False
 
-        if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], title='log'):
+        if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], args.queue, title='log'):
             is_success = False
             log.warning('log transfer failed')
             job.status['LOG_TRANSFER'] = LOG_TRANSFER_FAILED
