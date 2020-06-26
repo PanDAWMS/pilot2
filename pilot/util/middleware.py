@@ -38,9 +38,11 @@ def containerise_middleware(job, queue, eventtype, localsite, remotesite, label=
     """
 
     cwd = getcwd()
+    logger.debug('cwd=%s' % cwd)
+    logger.debug('PYTHONPATH=%s' % environ.get('PYTHONPATH'))
 
-    # get the name of the stage-in isolation script
-    script = config.Container.middleware_container_stagein_script
+    # get the name of the stage-in/out isolation script
+    script = config.Container.middleware_container_stagein_script if label == 'stage-in' else config.Container.middleware_container_stageout_script
 
     try:
         cmd = get_command(job, queue, script, eventtype, localsite, remotesite, label=label)
@@ -55,6 +57,8 @@ def containerise_middleware(job, queue, eventtype, localsite, remotesite, label=
             cmd = user.create_middleware_container_command(job.workdir, cmd, label=label)
         except PilotException as e:
             raise e
+    else:
+        logger.warning('bad configuration? check config.Container.use_middleware_container value')
 
     try:
         logger.info('*** executing %s (logging will be redirected) ***' % label)
@@ -88,6 +92,27 @@ def containerise_middleware(job, queue, eventtype, localsite, remotesite, label=
         raise e
 
 
+def get_script_path(script):
+    """
+
+    :param script:
+    :return:
+    """
+
+    srcdir = environ.get('PILOT_SOURCE_DIR', '.')
+    logger.debug('PILOT_SOURCE_DIR=%s' % srcdir)
+
+    _path = path.join(srcdir, 'pilot/scripts')
+    if not path.exists(_path):
+        _path = path.join(srcdir, 'pilot2')
+        _path = path.join(_path, 'pilot/scripts')
+    _path = path.join(_path, script)
+    if not path.exists(_path):
+        _path = ''
+
+    return _path
+
+
 def get_command(job, queue, script, eventtype, localsite, remotesite, label='stage-in'):
     """
 
@@ -105,10 +130,28 @@ def get_command(job, queue, script, eventtype, localsite, remotesite, label='sta
 
     data = job.indata if label == 'stage-in' else job.outdata
     lfns, scopes = get_filedata_strings(data)
-    srcdir = environ.get('PILOT_SOURCE_DIR', '.')
+    srcdir = path.join(environ.get('PILOT_SOURCE_DIR', '.'), 'pilot2')
+    if not path.exists(srcdir):
+        logger.debug('pilot source directory not correct: %s' % srcdir)
+        if label == 'stage-in':
+            raise StageInFailure(msg)
+        else:
+            raise StageOutFailure(msg)
+    else:
+        logger.debug('using pilot source directory: %s' % srcdir)
+
+    #_path = get_script_path(script)
+    #if not path.exists(_path):
+    #    msg = 'no such path: %s' % _path
+    #    logger.warning(msg)
+    #    if label == 'stage-in':
+    #        raise StageInFailure(msg)
+    #    else:
+    #        raise StageOutFailure(msg)
 
     try:
-        copy(path.join(path.join(srcdir, 'pilot/scripts'), script), job.workdir)
+        pass
+        #copy(_path, job.workdir)
     except PilotException as e:
         msg = 'exception caught: %s' % e
         logger.warning(msg)
@@ -118,20 +161,26 @@ def get_command(job, queue, script, eventtype, localsite, remotesite, label='sta
             raise StageOutFailure(msg)
     else:
         final_script_path = path.join(job.workdir, script)
-        try:
-            # make the script executable
-            chmod(final_script_path, 0o755)  # Python 2/3
-        except Exception as e:
-            msg = 'exception caught: %s' % e
-            logger.warning(msg)
-            if label == 'stage-in':
-                raise StageInFailure(msg)
-            else:
-                raise StageOutFailure(msg)
+        #try:
+        #    # make the script executable
+        #    chmod(final_script_path, 0o755)  # Python 2/3
+        #except Exception as e:
+        #    msg = 'exception caught: %s' % e
+        #    logger.warning(msg)
+        #    if label == 'stage-in':
+        #        raise StageInFailure(msg)
+        #    else:
+        #        raise StageOutFailure(msg)
 
-        # copy pilot source for now - investigate why there is a config read error when source is set to cvmfs pilot dir
+        # copy pilot source into container directory, unless it is already there
         try:
-            copytree(srcdir, path.join(job.workdir, 'pilot2'))
+            dest = path.join(job.workdir, 'pilot2')
+            logger.debug('copy %s to %s' % (srcdir, dest))
+            copytree(srcdir, dest)
+            script_path = path.join('pilot2/pilot/scripts', script)
+            full_script_path = path.join(path.join(job.workdir, script_path))
+            logger.debug('full_script_path=%s' % full_script_path)
+            chmod(full_script_path, 0o755)  # Python 2/3
         except Exception as e:
             msg = 'exception caught when copying pilot2 source: %s' % e
             logger.warning(msg)
@@ -142,7 +191,7 @@ def get_command(job, queue, script, eventtype, localsite, remotesite, label='sta
 
         if config.Container.use_middleware_container:
             # correct the path when containers have been used
-            final_script_path = path.join('.', script)
+            final_script_path = path.join('.', script_path)  #script)
             workdir = '/srv'
         else:
             workdir = job.workdir
