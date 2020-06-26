@@ -129,10 +129,11 @@ def get_command(job, queue, script, eventtype, localsite, remotesite, label='sta
     """
 
     data = job.indata if label == 'stage-in' else job.outdata
-    lfns, scopes = get_filedata_strings(data)
+    filedata_dictionary = get_filedata_strings(data)
     srcdir = path.join(environ.get('PILOT_SOURCE_DIR', '.'), 'pilot2')
     if not path.exists(srcdir):
-        logger.debug('pilot source directory not correct: %s' % srcdir)
+        msg = 'pilot source directory not correct: %s' % srcdir
+        logger.debug(msg)
         if label == 'stage-in':
             raise StageInFailure(msg)
         else:
@@ -175,8 +176,9 @@ def get_command(job, queue, script, eventtype, localsite, remotesite, label='sta
         # copy pilot source into container directory, unless it is already there
         try:
             dest = path.join(job.workdir, 'pilot2')
-            logger.debug('copy %s to %s' % (srcdir, dest))
-            copytree(srcdir, dest)
+            if not path.exists(dest):
+                logger.debug('copy %s to %s' % (srcdir, dest))
+                copytree(srcdir, dest)
             script_path = path.join('pilot2/pilot/scripts', script)
             full_script_path = path.join(path.join(job.workdir, script_path))
             logger.debug('full_script_path=%s' % full_script_path)
@@ -200,11 +202,16 @@ def get_command(job, queue, script, eventtype, localsite, remotesite, label='sta
             cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
                   '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
                   '--eventservicemerge=%s --usepcache=%s' % \
-                  (final_script_path, lfns, scopes, workdir, queue, eventtype, localsite,
+                  (final_script_path, filedata_dictionary['lfns'], filedata_dictionary['scopes'], workdir, queue, eventtype, localsite,
                    remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
                    job.is_eventservicemerge, job.infosys.queuedata.use_pcache)
-        else:
-            raise NotImplemented("stage-out script not implemented yet")
+        else:  # stage-out
+            cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
+                  '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
+                  '--datasets=%s --ddmendpoints=%s --guids=%s' % \
+                  (final_script_path, filedata_dictionary['lfns'], filedata_dictionary['scopes'], workdir, queue, eventtype, localsite,
+                   remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
+                   filedata_dictionary['datasets'], filedata_dictionary['ddmendpoints'], filedata_dictionary['guids'])
 
     return cmd
 
@@ -222,11 +229,9 @@ def handle_containerised_errors(job, label='stage-in'):
     data = job.indata if label == 'stage-in' else job.outdata
 
     # read the JSON file created by the stage-in/out script
-    _path = path.join(job.workdir)
-    file_dictionary = read_json(path.join(_path, dictionary))
-    if not file_dictionary:
-        _path = path.join(_path, '..')
-        file_dictionary = read_json(path.join(_path, dictionary))
+    if path.exists(path.join(job.workdir, dictionary + '.log')):
+        dictionary += '.log'
+    file_dictionary = read_json(path.join(job.workdir, dictionary))
 
     # update the job object accordingly
     if file_dictionary:
@@ -281,19 +286,25 @@ def get_logfile_names(label):
 
 def get_filedata_strings(data):
     """
-    Return a comma-separated list of LFNs and scopes.
+    Return a dictionary with comma-separated list of LFNs, guids, scopes, datasets and ddmendpoints.
 
-    :param data: job [in|out]data (list of FileSpec).
-    :return: lfns (string), scopes (string).
+    :param data: job [in|out]data (list of FileSpec objects).
+    :return: {'lfns': lfns, ..} (dictionary).
     """
 
     lfns = ""
+    guids = ""
     scopes = ""
+    datasets = ""
+    ddmendpoints = ""
     for fspec in data:
         lfns = fspec.lfn if lfns == "" else lfns + ",%s" % fspec.lfn
+        guids = fspec.guid if lfns == "" else guids + ",%s" % fspec.guid
         scopes = fspec.scope if scopes == "" else scopes + ",%s" % fspec.scope
+        datasets = fspec.dataset if datasets == "" else datasets + ",%s" % fspec.dataset
+        ddmendpoints = fspec.ddmendpoint if ddmendpoints == "" else ddmendpoints + ",%s" % fspec.ddmendpoint
 
-    return lfns, scopes
+    return {'lfns': lfns, 'guids': guids, 'scopes': scopes, 'datasets': datasets, 'ddmendpoints': ddmendpoints}
 
 
 def use_middleware_container(container_type):

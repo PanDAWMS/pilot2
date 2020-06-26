@@ -267,7 +267,7 @@ if __name__ == '__main__':
     args.debug = True
     args.nopilotlog = False
 
-    establish_logging(args, filename=config.Pilot.stageinlog)
+    establish_logging(args, filename=config.Pilot.stageoutlog)
     logger = logging.getLogger(__name__)
 
     #ret = verify_args()
@@ -323,7 +323,7 @@ if __name__ == '__main__':
     # put file statuses in a dictionary to be written to file
     file_dictionary = {}  # { 'error': [error_diag, -1], 'lfn1': [status, status_code], 'lfn2':.., .. }
     if xfiles:
-        message('stagein script summary of transferred files:')
+        message('stageout script summary of transferred files:')
         for fspec in xfiles:
             add_to_dictionary(file_dictionary, fspec.lfn, fspec.status, fspec.status_code)
             status = fspec.status if fspec.status else "(not transferred)"
@@ -333,8 +333,10 @@ if __name__ == '__main__':
     if err:
         errcode, err = extract_error_info(err)
     add_to_dictionary(file_dictionary, 'error', err, errcode)
-    path = os.path.join(args.workdir, config.Container.stagein_dictionary)
-    _status = write_json(path, file_dictionary)
+    path = os.path.join(args.workdir, config.Container.stageout_dictionary)
+    if os.path.exists(path):
+        file_dictionary += '.log'
+    _status = write_json(os.path.dirname(path), file_dictionary)
     if err:
         message("containerised file transfers failed: %s" % err)
         exit(TRANSFER_ERROR)
