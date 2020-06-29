@@ -301,14 +301,17 @@ if __name__ == '__main__':
 
     client = StageOutClient(infoservice, logger=logger, trace_report=trace_report)
     kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, job=job)  # , mode='stage-out')
-    # prod analy unification: use destination preferences from PanDA server for unified queues
-    if infoservice.queuedata.type != 'unified':
-        client.prepare_destinations(xfiles, activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
 
     for lfn, scope, dataset, ddmendpoint, guid in list(zip(lfns, scopes, datasets, ddmendpoints, guids)):
         try:
-            files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir, 'dataset': dataset, 'ddmendpoint': ddmendpoint}]
+            files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir, 'dataset': dataset, 'ddmendpoint': ddmendpoint, 'ddmendpoint_alt': None}]
             xfiles = [FileSpec(type='output', **f) for f in files]
+
+            # prod analy unification: use destination preferences from PanDA server for unified queues
+            if infoservice.queuedata.type != 'unified':
+                client.prepare_destinations(xfiles,
+                                            activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
+
             r = client.transfer(xfiles, activity=activity, **kwargs)
         except PilotException as error:
             import traceback
