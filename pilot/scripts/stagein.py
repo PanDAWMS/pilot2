@@ -198,11 +198,12 @@ class Job():
 def add_to_dictionary(dictionary, key, value1, value2):
     """
     Add key: [value1, value2] to dictionary.
+    In practice; lfn: [status, status_code].
 
     :param dictionary: dictionary to be updated.
-    :param key: key to be added (string).
-    :param value1: value1 to be added to list belonging to key.
-    :param value1: value2 to be added to list belonging to key.
+    :param key: lfn key to be added (string).
+    :param value1: status to be added to list belonging to key (string).
+    :param value2: status_code to be added to list belonging to key (string).
     :return: updated dictionary.
     """
 

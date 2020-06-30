@@ -225,18 +225,22 @@ class Job():
         self.jobdefinitionid = jobdefinitionid
 
 
-def add_to_dictionary(dictionary, key, value1, value2):
+def add_to_dictionary(dictionary, key, value1, value2, value3, value4, value5):
     """
-    Add key: [value1, value2] to dictionary.
+    Add key: [value1, value2, value3, value4, value5] to dictionary.
+    In practice; lfn: [status, status_code, surl, turl, checksum].
 
     :param dictionary: dictionary to be updated.
-    :param key: key to be added (string).
-    :param value1: value1 to be added to list belonging to key.
-    :param value1: value2 to be added to list belonging to key.
+    :param key: lfn key to be added (string).
+    :param value1: status to be added to list belonging to key (string).
+    :param value2: status_code to be added to list belonging to key (string).
+    :param value3: surl to be added to list belonging to key (string).
+    :param value4: turl to be added to list belonging to key (string).
+    :param value5: checksum to be added to list belonging to key (string).
     :return: updated dictionary.
     """
 
-    dictionary[key] = [value1, value2]
+    dictionary[key] = [value1, value2, value3, value4, value5]
     return dictionary
 
 
@@ -328,14 +332,15 @@ if __name__ == '__main__':
     if xfiles:
         message('stageout script summary of transferred files:')
         for fspec in xfiles:
-            add_to_dictionary(file_dictionary, fspec.lfn, fspec.status, fspec.status_code)
+            add_to_dictionary(file_dictionary, fspec.lfn, fspec.status, fspec.status_code, fspec.surl, fspec.turl, fspec.checksum.get('adler32'))
             status = fspec.status if fspec.status else "(not transferred)"
-            message(" -- lfn=%s, status_code=%s, status=%s" % (fspec.lfn, fspec.status_code, status))
+            message(" -- lfn=%s, status_code=%s, status=%s, surl=%s, turl=%s, checksum=%s" %
+                    (fspec.lfn, fspec.status_code, status, fspec.surl, fspec.turl, fspec.checksum.get('adler32')))
 
     # add error info, if any
     if err:
         errcode, err = extract_error_info(err)
-    add_to_dictionary(file_dictionary, 'error', err, errcode)
+    add_to_dictionary(file_dictionary, 'error', err, errcode, None, None, None)
     path = os.path.join(args.workdir, config.Container.stageout_dictionary)
     if os.path.exists(path):
         file_dictionary += '.log'

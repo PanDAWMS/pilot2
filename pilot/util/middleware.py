@@ -78,6 +78,8 @@ def containerise_middleware(job, queue, eventtype, localsite, remotesite, label=
             _stdout_name, _stderr_name = get_logfile_names(label)
             write_file(path.join(job.workdir, _stdout_name), stdout, mute=False)
             write_file(path.join(job.workdir, _stderr_name), stderr, mute=False)
+            logger.debug('stage-out stdout=\n%s' % stdout)
+            logger.debug('stage-out stderr=\n%s' % stderr)
         except PilotException as e:
             msg = 'exception caught: %s' % e
             if label == 'stage-in':
@@ -85,7 +87,7 @@ def containerise_middleware(job, queue, eventtype, localsite, remotesite, label=
             else:
                 raise StageOutFailure(msg)
 
-    # handle errors and file statuses (the stage-in script writes errors and file status to a json file)
+    # handle errors and file statuses (the stage-in/out scripts write errors and file status to a json file)
     try:
         handle_containerised_errors(job, label=label)
     except PilotException as e:
@@ -235,11 +237,15 @@ def handle_containerised_errors(job, label='stage-in'):
 
     # update the job object accordingly
     if file_dictionary:
-        # get file info
+        # get file info and set essential parameters
         for fspec in data:
             try:
                 fspec.status = file_dictionary[fspec.lfn][0]
                 fspec.status_code = file_dictionary[fspec.lfn][1]
+                if label == 'stage-out':
+                    fspec.surl = file_dictionary[fspec.lfn][2]
+                    fspec.turl = file_dictionary[fspec.lfn][3]
+                    fspec.checksum[fspec.lfn] = file_dictionary[fspec.lfn][4]
             except Exception as e:
                 msg = "exception caught while reading file dictionary: %s" % e
                 logger.warning(msg)
