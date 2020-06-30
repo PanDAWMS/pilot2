@@ -1270,7 +1270,7 @@ def get_redundants():
 
     # try to read the list from the external file
     filename = get_redundant_path()
-    if os.path.exists(filename):
+    if os.path.exists(filename) and False:  # do not use the cvmfs file since it is not being updated
         dir_list = read_list(filename)
         if dir_list:
             return dir_list
@@ -1329,11 +1329,11 @@ def get_redundants():
                 "pandawnutil/*",
                 "src/*",
                 "singularity_cachedir",
-                "singularity/*",  # new
                 "_joproxy15",
                 "HAHM_*",
                 "Process",
                 "merged_lhef._0.events-new",
+                "singularity/*",  # new
                 "/cores",  # new
                 "/work",  # new
                 "/pilot2"]  # new
