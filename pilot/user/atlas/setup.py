@@ -384,7 +384,7 @@ def get_payload_environment_variables(cmd, job_id, task_id, attempt_nr, processi
     variables.append('export PANDA_RESOURCE=\'%s\';' % site_name)
     variables.append('export FRONTIER_ID=\"[%s_%s]\";' % (task_id, job_id))
     variables.append('export CMSSW_VERSION=$FRONTIER_ID;')
-    variables.append('export PANDAID=%s;' % os.environ.get('PANDAID', 'unknown'))
+    variables.append('export PandaID=%s;' % os.environ.get('PANDAID', 'unknown'))
     variables.append('export PanDA_TaskID=\'%s\';' % os.environ.get('PanDA_TaskID', 'unknown'))
     variables.append('export PanDA_AttemptNr=\'%d\';' % attempt_nr)
     variables.append('export INDS=\'%s\';' % os.environ.get('INDS', 'unknown'))

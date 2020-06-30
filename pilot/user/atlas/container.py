@@ -401,8 +401,8 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         # add the jobid to be used as an identifier for the payload running inside the container
         # it is used to identify the pid for the process to be tracked by the memory monitor
-        if 'export PANDAID' not in alrb_setup:
-            alrb_setup += "export PANDAID=%s;" % job.jobid
+        if 'export PandaID' not in alrb_setup:
+            alrb_setup += "export PandaID=%s;" % job.jobid
         log.debug('alrb_setup=%s' % alrb_setup)
 
         # add TMPDIR

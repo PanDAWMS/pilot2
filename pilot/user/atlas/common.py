@@ -166,8 +166,8 @@ def get_payload_command(job):
         cmd = ''.join(variables) + cmd
 
     # prepend PanDA job id in case it is not there already (e.g. runcontainer jobs)
-    if 'export PANDAID' not in cmd:
-        cmd = "export PANDAID=%s;" % job.jobid + cmd
+    if 'export PandaID' not in cmd:
+        cmd = "export PandaID=%s;" % job.jobid + cmd
 
     cmd = cmd.replace(';;', ';')
 
