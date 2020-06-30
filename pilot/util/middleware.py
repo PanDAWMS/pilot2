@@ -245,7 +245,7 @@ def handle_containerised_errors(job, label='stage-in'):
                 if label == 'stage-out':
                     fspec.surl = file_dictionary[fspec.lfn][2]
                     fspec.turl = file_dictionary[fspec.lfn][3]
-                    fspec.checksum[fspec.lfn] = file_dictionary[fspec.lfn][4]
+                    fspec.checksum['adler32'] = file_dictionary[fspec.lfn][4]
             except Exception as e:
                 msg = "exception caught while reading file dictionary: %s" % e
                 logger.warning(msg)
