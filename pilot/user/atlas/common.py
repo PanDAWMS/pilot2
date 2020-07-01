@@ -169,7 +169,7 @@ def get_payload_command(job):
     if 'export PandaID' not in cmd:
         cmd = "export PandaID=%s;" % job.jobid + cmd
 
-`    cmd = cmd.replace(';;', ';')
+    cmd = cmd.replace(';;', ';')
 
     # For direct access in prod jobs, we need to substitute the input file names with the corresponding TURLs
     # get relevant file transfer info
