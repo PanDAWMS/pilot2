@@ -225,10 +225,10 @@ class Job():
         self.jobdefinitionid = jobdefinitionid
 
 
-def add_to_dictionary(dictionary, key, value1, value2, value3, value4, value5):
+def add_to_dictionary(dictionary, key, value1, value2, value3, value4, value5, value6):
     """
-    Add key: [value1, value2, value3, value4, value5] to dictionary.
-    In practice; lfn: [status, status_code, surl, turl, checksum].
+    Add key: [value1, value2, value3, value4, value5, value6] to dictionary.
+    In practice; lfn: [status, status_code, surl, turl, checksum, fsize].
 
     :param dictionary: dictionary to be updated.
     :param key: lfn key to be added (string).
@@ -237,10 +237,11 @@ def add_to_dictionary(dictionary, key, value1, value2, value3, value4, value5):
     :param value3: surl to be added to list belonging to key (string).
     :param value4: turl to be added to list belonging to key (string).
     :param value5: checksum to be added to list belonging to key (string).
+    :param value6: fsize to be added to list belonging to key (string).
     :return: updated dictionary.
     """
 
-    dictionary[key] = [value1, value2, value3, value4, value5]
+    dictionary[key] = [value1, value2, value3, value4, value5, value6]
     return dictionary
 
 
@@ -332,15 +333,15 @@ if __name__ == '__main__':
     if xfiles:
         message('stageout script summary of transferred files:')
         for fspec in xfiles:
-            add_to_dictionary(file_dictionary, fspec.lfn, fspec.status, fspec.status_code, fspec.surl, fspec.turl, fspec.checksum.get('adler32'))
+            add_to_dictionary(file_dictionary, fspec.lfn, fspec.status, fspec.status_code, fspec.surl, fspec.turl, fspec.checksum.get('adler32'), fspec.filesize)
             status = fspec.status if fspec.status else "(not transferred)"
-            message(" -- lfn=%s, status_code=%s, status=%s, surl=%s, turl=%s, checksum=%s" %
-                    (fspec.lfn, fspec.status_code, status, fspec.surl, fspec.turl, fspec.checksum.get('adler32')))
+            message(" -- lfn=%s, status_code=%s, status=%s, surl=%s, turl=%s, checksum=%s, filesize=%s" %
+                    (fspec.lfn, fspec.status_code, status, fspec.surl, fspec.turl, fspec.checksum.get('adler32'), fspec.filesize))
 
     # add error info, if any
     if err:
         errcode, err = extract_error_info(err)
-    add_to_dictionary(file_dictionary, 'error', err, errcode, None, None, None)
+    add_to_dictionary(file_dictionary, 'error', err, errcode, None, None, None, None)
     path = os.path.join(args.workdir, config.Container.stageout_dictionary)
     if os.path.exists(path):
         file_dictionary += '.log'
