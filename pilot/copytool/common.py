@@ -170,6 +170,8 @@ def resolve_common_transfer_errors(output, is_stagein=True):
 
     # default to make sure dictionary exists and all fields are populated (some of which might be overwritten below)
     ret = get_error_info(ErrorCodes.STAGEINFAILED if is_stagein else ErrorCodes.STAGEOUTFAILED, 'COPY_ERROR', output)
+    if not output:
+        return ret
 
     if "timeout" in output:
         ret = get_error_info(ErrorCodes.STAGEINTIMEOUT if is_stagein else ErrorCodes.STAGEOUTTIMEOUT,
