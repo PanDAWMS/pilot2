@@ -130,9 +130,7 @@ def get_memory_monitor_setup(pid, pgrp, jobid, workdir, command, setup="", use_c
         _cmd = "MemoryMonitor "
         setup = setup.replace(release, "21.0.22")
         setup = setup.replace(platform, "x86_64-slc6-gcc62-opt")
-    # ignore setup for now
-    setup = ""
-    _cmd = "%s/atlas.cern.ch/repo/sw/software/22.0/AthenaExternals/22.0.1/InstallArea/x86_64-centos7-gcc8-opt/bin/prmon " % get_file_system_root_path()
+
     options = "--pid %d --filename %s --json-summary %s --interval %d" %\
               (pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
     _cmd = "cd " + workdir + ";" + setup + _cmd + options
