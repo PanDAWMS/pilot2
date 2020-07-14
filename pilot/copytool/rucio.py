@@ -162,7 +162,7 @@ def handle_rucio_error(error_msg, trace_report, trace_report_out, fspec, stagein
         error_msg = trace_report_out[0].get('stateReason', '')
     else:
         logger.debug('no trace_report_out')
-    logger.info('rucio returned an error: %s' % error_msg)
+    logger.info('rucio returned an error: \"%s\"' % error_msg)
 
     error_details = resolve_common_transfer_errors(error_msg, is_stagein=stagein)
     fspec.status = 'failed'
