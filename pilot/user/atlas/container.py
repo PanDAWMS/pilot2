@@ -704,7 +704,7 @@ def singularity_wrapper(cmd, workdir, job=None):
         queuedata = infoservice.queuedata
 
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
-    logger.debug("resolved container_name from queuedata.contaner_type: %s" % container_name)
+    logger.debug("resolved container_name from queuedata.container_type: %s" % container_name)
 
     if container_name == 'singularity':
         logger.info("singularity has been requested")
