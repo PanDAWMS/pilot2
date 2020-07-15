@@ -179,7 +179,7 @@ class RaythenaExecutor(BaseExecutor):
             log.info("payload: %s" % payload)
 
             log.info("Starting ESProcess")
-            proc = ESProcess(payload)
+            proc = ESProcess(payload, waiting_time=999999)
             self.proc = proc
             log.info("ESProcess initialized")
 
