@@ -218,7 +218,7 @@ class RaythenaExecutor(BaseExecutor):
             self.exit_code = proc.poll()
 
         except Exception as e:
-            logger.error('Execute payload failed: %s, %s' % (str(e), traceback.format_exc()))
+            logger.error('Execute payload failed: %s, %s' % (e, traceback.format_exc()))
             self.clean()
             self.exit_code = -1
         logger.info('ES raythena executor finished')
