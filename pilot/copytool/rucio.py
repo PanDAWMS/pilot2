@@ -433,6 +433,7 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout, 
 
     if transfer_timeout:
         f['transfer_timeout'] = transfer_timeout
+    f['connection_timeout'] = 60 * 60
 
     # proceed with the download
     logger.info('rucio API stage-in dictionary: %s' % f)
@@ -506,6 +507,7 @@ def _stage_in_bulk(dst, files, trace_report_out=None, trace_common_fields=None):
 
         if fspec.filesize:
             f['transfer_timeout'] = get_timeout(fspec.filesize)
+        f['connection_timeout'] = 60 * 60
 
         file_list.append(f)
 
@@ -554,6 +556,7 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, tra
 
     if transfer_timeout:
         f['transfer_timeout'] = transfer_timeout
+    f['connection_timeout'] = 60 * 60
 
     # if fspec.storageId and int(fspec.storageId) > 0:
     #     if fspec.turl and fspec.is_nondeterministic:
