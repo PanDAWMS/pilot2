@@ -20,6 +20,7 @@ from os import getcwd, chdir, environ
 from os.path import exists, join
 from shutil import rmtree
 
+from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import PilotException
 from pilot.info import infosys
 from pilot.util.auxiliary import pilot_version_banner, shell_exit_code
@@ -29,6 +30,8 @@ from pilot.util.filehandling import get_pilot_work_dir, mkdirs, establish_loggin
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
 from pilot.util.timing import add_to_pilot_timing
+
+errors = ErrorCodes()
 
 
 def main():
@@ -66,7 +69,7 @@ def main():
         # check if queue is ACTIVE
         if infosys.queuedata.state != 'ACTIVE':
             logger.critical('specified queue is NOT ACTIVE: %s -- aborting' % infosys.queuedata.name)
-            raise PilotException("Panda Queue is NOT ACTIVE")
+            return errors.PANDAQUEUENOTACTIVE
     except PilotException as error:
         logger.fatal(error)
         return error.get_error_code()
