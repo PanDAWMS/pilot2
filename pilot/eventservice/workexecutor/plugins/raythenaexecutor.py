@@ -133,7 +133,7 @@ class RaythenaExecutor(BaseExecutor):
         """
         job = self.get_job()
         log = get_logger(job.jobid, logger)
-        log.info("job.infosys.queuedata.es_stageout_gap: %s" % (job.infosys.queuedata.es_stageout_gap))
+        log.info("job.infosys.queuedata.es_stageout_gap: %s" % job.infosys.queuedata.es_stageout_gap)
         job = self.get_job()
         if len(self.__queued_out_messages):
             if force or self.__last_stageout_time is None or (time.time() > self.__last_stageout_time + job.infosys.queuedata.es_stageout_gap):
@@ -166,7 +166,7 @@ class RaythenaExecutor(BaseExecutor):
         Initialize and run ESProcess.
         """
         try:
-            logger.info("starting ES RaythenaExecutor with thread ident: %s" % (self.ident))
+            logger.info("starting ES RaythenaExecutor with thread ident: %s" % self.ident)
             if self.is_set_payload():
                 payload = self.get_payload()
             elif self.is_retrieve_payload():
