@@ -26,6 +26,7 @@ from pilot.api.es_data import StageInESClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException, LogFileCreationFailure
+from pilot.util.config import config
 from pilot.util.auxiliary import get_logger, set_pilot_state, check_for_final_server_update  #, abort_jobs_in_queues
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT, LOG_TRANSFER_IN_PROGRESS,\
@@ -454,7 +455,6 @@ def copytool_in(queues, traces, args):
                     declare_failed_by_kill(job, queues.failed_data_in, args.signal)
                     break
 
-                #queues.finished_data_in.put(job)
                 put_in_queue(job, queues.finished_data_in)
                 # remove the job from the current stage-in queue
                 _job = queues.current_data_in.get(block=True, timeout=1)
@@ -462,29 +462,23 @@ def copytool_in(queues, traces, args):
                     log.debug('job %s has been removed from the current_data_in queue' % _job.jobid)
 
                 # now create input file metadata if required by the payload
-                try:
+                if config.Payload.executor_type.lower() != 'raythena':
                     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
                     user = __import__('pilot.user.%s.metadata' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
                     _dir = '/srv' if job.usecontainer else job.workdir
                     file_dictionary = get_input_file_dictionary(job.indata, _dir)
-                    #file_dictionary = get_input_file_dictionary(job.indata, job.workdir)
-                    log.debug('file_dictionary=%s' % str(file_dictionary))
                     xml = user.create_input_file_metadata(file_dictionary, job.workdir)
                     log.info('created input file metadata:\n%s' % xml)
-                except Exception as e:
-                    pass
             else:
                 log.warning('stage-in failed, adding job object to failed_data_in queue')
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINFAILED)
                 set_pilot_state(job=job, state="failed")
                 traces.pilot['error_code'] = job.piloterrorcodes[0]
-                #queues.failed_data_in.put(job)
                 put_in_queue(job, queues.failed_data_in)
                 # do not set graceful stop if pilot has not finished sending the final job update
                 # i.e. wait until SERVER_UPDATE is DONE_FINAL
                 check_for_final_server_update(args.update_server)
                 args.graceful_stop.set()
-                # send_state(job, args, 'failed')
 
         except queue.Empty:
             continue
