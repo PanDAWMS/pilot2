@@ -344,7 +344,7 @@ if __name__ == '__main__':
     add_to_dictionary(file_dictionary, 'error', err, errcode, None, None, None, None)
     path = os.path.join(args.workdir, config.Container.stageout_dictionary)
     if os.path.exists(path):
-        file_dictionary += '.log'
+        path += '.log'
     _status = write_json(path, file_dictionary)
     if err:
         message("containerised file transfers failed: %s" % err)

@@ -21,11 +21,12 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def containerise_middleware(job, queue, eventtype, localsite, remotesite, label='stage-in'):
+def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite, label='stage-in'):
     """
     Containerise the middleware by performing stage-in/out steps in a script that in turn can be run in a container.
 
     :param job: job object.
+    :param xdata: list of FileSpec objects.
     :param queue: queue name (string).
     :param eventtype:
     :param localsite:
@@ -45,7 +46,7 @@ def containerise_middleware(job, queue, eventtype, localsite, remotesite, label=
     script = config.Container.middleware_container_stagein_script if label == 'stage-in' else config.Container.middleware_container_stageout_script
 
     try:
-        cmd = get_command(job, queue, script, eventtype, localsite, remotesite, label=label)
+        cmd = get_command(job, xdata, queue, script, eventtype, localsite, remotesite, label=label)
     except PilotException as e:
         raise e
 
@@ -89,7 +90,7 @@ def containerise_middleware(job, queue, eventtype, localsite, remotesite, label=
 
     # handle errors and file statuses (the stage-in/out scripts write errors and file status to a json file)
     try:
-        handle_containerised_errors(job, label=label)
+        handle_containerised_errors(job, xdata, label=label)
     except PilotException as e:
         raise e
 
@@ -115,10 +116,12 @@ def get_script_path(script):
     return _path
 
 
-def get_command(job, queue, script, eventtype, localsite, remotesite, label='stage-in'):
+def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, label='stage-in'):
     """
+    Get the middleware container execution command.
 
     :param job: job object.
+    :param xdata: list of FileSpec objects.
     :param queue: queue name (string).
     :param script: name of stage-in/out script (string).
     :param eventtype:
@@ -130,8 +133,7 @@ def get_command(job, queue, script, eventtype, localsite, remotesite, label='sta
     :raises StageOutFailure: for stage-out failures
     """
 
-    data = job.indata if label == 'stage-in' else job.outdata
-    filedata_dictionary = get_filedata_strings(data)
+    filedata_dictionary = get_filedata_strings(xdata)
     srcdir = path.join(environ.get('PILOT_SOURCE_DIR', '.'), 'pilot2')
     if not path.exists(srcdir):
         msg = 'pilot source directory not correct: %s' % srcdir
@@ -218,27 +220,27 @@ def get_command(job, queue, script, eventtype, localsite, remotesite, label='sta
     return cmd
 
 
-def handle_containerised_errors(job, label='stage-in'):
+def handle_containerised_errors(job, xdata, label='stage-in'):
     """
 
     :param job: job object.
+    :param xdata: list of FileSpec objects.
     :param label: 'stage-in/out' (string).
     :return:
     :raises: StageInFailure, StageOutFailure
     """
 
-    dictionary = config.Container.stagein_dictionary if label == 'stage-in' else config.Container.stageout_dictionary
-    data = job.indata if label == 'stage-in' else job.outdata
+    dictionary_name = config.Container.stagein_dictionary if label == 'stage-in' else config.Container.stageout_dictionary
 
     # read the JSON file created by the stage-in/out script
-    if path.exists(path.join(job.workdir, dictionary + '.log')):
-        dictionary += '.log'
-    file_dictionary = read_json(path.join(job.workdir, dictionary))
+    if path.exists(path.join(job.workdir, dictionary_name + '.log')):
+        dictionary_name += '.log'
+    file_dictionary = read_json(path.join(job.workdir, dictionary_name))
 
     # update the job object accordingly
     if file_dictionary:
         # get file info and set essential parameters
-        for fspec in data:
+        for fspec in xdata:
             try:
                 fspec.status = file_dictionary[fspec.lfn][0]
                 fspec.status_code = file_dictionary[fspec.lfn][1]
@@ -306,7 +308,7 @@ def get_filedata_strings(data):
     ddmendpoints = ""
     for fspec in data:
         lfns = fspec.lfn if lfns == "" else lfns + ",%s" % fspec.lfn
-        guids = fspec.guid if lfns == "" else guids + ",%s" % fspec.guid
+        guids = fspec.guid if guids == "" else guids + ",%s" % fspec.guid
         scopes = fspec.scope if scopes == "" else scopes + ",%s" % fspec.scope
         datasets = fspec.dataset if datasets == "" else datasets + ",%s" % fspec.dataset
         ddmendpoints = fspec.ddmendpoint if ddmendpoints == "" else ddmendpoints + ",%s" % fspec.ddmendpoint
