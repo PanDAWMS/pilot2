@@ -87,6 +87,16 @@ def validate(job):
     if not status:
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.DBRELEASEFAILURE)
 
+    # make sure that any given images actually exist
+    if status:
+        if job.imagename and job.imagename.startswith('/'):
+            if os.path.exists(job.imagename):
+                log.info('verified that image exists: %s' % job.imagename)
+            else:
+                status = False
+                log.warning('image does not exist: %s' % job.imagename)
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.IMAGENOTFOUND)
+
     # cleanup job parameters if only copy-to-scratch
     #if job.only_copy_to_scratch():
     #    log.debug('job.params=%s' % job.jobparams)
