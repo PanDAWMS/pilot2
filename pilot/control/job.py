@@ -289,9 +289,6 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
                 return False
 
     try:
-        # get the URL for the PanDA server from pilot options or from config
-        pandaserver = get_panda_server(args.url, args.port)
-
         if config.Pilot.pandajob == 'real':
             time_before = int(time.time())
             max_attempts = 3
@@ -299,6 +296,10 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
             done = False
             while attempt < max_attempts and not done:
                 log.info('job update attempt %d/%d' % (attempt + 1, max_attempts))
+
+                # get the URL for the PanDA server from pilot options or from config
+                pandaserver = get_panda_server(args.url, args.port)
+
                 res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=pandaserver), data=data)
                 if res is not None:
                     done = True
