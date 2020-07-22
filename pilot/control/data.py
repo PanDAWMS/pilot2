@@ -865,6 +865,8 @@ def _stage_out_new(job, args):
     fileinfo = {}
     for e in job.outdata + job.logdata:
         if e.status in ['transferred']:
+            log.debug('got surl=%s' % e.surl)
+            log.debug('got turl=%s' % e.turl)
             fileinfo[e.lfn] = {'guid': e.guid, 'fsize': e.filesize,
                                'adler32': e.checksum.get('adler32'),
                                'surl': e.turl}

@@ -378,6 +378,7 @@ def copy_out(files, **kwargs):  # noqa: C901
                     summary_json = json.load(f)
                     dat = summary_json.get("%s:%s" % (fspec.scope, fspec.lfn)) or {}
                     fspec.turl = dat.get('pfn')
+                    logger.debug('set turl=%s' % fspec.turl)
                     # quick transfer verification:
                     # the logic should be unified and moved to base layer shared for all the movers
                     adler32 = dat.get('adler32')

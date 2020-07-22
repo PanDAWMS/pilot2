@@ -113,6 +113,46 @@ def get_memory_monitor_setup(pid, pgrp, jobid, workdir, command, setup="", use_c
         logger.warning('process id was not identified before payload finished - will not launch memory monitor')
         return "", pid
 
+    if not setup:
+        setup = get_asetup(asetup=False)
+        setup += 'lsetup prmon;'
+    if not setup.endswith(';'):
+        setup += ';'
+
+    cmd = "%sprmon " % setup
+    interval = 60
+    options = "--pid %d --filename %s --json-summary %s --interval %d" %\
+              (pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
+    cmd = "cd " + workdir + ";" + setup + cmd + options
+
+    return cmd, pid
+
+
+def get_memory_monitor_setup_old(pid, pgrp, jobid, workdir, command, setup="", use_container=True, transformation="", outdata=None):
+    """
+    Return the proper setup for the memory monitor.
+    If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the
+    memory monitor was still located in the release area. After many problems with the memory monitor, it was decided
+    to use a fixed version for the setup. Currently, release 21.0.22 is used.
+
+    :param pid: job process id (int).
+    :param pgrp: process group id (int).
+    :param jobid: job id (int).
+    :param workdir: job work directory (string).
+    :param command: payload command (string).
+    :param setup: optional setup in case asetup can not be used, which uses infosys (string).
+    :param use_container: optional boolean.
+    :param transformation: optional name of transformation, e.g. Sim_tf.py (string).
+    :param outdata: optional list of output fspec objects (list).
+    :return: job work directory (string), pid for process inside container (int).
+    """
+
+    # try to get the pid from a pid.txt file which might be created by a container_script
+    pid = get_proper_pid(pid, pgrp, jobid, command, transformation, outdata, use_container=use_container)
+    if pid == -1:
+        logger.warning('process id was not identified before payload finished - will not launch memory monitor')
+        return "", pid
+
     release = "22.0.1"
     platform = "x86_64-centos7-gcc8-opt"
     if not setup:
