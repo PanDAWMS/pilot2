@@ -40,7 +40,6 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
 
     cwd = getcwd()
     logger.debug('cwd=%s' % cwd)
-    logger.debug('PYTHONPATH=%s' % environ.get('PYTHONPATH'))
 
     # get the name of the stage-in/out isolation script
     script = config.Container.middleware_container_stagein_script if label == 'stage-in' else config.Container.middleware_container_stageout_script
@@ -79,8 +78,8 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
             _stdout_name, _stderr_name = get_logfile_names(label)
             write_file(path.join(job.workdir, _stdout_name), stdout, mute=False)
             write_file(path.join(job.workdir, _stderr_name), stderr, mute=False)
-            logger.debug('stage-out stdout=\n%s' % stdout)
-            logger.debug('stage-out stderr=\n%s' % stderr)
+            logger.debug('stage-in/out stdout=\n%s' % stdout)
+            logger.debug('stage-in/out stderr=\n%s' % stderr)
         except PilotException as e:
             msg = 'exception caught: %s' % e
             if label == 'stage-in':
@@ -179,14 +178,30 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, lab
 
         # copy pilot source into container directory, unless it is already there
         try:
-            dest = path.join(job.workdir, 'pilot2')
-            if not path.exists(dest):
-                logger.debug('copy %s to %s' % (srcdir, dest))
-                copytree(srcdir, dest)
-            script_path = path.join('pilot2/pilot/scripts', script)
+            #dest = path.join(job.workdir, 'pilot2')
+            #if not path.exists(dest):
+            logger.debug('copy %s to %s' % (srcdir, job.workdir))
+            cmd = 'cp -r %s/* %s' % (srcdir, job.workdir)
+            exit_code, stdout, stderr = execute(cmd)
+            if exit_code != 0:
+                msg = 'file copy failed: %d, %s' % (exit_code, stdout)
+                logger.warning(msg)
+                if label == 'stage-in':
+                    raise StageInFailure(msg)
+                else:
+                    raise StageOutFailure(msg)
+
+            #copytree(srcdir, job.workdir)
+            environ['PYTHONPATH'] = environ.get('PYTHONPATH') + ':' + job.workdir
+            logger.debug('PYTHONPATH=%s' % environ.get('PYTHONPATH'))
+
+            script_path = path.join('pilot/scripts', script)
             full_script_path = path.join(path.join(job.workdir, script_path))
+
+            copy(full_script_path, final_script_path)
             logger.debug('full_script_path=%s' % full_script_path)
-            chmod(full_script_path, 0o755)  # Python 2/3
+            logger.debug('final_script_path=%s' % final_script_path)
+            chmod(final_script_path, 0o755)  # Python 2/3
         except Exception as e:
             msg = 'exception caught when copying pilot2 source: %s' % e
             logger.warning(msg)
@@ -197,7 +212,7 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, lab
 
         if config.Container.use_middleware_container:
             # correct the path when containers have been used
-            final_script_path = path.join('.', script_path)  #script)
+            final_script_path = path.join('.', script)
             workdir = '/srv'
         else:
             workdir = job.workdir

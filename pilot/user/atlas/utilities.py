@@ -206,8 +206,8 @@ def get_proper_pid(pid, pgrp, jobid, command, transformation, outdata, use_conta
 
     #_cmd = get_trf_command(command, transformation=transformation)
     # get ps info using group id
-    #ps = get_ps_info(pgrp)
-    #logger.debug('ps:\n%s' % ps)
+    ps = get_ps_info(pgrp)
+    logger.debug('ps:\n%s' % ps)
     #logger.debug('attempting to identify pid for Singularity (v.3) runtime parent process')
     #_pid = get_pid_for_command(ps, command="Singularity runtime parent")
     #if _pid:
@@ -503,10 +503,10 @@ def get_memory_monitor_info(workdir, allowtxtfile=False, name=""):  # noqa: C901
                 node['maxVMEM'] = int(summary_dictionary['Max']['vmem'])
                 node['maxSWAP'] = int(summary_dictionary['Max']['swap'])
                 node['maxPSS'] = int(summary_dictionary['Max']['pss'])
-                node['avgRSS'] = int(summary_dictionary['Avg']['rss'])
-                node['avgVMEM'] = int(summary_dictionary['Avg']['vmem'])
-                node['avgSWAP'] = int(summary_dictionary['Avg']['swap'])
-                node['avgPSS'] = int(summary_dictionary['Avg']['pss'])
+                node['avgRSS'] = summary_dictionary['Avg']['rss']
+                node['avgVMEM'] = summary_dictionary['Avg']['vmem']
+                node['avgSWAP'] = summary_dictionary['Avg']['swap']
+                node['avgPSS'] = summary_dictionary['Avg']['pss']
             except Exception as e:
                 logger.warning("exception caught while parsing prmon file: %s" % e)
                 logger.warning("will add -1 values for the memory info")
@@ -525,10 +525,10 @@ def get_memory_monitor_info(workdir, allowtxtfile=False, name=""):  # noqa: C901
                 node['totWCHAR'] = int(summary_dictionary['Max']['wchar'])
                 node['totRBYTES'] = int(summary_dictionary['Max']['read_bytes'])
                 node['totWBYTES'] = int(summary_dictionary['Max']['write_bytes'])
-                node['rateRCHAR'] = int(summary_dictionary['Avg']['rchar'])
-                node['rateWCHAR'] = int(summary_dictionary['Avg']['wchar'])
-                node['rateRBYTES'] = int(summary_dictionary['Avg']['read_bytes'])
-                node['rateWBYTES'] = int(summary_dictionary['Avg']['write_bytes'])
+                node['rateRCHAR'] = summary_dictionary['Avg']['rchar']
+                node['rateWCHAR'] = summary_dictionary['Avg']['wchar']
+                node['rateRBYTES'] = summary_dictionary['Avg']['read_bytes']
+                node['rateWBYTES'] = summary_dictionary['Avg']['write_bytes']
             except Exception:
                 logger.warning("standard memory fields were not found in prmon json (or json doesn't exist yet)")
             else:
