@@ -138,6 +138,7 @@ class ExtInfoProvider(DataLoader):
 
         return self.load_data(sources, priority, cache_time)
 
+    @classmethod
     def get_panda_server(self, https=False):
         """
         Return a proper PanDA server url.
