@@ -96,7 +96,7 @@ class ExtInfoProvider(DataLoader):
             raise Exception('load_queuedata(): pandaqueue name is not specififed')
 
         pandaqueues = [pandaqueue]
-        pandaserver = self.get_panda_server()
+        queuedata_server = self.get_queuedata_server()
 
         cache_dir = config.Information.cache_dir
         if not cache_dir:
@@ -125,7 +125,7 @@ class ExtInfoProvider(DataLoader):
                              'parser': jsonparser_panda
                              },
                    # FIX ME LATER: move hardcoded urls to the Config?
-                   'PANDA': {'url': '%s/cache/schedconfig/%s.all.json' % (pandaserver, pandaqueues[0]),
+                   'PANDA': {'url': '%s/cache/schedconfig/%s.all.json' % (queuedata_server, pandaqueues[0]),
                              'nretry': 3,
                              'sleep_time': lambda: 15 + random.randint(0, 30),  # max sleep time 45 seconds between retries
                              'cache_time': 3 * 60 * 60,  # 3 hours,
@@ -139,7 +139,7 @@ class ExtInfoProvider(DataLoader):
         return self.load_data(sources, priority, cache_time)
 
     @classmethod
-    def get_panda_server(self, https=False):
+    def get_queuedata_server(self, https=False):
         """
         Return a proper PanDA server url including port.
         Replace any https with http unless wanted.
@@ -147,7 +147,7 @@ class ExtInfoProvider(DataLoader):
         :return: URL (string).
         """
 
-        url = os.environ.get('SERVER_URL', '')
+        url = os.environ.get('QUEUEDATA_SERVER_URL', '')
         if not url:
             url = 'http://pandaserver.cern.ch:25085'
         else:

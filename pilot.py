@@ -268,7 +268,7 @@ def get_args():
                             help='CA certificates path',
                             metavar='path/to/certificates/')
 
-    # PanDA server URL and port
+    # Server URLs and ports
     arg_parser.add_argument('--url',
                             dest='url',
                             default='',  # the proper default is stored in config.cfg
@@ -277,6 +277,10 @@ def get_args():
                             dest='port',
                             default=25443,
                             help='PanDA server port')
+    arg_parser.add_argument('--queuedata-url',
+                            dest='queuedata_url',
+                            default='',
+                            help='Queuedata server URL')
 
     # Country group
     arg_parser.add_argument('--country-group',
@@ -443,7 +447,7 @@ def set_environment_variables(args, mainworkdir):
     environ['PILOT_RESOURCE_NAME'] = args.hpc_resource
 
     # keep track of the PanDA server url
-    environ['SERVER_URL'] = '%s:%s' % (args.url, args.port)
+    environ['QUEUEDATA_SERVER_URL'] = '%s' % args.queuedata_url
 
 
 def wrap_up(initdir, mainworkdir, args):
