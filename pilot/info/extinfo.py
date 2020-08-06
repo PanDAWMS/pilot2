@@ -125,7 +125,7 @@ class ExtInfoProvider(DataLoader):
                              'parser': jsonparser_panda
                              },
                    # FIX ME LATER: move hardcoded urls to the Config?
-                   'PANDA': {'url': '%s:25085/cache/schedconfig/%s.all.json' % (pandaserver, pandaqueues[0]),
+                   'PANDA': {'url': '%s/cache/schedconfig/%s.all.json' % (pandaserver, pandaqueues[0]),
                              'nretry': 3,
                              'sleep_time': lambda: 15 + random.randint(0, 30),  # max sleep time 45 seconds between retries
                              'cache_time': 3 * 60 * 60,  # 3 hours,
@@ -141,7 +141,7 @@ class ExtInfoProvider(DataLoader):
     @classmethod
     def get_panda_server(self, https=False):
         """
-        Return a proper PanDA server url.
+        Return a proper PanDA server url including port.
         Replace any https with http unless wanted.
 
         :return: URL (string).
@@ -149,7 +149,7 @@ class ExtInfoProvider(DataLoader):
 
         url = os.environ.get('SERVER_URL', '')
         if not url:
-            url = 'http://pandaserver.cern.ch'
+            url = 'http://pandaserver.cern.ch:25085'
         else:
             url = url.replace('https', 'http') if not https else url
 

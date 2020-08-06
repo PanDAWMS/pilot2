@@ -443,7 +443,7 @@ def set_environment_variables(args, mainworkdir):
     environ['PILOT_RESOURCE_NAME'] = args.hpc_resource
 
     # keep track of the PanDA server url
-    environ['SERVER_URL'] = args.url
+    environ['SERVER_URL'] = '%s:%d' % (args.url, args.port)
 
 
 def wrap_up(initdir, mainworkdir, args):
