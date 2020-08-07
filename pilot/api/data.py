@@ -898,8 +898,11 @@ class StageOutClient(StagingClient):
                 break
 
         if not storages:
-            raise PilotException("Failed to resolve destination: no associated storages defined for activity=%s (%s)"
-                                 % (activity, ','.join(activities)), code=ErrorCodes.NOSTORAGE, state='NO_ASTORAGES_DEFINED')
+            if 'mv' in self.infosys.queuedata.copytools:
+                return files
+            else:
+                raise PilotException("Failed to resolve destination: no associated storages defined for activity=%s (%s)"
+                                     % (activity, ','.join(activities)), code=ErrorCodes.NOSTORAGE, state='NO_ASTORAGES_DEFINED')
 
         # take the fist choice for now, extend the logic later if need
         ddm = storages[0]
