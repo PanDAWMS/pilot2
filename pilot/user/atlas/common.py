@@ -1570,8 +1570,9 @@ def get_utility_command_setup(name, job, setup=None):
     if name == 'MemoryMonitor':
         # must know if payload is running in a container or not (enables search for pid in ps output)
         use_container = job.usecontainer or 'runcontainer' in job.transformation
+        dump_ps = True if "PRMON_DEBUG" in job.infosys.queuedata.catchall else False
         setup, pid = get_memory_monitor_setup(job.pid, job.pgrp, job.jobid, job.workdir, job.command, use_container=use_container,
-                                              transformation=job.transformation, outdata=job.outdata)
+                                              transformation=job.transformation, outdata=job.outdata, dump_ps=dump_ps)
         _pattern = r"([\S]+)\ ."
         pattern = re.compile(_pattern)
         _name = re.findall(pattern, setup.split(';')[-1])

@@ -88,7 +88,7 @@ def get_memory_monitor_output_filename():
     return "memory_monitor_output.txt"
 
 
-def get_memory_monitor_setup(pid, pgrp, jobid, workdir, command, setup="", use_container=True, transformation="", outdata=None):
+def get_memory_monitor_setup(pid, pgrp, jobid, workdir, command, setup="", use_container=True, transformation="", outdata=None, dump_ps=False):
     """
     Return the proper setup for the memory monitor.
     If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the
@@ -104,11 +104,12 @@ def get_memory_monitor_setup(pid, pgrp, jobid, workdir, command, setup="", use_c
     :param use_container: optional boolean.
     :param transformation: optional name of transformation, e.g. Sim_tf.py (string).
     :param outdata: optional list of output fspec objects (list).
+    :param dump_ps: should ps output be dumped when identifying prmon process? (Boolean).
     :return: job work directory (string), pid for process inside container (int).
     """
 
     # try to get the pid from a pid.txt file which might be created by a container_script
-    pid = get_proper_pid(pid, pgrp, jobid, command, transformation, outdata, use_container=use_container)
+    pid = get_proper_pid(pid, pgrp, jobid, command=command, transformation=transformation, outdata=outdata, use_container=use_container, dump_ps=dump_ps)
     if pid == -1:
         logger.warning('process id was not identified before payload finished - will not launch memory monitor')
         return "", pid
@@ -128,7 +129,7 @@ def get_memory_monitor_setup(pid, pgrp, jobid, workdir, command, setup="", use_c
     return cmd, pid
 
 
-def get_memory_monitor_setup_old(pid, pgrp, jobid, workdir, command, setup="", use_container=True, transformation="", outdata=None):
+def get_memory_monitor_setup_old(pid, pgrp, jobid, workdir, command, setup="", use_container=True, transformation="", outdata=None, dump_ps=False):
     """
     Return the proper setup for the memory monitor.
     If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the
@@ -144,11 +145,12 @@ def get_memory_monitor_setup_old(pid, pgrp, jobid, workdir, command, setup="", u
     :param use_container: optional boolean.
     :param transformation: optional name of transformation, e.g. Sim_tf.py (string).
     :param outdata: optional list of output fspec objects (list).
+    :param dump_ps: should ps output be dumped when identifying prmon process? (Boolean).
     :return: job work directory (string), pid for process inside container (int).
     """
 
     # try to get the pid from a pid.txt file which might be created by a container_script
-    pid = get_proper_pid(pid, pgrp, jobid, command, transformation, outdata, use_container=use_container)
+    pid = get_proper_pid(pid, pgrp, jobid, command=command, transformation=transformation, outdata=outdata, use_container=use_container, dump_ps=dump_ps)
     if pid == -1:
         logger.warning('process id was not identified before payload finished - will not launch memory monitor')
         return "", pid
@@ -178,7 +180,7 @@ def get_memory_monitor_setup_old(pid, pgrp, jobid, workdir, command, setup="", u
     return _cmd, pid
 
 
-def get_proper_pid(pid, pgrp, jobid, command, transformation, outdata, use_container=True):
+def get_proper_pid(pid, pgrp, jobid, command="", transformation="", outdata="", use_container=True, dump_ps=False):
     """
     Return a pid from the proper source to be used with the memory monitor.
     The given pid comes from Popen(), but in the case containers are used, the pid should instead come from a ps aux
@@ -207,7 +209,8 @@ def get_proper_pid(pid, pgrp, jobid, command, transformation, outdata, use_conta
     #_cmd = get_trf_command(command, transformation=transformation)
     # get ps info using group id
     ps = get_ps_info(pgrp)
-    logger.debug('ps:\n%s' % ps)
+    if dump_ps:
+        logger.debug('ps:\n%s' % ps)
     #logger.debug('attempting to identify pid for Singularity (v.3) runtime parent process')
     #_pid = get_pid_for_command(ps, command="Singularity runtime parent")
     #if _pid:
