@@ -555,7 +555,7 @@ class StagingClient(object):
                     break
 
             fdat.protocols = protocols
-
+            self.logger.debug('protocols=%s' % str(protocols))
         return files
 
     @classmethod
