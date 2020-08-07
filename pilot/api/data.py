@@ -503,7 +503,7 @@ class StagingClient(object):
 
         if local_dir:
             for fdat in files:
-                fdat.protocols = ['', 0, local_dir]
+                fdat.protocols = [{'endpoint': local_dir, 'flavour': '', 'id': 0, 'path': ''}]
         else:
             files = self.resolve_protocols(files)
 
@@ -520,13 +520,13 @@ class StagingClient(object):
             # take first available protocol for copytool: FIX ME LATER if need (do iterate over all allowed protocols?)
             protocol = protocols[0]
 
-            self.logger.info("Resolved protocol to be used for transfer lfn=%s: data=%s" % (protocol, fspec.lfn))
+            self.logger.info("Resolved protocol to be used for transfer: \'%s\': lfn=\'%s\'" % (protocol, fspec.lfn))
 
             resolve_surl = getattr(copytool, 'resolve_surl', None)
             if not callable(resolve_surl):
                 resolve_surl = self.resolve_surl
 
-            r = resolve_surl(fspec, protocol, ddmconf)  ## pass ddmconf for possible custom look up at the level of copytool
+            r = resolve_surl(fspec, protocol, ddmconf, local_dir=local_dir)  ## pass ddmconf for possible custom look up at the level of copytool
             if r.get('surl'):
                 fspec.turl = r['surl']
             if r.get('ddmendpoint'):
@@ -959,17 +959,18 @@ class StageOutClient(StagingClient):
             :return: dict with keys ('pfn', 'ddmendpoint')
         """
 
-        # consider only deterministic sites (output destination)
+        local_dir = kwargs.get('local_dir', '')
+        if not local_dir:
+            # consider only deterministic sites (output destination) - unless local input/output
+            ddm = ddmconf.get(fspec.ddmendpoint)
+            if not ddm:
+                raise PilotException('Failed to resolve ddmendpoint by name=%s' % fspec.ddmendpoint)
 
-        ddm = ddmconf.get(fspec.ddmendpoint)
-        if not ddm:
-            raise PilotException('Failed to resolve ddmendpoint by name=%s' % fspec.ddmendpoint)
-
-        # path = protocol.get('path', '').rstrip('/')
-        # if not (ddm.is_deterministic or (path and path.endswith('/rucio'))):
-        if not ddm.is_deterministic:
-            raise PilotException('resolve_surl(): Failed to construct SURL for non deterministic ddm=%s: '
-                                 'NOT IMPLEMENTED' % fspec.ddmendpoint, code=ErrorCodes.NONDETERMINISTICDDM)
+            # path = protocol.get('path', '').rstrip('/')
+            # if not (ddm.is_deterministic or (path and path.endswith('/rucio'))):
+            if not ddm.is_deterministic:
+                raise PilotException('resolve_surl(): Failed to construct SURL for non deterministic ddm=%s: '
+                                     'NOT IMPLEMENTED' % fspec.ddmendpoint, code=ErrorCodes.NONDETERMINISTICDDM)
 
         surl = protocol.get('endpoint', '') + os.path.join(protocol.get('path', ''), self.get_path(fspec.scope, fspec.lfn))
         return {'surl': surl}
