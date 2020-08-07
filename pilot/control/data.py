@@ -211,7 +211,7 @@ def _stage_in(args, job):
                 client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
                 activity = 'pr'
             use_pcache = job.infosys.queuedata.use_pcache
-            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, use_pcache=use_pcache, use_bulk=False)
+            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, use_pcache=use_pcache, use_bulk=False, input_dir=args.input_dir)
             client.prepare_sources(job.indata)
             client.transfer(job.indata, activity=activity, **kwargs)
         except PilotException as error:
@@ -734,7 +734,7 @@ def create_log(job, logfile, tarball_name, args):
     #        'bytes': os.stat(fullpath).st_size}
 
 
-def _do_stageout(job, xdata, activity, queue, title):
+def _do_stageout(job, xdata, activity, queue, title, output_dir=''):
     """
     Use the `StageOutClient` in the Data API to perform stage-out.
 
@@ -769,7 +769,7 @@ def _do_stageout(job, xdata, activity, queue, title):
             trace_report = create_trace_report(job, label=label)
 
             client = StageOutClient(job.infosys, logger=log, trace_report=trace_report)
-            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job)  #, mode='stage-out')
+            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job, output_dir=output_dir)  #, mode='stage-out')
             # prod analy unification: use destination preferences from PanDA server for unified queues
             if job.infosys.queuedata.type != 'unified':
                 client.prepare_destinations(xdata, activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
@@ -829,7 +829,7 @@ def _stage_out_new(job, args):
         job.stageout = 'log'
 
     if job.stageout != 'log':  ## do stage-out output files
-        if not _do_stageout(job, job.outdata, ['pw', 'w'], args.queue, title='output'):
+        if not _do_stageout(job, job.outdata, ['pw', 'w'], args.queue, title='output', output_dir=args.output_dir):
             is_success = False
             log.warning('transfer of output file(s) failed')
 
@@ -851,7 +851,7 @@ def _stage_out_new(job, args):
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.LOGFILECREATIONFAILURE)
             return False
 
-        if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], args.queue, title='log'):
+        if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], args.queue, title='log', output_dir=args.output_dir):
             is_success = False
             log.warning('log transfer failed')
             job.status['LOG_TRANSFER'] = LOG_TRANSFER_FAILED

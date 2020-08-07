@@ -487,7 +487,7 @@ class StagingClient(object):
 
         return files
 
-    def require_protocols(self, files, copytool, activity):
+    def require_protocols(self, files, copytool, activity, local_dir=''):
         """
             Populates fspec.protocols and fspec.turl for each entry in `files` according to preferred fspec.ddm_activity
             :param files: list of `FileSpec` objects
@@ -501,11 +501,12 @@ class StagingClient(object):
             copytool_name = copytool.__name__.rsplit('.', 1)[-1]
             allowed_schemas = self.infosys.queuedata.resolve_allowed_schemas(activity, copytool_name) or allowed_schemas
 
-        try:
+        if local_dir:
+            for fdat in files:
+                fdat.protocols = ['', 0, local_dir]
+        else:
             files = self.resolve_protocols(files)
-        except PilotException as e:
-            if 'mv' not in self.infosys.queuedata.copytools:
-                raise e
+
         ddmconf = self.infosys.resolve_storage_data()
 
         for fspec in files:
@@ -555,7 +556,7 @@ class StagingClient(object):
                     break
 
             fdat.protocols = protocols
-            self.logger.debug('protocols=%s' % str(protocols))
+
         return files
 
     @classmethod
@@ -763,7 +764,7 @@ class StageInClient(StagingClient):
 
         # prepare files (resolve protocol/transfer url)
         if getattr(copytool, 'require_input_protocols', False) and files:
-            self.require_protocols(files, copytool, activity)
+            self.require_protocols(files, copytool, activity, local_dir=kwargs['input_dir'])
 
         # mark direct access files with status=remote_io
         self.set_status_for_direct_access(files)
@@ -1018,7 +1019,7 @@ class StageOutClient(StagingClient):
 
         # prepare files (resolve protocol/transfer url)
         if getattr(copytool, 'require_protocols', True) and files:
-            self.require_protocols(files, copytool, activity)
+            self.require_protocols(files, copytool, activity, local_dir=kwargs['output_dir'])
 
         if not copytool.is_valid_for_copy_out(files):
             self.logger.warning('Input is not valid for transfers using copytool=%s' % copytool)
