@@ -511,7 +511,7 @@ class StagingClient(object):
         for fspec in files:
 
             protocols = self.resolve_protocol(fspec, allowed_schemas)
-            if not protocols:  #  no protocols found
+            if not protocols and 'mv' not in self.infosys.queuedata.copytools:  #  no protocols found
                 error = 'Failed to resolve protocol for file=%s, allowed_schemas=%s, fspec=%s' % (fspec.lfn, allowed_schemas, fspec)
                 self.logger.error("resolve_protocol: %s" % error)
                 raise PilotException(error, code=ErrorCodes.NOSTORAGEPROTOCOL)
