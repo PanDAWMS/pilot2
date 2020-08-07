@@ -987,9 +987,12 @@ class StageOutClient(StagingClient):
         for fspec in files:
 
             if not fspec.ddmendpoint:  # ensure that output destination is properly set
-                msg = 'No output RSE defined for file=%s' % fspec.lfn
-                self.logger.error(msg)
-                raise PilotException(msg, code=ErrorCodes.NOSTORAGE, state='NO_OUTPUTSTORAGE_DEFINED')
+                if 'mv' in self.infosys.queuedata.copytools:
+                    pass
+                else:
+                    msg = 'No output RSE defined for file=%s' % fspec.lfn
+                    self.logger.error(msg)
+                    raise PilotException(msg, code=ErrorCodes.NOSTORAGE, state='NO_OUTPUTSTORAGE_DEFINED')
 
             pfn = fspec.surl or getattr(fspec, 'pfn', None) or os.path.join(kwargs.get('workdir', ''), fspec.lfn)
             if not os.path.isfile(pfn) or not os.access(pfn, os.R_OK):
