@@ -503,6 +503,8 @@ class StagingClient(object):
 
         if local_dir:
             for fdat in files:
+                if not local_dir.endswith('/'):
+                    local_dir += '/'
                 fdat.protocols = [{'endpoint': local_dir, 'flavour': '', 'id': 0, 'path': ''}]
         else:
             files = self.resolve_protocols(files)
@@ -527,6 +529,7 @@ class StagingClient(object):
                 resolve_surl = self.resolve_surl
 
             r = resolve_surl(fspec, protocol, ddmconf, local_dir=local_dir)  ## pass ddmconf for possible custom look up at the level of copytool
+            self.logger.debug('r=%s' % str(r))
             if r.get('surl'):
                 fspec.turl = r['surl']
             if r.get('ddmendpoint'):
