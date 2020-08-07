@@ -501,7 +501,11 @@ class StagingClient(object):
             copytool_name = copytool.__name__.rsplit('.', 1)[-1]
             allowed_schemas = self.infosys.queuedata.resolve_allowed_schemas(activity, copytool_name) or allowed_schemas
 
-        files = self.resolve_protocols(files)
+        try:
+            files = self.resolve_protocols(files)
+        except PilotException as e:
+            if 'mv' not in self.infosys.queuedata.copytools:
+                raise e
         ddmconf = self.infosys.resolve_storage_data()
 
         for fspec in files:
