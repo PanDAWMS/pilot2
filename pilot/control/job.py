@@ -291,7 +291,7 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
     try:
         if config.Pilot.pandajob == 'real':
             time_before = int(time.time())
-            max_attempts = 3
+            max_attempts = 10
             attempt = 0
             done = False
             while attempt < max_attempts and not done:
