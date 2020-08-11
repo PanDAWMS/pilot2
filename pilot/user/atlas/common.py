@@ -1486,6 +1486,11 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):  # noqa: C
         logger.debug('removing pilot source dir from workdir')
         remove_dir_tree(path)
 
+    path = os.path.join(workdir, "cores")
+    if os.path.exists(path):
+        logger.debug('removing cores dir from workdir')
+        remove_dir_tree(path)
+
     ls(workdir)
 
 
