@@ -9,3 +9,14 @@
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+def interpret(job):
+    """
+    Interpret the payload, look for specific errors in the stdout.
+
+    :param job: job object
+    :return: exit code (payload) (int).
+    """
+
+    return 0
