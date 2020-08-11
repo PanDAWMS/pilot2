@@ -65,7 +65,7 @@ def get_setup_command(job, prepareasetup):
 
     # return immediately if there is no release or if user containers are used
     # if job.swrelease == 'NULL' or (('--containerImage' in job.jobparams or job.imagename) and job.swrelease == 'NULL'):
-    if job.swrelease == 'NULL':
+    if job.swrelease == 'NULL' or job.swrelease == '':
         logger.debug('will not return asetup path since there is no swrelease set')
         return ""
 
