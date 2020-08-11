@@ -1412,6 +1412,7 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):  # noqa: C
 
     :param workdir: working directory (string).
     :param outputfiles: list of output files.
+    :param islooping: looping job variable to make sure workDir is not removed in case of looping (boolean).
     :return:
     """
 
