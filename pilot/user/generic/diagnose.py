@@ -6,6 +6,13 @@
 #
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2020
+# - Tadashi Maeno, tadashi.maeno@cern.ch, 2020
+
+import os
+
+from pilot.util.auxiliary import get_logger
+from pilot.util.config import config
+from pilot.util.filehandling import read_file
 
 import logging
 logger = logging.getLogger(__name__)
@@ -18,5 +25,15 @@ def interpret(job):
     :param job: job object
     :return: exit code (payload) (int).
     """
+
+    log = get_logger(job.jobid)
+    stdout = os.path.join(job.workdir, config.Payload.payloadstdout)
+    message = 'payload stdout dump\n'
+    message += read_file(stdout)
+    log.debug(message)
+    stderr = os.path.join(job.workdir, config.Payload.payloadstderr)
+    message = 'payload stderr dump\n'
+    message += read_file(stderr)
+    log.debug(message)
 
     return 0
