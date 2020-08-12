@@ -7,9 +7,13 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
+import os
 from signal import SIGTERM
 
+from pilot.common.exception import TrfDownloadFailure
+from pilot.util.auxiliary import get_logger
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_AFTER_PAYLOAD
+from .setup import get_analysis_trf
 
 import logging
 logger = logging.getLogger(__name__)
@@ -49,7 +53,48 @@ def get_payload_command(job):
     :return: command (string)
     """
 
-    return job.jobparams
+    log = get_logger(job.jobid)
+
+    # Try to download the trf
+    # if job.imagename != "" or "--containerImage" in job.jobparams:
+    #    job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
+    #    log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
+    ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
+    if ec != 0:
+        raise TrfDownloadFailure(diagnostics)
+    else:
+        log.debug('user analysis trf: %s' % trf_name)
+
+    return get_analysis_run_command(job, trf_name)
+
+
+def get_analysis_run_command(job, trf_name):
+    """
+    Return the proper run command for the user job.
+
+    Example output: export X509_USER_PROXY=<..>;./runAthena <job parameters> --usePFCTurl --directIn
+
+    :param job: job object.
+    :param trf_name: name of the transform that will run the job (string). Used when containers are not used.
+    :return: command (string).
+    """
+
+    cmd = ""
+
+    # add the user proxy
+    if 'X509_USER_PROXY' in os.environ and not job.imagename:
+        cmd += 'export X509_USER_PROXY=%s;' % os.environ.get('X509_USER_PROXY')
+
+    # set up trfs
+    if job.imagename == "":  # user jobs with no imagename defined
+        cmd += './%s %s' % (trf_name, job.jobparams)
+    else:
+        if trf_name:
+            cmd += './%s %s' % (trf_name, job.jobparams)
+        else:
+            cmd += 'python %s %s' % (trf_name, job.jobparams)
+
+    return cmd
 
 
 def update_job_data(job):
