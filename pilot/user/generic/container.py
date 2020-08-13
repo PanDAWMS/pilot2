@@ -22,12 +22,13 @@ def do_use_container(**kwargs):
     return True
 
 
-def wrapper(executable):
+def wrapper(executable, **kwargs):
     """
     Wrapper function for any container specific usage.
     This function will be called by pilot.util.container.execute() and prepends the executable with a container command.
 
     :param executable: command to be executed (string).
+    :param kwargs: dictionary of key-word arguments.
     :return: executable wrapped with container command (string).
     """
 

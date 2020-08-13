@@ -20,6 +20,7 @@ from os import getcwd, chdir, environ
 from os.path import exists, join
 from shutil import rmtree
 
+from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import PilotException
 from pilot.info import infosys
 from pilot.util.auxiliary import pilot_version_banner, shell_exit_code
@@ -29,6 +30,8 @@ from pilot.util.filehandling import get_pilot_work_dir, mkdirs, establish_loggin
 from pilot.util.harvester import is_harvester_mode
 from pilot.util.https import https_setup
 from pilot.util.timing import add_to_pilot_timing
+
+errors = ErrorCodes()
 
 
 def main():
@@ -66,7 +69,7 @@ def main():
         # check if queue is ACTIVE
         if infosys.queuedata.state != 'ACTIVE':
             logger.critical('specified queue is NOT ACTIVE: %s -- aborting' % infosys.queuedata.name)
-            raise PilotException("Panda Queue is NOT ACTIVE")
+            return errors.PANDAQUEUENOTACTIVE
     except PilotException as error:
         logger.fatal(error)
         return error.get_error_code()
@@ -265,7 +268,7 @@ def get_args():
                             help='CA certificates path',
                             metavar='path/to/certificates/')
 
-    # PanDA server URL and port
+    # Server URLs and ports
     arg_parser.add_argument('--url',
                             dest='url',
                             default='',  # the proper default is stored in config.cfg
@@ -274,6 +277,10 @@ def get_args():
                             dest='port',
                             default=25443,
                             help='PanDA server port')
+    arg_parser.add_argument('--queuedata-url',
+                            dest='queuedata_url',
+                            default='',
+                            help='Queuedata server URL')
 
     # Country group
     arg_parser.add_argument('--country-group',
@@ -438,6 +445,9 @@ def set_environment_variables(args, mainworkdir):
 
     # set the (HPC) resource name (if set in options)
     environ['PILOT_RESOURCE_NAME'] = args.hpc_resource
+
+    # keep track of the PanDA server url
+    environ['QUEUEDATA_SERVER_URL'] = '%s' % args.queuedata_url
 
 
 def wrap_up(initdir, mainworkdir, args):

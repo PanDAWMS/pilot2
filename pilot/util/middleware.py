@@ -8,10 +8,9 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2020
 
 from os import environ, path, chmod, getcwd
-from shutil import copytree
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import PilotException, NotImplemented, StageInFailure, StageOutFailure
+from pilot.common.exception import PilotException, StageInFailure, StageOutFailure
 from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.filehandling import copy, read_json, write_file  #, find_executable
@@ -21,16 +20,17 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def containerise_middleware(job, queue, eventtype, localsite, remotesite, stagein=True):
+def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite, label='stage-in'):
     """
     Containerise the middleware by performing stage-in/out steps in a script that in turn can be run in a container.
 
     :param job: job object.
+    :param xdata: list of FileSpec objects.
     :param queue: queue name (string).
     :param eventtype:
     :param localsite:
     :param remotesite:
-    :param stagein: optional Boolean.
+    :param label: 'stage-in/out' (String).
     :return:
     :raises NotImplemented: if stagein=False, until stage-out script has been written
     :raises StageInFailure: for stage-in failures
@@ -38,13 +38,13 @@ def containerise_middleware(job, queue, eventtype, localsite, remotesite, stagei
     """
 
     cwd = getcwd()
+    logger.debug('cwd=%s' % cwd)
 
-    # get the name of the stage-in isolation script
-    script = config.Container.middleware_container_stagein_script
+    # get the name of the stage-in/out isolation script
+    script = config.Container.middleware_container_stagein_script if label == 'stage-in' else config.Container.middleware_container_stageout_script
 
-    label = 'stage-in' if stagein else 'stage-out'
     try:
-        cmd = get_command(job, queue, script, eventtype, localsite, remotesite, label=label)
+        cmd = get_command(job, xdata, queue, script, eventtype, localsite, remotesite, label=label)
     except PilotException as e:
         raise e
 
@@ -56,6 +56,8 @@ def containerise_middleware(job, queue, eventtype, localsite, remotesite, stagei
             cmd = user.create_middleware_container_command(job.workdir, cmd, label=label)
         except PilotException as e:
             raise e
+    else:
+        logger.warning('bad configuration? check config.Container.use_middleware_container value')
 
     try:
         logger.info('*** executing %s (logging will be redirected) ***' % label)
@@ -75,24 +77,49 @@ def containerise_middleware(job, queue, eventtype, localsite, remotesite, stagei
             _stdout_name, _stderr_name = get_logfile_names(label)
             write_file(path.join(job.workdir, _stdout_name), stdout, mute=False)
             write_file(path.join(job.workdir, _stderr_name), stderr, mute=False)
+            logger.debug('stage-in/out stdout=\n%s' % stdout)
+            logger.debug('stage-in/out stderr=\n%s' % stderr)
         except PilotException as e:
             msg = 'exception caught: %s' % e
-            if stagein:
+            if label == 'stage-in':
                 raise StageInFailure(msg)
             else:
                 raise StageOutFailure(msg)
 
-    # handle errors and file statuses (the stage-in script writes errors and file status to a json file)
+    # handle errors and file statuses (the stage-in/out scripts write errors and file status to a json file)
     try:
-        handle_containerised_errors(job)
+        handle_containerised_errors(job, xdata, label=label)
     except PilotException as e:
         raise e
 
 
-def get_command(job, queue, script, eventtype, localsite, remotesite, label='stage-in'):
+def get_script_path(script):
     """
 
+    :param script:
+    :return:
+    """
+
+    srcdir = environ.get('PILOT_SOURCE_DIR', '.')
+    logger.debug('PILOT_SOURCE_DIR=%s' % srcdir)
+
+    _path = path.join(srcdir, 'pilot/scripts')
+    if not path.exists(_path):
+        _path = path.join(srcdir, 'pilot2')
+        _path = path.join(_path, 'pilot/scripts')
+    _path = path.join(_path, script)
+    if not path.exists(_path):
+        _path = ''
+
+    return _path
+
+
+def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, label='stage-in'):
+    """
+    Get the middleware container execution command.
+
     :param job: job object.
+    :param xdata: list of FileSpec objects.
     :param queue: queue name (string).
     :param script: name of stage-in/out script (string).
     :param eventtype:
@@ -104,12 +131,30 @@ def get_command(job, queue, script, eventtype, localsite, remotesite, label='sta
     :raises StageOutFailure: for stage-out failures
     """
 
-    data = job.indata if label == 'stage-in' else job.outdata
-    lfns, scopes = get_filedata_strings(data)
-    srcdir = environ.get('PILOT_SOURCE_DIR', '.')
+    filedata_dictionary = get_filedata_strings(xdata)
+    srcdir = path.join(environ.get('PILOT_SOURCE_DIR', '.'), 'pilot2')
+    if not path.exists(srcdir):
+        msg = 'pilot source directory not correct: %s' % srcdir
+        logger.debug(msg)
+        if label == 'stage-in':
+            raise StageInFailure(msg)
+        else:
+            raise StageOutFailure(msg)
+    else:
+        logger.debug('using pilot source directory: %s' % srcdir)
+
+    #_path = get_script_path(script)
+    #if not path.exists(_path):
+    #    msg = 'no such path: %s' % _path
+    #    logger.warning(msg)
+    #    if label == 'stage-in':
+    #        raise StageInFailure(msg)
+    #    else:
+    #        raise StageOutFailure(msg)
 
     try:
-        copy(path.join(path.join(srcdir, 'pilot/scripts'), script), job.workdir)
+        pass
+        #copy(_path, job.workdir)
     except PilotException as e:
         msg = 'exception caught: %s' % e
         logger.warning(msg)
@@ -119,20 +164,43 @@ def get_command(job, queue, script, eventtype, localsite, remotesite, label='sta
             raise StageOutFailure(msg)
     else:
         final_script_path = path.join(job.workdir, script)
-        try:
-            # make the script executable
-            chmod(final_script_path, 0o755)  # Python 2/3
-        except Exception as e:
-            msg = 'exception caught: %s' % e
-            logger.warning(msg)
-            if label == 'stage-in':
-                raise StageInFailure(msg)
-            else:
-                raise StageOutFailure(msg)
+        #try:
+        #    # make the script executable
+        #    chmod(final_script_path, 0o755)  # Python 2/3
+        #except Exception as e:
+        #    msg = 'exception caught: %s' % e
+        #    logger.warning(msg)
+        #    if label == 'stage-in':
+        #        raise StageInFailure(msg)
+        #    else:
+        #        raise StageOutFailure(msg)
 
-        # copy pilot source for now - investigate why there is a config read error when source is set to cvmfs pilot dir
+        # copy pilot source into container directory, unless it is already there
         try:
-            copytree(srcdir, path.join(job.workdir, 'pilot2'))
+            #dest = path.join(job.workdir, 'pilot2')
+            #if not path.exists(dest):
+            logger.debug('copy %s to %s' % (srcdir, job.workdir))
+            cmd = 'cp -r %s/* %s' % (srcdir, job.workdir)
+            exit_code, stdout, stderr = execute(cmd)
+            if exit_code != 0:
+                msg = 'file copy failed: %d, %s' % (exit_code, stdout)
+                logger.warning(msg)
+                if label == 'stage-in':
+                    raise StageInFailure(msg)
+                else:
+                    raise StageOutFailure(msg)
+
+            #copytree(srcdir, job.workdir)
+            environ['PYTHONPATH'] = environ.get('PYTHONPATH') + ':' + job.workdir
+            logger.debug('PYTHONPATH=%s' % environ.get('PYTHONPATH'))
+
+            script_path = path.join('pilot/scripts', script)
+            full_script_path = path.join(path.join(job.workdir, script_path))
+
+            copy(full_script_path, final_script_path)
+            logger.debug('full_script_path=%s' % full_script_path)
+            logger.debug('final_script_path=%s' % final_script_path)
+            chmod(final_script_path, 0o755)  # Python 2/3
         except Exception as e:
             msg = 'exception caught when copying pilot2 source: %s' % e
             logger.warning(msg)
@@ -152,54 +220,66 @@ def get_command(job, queue, script, eventtype, localsite, remotesite, label='sta
             cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
                   '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
                   '--eventservicemerge=%s --usepcache=%s' % \
-                  (final_script_path, lfns, scopes, workdir, queue, eventtype, localsite,
+                  (final_script_path, filedata_dictionary['lfns'], filedata_dictionary['scopes'], workdir, queue, eventtype, localsite,
                    remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
                    job.is_eventservicemerge, job.infosys.queuedata.use_pcache)
-        else:
-            raise NotImplemented("stage-out script not implemented yet")
+        else:  # stage-out
+            cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
+                  '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
+                  '--datasets=%s --ddmendpoints=%s --guids=%s' % \
+                  (final_script_path, filedata_dictionary['lfns'], filedata_dictionary['scopes'], workdir, queue, eventtype, localsite,
+                   remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
+                   filedata_dictionary['datasets'], filedata_dictionary['ddmendpoints'], filedata_dictionary['guids'])
 
     return cmd
 
 
-def handle_containerised_errors(job, stagein=True):
+def handle_containerised_errors(job, xdata, label='stage-in'):
     """
 
     :param job: job object.
-    :param stagein: Boolean.
+    :param xdata: list of FileSpec objects.
+    :param label: 'stage-in/out' (string).
     :return:
     :raises: StageInFailure, StageOutFailure
     """
 
+    dictionary_name = config.Container.stagein_dictionary if label == 'stage-in' else config.Container.stageout_dictionary
+
     # read the JSON file created by the stage-in/out script
-    _path = path.join(job.workdir)
-    file_dictionary = read_json(path.join(_path, config.Container.stagein_dictionary))
-    if not file_dictionary:
-        _path = path.join(_path, '..')
-        file_dictionary = read_json(path.join(_path, config.Container.stagein_dictionary))
+    if path.exists(path.join(job.workdir, dictionary_name + '.log')):
+        dictionary_name += '.log'
+    file_dictionary = read_json(path.join(job.workdir, dictionary_name))
 
     # update the job object accordingly
     if file_dictionary:
-        # get file info
-        for fspec in job.indata:
+        # get file info and set essential parameters
+        for fspec in xdata:
             try:
                 fspec.status = file_dictionary[fspec.lfn][0]
                 fspec.status_code = file_dictionary[fspec.lfn][1]
+                if label == 'stage-out':
+                    fspec.surl = file_dictionary[fspec.lfn][2]
+                    fspec.turl = file_dictionary[fspec.lfn][3]
+                    fspec.checksum['adler32'] = file_dictionary[fspec.lfn][4]
+                    fspec.filesize = file_dictionary[fspec.lfn][5]
             except Exception as e:
                 msg = "exception caught while reading file dictionary: %s" % e
                 logger.warning(msg)
-                if stagein:
+                if label == 'stage-in':
                     raise StageInFailure(msg)
                 else:
                     raise StageOutFailure(msg)
+
         # get main error info ('error': [error_diag, error_code])
         error_diag = file_dictionary['error'][0]
         error_code = file_dictionary['error'][1]
         if error_code:
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error_code, msg=error_diag)
     else:
-        msg = "stage-in file dictionary not found"
+        msg = "%s file dictionary not found" % label
         logger.warning(msg)
-        if stagein:
+        if label == 'stage-in':
             raise StageInFailure(msg)
         else:
             raise StageOutFailure(msg)
@@ -229,19 +309,25 @@ def get_logfile_names(label):
 
 def get_filedata_strings(data):
     """
-    Return a comma-separated list of LFNs and scopes.
+    Return a dictionary with comma-separated list of LFNs, guids, scopes, datasets and ddmendpoints.
 
-    :param data: job [in|out]data (list of FileSpec).
-    :return: lfns (string), scopes (string).
+    :param data: job [in|out]data (list of FileSpec objects).
+    :return: {'lfns': lfns, ..} (dictionary).
     """
 
     lfns = ""
+    guids = ""
     scopes = ""
+    datasets = ""
+    ddmendpoints = ""
     for fspec in data:
         lfns = fspec.lfn if lfns == "" else lfns + ",%s" % fspec.lfn
+        guids = fspec.guid if guids == "" else guids + ",%s" % fspec.guid
         scopes = fspec.scope if scopes == "" else scopes + ",%s" % fspec.scope
+        datasets = fspec.dataset if datasets == "" else datasets + ",%s" % fspec.dataset
+        ddmendpoints = fspec.ddmendpoint if ddmendpoints == "" else ddmendpoints + ",%s" % fspec.ddmendpoint
 
-    return lfns, scopes
+    return {'lfns': lfns, 'guids': guids, 'scopes': scopes, 'datasets': datasets, 'ddmendpoints': ddmendpoints}
 
 
 def use_middleware_container(container_type):

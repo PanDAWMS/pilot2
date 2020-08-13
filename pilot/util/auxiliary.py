@@ -189,22 +189,12 @@ def get_logger(job_id, log=None):
     return log
 
 
-def shell_exit_code(exit_code):
+def get_error_code_translation_dictionary():
     """
-    Translate the pilot exit code to a proper exit code for the shell (wrapper).
-    Any error code that is to be converted by this function, should be added to the traces object like:
-      traces.pilot['error_code'] = errors.<ERRORCODE>
-    The traces object will be checked by the pilot module.
+    Define the error code translation dictionary.
 
-    :param exit_code: pilot error code (int).
-    :return: standard shell exit code (int).
+    :return: populated error code translation dictionary.
     """
-
-    # Error code translation dictionary
-    # FORMAT: { pilot_error_code : [ shell_error_code, meaning ], .. }
-
-    # Restricting user (pilot) exit codes to the range 64 - 113, as suggested by http://tldp.org/LDP/abs/html/exitcodes.html
-    # Using exit code 137 for kill signal error codes (this actually means a hard kill signal 9, (128+9), 128+2 would mean CTRL+C)
 
     error_code_translation_dictionary = {
         -1: [64, "Site offline"],
@@ -222,6 +212,7 @@ def shell_exit_code(exit_code):
         errors.BLACKHOLE: [75, "Black hole detected in file system"],  # ..
         errors.MIDDLEWAREIMPORTFAILURE: [76, "Failed to import middleware module"],  # added to traces object
         errors.MISSINGINPUTFILE: [77, "Missing input file in SE"],  # should pilot report this type of error to wrapper?
+        errors.PANDAQUEUENOTACTIVE: [78, "PanDA queue is not active"],
         errors.KILLSIGNAL: [137, "General kill signal"],  # Job terminated by unknown kill signal
         errors.SIGTERM: [143, "Job killed by signal: SIGTERM"],  # 128+15
         errors.SIGQUIT: [131, "Job killed by signal: SIGQUIT"],  # 128+3
@@ -231,6 +222,28 @@ def shell_exit_code(exit_code):
         errors.SIGBUS: [138, "Job killed by signal: SIGBUS"]   # 128+10
     }
 
+    return error_code_translation_dictionary
+
+
+def shell_exit_code(exit_code):
+    """
+    Translate the pilot exit code to a proper exit code for the shell (wrapper).
+    Any error code that is to be converted by this function, should be added to the traces object like:
+      traces.pilot['error_code'] = errors.<ERRORCODE>
+    The traces object will be checked by the pilot module.
+
+    :param exit_code: pilot error code (int).
+    :return: standard shell exit code (int).
+    """
+
+    # Error code translation dictionary
+    # FORMAT: { pilot_error_code : [ shell_error_code, meaning ], .. }
+
+    # Restricting user (pilot) exit codes to the range 64 - 113, as suggested by http://tldp.org/LDP/abs/html/exitcodes.html
+    # Using exit code 137 for kill signal error codes (this actually means a hard kill signal 9, (128+9), 128+2 would mean CTRL+C)
+
+    error_code_translation_dictionary = get_error_code_translation_dictionary()
+
     if exit_code in error_code_translation_dictionary:
         return error_code_translation_dictionary.get(exit_code)[0]  # Only return the shell exit code, not the error meaning
     elif exit_code != 0:
@@ -238,6 +251,27 @@ def shell_exit_code(exit_code):
         return FAILURE
     else:
         return SUCCESS
+
+
+def convert_to_pilot_error_code(exit_code):
+    """
+    This conversion function is used to revert a batch system exit code back to a pilot error code.
+    Note: the function is used by Harvester.
+
+    :param exit_code: batch system exit code (int).
+    :return: pilot error code (int).
+    """
+    error_code_translation_dictionary = get_error_code_translation_dictionary()
+
+    list_of_keys = [key for (key, value) in error_code_translation_dictionary.items() if value[0] == exit_code]
+    # note: do not use logging object as this function is used by Harvester
+    if not list_of_keys:
+        print('unknown exit code: %d (no matching pilot error code)' % exit_code)
+        list_of_keys = [-1]
+    elif len(list_of_keys) > 1:
+        print('found multiple pilot error codes: %s' % list_of_keys)
+
+    return list_of_keys[0]
 
 
 def get_size(obj_0):

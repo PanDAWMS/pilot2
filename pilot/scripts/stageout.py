@@ -225,18 +225,23 @@ class Job():
         self.jobdefinitionid = jobdefinitionid
 
 
-def add_to_dictionary(dictionary, key, value1, value2):
+def add_to_dictionary(dictionary, key, value1, value2, value3, value4, value5, value6):
     """
-    Add key: [value1, value2] to dictionary.
+    Add key: [value1, value2, value3, value4, value5, value6] to dictionary.
+    In practice; lfn: [status, status_code, surl, turl, checksum, fsize].
 
     :param dictionary: dictionary to be updated.
-    :param key: key to be added (string).
-    :param value1: value1 to be added to list belonging to key.
-    :param value1: value2 to be added to list belonging to key.
+    :param key: lfn key to be added (string).
+    :param value1: status to be added to list belonging to key (string).
+    :param value2: status_code to be added to list belonging to key (string).
+    :param value3: surl to be added to list belonging to key (string).
+    :param value4: turl to be added to list belonging to key (string).
+    :param value5: checksum to be added to list belonging to key (string).
+    :param value6: fsize to be added to list belonging to key (string).
     :return: updated dictionary.
     """
 
-    dictionary[key] = [value1, value2]
+    dictionary[key] = [value1, value2, value3, value4, value5, value6]
     return dictionary
 
 
@@ -267,7 +272,7 @@ if __name__ == '__main__':
     args.debug = True
     args.nopilotlog = False
 
-    establish_logging(args, filename=config.Pilot.stageinlog)
+    establish_logging(args, filename=config.Pilot.stageoutlog)
     logger = logging.getLogger(__name__)
 
     #ret = verify_args()
@@ -301,14 +306,17 @@ if __name__ == '__main__':
 
     client = StageOutClient(infoservice, logger=logger, trace_report=trace_report)
     kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, job=job)  # , mode='stage-out')
-    # prod analy unification: use destination preferences from PanDA server for unified queues
-    if infoservice.queuedata.type != 'unified':
-        client.prepare_destinations(xfiles, activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
 
     for lfn, scope, dataset, ddmendpoint, guid in list(zip(lfns, scopes, datasets, ddmendpoints, guids)):
         try:
-            files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir, 'dataset': dataset, 'ddmendpoint': ddmendpoint}]
+            files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir, 'dataset': dataset, 'ddmendpoint': ddmendpoint, 'ddmendpoint_alt': None}]
             xfiles = [FileSpec(type='output', **f) for f in files]
+
+            # prod analy unification: use destination preferences from PanDA server for unified queues
+            if infoservice.queuedata.type != 'unified':
+                client.prepare_destinations(xfiles,
+                                            activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
+
             r = client.transfer(xfiles, activity=activity, **kwargs)
         except PilotException as error:
             import traceback
@@ -323,17 +331,21 @@ if __name__ == '__main__':
     # put file statuses in a dictionary to be written to file
     file_dictionary = {}  # { 'error': [error_diag, -1], 'lfn1': [status, status_code], 'lfn2':.., .. }
     if xfiles:
-        message('stagein script summary of transferred files:')
+        message('stageout script summary of transferred files:')
         for fspec in xfiles:
-            add_to_dictionary(file_dictionary, fspec.lfn, fspec.status, fspec.status_code)
+            add_to_dictionary(file_dictionary, fspec.lfn, fspec.status, fspec.status_code,
+                              fspec.surl, fspec.turl, fspec.checksum.get('adler32'), fspec.filesize)
             status = fspec.status if fspec.status else "(not transferred)"
-            message(" -- lfn=%s, status_code=%s, status=%s" % (fspec.lfn, fspec.status_code, status))
+            message(" -- lfn=%s, status_code=%s, status=%s, surl=%s, turl=%s, checksum=%s, filesize=%s" %
+                    (fspec.lfn, fspec.status_code, status, fspec.surl, fspec.turl, fspec.checksum.get('adler32'), fspec.filesize))
 
     # add error info, if any
     if err:
         errcode, err = extract_error_info(err)
-    add_to_dictionary(file_dictionary, 'error', err, errcode)
-    path = os.path.join(args.workdir, config.Container.stagein_dictionary)
+    add_to_dictionary(file_dictionary, 'error', err, errcode, None, None, None, None)
+    path = os.path.join(args.workdir, config.Container.stageout_dictionary)
+    if os.path.exists(path):
+        path += '.log'
     _status = write_json(path, file_dictionary)
     if err:
         message("containerised file transfers failed: %s" % err)

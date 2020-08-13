@@ -40,7 +40,7 @@ class ESProcess(threading.Thread):
     """
     Main EventService Process.
     """
-    def __init__(self, payload):
+    def __init__(self, payload, waiting_time=30 * 60):
         """
         Init ESProcess.
 
@@ -60,7 +60,7 @@ class ESProcess(threading.Thread):
         self.__monitor_log_time = None
         self.is_no_more_events = False
         self.__no_more_event_time = None
-        self.__waiting_time = 30 * 60
+        self.__waiting_time = waiting_time
         self.__stop = threading.Event()
         self.__stop_time = 180
         self.pid = None
@@ -279,7 +279,7 @@ class ESProcess(threading.Thread):
 
         if self.__no_more_event_time and time.time() - self.__no_more_event_time > self.__waiting_time:
             self.__ret_code = -1
-            raise Exception('Too long time(%s seconds) since "No more events" is injected' %
+            raise Exception('Too long time (%s seconds) since "No more events" is injected' %
                             (time.time() - self.__no_more_event_time))
 
         if self.__monitor_log_time is None or self.__monitor_log_time < time.time() - 10 * 60:
@@ -292,7 +292,7 @@ class ESProcess(threading.Thread):
             raise MessageFailure("Message thread is not alive.")
 
         if self.__process is None:
-            raise RunPayloadFailure("Payload Process has not started.")
+            raise RunPayloadFailure("Payload process has not started.")
         if self.__process.poll() is not None:
             if self.is_no_more_events:
                 logger.info("Payload finished with no more events")

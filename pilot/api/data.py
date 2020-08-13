@@ -487,7 +487,7 @@ class StagingClient(object):
 
         return files
 
-    def require_protocols(self, files, copytool, activity):
+    def require_protocols(self, files, copytool, activity, local_dir=''):
         """
             Populates fspec.protocols and fspec.turl for each entry in `files` according to preferred fspec.ddm_activity
             :param files: list of `FileSpec` objects
@@ -501,13 +501,20 @@ class StagingClient(object):
             copytool_name = copytool.__name__.rsplit('.', 1)[-1]
             allowed_schemas = self.infosys.queuedata.resolve_allowed_schemas(activity, copytool_name) or allowed_schemas
 
-        files = self.resolve_protocols(files)
+        if local_dir:
+            for fdat in files:
+                if not local_dir.endswith('/'):
+                    local_dir += '/'
+                fdat.protocols = [{'endpoint': local_dir, 'flavour': '', 'id': 0, 'path': ''}]
+        else:
+            files = self.resolve_protocols(files)
+
         ddmconf = self.infosys.resolve_storage_data()
 
         for fspec in files:
 
             protocols = self.resolve_protocol(fspec, allowed_schemas)
-            if not protocols:  #  no protocols found
+            if not protocols and 'mv' not in self.infosys.queuedata.copytools:  #  no protocols found
                 error = 'Failed to resolve protocol for file=%s, allowed_schemas=%s, fspec=%s' % (fspec.lfn, allowed_schemas, fspec)
                 self.logger.error("resolve_protocol: %s" % error)
                 raise PilotException(error, code=ErrorCodes.NOSTORAGEPROTOCOL)
@@ -515,13 +522,14 @@ class StagingClient(object):
             # take first available protocol for copytool: FIX ME LATER if need (do iterate over all allowed protocols?)
             protocol = protocols[0]
 
-            self.logger.info("Resolved protocol to be used for transfer lfn=%s: data=%s" % (protocol, fspec.lfn))
+            self.logger.info("Resolved protocol to be used for transfer: \'%s\': lfn=\'%s\'" % (protocol, fspec.lfn))
 
             resolve_surl = getattr(copytool, 'resolve_surl', None)
             if not callable(resolve_surl):
                 resolve_surl = self.resolve_surl
 
-            r = resolve_surl(fspec, protocol, ddmconf)  ## pass ddmconf for possible custom look up at the level of copytool
+            r = resolve_surl(fspec, protocol, ddmconf, local_dir=local_dir)  ## pass ddmconf for possible custom look up at the level of copytool
+            self.logger.debug('r=%s' % str(r))
             if r.get('surl'):
                 fspec.turl = r['surl']
             if r.get('ddmendpoint'):
@@ -759,7 +767,7 @@ class StageInClient(StagingClient):
 
         # prepare files (resolve protocol/transfer url)
         if getattr(copytool, 'require_input_protocols', False) and files:
-            self.require_protocols(files, copytool, activity)
+            self.require_protocols(files, copytool, activity, local_dir=kwargs['input_dir'])
 
         # mark direct access files with status=remote_io
         self.set_status_for_direct_access(files)
@@ -898,8 +906,11 @@ class StageOutClient(StagingClient):
                 break
 
         if not storages:
-            raise PilotException("Failed to resolve destination: no associated storages defined for activity=%s (%s)"
-                                 % (activity, ','.join(activities)), code=ErrorCodes.NOSTORAGE, state='NO_ASTORAGES_DEFINED')
+            if 'mv' in self.infosys.queuedata.copytools:
+                return files
+            else:
+                raise PilotException("Failed to resolve destination: no associated storages defined for activity=%s (%s)"
+                                     % (activity, ','.join(activities)), code=ErrorCodes.NOSTORAGE, state='NO_ASTORAGES_DEFINED')
 
         # take the fist choice for now, extend the logic later if need
         ddm = storages[0]
@@ -951,17 +962,18 @@ class StageOutClient(StagingClient):
             :return: dict with keys ('pfn', 'ddmendpoint')
         """
 
-        # consider only deterministic sites (output destination)
+        local_dir = kwargs.get('local_dir', '')
+        if not local_dir:
+            # consider only deterministic sites (output destination) - unless local input/output
+            ddm = ddmconf.get(fspec.ddmendpoint)
+            if not ddm:
+                raise PilotException('Failed to resolve ddmendpoint by name=%s' % fspec.ddmendpoint)
 
-        ddm = ddmconf.get(fspec.ddmendpoint)
-        if not ddm:
-            raise PilotException('Failed to resolve ddmendpoint by name=%s' % fspec.ddmendpoint)
-
-        # path = protocol.get('path', '').rstrip('/')
-        # if not (ddm.is_deterministic or (path and path.endswith('/rucio'))):
-        if not ddm.is_deterministic:
-            raise PilotException('resolve_surl(): Failed to construct SURL for non deterministic ddm=%s: '
-                                 'NOT IMPLEMENTED' % fspec.ddmendpoint, code=ErrorCodes.NONDETERMINISTICDDM)
+            # path = protocol.get('path', '').rstrip('/')
+            # if not (ddm.is_deterministic or (path and path.endswith('/rucio'))):
+            if not ddm.is_deterministic:
+                raise PilotException('resolve_surl(): Failed to construct SURL for non deterministic ddm=%s: '
+                                     'NOT IMPLEMENTED' % fspec.ddmendpoint, code=ErrorCodes.NONDETERMINISTICDDM)
 
         surl = protocol.get('endpoint', '') + os.path.join(protocol.get('path', ''), self.get_path(fspec.scope, fspec.lfn))
         return {'surl': surl}
@@ -984,9 +996,10 @@ class StageOutClient(StagingClient):
         for fspec in files:
 
             if not fspec.ddmendpoint:  # ensure that output destination is properly set
-                msg = 'No output RSE defined for file=%s' % fspec.lfn
-                self.logger.error(msg)
-                raise PilotException(msg, code=ErrorCodes.NOSTORAGE, state='NO_OUTPUTSTORAGE_DEFINED')
+                if 'mv' not in self.infosys.queuedata.copytools:
+                    msg = 'No output RSE defined for file=%s' % fspec.lfn
+                    self.logger.error(msg)
+                    raise PilotException(msg, code=ErrorCodes.NOSTORAGE, state='NO_OUTPUTSTORAGE_DEFINED')
 
             pfn = fspec.surl or getattr(fspec, 'pfn', None) or os.path.join(kwargs.get('workdir', ''), fspec.lfn)
             if not os.path.isfile(pfn) or not os.access(pfn, os.R_OK):
@@ -1010,7 +1023,11 @@ class StageOutClient(StagingClient):
 
         # prepare files (resolve protocol/transfer url)
         if getattr(copytool, 'require_protocols', True) and files:
-            self.require_protocols(files, copytool, activity)
+            try:
+                output_dir = kwargs['output_dir']
+            except Exception:
+                output_dir = ""
+            self.require_protocols(files, copytool, activity, local_dir=output_dir)
 
         if not copytool.is_valid_for_copy_out(files):
             self.logger.warning('Input is not valid for transfers using copytool=%s' % copytool)

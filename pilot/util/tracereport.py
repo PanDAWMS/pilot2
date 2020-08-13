@@ -111,6 +111,8 @@ class TraceReport(dict):
 
         # remove any escape characters that might be present in the stateReason field
         state_reason = self.get('stateReason', '')
+        if not state_reason:
+            state_reason = ''
         self.update(stateReason=state_reason.replace('\\', ''))
 
         if not self['eventType'] or not self['localSite'] or not self['remoteSite']:
