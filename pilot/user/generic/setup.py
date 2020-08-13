@@ -8,6 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017
 
 import os
+import re
 import glob
 from time import sleep
 
