@@ -333,7 +333,8 @@ if __name__ == '__main__':
     if xfiles:
         message('stageout script summary of transferred files:')
         for fspec in xfiles:
-            add_to_dictionary(file_dictionary, fspec.lfn, fspec.status, fspec.status_code, fspec.surl, fspec.turl, fspec.checksum.get('adler32'), fspec.filesize)
+            add_to_dictionary(file_dictionary, fspec.lfn, fspec.status, fspec.status_code,
+                              fspec.surl, fspec.turl, fspec.checksum.get('adler32'), fspec.filesize)
             status = fspec.status if fspec.status else "(not transferred)"
             message(" -- lfn=%s, status_code=%s, status=%s, surl=%s, turl=%s, checksum=%s, filesize=%s" %
                     (fspec.lfn, fspec.status_code, status, fspec.surl, fspec.turl, fspec.checksum.get('adler32'), fspec.filesize))

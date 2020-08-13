@@ -13,7 +13,7 @@ from getpass import getuser
 from re import search
 
 # from pilot.info import infosys
-from .setup import get_asetup, get_file_system_root_path
+from .setup import get_asetup
 from pilot.util.auxiliary import get_logger, is_python3
 from pilot.util.container import execute
 from pilot.util.filehandling import read_json, copy
