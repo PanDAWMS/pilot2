@@ -88,7 +88,7 @@ def get_memory_monitor_output_filename():
     return "memory_monitor_output.txt"
 
 
-def get_memory_monitor_setup(pid, pgrp, jobid, workdir, command, setup="", use_container=True, transformation="", outdata=None):
+def get_memory_monitor_setup(pid, pgrp, jobid, workdir, command, setup="", use_container=True, transformation="", outdata=None, dump_ps=False):
     """
     Return the proper setup for the memory monitor.
     If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the
@@ -104,11 +104,53 @@ def get_memory_monitor_setup(pid, pgrp, jobid, workdir, command, setup="", use_c
     :param use_container: optional boolean.
     :param transformation: optional name of transformation, e.g. Sim_tf.py (string).
     :param outdata: optional list of output fspec objects (list).
+    :param dump_ps: should ps output be dumped when identifying prmon process? (Boolean).
     :return: job work directory (string), pid for process inside container (int).
     """
 
     # try to get the pid from a pid.txt file which might be created by a container_script
-    pid = get_proper_pid(pid, pgrp, jobid, command, transformation, outdata, use_container=use_container)
+    pid = get_proper_pid(pid, pgrp, jobid, command=command, transformation=transformation, outdata=outdata, use_container=use_container, dump_ps=dump_ps)
+    if pid == -1:
+        logger.warning('process id was not identified before payload finished - will not launch memory monitor')
+        return "", pid
+
+    if not setup:
+        setup = get_asetup(asetup=False)
+        setup += 'lsetup prmon;'
+    if not setup.endswith(';'):
+        setup += ';'
+
+    cmd = "%sprmon " % setup
+    interval = 60
+    options = "--pid %d --filename %s --json-summary %s --interval %d" %\
+              (pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
+    cmd = "cd " + workdir + ";" + setup + cmd + options
+
+    return cmd, pid
+
+
+def get_memory_monitor_setup_old(pid, pgrp, jobid, workdir, command, setup="", use_container=True, transformation="", outdata=None, dump_ps=False):
+    """
+    Return the proper setup for the memory monitor.
+    If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the
+    memory monitor was still located in the release area. After many problems with the memory monitor, it was decided
+    to use a fixed version for the setup. Currently, release 21.0.22 is used.
+
+    :param pid: job process id (int).
+    :param pgrp: process group id (int).
+    :param jobid: job id (int).
+    :param workdir: job work directory (string).
+    :param command: payload command (string).
+    :param setup: optional setup in case asetup can not be used, which uses infosys (string).
+    :param use_container: optional boolean.
+    :param transformation: optional name of transformation, e.g. Sim_tf.py (string).
+    :param outdata: optional list of output fspec objects (list).
+    :param dump_ps: should ps output be dumped when identifying prmon process? (Boolean).
+    :return: job work directory (string), pid for process inside container (int).
+    """
+
+    # try to get the pid from a pid.txt file which might be created by a container_script
+    pid = get_proper_pid(pid, pgrp, jobid, command=command, transformation=transformation, outdata=outdata, use_container=use_container, dump_ps=dump_ps)
     if pid == -1:
         logger.warning('process id was not identified before payload finished - will not launch memory monitor')
         return "", pid
@@ -130,6 +172,7 @@ def get_memory_monitor_setup(pid, pgrp, jobid, workdir, command, setup="", use_c
         _cmd = "MemoryMonitor "
         setup = setup.replace(release, "21.0.22")
         setup = setup.replace(platform, "x86_64-slc6-gcc62-opt")
+
     options = "--pid %d --filename %s --json-summary %s --interval %d" %\
               (pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
     _cmd = "cd " + workdir + ";" + setup + _cmd + options
@@ -137,7 +180,7 @@ def get_memory_monitor_setup(pid, pgrp, jobid, workdir, command, setup="", use_c
     return _cmd, pid
 
 
-def get_proper_pid(pid, pgrp, jobid, command, transformation, outdata, use_container=True):
+def get_proper_pid(pid, pgrp, jobid, command="", transformation="", outdata="", use_container=True, dump_ps=False):
     """
     Return a pid from the proper source to be used with the memory monitor.
     The given pid comes from Popen(), but in the case containers are used, the pid should instead come from a ps aux
@@ -165,8 +208,9 @@ def get_proper_pid(pid, pgrp, jobid, command, transformation, outdata, use_conta
 
     #_cmd = get_trf_command(command, transformation=transformation)
     # get ps info using group id
-    #ps = get_ps_info(pgrp)
-    #logger.debug('ps:\n%s' % ps)
+    ps = get_ps_info(pgrp)
+    if dump_ps:
+        logger.debug('ps:\n%s' % ps)
     #logger.debug('attempting to identify pid for Singularity (v.3) runtime parent process')
     #_pid = get_pid_for_command(ps, command="Singularity runtime parent")
     #if _pid:
@@ -458,10 +502,10 @@ def get_memory_monitor_info(workdir, allowtxtfile=False, name=""):  # noqa: C901
                 logger.info("extracted standard memory fields from memory monitor json")
         elif version == 'prmon':
             try:
-                node['maxRSS'] = summary_dictionary['Max']['rss']
-                node['maxVMEM'] = summary_dictionary['Max']['vmem']
-                node['maxSWAP'] = summary_dictionary['Max']['swap']
-                node['maxPSS'] = summary_dictionary['Max']['pss']
+                node['maxRSS'] = int(summary_dictionary['Max']['rss'])
+                node['maxVMEM'] = int(summary_dictionary['Max']['vmem'])
+                node['maxSWAP'] = int(summary_dictionary['Max']['swap'])
+                node['maxPSS'] = int(summary_dictionary['Max']['pss'])
                 node['avgRSS'] = summary_dictionary['Avg']['rss']
                 node['avgVMEM'] = summary_dictionary['Avg']['vmem']
                 node['avgSWAP'] = summary_dictionary['Avg']['swap']
@@ -480,10 +524,10 @@ def get_memory_monitor_info(workdir, allowtxtfile=False, name=""):  # noqa: C901
             else:
                 logger.info("extracted standard info from prmon json")
             try:
-                node['totRCHAR'] = summary_dictionary['Max']['rchar']
-                node['totWCHAR'] = summary_dictionary['Max']['wchar']
-                node['totRBYTES'] = summary_dictionary['Max']['read_bytes']
-                node['totWBYTES'] = summary_dictionary['Max']['write_bytes']
+                node['totRCHAR'] = int(summary_dictionary['Max']['rchar'])
+                node['totWCHAR'] = int(summary_dictionary['Max']['wchar'])
+                node['totRBYTES'] = int(summary_dictionary['Max']['read_bytes'])
+                node['totWBYTES'] = int(summary_dictionary['Max']['write_bytes'])
                 node['rateRCHAR'] = summary_dictionary['Avg']['rchar']
                 node['rateWCHAR'] = summary_dictionary['Avg']['wchar']
                 node['rateRBYTES'] = summary_dictionary['Avg']['read_bytes']

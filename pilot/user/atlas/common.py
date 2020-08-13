@@ -87,6 +87,16 @@ def validate(job):
     if not status:
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.DBRELEASEFAILURE)
 
+    # make sure that any given images actually exist
+    if status:
+        if job.imagename and job.imagename.startswith('/'):
+            if os.path.exists(job.imagename):
+                log.info('verified that image exists: %s' % job.imagename)
+            else:
+                status = False
+                log.warning('image does not exist: %s' % job.imagename)
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.IMAGENOTFOUND)
+
     # cleanup job parameters if only copy-to-scratch
     #if job.only_copy_to_scratch():
     #    log.debug('job.params=%s' % job.jobparams)
@@ -1270,7 +1280,7 @@ def get_redundants():
 
     # try to read the list from the external file
     filename = get_redundant_path()
-    if os.path.exists(filename):
+    if os.path.exists(filename) and False:  # do not use the cvmfs file since it is not being updated
         dir_list = read_list(filename)
         if dir_list:
             return dir_list
@@ -1329,11 +1339,11 @@ def get_redundants():
                 "pandawnutil/*",
                 "src/*",
                 "singularity_cachedir",
-                "singularity/*",  # new
                 "_joproxy15",
                 "HAHM_*",
                 "Process",
                 "merged_lhef._0.events-new",
+                "singularity/*",  # new
                 "/cores",  # new
                 "/work",  # new
                 "/pilot2"]  # new
@@ -1402,6 +1412,7 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):  # noqa: C
 
     :param workdir: working directory (string).
     :param outputfiles: list of output files.
+    :param islooping: looping job variable to make sure workDir is not removed in case of looping (boolean).
     :return:
     """
 
@@ -1469,6 +1480,16 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):  # noqa: C
     path = os.path.join(workdir, "singularity")
     if os.path.exists(path):
         logger.debug('removing singularity')
+        remove_dir_tree(path)
+
+    path = os.path.join(workdir, "pilot")
+    if os.path.exists(path):
+        logger.debug('removing pilot source dir from workdir')
+        remove_dir_tree(path)
+
+    path = os.path.join(workdir, "cores")
+    if os.path.exists(path):
+        logger.debug('removing cores dir from workdir')
         remove_dir_tree(path)
 
     ls(workdir)
@@ -1555,8 +1576,9 @@ def get_utility_command_setup(name, job, setup=None):
     if name == 'MemoryMonitor':
         # must know if payload is running in a container or not (enables search for pid in ps output)
         use_container = job.usecontainer or 'runcontainer' in job.transformation
+        dump_ps = True if "PRMON_DEBUG" in job.infosys.queuedata.catchall else False
         setup, pid = get_memory_monitor_setup(job.pid, job.pgrp, job.jobid, job.workdir, job.command, use_container=use_container,
-                                              transformation=job.transformation, outdata=job.outdata)
+                                              transformation=job.transformation, outdata=job.outdata, dump_ps=dump_ps)
         _pattern = r"([\S]+)\ ."
         pattern = re.compile(_pattern)
         _name = re.findall(pattern, setup.split(';')[-1])

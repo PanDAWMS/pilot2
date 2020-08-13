@@ -325,7 +325,7 @@ def download_transform(url, transform_name, workdir):
                 logger.info("will try again after 60 s")
                 sleep(60)
         else:
-            logger.info("curl command returned: %s" % (stdout))
+            logger.info("curl command returned: %s" % stdout)
             status = True
             break
         trial += 1

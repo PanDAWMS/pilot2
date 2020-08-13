@@ -83,7 +83,7 @@ def verify_arcproxy(envsetup, limit):
 
     cmd = "%sarcproxy -i vomsACvalidityLeft" % (envsetup)
 
-    exit_code, stdout, stderr = execute(cmd, shell=True)
+    exit_code, stdout, stderr = execute(cmd, shell=True)  #, usecontainer=True, copytool=True)
     if stdout is not None:
         if 'command not found' in stdout:
             logger.warning("arcproxy is not available on this queue,"

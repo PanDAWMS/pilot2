@@ -157,12 +157,16 @@ def handle_rucio_error(error_msg, trace_report, trace_report_out, fspec, stagein
     """
 
     # try to get a better error message from the traces
+    error_msg_org = error_msg
     if trace_report_out:
-        logger.debug('reading stateReason from trace_report_out')
+        logger.debug('reading stateReason from trace_report_out: %s' % trace_report_out)
         error_msg = trace_report_out[0].get('stateReason', '')
+        if not error_msg:
+            logger.warning('could not extract error message from trace report - reverting to original error message')
+            error_msg = error_msg_org
     else:
         logger.debug('no trace_report_out')
-    logger.info('rucio returned an error: %s' % error_msg)
+    logger.info('rucio returned an error: \"%s\"' % error_msg)
 
     error_details = resolve_common_transfer_errors(error_msg, is_stagein=stagein)
     fspec.status = 'failed'
@@ -374,6 +378,7 @@ def copy_out(files, **kwargs):  # noqa: C901
                     summary_json = json.load(f)
                     dat = summary_json.get("%s:%s" % (fspec.scope, fspec.lfn)) or {}
                     fspec.turl = dat.get('pfn')
+                    logger.debug('set turl=%s' % fspec.turl)
                     # quick transfer verification:
                     # the logic should be unified and moved to base layer shared for all the movers
                     adler32 = dat.get('adler32')
@@ -433,6 +438,7 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout, 
 
     if transfer_timeout:
         f['transfer_timeout'] = transfer_timeout
+    f['connection_timeout'] = 60 * 60
 
     # proceed with the download
     logger.info('rucio API stage-in dictionary: %s' % f)
@@ -506,6 +512,7 @@ def _stage_in_bulk(dst, files, trace_report_out=None, trace_common_fields=None):
 
         if fspec.filesize:
             f['transfer_timeout'] = get_timeout(fspec.filesize)
+        f['connection_timeout'] = 60 * 60
 
         file_list.append(f)
 
@@ -554,6 +561,7 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, tra
 
     if transfer_timeout:
         f['transfer_timeout'] = transfer_timeout
+    f['connection_timeout'] = 60 * 60
 
     # if fspec.storageId and int(fspec.storageId) > 0:
     #     if fspec.turl and fspec.is_nondeterministic:
