@@ -857,6 +857,9 @@ def _stage_out_new(job, args):
             job.status['LOG_TRANSFER'] = LOG_TRANSFER_FAILED
         else:
             job.status['LOG_TRANSFER'] = LOG_TRANSFER_DONE
+    elif not job.logdata:
+        log.info('no log was defined - will not create log file')
+        job.status['LOG_TRANSFER'] = LOG_TRANSFER_DONE
 
     # write time stamps to pilot timing file
     add_to_pilot_timing(job.jobid, PILOT_POST_STAGEOUT, time.time(), args)
