@@ -30,5 +30,6 @@ setup(
     packages=find_packages(),
     install_requires=[],
     data_files=[],
+    include_package_data=True,
     scripts=['pilot.py']
     )
