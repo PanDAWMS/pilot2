@@ -868,8 +868,10 @@ def get_job_label(args):
     # PQ status
     status = infosys.queuedata.status
 
-    if args.version_tag == 'RC' and (args.job_label == 'ptest' or args.job_label == 'rc_test2'):
+    if args.version_tag == 'RC' and args.job_label == 'rc_test2':
         job_label = 'rc_test2'
+    elif args.version_tag == 'RC' and args.job_label == 'ptest':
+        job_label = args.job_label
     elif args.version_tag == 'RCM' and args.job_label == 'ptest':
         job_label = 'rcm_test2'
     elif args.version_tag == 'ALRB':
