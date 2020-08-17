@@ -269,12 +269,13 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
                     log.debug('Warning - could not write log and output files to file %s' % event_status_file)
                     return False
                 # publish job report
-                if publish_job_report(job, args, config.Payload.jobreport):
-                    log.debug('wrote job report file')
-                    return True
-                else:
-                    log.debug('Failed to write job report file')
-                    return False
+                if os.path.exists(config.Payload.jobreport):
+                    if publish_job_report(job, args, config.Payload.jobreport):
+                        log.debug('wrote job report file')
+                        return True
+                    else:
+                        log.debug('Failed to write job report file')
+                        return False
             else:
                 log.info('finish writing various report files in Harvester mode')
                 return True
