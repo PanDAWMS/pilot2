@@ -24,6 +24,7 @@ except Exception:
 
 from pilot.info import infosys
 from pilot.common.exception import PilotException, ErrorCodes, SizeTooLarge, NoLocalSpace, ReplicasNotFound
+from pilot.util.config import config
 from pilot.util.filehandling import calculate_checksum
 from pilot.util.math import convert_mb_to_b
 from pilot.util.parameters import get_maximum_input_sizes
@@ -83,9 +84,9 @@ class StagingClient(object):
         self.acopytools = acopytools or {}
 
         if self.infosys.queuedata:
-            if not self.acopytools:  ## resolve from queuedata.acopytools using infosys
+            if not self.acopytools:  # resolve from queuedata.acopytools using infosys
                 self.acopytools = (self.infosys.queuedata.acopytools or {}).copy()
-            if not self.acopytools:  ## resolve from queuedata.copytools using infosys
+            if not self.acopytools:  # resolve from queuedata.copytools using infosys
                 #self.acopytools = dict(default=(self.infosys.queuedata.copytools or {}).keys())  # Python 2
                 self.acopytools = dict(default=list((self.infosys.queuedata.copytools or {}).keys()))  # Python 2/3
 
@@ -266,7 +267,7 @@ class StagingClient(object):
 
             for pfn, xdat in xreplicas:
 
-                if xdat.get('type') != 'DISK':  ## consider only DISK replicas
+                if xdat.get('type') != 'DISK':  # consider only DISK replicas
                     continue
 
                 rinfo = {'pfn': pfn, 'ddmendpoint': xdat.get('rse'), 'domain': xdat.get('domain')}
@@ -403,6 +404,9 @@ class StagingClient(object):
             if fspec.ddm_activity:  # skip already initialized data
                 continue
             if self.mode == 'stage-in':
+                if config.Payload.executor_type.lower() == 'raythena':
+                    fspec.status = 'no_transfer'
+
                 try:
                     fspec.ddm_activity = filter(None, ['read_lan' if fspec.ddmendpoint in fspec.inputddms else None, 'read_wan'])  # Python 2
                 except Exception:
@@ -466,7 +470,7 @@ class StagingClient(object):
 
         remain_files = [f for f in files if f.status not in ['remote_io', 'transferred', 'no_transfer']]
 
-        if remain_files:  ## failed or incomplete transfer
+        if remain_files:  # failed or incomplete transfer
             # Propagate message from first error back up
             errmsg = str(caught_errors[0]) if caught_errors else ''
             if caught_errors and "Cannot authenticate" in str(caught_errors):
@@ -514,7 +518,7 @@ class StagingClient(object):
         for fspec in files:
 
             protocols = self.resolve_protocol(fspec, allowed_schemas)
-            if not protocols and 'mv' not in self.infosys.queuedata.copytools:  #  no protocols found
+            if not protocols and 'mv' not in self.infosys.queuedata.copytools:  # no protocols found
                 error = 'Failed to resolve protocol for file=%s, allowed_schemas=%s, fspec=%s' % (fspec.lfn, allowed_schemas, fspec)
                 self.logger.error("resolve_protocol: %s" % error)
                 raise PilotException(error, code=ErrorCodes.NOSTORAGEPROTOCOL)
@@ -528,7 +532,7 @@ class StagingClient(object):
             if not callable(resolve_surl):
                 resolve_surl = self.resolve_surl
 
-            r = resolve_surl(fspec, protocol, ddmconf, local_dir=local_dir)  ## pass ddmconf for possible custom look up at the level of copytool
+            r = resolve_surl(fspec, protocol, ddmconf, local_dir=local_dir)  # pass ddmconf for possible custom look up at the level of copytool
             self.logger.debug('r=%s' % str(r))
             if r.get('surl'):
                 fspec.turl = r['surl']
@@ -615,7 +619,7 @@ class StageInClient(StagingClient):
 
             if rinfo['domain'] != domain:
                 continue
-            if primary_schemas and not primary_replica:  ## look up primary schemas if requested
+            if primary_schemas and not primary_replica:  # look up primary schemas if requested
                 primary_replica = self.get_preferred_replica([rinfo], primary_schemas)
             if not replica:
                 replica = self.get_preferred_replica([rinfo], allowed_schemas)
@@ -649,7 +653,7 @@ class StageInClient(StagingClient):
         """
 
         allow_direct_access, direct_access_type = False, ''
-        if self.infosys.queuedata:  ## infosys is initialized
+        if self.infosys.queuedata:  # infosys is initialized
             allow_direct_access = self.infosys.queuedata.direct_access_lan or self.infosys.queuedata.direct_access_wan
             if self.infosys.queuedata.direct_access_lan:
                 direct_access_type = 'LAN'
@@ -658,7 +662,7 @@ class StageInClient(StagingClient):
         else:
             self.logger.info('infosys.queuedata is not initialized: direct access mode will be DISABLED by default')
 
-        if job and not job.is_analysis() and job.transfertype != 'direct':  ## task forbids direct access
+        if job and not job.is_analysis() and job.transfertype != 'direct':  # task forbids direct access
             allow_direct_access = False
             self.logger.info('switched off direct access mode for production job since transfertype=%s' % job.transfertype)
 
@@ -709,7 +713,7 @@ class StageInClient(StagingClient):
         """
 
         if getattr(copytool, 'require_replicas', False) and files:
-            if files[0].replicas is None:  ## look up replicas only once
+            if files[0].replicas is None:  # look up replicas only once
                 files = self.resolve_replicas(files)
 
             allowed_schemas = getattr(copytool, 'allowed_schemas', None)
@@ -826,7 +830,7 @@ class StageInClient(StagingClient):
                                  (fspec.lfn, direct_lan, direct_wan, fspec.turl))
 
                 # send trace
-                localsite = os.environ.get('RUCIO_LOCAL_SITE_ID') or os.environ.get('DQ2_LOCAL_SITE_ID')  ## VERIFY ME LATER
+                localsite = os.environ.get('RUCIO_LOCAL_SITE_ID') or os.environ.get('DQ2_LOCAL_SITE_ID')  # VERIFY ME LATER
                 localsite = localsite or fspec.ddmendpoint
                 self.trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
                 self.trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
@@ -882,7 +886,7 @@ class StageOutClient(StagingClient):
             :return: updated fspec entries
         """
 
-        if not self.infosys.queuedata:  ## infosys is not initialized: not able to fix destination if need, nothing to do
+        if not self.infosys.queuedata:  # infosys is not initialized: not able to fix destination if need, nothing to do
             return files
 
         try:
@@ -919,15 +923,15 @@ class StageOutClient(StagingClient):
         self.logger.info("[prepare_destinations][%s]: resolved default destination ddm=%s" % (activity, ddm))
 
         for e in files:
-            if not e.ddmendpoint:  ## no preferences => use default destination
+            if not e.ddmendpoint:  # no preferences => use default destination
                 self.logger.info("[prepare_destinations][%s]: fspec.ddmendpoint is not set for lfn=%s"
                                  " .. will use default ddm=%s as (local) destination" % (activity, e.lfn, ddm))
                 e.ddmendpoint = ddm
-            elif e.ddmendpoint not in storages:  ## fspec.ddmendpoint is not in associated storages => assume it as final (non local) alternative destination
+            elif e.ddmendpoint not in storages:  # fspec.ddmendpoint is not in associated storages => assume it as final (non local) alternative destination
                 self.logger.info("[prepare_destinations][%s]: Requested fspec.ddmendpoint=%s is not in the list of allowed (local) destinations"
                                  " .. will consider default ddm=%s for transfer and tag %s as alt. location" % (activity, e.ddmendpoint, ddm, e.ddmendpoint))
                 e.ddmendpoint = ddm
-                e.ddmendpoint_alt = e.ddmendpoint  ###  consider me later
+                e.ddmendpoint_alt = e.ddmendpoint  # consider me later
 
         return files
 
