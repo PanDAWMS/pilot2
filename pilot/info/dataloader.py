@@ -173,7 +173,7 @@ class DataLoader(object):
             logger.debug('load_data: 4')
 
             content = self.load_url_data(**idat)
-            logger.debug('load_data: 5')
+            logger.debug('load_data: %s' % str(content))
 
             if not content:
                 continue
