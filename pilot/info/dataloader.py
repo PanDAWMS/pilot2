@@ -164,7 +164,8 @@ class DataLoader(object):
             if not dat:
                 continue
 
-            logger.debug('load_data: 3')
+            logger.debug('load_data: key=%s' % key)
+            logger.debug('load_data: dat=%s' % str(dat))
 
             accepted_keys = ['url', 'fname', 'cache_time', 'nretry', 'sleep_time']
             idat = dict([k, dat.get(k)] for k in accepted_keys if k in dat)
