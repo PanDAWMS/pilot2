@@ -103,7 +103,7 @@ class ExtInfoProvider(DataLoader):
             cache_dir = os.environ.get('PILOT_HOME', '.')
 
         def jsonparser_panda(c):
-            dat = json.loads(c)
+            dat = json.loads(c.decode("utf-8"))
             if dat and isinstance(dat, dict) and 'error' in dat:
                 raise Exception('response contains error, data=%s' % dat)
             return {pandaqueue: dat}

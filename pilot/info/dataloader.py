@@ -181,7 +181,7 @@ class DataLoader(object):
                 parser = dat.get('parser')
             if not parser:
                 def jsonparser(c):
-                    dat = json.loads(c)
+                    dat = json.loads(c.decode("utf-8"))
                     if dat and isinstance(dat, dict) and 'error' in dat:
                         raise Exception('response contains error, data=%s' % dat)
                     return dat
