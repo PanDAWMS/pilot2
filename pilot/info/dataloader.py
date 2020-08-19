@@ -154,26 +154,19 @@ class DataLoader(object):
         :return: Data loaded and processed by parser callback
         """
 
-        logger.debug('load_data: 1')
         if not priority:  # no priority set ## randomly order if need (FIX ME LATER)
             priority = list(sources.keys())  # Python 3
 
-        logger.debug('load_data: 2')
         for key in priority:
             dat = sources.get(key)
             if not dat:
                 continue
 
-            logger.debug('load_data: key=%s' % key)
-            logger.debug('load_data: dat=%s' % str(dat))
-
             accepted_keys = ['url', 'fname', 'cache_time', 'nretry', 'sleep_time']
             idat = dict([k, dat.get(k)] for k in accepted_keys if k in dat)
             idat.setdefault('cache_time', cache_time)
-            logger.debug('load_data: 4')
 
             content = self.load_url_data(**idat)
-            logger.debug('load_data: %s' % str(content))
 
             if not content:
                 continue
