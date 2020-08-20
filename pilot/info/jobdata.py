@@ -187,8 +187,12 @@ class JobData(BaseData):
             image_base = os.environ.get('IMAGE_BASE', '')
             if not image_base and 'IMAGE_BASE' in infosys.queuedata.catchall:
                 image_base = self.get_key_value(infosys.queuedata.catchall, key='IMAGE_BASE')
-            if image_base and not os.path.isabs(self.imagename) and not self.imagename.startswith('docker'):
-                self.imagename = os.path.join(image_base, self.imagename)
+            if image_base:
+                local_path = os.path.join(image_base, os.path.basename(self.imagename))
+                if os.path.exists(local_path):
+                    self.imagename = local_path
+            #if image_base and not os.path.isabs(self.imagename) and not self.imagename.startswith('docker'):
+            #    self.imagename = os.path.join(image_base, self.imagename)
 
     def get_key_value(self, catchall, key='SOMEKEY'):
         """

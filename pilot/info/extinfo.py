@@ -19,6 +19,7 @@ which is mainly used to retrive Queue, Site, etc data required for Information S
 import os
 import json
 import random
+
 from pilot.util.config import config
 from .dataloader import DataLoader, merge_dict_data
 
@@ -103,7 +104,7 @@ class ExtInfoProvider(DataLoader):
             cache_dir = os.environ.get('PILOT_HOME', '.')
 
         def jsonparser_panda(c):
-            dat = json.loads(c.decode("utf-8"))
+            dat = json.loads(c)
             if dat and isinstance(dat, dict) and 'error' in dat:
                 raise Exception('response contains error, data=%s' % dat)
             return {pandaqueue: dat}

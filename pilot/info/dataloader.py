@@ -27,6 +27,7 @@ except Exception:
 
 from datetime import datetime, timedelta
 
+from pilot.util.auxiliary import is_python3
 from pilot.util.timer import timeout
 
 import logging
@@ -112,7 +113,9 @@ class DataLoader(object):
                             content = urllib2.urlopen(url, timeout=20).read()  # Python 2
                     if fname:  # save to cache
                         with open(fname, "w+") as f:
-                            f.write(str(content))  # Python 3, added str (write() argument must be str, not bytes; JSON OK)
+                            if isinstance(content, bytes) and is_python3():  # if-statement will always be needed for python 3
+                                content = content.decode("utf-8")  # Python 2/3 - only works for byte streams in python 3
+                            f.write(content)  # Python 3, added str (write() argument must be str, not bytes; JSON OK)
                             logger.info('saved data from "%s" resource into file=%s, length=%.1fKb' %
                                         (url, fname, len(content) / 1024.))
                     return content
@@ -167,14 +170,16 @@ class DataLoader(object):
             idat.setdefault('cache_time', cache_time)
 
             content = self.load_url_data(**idat)
-
+            if isinstance(content, bytes) and is_python3():
+                content = content.decode("utf-8")
+                logger.debug('converted content to utf-8')
             if not content:
                 continue
             if dat.get('parser'):
                 parser = dat.get('parser')
             if not parser:
                 def jsonparser(c):
-                    dat = json.loads(c.decode("utf-8"))
+                    dat = json.loads(c)
                     if dat and isinstance(dat, dict) and 'error' in dat:
                         raise Exception('response contains error, data=%s' % dat)
                     return dat
