@@ -40,9 +40,9 @@ def get_job_metrics(job):  # noqa: C901
     job_metrics = ""
 
     # report core count (will also set corecount in job object)
-    corecount = get_core_count(job)
-    if corecount is not None and corecount != "NULL" and corecount != 'null':
-        job_metrics += get_job_metrics_entry("coreCount", corecount)
+    #corecount = get_core_count(job)
+    #if corecount is not None and corecount != "NULL" and corecount != 'null':
+    #    job_metrics += get_job_metrics_entry("coreCount", corecount)
 
     # report number of actual used cores
     if job.actualcorecount:

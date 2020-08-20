@@ -132,6 +132,8 @@ def check_number_used_cores(job):
         logger.debug('%s:\n%s' % (cmd, stdout))
         try:
             job.actualcorecount = int(stdout)
+            # overwrite the original core count (see discussion with Tadashi, 18/8/20)
+            job.corecount = job.actualcorecount
         except Exception as e:
             logger.warning('failed to convert number of actual cores to int: %s' % e)
         else:
