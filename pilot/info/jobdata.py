@@ -98,6 +98,7 @@ class JobData(BaseData):
     zombies = []                   # list of zombie process ids
     memorymonitor = ""             # memory monitor name, e.g. prmon
     actualcorecount = 0            # number of cores actually used by the payload
+    corecounts = []                # keep track of all actual core count measurements
 
     # time variable used for on-the-fly cpu consumption time measurements done by job monitoring
     t0 = None                      # payload startup time
@@ -149,7 +150,7 @@ class JobData(BaseData):
                    'swrelease', 'zipmap', 'imagename', 'imagename_jobdef', 'accessmode', 'transfertype',
                    'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    'infilesguids', 'memorymonitor', 'allownooutput'],
-             list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'zombies'],
+             list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'zombies', 'corecounts'],
              dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes', 'preprocess',
                     'postprocess', 'containeroptions'],
              bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug', 'usecontainer']
@@ -931,3 +932,4 @@ class JobData(BaseData):
         self.exeerrordiag = ""
         self.exitcode = 0
         self.exitmsg = ""
+        self.corecounts = []

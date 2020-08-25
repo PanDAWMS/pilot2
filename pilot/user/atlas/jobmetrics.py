@@ -10,8 +10,8 @@
 from pilot.api import analytics
 from pilot.util.auxiliary import get_logger
 from pilot.util.jobmetrics import get_job_metrics_entry
-from pilot.util.processes import get_core_count
 
+from .cpu import get_core_count, add_core_count
 from .common import get_db_info
 from .utilities import get_memory_monitor_output_filename
 
@@ -40,11 +40,13 @@ def get_job_metrics(job):  # noqa: C901
     job_metrics = ""
 
     # report core count (will also set corecount in job object)
-    #corecount = get_core_count(job)
+    corecount = get_core_count(job)
+    log.debug('job definition core count: %d' % corecount)
+
     #if corecount is not None and corecount != "NULL" and corecount != 'null':
     #    job_metrics += get_job_metrics_entry("coreCount", corecount)
 
-    # report number of actual used cores
+    # report number of actual used cores and add it to the list of measured core counts
     if job.actualcorecount:
         job_metrics += get_job_metrics_entry("actualCoreCount", job.actualcorecount)
 

@@ -500,36 +500,6 @@ def get_current_cpu_consumption_time(pid):
     return cpuconsumptiontime
 
 
-def get_core_count(job):
-    """
-    Return the core count from ATHENA_PROC_NUMBER.
-
-    :param job: job object.
-    :return: core count (int).
-    """
-
-    log = get_logger(job.jobid)
-
-    if "HPC_HPC" in job.infosys.queuedata.catchall:
-        if job.corecount is None:
-            job.corecount = 0
-    else:
-        if job.corecount:
-            # Always use the ATHENA_PROC_NUMBER first, if set
-            if 'ATHENA_PROC_NUMBER' in os.environ:
-                try:
-                    job.corecount = int(os.environ.get('ATHENA_PROC_NUMBER'))
-                except Exception as e:
-                    log.warning("ATHENA_PROC_NUMBER is not properly set: %s (will use existing job.corecount value)" % e)
-        else:
-            try:
-                job.corecount = int(os.environ.get('ATHENA_PROC_NUMBER'))
-            except Exception:
-                log.warning("environment variable ATHENA_PROC_NUMBER is not set. corecount is not set")
-
-    return job.corecount
-
-
 def is_process_running(process_id):
     """
     Check whether process is still running.
