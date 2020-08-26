@@ -11,7 +11,7 @@ from pilot.api import analytics
 from pilot.util.auxiliary import get_logger
 from pilot.util.jobmetrics import get_job_metrics_entry
 
-from .cpu import get_core_count, add_core_count
+from .cpu import get_core_count
 from .common import get_db_info
 from .utilities import get_memory_monitor_output_filename
 

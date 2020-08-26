@@ -52,7 +52,11 @@ def add_core_count(corecount, core_counts=[]):
     :return: updated list of core counts (list).
     """
 
-    return core_counts.append(corecount)
+    if core_counts == None:  # protection
+        core_counts = []
+    core_counts.append(corecount)
+
+    return core_counts
 
 
 def set_core_counts(job):
@@ -76,7 +80,7 @@ def set_core_counts(job):
         else:
             # overwrite the original core count (see discussion with Tadashi, 18/8/20) and add it to the list
             job.corecount = job.actualcorecount
-            job.corecounts = add_core_count(job.actualcorecount, core_counts=job.corecounts)
+            job.corecounts = add_core_count(job.actualcorecount)  #, core_counts=job.corecounts)
             log.debug('current core counts list: %s' % str(job.corecounts))
 
     else:
