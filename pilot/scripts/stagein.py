@@ -266,7 +266,6 @@ if __name__ == '__main__':
     # perform stage-in (single transfers)
     err = ""
     errcode = 0
-    xfiles = None
     if args.eventservicemerge:
         client = StageInESClient(infoservice, logger=logger, trace_report=trace_report)
         activity = 'es_events_read'
@@ -274,16 +273,17 @@ if __name__ == '__main__':
         client = StageInClient(infoservice, logger=logger, trace_report=trace_report)
         activity = 'pr'
     kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, use_pcache=args.usepcache, use_bulk=False)
+    files = []
     for lfn, scope in list(zip(lfns, scopes)):
-        try:
-            files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir}]
-            xfiles = [FileSpec(type='input', **f) for f in files]
-            r = client.transfer(xfiles, activity=activity, **kwargs)
-        except Exception as e:
-            err = str(e)
-            errcode = -1
-            message(err)
-            # break
+        files.append({'scope': scope, 'lfn': lfn, 'workdir': args.workdir})
+    xfiles = [(FileSpec(type='input', **f) for f in files)]
+
+    try:
+        r = client.transfer(xfiles, activity=activity, **kwargs)
+    except Exception as e:
+        err = str(e)
+        errcode = -1
+        message(err)
 
     # put file statuses in a dictionary to be written to file
     file_dictionary = {}  # { 'error': [error_diag, -1], 'lfn1': [status, status_code], 'lfn2':.., .. }

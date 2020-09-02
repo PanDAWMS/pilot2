@@ -21,7 +21,7 @@ from pilot.util.math import convert_mb_to_b
 from pilot.util.workernode import get_local_disk_space
 
 from .common import update_job_data, parse_jobreport_data
-from .metadata import get_metadata_from_xml, get_total_number_of_events
+from .metadata import get_metadata_from_xml, get_total_number_of_events, get_guid_from_xml
 
 import logging
 logger = logging.getLogger(__name__)
@@ -529,7 +529,7 @@ def process_job_report(job):
     # get the job report
     path = os.path.join(job.workdir, config.Payload.jobreport)
     if not os.path.exists(path):
-        log.warning('job report does not exist: %s (any missing output file guids must be generated)' % path)
+        log.warning('job report does not exist: %s' % path)
 
         # get the metadata from the xml file instead, which must exist for most production transforms
         path = os.path.join(job.workdir, config.Payload.metadata)
@@ -546,8 +546,19 @@ def process_job_report(job):
         # add missing guids
         for dat in job.outdata:
             if not dat.guid:
-                dat.guid = get_guid()
-                log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
+                # try to read it from the metadata before the last resort of generating it
+                metadata = None
+                try:
+                    metadata = get_metadata_from_xml(job.workdir)
+                except Exception as e:
+                    msg = "Exception caught while interpreting XML: %s (ignoring it, but guids must now be generated)" % e
+                    log.warning(msg)
+                if metadata:
+                    dat.guid = get_guid_from_xml(metadata, dat.lfn)
+                    log.info('read guid for lfn=%s from xml: %s' % (dat.lfn, dat.guid))
+                else:
+                    dat.guid = get_guid()
+                    log.info('generated guid for lfn=%s: %s' % (dat.lfn, dat.guid))
 
     else:
         with open(path) as data_file:

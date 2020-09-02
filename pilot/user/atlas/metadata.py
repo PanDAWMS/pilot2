@@ -163,6 +163,7 @@ def get_metadata_from_xml(workdir, filename="metadata.xml"):
     for child in root:
         # child.tag = 'File', child.attrib = {'ID': '4ACC5018-2EA3-B441-BC11-0C0992847FD1'}
         lfn = ""
+        guid = child.attrib['ID'] if 'ID' in child.attrib else None
         for grandchild in child:
             # grandchild.tag = 'logical', grandchild.attrib = {}
             if grandchild.tag == 'logical':
@@ -179,6 +180,8 @@ def get_metadata_from_xml(workdir, filename="metadata.xml"):
             else:
                 # unknown metadata entry
                 pass
+            if guid:
+                metadata_dictionary[lfn]['guid'] = guid
 
     return metadata_dictionary
 
@@ -219,3 +222,41 @@ def get_total_number_of_events(metadata_dictionary):
             nevents += _nevents
 
     return nevents
+
+
+def get_guid(metadata_dictionary, filename=''):
+    """
+    Get the guid from the metadata dictionary for the given LFN.
+
+    :param metadata_dictionary: dictionary from parsed metadata.xml file.
+    :param filename: file name for which the number of events relates to (string).
+    :return: guid (string, None is returned if guid could not be extracted).
+    """
+
+    guid = None
+    if filename != '' and filename in metadata_dictionary:
+        try:
+            guid = metadata_dictionary[filename].get('guid')
+        except ValueError as e:
+            logger.warning('failed to get guid from xml: %s' % e)
+    else:
+        logger.warning('guid could not be extracted from metadata dictionary (based on metadata.xml)')
+
+    return guid
+
+
+def get_guid_from_xml(metadata_dictionary, lfn):
+    """
+    Get the guid for the given LFN in the metadata dictionary.
+
+    :param metadata_dictionary: dictionary from parsed metadata.xml file.
+    :param lfn: LFN (string).
+    :return: total number of processed events (int).
+    """
+
+    guid = None
+    for filename in metadata_dictionary:
+        if filename == lfn:
+            guid = get_guid(metadata_dictionary, filename=filename)
+
+    return guid
