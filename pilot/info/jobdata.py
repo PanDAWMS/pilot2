@@ -31,7 +31,7 @@ from time import sleep
 from .basedata import BaseData
 from .filespec import FileSpec
 from pilot.util.constants import LOG_TRANSFER_NOT_DONE
-from pilot.util.filehandling import get_guid
+from pilot.util.filehandling import get_guid, get_valid_path_from_list
 from pilot.util.timing import get_elapsed_real_time
 
 import logging
@@ -189,8 +189,10 @@ class JobData(BaseData):
             if not image_base and 'IMAGE_BASE' in infosys.queuedata.catchall:
                 image_base = self.get_key_value(infosys.queuedata.catchall, key='IMAGE_BASE')
             if image_base:
-                local_path = os.path.join(image_base, os.path.basename(self.imagename))
-                if os.path.exists(local_path):
+                paths = [os.path.join(image_base, os.path.basename(self.imagename)),
+                         os.path.join(image_base, self.imagename)]
+                local_path = get_valid_path_from_list(paths)
+                if local_path:
                     self.imagename = local_path
             #if image_base and not os.path.isabs(self.imagename) and not self.imagename.startswith('docker'):
             #    self.imagename = os.path.join(image_base, self.imagename)
