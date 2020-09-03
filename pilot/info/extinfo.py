@@ -58,11 +58,11 @@ class ExtInfoProvider(DataLoader):
         if not cache_dir:
             cache_dir = os.environ.get('PILOT_HOME', '.')
 
-        sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_schedconf.json',
+        sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_pandaqueues.json',
                              'nretry': 1,
                              'fname': os.path.join(cache_dir, 'agis_schedconf.cvmfs.json')},
-                   'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json'
-                                   '&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
+                   'AGIS': {'url': 'https://atlas-cric.cern.ch/api/atlas/pandaqueue/query/?json' +
+                                   '&pandaqueue[]='.join([''] + pandaqueues),
                             'nretry': 3,
                             'sleep_time': lambda: 15 + random.randint(0, 30),  ## max sleep time 45 seconds between retries
                             'cache_time': 3 * 60 * 60,  # 3 hours
@@ -108,11 +108,11 @@ class ExtInfoProvider(DataLoader):
                 raise Exception('response contains error, data=%s' % dat)
             return {pandaqueue: dat}
 
-        sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_schedconf.json',
+        sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_pandaqueues.json',
                              'nretry': 1,
                              'fname': os.path.join(cache_dir, 'agis_schedconf.cvmfs.json')},
-                   'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json'
-                                   '&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
+                   'AGIS': {'url': 'https://atlas-cric.cern.ch/api/atlas/pandaqueue/query/?json' +
+                                   '&pandaqueue[]='.join([''] + pandaqueues),
                             'nretry': 3,
                             'sleep_time': lambda: 15 + random.randint(0, 30),  # max sleep time 45 seconds between retries
                             'cache_time': 3 * 60 * 60,  # 3 hours
@@ -173,11 +173,11 @@ class ExtInfoProvider(DataLoader):
             cache_dir = os.environ.get('PILOT_HOME', '.')
 
         # list of sources to fetch ddmconf data from
-        sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_ddmendpoints.json',
+        sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_ddmendpoints.json',
                              'nretry': 1,
                              'fname': os.path.join(cache_dir, 'agis_ddmendpoints.json')},
-                   'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json&'
-                                   'state=ACTIVE&preset=dict&ddmendpoint=%s' % ','.join(ddmendpoints),
+                   'AGIS': {'url': 'https://atlas-cric.cern.ch/api/atlas/ddmendpoint/query/?json' +
+                                   '&ddmendpoint[]='.join([''] + ddmendpoints),
                             'nretry': 3,
                             'sleep_time': lambda: 15 + random.randint(0, 30),  ## max sleep time 45 seconds between retries
                             'cache_time': 3 * 60 * 60,  # 3 hours
