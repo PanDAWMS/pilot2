@@ -62,7 +62,7 @@ class ExtInfoProvider(DataLoader):
                              'nretry': 1,
                              'fname': os.path.join(cache_dir, 'agis_schedconf.cvmfs.json')},
                    'CRIC': {'url': (config.Information.queues_url or 'https://atlas-cric.cern.ch/api/atlas/pandaqueue/query/?json') +
-                                   '&pandaqueue[]='.join([''] + pandaqueues),
+                            '&pandaqueue[]='.join([''] + pandaqueues),
                             'nretry': 3,
                             'sleep_time': lambda: 15 + random.randint(0, 30),  ## max sleep time 45 seconds between retries
                             'cache_time': 3 * 60 * 60,  # 3 hours
@@ -111,7 +111,7 @@ class ExtInfoProvider(DataLoader):
                              'nretry': 1,
                              'fname': os.path.join(cache_dir, 'agis_schedconf.cvmfs.json')},
                    'CRIC': {'url': (config.Information.queues_url or 'https://atlas-cric.cern.ch/api/atlas/pandaqueue/query/?json') +
-                                   '&pandaqueue[]='.join([''] + pandaqueues),
+                            '&pandaqueue[]='.join([''] + pandaqueues),
                             'nretry': 3,
                             'sleep_time': lambda: 15 + random.randint(0, 30),  # max sleep time 45 seconds between retries
                             'cache_time': 3 * 60 * 60,  # 3 hours
@@ -158,7 +158,7 @@ class ExtInfoProvider(DataLoader):
                              'nretry': 1,
                              'fname': os.path.join(cache_dir, 'agis_ddmendpoints.json')},
                    'CRIC': {'url': (config.Information.storages_url or 'https://atlas-cric.cern.ch/api/atlas/ddmendpoint/query/?json') +
-                                   '&ddmendpoint[]='.join([''] + ddmendpoints),
+                            '&ddmendpoint[]='.join([''] + ddmendpoints),
                             'nretry': 3,
                             'sleep_time': lambda: 15 + random.randint(0, 30),  ## max sleep time 45 seconds between retries
                             'cache_time': 3 * 60 * 60,  # 3 hours
