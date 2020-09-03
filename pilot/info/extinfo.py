@@ -52,7 +52,7 @@ class ExtInfoProvider(DataLoader):
         :return:
         """
 
-        pandaqueues = set(pandaqueues)
+        pandaqueues = sorted(set(pandaqueues))
 
         cache_dir = config.Information.cache_dir
         if not cache_dir:
@@ -67,7 +67,7 @@ class ExtInfoProvider(DataLoader):
                             'sleep_time': lambda: 15 + random.randint(0, 30),  ## max sleep time 45 seconds between retries
                             'cache_time': 3 * 60 * 60,  # 3 hours
                             'fname': os.path.join(cache_dir, 'agis_schedconf.agis.%s.json' %
-                                                  ('_'.join(sorted(pandaqueues)) or 'ALL'))},
+                                                  ('_'.join(pandaqueues) or 'ALL'))},
                    'LOCAL': {'url': os.environ.get('LOCAL_AGIS_SCHEDCONF', None),
                              'nretry': 1,
                              'cache_time': 3 * 60 * 60,  # 3 hours
@@ -123,7 +123,7 @@ class ExtInfoProvider(DataLoader):
                              'fname': os.path.join(cache_dir, config.Information.queuedata_cache or 'queuedata.json'),
                              'parser': jsonparser_panda
                              },
-                   'PANDA': {'url': config.Information.queuedata_url % {'pandaqueue': pandaqueues[0]},
+                   'PANDA': {'url': config.Information.queuedata_url.format(**{'pandaqueue': pandaqueues[0]}),
                              'nretry': 3,
                              'sleep_time': lambda: 15 + random.randint(0, 30),  # max sleep time 45 seconds between retries
                              'cache_time': 3 * 60 * 60,  # 3 hours,
@@ -147,7 +147,7 @@ class ExtInfoProvider(DataLoader):
         :return: dict of DDMEndpoint settings by DDMendpoint name as a key
         """
 
-        ddmendpoints = set(ddmendpoints)
+        ddmendpoints = sorted(set(ddmendpoints))
 
         cache_dir = config.Information.cache_dir
         if not cache_dir:
@@ -163,7 +163,7 @@ class ExtInfoProvider(DataLoader):
                             'sleep_time': lambda: 15 + random.randint(0, 30),  ## max sleep time 45 seconds between retries
                             'cache_time': 3 * 60 * 60,  # 3 hours
                             'fname': os.path.join(cache_dir, 'agis_ddmendpoints.agis.%s.json' %
-                                                  ('_'.join(sorted(ddmendpoints)) or 'ALL'))},
+                                                  ('_'.join(ddmendpoints) or 'ALL'))},
                    'LOCAL': {'url': None,
                              'nretry': 1,
                              'cache_time': 3 * 60 * 60,  # 3 hours
