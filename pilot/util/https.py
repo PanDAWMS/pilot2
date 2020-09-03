@@ -37,6 +37,9 @@ logger = logging.getLogger(__name__)
 
 _ctx = collections.namedtuple('_ctx', 'ssl_context user_agent capath cacert')
 
+# anisyonk: public copy of `_ctx` to avoid logic break since ssl_context is reset inside the request() -- FIXME
+ctx = collections.namedtuple('ctx', 'ssl_context user_agent capath cacert')
+
 
 def _tester(func, *args):
     """
@@ -132,7 +135,7 @@ def https_setup(args, version):
     _ctx.capath = capath(args)
     _ctx.cacert = cacert(args)
 
-    if sys.version_info < (2, 7, 9):
+    if sys.version_info < (2, 7, 9):  # by anisyonk: actually SSL context should work, but prior to 2.7.9 there is no automatic hostname/certificate validation
         logger.warn('Python version <2.7.9 lacks SSL contexts -- falling back to curl')
         _ctx.ssl_context = None
     else:
@@ -142,6 +145,17 @@ def https_setup(args, version):
         except Exception as e:
             logger.warn('SSL communication is impossible due to SSL error: %s -- falling back to curl' % str(e))
             _ctx.ssl_context = None
+
+    # anisyonk: clone `_ctx` to avoid logic break since ssl_context is reset inside the request() -- FIXME
+    ctx.capath = _ctx.capath
+    ctx.cacert = _ctx.cacert
+    ctx.user_agent = _ctx.user_agent
+
+    try:
+        ctx.ssl_context = ssl.create_default_context(capath=ctx.capath, cafile=ctx.cacert)
+        ctx.ssl_context.load_cert_chain(ctx.cacert)
+    except Exception as e:  ## redandant try-catch protection, should work well for both python2 & python3 (anisyonk)
+        logger.warn('Failed to initialize SSL context .. skipped, error: %s' % str(e))
 
 
 def request(url, data=None, plain=False, secure=True):  # noqa: C901
