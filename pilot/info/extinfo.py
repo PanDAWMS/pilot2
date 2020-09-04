@@ -68,7 +68,7 @@ class ExtInfoProvider(DataLoader):
                             'cache_time': 3 * 60 * 60,  # 3 hours
                             'fname': os.path.join(cache_dir, 'agis_schedconf.agis.%s.json' %
                                                   ('_'.join(pandaqueues) or 'ALL'))},
-                   'LOCAL': {'url': os.environ.get('LOCAL_AGIS_SCHEDCONF', None),
+                   'LOCAL': {'url': os.environ.get('LOCAL_AGIS_SCHEDCONF'),
                              'nretry': 1,
                              'cache_time': 3 * 60 * 60,  # 3 hours
                              'fname': os.path.join(cache_dir, config.Information.queues_cache or 'agis_schedconf.json')},
@@ -123,7 +123,7 @@ class ExtInfoProvider(DataLoader):
                              'fname': os.path.join(cache_dir, config.Information.queuedata_cache or 'queuedata.json'),
                              'parser': jsonparser_panda
                              },
-                   'PANDA': {'url': config.Information.queuedata_url.format(**{'pandaqueue': pandaqueues[0]}),
+                   'PANDA': {'url': (os.environ.get('QUEUEDATA_SERVER_URL') or config.Information.queuedata_url).format(**{'pandaqueue': pandaqueues[0]}),
                              'nretry': 3,
                              'sleep_time': lambda: 15 + random.randint(0, 30),  # max sleep time 45 seconds between retries
                              'cache_time': 3 * 60 * 60,  # 3 hours,
