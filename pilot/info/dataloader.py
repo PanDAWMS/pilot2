@@ -190,7 +190,7 @@ class DataLoader(object):
             try:
                 data = parser(content)
             except Exception as e:
-                logger.fatal("failed to parse data from source=%s .. skipped, error=%s" % (dat.get('url'), e))
+                logger.fatal("failed to parse data from source=%s (resource=%s, cache=%s).. skipped, error=%s" % (dat.get('url'), key, dat.get('fname'), e))
                 data = None
             if data:
                 return data

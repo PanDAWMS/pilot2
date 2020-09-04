@@ -31,6 +31,7 @@ import pipes
 
 from .filehandling import write_file
 from .auxiliary import is_python3
+from .constants import get_pilot_version
 
 import logging
 logger = logging.getLogger(__name__)
@@ -38,8 +39,9 @@ logger = logging.getLogger(__name__)
 _ctx = collections.namedtuple('_ctx', 'ssl_context user_agent capath cacert')
 
 # anisyonk: public copy of `_ctx` to avoid logic break since ssl_context is reset inside the request() -- FIXME
-ctx = collections.namedtuple('ctx', 'ssl_context user_agent capath cacert')
-
+# anisyonk: public instance, should be properly initialized by `https_setup()`
+# anisyonk: use lightweight class definition instead of namedtuple since tuple is immutable and we don't need/use any tuple features here
+ctx = type('ctx', (object,), dict(ssl_context=None, user_agent='Pilot2 client', capath=None, cacert=None))
 
 def _tester(func, *args):
     """
@@ -115,7 +117,7 @@ def cacert(args=None):
                    cacert_default_location())
 
 
-def https_setup(args, version):
+def https_setup(args=None, version=None):
     """
     Sets up the context for future HTTPS requests:
 
@@ -126,6 +128,9 @@ def https_setup(args, version):
     :param args: arguments, parsed by `argparse`
     :param str version: pilot version string (for :mailheader:`User-Agent`)
     """
+
+    version = version or get_pilot_version()
+
     _ctx.user_agent = 'pilot/%s (Python %s; %s %s)' % (version,
                                                        sys.version.split()[0],
                                                        platform.system(),
@@ -154,7 +159,7 @@ def https_setup(args, version):
     try:
         ctx.ssl_context = ssl.create_default_context(capath=ctx.capath, cafile=ctx.cacert)
         ctx.ssl_context.load_cert_chain(ctx.cacert)
-    except Exception as e:  ## redandant try-catch protection, should work well for both python2 & python3 (anisyonk)
+    except Exception as e:  # redandant try-catch protection, should work well for both python2 & python3 -- CLEAN ME later (anisyonk)
         logger.warn('Failed to initialize SSL context .. skipped, error: %s' % str(e))
 
 
