@@ -156,7 +156,7 @@ class ExtInfoProvider(DataLoader):
         # list of sources to fetch ddmconf data from
         sources = {'CVMFS': {'url': config.Information.storages_cvmfs or '/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_ddmendpoints.json',
                              'nretry': 1,
-                             'fname': os.path.join(cache_dir, 'agis_ddmendpoints.json')},
+                             'fname': os.path.join(cache_dir, config.Information.storages_cache or 'agis_ddmendpoints.json')},
                    'CRIC': {'url': (config.Information.storages_url or 'https://atlas-cric.cern.ch/api/atlas/ddmendpoint/query/?json') +
                             '&ddmendpoint[]='.join([''] + ddmendpoints),
                             'nretry': 3,
