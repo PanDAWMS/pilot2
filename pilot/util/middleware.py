@@ -143,93 +143,59 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, lab
     else:
         logger.debug('using pilot source directory: %s' % srcdir)
 
-    #_path = get_script_path(script)
-    #if not path.exists(_path):
-    #    msg = 'no such path: %s' % _path
-    #    logger.warning(msg)
-    #    if label == 'stage-in':
-    #        raise StageInFailure(msg)
-    #    else:
-    #        raise StageOutFailure(msg)
-
+    # copy pilot source into container directory, unless it is already there
+    final_script_path = path.join(job.workdir, script)
     try:
-        pass
-        #copy(_path, job.workdir)
-    except PilotException as e:
-        msg = 'exception caught: %s' % e
-        logger.warning(msg)
-        if label == 'stage-in':
-            raise StageInFailure(msg)
-        else:
-            raise StageOutFailure(msg)
-    else:
-        final_script_path = path.join(job.workdir, script)
-        #try:
-        #    # make the script executable
-        #    chmod(final_script_path, 0o755)  # Python 2/3
-        #except Exception as e:
-        #    msg = 'exception caught: %s' % e
-        #    logger.warning(msg)
-        #    if label == 'stage-in':
-        #        raise StageInFailure(msg)
-        #    else:
-        #        raise StageOutFailure(msg)
-
-        # copy pilot source into container directory, unless it is already there
-        try:
-            #dest = path.join(job.workdir, 'pilot2')
-            #if not path.exists(dest):
-            logger.debug('copy %s to %s' % (srcdir, job.workdir))
-            cmd = 'cp -r %s/* %s' % (srcdir, job.workdir)
-            exit_code, stdout, stderr = execute(cmd)
-            if exit_code != 0:
-                msg = 'file copy failed: %d, %s' % (exit_code, stdout)
-                logger.warning(msg)
-                if label == 'stage-in':
-                    raise StageInFailure(msg)
-                else:
-                    raise StageOutFailure(msg)
-
-            #copytree(srcdir, job.workdir)
-            environ['PYTHONPATH'] = environ.get('PYTHONPATH') + ':' + job.workdir
-            logger.debug('PYTHONPATH=%s' % environ.get('PYTHONPATH'))
-
-            script_path = path.join('pilot/scripts', script)
-            full_script_path = path.join(path.join(job.workdir, script_path))
-
-            copy(full_script_path, final_script_path)
-            logger.debug('full_script_path=%s' % full_script_path)
-            logger.debug('final_script_path=%s' % final_script_path)
-            chmod(final_script_path, 0o755)  # Python 2/3
-        except Exception as e:
-            msg = 'exception caught when copying pilot2 source: %s' % e
+        logger.debug('copy %s to %s' % (srcdir, job.workdir))
+        cmd = 'cp -r %s/* %s' % (srcdir, job.workdir)
+        exit_code, stdout, stderr = execute(cmd)
+        if exit_code != 0:
+            msg = 'file copy failed: %d, %s' % (exit_code, stdout)
             logger.warning(msg)
             if label == 'stage-in':
                 raise StageInFailure(msg)
             else:
                 raise StageOutFailure(msg)
 
-        if config.Container.use_middleware_container:
-            # correct the path when containers have been used
-            final_script_path = path.join('.', script)
-            workdir = '/srv'
-        else:
-            workdir = job.workdir
+        environ['PYTHONPATH'] = environ.get('PYTHONPATH') + ':' + job.workdir
+        logger.debug('PYTHONPATH=%s' % environ.get('PYTHONPATH'))
 
+        script_path = path.join('pilot/scripts', script)
+        full_script_path = path.join(path.join(job.workdir, script_path))
+
+        copy(full_script_path, final_script_path)
+        logger.debug('full_script_path=%s' % full_script_path)
+        logger.debug('final_script_path=%s' % final_script_path)
+        chmod(final_script_path, 0o755)  # Python 2/3
+    except Exception as e:
+        msg = 'exception caught when copying pilot2 source: %s' % e
+        logger.warning(msg)
         if label == 'stage-in':
-            cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
-                  '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
-                  '--eventservicemerge=%s --usepcache=%s' % \
-                  (final_script_path, filedata_dictionary['lfns'], filedata_dictionary['scopes'], workdir, queue, eventtype, localsite,
-                   remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
-                   job.is_eventservicemerge, job.infosys.queuedata.use_pcache)
-        else:  # stage-out
-            cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
-                  '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
-                  '--datasets=%s --ddmendpoints=%s --guids=%s' % \
-                  (final_script_path, filedata_dictionary['lfns'], filedata_dictionary['scopes'], workdir, queue, eventtype, localsite,
-                   remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
-                   filedata_dictionary['datasets'], filedata_dictionary['ddmendpoints'], filedata_dictionary['guids'])
+            raise StageInFailure(msg)
+        else:
+            raise StageOutFailure(msg)
+
+    if config.Container.use_middleware_container:
+        # correct the path when containers have been used
+        final_script_path = path.join('.', script)
+        workdir = '/srv'
+    else:
+        workdir = job.workdir
+
+    if label == 'stage-in':
+        cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
+              '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
+              '--eventservicemerge=%s --usepcache=%s' % \
+              (final_script_path, filedata_dictionary['lfns'], filedata_dictionary['scopes'], workdir, queue, eventtype, localsite,
+               remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
+               job.is_eventservicemerge, job.infosys.queuedata.use_pcache)
+    else:  # stage-out
+        cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
+              '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
+              '--datasets=%s --ddmendpoints=%s --guids=%s' % \
+              (final_script_path, filedata_dictionary['lfns'], filedata_dictionary['scopes'], workdir, queue, eventtype, localsite,
+               remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
+               filedata_dictionary['datasets'], filedata_dictionary['ddmendpoints'], filedata_dictionary['guids'])
 
     return cmd
 
