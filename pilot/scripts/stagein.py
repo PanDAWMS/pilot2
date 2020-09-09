@@ -178,7 +178,7 @@ def get_file_lists(lfns, scopes):
     return lfns.split(','), scopes.split(',')
 
 
-class Job():
+class Job:
     """
     A minimal implementation of the Pilot Job class with data members necessary for the trace report only.
     """
@@ -273,10 +273,13 @@ if __name__ == '__main__':
         client = StageInClient(infoservice, logger=logger, trace_report=trace_report)
         activity = 'pr'
     kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, use_pcache=args.usepcache, use_bulk=False)
-    files = []
+    xfiles = []
     for lfn, scope in list(zip(lfns, scopes)):
-        files.append({'scope': scope, 'lfn': lfn, 'workdir': args.workdir})
-    xfiles = [(FileSpec(type='input', **f) for f in files)]
+        files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir}]
+        # do not abbreviate the following two lines as otherwise the content of xfiles will be a list of generator objects
+        _xfiles = [FileSpec(type='input', **f) for f in files]
+        message('_xfiles=%s' % str(_xfiles))
+        xfiles += _xfiles
 
     try:
         r = client.transfer(xfiles, activity=activity, **kwargs)
