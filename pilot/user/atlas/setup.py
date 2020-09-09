@@ -39,7 +39,7 @@ def get_file_system_root_path():
     return os.environ.get('ATLAS_SW_BASE', '/cvmfs')
 
 
-def should_pilot_prepare_asetup(noexecstrcnv, jobpars, imagename=None):
+def should_pilot_prepare_asetup(noexecstrcnv, jobpars, swrelease, imagename=None):
     """
     Determine whether the pilot should add the asetup to the payload command or not.
     The pilot will not add asetup if jobPars already contain the information (i.e. it was set by the payload creator).
@@ -48,11 +48,12 @@ def should_pilot_prepare_asetup(noexecstrcnv, jobpars, imagename=None):
 
     :param noexecstrcnv: boolean.
     :param jobpars: job parameters (string).
+    :param swrelease: software release (string).
     :param imagename: container image (string).
     :return: boolean.
     """
 
-    if imagename:
+    if imagename or swrelease == 'NULL':
         return False
 
     if noexecstrcnv:

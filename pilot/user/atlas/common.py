@@ -135,8 +135,8 @@ def get_payload_command(job):
 
     log = get_logger(job.jobid)
 
-    # Should the pilot do the asetup or do the jobPars already contain the information?
-    prepareasetup = should_pilot_prepare_asetup(job.noexecstrcnv, job.jobparams)
+    # Should the pilot do the asetup or does jobPars already contain the information?
+    prepareasetup = should_pilot_prepare_asetup(job.noexecstrcnv, job.jobparams, job.swrelease)
 
     # Get the platform value
     # platform = job.infosys.queuedata.platform
