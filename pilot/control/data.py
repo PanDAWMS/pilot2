@@ -608,26 +608,20 @@ def is_already_processed(queues, processed_jobs):
     return found
 
 
-def get_input_file_dictionary(indata, workdir):
+def get_input_file_dictionary(indata):
     """
     Return an input file dictionary.
     Format: {'guid': 'pfn', ..}
     Normally use_turl would be set to True if direct access is used.
 
     :param indata: list of FileSpec objects.
-    :param workdir: job.workdir (string).
     :return: file dictionary.
     """
 
     ret = {}
 
     for fspec in indata:
-        logger.debug('turl=%s' % fspec.turl)
-        logger.debug('status=%s' % fspec.status)
-        logger.debug('guid=%s' % fspec.guid)
-        # dst = fspec.workdir or workdir or '.'
-        ret[fspec.guid] = fspec.turl if fspec.status == 'remote_io' else fspec.lfn  #os.path.join(dst, fspec.lfn)
-        # ret[fspec.guid] = fspec.turl if fspec.accessmode == 'direct' else fspec.surl
+        ret[fspec.guid] = fspec.turl if fspec.status == 'remote_io' else fspec.lfn
 
         # correction for ND and mv
         # in any case use the lfn instead of pfn since there are trf's that have problems with pfn's
