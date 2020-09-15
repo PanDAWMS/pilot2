@@ -308,15 +308,17 @@ def get_filedata_strings(data):
         datasets = fspec.dataset if datasets == "" else datasets + ",%s" % fspec.dataset
         ddmendpoints = fspec.ddmendpoint if ddmendpoints == "" else ddmendpoints + ",%s" % fspec.ddmendpoint
         filesizes = str(fspec.filesize) if filesizes == "" else filesizes + ",%s" % fspec.filesize
-        _type = 'adler32' if 'adler32' in fspec.checksum else 'md5'
-        checksums = fspec.checksum.get(_type) if checksums == "" else checksums + ",%s" % fspec.checksum.get(_type)
+        _type = 'md5' if ('md5' in fspec.checksum and 'adler32' not in fspec.checksum) else 'adler32'
+        checksums = fspec.checksum.get(_type, 'None') if checksums == "" else checksums + ",%s" % fspec.checksum.get(_type)
         allowlans = str(fspec.allow_lan) if allowlans == "" else allowlans + ",%s" % fspec.allow_lan
         allowwans = str(fspec.allow_wan) if allowwans == "" else allowwans + ",%s" % fspec.allow_wan
         directaccesslans = str(fspec.direct_access_lan) if directaccesslans == "" else directaccesslans + ",%s" % fspec.direct_access_lan
         directaccesswans = str(fspec.direct_access_wan) if directaccesswans == "" else directaccesswans + ",%s" % fspec.direct_access_wan
         istars = str(fspec.is_tar) if istars == "" else istars + ",%s" % fspec.is_tar
-        accessmodes = fspec.accessmode if accessmodes == "" else accessmodes + ",%s" % fspec.accessmode
-        storagetokens = fspec.storage_token if storagetokens == "" else storagetokens + ",%s" % fspec.storage_token
+        _accessmode = fspec.accessmode if fspec.accessmode else 'None'
+        accessmodes = _accessmode if accessmodes == "" else accessmodes + ",%s" % _accessmode
+        _storagetoken = fspec.storage_token if fspec.storage_token else 'None'
+        storagetokens = _storagetoken if storagetokens == "" else storagetokens + ",%s" % _storagetoken
 
     return {'lfns': lfns, 'guids': guids, 'scopes': scopes, 'datasets': datasets, 'ddmendpoints': ddmendpoints,
             'filesizes': filesizes, 'checksums': checksums, 'allowlans': allowlans, 'allowwans': allowwans,
