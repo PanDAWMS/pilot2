@@ -196,7 +196,9 @@ def _stage_in(args, job):
         except PilotException as e:
             logger.warning('stage-in containerisation threw a pilot exception: %s' % e)
         except Exception as e:
+            import traceback
             logger.warning('stage-in containerisation threw an exception: %s' % e)
+            logger.error(traceback.format_exc())
     else:
         try:
             logger.info('stage-in will not be done in a container')
@@ -620,6 +622,9 @@ def get_input_file_dictionary(indata, workdir):
     ret = {}
 
     for fspec in indata:
+        logger.debug('turl=%s' % fspec.turl)
+        logger.debug('status=%s' % fspec.status)
+        logger.debug('guid=%s' % fspec.guid)
         # dst = fspec.workdir or workdir or '.'
         ret[fspec.guid] = fspec.turl if fspec.status == 'remote_io' else fspec.lfn  #os.path.join(dst, fspec.lfn)
         # ret[fspec.guid] = fspec.turl if fspec.accessmode == 'direct' else fspec.surl

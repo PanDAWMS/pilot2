@@ -35,27 +35,20 @@ class FileSpec(BaseData):
 
     lfn = ""
     guid = ""
-
     filesize = 0
     checksum = {}    # file checksum values, allowed keys=['adler32', 'md5'], e.g. `fspec.checksum.get('adler32')`
     scope = ""       # file scope
-
     dataset = ""
     ddmendpoint = ""    ## DDMEndpoint name (input or output depending on FileSpec.filetype)
-
     accessmode = ""  # preferred access mode
-
     allow_lan = True
     allow_wan = False
-
     direct_access_lan = False
     direct_access_wan = False
-
+    storage_token = ""  # prodDBlockToken = ""      # moved from Pilot1: suggest proper internal name (storage token?)
     ## dispatchDblock =  ""       # moved from Pilot1: is it needed? suggest proper internal name?
     ## dispatchDBlockToken = ""   # moved from Pilot1: is it needed? suggest proper internal name?
-
     ## prodDBlock = ""           # moved from Pilot1: is it needed? suggest proper internal name?
-    storage_token = ""  # prodDBlockToken = ""      # moved from Pilot1: suggest proper internal name (storage token?)
 
     ## local keys
     filetype = ''      # type of File: input, output of log
@@ -89,11 +82,6 @@ class FileSpec(BaseData):
 
         self.filetype = filetype
         self.load(data)
-
-        #if True:  # DEBUG
-        #    #import pprint
-        #    #logger.debug('initialize FileSpec from raw:\n%s' % pprint.pformat(data))
-        #    logger.debug('Final parsed FileSpec content:\n%s' % self)
 
     def load(self, data):
         """
@@ -165,10 +153,9 @@ class FileSpec(BaseData):
                 break
 
         if not is_rootfile:
-            return False
+                return False
 
         is_directaccess = False  ## default value
-
         if self.accessmode == 'direct':
             is_directaccess = True
         elif self.accessmode == 'copy':

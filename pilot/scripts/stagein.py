@@ -101,6 +101,46 @@ def get_args():
                             action='store_true',
                             default=False,
                             help='Do not write the pilot log to file')
+    arg_parser.add_argument('--filesizes',
+                            dest='filesizes',
+                            required=True,
+                            help='Replica file sizes')
+    arg_parser.add_argument('--checksums',
+                            dest='checksums',
+                            required=True,
+                            help='Replica checksums')
+    arg_parser.add_argument('--allowlans',
+                            dest='allowlans',
+                            required=True,
+                            help='Replica allow_lan')
+    arg_parser.add_argument('--allowwans',
+                            dest='allowwans',
+                            required=True,
+                            help='Replica allow_wan')
+    arg_parser.add_argument('--directaccesslans',
+                            dest='directaccesslans',
+                            required=True,
+                            help='Replica direct_access_lan')
+    arg_parser.add_argument('--directaccesswans',
+                            dest='directaccesswans',
+                            required=True,
+                            help='Replica direct_access_wan')
+    arg_parser.add_argument('--istars',
+                            dest='istars',
+                            required=True,
+                            help='Replica is_tar')
+    arg_parser.add_argument('--accessmodes',
+                            dest='accessmodes',
+                            required=True,
+                            help='Replica accessmodes')
+    arg_parser.add_argument('--storagetokens',
+                            dest='storagetokens',
+                            required=True,
+                            help='Replica storagetokens')
+    arg_parser.add_argument('--guids',
+                            dest='guids',
+                            required=True,
+                            help='Replica guids')
 
     return arg_parser.parse_args()
 
@@ -174,8 +214,66 @@ def message(msg):
     print(msg) if not logger else logger.info(msg)
 
 
-def get_file_lists(lfns, scopes):
-    return lfns.split(','), scopes.split(',')
+def str_to_int_list(_list):
+    _new_list = []
+    for x in _list:
+        try:
+            _x = int(x)
+        except Exception:
+            _x = None
+        _new_list.append(_x)
+    return _new_list
+
+
+def str_to_bool_list(_list):
+    changes = {"True": True, "False": False, "None": None, "NULL": None}
+    return [changes.get(x, x) for x in _list]
+
+
+def get_file_lists(lfns, scopes, filesizes, checksums, allowlans, allowwans, directaccesslans, directaccesswans, istars,
+                   accessmodes, storagetokens, guids):
+    _lfns = []
+    _scopes = []
+    _filesizes = []
+    _checksums = []
+    _allowlans = []
+    _allowwans = []
+    _directaccesslans = []
+    _directaccesswans = []
+    _istars = []
+    _accessmodes = []
+    _storagetokens = []
+    _guids = []
+    try:
+        _lfns = lfns.split(',')
+        _scopes = scopes.split(',')
+        _filesizes = str_to_int_list(filesizes.split(','))
+        _checksums = checksums.split(',')
+        _allowlans = str_to_bool_list(allowlans.split(','))
+        _allowwans = str_to_bool_list(allowwans.split(','))
+        _directaccesslans = str_to_bool_list(directaccesslans.split(','))
+        _directaccesswans = str_to_bool_list(directaccesswans.split(','))
+        _istars = str_to_bool_list(istars.split(','))
+        _accessmodes = accessmodes.split(',')
+        _storagetokens = storagetokens.split(',')
+        _guids = guids.split(',')
+    except Exception as error:
+        message("exception caught: %s" % error)
+
+    message("lfns=%s" % str(_lfns))
+    message("filesizes=%s" % str(_filesizes))
+    message("checksums=%s" % str(_checksums))
+    message("allowlans=%s" % str(_allowlans))
+    message("allowwans=%s" % str(_allowwans))
+    message("directaccesslans=%s" % str(_directaccesslans))
+    message("directaccesswans=%s" % str(_directaccesswans))
+    message("istars=%s" % str(_istars))
+    message("accessmodes=%s" % str(_accessmodes))
+    message("storagetokens=%s" % str(_storagetokens))
+    message("guids=%s" % str(_guids))
+
+    return _lfns, _scopes, _filesizes, _checksums, _allowlans, _allowwans, _directaccesslans, _directaccesswans, \
+           _istars, _accessmodes, _storagetokens, _guids
 
 
 class Job:
@@ -195,7 +293,7 @@ class Job:
         self.jobdefinitionid = jobdefinitionid
 
 
-def add_to_dictionary(dictionary, key, value1, value2):
+def add_to_dictionary(dictionary, key, value1, value2, value3):
     """
     Add key: [value1, value2] to dictionary.
     In practice; lfn: [status, status_code].
@@ -204,10 +302,11 @@ def add_to_dictionary(dictionary, key, value1, value2):
     :param key: lfn key to be added (string).
     :param value1: status to be added to list belonging to key (string).
     :param value2: status_code to be added to list belonging to key (string).
+    :param value3: turl (string).
     :return: updated dictionary.
     """
 
-    dictionary[key] = [value1, value2]
+    dictionary[key] = [value1, value2, value3]
     return dictionary
 
 
@@ -246,7 +345,10 @@ if __name__ == '__main__':
     #    exit(ret)
 
     # get the file info
-    lfns, scopes = get_file_lists(args.lfns, args.scopes)
+    lfns, scopes, filesizes, checksums, allowlans, allowwans, directaccesslans, directaccesswans, istars, accessmodes,\
+        storagetokens, guids = get_file_lists(args.lfns, args.scopes, args.filesizes, args.checksums, args.allowlans,
+                                       args.allowwans, args.directaccesslans, args.directaccesswans, args.istars,
+                                       args.accessmodes, args.storagetokens, args.guids)
     if len(lfns) != len(scopes):
         message('file lists not same length: len(lfns)=%d, len(scopes)=%d' % (len(lfns), len(scopes)))
 
@@ -274,11 +376,26 @@ if __name__ == '__main__':
         activity = 'pr'
     kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, use_pcache=args.usepcache, use_bulk=False)
     xfiles = []
-    for lfn, scope in list(zip(lfns, scopes)):
-        files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir}]
+    for lfn, scope, filesize, checksum, allowlan, allowwan, dalan, dawan, istar, accessmode, sttoken, guid in list(zip(lfns,
+                                                                                                                       scopes,
+                                                                                                                       filesizes,
+                                                                                                                       checksums,
+                                                                                                                       allowlans,
+                                                                                                                       allowwans,
+                                                                                                                       directaccesslans,
+                                                                                                                       directaccesswans,
+                                                                                                                       istars,
+                                                                                                                       accessmodes,
+                                                                                                                       storagetokens,
+                                                                                                                       guids)):
+        files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir, 'filesize': filesize, 'checksum': checksum,
+                  'allow_lan': allowlan, 'allow_wan': allowwan, 'direct_access_lan': dalan, 'guid': guid,
+                  'direct_access_wan': dawan, 'is_tar': istar, 'accessmode': accessmode, 'storage_token': sttoken}]
+
+        message("files=%s" % str(files))
+
         # do not abbreviate the following two lines as otherwise the content of xfiles will be a list of generator objects
         _xfiles = [FileSpec(type='input', **f) for f in files]
-        message('_xfiles=%s' % str(_xfiles))
         xfiles += _xfiles
 
     try:
@@ -293,14 +410,14 @@ if __name__ == '__main__':
     if xfiles:
         message('stagein script summary of transferred files:')
         for fspec in xfiles:
-            add_to_dictionary(file_dictionary, fspec.lfn, fspec.status, fspec.status_code)
+            add_to_dictionary(file_dictionary, fspec.lfn, fspec.status, fspec.status_code, fspec.turl)
             status = fspec.status if fspec.status else "(not transferred)"
             message(" -- lfn=%s, status_code=%s, status=%s" % (fspec.lfn, fspec.status_code, status))
 
     # add error info, if any
     if err:
         errcode, err = extract_error_info(err)
-    add_to_dictionary(file_dictionary, 'error', err, errcode)
+    add_to_dictionary(file_dictionary, 'error', err, errcode, None)
     path = os.path.join(args.workdir, config.Container.stagein_dictionary)
     _status = write_json(path, file_dictionary)
     if err:

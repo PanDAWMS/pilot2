@@ -171,17 +171,21 @@ def get_middleware_type():
     return middleware_type
 
 
-def extract_atlas_setup(asetup):
+def extract_atlas_setup(asetup, swrelease):
     """
-    Extract the asetup command from the full setup command.
+    Extract the asetup command from the full setup command for jobs that have a defined release.
     export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
       source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;source $AtlasSetup/scripts/asetup.sh
     -> $AtlasSetup/scripts/asetup.sh, export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase; source
          ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
 
     :param asetup: full asetup command (string).
+    :param swrelease: ATLAS release (string).
     :return: extracted asetup command, cleaned up full asetup command without asetup.sh (string).
     """
+
+    if not swrelease:
+        return '', ''
 
     try:
         # source $AtlasSetup/scripts/asetup.sh
@@ -275,12 +279,11 @@ def update_for_user_proxy(_cmd, cmd):
     return _cmd, cmd
 
 
-def set_platform(job, new_mode, alrb_setup):
+def set_platform(job, alrb_setup):
     """
     Set thePlatform variable and add it to the sub container command.
 
     :param job: job object.
-    :param new_mode: tmp
     :param alrb_setup: ALRB setup (string).
     :return: updated ALRB setup (string).
     """
@@ -289,7 +292,7 @@ def set_platform(job, new_mode, alrb_setup):
         alrb_setup += 'export thePlatform=\"%s\";' % job.alrbuserplatform
     elif job.preprocess and job.containeroptions:
         alrb_setup += 'export thePlatform=\"%s\";' % job.containeroptions.get('containerImage')
-    elif job.imagename and new_mode:
+    elif job.imagename:
         alrb_setup += 'export thePlatform=\"%s\";' % job.imagename
     elif job.platform:
         alrb_setup += 'export thePlatform=\"%s\";' % job.platform
@@ -353,8 +356,6 @@ def alrb_wrapper(cmd, workdir, job=None):
 
     log = get_logger(job.jobid)
     queuedata = job.infosys.queuedata
-    new_mode = True  # remove this later
-
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
     if container_name:
         log.debug('cmd 1=%s' % cmd)
@@ -367,20 +368,19 @@ def alrb_wrapper(cmd, workdir, job=None):
         # atlas_setup = $AtlasSetup/scripts/asetup.sh
         # clean_asetup = export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source
         #                   ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
-        atlas_setup, clean_asetup = extract_atlas_setup(_asetup)
+        atlas_setup, clean_asetup = extract_atlas_setup(_asetup, job.swrelease)
         log.debug('atlas_setup=%s' % atlas_setup)
         log.debug('clean_asetup=%s' % clean_asetup)
-        full_atlas_setup = get_full_asetup(cmd, 'source ' + atlas_setup)
+        full_atlas_setup = get_full_asetup(cmd, 'source ' + atlas_setup) if atlas_setup and clean_asetup else ''
         log.debug('full_atlas_setup=%s' % full_atlas_setup)
 
-        if new_mode:
-            # do not include 'clean_asetup' in the container script
+        # do not include 'clean_asetup' in the container script
+        if clean_asetup and full_atlas_setup:
             cmd = cmd.replace(clean_asetup, '')
             # for stand-alone containers, do not include the full atlas setup either
             if job.imagename:
                 cmd = cmd.replace(full_atlas_setup, '')
-        else:
-            cmd = cmd.replace(_asetup, "asetup")  # else: cmd.replace(_asetup, atlas_setup)
+
         log.debug('cmd 2=%s' % cmd)
         # get_asetup(asetup=False)
         # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
@@ -397,7 +397,7 @@ def alrb_wrapper(cmd, workdir, job=None):
         alrb_setup, cmd = update_for_user_proxy(alrb_setup, cmd)
 
         # set the platform info
-        alrb_setup = set_platform(job, new_mode, alrb_setup)
+        alrb_setup = set_platform(job, alrb_setup)
 
         # add the jobid to be used as an identifier for the payload running inside the container
         # it is used to identify the pid for the process to be tracked by the memory monitor
@@ -412,7 +412,7 @@ def alrb_wrapper(cmd, workdir, job=None):
 
         # get the proper release setup script name, and create the script if necessary
         release_setup, cmd = create_release_setup(cmd, atlas_setup, full_atlas_setup, job.swrelease, job.imagename,
-                                                  job.workdir, queuedata.is_cvmfs, new_mode)
+                                                  job.workdir, queuedata.is_cvmfs)
         if not cmd:
             diagnostics = 'payload setup was reset due to missing release setup in unpacked container'
             logger.warning(diagnostics)
@@ -438,7 +438,7 @@ def alrb_wrapper(cmd, workdir, job=None):
         job.command = cmd
 
         # add atlasLocalSetup command + options (overwrite the old cmd since the new cmd is the containerised version)
-        cmd = add_asetup(job, alrb_setup, queuedata.is_cvmfs, release_setup, container_script, queuedata.container_options, new_mode)
+        cmd = add_asetup(job, alrb_setup, queuedata.is_cvmfs, release_setup, container_script, queuedata.container_options)
 
         # add any container options if set
         execargs = job.containeroptions.get('execArgs', None)
@@ -477,7 +477,7 @@ def is_release_setup(script, imagename):
     return exists
 
 
-def add_asetup(job, alrb_setup, is_cvmfs, release_setup, container_script, container_options, new_mode):
+def add_asetup(job, alrb_setup, is_cvmfs, release_setup, container_script, container_options):
     """
     Add atlasLocalSetup and options to form the final payload command.
 
@@ -487,7 +487,6 @@ def add_asetup(job, alrb_setup, is_cvmfs, release_setup, container_script, conta
     :param release_setup: release setup (string).
     :param container_script: container script name (string).
     :param container_options: container options (string).
-    :param new_mode: temp (Boolean).
     :return: final payload command (string).
     """
 
@@ -507,16 +506,14 @@ def add_asetup(job, alrb_setup, is_cvmfs, release_setup, container_script, conta
             alrb_setup += ' -d'
     else:
         alrb_setup += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh '
-        if job.platform or job.alrbuserplatform or (job.imagename and new_mode):
+        if job.platform or job.alrbuserplatform or job.imagename:
             alrb_setup += '-c $thePlatform'
             if not is_cvmfs:
                 alrb_setup += ' -d'
 
     # update the ALRB setup command
-    # alrb_setup = update_alrb_setup(alrb_setup, new_mode and queuedata.is_cvmfs and use_release_setup)
-    if new_mode:
-        alrb_setup += ' -s %s' % release_setup
-        alrb_setup += ' -r /srv/' + container_script
+    alrb_setup += ' -s %s' % release_setup
+    alrb_setup += ' -r /srv/' + container_script
     alrb_setup = alrb_setup.replace('  ', ' ').replace(';;', ';')
 
     # add container options
@@ -570,7 +567,7 @@ def replace_last_command(cmd, replacement):
     return cmd
 
 
-def create_release_setup(cmd, atlas_setup, full_atlas_setup, release, imagename, workdir, is_cvmfs, new_mode):
+def create_release_setup(cmd, atlas_setup, full_atlas_setup, release, imagename, workdir, is_cvmfs):
     """
     Get the proper release setup script name, and create the script if necessary.
 
@@ -588,14 +585,13 @@ def create_release_setup(cmd, atlas_setup, full_atlas_setup, release, imagename,
     :param imagename: container image name (string).
     :param workdir: job workdir (string).
     :param is_cvmfs: does the queue have cvmfs? (Boolean).
-    :param new_mode: temporary new_mode for new ALRB setup (REMOVE).
     :return: proper release setup name (string), updated cmd (string).
     """
 
     release_setup_name = get_release_setup_name(release, imagename)
 
     # note: if release_setup_name.startswith('/'), the pilot will NOT create the script
-    if new_mode and not release_setup_name.startswith('/'):
+    if not release_setup_name.startswith('/'):
         # in the new mode, extracted_asetup should be written to 'my_release_setup.sh' and cmd to 'container_script.sh'
         content = ''
         if is_cvmfs:
@@ -606,16 +602,6 @@ def create_release_setup(cmd, atlas_setup, full_atlas_setup, release, imagename,
             content = 'echo \"Error: this setup file should not be run since %s should exist inside the container\"' % release_setup_name
             logger.debug(
                 'will create an empty (almost) release setup file since asetup could not be extracted from command')
-        #else:
-        #    _content = "\echo \"This will not be run if there is a /release_setup.sh script inside the container\"\n\n"
-        #    _content += "if [ -z $AtlasSetup ]; then\n"
-        #    _content += "    \echo \"asetup not found so will try to do it from cvmfs ...\"\n"
-        #    _content += "    if [ -z \"$ATLAS_LOCAL_ROOT_BASE\" ]; then\n"
-        #    _content += "        export ATLAS_LOCAL_ROOT_BASE=%s/atlas.cern.ch/repo/ATLASLocalRootBase\n" % get_file_system_root_path()
-        #    _content += "    fi\n"
-        #    _content += "    source $ATLAS_LOCAL_ROOT_BASE/user/atlasLocalSetup.sh -q\n"
-        #    _content += "fi\n\n%s" % content
-        #    content = _content
         logger.debug('command to be written to release setup file:\n\n%s:\n\n%s\n' % (release_setup_name, content))
         try:
             write_file(os.path.join(workdir, release_setup_name), content, mute=False)
