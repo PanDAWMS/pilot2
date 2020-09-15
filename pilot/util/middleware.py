@@ -131,7 +131,14 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, lab
     :raises StageOutFailure: for stage-out failures
     """
 
-    filedata_dictionary = get_filedata_strings(xdata)
+    try:
+        filedata_dictionary = get_filedata_strings(xdata)
+    except Exception as error:
+        import traceback
+        error_msg = traceback.format_exc()
+        logger.warning('exception caught: %s' % error_msg)
+        raise error
+
     srcdir = path.join(environ.get('PILOT_SOURCE_DIR', '.'), 'pilot2')
     if not path.exists(srcdir):
         msg = 'pilot source directory not correct: %s' % srcdir
