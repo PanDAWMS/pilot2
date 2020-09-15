@@ -58,6 +58,7 @@ class JobData(BaseData):
     platform = ""                  # cmtconfig value from the task definition
     is_eventservice = False        # True for event service jobs
     is_eventservicemerge = False   # True for event service merge jobs
+    is_hpo = False                 # True for HPO jobs
     transfertype = ""              # direct access instruction from server
     accessmode = ""                # direct access instruction from jobparams
     processingtype = ""            # e.g. nightlies
@@ -153,7 +154,7 @@ class JobData(BaseData):
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'zombies', 'corecounts'],
              dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes', 'preprocess',
                     'postprocess', 'containeroptions'],
-             bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug', 'usecontainer']
+             bool: ['is_eventservice', 'is_eventservicemerge', 'is_hpo', 'noexecstrcnv', 'debug', 'usecontainer']
              }
 
     def __init__(self, data):
@@ -424,6 +425,7 @@ class JobData(BaseData):
             'writetofile': 'writeToFile',
             'is_eventservice': 'eventService',
             'is_eventservicemerge': 'eventServiceMerge',
+            'is_hpo': 'isHPO',
             'maxcpucount': 'maxCpuCount',
             'allownooutput': 'allowNoOutput',
             'imagename_jobdef': 'container_name',

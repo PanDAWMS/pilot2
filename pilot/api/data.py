@@ -246,8 +246,6 @@ class StagingClient(object):
         logger.debug("replicas received from Rucio: %s" % replicas)
 
         files_lfn = dict(((e.scope, e.lfn), e) for e in xfiles)
-        logger.debug("files_lfn=%s" % files_lfn)
-
         for r in replicas:
             k = r['scope'], r['name']
             fdat = files_lfn.get(k)
@@ -396,12 +394,6 @@ class StagingClient(object):
             raise PilotException('failed to resolve copytool by preferred activities=%s, acopytools=%s' %
                                  (activity, self.acopytools))
 
-        for fspec in files:
-            try:
-                self.logger.debug('lfn=%s' % fspec.lfn)
-                self.logger.debug('inputddms=%s' % fspec.inputddms)
-            except Exception as e:
-                self.logger.warning('exception caught: %s' % e)
         # populate inputddms if need
         self.prepare_inputddms(files)
 

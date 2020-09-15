@@ -260,18 +260,6 @@ def get_file_lists(lfns, scopes, filesizes, checksums, allowlans, allowwans, dir
     except Exception as error:
         message("exception caught: %s" % error)
 
-    message("lfns=%s" % str(_lfns))
-    message("filesizes=%s" % str(_filesizes))
-    message("checksums=%s" % str(_checksums))
-    message("allowlans=%s" % str(_allowlans))
-    message("allowwans=%s" % str(_allowwans))
-    message("directaccesslans=%s" % str(_directaccesslans))
-    message("directaccesswans=%s" % str(_directaccesswans))
-    message("istars=%s" % str(_istars))
-    message("accessmodes=%s" % str(_accessmodes))
-    message("storagetokens=%s" % str(_storagetokens))
-    message("guids=%s" % str(_guids))
-
     return _lfns, _scopes, _filesizes, _checksums, _allowlans, _allowwans, _directaccesslans, _directaccesswans, \
            _istars, _accessmodes, _storagetokens, _guids
 
@@ -391,8 +379,6 @@ if __name__ == '__main__':
         files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir, 'filesize': filesize, 'checksum': checksum,
                   'allow_lan': allowlan, 'allow_wan': allowwan, 'direct_access_lan': dalan, 'guid': guid,
                   'direct_access_wan': dawan, 'is_tar': istar, 'accessmode': accessmode, 'storage_token': sttoken}]
-
-        message("files=%s" % str(files))
 
         # do not abbreviate the following two lines as otherwise the content of xfiles will be a list of generator objects
         _xfiles = [FileSpec(type='input', **f) for f in files]
