@@ -133,11 +133,14 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, lab
 
     try:
         filedata_dictionary = get_filedata_strings(xdata)
-    except Exception as error:
+    except Exception:
         import traceback
-        error_msg = traceback.format_exc()
-        logger.warning('exception caught: %s' % error_msg)
-        raise error
+        msg = traceback.format_exc()
+        logger.warning('exception caught: %s' % msg)
+        if label == 'stage-in':
+            raise StageInFailure(msg)
+        else:
+            raise StageOutFailure(msg)
 
     srcdir = path.join(environ.get('PILOT_SOURCE_DIR', '.'), 'pilot2')
     if not path.exists(srcdir):
