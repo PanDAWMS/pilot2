@@ -467,8 +467,7 @@ def copytool_in(queues, traces, args):
                 if config.Payload.executor_type.lower() != 'raythena':
                     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
                     user = __import__('pilot.user.%s.metadata' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
-                    _dir = '/srv' if job.usecontainer else job.workdir
-                    file_dictionary = get_input_file_dictionary(job.indata, _dir)
+                    file_dictionary = get_input_file_dictionary(job.indata)
                     xml = user.create_input_file_metadata(file_dictionary, job.workdir)
                     log.info('created input file metadata:\n%s' % xml)
             else:
