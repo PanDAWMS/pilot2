@@ -164,8 +164,11 @@ class JobData(BaseData):
 
         self.infosys = None  # reference to Job specific InfoService instance
         self._rawdata = data
-
         self.load(data)
+
+        # for native HPO pilot support
+        if self.is_hpo and False:
+            self.is_eventservice = True
 
     def init(self, infosys):
         """

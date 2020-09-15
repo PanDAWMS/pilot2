@@ -163,7 +163,7 @@ def get_payload_executor(args, job, out, err, traces):
     :param traces: traces object.
     :return: instance of a payload executor
     """
-    if job.is_eventservice:
+    if job.is_eventservice:  # True for native HPO workflow as well
         payload_executor = eventservice.Executor(args, job, out, err, traces)
     elif job.is_eventservicemerge:
         payload_executor = eventservicemerge.Executor(args, job, out, err, traces)
