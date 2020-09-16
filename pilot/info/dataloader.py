@@ -29,6 +29,7 @@ from datetime import datetime, timedelta
 
 from pilot.util.auxiliary import is_python3
 from pilot.util.timer import timeout
+from pilot.util.https import ctx
 
 import logging
 logger = logging.getLogger(__name__)
@@ -107,10 +108,18 @@ class DataLoader(object):
                         content = _readfile(url)
                     else:
                         logger.info('[attempt=%s/%s] loading data from url=%s' % (trial, nretry, url))
+
                         try:
-                            content = urllib.request.urlopen(url, timeout=20).read()  # Python 3
+                            req = urllib.request.Request(url)  # Python 3
                         except Exception:
-                            content = urllib2.urlopen(url, timeout=20).read()  # Python 2
+                            req = urllib2.Request(url)  # Python 2
+
+                        req.add_header('User-Agent', ctx.user_agent)
+
+                        try:
+                            content = urllib.request.urlopen(req, context=ctx.ssl_context, timeout=20).read()  # Python 3
+                        except Exception:
+                            content = urllib2.urlopen(req, context=ctx.ssl_context, timeout=20).read()  # Python 2
                     if fname:  # save to cache
                         with open(fname, "w+") as f:
                             if isinstance(content, bytes) and is_python3():  # if-statement will always be needed for python 3
@@ -187,7 +196,7 @@ class DataLoader(object):
             try:
                 data = parser(content)
             except Exception as e:
-                logger.fatal("failed to parse data from source=%s .. skipped, error=%s" % (dat.get('url'), e))
+                logger.fatal("failed to parse data from source=%s (resource=%s, cache=%s).. skipped, error=%s" % (dat.get('url'), key, dat.get('fname'), e))
                 data = None
             if data:
                 return data
