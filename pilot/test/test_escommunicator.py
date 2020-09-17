@@ -39,7 +39,7 @@ def check_env():
     return os.path.exists('/cvmfs/atlas.cern.ch/repo/')
 
 
-class TestESCommunicationrRequestResponse(unittest.TestCase):
+class TestESCommunicationRequestResponse(unittest.TestCase):
     """
     Unit tests for event service communicator Request and Response.
     """
