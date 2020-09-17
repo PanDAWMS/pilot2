@@ -192,7 +192,7 @@ class InfoService(object):
             and failover to default value (LOCAL, CVMFS, AGIS, PANDA)
         """
 
-        defval = ['LOCAL', 'CVMFS', 'AGIS', 'PANDA']
+        defval = ['LOCAL', 'CVMFS', 'CRIC', 'PANDA']
 
         # look up priority order: either from job, local config or hardcoded in the logic
         return self._resolve_data(self.whoami(), providers=(self.confinfo, self.jobinfo)) or defval
