@@ -235,7 +235,7 @@ class CommunicationManager(threading.Thread, PluginFactory):
         Function can be called by client to send a get_event_ranges request and get a response with event ranges.
 
         :returns: event ranges (got from jobs servers)
-        :raise: Exception catched when getting event ranges
+        :raise: Exception caught when getting event ranges
         """
 
         if self.is_stop():

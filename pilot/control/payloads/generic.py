@@ -277,6 +277,7 @@ class Executor(object):
             log.error(e)
             raise e
 
+        # add time for PILOT_PRE_PAYLOAD
         self.pre_payload(job)
 
         self.utility_with_payload(job)
@@ -291,6 +292,8 @@ class Executor(object):
             self.__traces.pilot['error_code'] = job.piloterrorcodes[0]
             log.fatal('could not define payload command (traces error set to: %d)' % self.__traces.pilot['error_code'])
             return None
+
+        # preprocess
 
         # extract the setup in case the preprocess command needs it
         job.setup = self.extract_setup(cmd)
@@ -308,10 +311,9 @@ class Executor(object):
                     log.debug('chmod 0o755: %s' % path)
                     os.chmod(path, 0o755)
 
-        log.info("\n\npayload execution command:\n\n%s\n" % cmd)
+        # main payload process
 
-        # replace platform and workdir with new function get_payload_options() or something from experiment specific
-        # code
+        log.info("\n\npayload execution command:\n\n%s\n" % cmd)
         try:
             proc = execute(cmd, workdir=job.workdir, returnproc=True,
                            usecontainer=True, stdout=out, stderr=err, cwd=job.workdir, job=job)

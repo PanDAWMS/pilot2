@@ -21,7 +21,7 @@ except Exception:
     pass
 
 from .dbrelease import get_dbrelease_version, create_dbrelease
-from .setup import should_pilot_prepare_asetup, is_standard_atlas_job,\
+from .setup import should_pilot_prepare_setup, is_standard_atlas_job,\
     set_inds, get_analysis_trf, get_payload_environment_variables, replace_lfns_with_turls
 from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
     get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
@@ -135,8 +135,8 @@ def get_payload_command(job):
 
     log = get_logger(job.jobid)
 
-    # Should the pilot do the asetup or do the jobPars already contain the information?
-    prepareasetup = should_pilot_prepare_asetup(job.noexecstrcnv, job.jobparams)
+    # Should the pilot do the setup or does jobPars already contain the information?
+    preparesetup = should_pilot_prepare_setup(job.noexecstrcnv, job.jobparams)
 
     # Get the platform value
     # platform = job.infosys.queuedata.platform
@@ -148,7 +148,7 @@ def get_payload_command(job):
     resource = __import__('pilot.user.atlas.resource.%s' % resource_name, globals(), locals(), [resource_name], 0)  # Python 3, -1 -> 0
 
     # get the general setup command and then verify it if required
-    cmd = resource.get_setup_command(job, prepareasetup)
+    cmd = resource.get_setup_command(job, preparesetup)
     if cmd:
         ec, diagnostics = resource.verify_setup_command(cmd)
         if ec != 0:
@@ -158,12 +158,12 @@ def get_payload_command(job):
 
         # Normal setup (production and user jobs)
         log.info("preparing normal production/analysis job setup command")
-        cmd = get_normal_payload_command(cmd, job, prepareasetup, userjob)
+        cmd = get_normal_payload_command(cmd, job, preparesetup, userjob)
 
     else:  # Generic, non-ATLAS specific jobs, or at least a job with undefined swRelease
 
         log.info("generic job (non-ATLAS specific or with undefined swRelease)")
-        cmd = get_generic_payload_command(cmd, job, prepareasetup, userjob)
+        cmd = get_generic_payload_command(cmd, job, preparesetup, userjob)
 
     # add any missing trailing ;
     if not cmd.endswith(';'):
@@ -201,14 +201,14 @@ def get_payload_command(job):
     return cmd
 
 
-def get_normal_payload_command(cmd, job, prepareasetup, userjob):
+def get_normal_payload_command(cmd, job, preparesetup, userjob):
     """
     Return the payload command for a normal production/analysis job.
 
     :param cmd: any preliminary command setup (string).
     :param job: job object.
     :param userjob: True for user analysis jobs, False otherwise (bool).
-    :param prepareasetup: True if the pilot should prepare the setup, False if already in the job parameters.
+    :param preparesetup: True if the pilot should prepare the setup, False if already in the job parameters.
     :return: normal payload command (string).
     """
 
@@ -225,7 +225,7 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
         else:
             log.debug('user analysis trf: %s' % trf_name)
 
-        if prepareasetup:
+        if preparesetup:
             _cmd = get_analysis_run_command(job, trf_name)
         else:
             _cmd = job.jobparams
@@ -245,7 +245,7 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
                 cmd += '; export ATHENA_CORE_NUMBER=1'
 
         # Add the transform and the job parameters (production jobs)
-        if prepareasetup:
+        if preparesetup:
             cmd += "; %s %s" % (job.transformation, job.jobparams)
         else:
             cmd += "; " + job.jobparams
@@ -253,12 +253,12 @@ def get_normal_payload_command(cmd, job, prepareasetup, userjob):
     return cmd
 
 
-def get_generic_payload_command(cmd, job, prepareasetup, userjob):
+def get_generic_payload_command(cmd, job, preparesetup, userjob):
     """
 
     :param cmd:
     :param job: job object.
-    :param prepareasetup:
+    :param preparesetup:
     :param userjob: True for user analysis jobs, False otherwise (bool).
     :return: generic job command (string).
     """
@@ -276,7 +276,7 @@ def get_generic_payload_command(cmd, job, prepareasetup, userjob):
         else:
             log.debug('user analysis trf: %s' % trf_name)
 
-        if prepareasetup:
+        if preparesetup:
             _cmd = get_analysis_run_command(job, trf_name)
         else:
             _cmd = job.jobparams
@@ -289,12 +289,12 @@ def get_generic_payload_command(cmd, job, prepareasetup, userjob):
             cmd += _cmd
 
     elif verify_release_string(job.homepackage) != 'NULL' and job.homepackage != ' ':
-        if prepareasetup:
+        if preparesetup:
             cmd = "python %s/%s %s" % (job.homepackage, job.transformation, job.jobparams)
         else:
             cmd = job.jobparams
     else:
-        if prepareasetup:
+        if preparesetup:
             cmd = "python %s %s" % (job.transformation, job.jobparams)
         else:
             cmd = job.jobparams

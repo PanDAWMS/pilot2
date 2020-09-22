@@ -43,6 +43,7 @@ from pilot.util.harvester import request_new_jobs, remove_job_request_file, pars
     is_harvester_mode, get_worker_attributes_file, publish_job_report, publish_work_report, get_event_status_file, \
     publish_stageout_files
 from pilot.util.jobmetrics import get_job_metrics
+from pilot.util.math import mean
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.processes import cleanup, threads_aborted
@@ -236,7 +237,6 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
         # make sure an error code is properly set
         elif state != 'finished':
             verify_error_code(job)
-
     else:
         final = False
         log.info('job %s has state \'%s\' - %s heartbeat' % (job.jobid, state, tag))
@@ -269,12 +269,14 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
                     log.debug('Warning - could not write log and output files to file %s' % event_status_file)
                     return False
                 # publish job report
-                if publish_job_report(job, args, config.Payload.jobreport):
-                    log.debug('wrote job report file')
-                    return True
-                else:
-                    log.debug('Failed to write job report file')
-                    return False
+                _path = os.path.join(job.workdir, config.Payload.jobreport)
+                if os.path.exists(_path):
+                    if publish_job_report(job, args, config.Payload.jobreport):
+                        log.debug('wrote job report file')
+                        return True
+                    else:
+                        log.debug('Failed to write job report file')
+                        return False
             else:
                 log.info('finish writing various report files in Harvester mode')
                 return True
@@ -535,7 +537,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
 
     # add the core count
     if job.corecount and job.corecount != 'null' and job.corecount != 'NULL':
-        data['coreCount'] = job.corecount
+        data['coreCount'] = mean(job.corecounts) if job.corecounts else job.corecount
 
     # get the number of events, should report in heartbeat in case of preempted.
     if job.nevents != 0:
@@ -867,8 +869,10 @@ def get_job_label(args):
     # PQ status
     status = infosys.queuedata.status
 
-    if args.version_tag == 'RC' and (args.job_label == 'ptest' or args.job_label == 'rc_test2'):
+    if args.version_tag == 'RC' and args.job_label == 'rc_test2':
         job_label = 'rc_test2'
+    elif args.version_tag == 'RC' and args.job_label == 'ptest':
+        job_label = args.job_label
     elif args.version_tag == 'RCM' and args.job_label == 'ptest':
         job_label = 'rcm_test2'
     elif args.version_tag == 'ALRB':

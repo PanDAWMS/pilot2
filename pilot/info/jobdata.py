@@ -31,7 +31,7 @@ from time import sleep
 from .basedata import BaseData
 from .filespec import FileSpec
 from pilot.util.constants import LOG_TRANSFER_NOT_DONE
-from pilot.util.filehandling import get_guid
+from pilot.util.filehandling import get_guid, get_valid_path_from_list
 from pilot.util.timing import get_elapsed_real_time
 
 import logging
@@ -58,6 +58,7 @@ class JobData(BaseData):
     platform = ""                  # cmtconfig value from the task definition
     is_eventservice = False        # True for event service jobs
     is_eventservicemerge = False   # True for event service merge jobs
+    is_hpo = False                 # True for HPO jobs
     transfertype = ""              # direct access instruction from server
     accessmode = ""                # direct access instruction from jobparams
     processingtype = ""            # e.g. nightlies
@@ -98,6 +99,7 @@ class JobData(BaseData):
     zombies = []                   # list of zombie process ids
     memorymonitor = ""             # memory monitor name, e.g. prmon
     actualcorecount = 0            # number of cores actually used by the payload
+    corecounts = []                # keep track of all actual core count measurements
 
     # time variable used for on-the-fly cpu consumption time measurements done by job monitoring
     t0 = None                      # payload startup time
@@ -149,10 +151,10 @@ class JobData(BaseData):
                    'swrelease', 'zipmap', 'imagename', 'imagename_jobdef', 'accessmode', 'transfertype',
                    'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    'infilesguids', 'memorymonitor', 'allownooutput'],
-             list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'zombies'],
+             list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'zombies', 'corecounts'],
              dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes', 'preprocess',
                     'postprocess', 'containeroptions'],
-             bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug', 'usecontainer']
+             bool: ['is_eventservice', 'is_eventservicemerge', 'is_hpo', 'noexecstrcnv', 'debug', 'usecontainer']
              }
 
     def __init__(self, data):
@@ -162,8 +164,11 @@ class JobData(BaseData):
 
         self.infosys = None  # reference to Job specific InfoService instance
         self._rawdata = data
-
         self.load(data)
+
+        # for native HPO pilot support
+        if self.is_hpo and False:
+            self.is_eventservice = True
 
     def init(self, infosys):
         """
@@ -187,8 +192,14 @@ class JobData(BaseData):
             image_base = os.environ.get('IMAGE_BASE', '')
             if not image_base and 'IMAGE_BASE' in infosys.queuedata.catchall:
                 image_base = self.get_key_value(infosys.queuedata.catchall, key='IMAGE_BASE')
-            if image_base and not os.path.isabs(self.imagename) and not self.imagename.startswith('docker'):
-                self.imagename = os.path.join(image_base, self.imagename)
+            if image_base:
+                paths = [os.path.join(image_base, os.path.basename(self.imagename)),
+                         os.path.join(image_base, self.imagename)]
+                local_path = get_valid_path_from_list(paths)
+                if local_path:
+                    self.imagename = local_path
+            #if image_base and not os.path.isabs(self.imagename) and not self.imagename.startswith('docker'):
+            #    self.imagename = os.path.join(image_base, self.imagename)
 
     def get_key_value(self, catchall, key='SOMEKEY'):
         """
@@ -417,6 +428,7 @@ class JobData(BaseData):
             'writetofile': 'writeToFile',
             'is_eventservice': 'eventService',
             'is_eventservicemerge': 'eventServiceMerge',
+            'is_hpo': 'isHPO',
             'maxcpucount': 'maxCpuCount',
             'allownooutput': 'allowNoOutput',
             'imagename_jobdef': 'container_name',
@@ -927,3 +939,4 @@ class JobData(BaseData):
         self.exeerrordiag = ""
         self.exitcode = 0
         self.exitmsg = ""
+        self.corecounts = []

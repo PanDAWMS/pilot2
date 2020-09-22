@@ -208,7 +208,7 @@ def get_file_lists(lfns, scopes, ddmendpoints, datasets, guids):
     return lfns.split(','), scopes.split(','), ddmendpoints.split(','), datasets.split(','), guids.split(',')
 
 
-class Job():
+class Job:
     """
     A minimal implementation of the Pilot Job class with data members necessary for the trace report only.
     """
@@ -307,26 +307,51 @@ if __name__ == '__main__':
     client = StageOutClient(infoservice, logger=logger, trace_report=trace_report)
     kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, job=job)  # , mode='stage-out')
 
+    xfiles = []
     for lfn, scope, dataset, ddmendpoint, guid in list(zip(lfns, scopes, datasets, ddmendpoints, guids)):
-        try:
-            files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir, 'dataset': dataset, 'ddmendpoint': ddmendpoint, 'ddmendpoint_alt': None}]
-            xfiles = [FileSpec(type='output', **f) for f in files]
+        files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir, 'dataset': dataset, 'ddmendpoint': ddmendpoint,
+                  'ddmendpoint_alt': None}]
+        # do not abbreviate the following two lines as otherwise the content of xfiles will be a list of generator objects
+        _xfiles = [FileSpec(type='output', **f) for f in files]
+        xfiles += _xfiles
 
-            # prod analy unification: use destination preferences from PanDA server for unified queues
-            if infoservice.queuedata.type != 'unified':
-                client.prepare_destinations(xfiles,
-                                            activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
+        # prod analy unification: use destination preferences from PanDA server for unified queues
+        if infoservice.queuedata.type != 'unified':
+            client.prepare_destinations(xfiles,
+                                        activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
 
-            r = client.transfer(xfiles, activity=activity, **kwargs)
-        except PilotException as error:
-            import traceback
-            error_msg = traceback.format_exc()
-            logger.error(error_msg)
-            err = errors.format_diagnostics(error.get_error_code(), error_msg)
-        except Exception as error:
-            err = str(error)
-            errcode = -1
-            message(err)
+    try:
+        r = client.transfer(xfiles, activity=activity, **kwargs)
+    except PilotException as error:
+        import traceback
+        error_msg = traceback.format_exc()
+        logger.error(error_msg)
+        err = errors.format_diagnostics(error.get_error_code(), error_msg)
+    except Exception as error:
+        err = str(error)
+        errcode = -1
+        message(err)
+
+#    for lfn, scope, dataset, ddmendpoint, guid in list(zip(lfns, scopes, datasets, ddmendpoints, guids)):
+#        try:
+#            files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir, 'dataset': dataset, 'ddmendpoint': ddmendpoint, 'ddmendpoint_alt': None}]
+#            xfiles = [FileSpec(type='output', **f) for f in files]
+#
+#            # prod analy unification: use destination preferences from PanDA server for unified queues
+#            if infoservice.queuedata.type != 'unified':
+#                client.prepare_destinations(xfiles,
+#                                            activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
+#
+#            r = client.transfer(xfiles, activity=activity, **kwargs)
+#        except PilotException as error:
+#            import traceback
+#            error_msg = traceback.format_exc()
+#            logger.error(error_msg)
+#            err = errors.format_diagnostics(error.get_error_code(), error_msg)
+#        except Exception as error:
+#            err = str(error)
+#            errcode = -1
+#            message(err)
 
     # put file statuses in a dictionary to be written to file
     file_dictionary = {}  # { 'error': [error_diag, -1], 'lfn1': [status, status_code], 'lfn2':.., .. }

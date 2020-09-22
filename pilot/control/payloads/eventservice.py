@@ -91,7 +91,8 @@ class Executor(generic.Executor):
         :return: executor type dictionary.
         """
 
-        # use the job object once the interceptor field is available, for now return the config info
+        # executor_type = 'hpo' if job.is_hpo else config.Payload.executor_type
+        # return {'executor_type': executor_type}
         return {'executor_type': config.Payload.executor_type}
 
     def wait_graceful(self, args, proc, job):
