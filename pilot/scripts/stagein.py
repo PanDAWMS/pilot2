@@ -261,7 +261,7 @@ def get_file_lists(lfns, scopes, filesizes, checksums, allowlans, allowwans, dir
         message("exception caught: %s" % error)
 
     return _lfns, _scopes, _filesizes, _checksums, _allowlans, _allowwans, _directaccesslans, _directaccesswans,\
-           _istars, _accessmodes, _storagetokens, _guids
+           _istars, _accessmodes, _storagetokens, _guids  # noqa: E127
 
 
 class Job:
