@@ -313,7 +313,7 @@ class ErrorCodes:
         :param pilot_error_diags: list of pilot error diags (list of strings)
         :param priority: if set to True, the new errorcode will be added to the error code list first (highest priority)
         :param msg: error message (more detailed) to overwrite standard error message (string).
-        :return: pilotErrorCodes, pilotErrorDiags
+        :return: pilot_error_codes, pilot_error_diags
         """
 
         # do nothing if the error code has already been added

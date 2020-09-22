@@ -246,8 +246,6 @@ class StagingClient(object):
         logger.debug("replicas received from Rucio: %s" % replicas)
 
         files_lfn = dict(((e.scope, e.lfn), e) for e in xfiles)
-        logger.debug("files_lfn=%s" % files_lfn)
-
         for r in replicas:
             k = r['scope'], r['name']
             fdat = files_lfn.get(k)

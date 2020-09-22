@@ -39,9 +39,9 @@ def get_file_system_root_path():
     return os.environ.get('ATLAS_SW_BASE', '/cvmfs')
 
 
-def should_pilot_prepare_asetup(noexecstrcnv, jobpars, imagename=None):
+def should_pilot_prepare_setup(noexecstrcnv, jobpars, imagename=None):
     """
-    Determine whether the pilot should add the asetup to the payload command or not.
+    Determine whether the pilot should add the setup to the payload command or not.
     The pilot will not add asetup if jobPars already contain the information (i.e. it was set by the payload creator).
     If noExecStrCnv is set, then jobPars is expected to contain asetup.sh + options
     If a stand-alone container / user defined container is used, pilot should not prepare asetup.
@@ -58,15 +58,15 @@ def should_pilot_prepare_asetup(noexecstrcnv, jobpars, imagename=None):
     if noexecstrcnv:
         if "asetup.sh" in jobpars:
             logger.info("asetup will be taken from jobPars")
-            prepareasetup = False
+            preparesetup = False
         else:
             logger.info("noExecStrCnv is set but asetup command was not found in jobPars (pilot will prepare asetup)")
-            prepareasetup = True
+            preparesetup = True
     else:
-        logger.info("pilot will prepare asetup")
-        prepareasetup = True
+        logger.info("pilot will prepare the setup")
+        preparesetup = True
 
-    return prepareasetup
+    return preparesetup
 
 
 def get_alrb_export(add_if=False):

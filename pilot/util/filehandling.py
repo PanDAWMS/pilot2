@@ -981,3 +981,20 @@ def get_nonexistant_path(fname_path):
         i += 1
         new_fname = "{}-{}{}".format(filename, i, file_extension)
     return new_fname
+
+
+def get_valid_path_from_list(paths):
+    """
+    Return the first valid path from the given list.
+
+    :param paths: list of file paths.
+    :return: first valid path from list (string).
+    """
+
+    valid_path = None
+    for path in paths:
+        if os.path.exists(path):
+            valid_path = path
+            break
+
+    return valid_path

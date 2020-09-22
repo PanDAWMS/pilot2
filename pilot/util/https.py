@@ -7,7 +7,7 @@
 # Authors:
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Mario Lassnig, mario.lassnig@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
 
 import collections
 import subprocess  # Python 2/3
@@ -31,6 +31,7 @@ import pipes
 
 from .filehandling import write_file
 from .auxiliary import is_python3
+from .config import config
 from .constants import get_pilot_version
 
 import logging
@@ -42,6 +43,7 @@ _ctx = collections.namedtuple('_ctx', 'ssl_context user_agent capath cacert')
 # anisyonk: public instance, should be properly initialized by `https_setup()`
 # anisyonk: use lightweight class definition instead of namedtuple since tuple is immutable and we don't need/use any tuple features here
 ctx = type('ctx', (object,), dict(ssl_context=None, user_agent='Pilot2 client', capath=None, cacert=None))
+
 
 def _tester(func, *args):
     """
@@ -220,7 +222,7 @@ def request(url, data=None, plain=False, secure=True):  # noqa: C901
     if _ctx.ssl_context is None and secure:
         req = 'curl -sS --compressed --connect-timeout %s --max-time %s '\
               '--capath %s --cert %s --cacert %s --key %s '\
-              '-H %s %s %s' % (100, 120,
+              '-H %s %s %s' % (config.Pilot.http_connect_timeout, config.Pilot.http_maxtime,
                                pipes.quote(_ctx.capath or ''), pipes.quote(_ctx.cacert or ''),
                                pipes.quote(_ctx.cacert or ''), pipes.quote(_ctx.cacert or ''),
                                pipes.quote('User-Agent: %s' % _ctx.user_agent),

@@ -76,7 +76,7 @@ def job_monitor_tasks(job, mt, args):
             log.info('CPU consumption time for pid=%d: %f (rounded to %d)' % (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
 
         # check how many cores the payload is using
-        check_number_used_cores(job)
+        set_number_used_cores(job)
 
         # check memory usage (optional) for jobs in running state
         exit_code, diagnostics = verify_memory_usage(current_time, mt, job)
@@ -117,27 +117,18 @@ def job_monitor_tasks(job, mt, args):
     return exit_code, diagnostics
 
 
-def check_number_used_cores(job):
+def set_number_used_cores(job):
     """
-    Check the number of cores used by the payload.
+    Set the number of cores used by the payload.
     The number of actual used cores is reported with job metrics (if set).
 
     :param job: job object.
     :return:
     """
 
-    if job.pgrp:
-        cmd = "ps axo pgid,psr | sort | grep %d | uniq | wc -l" % job.pgrp
-        exit_code, stdout, stderr = execute(cmd, mute=True)
-        logger.debug('%s:\n%s' % (cmd, stdout))
-        try:
-            job.actualcorecount = int(stdout)
-        except Exception as e:
-            logger.warning('failed to convert number of actual cores to int: %s' % e)
-        else:
-            logger.debug('set number of actual cores to: %d' % job.actualcorecount)
-    else:
-        logger.debug('payload process group not set - cannot check number of cores used by payload')
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    cpu = __import__('pilot.user.%s.cpu' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+    cpu.set_core_counts(job)
 
 
 def verify_memory_usage(current_time, mt, job):

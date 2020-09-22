@@ -27,6 +27,7 @@ except Exception:
 
 from datetime import datetime, timedelta
 
+from pilot.util.auxiliary import is_python3
 from pilot.util.timer import timeout
 from pilot.util.https import ctx
 
@@ -121,7 +122,9 @@ class DataLoader(object):
                             content = urllib2.urlopen(req, context=ctx.ssl_context, timeout=20).read()  # Python 2
                     if fname:  # save to cache
                         with open(fname, "w+") as f:
-                            f.write(str(content))  # Python 3, added str (write() argument must be str, not bytes; JSON OK)
+                            if isinstance(content, bytes) and is_python3():  # if-statement will always be needed for python 3
+                                content = content.decode("utf-8")  # Python 2/3 - only works for byte streams in python 3
+                            f.write(content)  # Python 3, added str (write() argument must be str, not bytes; JSON OK)
                             logger.info('saved data from "%s" resource into file=%s, length=%.1fKb' %
                                         (url, fname, len(content) / 1024.))
                     return content
@@ -176,6 +179,9 @@ class DataLoader(object):
             idat.setdefault('cache_time', cache_time)
 
             content = self.load_url_data(**idat)
+            if isinstance(content, bytes) and is_python3():
+                content = content.decode("utf-8")
+                logger.debug('converted content to utf-8')
             if not content:
                 continue
             if dat.get('parser'):

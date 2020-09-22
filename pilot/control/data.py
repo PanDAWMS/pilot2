@@ -196,7 +196,9 @@ def _stage_in(args, job):
         except PilotException as e:
             logger.warning('stage-in containerisation threw a pilot exception: %s' % e)
         except Exception as e:
+            import traceback
             logger.warning('stage-in containerisation threw an exception: %s' % e)
+            logger.error(traceback.format_exc())
     else:
         try:
             logger.info('stage-in will not be done in a container')
@@ -465,8 +467,7 @@ def copytool_in(queues, traces, args):
                 if config.Payload.executor_type.lower() != 'raythena':
                     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
                     user = __import__('pilot.user.%s.metadata' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
-                    _dir = '/srv' if job.usecontainer else job.workdir
-                    file_dictionary = get_input_file_dictionary(job.indata, _dir)
+                    file_dictionary = get_input_file_dictionary(job.indata)
                     xml = user.create_input_file_metadata(file_dictionary, job.workdir)
                     log.info('created input file metadata:\n%s' % xml)
             else:
@@ -606,23 +607,20 @@ def is_already_processed(queues, processed_jobs):
     return found
 
 
-def get_input_file_dictionary(indata, workdir):
+def get_input_file_dictionary(indata):
     """
     Return an input file dictionary.
     Format: {'guid': 'pfn', ..}
     Normally use_turl would be set to True if direct access is used.
 
     :param indata: list of FileSpec objects.
-    :param workdir: job.workdir (string).
     :return: file dictionary.
     """
 
     ret = {}
 
     for fspec in indata:
-        # dst = fspec.workdir or workdir or '.'
-        ret[fspec.guid] = fspec.turl if fspec.status == 'remote_io' else fspec.lfn  #os.path.join(dst, fspec.lfn)
-        # ret[fspec.guid] = fspec.turl if fspec.accessmode == 'direct' else fspec.surl
+        ret[fspec.guid] = fspec.turl if fspec.status == 'remote_io' else fspec.lfn
 
         # correction for ND and mv
         # in any case use the lfn instead of pfn since there are trf's that have problems with pfn's
