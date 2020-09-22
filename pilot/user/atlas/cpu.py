@@ -52,7 +52,7 @@ def add_core_count(corecount, core_counts=[]):
     :return: updated list of core counts (list).
     """
 
-    if core_counts == None:  # protection
+    if core_counts is None:  # protection
         core_counts = []
     core_counts.append(corecount)
 

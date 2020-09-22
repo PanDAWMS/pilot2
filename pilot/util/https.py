@@ -44,6 +44,7 @@ _ctx = collections.namedtuple('_ctx', 'ssl_context user_agent capath cacert')
 # anisyonk: use lightweight class definition instead of namedtuple since tuple is immutable and we don't need/use any tuple features here
 ctx = type('ctx', (object,), dict(ssl_context=None, user_agent='Pilot2 client', capath=None, cacert=None))
 
+
 def _tester(func, *args):
     """
     Tests function ``func`` on arguments and returns first positive.

@@ -512,7 +512,7 @@ def extract_tarball_url(_tail):
     return tarball_url
 
 
-def process_job_report(job):
+def process_job_report(job):  # noqa: C901
     """
     Process the job report produced by the payload/transform if it exists.
     Payload error codes and diagnostics, as well as payload metadata (for output files) and stageout type will be
