@@ -79,7 +79,7 @@ def set_core_counts(job):
             log.warning('failed to convert number of actual cores to int: %s' % e)
         else:
             # overwrite the original core count (see discussion with Tadashi, 18/8/20) and add it to the list
-            job.corecount = job.actualcorecount
+            # job.corecount = job.actualcorecount
             job.corecounts = add_core_count(job.actualcorecount)  #, core_counts=job.corecounts)
             log.debug('current core counts list: %s' % str(job.corecounts))
 
