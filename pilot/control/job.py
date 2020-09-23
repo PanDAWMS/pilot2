@@ -537,7 +537,8 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
 
     # add the core count
     if job.corecount and job.corecount != 'null' and job.corecount != 'NULL':
-        data['coreCount'] = mean(job.corecounts) if job.corecounts else job.corecount
+        data['coreCount'] = job.corecount
+        #data['coreCount'] = mean(job.corecounts) if job.corecounts else job.corecount
 
     # get the number of events, should report in heartbeat in case of preempted.
     if job.nevents != 0:
