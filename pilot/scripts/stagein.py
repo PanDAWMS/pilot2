@@ -260,8 +260,11 @@ def get_file_lists(lfns, scopes, filesizes, checksums, allowlans, allowwans, dir
     except Exception as error:
         message("exception caught: %s" % error)
 
-    return _lfns, _scopes, _filesizes, _checksums, _allowlans, _allowwans, _directaccesslans, _directaccesswans,\
-           _istars, _accessmodes, _storagetokens, _guids  # noqa: E127
+    file_list_dictionary = {'lfns': _lfns, 'scopes': _scopes, 'filesizes': _filesizes, 'checksums': _checksums,
+                            'allowlans': _allowlans, 'allowwans': _allowwans, 'directaccesslans': _directaccesslans,
+                            'directaccesswans': _directaccesswans, 'istars': _istars, 'accessmodes': _accessmodes,
+                            'storagetokens': _storagetokens, 'guids': _guids}
+    return file_list_dictionary
 
 
 class Job:
@@ -333,12 +336,21 @@ if __name__ == '__main__':
     #    exit(ret)
 
     # get the file info
-    lfns, scopes, filesizes, checksums, allowlans, allowwans, directaccesslans, directaccesswans, istars, accessmodes,\
-        storagetokens, guids = get_file_lists(args.lfns, args.scopes, args.filesizes, args.checksums, args.allowlans,
-                                              args.allowwans, args.directaccesslans, args.directaccesswans, args.istars,
-                                              args.accessmodes, args.storagetokens, args.guids)
-    if len(lfns) != len(scopes):
-        message('file lists not same length: len(lfns)=%d, len(scopes)=%d' % (len(lfns), len(scopes)))
+    file_list_dictionary = get_file_lists(args.lfns, args.scopes, args.filesizes, args.checksums, args.allowlans,
+                                          args.allowwans, args.directaccesslans, args.directaccesswans, args.istars,
+                                          args.accessmodes, args.storagetokens, args.guids)
+    lfns = file_list_dictionary.get('lfns')
+    scopes = file_list_dictionary.get('scopes')
+    filesizes = file_list_dictionary.get('filesizes')
+    checksums = file_list_dictionary.get('checksums')
+    allowlans = file_list_dictionary.get('allowlans')
+    allowwans = file_list_dictionary.get('allowwans')
+    directaccesslans = file_list_dictionary.get('directaccesslans')
+    directaccesswans = file_list_dictionary.get('directaccesswans')
+    istars = file_list_dictionary.get('istars')
+    accessmodes = file_list_dictionary.get('accessmodes')
+    storagetokens = file_list_dictionary.get('storagetokens')
+    guids = file_list_dictionary.get('guids')
 
     # generate the trace report
     trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''), localSite=args.localsite, remoteSite=args.remotesite, dataset="",

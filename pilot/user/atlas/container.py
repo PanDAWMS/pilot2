@@ -772,6 +772,9 @@ def create_middleware_container_command(workdir, cmd, label='stagein'):
             command += 'export ALRB_CONT_RUNPAYLOAD=\"%ssource /srv/%s\";' % (pythonpath, script_name)
             command += get_asetup(alrb=True)  # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
             command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c centos7'
+            #path = '/cvmfs/unpacked.cern.ch/registry.hub.docker.com/atlas/rucio-clients:default'
+            # verify path ..
+            #command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % path
 
     logger.debug('container command: %s' % command)
     return command
