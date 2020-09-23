@@ -15,7 +15,7 @@ from subprocess import PIPE
 from glob import glob
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.util.auxiliary import get_logger
+from pilot.util.auxiliary import get_logger, set_pilot_state
 from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.filehandling import get_directory_size, remove_files, get_local_file_size
@@ -432,6 +432,8 @@ def check_payload_stdout(job):
                     log.warning(diagnostics)
 
                     # kill the job
+                    set_pilot_state(job=job, state="failed")
+                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
                     kill_processes(job.pid)
 
                     # remove the payload stdout file after the log extracts have been created
@@ -510,6 +512,8 @@ def check_work_dir(job):
 
                 # kill the job
                 # pUtil.createLockFile(True, self.__env['jobDic'][k][1].workdir, lockfile="JOBWILLBEKILLED")
+                set_pilot_state(job=job, state="failed")
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
                 kill_processes(job.pid)
 
                 # remove any lingering input files from the work dir
