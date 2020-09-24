@@ -47,28 +47,6 @@ class Executor(object):
         """
         return self.__job
 
-    def setup_payload(self, job, out, err):
-        """
-        (add description)
-        :param job:
-        :param out:
-        :param err:
-        :return:
-        """
-        # log = get_logger(job.jobid, logger)
-
-        # try:
-        # create symbolic link for sqlite200 and geomDB in job dir
-        #    for db_name in ['sqlite200', 'geomDB']:
-        #         src = '/cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/%s' % db_name
-        #         link_name = 'job-%s/%s' % (job.jobid, db_name)
-        #         os.symlink(src, link_name)
-        # except Exception as e:
-        #     log.error('could not create symbolic links to database files: %s' % e)
-        #     return False
-
-        return True
-
     def pre_setup(self, job):
         """
         Functions to run pre setup
@@ -253,7 +231,7 @@ class Executor(object):
 
     def run_payload(self, job, out, err):
         """
-        Setup and execute the preprocess, payload and postprocess commands.
+        Setup and execute the main payload process.
 
         :param job: job object.
         :param out: (currently not used; deprecated)
@@ -399,7 +377,9 @@ class Executor(object):
 
     def run(self):
         """
-        (add description)
+        Run all payload processes (including pre- and post-processes, and utilities).
+        In the case of HPO jobs, this function will loop over all processes until the preprocess returns a special
+        exit code.
         :return:
         """
         log = get_logger(str(self.__job.jobid), logger)
@@ -407,9 +387,19 @@ class Executor(object):
         exit_code = 1
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
 
-        if self.setup_payload(self.__job, self.__out, self.__err):
+        # prepare for main payload
+
+        # a loop is needed for HPO jobs
+        # abort when nothing more to run, or when the preprocess returns a special exit code
+        is_hpo = False
+        while True:
+            # first run the preprocess (if necessary)
+
+            # now run the main payload, when it finishes, run the postprocess (if necessary)
             proc = self.run_payload(self.__job, self.__out, self.__err)
-            if proc is not None:
+            if proc is None:
+                break
+            else:
                 # the process is now running, update the server
                 send_state(self.__job, self.__args, self.__job.state)
 
@@ -450,5 +440,8 @@ class Executor(object):
                                 log.warning('exception caught: %s (ignoring)' % e)
 
                             user.post_utility_command_action(utcmd, self.__job)
+
+            if not is_hpo:
+                break
 
         return exit_code
