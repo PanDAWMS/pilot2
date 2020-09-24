@@ -70,7 +70,10 @@ def set_core_counts(job):
     log = get_logger(job.jobid)
 
     if job.pgrp:
-        cmd = "ps axo pgid,psr | sort | grep %d | uniq | wc -l" % job.pgrp
+        # ps axo pgid,psr -> 154628   8 \n 154628   9 \n 1546280 1 ..
+        # sort is redundant; uniq removes any duplicate lines; wc -l gives the final count
+        # awk is added to get the pgrp list only and then grep -x makes sure that false positives are removed, e.g. 1546280
+        cmd = "ps axo pgid,psr | sort | grep %d | uniq | awk '{print $1}' | grep -x %d | wc -l" % (job.pgrp, job.pgrp)
         exit_code, stdout, stderr = execute(cmd, mute=True)
         log.debug('%s: %s' % (cmd, stdout))
         try:
