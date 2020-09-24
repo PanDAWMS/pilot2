@@ -43,7 +43,7 @@ from pilot.util.harvester import request_new_jobs, remove_job_request_file, pars
     is_harvester_mode, get_worker_attributes_file, publish_job_report, publish_work_report, get_event_status_file, \
     publish_stageout_files
 from pilot.util.jobmetrics import get_job_metrics
-# from pilot.util.math import mean
+from pilot.util.math import mean
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.processes import cleanup, threads_aborted
@@ -539,6 +539,8 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     if job.corecount and job.corecount != 'null' and job.corecount != 'NULL':
         data['coreCount'] = job.corecount
         #data['coreCount'] = mean(job.corecounts) if job.corecounts else job.corecount
+        if job.corecounts:
+            log.info('mean actualcorecount: %f' % mean(job.corecounts))
 
     # get the number of events, should report in heartbeat in case of preempted.
     if job.nevents != 0:
