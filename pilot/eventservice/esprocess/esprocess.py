@@ -475,11 +475,9 @@ class ESProcess(threading.Thread):
         except queue.Empty:
             pass
         else:
-            logger.debug('received message from payload: %s' % message)
-            logger.debug('type of received message from payload: %s' % type(message))
             if (sys.version_info > (3, 0)):  # needed for Python 3
                 message = message.decode('utf-8')
-                logger.debug('type of converted received message : %s' % type(message))
+            logger.debug('received message from payload: %s' % message)
             if "Ready for events" in message:
                 event_ranges = self.get_event_range_to_payload()
                 if not event_ranges:
