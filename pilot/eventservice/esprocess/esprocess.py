@@ -7,6 +7,7 @@
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
+import io
 import json
 import logging
 import os
@@ -28,6 +29,12 @@ from pilot.util.processes import kill_child_processes
 
 
 logger = logging.getLogger(__name__)
+
+try:
+    file_type = file
+except NameError:
+    file_type = io.IOBase
+
 
 """
 Main process to handle event service.
@@ -161,7 +168,7 @@ class ESProcess(threading.Thread):
                 executable = 'cd %s; %s' % (workdir, executable)
 
             if 'output_file' in self.__payload:
-                if type(self.__payload['output_file']) in [file]:
+                if isinstance(self.__payload['output_file'], file_type):
                     output_file_fd = self.__payload['output_file']
                 else:
                     if '/' in self.__payload['output_file']:
@@ -174,7 +181,7 @@ class ESProcess(threading.Thread):
                 output_file_fd = open(output_file, 'w')
 
             if 'error_file' in self.__payload:
-                if type(self.__payload['error_file']) in [file]:
+                if isinstance(self.__payload['error_file'], file_type):
                     error_file_fd = self.__payload['error_file']
                 else:
                     if '/' in self.__payload['error_file']:
