@@ -475,7 +475,7 @@ class ESProcess(threading.Thread):
             pass
         else:
             logger.debug('received message from payload: %s' % message)
-            if "Ready for events" in message:
+            if "Ready for events" in str(message):
                 event_ranges = self.get_event_range_to_payload()
                 if not event_ranges:
                     event_ranges = "No more events"
