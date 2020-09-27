@@ -403,6 +403,7 @@ class ESProcess(threading.Thread):
                  UnknownException: when other unknown exception is caught.
         """
 
+        message = str(message)  # needed for Python 3
         logger.debug('parsing message: %s' % message)
         try:
             if message.startswith("/"):
