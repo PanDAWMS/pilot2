@@ -159,7 +159,7 @@ class CommunicationManager(threading.Thread, PluginFactory):
 
         :returns: True if the stop signal is set, otherwise False
         """
-        return self.stop_event.isSet()
+        return self.stop_event.is_set()
 
     def get_jobs(self, njobs=1, post_hook=None, args=None):
         """
