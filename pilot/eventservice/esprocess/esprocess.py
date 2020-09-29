@@ -7,11 +7,13 @@
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
+import io
 import json
 import logging
 import os
 import re
 import subprocess
+import sys
 import time
 import threading
 import traceback
@@ -28,6 +30,12 @@ from pilot.util.processes import kill_child_processes
 
 
 logger = logging.getLogger(__name__)
+
+try:
+    file_type = file
+except NameError:
+    file_type = io.IOBase
+
 
 """
 Main process to handle event service.
@@ -161,7 +169,7 @@ class ESProcess(threading.Thread):
                 executable = 'cd %s; %s' % (workdir, executable)
 
             if 'output_file' in self.__payload:
-                if type(self.__payload['output_file']) in [file]:
+                if isinstance(self.__payload['output_file'], file_type):
                     output_file_fd = self.__payload['output_file']
                 else:
                     if '/' in self.__payload['output_file']:
@@ -174,7 +182,7 @@ class ESProcess(threading.Thread):
                 output_file_fd = open(output_file, 'w')
 
             if 'error_file' in self.__payload:
-                if type(self.__payload['error_file']) in [file]:
+                if isinstance(self.__payload['error_file'], file_type):
                     error_file_fd = self.__payload['error_file']
                 else:
                     if '/' in self.__payload['error_file']:
@@ -376,6 +384,8 @@ class ESProcess(threading.Thread):
         msg = None
         if "No more events" in event_ranges:
             msg = event_ranges
+            if (sys.version_info > (3, 0)):  # needed for Python 3
+                msg = msg.encode('utf-8')
             self.is_no_more_events = True
             self.__no_more_event_time = time.time()
         else:
@@ -467,6 +477,8 @@ class ESProcess(threading.Thread):
         except queue.Empty:
             pass
         else:
+            if (sys.version_info > (3, 0)):  # needed for Python 3
+                message = message.decode('utf-8')
             logger.debug('received message from payload: %s' % message)
             if "Ready for events" in message:
                 event_ranges = self.get_event_range_to_payload()

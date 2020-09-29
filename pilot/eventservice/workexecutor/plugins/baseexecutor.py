@@ -66,7 +66,7 @@ class BaseExecutor(threading.Thread, PluginFactory):
             self.__stop.set()
 
     def is_stop(self):
-        return self.__stop.isSet()
+        return self.__stop.is_set()
 
     def stop_communicator(self):
         logger.info("Stopping communication manager")
