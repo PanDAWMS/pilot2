@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#do not use: #!/usr/bin/env python3
 import argparse
 import os
 import re

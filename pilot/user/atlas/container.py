@@ -752,9 +752,8 @@ def create_middleware_container_command(workdir, cmd, label='stagein'):
     command = 'cd %s;' % workdir
 
     # add bits and pieces for the containerisation
-    content = 'lsetup rucio davix xrootd\n%s\nexit $?' % cmd
-    logger.debug('setup.sh content:\n%s' % content)
-
+    middleware_container = get_middleware_container()
+    content = get_middleware_container_script(middleware_container, cmd)
     # store it in setup.sh
     script_name = 'stagein.sh' if label == 'stage-in' else 'stageout.sh'
     try:
@@ -767,14 +766,47 @@ def create_middleware_container_command(workdir, cmd, label='stagein'):
             x509 = os.environ.get('X509_USER_PROXY', '')
             if x509:
                 command += 'export X509_USER_PROXY=%s;' % x509
-            pythonpath = 'export PYTHONPATH=%s:$PYTHONPATH;' % os.path.join(workdir, 'pilot2')
+            pythonpath = '' #'export PYTHONPATH=%s;' % os.path.join(workdir, 'pilot2')
+            #pythonpath = 'export PYTHONPATH=%s:$PYTHONPATH;' % os.path.join(workdir, 'pilot2')
             #pythonpath = 'export PYTHONPATH=/cvmfs/atlas.cern.ch/repo/sw/PandaPilot/pilot2/latest:$PYTHONPATH;'
             command += 'export ALRB_CONT_RUNPAYLOAD=\"%ssource /srv/%s\";' % (pythonpath, script_name)
             command += get_asetup(alrb=True)  # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
-            command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c centos7'
-            #path = '/cvmfs/unpacked.cern.ch/registry.hub.docker.com/atlas/rucio-clients:default'
-            # verify path ..
-            #command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % path
-
+            command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % middleware_container
+            #if not 'rucio' in middleware_container:
+            #    command += ' --nocvmfs'
     logger.debug('container command: %s' % command)
     return command
+
+
+def get_middleware_container_script(middleware_container, cmd):
+    """
+    Return the content of the middleware container script.
+
+    :param middleware_container: container image (string).
+    :param cmd: isolated stage-in/out command (string).
+    :return: script content (string).
+    """
+
+    if 'rucio' in middleware_container:
+        content = 'python3 %s\nexit $?' % cmd
+    else:
+        content = 'lsetup rucio davix xrootd;python %s\nexit $?' % cmd
+    logger.debug('setup.sh content:\n%s' % content)
+
+    return content
+
+
+def get_middleware_container():
+    """
+    Return the middleware container.
+
+    :return: path (string).
+    """
+
+    path = config.Container.middleware_container
+    if not os.path.exists(path):
+        logger.warning('requested middleware container path does not exist: %s (switching to default value)' % path)
+        path = 'CentOS7'
+    logger.info('using image: %s for middleware container' % path)
+
+    return path
