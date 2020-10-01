@@ -19,6 +19,7 @@ from subprocess import PIPE
 from pilot.common.errorcodes import ErrorCodes
 from pilot.control.job import send_state
 from pilot.util.auxiliary import get_logger, set_pilot_state
+from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED, \
     UTILITY_AFTER_PAYLOAD_FINISHED, PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD
@@ -39,6 +40,12 @@ class Executor(object):
         self.__out = out
         self.__err = err
         self.__traces = traces
+        self.__payload_stdout = config.Payload.payloadstdout
+        self.__payload_stderr = config.Payload.payloadstderr
+        self.__preprocess_stdout = ''
+        self.__preprocess_stderr = ''
+        self.__postprocess_stdout = ''
+        self.__postprocess_stderr = ''
 
     def get_job(self):
         """
@@ -204,6 +211,14 @@ class Executor(object):
 
         # dump to file
         try:
+            name_stdout = step + '_stdout.txt'
+            name_stderr = step + '_stderr.txt'
+            if step == 'preprocess':
+                self.__preprocess_stdout = name_stdout
+                self.__preprocess_stderr = name_stderr
+            elif step == 'postprocess':
+                self.__postprocess_stdout = name_stdout
+                self.__postprocess_stderr = name_stderr
             write_file(os.path.join(workdir, step + '_stdout.txt'), stdout, unique=True)
         except PilotException as e:
             logger.warning('failed to write utility stdout to file: %s, %s' % (e, stdout))
@@ -386,12 +401,12 @@ class Executor(object):
             cmd_before_payload = job.setup + cmd_before_payload
             log.info("\n\npreprocess execution command:\n\n%s\n" % cmd_before_payload)
             exit_code = self.execute_utility_command(cmd_before_payload, job, 'preprocess')
-            if exit_code == 42:
+            if exit_code == 160:
                 log.fatal('no more HP points - time to abort')
             elif exit_code:
                 # set error code
-                # ..
-                log.fatal('cannot continue since preprocess failed')
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PREPROCESSFAILURE)
+                log.fatal('cannot continue since preprocess failed: exit_code=%d' % exit_code)
             else:
                 # in case the preprocess produced a command, chmod it
                 path = os.path.join(job.workdir, job.containeroptions.get('containerExec', 'does_not_exist'))
@@ -422,8 +437,10 @@ class Executor(object):
 
         # a loop is needed for HPO jobs
         # abort when nothing more to run, or when the preprocess returns a special exit code
-        is_hpo = False
+        iteration = 1
         while True:
+            log.info('payload iteration loop #%d' % iteration)
+
             # first run the preprocess (if necessary)
             exit_code = self.run_preprocess(self.__job)
             if exit_code:
@@ -475,7 +492,26 @@ class Executor(object):
 
                             user.post_utility_command_action(utcmd, self.__job)
 
-            if not is_hpo:
+            if self.__job.is_hpo:
+                # in case there are more hyper-parameter points, move away the previous log files
+                self.rename_log_files(iteration)
+                iteration += 1
+            else:
                 break
 
         return exit_code
+
+    def rename_log_files(self, iteration):
+        """
+
+        :param iteration:
+        :return:
+        """
+
+        names = [self.__payload_stdout, self.__payload_stderr, self.__preprocess_stdout, self.__preprocess_stderr,
+                 self.__postprocess_stdout, self.__postprocess_stderr]
+        for name in names:
+            if os.path.exists(name):
+                os.rename(name, name + '%d' % iteration)
+            else:
+                logger.warning('cannot rename %s since it does not exist' % name)
