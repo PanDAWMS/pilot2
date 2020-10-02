@@ -402,7 +402,7 @@ class Executor(object):
             log.info("\n\npreprocess execution command:\n\n%s\n" % cmd_before_payload)
             exit_code = self.execute_utility_command(cmd_before_payload, job, 'preprocess')
             if exit_code == 160:
-                log.fatal('no more HP points - time to abort')
+                log.fatal('no more HP points - time to abort processing loop')
             elif exit_code:
                 # set error code
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PREPROCESSFAILURE)
@@ -444,6 +444,8 @@ class Executor(object):
             # first run the preprocess (if necessary)
             exit_code = self.run_preprocess(self.__job)
             if exit_code:
+                if exit_code == 160:
+                    exit_code = 0
                 break
 
             # now run the main payload, when it finishes, run the postprocess (if necessary)
@@ -494,7 +496,7 @@ class Executor(object):
 
             if self.__job.is_hpo:
                 # in case there are more hyper-parameter points, move away the previous log files
-                self.rename_log_files(iteration)
+                #self.rename_log_files(iteration)
                 iteration += 1
             else:
                 break
