@@ -53,6 +53,11 @@ def interpret(job):
     if exit_code == 146:
         log.warning('user tarball was not downloaded (payload exit code %d)' % exit_code)
         set_error_nousertarball(job)
+    elif exit_code == 160:
+        log.info('ignoring harmless preprocess exit code %d' % exit_code)
+        job.transexitcode = 0
+        job.exitcode = 0
+        exit_code = 0
 
     # extract special information, e.g. number of events
     try:

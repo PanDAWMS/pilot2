@@ -182,14 +182,15 @@ class Executor(object):
         log = get_logger(job.jobid, logger)
         exit_code, stdout, stderr = execute(cmd, workdir=job.workdir, cwd=job.workdir, usecontainer=False)
         if exit_code:
-            log.warning('failed to run command: %s (exit code = %d) - see utility logs for details' % (cmd, exit_code))
+            log.warning('command returned non-zero exit code: %s (exit code = %d) - see utility logs for details' % (cmd, exit_code))
             if label == 'preprocess':
                 err = errors.PREPROCESSFAILURE
             elif label == 'postprocess':
                 err = errors.POSTPROCESSFAILURE
             else:
                 err = errors.UNKNOWNPAYLOADFAILURE
-            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(err)
+            if exit_code != 160:  # ignore no-more-data-points exit code
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(err)
 
         # write output to log files
         self.write_utility_output(job.workdir, label, stdout, stderr)
@@ -449,6 +450,10 @@ class Executor(object):
                 break
 
             # now run the main payload, when it finishes, run the postprocess (if necessary)
+            log.debug('job=%s' % str(self.__job))
+            log.debug('cmd=%s' % str(cmd))
+            log.debug('out=%s' % self.__out)
+            log.debug('err=%s' % self.__err)
             proc = self.run_payload(self.__job, cmd, self.__out, self.__err)
             if proc is None:
                 break
