@@ -450,10 +450,6 @@ class Executor(object):
                 break
 
             # now run the main payload, when it finishes, run the postprocess (if necessary)
-            log.debug('job=%s' % str(self.__job))
-            log.debug('cmd=%s' % str(cmd))
-            log.debug('out=%s' % self.__out)
-            log.debug('err=%s' % self.__err)
             proc = self.run_payload(self.__job, cmd, self.__out, self.__err)
             if proc is None:
                 break
