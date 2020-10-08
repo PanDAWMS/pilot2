@@ -728,6 +728,37 @@ def singularity_wrapper(cmd, workdir, job=None):
     return cmd
 
 
+def create_root_container_command(workdir, cmd):
+    """
+
+    :param workdir:
+    :param cmd:
+    :return:
+    """
+
+    command = 'cd %s;' % workdir
+    content = get_root_container_script(cmd)
+    script_name = 'open_file.sh'
+
+    try:
+        status = write_file(os.path.join(workdir, script_name), content)
+    except PilotException as e:
+        raise e
+    else:
+        if status:
+            # generate the final container command
+            x509 = os.environ.get('X509_USER_PROXY', '')
+            if x509:
+                command += 'export X509_USER_PROXY=%s;' % x509
+            command += 'export ALRB_CONT_RUNPAYLOAD=\"source /srv/%s\";' % script_name
+            command += get_asetup(alrb=True)  # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
+            command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c CentOS7'
+
+    logger.debug('container command: %s' % command)
+
+    return command
+
+
 def create_middleware_container_command(workdir, cmd, label='stagein'):
     """
     Create the stage-in/out container command.
@@ -766,16 +797,27 @@ def create_middleware_container_command(workdir, cmd, label='stagein'):
             x509 = os.environ.get('X509_USER_PROXY', '')
             if x509:
                 command += 'export X509_USER_PROXY=%s;' % x509
-            pythonpath = '' #'export PYTHONPATH=%s;' % os.path.join(workdir, 'pilot2')
-            #pythonpath = 'export PYTHONPATH=%s:$PYTHONPATH;' % os.path.join(workdir, 'pilot2')
-            #pythonpath = 'export PYTHONPATH=/cvmfs/atlas.cern.ch/repo/sw/PandaPilot/pilot2/latest:$PYTHONPATH;'
-            command += 'export ALRB_CONT_RUNPAYLOAD=\"%ssource /srv/%s\";' % (pythonpath, script_name)
+            command += 'export ALRB_CONT_RUNPAYLOAD=\"source /srv/%s\";' % script_name
             command += get_asetup(alrb=True)  # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
             command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % middleware_container
-            #if not 'rucio' in middleware_container:
-            #    command += ' --nocvmfs'
+
     logger.debug('container command: %s' % command)
+
     return command
+
+
+def get_root_container_script(cmd):
+    """
+    Return the content of the root container script.
+
+    :param cmd: root command (string).
+    :return: script content (string).
+    """
+
+    content = 'lsetup \'root 6.20.06-x86_64-centos7-gcc8-opt\';\npython %s\nexit $?' % cmd
+    logger.debug('setup.sh content:\n%s' % content)
+
+    return content
 
 
 def get_middleware_container_script(middleware_container, cmd):

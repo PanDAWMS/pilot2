@@ -20,6 +20,7 @@ try:
 except Exception:
     pass
 
+from .container import create_root_container_command
 from .dbrelease import get_dbrelease_version, create_dbrelease
 from .setup import should_pilot_prepare_setup, is_standard_atlas_job,\
     set_inds, get_analysis_trf, get_payload_environment_variables, replace_lfns_with_turls
@@ -128,6 +129,7 @@ def open_remote_files(indata, workdir, cmd):
 
     :param indata: list of FileSpec.
     :param workdir: working directory (string).
+    :param cmd: asetup path (string).
     :return: exit code (int), diagnostics (string).
     """
 
@@ -146,7 +148,14 @@ def open_remote_files(indata, workdir, cmd):
         full_script_path = os.path.join(os.path.join(workdir, script_path))
         copy(full_script_path, final_script_path)
 
-        cmd = cmd + '; lsetup \'root 6.20.06-x86_64-centos7-gcc8-opt\'; ' + get_file_open_command(final_script_path, turls)
+        # correct the path when containers have been used
+        final_script_path = os.path.join('.', script)
+
+        _cmd = get_file_open_command(final_script_path, turls)
+        logger.debug('_cmd=%s' % _cmd)
+        cmd = cmd + '; ' + create_root_container_command('/srv', _cmd)
+        logger.debug('cmd=%s' % cmd)
+
         logger.info('*** executing \'%s\' ***' % cmd)
         exit_code, stdout, stderr = execute(cmd, usecontainer=False)
         logger.debug('ec=%d' % exit_code)
@@ -166,7 +175,7 @@ def get_file_open_command(script_path, turls):
     :return: comma-separated list of turls (string).
     """
 
-    py = "python3" if is_python3() else "python"
+    py = 'python'  #"python3" if is_python3() else "python"
     return "%s %s --turls=%s -w %s" % (py, script_path, turls, os.path.dirname(script_path))
 
 
