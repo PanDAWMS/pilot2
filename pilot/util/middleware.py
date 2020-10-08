@@ -7,13 +7,13 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2020
 
-from os import environ, path, chmod, getcwd
+from os import environ, path, getcwd  #, chmod
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import PilotException, StageInFailure, StageOutFailure
 from pilot.util.config import config
 from pilot.util.container import execute
-from pilot.util.filehandling import copy, read_json, write_file  #, find_executable
+from pilot.util.filehandling import copy, read_json, write_file, copy_pilot_source  #, find_executable
 
 import logging
 logger = logging.getLogger(__name__)
@@ -127,63 +127,22 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, lab
     :param remotesite:
     :param label: 'stage-[in|out]' (string).
     :return: stage-in/out command (string).
-    :raises StageInFailure: for stage-in failures
-    :raises StageOutFailure: for stage-out failures
+    :raises PilotException: for stage-in/out related failures
     """
 
-    try:
-        filedata_dictionary = get_filedata_strings(xdata)
-    except Exception:
-        import traceback
-        msg = traceback.format_exc()
-        logger.warning('exception caught: %s' % msg)
-        if label == 'stage-in':
-            raise StageInFailure(msg)
-        else:
-            raise StageOutFailure(msg)
-
-    srcdir = path.join(environ.get('PILOT_SOURCE_DIR', '.'), 'pilot2')
-    if not path.exists(srcdir):
-        msg = 'pilot source directory not correct: %s' % srcdir
-        logger.debug(msg)
-        if label == 'stage-in':
-            raise StageInFailure(msg)
-        else:
-            raise StageOutFailure(msg)
-    else:
-        logger.debug('using pilot source directory: %s' % srcdir)
+    filedata_dictionary = get_filedata_strings(xdata)
 
     # copy pilot source into container directory, unless it is already there
+    diagnostics = copy_pilot_source(job.workdir)
+    if diagnostics:
+        raise PilotException(diagnostics)
+
     final_script_path = path.join(job.workdir, script)
-    try:
-        logger.debug('copy %s to %s' % (srcdir, job.workdir))
-        cmd = 'cp -r %s/* %s' % (srcdir, job.workdir)
-        exit_code, stdout, stderr = execute(cmd)
-        if exit_code != 0:
-            msg = 'file copy failed: %d, %s' % (exit_code, stdout)
-            logger.warning(msg)
-            if label == 'stage-in':
-                raise StageInFailure(msg)
-            else:
-                raise StageOutFailure(msg)
-
-        environ['PYTHONPATH'] = environ.get('PYTHONPATH') + ':' + job.workdir
-        logger.debug('PYTHONPATH=%s' % environ.get('PYTHONPATH'))
-
-        script_path = path.join('pilot/scripts', script)
-        full_script_path = path.join(path.join(job.workdir, script_path))
-
-        copy(full_script_path, final_script_path)
-        logger.debug('full_script_path=%s' % full_script_path)
-        logger.debug('final_script_path=%s' % final_script_path)
-        chmod(final_script_path, 0o755)  # Python 2/3
-    except Exception as e:
-        msg = 'exception caught when copying pilot2 source: %s' % e
-        logger.warning(msg)
-        if label == 'stage-in':
-            raise StageInFailure(msg)
-        else:
-            raise StageOutFailure(msg)
+    environ['PYTHONPATH'] = environ.get('PYTHONPATH') + ':' + job.workdir
+    script_path = path.join('pilot/scripts', script)
+    full_script_path = path.join(path.join(job.workdir, script_path))
+    copy(full_script_path, final_script_path)
+    # chmod(final_script_path, 0o755)  # Python 2/3
 
     if config.Container.use_middleware_container:
         # correct the path when containers have been used

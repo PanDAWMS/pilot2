@@ -33,7 +33,7 @@ from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
     UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
-from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps
+from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps, copy
 
 #from pilot.info import FileSpec
 
@@ -122,6 +122,69 @@ def get_resource_name():
         resource_name = 'grid'
     return resource_name
 
+def open_remote_files(indata, workdir, cmd):
+    """
+    Verify that direct i/o files can be opened.
+
+    :param indata: list of FileSpec.
+    :param workdir: working directory (string).
+    :return: exit code (int), diagnostics (string).
+    """
+
+    ec = 0
+    diagnostics = ""
+
+    # extract direct i/o files from indata (string of comma-separated turls)
+    turls = extract_turls(indata)
+    if turls:
+        # execute file open script which will attempt to open each file
+
+        script = 'open_remote_file.py'
+        final_script_path = os.path.join(workdir, script)
+        os.environ['PYTHONPATH'] = os.environ.get('PYTHONPATH') + ':' + workdir
+        script_path = os.path.join('pilot/scripts', script)
+        full_script_path = os.path.join(os.path.join(workdir, script_path))
+        copy(full_script_path, final_script_path)
+
+        cmd = cmd + '; lsetup \'root 6.20.06-x86_64-centos7-gcc8-opt\'; ' + get_file_open_command(final_script_path, turls)
+        logger.info('*** executing \'%s\' ***' % cmd)
+        exit_code, stdout, stderr = execute(cmd, usecontainer=False)
+        logger.debug('ec=%d' % exit_code)
+        logger.debug('stdout=%s' % stdout)
+        logger.debug('stderr=%s' % stderr)
+        # error handling
+    else:
+        logger.info('nothing to verify (for remote files)')
+
+    return ec, diagnostics
+
+
+def get_file_open_command(script_path, turls):
+    """
+
+    :param script_path: path to script (string).
+    :return: comma-separated list of turls (string).
+    """
+
+    py = "python3" if is_python3() else "python"
+    return "%s %s --turls=%s -w %s" % (py, script_path, turls, os.path.dirname(script_path))
+
+
+def extract_turls(indata):
+    """
+    Extract TURLs from indata for direct i/o files.
+
+    :param indata: list of FileSpec.
+    :return: comma-separated list of turls (string).
+    """
+
+    turls = ""
+    for f in indata:
+        if f.status == 'remote_io' or True:
+            turls += f.turl if not turls else ",%s" % f.turl
+
+    return turls
+
 
 def get_payload_command(job):
     """
@@ -153,6 +216,15 @@ def get_payload_command(job):
         ec, diagnostics = resource.verify_setup_command(cmd)
         if ec != 0:
             raise PilotException(diagnostics, code=ec)
+
+    # make sure that remote file can be opened before executing payload
+    if config.Pilot.remotefileverification_log:
+        try:
+            ec, diagnostics = open_remote_files(job.indata, job.workdir, cmd)
+            #if ec != 0:
+            #    raise PilotException(diagnostics, code=ec)
+        except Exception as e:
+            log.warning('caught exception: %s' % e)
 
     if is_standard_atlas_job(job.swrelease):
 
