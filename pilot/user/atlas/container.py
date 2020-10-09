@@ -815,7 +815,7 @@ def get_root_container_script(cmd):
     """
 
     content = 'lsetup \'root 6.20.06-x86_64-centos7-gcc8-opt\';\npython %s\nexit $?' % cmd
-    logger.debug('setup.sh content:\n%s' % content)
+    logger.debug('setup content:\n%s' % content)
 
     return content
 

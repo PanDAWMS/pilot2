@@ -34,7 +34,7 @@ from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
     UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
-from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps, copy
+from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps, copy, copy_pilot_source
 
 #from pilot.info import FileSpec
 
@@ -141,27 +141,41 @@ def open_remote_files(indata, workdir, cmd):
     if turls:
         # execute file open script which will attempt to open each file
 
+        # copy pilot source into container directory, unless it is already there
+        diagnostics = copy_pilot_source(workdir)
+        if diagnostics:
+            raise PilotException(diagnostics)
+
         script = 'open_remote_file.py'
         final_script_path = os.path.join(workdir, script)
         os.environ['PYTHONPATH'] = os.environ.get('PYTHONPATH') + ':' + workdir
         script_path = os.path.join('pilot/scripts', script)
-        full_script_path = os.path.join(os.path.join(workdir, script_path))
-        copy(full_script_path, final_script_path)
+        d1 = os.path.join(os.path.join(os.environ['PILOT_HOME'], 'pilot2'), script_path)
+        d2 = os.path.join(workdir, script_path)
+        logger.debug('d1=%s (exists: %s)' % (d1, str(os.path.exists(d1))))
+        logger.debug('d2=%s (exists: %s)' % (d2, str(os.path.exists(d2))))
+        full_script_path = d1 if os.path.exists(d1) else d2
+        try:
+            copy(full_script_path, final_script_path)
+        except Exception as e:
+            diagnostics = 'pilot source copy failed: %s (cannot verify remote file open)' % e
+            logger.warning(diagnostics)
+        else:
+            # correct the path when containers have been used
+            final_script_path = os.path.join('.', script)
 
-        # correct the path when containers have been used
-        final_script_path = os.path.join('.', script)
+            _cmd = get_file_open_command(final_script_path, turls)
+            logger.debug('_cmd=%s' % _cmd)
+            cmd = cmd + '; ' + create_root_container_command(workdir, _cmd)
+            logger.debug('cmd=%s' % cmd)
 
-        _cmd = get_file_open_command(final_script_path, turls)
-        logger.debug('_cmd=%s' % _cmd)
-        cmd = cmd + '; ' + create_root_container_command('/srv', _cmd)
-        logger.debug('cmd=%s' % cmd)
+            logger.info('*** executing \'%s\' ***' % cmd)
+            exit_code, stdout, stderr = execute(cmd, usecontainer=False)
+            logger.debug('ec=%d' % exit_code)
+            logger.debug('stdout=%s' % stdout)
+            logger.debug('stderr=%s' % stderr)
 
-        logger.info('*** executing \'%s\' ***' % cmd)
-        exit_code, stdout, stderr = execute(cmd, usecontainer=False)
-        logger.debug('ec=%d' % exit_code)
-        logger.debug('stdout=%s' % stdout)
-        logger.debug('stderr=%s' % stderr)
-        # error handling
+            # error handling
     else:
         logger.info('nothing to verify (for remote files)')
 
@@ -175,8 +189,7 @@ def get_file_open_command(script_path, turls):
     :return: comma-separated list of turls (string).
     """
 
-    py = 'python'  #"python3" if is_python3() else "python"
-    return "%s %s --turls=%s -w %s" % (py, script_path, turls, os.path.dirname(script_path))
+    return "%s --turls=%s -w %s" % (script_path, turls, os.path.dirname(script_path))
 
 
 def extract_turls(indata):

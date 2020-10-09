@@ -40,6 +40,11 @@ def get_args():
                             dest='turls',
                             required=True,
                             help='TURL list (e.g., filepath1,filepath2')
+    arg_parser.add_argument('--no-pilot-log',
+                            dest='nopilotlog',
+                            action='store_true',
+                            default=False,
+                            help='Do not write the pilot log to file')
 
     return arg_parser.parse_args()
 
@@ -85,6 +90,7 @@ if __name__ == '__main__':
     # get the args from the arg parser
     args = get_args()
     args.debug = True
+    args.nopilotlog = False
 
     logname = 'default.log'
     try:
