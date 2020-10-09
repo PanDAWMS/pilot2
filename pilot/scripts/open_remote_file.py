@@ -75,9 +75,9 @@ def try_open_file(turl):
         turl_opened = True
 
     if turl_opened:
-        message('turl=%s could be opened')
+        message('turl=%s could be opened' % turl)
     else:
-        message('turl=%s could not be opened')
+        message('turl=%s could not be opened' % turl)
 
     return turl_opened
 
