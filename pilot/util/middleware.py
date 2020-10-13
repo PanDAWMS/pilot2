@@ -77,8 +77,8 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
             _stdout_name, _stderr_name = get_logfile_names(label)
             write_file(path.join(job.workdir, _stdout_name), stdout, mute=False)
             write_file(path.join(job.workdir, _stderr_name), stderr, mute=False)
-            logger.debug('stage-in/out stdout=\n%s' % stdout)
-            logger.debug('stage-in/out stderr=\n%s' % stderr)
+            #logger.debug('stage-in/out stdout=\n%s' % stdout)
+            #logger.debug('stage-in/out stderr=\n%s' % stderr)
         except PilotException as e:
             msg = 'exception caught: %s' % e
             if label == 'stage-in':

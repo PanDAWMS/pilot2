@@ -71,14 +71,9 @@ def try_open_file(turl):
     except Exception as error:
         message('caught exception: %s' % error)
     else:
-        if in_file:
+        if in_file and in_file.IsOpen():
             in_file.Close()
             turl_opened = True
-
-    if turl_opened:
-        message('turl=%s could be opened' % turl)
-    else:
-        message('turl=%s could not be opened' % turl)
 
     return turl_opened
 

@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 import os
@@ -34,9 +34,8 @@ from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
     UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_WITH_STAGEIN
 from pilot.util.container import execute
-from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps, copy, copy_pilot_source
-
-#from pilot.info import FileSpec
+from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps, copy,\
+    copy_pilot_source, write_file, read_json
 
 import logging
 logger = logging.getLogger(__name__)
@@ -152,30 +151,53 @@ def open_remote_files(indata, workdir, cmd):
         script_path = os.path.join('pilot/scripts', script)
         d1 = os.path.join(os.path.join(os.environ['PILOT_HOME'], 'pilot2'), script_path)
         d2 = os.path.join(workdir, script_path)
-        logger.debug('d1=%s (exists: %s)' % (d1, str(os.path.exists(d1))))
-        logger.debug('d2=%s (exists: %s)' % (d2, str(os.path.exists(d2))))
         full_script_path = d1 if os.path.exists(d1) else d2
+        if not os.path.exists(full_script_path):
+            # do not set ec since this will be a pilot issue rather than site issue
+            diagnostics = 'cannot perform file open test - script path does not exist: %s' % full_script_path
+            logger.warning(diagnostics)
+            logger.warning('tested both path=%s and path=%s (none exists)' % (d1, d2))
+            return ec, diagnostics
         try:
             copy(full_script_path, final_script_path)
         except Exception as e:
-            diagnostics = 'pilot source copy failed: %s (cannot verify remote file open)' % e
+            # do not set ec since this will be a pilot issue rather than site issue
+            diagnostics = 'cannot perform file open test - pilot source copy failed: %s' % e
             logger.warning(diagnostics)
+            return ec, diagnostics
         else:
             # correct the path when containers have been used
             final_script_path = os.path.join('.', script)
 
             _cmd = get_file_open_command(final_script_path, turls)
-            logger.debug('_cmd=%s' % _cmd)
             cmd = cmd + '; ' + create_root_container_command(workdir, _cmd)
-            logger.debug('cmd=%s' % cmd)
 
-            logger.info('*** executing \'%s\' ***' % cmd)
+            logger.info('*** executing file open verification script:\n\n\'%s\'\n\n' % cmd)
             exit_code, stdout, stderr = execute(cmd, usecontainer=False)
-            logger.debug('ec=%d' % exit_code)
-            logger.debug('stdout=%s' % stdout)
-            logger.debug('stderr=%s' % stderr)
+            if config.Pilot.remotefileverification_log:
+                write_file(os.path.join(workdir, config.Pilot.remotefileverification_log), stdout + stderr, mute=False)
 
             # error handling
+            if exit_code:
+                logger.warning('script %s finished with ec=%d' % (script, exit_code))
+            else:
+                dictionary_path = os.path.join(workdir, config.Pilot.remotefileverification_dictionary)
+                if not dictionary_path:
+                    logger.warning('file does not exist: %s' % dictionary_path)
+                else:
+                    file_dictionary = read_json(dictionary_path)
+                    if not file_dictionary:
+                        logger.warning('could not read dictionary from %s' % dictionary_path)
+                    else:
+                        not_opened = ""
+                        for turl in file_dictionary:
+                            opened = file_dictionary[turl]
+                            logger.info('turl %s could be opened' % turl) if opened else logger.info('turl %s could not be opened' % turl)
+                            if not opened:
+                                not_opened += turl if not not_opened else ",%s" % turl
+                        if not_opened:
+                            ec = 1
+                            diagnostics = "turl not opened:%s" % not_opened if "," not in not_opened else "turls not opened:%s" % not_opened
     else:
         logger.info('nothing to verify (for remote files)')
 
@@ -243,8 +265,8 @@ def get_payload_command(job):
     if config.Pilot.remotefileverification_log:
         try:
             ec, diagnostics = open_remote_files(job.indata, job.workdir, cmd)
-            #if ec != 0:
-            #    raise PilotException(diagnostics, code=ec)
+            if ec != 0:
+                raise PilotException(diagnostics, code=ec)
         except Exception as e:
             log.warning('caught exception: %s' % e)
 

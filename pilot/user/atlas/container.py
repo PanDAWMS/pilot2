@@ -143,7 +143,7 @@ def get_grid_image_for_singularity(platform):
 def get_middleware_type():
     """
     Return the middleware type from the container type.
-    E.g. container_type = 'singularity:pilot;docker:wrapper;middleware:container'
+    E.g. container_type = 'singularity:pilot;docker:wrapper;container:middleware'
     get_middleware_type() -> 'container', meaning that middleware should be taken from the container. The default
     is otherwise 'workernode', i.e. middleware is assumed to be present on the worker node.
 
@@ -814,8 +814,8 @@ def get_root_container_script(cmd):
     :return: script content (string).
     """
 
-    content = 'lsetup \'root 6.20.06-x86_64-centos7-gcc8-opt\';\npython %s\nexit $?' % cmd
-    logger.debug('setup content:\n%s' % content)
+    content = 'lsetup \'root 6.20.06-x86_64-centos7-gcc8-opt\'\npython %s\nexit $?' % cmd
+    logger.debug('root setup script content:\n\n%s\n\n' % content)
 
     return content
 
