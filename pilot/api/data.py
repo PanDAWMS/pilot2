@@ -202,21 +202,17 @@ class StagingClient(object):
         """
         Populates filespec.replicas for each entry from `files` list
 
-        :param files: list of `FileSpec` objects
-
             fdat.replicas = [{'ddmendpoint':'ddmendpoint', 'pfn':'replica', 'domain':'domain value'}]
-            :return: `files`
+
+        :param files: list of `FileSpec` objects.
+        :param use_vp: True for VP jobs (boolean).
+        :return: `files`
         """
 
         logger = self.logger
         xfiles = []
-        #ddmconf = self.infosys.resolve_storage_data()
 
         for fdat in files:
-            #ddmdat = ddmconf.get(fdat.ddmendpoint)
-            #if not ddmdat:
-            #    raise Exception("Failed to resolve input ddmendpoint by name=%s (from PanDA), please check configuration. fdat=%s" % (fdat.ddmendpoint, fdat))
-
             ## skip fdat if need for further workflow (e.g. to properly handle OS ddms)
             xfiles.append(fdat)
 
@@ -235,13 +231,12 @@ class StagingClient(object):
             'schemes': ['srm', 'root', 'davs', 'gsiftp', 'https', 'storm'],
             'dids': [dict(scope=e.scope, name=e.lfn) for e in xfiles],
         }
-
         query.update(sort='geoip', client_location=location)
-        logger.info('calling rucio.list_replicas() with query=%s' % query)
-
         # reset the schemas for VP jobs
         if use_vp:
             query['schemes'] = ['root']
+        logger.info('calling rucio.list_replicas() with query=%s' % query)
+
         try:
             replicas = c.list_replicas(**query)
         except Exception as e:
