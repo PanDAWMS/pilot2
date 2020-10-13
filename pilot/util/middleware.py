@@ -155,13 +155,15 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, lab
         cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
               '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
               '--eventservicemerge=%s --usepcache=%s --filesizes=%s --checksums=%s --allowlans=%s --allowwans=%s ' \
-              '--directaccesslans=%s --directaccesswans=%s --istars=%s --accessmodes=%s --storagetokens=%s --guids=%s' % \
+              '--directaccesslans=%s --directaccesswans=%s --istars=%s --accessmodes=%s --storagetokens=%s --guids=%s ' \
+              '--usevp=%s' % \
               (final_script_path, filedata_dictionary['lfns'], filedata_dictionary['scopes'], workdir, queue, eventtype, localsite,
                remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
                job.is_eventservicemerge, job.infosys.queuedata.use_pcache, filedata_dictionary['filesizes'],
                filedata_dictionary['checksums'], filedata_dictionary['allowlans'], filedata_dictionary['allowwans'],
                filedata_dictionary['directaccesslans'], filedata_dictionary['directaccesswans'], filedata_dictionary['istars'],
-               filedata_dictionary['accessmodes'], filedata_dictionary['storagetokens'], filedata_dictionary['guids'])
+               filedata_dictionary['accessmodes'], filedata_dictionary['storagetokens'], filedata_dictionary['guids'],
+               job.use_vp)
     else:  # stage-out
         cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
               '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \

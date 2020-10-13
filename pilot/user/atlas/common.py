@@ -192,11 +192,11 @@ def open_remote_files(indata, workdir, cmd):
                         not_opened = ""
                         for turl in file_dictionary:
                             opened = file_dictionary[turl]
-                            logger.info('turl %s could be opened' % turl) if opened else logger.info('turl %s could not be opened' % turl)
+                            logger.info('turl could be opened: %s' % turl) if opened else logger.info('turl could not be opened: %s' % turl)
                             if not opened:
                                 not_opened += turl if not not_opened else ",%s" % turl
                         if not_opened:
-                            ec = 1
+                            ec = errors.REMOTEFILECOULDNOTBEOPENED
                             diagnostics = "turl not opened:%s" % not_opened if "," not in not_opened else "turls not opened:%s" % not_opened
     else:
         logger.info('nothing to verify (for remote files)')

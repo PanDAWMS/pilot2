@@ -137,6 +137,11 @@ def get_args():
                             dest='istars',
                             required=True,
                             help='Replica is_tar')
+    arg_parser.add_argument('--usevp',
+                            dest='usevp',
+                            type=str2bool,
+                            default=False,
+                            help='Job object boolean use_vp')
     arg_parser.add_argument('--accessmodes',
                             dest='accessmodes',
                             required=True,
@@ -382,7 +387,8 @@ if __name__ == '__main__':
     else:
         client = StageInClient(infoservice, logger=logger, trace_report=trace_report)
         activity = 'pr'
-    kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, use_pcache=args.usepcache, use_bulk=False)
+    kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, use_pcache=args.usepcache, use_bulk=False,
+                  use_vp=args.usevp)
     xfiles = []
     for lfn, scope, filesize, checksum, allowlan, allowwan, dalan, dawan, istar, accessmode, sttoken, guid in list(zip(lfns,
                                                                                                                        scopes,

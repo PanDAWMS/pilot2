@@ -213,7 +213,8 @@ def _stage_in(args, job):
                 client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
                 activity = 'pr'
             use_pcache = job.infosys.queuedata.use_pcache
-            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, use_pcache=use_pcache, use_bulk=False, input_dir=args.input_dir)
+            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, use_pcache=use_pcache, use_bulk=False,
+                          input_dir=args.input_dir, use_vp=job.use_vp)
             client.prepare_sources(job.indata)
             client.transfer(job.indata, activity=activity, **kwargs)
         except PilotException as error:

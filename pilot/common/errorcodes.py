@@ -143,6 +143,7 @@ class ErrorCodes:
     MISSINGRELEASEUNPACKED = 1358
     PANDAQUEUENOTACTIVE = 1359
     IMAGENOTFOUND = 1360
+    REMOTEFILECOULDNOTBEOPENED = 1361
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -264,7 +265,8 @@ class ErrorCodes:
         POSTPROCESSFAILURE: "Post-process command failed",
         MISSINGRELEASEUNPACKED: "Missing release setup in unpacked container",
         PANDAQUEUENOTACTIVE: "PanDA queue is not active",
-        IMAGENOTFOUND: "Image not found"
+        IMAGENOTFOUND: "Image not found",
+        REMOTEFILECOULDNOTBEOPENED: "Remote file could not be opened"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]

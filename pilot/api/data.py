@@ -198,10 +198,12 @@ class StagingClient(object):
 
         return replicas
 
-    def resolve_replicas(self, files):  # noqa: C901
+    def resolve_replicas(self, files, use_vp=False):  # noqa: C901
         """
-            Populates filespec.replicas for each entry from `files` list
-            :param files: list of `FileSpec` objects
+        Populates filespec.replicas for each entry from `files` list
+
+        :param files: list of `FileSpec` objects
+
             fdat.replicas = [{'ddmendpoint':'ddmendpoint', 'pfn':'replica', 'domain':'domain value'}]
             :return: `files`
         """
@@ -237,6 +239,9 @@ class StagingClient(object):
         query.update(sort='geoip', client_location=location)
         logger.info('calling rucio.list_replicas() with query=%s' % query)
 
+        # reset the schemas for VP jobs
+        if use_vp:
+            query['schemes'] = ['root']
         try:
             replicas = c.list_replicas(**query)
         except Exception as e:
@@ -447,6 +452,7 @@ class StagingClient(object):
                 continue
 
             try:
+                self.logger.debug('kwargs=%s' % str(kwargs))
                 result = self.transfer_files(copytool, remain_files, activity, **kwargs)
                 self.logger.debug('transfer_files() using copytool=%s completed with result=%s' % (copytool, str(result)))
                 break
@@ -712,13 +718,19 @@ class StageInClient(StagingClient):
 
         if getattr(copytool, 'require_replicas', False) and files:
             if files[0].replicas is None:  # look up replicas only once
-                files = self.resolve_replicas(files)
+                files = self.resolve_replicas(files, use_vp=kwargs['use_vp'])
 
             allowed_schemas = getattr(copytool, 'allowed_schemas', None)
 
             if self.infosys and self.infosys.queuedata:
                 copytool_name = copytool.__name__.rsplit('.', 1)[-1]
                 allowed_schemas = self.infosys.queuedata.resolve_allowed_schemas(activity, copytool_name) or allowed_schemas
+            # overwrite allowed_schemas for VP jobs
+            if kwargs['use_vp']:
+                allowed_schemas = ['root']
+                self.logger.debug('overwrote allowed_schemas for VP job: %s' % str(allowed_schemas))
+            else:
+                self.logger.debug('allowed_schemas=%s' % str(allowed_schemas))
 
             for fspec in files:
                 resolve_replica = getattr(copytool, 'resolve_replica', None)
