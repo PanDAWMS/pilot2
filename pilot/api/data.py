@@ -720,12 +720,11 @@ class StageInClient(StagingClient):
             if self.infosys and self.infosys.queuedata:
                 copytool_name = copytool.__name__.rsplit('.', 1)[-1]
                 allowed_schemas = self.infosys.queuedata.resolve_allowed_schemas(activity, copytool_name) or allowed_schemas
+
             # overwrite allowed_schemas for VP jobs
             if kwargs['use_vp']:
                 allowed_schemas = ['root']
                 self.logger.debug('overwrote allowed_schemas for VP job: %s' % str(allowed_schemas))
-            else:
-                self.logger.debug('allowed_schemas=%s' % str(allowed_schemas))
 
             for fspec in files:
                 resolve_replica = getattr(copytool, 'resolve_replica', None)
@@ -842,7 +841,14 @@ class StageInClient(StagingClient):
                 self.trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
 
                 self.trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
-                self.trace_report.send()
+
+                # do not send the trace report at this point if remote file verification is to be done
+                # (the job object is needed for setting up the required script, and this is not known here)
+                if config.Pilot.remotefileverification_log:
+                    # store the trace report for later use
+                    write_json
+                else:
+                    self.trace_report.send()
 
     def check_availablespace(self, files):
         """

@@ -814,7 +814,8 @@ def get_root_container_script(cmd):
     :return: script content (string).
     """
 
-    content = 'lsetup \'root 6.20.06-x86_64-centos7-gcc8-opt\'\npython %s\nexit $?' % cmd
+    # content = 'lsetup \'root 6.20.06-x86_64-centos7-gcc8-opt\'\npython %s\nexit $?' % cmd
+    content = 'lsetup \'root pilot\'\npython %s\nexit $?' % cmd
     logger.debug('root setup script content:\n\n%s\n\n' % content)
 
     return content
@@ -829,10 +830,11 @@ def get_middleware_container_script(middleware_container, cmd):
     :return: script content (string).
     """
 
+    content = 'export PILOT_RUCIO_SITENAME=%s; ' % os.environ.get('PILOT_RUCIO_SITENAME')
     if 'rucio' in middleware_container:
-        content = 'python3 %s\nexit $?' % cmd
+        content += 'python3 %s\nexit $?' % cmd
     else:
-        content = 'lsetup rucio davix xrootd;python %s\nexit $?' % cmd
+        content += 'lsetup rucio davix xrootd;python %s\nexit $?' % cmd
     logger.debug('setup.sh content:\n%s' % content)
 
     return content

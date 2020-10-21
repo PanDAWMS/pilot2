@@ -27,6 +27,7 @@ from .setup import should_pilot_prepare_setup, is_standard_atlas_job,\
 from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
     get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
 
+from pilot.util.auxiliary import get_resource_name
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import get_logger, is_python3
@@ -109,18 +110,6 @@ def validate(job):
 
     return status
 
-
-def get_resource_name():
-    """
-    Return the name of the resource (only set for HPC resources; e.g. Cori, otherwise return 'grid').
-
-    :return: resource_name (string).
-    """
-
-    resource_name = os.environ.get('PILOT_RESOURCE_NAME', '').lower()
-    if not resource_name:
-        resource_name = 'grid'
-    return resource_name
 
 def open_remote_files(indata, workdir, cmd):
     """
@@ -224,7 +213,7 @@ def extract_turls(indata):
 
     turls = ""
     for f in indata:
-        if f.status == 'remote_io' or True:
+        if f.status == 'remote_io':
             turls += f.turl if not turls else ",%s" % f.turl
 
     return turls
@@ -259,6 +248,7 @@ def get_payload_command(job):
     if cmd:
         ec, diagnostics = resource.verify_setup_command(cmd)
         if ec != 0:
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
             raise PilotException(diagnostics, code=ec)
 
     # make sure that remote file can be opened before executing payload
@@ -266,6 +256,7 @@ def get_payload_command(job):
         try:
             ec, diagnostics = open_remote_files(job.indata, job.workdir, cmd)
             if ec != 0:
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
                 raise PilotException(diagnostics, code=ec)
         except Exception as e:
             log.warning('caught exception: %s' % e)

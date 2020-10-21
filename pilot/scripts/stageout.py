@@ -375,7 +375,7 @@ if __name__ == '__main__':
     if err:
         errcode, err = extract_error_info(err)
     add_to_dictionary(file_dictionary, 'error', err, errcode, None, None, None, None)
-    path = os.path.join(args.workdir, config.Container.stageout_dictionary)
+    path = os.path.join(args.workdir, config.Container.stageout_status_dictionary)
     if os.path.exists(path):
         path += '.log'
     _status = write_json(path, file_dictionary)
