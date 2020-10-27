@@ -25,7 +25,7 @@ except Exception:
 from pilot.info import infosys
 from pilot.common.exception import PilotException, ErrorCodes, SizeTooLarge, NoLocalSpace, ReplicasNotFound
 from pilot.util.config import config
-from pilot.util.filehandling import calculate_checksum
+from pilot.util.filehandling import calculate_checksum, write_json
 from pilot.util.math import convert_mb_to_b
 from pilot.util.parameters import get_maximum_input_sizes
 from pilot.util.workernode import get_local_disk_space
@@ -235,6 +235,8 @@ class StagingClient(object):
         # reset the schemas for VP jobs
         if use_vp:
             query['schemes'] = ['root']
+            query['rse_expression'] = 'istape=False\\type=SPECIAL'
+
         logger.info('calling rucio.list_replicas() with query=%s' % query)
 
         try:
@@ -778,7 +780,7 @@ class StageInClient(StagingClient):
             self.require_protocols(files, copytool, activity, local_dir=kwargs['input_dir'])
 
         # mark direct access files with status=remote_io
-        self.set_status_for_direct_access(files)
+        self.set_status_for_direct_access(files, kwargs.get('workdir', ''))
 
         # get remain files that need to be transferred by copytool
         remain_files = [e for e in files if e.status not in ['remote_io', 'transferred', 'no_transfer']]
@@ -812,12 +814,13 @@ class StageInClient(StagingClient):
         # return copytool.copy_in_bulk(remain_files, **kwargs)
         return copytool.copy_in(remain_files, **kwargs)
 
-    def set_status_for_direct_access(self, files):
+    def set_status_for_direct_access(self, files, workdir):
         """
         Update the FileSpec status with 'remote_io' for direct access mode.
         Should be called only once since the function sends traces
 
         :param files: list of FileSpec objects.
+        :param workdir: work directory (string).
         :return: None
         """
 
@@ -830,7 +833,7 @@ class StageInClient(StagingClient):
                 fspec.status_code = 0
                 fspec.status = 'remote_io'
 
-                self.logger.info('stage-in: direct access (remoteio) will be used for lfn=%s (direct_lan=%s, direct_wan=%s), turl=%s' %
+                self.logger.info('stage-in: direct access (remote i/o) will be used for lfn=%s (direct_lan=%s, direct_wan=%s), turl=%s' %
                                  (fspec.lfn, direct_lan, direct_wan, fspec.turl))
 
                 # send trace
@@ -839,14 +842,21 @@ class StageInClient(StagingClient):
                 self.trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
                 self.trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
                 self.trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
-
                 self.trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
 
                 # do not send the trace report at this point if remote file verification is to be done
-                # (the job object is needed for setting up the required script, and this is not known here)
+                # note also that we can't verify the files at this point since root will not be available from inside
+                # the rucio container
                 if config.Pilot.remotefileverification_log:
-                    # store the trace report for later use
-                    write_json
+                    # store the trace report for later use (the trace report class inherits from dict, so just write it as JSON)
+                    # outside of the container, it will be available in the normal work dir
+                    # use the normal work dir if we are not in a container
+                    _workdir = workdir if os.path.exists(workdir) else '.'
+                    path = os.path.join(_workdir, config.Pilot.base_trace_report)
+                    if not os.path.exists(_workdir):
+                        path = os.path.join('/srv', config.Pilot.base_trace_report)
+                    self.logger.debug('writing base trace report to: %s' % path)
+                    write_json(path, self.trace_report)
                 else:
                     self.trace_report.send()
 

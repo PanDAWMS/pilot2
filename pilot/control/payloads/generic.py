@@ -393,6 +393,7 @@ class Executor(object):
         exit_code = 0
 
         try:
+            # note: this might update the jobparams
             cmd_before_payload = self.utility_before_payload(job)
         except Exception as e:
             log.error(e)
@@ -442,12 +443,18 @@ class Executor(object):
         while True:
             log.info('payload iteration loop #%d' % iteration)
 
-            # first run the preprocess (if necessary)
+            # first run the preprocess (if necessary) - note: this might update jobparams -> must update cmd
+            jobparams_pre = self.__job.jobparams
             exit_code = self.run_preprocess(self.__job)
+            jobparams_post = self.__job.jobparams
             if exit_code:
                 if exit_code == 160:
                     exit_code = 0
                 break
+            if jobparams_pre != jobparams_post:
+                log.debug('jobparams were updated by utility_before_payload()')
+                # must update cmd
+                cmd = cmd.replace(jobparams_pre, jobparams_post)
 
             # now run the main payload, when it finishes, run the postprocess (if necessary)
             proc = self.run_payload(self.__job, cmd, self.__out, self.__err)

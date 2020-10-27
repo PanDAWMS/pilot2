@@ -37,6 +37,7 @@ from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, U
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps, copy,\
     copy_pilot_source, write_file, read_json
+from pilot.util.tracereport import TraceReport
 
 import logging
 logger = logging.getLogger(__name__)
@@ -111,18 +112,18 @@ def validate(job):
     return status
 
 
-def open_remote_files(indata, workdir, cmd):
+def open_remote_files(indata, workdir):
     """
     Verify that direct i/o files can be opened.
 
     :param indata: list of FileSpec.
     :param workdir: working directory (string).
-    :param cmd: asetup path (string).
     :return: exit code (int), diagnostics (string).
     """
 
     ec = 0
     diagnostics = ""
+    not_opened = ""
 
     # extract direct i/o files from indata (string of comma-separated turls)
     turls = extract_turls(indata)
@@ -146,20 +147,20 @@ def open_remote_files(indata, workdir, cmd):
             diagnostics = 'cannot perform file open test - script path does not exist: %s' % full_script_path
             logger.warning(diagnostics)
             logger.warning('tested both path=%s and path=%s (none exists)' % (d1, d2))
-            return ec, diagnostics
+            return ec, diagnostics, not_opened
         try:
             copy(full_script_path, final_script_path)
         except Exception as e:
             # do not set ec since this will be a pilot issue rather than site issue
             diagnostics = 'cannot perform file open test - pilot source copy failed: %s' % e
             logger.warning(diagnostics)
-            return ec, diagnostics
+            return ec, diagnostics, not_opened
         else:
             # correct the path when containers have been used
             final_script_path = os.path.join('.', script)
 
             _cmd = get_file_open_command(final_script_path, turls)
-            cmd = cmd + '; ' + create_root_container_command(workdir, _cmd)
+            cmd = create_root_container_command(workdir, _cmd)
 
             logger.info('*** executing file open verification script:\n\n\'%s\'\n\n' % cmd)
             exit_code, stdout, stderr = execute(cmd, usecontainer=False)
@@ -190,7 +191,7 @@ def open_remote_files(indata, workdir, cmd):
     else:
         logger.info('nothing to verify (for remote files)')
 
-    return ec, diagnostics
+    return ec, diagnostics, not_opened
 
 
 def get_file_open_command(script_path, turls):
@@ -253,13 +254,47 @@ def get_payload_command(job):
 
     # make sure that remote file can be opened before executing payload
     if config.Pilot.remotefileverification_log:
+        ec = 0
+        diagnostics = ""
+        not_opened_turls = ""
         try:
-            ec, diagnostics = open_remote_files(job.indata, job.workdir, cmd)
+            ec, diagnostics, not_opened_turls = open_remote_files(job.indata, job.workdir)
+        except Exception as e:
+            log.warning('caught exception: %s' % e)
+        else:
+            # read back the base trace report
+            path = os.path.join(job.workdir, config.Pilot.base_trace_report)
+            if not os.path.exists(path):
+                log.warning('base trace report does not exist (cannot send trace reports): %s' % path)
+            try:
+                base_trace_report = read_json(path)
+            except PilotException as e:
+                log.warning('failed to open base trace report (cannot send trace reports): %s' % e)
+            else:
+                if not base_trace_report:
+                    log.warning('failed to read back base trace report (cannot send trace reports)')
+                else:
+                    # update and send the trace info
+                    for fspec in job.indata:
+                        if fspec.status == 'remote_io':
+                            base_trace_report.update(url=fspec.turl)
+                            base_trace_report.update(remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
+                            base_trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
+                            base_trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
+                            if fspec.turl in not_opened_turls:
+                                base_trace_report.update(clientState='FAILED_REMOTE_OPEN')
+
+                            # copy the base trace report (only a dictionary) into a real trace report object
+                            trace_report = TraceReport(**base_trace_report)
+                            if trace_report:
+                                trace_report.send()
+                            else:
+                                log.warning('failed to create trace report for turl=%s' % fspec.turl)
+            # fail the job if the remote files could not be verified
             if ec != 0:
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
                 raise PilotException(diagnostics, code=ec)
-        except Exception as e:
-            log.warning('caught exception: %s' % e)
+
 
     if is_standard_atlas_job(job.swrelease):
 
