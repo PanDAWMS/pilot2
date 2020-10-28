@@ -759,7 +759,7 @@ def create_root_container_command(workdir, cmd):
     return command
 
 
-def create_middleware_container_command(workdir, cmd, label='stagein'):
+def create_middleware_container_command(workdir, cmd, container_options, label='stagein'):
     """
     Create the stage-in/out container command.
 
@@ -776,6 +776,7 @@ def create_middleware_container_command(workdir, cmd, label='stagein'):
 
     :param workdir: working directory where script will be stored (string).
     :param cmd: isolated stage-in/out command (string).
+    :param container_options: container options from queuedata (string).
     :param label: 'stage-[in|out]' (string).
     :return: container command to be executed (string).
     """
@@ -800,6 +801,8 @@ def create_middleware_container_command(workdir, cmd, label='stagein'):
             command += 'export ALRB_CONT_RUNPAYLOAD=\"source /srv/%s\";' % script_name
             command += get_asetup(alrb=True)  # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
             command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % middleware_container
+            command += ' ' + get_container_options(container_options)
+            command = command.replace('  ', ' ')
 
     logger.debug('container command: %s' % command)
 

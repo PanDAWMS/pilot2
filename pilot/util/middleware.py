@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite, label='stage-in'):
+def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite, container_options, label='stage-in'):
     """
     Containerise the middleware by performing stage-in/out steps in a script that in turn can be run in a container.
 
@@ -30,6 +30,7 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
     :param eventtype:
     :param localsite:
     :param remotesite:
+    :param container_options: container options from queuedata (string).
     :param label: 'stage-in/out' (String).
     :return:
     :raises NotImplemented: if stagein=False, until stage-out script has been written
@@ -53,7 +54,7 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
         pilot_user = environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
         try:
-            cmd = user.create_middleware_container_command(job.workdir, cmd, label=label)
+            cmd = user.create_middleware_container_command(job.workdir, cmd, container_options, label=label)
         except PilotException as e:
             raise e
     else:

@@ -829,6 +829,14 @@ class StageInClient(StagingClient):
                           fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.direct_localinput_allowed_schemas))
             direct_wan = (fspec.domain == 'wan' and fspec.direct_access_wan and
                           fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.remoteinput_allowed_schemas))
+
+            if not direct_lan and not direct_wan:
+                self.logger.debug('direct lan/wan transfer will not be used for lfn=%s' % fspec.lfn)
+            self.logger.debug('lfn=%s, direct_lan=%s, direct_wan=%s, direct_access_lan=%s, direct_access_wan=%s, '
+                              'direct_localinput_allowed_schemas=%s, remoteinput_allowed_schemas=%s' % \
+                              (fspec.lfn, direct_lan, direct_wan, fspec.direct_access_lan, fspec.direct_access_wan,
+                               str(self.direct_localinput_allowed_schemas), str(self.remoteinput_allowed_schemas)))
+
             if direct_lan or direct_wan:
                 fspec.status_code = 0
                 fspec.status = 'remote_io'

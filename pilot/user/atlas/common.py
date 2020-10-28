@@ -265,31 +265,32 @@ def get_payload_command(job):
             # read back the base trace report
             path = os.path.join(job.workdir, config.Pilot.base_trace_report)
             if not os.path.exists(path):
-                log.warning('base trace report does not exist (cannot send trace reports): %s' % path)
-            try:
-                base_trace_report = read_json(path)
-            except PilotException as e:
-                log.warning('failed to open base trace report (cannot send trace reports): %s' % e)
+                log.warning('base trace report does not exist (%s) - input file traces should already have been sent' % path)
             else:
-                if not base_trace_report:
-                    log.warning('failed to read back base trace report (cannot send trace reports)')
+                try:
+                    base_trace_report = read_json(path)
+                except PilotException as e:
+                    log.warning('failed to open base trace report (cannot send trace reports): %s' % e)
                 else:
-                    # update and send the trace info
-                    for fspec in job.indata:
-                        if fspec.status == 'remote_io':
-                            base_trace_report.update(url=fspec.turl)
-                            base_trace_report.update(remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
-                            base_trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
-                            base_trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
-                            if fspec.turl in not_opened_turls:
-                                base_trace_report.update(clientState='FAILED_REMOTE_OPEN')
+                    if not base_trace_report:
+                        log.warning('failed to read back base trace report (cannot send trace reports)')
+                    else:
+                        # update and send the trace info
+                        for fspec in job.indata:
+                            if fspec.status == 'remote_io':
+                                base_trace_report.update(url=fspec.turl)
+                                base_trace_report.update(remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
+                                base_trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
+                                base_trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
+                                if fspec.turl in not_opened_turls:
+                                    base_trace_report.update(clientState='FAILED_REMOTE_OPEN')
 
-                            # copy the base trace report (only a dictionary) into a real trace report object
-                            trace_report = TraceReport(**base_trace_report)
-                            if trace_report:
-                                trace_report.send()
-                            else:
-                                log.warning('failed to create trace report for turl=%s' % fspec.turl)
+                                # copy the base trace report (only a dictionary) into a real trace report object
+                                trace_report = TraceReport(**base_trace_report)
+                                if trace_report:
+                                    trace_report.send()
+                                else:
+                                    log.warning('failed to create trace report for turl=%s' % fspec.turl)
             # fail the job if the remote files could not be verified
             if ec != 0:
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
