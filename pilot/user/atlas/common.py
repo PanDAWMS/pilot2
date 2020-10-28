@@ -220,7 +220,7 @@ def extract_turls(indata):
     return turls
 
 
-def get_payload_command(job):
+def get_payload_command(job):  # noqa: C901
     """
     Return the full command for executing the payload, including the sourcing of all setup files and setting of
     environment variables.
@@ -295,7 +295,6 @@ def get_payload_command(job):
             if ec != 0:
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
                 raise PilotException(diagnostics, code=ec)
-
 
     if is_standard_atlas_job(job.swrelease):
 

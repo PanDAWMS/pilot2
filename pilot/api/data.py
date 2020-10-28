@@ -833,7 +833,7 @@ class StageInClient(StagingClient):
             if not direct_lan and not direct_wan:
                 self.logger.debug('direct lan/wan transfer will not be used for lfn=%s' % fspec.lfn)
             self.logger.debug('lfn=%s, direct_lan=%s, direct_wan=%s, direct_access_lan=%s, direct_access_wan=%s, '
-                              'direct_localinput_allowed_schemas=%s, remoteinput_allowed_schemas=%s' % \
+                              'direct_localinput_allowed_schemas=%s, remoteinput_allowed_schemas=%s' %
                               (fspec.lfn, direct_lan, direct_wan, fspec.direct_access_lan, fspec.direct_access_wan,
                                str(self.direct_localinput_allowed_schemas), str(self.remoteinput_allowed_schemas)))
 

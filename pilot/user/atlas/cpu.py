@@ -9,7 +9,7 @@
 
 import os
 
-from .utilities import get_memory_values
+# from .utilities import get_memory_values
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 

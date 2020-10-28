@@ -79,8 +79,8 @@ def try_open_file(turl):
 
 
 if __name__ == '__main__':
-    """                                                                                                                                                 
-    Main function of the remote file open script.                                                                                                       
+    """
+    Main function of the remote file open script.
     """
 
     # get the args from the arg parser
