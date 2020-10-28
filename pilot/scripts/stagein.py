@@ -1,4 +1,12 @@
-#!/usr/bin/env python
+#do not use: #!/usr/bin/env python3
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Authors:
+# - Paul Nilsson, paul.nilsson@cern.ch, 2020
+
 import argparse
 import os
 import re
@@ -7,7 +15,7 @@ from pilot.api.data import StageInClient
 from pilot.api.es_data import StageInESClient
 from pilot.info import InfoService, FileSpec, infosys
 from pilot.util.config import config
-from pilot.util.filehandling import establish_logging, write_json
+from pilot.util.filehandling import establish_logging, write_json, read_json
 from pilot.util.tracereport import TraceReport
 
 import logging
@@ -52,11 +60,11 @@ def get_args():
                             help='Working directory')
     arg_parser.add_argument('--scopes',
                             dest='scopes',
-                            required=True,
+                            required=False,
                             help='List of Rucio scopes (e.g., mc16_13TeV,mc16_13TeV')
     arg_parser.add_argument('--lfns',
                             dest='lfns',
-                            required=True,
+                            required=False,
                             help='LFN list (e.g., filename1,filename2')
     arg_parser.add_argument('--eventtype',
                             dest='eventtype',
@@ -103,44 +111,53 @@ def get_args():
                             help='Do not write the pilot log to file')
     arg_parser.add_argument('--filesizes',
                             dest='filesizes',
-                            required=True,
+                            required=False,
                             help='Replica file sizes')
     arg_parser.add_argument('--checksums',
                             dest='checksums',
-                            required=True,
+                            required=False,
                             help='Replica checksums')
     arg_parser.add_argument('--allowlans',
                             dest='allowlans',
-                            required=True,
+                            required=False,
                             help='Replica allow_lan')
     arg_parser.add_argument('--allowwans',
                             dest='allowwans',
-                            required=True,
+                            required=False,
                             help='Replica allow_wan')
     arg_parser.add_argument('--directaccesslans',
                             dest='directaccesslans',
-                            required=True,
+                            required=False,
                             help='Replica direct_access_lan')
     arg_parser.add_argument('--directaccesswans',
                             dest='directaccesswans',
-                            required=True,
+                            required=False,
                             help='Replica direct_access_wan')
     arg_parser.add_argument('--istars',
                             dest='istars',
-                            required=True,
+                            required=False,
                             help='Replica is_tar')
+    arg_parser.add_argument('--usevp',
+                            dest='usevp',
+                            type=str2bool,
+                            default=False,
+                            help='Job object boolean use_vp')
     arg_parser.add_argument('--accessmodes',
                             dest='accessmodes',
-                            required=True,
+                            required=False,
                             help='Replica accessmodes')
     arg_parser.add_argument('--storagetokens',
                             dest='storagetokens',
-                            required=True,
+                            required=False,
                             help='Replica storagetokens')
     arg_parser.add_argument('--guids',
                             dest='guids',
-                            required=True,
+                            required=False,
                             help='Replica guids')
+    arg_parser.add_argument('--replicadictionary',
+                            dest='replicadictionary',
+                            required=True,
+                            help='Replica dictionary')
 
     return arg_parser.parse_args()
 
@@ -336,21 +353,27 @@ if __name__ == '__main__':
     #    exit(ret)
 
     # get the file info
-    file_list_dictionary = get_file_lists(args.lfns, args.scopes, args.filesizes, args.checksums, args.allowlans,
-                                          args.allowwans, args.directaccesslans, args.directaccesswans, args.istars,
-                                          args.accessmodes, args.storagetokens, args.guids)
-    lfns = file_list_dictionary.get('lfns')
-    scopes = file_list_dictionary.get('scopes')
-    filesizes = file_list_dictionary.get('filesizes')
-    checksums = file_list_dictionary.get('checksums')
-    allowlans = file_list_dictionary.get('allowlans')
-    allowwans = file_list_dictionary.get('allowwans')
-    directaccesslans = file_list_dictionary.get('directaccesslans')
-    directaccesswans = file_list_dictionary.get('directaccesswans')
-    istars = file_list_dictionary.get('istars')
-    accessmodes = file_list_dictionary.get('accessmodes')
-    storagetokens = file_list_dictionary.get('storagetokens')
-    guids = file_list_dictionary.get('guids')
+    try:
+        replica_dictionary = read_json(os.path.join(args.workdir, args.replicadictionary))
+    except Exception as e:
+        message('exception caught reading json: %s' % e)
+        exit(1)
+
+#    file_list_dictionary = get_file_lists(args.lfns, args.scopes, args.filesizes, args.checksums, args.allowlans,
+#                                          args.allowwans, args.directaccesslans, args.directaccesswans, args.istars,
+#                                          args.accessmodes, args.storagetokens, args.guids)
+#    lfns = file_list_dictionary.get('lfns')
+#    scopes = file_list_dictionary.get('scopes')
+#    filesizes = file_list_dictionary.get('filesizes')
+#    checksums = file_list_dictionary.get('checksums')
+#    allowlans = file_list_dictionary.get('allowlans')
+#    allowwans = file_list_dictionary.get('allowwans')
+#    directaccesslans = file_list_dictionary.get('directaccesslans')
+#    directaccesswans = file_list_dictionary.get('directaccesswans')
+#    istars = file_list_dictionary.get('istars')
+#    accessmodes = file_list_dictionary.get('accessmodes')
+#    storagetokens = file_list_dictionary.get('storagetokens')
+#    guids = file_list_dictionary.get('guids')
 
     # generate the trace report
     trace_report = TraceReport(pq=os.environ.get('PILOT_SITENAME', ''), localSite=args.localsite, remoteSite=args.remotesite, dataset="",
@@ -374,27 +397,47 @@ if __name__ == '__main__':
     else:
         client = StageInClient(infoservice, logger=logger, trace_report=trace_report)
         activity = 'pr'
-    kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, use_pcache=args.usepcache, use_bulk=False)
+    kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, use_pcache=args.usepcache, use_bulk=False,
+                  use_vp=args.usevp)
     xfiles = []
-    for lfn, scope, filesize, checksum, allowlan, allowwan, dalan, dawan, istar, accessmode, sttoken, guid in list(zip(lfns,
-                                                                                                                       scopes,
-                                                                                                                       filesizes,
-                                                                                                                       checksums,
-                                                                                                                       allowlans,
-                                                                                                                       allowwans,
-                                                                                                                       directaccesslans,
-                                                                                                                       directaccesswans,
-                                                                                                                       istars,
-                                                                                                                       accessmodes,
-                                                                                                                       storagetokens,
-                                                                                                                       guids)):
-        files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir, 'filesize': filesize, 'checksum': checksum,
-                  'allow_lan': allowlan, 'allow_wan': allowwan, 'direct_access_lan': dalan, 'guid': guid,
-                  'direct_access_wan': dawan, 'is_tar': istar, 'accessmode': accessmode, 'storage_token': sttoken}]
+    for lfn in replica_dictionary:
+        files = [{'scope': replica_dictionary[lfn]['scope'],
+                  'lfn': lfn,
+                  'guid': replica_dictionary[lfn]['guid'],
+                  'workdir': args.workdir,
+                  'filesize': replica_dictionary[lfn]['filesize'],
+                  'checksum': replica_dictionary[lfn]['checksum'],
+                  'allow_lan': replica_dictionary[lfn]['allowlan'],
+                  'allow_wan': replica_dictionary[lfn]['allowwan'],
+                  'direct_access_lan': replica_dictionary[lfn]['directaccesslan'],
+                  'direct_access_wan': replica_dictionary[lfn]['directaccesswan'],
+                  'is_tar': replica_dictionary[lfn]['istar'],
+                  'accessmode': replica_dictionary[lfn]['accessmode'],
+                  'storage_token': replica_dictionary[lfn]['storagetoken']}]
 
         # do not abbreviate the following two lines as otherwise the content of xfiles will be a list of generator objects
         _xfiles = [FileSpec(type='input', **f) for f in files]
         xfiles += _xfiles
+
+#    for lfn, scope, filesize, checksum, allowlan, allowwan, dalan, dawan, istar, accessmode, sttoken, guid in list(zip(lfns,
+#                                                                                                                       scopes,
+#                                                                                                                       filesizes,
+#                                                                                                                       checksums,
+#                                                                                                                       allowlans,
+#                                                                                                                       allowwans,
+#                                                                                                                       directaccesslans,
+#                                                                                                                       directaccesswans,
+#                                                                                                                       istars,
+#                                                                                                                       accessmodes,
+#                                                                                                                       storagetokens,
+#                                                                                                                       guids)):
+#        files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir, 'filesize': filesize, 'checksum': checksum,
+#                  'allow_lan': allowlan, 'allow_wan': allowwan, 'direct_access_lan': dalan, 'guid': guid,
+#                  'direct_access_wan': dawan, 'is_tar': istar, 'accessmode': accessmode, 'storage_token': sttoken}]
+#
+#        # do not abbreviate the following two lines as otherwise the content of xfiles will be a list of generator objects
+#        _xfiles = [FileSpec(type='input', **f) for f in files]
+#        xfiles += _xfiles
 
     try:
         r = client.transfer(xfiles, activity=activity, **kwargs)
@@ -416,12 +459,10 @@ if __name__ == '__main__':
     if err:
         errcode, err = extract_error_info(err)
     add_to_dictionary(file_dictionary, 'error', err, errcode, None)
-    path = os.path.join(args.workdir, config.Container.stagein_dictionary)
-    _status = write_json(path, file_dictionary)
+    _status = write_json(os.path.join(args.workdir, config.Container.stagein_status_dictionary), file_dictionary)
     if err:
         message("containerised file transfers failed: %s" % err)
         exit(TRANSFER_ERROR)
 
-    message("wrote %s" % path)
     message("containerised file transfers finished")
     exit(0)

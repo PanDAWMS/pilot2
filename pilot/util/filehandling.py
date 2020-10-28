@@ -998,3 +998,27 @@ def get_valid_path_from_list(paths):
             break
 
     return valid_path
+
+
+def copy_pilot_source(workdir):
+    """
+    Copy the pilot source into the work directory.
+
+    :param workdir: working directory (string).
+    :return: diagnostics (string).
+    """
+
+    diagnostics = ""
+    srcdir = os.path.join(os.environ.get('PILOT_SOURCE_DIR', '.'), 'pilot2')
+    try:
+        logger.debug('copy %s to %s' % (srcdir, workdir))
+        cmd = 'cp -r %s/* %s' % (srcdir, workdir)
+        exit_code, stdout, stderr = execute(cmd)
+        if exit_code != 0:
+            diagnostics = 'file copy failed: %d, %s' % (exit_code, stdout)
+            logger.warning(diagnostics)
+    except Exception as e:
+        diagnostics = 'exception caught when copying pilot2 source: %s' % e
+        logger.warning(diagnostics)
+
+    return diagnostics

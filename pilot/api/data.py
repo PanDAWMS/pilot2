@@ -25,7 +25,7 @@ except Exception:
 from pilot.info import infosys
 from pilot.common.exception import PilotException, ErrorCodes, SizeTooLarge, NoLocalSpace, ReplicasNotFound
 from pilot.util.config import config
-from pilot.util.filehandling import calculate_checksum
+from pilot.util.filehandling import calculate_checksum, write_json
 from pilot.util.math import convert_mb_to_b
 from pilot.util.parameters import get_maximum_input_sizes
 from pilot.util.workernode import get_local_disk_space
@@ -198,23 +198,21 @@ class StagingClient(object):
 
         return replicas
 
-    def resolve_replicas(self, files):  # noqa: C901
+    def resolve_replicas(self, files, use_vp=False):  # noqa: C901
         """
-            Populates filespec.replicas for each entry from `files` list
-            :param files: list of `FileSpec` objects
+        Populates filespec.replicas for each entry from `files` list
+
             fdat.replicas = [{'ddmendpoint':'ddmendpoint', 'pfn':'replica', 'domain':'domain value'}]
-            :return: `files`
+
+        :param files: list of `FileSpec` objects.
+        :param use_vp: True for VP jobs (boolean).
+        :return: `files`
         """
 
         logger = self.logger
         xfiles = []
-        #ddmconf = self.infosys.resolve_storage_data()
 
         for fdat in files:
-            #ddmdat = ddmconf.get(fdat.ddmendpoint)
-            #if not ddmdat:
-            #    raise Exception("Failed to resolve input ddmendpoint by name=%s (from PanDA), please check configuration. fdat=%s" % (fdat.ddmendpoint, fdat))
-
             ## skip fdat if need for further workflow (e.g. to properly handle OS ddms)
             xfiles.append(fdat)
 
@@ -233,8 +231,12 @@ class StagingClient(object):
             'schemes': ['srm', 'root', 'davs', 'gsiftp', 'https', 'storm'],
             'dids': [dict(scope=e.scope, name=e.lfn) for e in xfiles],
         }
-
         query.update(sort='geoip', client_location=location)
+        # reset the schemas for VP jobs
+        if use_vp:
+            query['schemes'] = ['root']
+            query['rse_expression'] = 'istape=False\\type=SPECIAL'
+
         logger.info('calling rucio.list_replicas() with query=%s' % query)
 
         try:
@@ -447,6 +449,7 @@ class StagingClient(object):
                 continue
 
             try:
+                self.logger.debug('kwargs=%s' % str(kwargs))
                 result = self.transfer_files(copytool, remain_files, activity, **kwargs)
                 self.logger.debug('transfer_files() using copytool=%s completed with result=%s' % (copytool, str(result)))
                 break
@@ -712,13 +715,18 @@ class StageInClient(StagingClient):
 
         if getattr(copytool, 'require_replicas', False) and files:
             if files[0].replicas is None:  # look up replicas only once
-                files = self.resolve_replicas(files)
+                files = self.resolve_replicas(files, use_vp=kwargs['use_vp'])
 
             allowed_schemas = getattr(copytool, 'allowed_schemas', None)
 
             if self.infosys and self.infosys.queuedata:
                 copytool_name = copytool.__name__.rsplit('.', 1)[-1]
                 allowed_schemas = self.infosys.queuedata.resolve_allowed_schemas(activity, copytool_name) or allowed_schemas
+
+            # overwrite allowed_schemas for VP jobs
+            if kwargs['use_vp']:
+                allowed_schemas = ['root']
+                self.logger.debug('overwrote allowed_schemas for VP job: %s' % str(allowed_schemas))
 
             for fspec in files:
                 resolve_replica = getattr(copytool, 'resolve_replica', None)
@@ -772,7 +780,7 @@ class StageInClient(StagingClient):
             self.require_protocols(files, copytool, activity, local_dir=kwargs['input_dir'])
 
         # mark direct access files with status=remote_io
-        self.set_status_for_direct_access(files)
+        self.set_status_for_direct_access(files, kwargs.get('workdir', ''))
 
         # get remain files that need to be transferred by copytool
         remain_files = [e for e in files if e.status not in ['remote_io', 'transferred', 'no_transfer']]
@@ -806,12 +814,13 @@ class StageInClient(StagingClient):
         # return copytool.copy_in_bulk(remain_files, **kwargs)
         return copytool.copy_in(remain_files, **kwargs)
 
-    def set_status_for_direct_access(self, files):
+    def set_status_for_direct_access(self, files, workdir):
         """
         Update the FileSpec status with 'remote_io' for direct access mode.
         Should be called only once since the function sends traces
 
         :param files: list of FileSpec objects.
+        :param workdir: work directory (string).
         :return: None
         """
 
@@ -820,11 +829,19 @@ class StageInClient(StagingClient):
                           fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.direct_localinput_allowed_schemas))
             direct_wan = (fspec.domain == 'wan' and fspec.direct_access_wan and
                           fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.remoteinput_allowed_schemas))
+
+            if not direct_lan and not direct_wan:
+                self.logger.debug('direct lan/wan transfer will not be used for lfn=%s' % fspec.lfn)
+            self.logger.debug('lfn=%s, direct_lan=%s, direct_wan=%s, direct_access_lan=%s, direct_access_wan=%s, '
+                              'direct_localinput_allowed_schemas=%s, remoteinput_allowed_schemas=%s' %
+                              (fspec.lfn, direct_lan, direct_wan, fspec.direct_access_lan, fspec.direct_access_wan,
+                               str(self.direct_localinput_allowed_schemas), str(self.remoteinput_allowed_schemas)))
+
             if direct_lan or direct_wan:
                 fspec.status_code = 0
                 fspec.status = 'remote_io'
 
-                self.logger.info('stage-in: direct access (remoteio) will be used for lfn=%s (direct_lan=%s, direct_wan=%s), turl=%s' %
+                self.logger.info('stage-in: direct access (remote i/o) will be used for lfn=%s (direct_lan=%s, direct_wan=%s), turl=%s' %
                                  (fspec.lfn, direct_lan, direct_wan, fspec.turl))
 
                 # send trace
@@ -833,9 +850,23 @@ class StageInClient(StagingClient):
                 self.trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
                 self.trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
                 self.trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
-
                 self.trace_report.update(url=fspec.turl, clientState='FOUND_ROOT', stateReason='direct_access')
-                self.trace_report.send()
+
+                # do not send the trace report at this point if remote file verification is to be done
+                # note also that we can't verify the files at this point since root will not be available from inside
+                # the rucio container
+                if config.Pilot.remotefileverification_log:
+                    # store the trace report for later use (the trace report class inherits from dict, so just write it as JSON)
+                    # outside of the container, it will be available in the normal work dir
+                    # use the normal work dir if we are not in a container
+                    _workdir = workdir if os.path.exists(workdir) else '.'
+                    path = os.path.join(_workdir, config.Pilot.base_trace_report)
+                    if not os.path.exists(_workdir):
+                        path = os.path.join('/srv', config.Pilot.base_trace_report)
+                    self.logger.debug('writing base trace report to: %s' % path)
+                    write_json(path, self.trace_report)
+                else:
+                    self.trace_report.send()
 
     def check_availablespace(self, files):
         """

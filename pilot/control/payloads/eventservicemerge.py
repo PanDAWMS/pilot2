@@ -32,6 +32,7 @@ class Executor(generic.Executor):
     def utility_before_payload(self, job):
         """
         Functions to run before payload
+        Note: this function updates job.jobparams (process_writetofile() call)
 
         :param job: job object
         """

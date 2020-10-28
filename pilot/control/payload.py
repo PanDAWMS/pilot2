@@ -441,4 +441,11 @@ def failed_post(queues, traces, args):
         set_pilot_state(job=job, state='stageout')
         put_in_queue(job, queues.data_out)
 
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
+
     logger.info('[payload] failed_post thread has finished')

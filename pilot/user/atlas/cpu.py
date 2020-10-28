@@ -9,6 +9,7 @@
 
 import os
 
+# from .utilities import get_memory_values
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 
@@ -69,8 +70,34 @@ def set_core_counts(job):
 
     log = get_logger(job.jobid)
 
+    # something like this could be used if prmon also gave info about ncores
+    # (change nprocs -> ncores and add ncores to list in utilities module, get_average_summary_dictionary_prmon())
+
+    #summary_dictionary = get_memory_values(job.workdir, name=job.memorymonitor)
+    #if summary_dictionary:
+    #    if 'nprocs' in summary_dictionary["Other"]:
+    #        try:
+    #            job.actualcorecount = int(summary_dictionary["Other"]["nprocs"])
+    #        except Exception as e:
+    #            log.warning('exception caught: %s' % e)
+    #        else:
+    #            job.corecounts = add_core_count(job.actualcorecount)
+    #            log.debug('current core counts list: %s' % str(job.corecounts))
+    #    else:
+    #        log.debug('summary_dictionary[Other]=%s' % summary_dictionary["Other"])
+    #else:
+    #    log.debug('no summary_dictionary')
+
     if job.pgrp:
-        cmd = "ps axo pgid,psr | sort | grep %d | uniq | wc -l" % job.pgrp
+        # for debugging
+        #cmd = "ps axo pgid,psr,comm,args | grep %d" % job.pgrp
+        #exit_code, stdout, stderr = execute(cmd, mute=True)
+        #log.debug('%s:\n%s\n' % (cmd, stdout))
+
+        # ps axo pgid,psr -> 154628   8 \n 154628   9 \n 1546280 1 ..
+        # sort is redundant; uniq removes any duplicate lines; wc -l gives the final count
+        # awk is added to get the pgrp list only and then grep -x makes sure that false positives are removed, e.g. 1546280
+        cmd = "ps axo pgid,psr | sort | grep %d | uniq | awk '{print $1}' | grep -x %d | wc -l" % (job.pgrp, job.pgrp)
         exit_code, stdout, stderr = execute(cmd, mute=True)
         log.debug('%s: %s' % (cmd, stdout))
         try:
@@ -78,10 +105,7 @@ def set_core_counts(job):
         except Exception as e:
             log.warning('failed to convert number of actual cores to int: %s' % e)
         else:
-            # overwrite the original core count (see discussion with Tadashi, 18/8/20) and add it to the list
-            # job.corecount = job.actualcorecount
             job.corecounts = add_core_count(job.actualcorecount)  #, core_counts=job.corecounts)
             log.debug('current core counts list: %s' % str(job.corecounts))
-
     else:
         log.debug('payload process group not set - cannot check number of cores used by payload')

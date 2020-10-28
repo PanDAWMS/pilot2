@@ -656,7 +656,7 @@ def get_average_summary_dictionary_prmon(path):
                                      "avgRSS": values['rss'].get('avg'), "avgSwap": values['swap'].get('avg')}
 
         # add the last of the rchar, .., values
-        keys = ['rchar', 'wchar', 'read_bytes', 'write_bytes']
+        keys = ['rchar', 'wchar', 'read_bytes', 'write_bytes', 'nprocs']
         # warning: should read_bytes/write_bytes be reported as rbytes/wbytes?
         for key in keys:
             value = get_last_value(dictionary.get(key, None))

@@ -385,3 +385,16 @@ def is_python3():
     """
 
     return sys.version_info >= (3, 0)
+
+
+def get_resource_name():
+    """
+    Return the name of the resource (only set for HPC resources; e.g. Cori, otherwise return 'grid').
+
+    :return: resource_name (string).
+    """
+
+    resource_name = os.environ.get('PILOT_RESOURCE_NAME', '').lower()
+    if not resource_name:
+        resource_name = 'grid'
+    return resource_name

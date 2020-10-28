@@ -15,6 +15,7 @@ except Exception:
     import queue  # Python 3
 
 from pilot.common.exception import ExcThread
+from pilot.util.processes import threads_aborted
 
 import logging
 logger = logging.getLogger(__name__)
@@ -57,6 +58,13 @@ def run(args):
 
         time.sleep(0.5)
 
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
+
     logger.debug('[interceptor] run thread has finished')
 
 
@@ -71,6 +79,13 @@ def receive(args):
     while not args.graceful_stop.is_set():
         time.sleep(0.5)
 
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
+
     logger.debug('[interceptor] receive thread has finished')
 
 
@@ -84,5 +99,12 @@ def send(args):
 
     while not args.graceful_stop.is_set():
         time.sleep(0.5)
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
 
     logger.debug('[interceptor] receive send has finished')

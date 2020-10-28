@@ -45,7 +45,7 @@ def set_core_counts(job):
     log = get_logger(job.jobid)
 
     if job.pgrp:
-        cmd = "ps axo pgid,psr | sort | grep %d | uniq | wc -l" % job.pgrp
+        cmd = "ps axo pgid,psr | sort | grep %d | uniq | awk '{print $1}' | grep -x %d | wc -l" % (job.pgrp, job.pgrp)
         exit_code, stdout, stderr = execute(cmd, mute=True)
         log.debug('%s: %s' % (cmd, stdout))
         try:

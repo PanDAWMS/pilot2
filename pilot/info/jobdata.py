@@ -126,6 +126,7 @@ class JobData(BaseData):
     preprocess = {}                # preprocess dictionary with command to execute before payload, {'command': '..', 'args': '..'}
     postprocess = {}               # postprocess dictionary with command to execute after payload, {'command': '..', 'args': '..'}
     containeroptions = {}          #
+    use_vp = False                 # True for VP jobs
 
     # home package string with additional payload release information; does not need to be added to
     # the conversion function since it's already lower case
@@ -154,7 +155,7 @@ class JobData(BaseData):
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'zombies', 'corecounts'],
              dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes', 'preprocess',
                     'postprocess', 'containeroptions'],
-             bool: ['is_eventservice', 'is_eventservicemerge', 'is_hpo', 'noexecstrcnv', 'debug', 'usecontainer']
+             bool: ['is_eventservice', 'is_eventservicemerge', 'is_hpo', 'noexecstrcnv', 'debug', 'usecontainer', 'use_vp']
              }
 
     def __init__(self, data):
@@ -429,6 +430,7 @@ class JobData(BaseData):
             'is_eventservice': 'eventService',
             'is_eventservicemerge': 'eventServiceMerge',
             'is_hpo': 'isHPO',
+            'use_vp': 'useVP',
             'maxcpucount': 'maxCpuCount',
             'allownooutput': 'allowNoOutput',
             'imagename_jobdef': 'container_name',
