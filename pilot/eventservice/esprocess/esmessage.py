@@ -39,7 +39,7 @@ class MessageThread(threading.Thread):
         self.setName("MessageThread")
         self.__message_queue = message_queue
         self._socket_name = socket_name
-        self._stop = threading.Event()
+        self.__stop = threading.Event()
 
         logger.info('try to import yampl')
         try:
@@ -82,7 +82,7 @@ class MessageThread(threading.Thread):
         Set stop event.
         """
         logger.debug('set stop event')
-        self._stop.set()
+        self.__stop.set()
 
     def is_stopped(self):
         """
@@ -90,7 +90,7 @@ class MessageThread(threading.Thread):
 
         :returns: True if stop event is set, otherwise False.
         """
-        return self._stop.isSet()
+        return self.__stop.is_set()
 
     def terminate(self):
         """

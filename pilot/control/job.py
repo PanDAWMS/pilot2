@@ -43,7 +43,7 @@ from pilot.util.harvester import request_new_jobs, remove_job_request_file, pars
     is_harvester_mode, get_worker_attributes_file, publish_job_report, publish_work_report, get_event_status_file, \
     publish_stageout_files
 from pilot.util.jobmetrics import get_job_metrics
-# from pilot.util.math import mean
+from pilot.util.math import mean
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.processes import cleanup, threads_aborted
@@ -539,6 +539,10 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     if job.corecount and job.corecount != 'null' and job.corecount != 'NULL':
         data['coreCount'] = job.corecount
         #data['coreCount'] = mean(job.corecounts) if job.corecounts else job.corecount
+    if job.corecounts:
+        _mean = mean(job.corecounts)
+        log.info('mean actualcorecount: %f' % _mean)
+        data['meanCoreCount'] = _mean
 
     # get the number of events, should report in heartbeat in case of preempted.
     if job.nevents != 0:
@@ -1472,6 +1476,9 @@ def retrieve(queues, traces, args):  # noqa: C901
                 jobnumber += 1
                 while not args.graceful_stop.is_set():
                     if has_job_completed(queues, args):
+                        #import signal
+                        #os.kill(os.getpid(), signal.SIGTERM)
+
                         args.job_aborted.clear()
                         args.abort_job.clear()
                         logger.info('ready for new job')
@@ -1911,7 +1918,7 @@ def get_finished_or_failed_job(args, queues):
 def get_heartbeat_period(debug=False):
     """
     Return the proper heartbeat period, as determined by normal or debug mode.
-    In normal mode, the hearbeat period is 30*60 s, while in debug mode it is 5*60 s. Both values are defined in the
+    In normal mode, the heartbeat period is 30*60 s, while in debug mode it is 5*60 s. Both values are defined in the
     config file.
 
     :param debug: Boolean, True for debug mode. False otherwise.

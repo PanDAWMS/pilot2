@@ -7,20 +7,20 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2020
 
-from os import environ, path, chmod, getcwd
+from os import environ, path, getcwd  #, chmod
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import PilotException, StageInFailure, StageOutFailure
 from pilot.util.config import config
 from pilot.util.container import execute
-from pilot.util.filehandling import copy, read_json, write_file  #, find_executable
+from pilot.util.filehandling import copy, read_json, write_json, write_file, copy_pilot_source  #, find_executable
 
 import logging
 logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite, label='stage-in'):
+def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite, container_options, label='stage-in'):
     """
     Containerise the middleware by performing stage-in/out steps in a script that in turn can be run in a container.
 
@@ -30,6 +30,7 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
     :param eventtype:
     :param localsite:
     :param remotesite:
+    :param container_options: container options from queuedata (string).
     :param label: 'stage-in/out' (String).
     :return:
     :raises NotImplemented: if stagein=False, until stage-out script has been written
@@ -53,7 +54,7 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
         pilot_user = environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
         try:
-            cmd = user.create_middleware_container_command(job.workdir, cmd, label=label)
+            cmd = user.create_middleware_container_command(job.workdir, cmd, container_options, label=label)
         except PilotException as e:
             raise e
     else:
@@ -127,63 +128,38 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, lab
     :param remotesite:
     :param label: 'stage-[in|out]' (string).
     :return: stage-in/out command (string).
-    :raises StageInFailure: for stage-in failures
-    :raises StageOutFailure: for stage-out failures
+    :raises PilotException: for stage-in/out related failures
     """
 
-    try:
+    if label == 'stage-out':
         filedata_dictionary = get_filedata_strings(xdata)
-    except Exception:
-        import traceback
-        msg = traceback.format_exc()
-        logger.warning('exception caught: %s' % msg)
-        if label == 'stage-in':
-            raise StageInFailure(msg)
-        else:
-            raise StageOutFailure(msg)
-
-    srcdir = path.join(environ.get('PILOT_SOURCE_DIR', '.'), 'pilot2')
-    if not path.exists(srcdir):
-        msg = 'pilot source directory not correct: %s' % srcdir
-        logger.debug(msg)
-        if label == 'stage-in':
-            raise StageInFailure(msg)
-        else:
-            raise StageOutFailure(msg)
     else:
-        logger.debug('using pilot source directory: %s' % srcdir)
+        filedata_dictionary = get_filedata(xdata)
+
+        # write file data to file
+        try:
+            status = write_json(path.join(job.workdir, config.Container.stagein_replica_dictionary), filedata_dictionary)
+        except Exception as e:
+            diagnostics = 'exception caught in get_command(): %s' % e
+            logger.warning(diagnostics)
+            raise PilotException(diagnostics)
+        else:
+            if not status:
+                diagnostics = 'failed to write replica dictionary to file'
+                logger.warning(diagnostics)
+                raise PilotException(diagnostics)
 
     # copy pilot source into container directory, unless it is already there
+    diagnostics = copy_pilot_source(job.workdir)
+    if diagnostics:
+        raise PilotException(diagnostics)
+
     final_script_path = path.join(job.workdir, script)
-    try:
-        logger.debug('copy %s to %s' % (srcdir, job.workdir))
-        cmd = 'cp -r %s/* %s' % (srcdir, job.workdir)
-        exit_code, stdout, stderr = execute(cmd)
-        if exit_code != 0:
-            msg = 'file copy failed: %d, %s' % (exit_code, stdout)
-            logger.warning(msg)
-            if label == 'stage-in':
-                raise StageInFailure(msg)
-            else:
-                raise StageOutFailure(msg)
-
-        environ['PYTHONPATH'] = environ.get('PYTHONPATH') + ':' + job.workdir
-        logger.debug('PYTHONPATH=%s' % environ.get('PYTHONPATH'))
-
-        script_path = path.join('pilot/scripts', script)
-        full_script_path = path.join(path.join(job.workdir, script_path))
-
-        copy(full_script_path, final_script_path)
-        logger.debug('full_script_path=%s' % full_script_path)
-        logger.debug('final_script_path=%s' % final_script_path)
-        chmod(final_script_path, 0o755)  # Python 2/3
-    except Exception as e:
-        msg = 'exception caught when copying pilot2 source: %s' % e
-        logger.warning(msg)
-        if label == 'stage-in':
-            raise StageInFailure(msg)
-        else:
-            raise StageOutFailure(msg)
+    environ['PYTHONPATH'] = environ.get('PYTHONPATH') + ':' + job.workdir
+    script_path = path.join('pilot/scripts', script)
+    full_script_path = path.join(path.join(job.workdir, script_path))
+    copy(full_script_path, final_script_path)
+    # chmod(final_script_path, 0o755)  # Python 2/3
 
     if config.Container.use_middleware_container:
         # correct the path when containers have been used
@@ -193,16 +169,24 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, lab
         workdir = job.workdir
 
     if label == 'stage-in':
-        cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
-              '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
-              '--eventservicemerge=%s --usepcache=%s --filesizes=%s --checksums=%s --allowlans=%s --allowwans=%s ' \
-              '--directaccesslans=%s --directaccesswans=%s --istars=%s --accessmodes=%s --storagetokens=%s --guids=%s' % \
-              (final_script_path, filedata_dictionary['lfns'], filedata_dictionary['scopes'], workdir, queue, eventtype, localsite,
-               remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
-               job.is_eventservicemerge, job.infosys.queuedata.use_pcache, filedata_dictionary['filesizes'],
-               filedata_dictionary['checksums'], filedata_dictionary['allowlans'], filedata_dictionary['allowwans'],
-               filedata_dictionary['directaccesslans'], filedata_dictionary['directaccesswans'], filedata_dictionary['istars'],
-               filedata_dictionary['accessmodes'], filedata_dictionary['storagetokens'], filedata_dictionary['guids'])
+        cmd = "%s -w %s -d -q %s --eventtype=%s --localsite=%s --remotesite=%s --produserid=\"%s\" --jobid=%s " \
+              "--taskid=%s --jobdefinitionid=%s --eventservicemerge=%s --usepcache=%s --usevp=%s " \
+              "--replicadictionary=%s" % (final_script_path, workdir, queue, eventtype, localsite, remotesite,
+                                          job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
+                                          job.is_eventservicemerge, job.infosys.queuedata.use_pcache, job.use_vp,
+                                          config.Container.stagein_replica_dictionary)
+#        cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
+#              '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
+#              '--eventservicemerge=%s --usepcache=%s --filesizes=%s --checksums=%s --allowlans=%s --allowwans=%s ' \
+#              '--directaccesslans=%s --directaccesswans=%s --istars=%s --accessmodes=%s --storagetokens=%s --guids=%s ' \
+#              '--usevp=%s' % \
+#              (final_script_path, filedata_dictionary['lfns'], filedata_dictionary['scopes'], workdir, queue, eventtype, localsite,
+#               remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
+#               job.is_eventservicemerge, job.infosys.queuedata.use_pcache, filedata_dictionary['filesizes'],
+#               filedata_dictionary['checksums'], filedata_dictionary['allowlans'], filedata_dictionary['allowwans'],
+#               filedata_dictionary['directaccesslans'], filedata_dictionary['directaccesswans'], filedata_dictionary['istars'],
+#               filedata_dictionary['accessmodes'], filedata_dictionary['storagetokens'], filedata_dictionary['guids'],
+#               job.use_vp)
     else:  # stage-out
         cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
               '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
@@ -224,7 +208,7 @@ def handle_containerised_errors(job, xdata, label='stage-in'):
     :raises: StageInFailure, StageOutFailure
     """
 
-    dictionary_name = config.Container.stagein_dictionary if label == 'stage-in' else config.Container.stageout_dictionary
+    dictionary_name = config.Container.stagein_status_dictionary if label == 'stage-in' else config.Container.stageout_status_dictionary
 
     # read the JSON file created by the stage-in/out script
     if path.exists(path.join(job.workdir, dictionary_name + '.log')):
@@ -287,6 +271,44 @@ def get_logfile_names(label):
         _stderr_name = 'stagein_stderr.txt' if label == 'stage-in' else 'stageout_stderr.txt'
 
     return _stdout_name, _stderr_name
+
+
+def get_filedata(data):
+    """
+    Return a dictionary with LFNs, guids, scopes, datasets, ddmendpoints, etc.
+    Note: this dictionary will be written to a file that will be read back by the stage-in script inside the container.
+    Dictionary format:
+        { lfn1: { 'guid': guid1, 'scope': scope1, 'dataset': dataset1, 'ddmendpoint': ddmendpoint1,
+                  'filesize': filesize1, 'checksum': checksum1, 'allowlan': allowlan1, 'allowwan': allowwan1,
+                  'directaccesslan': directaccesslan1, 'directaccesswan': directaccesswan1, 'istar': istar1,
+                  'accessmode': accessmode1, 'storagetoken': storagetoken1}, lfn2: .. }
+    :param data:
+    :type data:
+    :return:
+    :rtype:
+    """
+
+    file_dictionary = {}
+    for fspec in data:
+        try:
+            _type = 'md5' if ('md5' in fspec.checksum and 'adler32' not in fspec.checksum) else 'adler32'
+            file_dictionary[fspec.lfn] = {'guid': fspec.guid,
+                                          'scope': fspec.scope,
+                                          'dataset': fspec.dataset,
+                                          'ddmendpoint': fspec.ddmendpoint,
+                                          'filesize': fspec.filesize,
+                                          'checksum': fspec.checksum.get(_type, 'None'),
+                                          'allowlan': fspec.allow_lan,
+                                          'allowwan': fspec.allow_wan,
+                                          'directaccesslan': fspec.direct_access_lan,
+                                          'directaccesswan': fspec.direct_access_wan,
+                                          'istar': fspec.is_tar,
+                                          'accessmode': fspec.accessmode,
+                                          'storagetoken': fspec.storage_token}
+        except Exception as e:
+            logger.warning('exception caught in get_filedata(): %s' % e)
+
+    return file_dictionary
 
 
 def get_filedata_strings(data):

@@ -79,10 +79,10 @@ def interrupt(args, signum, frame):
     args.signal = sig
     logger.warning('will instruct threads to abort and update the server')
     args.abort_job.set()
+    logger.warning('setting graceful stop (in case it was not set already)')
+    args.graceful_stop.set()
     logger.warning('waiting for threads to finish')
     args.job_aborted.wait()
-    logger.warning('setting graceful stop (in case it was not set already), pilot will abort')
-    args.graceful_stop.set()
 
 
 def register_signals(signals, args):

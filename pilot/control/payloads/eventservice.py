@@ -26,13 +26,14 @@ class Executor(generic.Executor):
     def __init__(self, args, job, out, err, traces):
         super(Executor, self).__init__(args, job, out, err, traces)
 
-    def run_payload(self, job, out, err):
+    def run_payload(self, job, cmd, out, err):
         """
         (add description)
 
-        :param job:
-        :param out:
-        :param err:
+        :param job: job object.
+        :param cmd: (unused in ES mode)
+        :param out: stdout file object.
+        :param err: stderr file object.
         :return:
         """
         log = get_logger(job.jobid, logger)

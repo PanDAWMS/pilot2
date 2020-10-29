@@ -143,7 +143,7 @@ def get_grid_image_for_singularity(platform):
 def get_middleware_type():
     """
     Return the middleware type from the container type.
-    E.g. container_type = 'singularity:pilot;docker:wrapper;middleware:container'
+    E.g. container_type = 'singularity:pilot;docker:wrapper;container:middleware'
     get_middleware_type() -> 'container', meaning that middleware should be taken from the container. The default
     is otherwise 'workernode', i.e. middleware is assumed to be present on the worker node.
 
@@ -728,7 +728,38 @@ def singularity_wrapper(cmd, workdir, job=None):
     return cmd
 
 
-def create_middleware_container_command(workdir, cmd, label='stagein'):
+def create_root_container_command(workdir, cmd):
+    """
+
+    :param workdir:
+    :param cmd:
+    :return:
+    """
+
+    command = 'cd %s;' % workdir
+    content = get_root_container_script(cmd)
+    script_name = 'open_file.sh'
+
+    try:
+        status = write_file(os.path.join(workdir, script_name), content)
+    except PilotException as e:
+        raise e
+    else:
+        if status:
+            # generate the final container command
+            x509 = os.environ.get('X509_USER_PROXY', '')
+            if x509:
+                command += 'export X509_USER_PROXY=%s;' % x509
+            command += 'export ALRB_CONT_RUNPAYLOAD=\"source /srv/%s\";' % script_name
+            command += get_asetup(alrb=True)  # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
+            command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c CentOS7'
+
+    logger.debug('container command: %s' % command)
+
+    return command
+
+
+def create_middleware_container_command(workdir, cmd, container_options, label='stagein'):
     """
     Create the stage-in/out container command.
 
@@ -745,6 +776,7 @@ def create_middleware_container_command(workdir, cmd, label='stagein'):
 
     :param workdir: working directory where script will be stored (string).
     :param cmd: isolated stage-in/out command (string).
+    :param container_options: container options from queuedata (string).
     :param label: 'stage-[in|out]' (string).
     :return: container command to be executed (string).
     """
@@ -752,9 +784,8 @@ def create_middleware_container_command(workdir, cmd, label='stagein'):
     command = 'cd %s;' % workdir
 
     # add bits and pieces for the containerisation
-    content = 'lsetup rucio davix xrootd\n%s\nexit $?' % cmd
-    logger.debug('setup.sh content:\n%s' % content)
-
+    middleware_container = get_middleware_container()
+    content = get_middleware_container_script(middleware_container, cmd)
     # store it in setup.sh
     script_name = 'stagein.sh' if label == 'stage-in' else 'stageout.sh'
     try:
@@ -767,14 +798,62 @@ def create_middleware_container_command(workdir, cmd, label='stagein'):
             x509 = os.environ.get('X509_USER_PROXY', '')
             if x509:
                 command += 'export X509_USER_PROXY=%s;' % x509
-            pythonpath = 'export PYTHONPATH=%s:$PYTHONPATH;' % os.path.join(workdir, 'pilot2')
-            #pythonpath = 'export PYTHONPATH=/cvmfs/atlas.cern.ch/repo/sw/PandaPilot/pilot2/latest:$PYTHONPATH;'
-            command += 'export ALRB_CONT_RUNPAYLOAD=\"%ssource /srv/%s\";' % (pythonpath, script_name)
+            command += 'export ALRB_CONT_RUNPAYLOAD=\"source /srv/%s\";' % script_name
             command += get_asetup(alrb=True)  # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
-            command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c centos7'
-            #path = '/cvmfs/unpacked.cern.ch/registry.hub.docker.com/atlas/rucio-clients:default'
-            # verify path ..
-            #command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % path
+            command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % middleware_container
+            command += ' ' + get_container_options(container_options)
+            command = command.replace('  ', ' ')
 
     logger.debug('container command: %s' % command)
+
     return command
+
+
+def get_root_container_script(cmd):
+    """
+    Return the content of the root container script.
+
+    :param cmd: root command (string).
+    :return: script content (string).
+    """
+
+    # content = 'lsetup \'root 6.20.06-x86_64-centos7-gcc8-opt\'\npython %s\nexit $?' % cmd
+    content = 'lsetup \'root pilot\'\npython %s\nexit $?' % cmd
+    logger.debug('root setup script content:\n\n%s\n\n' % content)
+
+    return content
+
+
+def get_middleware_container_script(middleware_container, cmd):
+    """
+    Return the content of the middleware container script.
+
+    :param middleware_container: container image (string).
+    :param cmd: isolated stage-in/out command (string).
+    :return: script content (string).
+    """
+
+    content = 'export PILOT_RUCIO_SITENAME=%s; ' % os.environ.get('PILOT_RUCIO_SITENAME')
+    if 'rucio' in middleware_container:
+        content += 'python3 %s\nexit $?' % cmd
+    else:
+        content += 'lsetup rucio davix xrootd;python %s\nexit $?' % cmd
+    logger.debug('setup.sh content:\n%s' % content)
+
+    return content
+
+
+def get_middleware_container():
+    """
+    Return the middleware container.
+
+    :return: path (string).
+    """
+
+    path = config.Container.middleware_container
+    if not os.path.exists(path):
+        logger.warning('requested middleware container path does not exist: %s (switching to default value)' % path)
+        path = 'CentOS7'
+    logger.info('using image: %s for middleware container' % path)
+
+    return path

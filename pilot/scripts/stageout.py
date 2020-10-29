@@ -1,4 +1,11 @@
-#!/usr/bin/env python
+#do not use: #!/usr/bin/env python3
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Authors:
+# - Paul Nilsson, paul.nilsson@cern.ch, 2020
 import argparse
 import os
 import re
@@ -368,7 +375,7 @@ if __name__ == '__main__':
     if err:
         errcode, err = extract_error_info(err)
     add_to_dictionary(file_dictionary, 'error', err, errcode, None, None, None, None)
-    path = os.path.join(args.workdir, config.Container.stageout_dictionary)
+    path = os.path.join(args.workdir, config.Container.stageout_status_dictionary)
     if os.path.exists(path):
         path += '.log'
     _status = write_json(path, file_dictionary)

@@ -19,6 +19,7 @@ from subprocess import PIPE
 from pilot.common.errorcodes import ErrorCodes
 from pilot.control.job import send_state
 from pilot.util.auxiliary import get_logger, set_pilot_state
+from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED, \
     UTILITY_AFTER_PAYLOAD_FINISHED, PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD
@@ -39,6 +40,12 @@ class Executor(object):
         self.__out = out
         self.__err = err
         self.__traces = traces
+        self.__payload_stdout = config.Payload.payloadstdout
+        self.__payload_stderr = config.Payload.payloadstderr
+        self.__preprocess_stdout = ''
+        self.__preprocess_stderr = ''
+        self.__postprocess_stdout = ''
+        self.__postprocess_stderr = ''
 
     def get_job(self):
         """
@@ -46,28 +53,6 @@ class Executor(object):
         :return: job object.
         """
         return self.__job
-
-    def setup_payload(self, job, out, err):
-        """
-        (add description)
-        :param job:
-        :param out:
-        :param err:
-        :return:
-        """
-        # log = get_logger(job.jobid, logger)
-
-        # try:
-        # create symbolic link for sqlite200 and geomDB in job dir
-        #    for db_name in ['sqlite200', 'geomDB']:
-        #         src = '/cvmfs/atlas.cern.ch/repo/sw/database/DBRelease/current/%s' % db_name
-        #         link_name = 'job-%s/%s' % (job.jobid, db_name)
-        #         os.symlink(src, link_name)
-        # except Exception as e:
-        #     log.error('could not create symbolic links to database files: %s' % e)
-        #     return False
-
-        return True
 
     def pre_setup(self, job):
         """
@@ -110,8 +95,9 @@ class Executor(object):
 
     def utility_with_payload(self, job):
         """
-        Functions to run with payload
-        :param job: job object
+        Functions to run with payload.
+
+        :param job: job object.
         """
         log = get_logger(job.jobid, logger)
 
@@ -124,6 +110,8 @@ class Executor(object):
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
             log.debug('utility command to be executed with the payload: %s' % cmd)
+
+        return cmd
 
     def utility_after_payload_started(self, job):
         """
@@ -194,14 +182,15 @@ class Executor(object):
         log = get_logger(job.jobid, logger)
         exit_code, stdout, stderr = execute(cmd, workdir=job.workdir, cwd=job.workdir, usecontainer=False)
         if exit_code:
-            log.warning('failed to run command: %s (exit code = %d) - see utility logs for details' % (cmd, exit_code))
+            log.warning('command returned non-zero exit code: %s (exit code = %d) - see utility logs for details' % (cmd, exit_code))
             if label == 'preprocess':
                 err = errors.PREPROCESSFAILURE
             elif label == 'postprocess':
                 err = errors.POSTPROCESSFAILURE
             else:
                 err = errors.UNKNOWNPAYLOADFAILURE
-            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(err)
+            if exit_code != 160:  # ignore no-more-data-points exit code
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(err)
 
         # write output to log files
         self.write_utility_output(job.workdir, label, stdout, stderr)
@@ -223,6 +212,14 @@ class Executor(object):
 
         # dump to file
         try:
+            name_stdout = step + '_stdout.txt'
+            name_stderr = step + '_stderr.txt'
+            if step == 'preprocess':
+                self.__preprocess_stdout = name_stdout
+                self.__preprocess_stderr = name_stderr
+            elif step == 'postprocess':
+                self.__postprocess_stdout = name_stdout
+                self.__postprocess_stderr = name_stderr
             write_file(os.path.join(workdir, step + '_stdout.txt'), stdout, unique=True)
         except PilotException as e:
             logger.warning('failed to write utility stdout to file: %s, %s' % (e, stdout))
@@ -251,9 +248,9 @@ class Executor(object):
         # write time stamps to pilot timing file
         add_to_pilot_timing(job.jobid, PILOT_POST_PAYLOAD, time.time(), self.__args)
 
-    def run_payload(self, job, out, err):
+    def run_payload(self, job, cmd, out, err):
         """
-        Setup and execute the preprocess, payload and postprocess commands.
+        Setup and execute the main payload process.
 
         :param job: job object.
         :param out: (currently not used; deprecated)
@@ -263,55 +260,14 @@ class Executor(object):
 
         log = get_logger(job.jobid, logger)
 
-        self.pre_setup(job)
-
-        # get the payload command from the user specific code
-        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
-
-        self.post_setup(job)
-
-        try:
-            cmd_before_payload = self.utility_before_payload(job)
-        except Exception as e:
-            log.error(e)
-            raise e
+        # main payload process steps
 
         # add time for PILOT_PRE_PAYLOAD
         self.pre_payload(job)
 
-        self.utility_with_payload(job)
-
-        # for testing looping job:    cmd = user.get_payload_command(job) + ';sleep 240'
-        try:
-            cmd = user.get_payload_command(job)
-        except PilotException as error:
-            import traceback
-            log.error(traceback.format_exc())
-            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())
-            self.__traces.pilot['error_code'] = job.piloterrorcodes[0]
-            log.fatal('could not define payload command (traces error set to: %d)' % self.__traces.pilot['error_code'])
-            return None
-
-        # preprocess
-
-        # extract the setup in case the preprocess command needs it
-        job.setup = self.extract_setup(cmd)
-        if cmd_before_payload:
-            cmd_before_payload = job.setup + cmd_before_payload
-            log.info("\n\npreprocess execution command:\n\n%s\n" % cmd_before_payload)
-            exit_code = self.execute_utility_command(cmd_before_payload, job, 'preprocess')
-            if exit_code:
-                log.fatal('cannot continue since preprocess failed')
-                return None
-            else:
-                # in case the preprocess produced a command, chmod it
-                path = os.path.join(job.workdir, job.containeroptions.get('containerExec', 'does_not_exist'))
-                if os.path.exists(path):
-                    log.debug('chmod 0o755: %s' % path)
-                    os.chmod(path, 0o755)
-
-        # main payload process
+        _cmd = self.utility_with_payload(job)
+        if _cmd:
+            log.info('could have executed: %s (currently not used)' % _cmd)
 
         log.info("\n\npayload execution command:\n\n%s\n" % cmd)
         try:
@@ -397,9 +353,76 @@ class Executor(object):
 
         return exit_code
 
-    def run(self):
+    def get_payload_command(self, job):
         """
-        (add description)
+        Return the payload command string.
+
+        :param job: job object.
+        :return: command (string).
+        """
+
+        log = get_logger(str(job), logger)
+
+        cmd = ""
+        # for testing looping job:    cmd = user.get_payload_command(job) + ';sleep 240'
+        try:
+            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user],
+                              0)  # Python 2/3
+            cmd = user.get_payload_command(job)
+        except PilotException as error:
+            self.post_setup(job)
+            import traceback
+            log.error(traceback.format_exc())
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())
+            self.__traces.pilot['error_code'] = job.piloterrorcodes[0]
+            log.fatal(
+                'could not define payload command (traces error set to: %d)' % self.__traces.pilot['error_code'])
+
+        return cmd
+
+    def run_preprocess(self, job):
+        """
+        Run any preprocess payloads.
+
+        :param job: job object.
+        :return:
+        """
+
+        log = get_logger(str(self.__job.jobid), logger)
+        exit_code = 0
+
+        try:
+            # note: this might update the jobparams
+            cmd_before_payload = self.utility_before_payload(job)
+        except Exception as e:
+            log.error(e)
+            raise e
+
+        if cmd_before_payload:
+            cmd_before_payload = job.setup + cmd_before_payload
+            log.info("\n\npreprocess execution command:\n\n%s\n" % cmd_before_payload)
+            exit_code = self.execute_utility_command(cmd_before_payload, job, 'preprocess')
+            if exit_code == 160:
+                log.fatal('no more HP points - time to abort processing loop')
+            elif exit_code:
+                # set error code
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PREPROCESSFAILURE)
+                log.fatal('cannot continue since preprocess failed: exit_code=%d' % exit_code)
+            else:
+                # in case the preprocess produced a command, chmod it
+                path = os.path.join(job.workdir, job.containeroptions.get('containerExec', 'does_not_exist'))
+                if os.path.exists(path):
+                    log.debug('chmod 0o755: %s' % path)
+                    os.chmod(path, 0o755)
+
+        return exit_code
+
+    def run(self):  # noqa: C901
+        """
+        Run all payload processes (including pre- and post-processes, and utilities).
+        In the case of HPO jobs, this function will loop over all processes until the preprocess returns a special
+        exit code.
         :return:
         """
         log = get_logger(str(self.__job.jobid), logger)
@@ -407,9 +430,37 @@ class Executor(object):
         exit_code = 1
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
 
-        if self.setup_payload(self.__job, self.__out, self.__err):
-            proc = self.run_payload(self.__job, self.__out, self.__err)
-            if proc is not None:
+        # get the payload command from the user specific code
+        self.pre_setup(self.__job)
+        cmd = self.get_payload_command(self.__job)
+        # extract the setup in case the preprocess command needs it
+        self.__job.setup = self.extract_setup(cmd)
+        self.post_setup(self.__job)
+
+        # a loop is needed for HPO jobs
+        # abort when nothing more to run, or when the preprocess returns a special exit code
+        iteration = 1
+        while True:
+            log.info('payload iteration loop #%d' % iteration)
+
+            # first run the preprocess (if necessary) - note: this might update jobparams -> must update cmd
+            jobparams_pre = self.__job.jobparams
+            exit_code = self.run_preprocess(self.__job)
+            jobparams_post = self.__job.jobparams
+            if exit_code:
+                if exit_code == 160:
+                    exit_code = 0
+                break
+            if jobparams_pre != jobparams_post:
+                log.debug('jobparams were updated by utility_before_payload()')
+                # must update cmd
+                cmd = cmd.replace(jobparams_pre, jobparams_post)
+
+            # now run the main payload, when it finishes, run the postprocess (if necessary)
+            proc = self.run_payload(self.__job, cmd, self.__out, self.__err)
+            if proc is None:
+                break
+            else:
                 # the process is now running, update the server
                 send_state(self.__job, self.__args, self.__job.state)
 
@@ -451,4 +502,26 @@ class Executor(object):
 
                             user.post_utility_command_action(utcmd, self.__job)
 
+            if self.__job.is_hpo:
+                # in case there are more hyper-parameter points, move away the previous log files
+                #self.rename_log_files(iteration)
+                iteration += 1
+            else:
+                break
+
         return exit_code
+
+    def rename_log_files(self, iteration):
+        """
+
+        :param iteration:
+        :return:
+        """
+
+        names = [self.__payload_stdout, self.__payload_stderr, self.__preprocess_stdout, self.__preprocess_stderr,
+                 self.__postprocess_stdout, self.__postprocess_stderr]
+        for name in names:
+            if os.path.exists(name):
+                os.rename(name, name + '%d' % iteration)
+            else:
+                logger.warning('cannot rename %s since it does not exist' % name)

@@ -192,7 +192,8 @@ def _stage_in(args, job):
         logger.info('stage-in will be done in a container')
         try:
             eventtype, localsite, remotesite = get_trace_report_variables(job, label=label)
-            pilot.util.middleware.containerise_middleware(job, job.indata, args.queue, eventtype, localsite, remotesite, label=label)
+            pilot.util.middleware.containerise_middleware(job, job.indata, args.queue, eventtype, localsite, remotesite,
+                                                          job.infosys.queuedata.container_options, label=label)
         except PilotException as e:
             logger.warning('stage-in containerisation threw a pilot exception: %s' % e)
         except Exception as e:
@@ -213,7 +214,8 @@ def _stage_in(args, job):
                 client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
                 activity = 'pr'
             use_pcache = job.infosys.queuedata.use_pcache
-            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, use_pcache=use_pcache, use_bulk=False, input_dir=args.input_dir)
+            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, use_pcache=use_pcache, use_bulk=False,
+                          input_dir=args.input_dir, use_vp=job.use_vp)
             client.prepare_sources(job.indata)
             client.transfer(job.indata, activity=activity, **kwargs)
         except PilotException as error:
@@ -754,7 +756,8 @@ def _do_stageout(job, xdata, activity, queue, title, output_dir=''):
         logger.info('stage-out will be done in a container')
         try:
             eventtype, localsite, remotesite = get_trace_report_variables(job, label=label)
-            pilot.util.middleware.containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite, label=label)
+            pilot.util.middleware.containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
+                                                          job.infosys.queuedata.container_options, label=label)
         except PilotException as e:
             logger.warning('stage-out containerisation threw a pilot exception: %s' % e)
         except Exception as e:
