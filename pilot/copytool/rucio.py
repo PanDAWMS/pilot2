@@ -80,7 +80,7 @@ def copy_in(files, **kwargs):
         trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
         trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
         trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
-
+        trace_report.update(url=fspec.turl if fspec.turl else fspec.surl)
         trace_report.update(catStart=time())  ## is this metric still needed? LFC catalog
         fspec.status_code = 0
         dst = fspec.workdir or kwargs.get('workdir') or '.'
