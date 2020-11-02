@@ -220,7 +220,47 @@ def extract_turls(indata):
     return turls
 
 
-def get_payload_command(job):  # noqa: C901
+def process_remote_file_traces(path, job, not_opened_turls):
+    """
+    Report traces for remote files.
+    The function reads back the base trace report (common part of all traces) and updates it per file before reporting
+    it to the Rucio server.
+
+    :param path: path to base trace report (string).
+    :param job: job object.
+    :param not_opened_turls: list of turls that could not be opened (list).
+    :return:
+    """
+
+    log = get_logger(job.jobid)
+
+    try:
+        base_trace_report = read_json(path)
+    except PilotException as e:
+        log.warning('failed to open base trace report (cannot send trace reports): %s' % e)
+    else:
+        if not base_trace_report:
+            log.warning('failed to read back base trace report (cannot send trace reports)')
+        else:
+            # update and send the trace info
+            for fspec in job.indata:
+                if fspec.status == 'remote_io':
+                    base_trace_report.update(url=fspec.turl)
+                    base_trace_report.update(remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
+                    base_trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
+                    base_trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
+                    if fspec.turl in not_opened_turls:
+                        base_trace_report.update(clientState='FAILED_REMOTE_OPEN')
+
+                    # copy the base trace report (only a dictionary) into a real trace report object
+                    trace_report = TraceReport(**base_trace_report)
+                    if trace_report:
+                        trace_report.send()
+                    else:
+                        log.warning('failed to create trace report for turl=%s' % fspec.turl)
+
+
+def get_payload_command(job):
     """
     Return the full command for executing the payload, including the sourcing of all setup files and setting of
     environment variables.
@@ -267,30 +307,8 @@ def get_payload_command(job):  # noqa: C901
             if not os.path.exists(path):
                 log.warning('base trace report does not exist (%s) - input file traces should already have been sent' % path)
             else:
-                try:
-                    base_trace_report = read_json(path)
-                except PilotException as e:
-                    log.warning('failed to open base trace report (cannot send trace reports): %s' % e)
-                else:
-                    if not base_trace_report:
-                        log.warning('failed to read back base trace report (cannot send trace reports)')
-                    else:
-                        # update and send the trace info
-                        for fspec in job.indata:
-                            if fspec.status == 'remote_io':
-                                base_trace_report.update(url=fspec.turl)
-                                base_trace_report.update(remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
-                                base_trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
-                                base_trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
-                                if fspec.turl in not_opened_turls:
-                                    base_trace_report.update(clientState='FAILED_REMOTE_OPEN')
+                process_remote_file_traces(path, job, not_opened_turls)
 
-                                # copy the base trace report (only a dictionary) into a real trace report object
-                                trace_report = TraceReport(**base_trace_report)
-                                if trace_report:
-                                    trace_report.send()
-                                else:
-                                    log.warning('failed to create trace report for turl=%s' % fspec.turl)
             # fail the job if the remote files could not be verified
             if ec != 0:
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
