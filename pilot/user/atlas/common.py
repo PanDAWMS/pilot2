@@ -1566,35 +1566,15 @@ def ls(workdir):
     logger.debug('%s:\n' % stdout + stderr)
 
 
-def remove_redundant_files(workdir, outputfiles=[], islooping=False):  # noqa: C901
+def remove_special_files(workdir, dir_list, outputfiles):
     """
-    Remove redundant files and directories prior to creating the log file.
+    Remove list of special files from the workdir.
 
-    :param workdir: working directory (string).
-    :param outputfiles: list of output files.
-    :param islooping: looping job variable to make sure workDir is not removed in case of looping (boolean).
+    :param workdir: work directory (string).
+    :param dir_list: list of special files (list).
+    :param outputfiles: output files (list).
     :return:
     """
-
-    logger.debug("removing redundant files prior to log creation")
-    workdir = os.path.abspath(workdir)
-
-    ls(workdir)
-
-    # get list of redundant files and directories (to be removed)
-    dir_list = get_redundants()
-
-    # remove core and pool.root files from AthenaMP sub directories
-    try:
-        logger.debug('cleaning up payload')
-        cleanup_payload(workdir, outputfiles)
-    except Exception as e:
-        logger.warning("failed to execute cleanup_payload(): %s" % e)
-
-    # explicitly remove any soft linked archives (.a files) since they will be dereferenced by the tar command
-    # (--dereference option)
-    logger.debug('removing archives')
-    remove_archives(workdir)
 
     # note: these should be partial file/dir names, not containing any wildcards
     exceptions_list = ["runargs", "runwrapper", "jobReport", "log."]
@@ -1627,6 +1607,40 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):  # noqa: C
             else:
                 remove_dir_tree(f)
 
+
+def remove_redundant_files(workdir, outputfiles=[], islooping=False):
+    """
+    Remove redundant files and directories prior to creating the log file.
+
+    :param workdir: working directory (string).
+    :param outputfiles: list of protected output files (list).
+    :param islooping: looping job variable to make sure workDir is not removed in case of looping (boolean).
+    :return:
+    """
+
+    logger.debug("removing redundant files prior to log creation")
+    workdir = os.path.abspath(workdir)
+
+    ls(workdir)
+
+    # get list of redundant files and directories (to be removed)
+    dir_list = get_redundants()
+
+    # remove core and pool.root files from AthenaMP sub directories
+    try:
+        logger.debug('cleaning up payload')
+        cleanup_payload(workdir, outputfiles)
+    except Exception as e:
+        logger.warning("failed to execute cleanup_payload(): %s" % e)
+
+    # explicitly remove any soft linked archives (.a files) since they will be dereferenced by the tar command
+    # (--dereference option)
+    logger.debug('removing archives')
+    remove_archives(workdir)
+
+    # remove special files
+    remove_special_files(workdir, dir_list, outputfiles)
+
     # run a second pass to clean up any broken links
     logger.debug('cleaning up broken links')
     cleanup_broken_links(workdir)
@@ -1634,22 +1648,14 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):  # noqa: C
     # remove any present user workDir
     path = os.path.join(workdir, 'workDir')
     if os.path.exists(path) and not islooping:
-        logger.debug('removing workDir')
+        logger.debug('removing \'workDir\' from workdir=%s' % workdir)
         remove_dir_tree(path)
 
-    path = os.path.join(workdir, "singularity")
-    if os.path.exists(path):
-        logger.debug('removing singularity')
-        remove_dir_tree(path)
-
-    path = os.path.join(workdir, "pilot")
-    if os.path.exists(path):
-        logger.debug('removing pilot source dir from workdir')
-        remove_dir_tree(path)
-
-    path = os.path.join(workdir, "cores")
-    if os.path.exists(path):
-        logger.debug('removing cores dir from workdir')
+    # remove additional dirs
+    additionals = ['singularity', 'pilot', 'cores']
+    for additional in additionals:
+        path = os.path.join(workdir, additional)
+        logger.debug('removing \'%s\' from workdir=%s' % (additional, workdir))
         remove_dir_tree(path)
 
     ls(workdir)
