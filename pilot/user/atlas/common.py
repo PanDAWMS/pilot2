@@ -976,51 +976,8 @@ def verify_output_files(job):  # noqa: C901
         # ie job report is ancient / output could not be extracted
         log.warning('output file list could not be extracted from job report (nothing to verify)')
     else:
-        output_jobrep = {}  # {lfn: nentries, ..}
-        log.debug('extracted output file list from job report - make sure all known output files are listed')
-        failed = False
-        # first collect the output files from the job report
-        for dat in output:
-            for fdat in dat.get('subFiles', []):
-                # get the lfn
-                name = fdat.get('name', None)
-
-                # get the number of processed events and add the output file info to the dictionary
-                output_jobrep[name] = fdat.get('nentries', None)
-
-        # now make sure that the known output files are in the job report dictionary
-        for lfn in lfns_jobdef:
-            if lfn not in output_jobrep and lfn not in job.allownooutput:
-                if job.is_analysis():
-                    log.warning('output file %s from job definition is not present in job report and is not listed in allowNoOutput' % lfn)
-                else:
-                    log.warning('output file %s from job definition is not present in job report and is not listed in allowNoOutput - job will fail' % lfn)
-                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGOUTPUTFILE)
-                    failed = True
-                    break
-            if lfn not in output_jobrep and lfn in job.allownooutput:
-                log.warning('output file %s from job definition is not present in job report but is listed in allowNoOutput - remove from stage-out' % lfn)
-                remove_from_stageout(lfn, job)
-            else:
-                nentries = output_jobrep[lfn]
-                if nentries == "UNDEFINED":
-                    log.warning('encountered file with nentries=UNDEFINED - will ignore %s' % lfn)
-                    continue
-                elif nentries is None and lfn not in job.allownooutput:
-                    log.warning('output file %s is listed in job report, but has no events and is not listed in allowNoOutput - will ignore' % lfn)
-                    continue
-                elif nentries is None and lfn in job.allownooutput:
-                    log.warning('output file %s is listed in job report, nentries is None and is listed in allowNoOutput - remove from stage-out' % lfn)
-                    remove_from_stageout(lfn, job)
-                elif type(nentries) is int and nentries == 0 and lfn not in job.allownooutput:
-                    log.warning('output file %s is listed in job report, has zero events and is not listed in allowNoOutput - will ignore' % lfn)
-                elif type(nentries) is int and nentries == 0 and lfn in job.allownooutput:
-                    log.warning('output file %s is listed in job report, has zero events and is listed in allowNoOutput - remove from stage-out' % lfn)
-                    remove_from_stageout(lfn, job)
-                elif type(nentries) is int and nentries:
-                    log.info('output file %s has %d events' % (lfn, nentries))
-                else:  # should not reach this step
-                    log.warning('case not handled for output file %s with %s events (ignore)' % (lfn, str(nentries)))
+        verified = verify_extracted_output_files(output, lfns_jobdef, job)
+        failed = True if not verified else False
 
     status = True if not failed else False
 
@@ -1030,6 +987,75 @@ def verify_output_files(job):  # noqa: C901
         log.warning('output file verification failed')
 
     return status
+
+
+def verify_extracted_output_files(output, lfns_jobdef, job):
+    """
+    Make sure all output files extracted from the job report are listed.
+
+    :param output: list of FileSpecs (list).
+    :param lfns_jobdef: list of lfns strings from job definition (list).
+    :param job: job object.
+    :return: True if successful, False if failed (Boolean)
+    """
+
+    failed = False
+    log = get_logger(job.jobid)
+
+    output_jobrep = {}  # {lfn: nentries, ..}
+    log.debug('extracted output file list from job report - make sure all known output files are listed')
+
+    # first collect the output files from the job report
+    for dat in output:
+        for fdat in dat.get('subFiles', []):
+            # get the lfn
+            name = fdat.get('name', None)
+
+            # get the number of processed events and add the output file info to the dictionary
+            output_jobrep[name] = fdat.get('nentries', None)
+
+    # now make sure that the known output files are in the job report dictionary
+    for lfn in lfns_jobdef:
+        if lfn not in output_jobrep and lfn not in job.allownooutput:
+            if job.is_analysis():
+                log.warning(
+                    'output file %s from job definition is not present in job report and is not listed in allowNoOutput' % lfn)
+            else:
+                log.warning(
+                    'output file %s from job definition is not present in job report and is not listed in allowNoOutput - job will fail' % lfn)
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGOUTPUTFILE)
+                failed = True
+                break
+        if lfn not in output_jobrep and lfn in job.allownooutput:
+            log.warning(
+                'output file %s from job definition is not present in job report but is listed in allowNoOutput - remove from stage-out' % lfn)
+            remove_from_stageout(lfn, job)
+        else:
+            nentries = output_jobrep[lfn]
+            if nentries == "UNDEFINED":
+                log.warning('encountered file with nentries=UNDEFINED - will ignore %s' % lfn)
+                continue
+            elif nentries is None and lfn not in job.allownooutput:
+                log.warning(
+                    'output file %s is listed in job report, but has no events and is not listed in allowNoOutput - will ignore' % lfn)
+                continue
+            elif nentries is None and lfn in job.allownooutput:
+                log.warning(
+                    'output file %s is listed in job report, nentries is None and is listed in allowNoOutput - remove from stage-out' % lfn)
+                remove_from_stageout(lfn, job)
+            elif type(nentries) is int and nentries == 0 and lfn not in job.allownooutput:
+                log.warning(
+                    'output file %s is listed in job report, has zero events and is not listed in allowNoOutput - will ignore' % lfn)
+            elif type(nentries) is int and nentries == 0 and lfn in job.allownooutput:
+                log.warning(
+                    'output file %s is listed in job report, has zero events and is listed in allowNoOutput - remove from stage-out' % lfn)
+                remove_from_stageout(lfn, job)
+            elif type(nentries) is int and nentries:
+                log.info('output file %s has %d events' % (lfn, nentries))
+            else:  # should not reach this step
+                log.warning('case not handled for output file %s with %s events (ignore)' % (lfn, str(nentries)))
+
+    return False if failed else True
 
 
 def remove_from_stageout(lfn, job):
