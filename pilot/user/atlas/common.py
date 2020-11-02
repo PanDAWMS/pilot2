@@ -1681,8 +1681,9 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):
     additionals = ['singularity', 'pilot', 'cores']
     for additional in additionals:
         path = os.path.join(workdir, additional)
-        logger.debug('removing \'%s\' from workdir=%s' % (additional, workdir))
-        remove_dir_tree(path)
+        if os.path.exists(path):
+            logger.debug('removing \'%s\' from workdir=%s' % (additional, workdir))
+            remove_dir_tree(path)
 
     ls(workdir)
 
