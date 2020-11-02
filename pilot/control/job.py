@@ -200,10 +200,78 @@ def get_proper_state(job, state):
     return job.serverstate
 
 
-def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
+def publish_harvester_reports(state, args, data, job, final):
+    """
+    Publish all reports needed by Harvester.
+
+    :param state: job state (string).
+    :param args: pilot args object.
+    :param data: data structure for server update (dictionary).
+    :param job: job object.
+    :param final: is this the final update? (Boolean).
+    :return: True if successful, False otherwise (Boolean).
+    """
+
+    log = get_logger(job.jobid, logger)
+
+    # write part of the heartbeat message to worker attributes files needed by Harvester
+    path = get_worker_attributes_file(args)
+
+    # add jobStatus (state) for Harvester
+    data['jobStatus'] = state
+
+    # publish work report
+    if not publish_work_report(data, path):
+        log.debug('failed to write to workerAttributesFile %s' % path)
+        return False
+
+    # check if we are in final state then write out information for output files
+    if final:
+        # Use the job information to write Harvester event_status.dump file
+        event_status_file = get_event_status_file(args)
+        if publish_stageout_files(job, event_status_file):
+            log.debug('wrote log and output files to file %s' % event_status_file)
+        else:
+            log.warning('could not write log and output files to file %s' % event_status_file)
+            return False
+
+        # publish job report
+        _path = os.path.join(job.workdir, config.Payload.jobreport)
+        if os.path.exists(_path):
+            if publish_job_report(job, args, config.Payload.jobreport):
+                log.debug('wrote job report file')
+                return True
+            else:
+                log.warning('failed to write job report file')
+                return False
+    else:
+        log.info('finished writing various report files in Harvester mode')
+
+    return True
+
+
+def write_heartbeat_to_file(data):
+    """
+    Write heartbeat dictionary to file.
+    This is only done when server updates are not wanted.
+
+    :param data: server data (dictionary).
+    :return: True if successful, False otherwise (Boolean).
+    """
+
+    path = os.path.join(os.environ.get('PILOT_HOME'), config.Pilot.heartbeat_message)
+    if write_json(path, data):
+        logger.debug('heartbeat dictionary: %s' % data)
+        logger.debug('wrote heartbeat to file %s' % path)
+        return True
+    else:
+        return False
+
+
+def send_state(job, args, state, xml=None, metadata=None):
     """
     Update the server (send heartbeat message).
-    Interpret and handle any server instructions arriving with the updateJob backchannel.
+    Interpret and handle any server instructions arriving with the updateJob back channel.
 
     :param job: job object.
     :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
@@ -214,9 +282,7 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
     """
 
     log = get_logger(job.jobid, logger)
-
     # _state = get_job_status(job, 'SERVER_UPDATE')
-
     state = get_proper_state(job, state)
 
     # should the pilot make any server updates?
@@ -249,46 +315,10 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
         log.debug('is_harvester_mode(args) : {0}'.format(is_harvester_mode(args)))
         # if in harvester mode write to files required by harvester
         if is_harvester_mode(args):
-            # write part of the heartbeat message to worker attributes files needed by Harvester
-            path = get_worker_attributes_file(args)
-            # add jobStatus (state) for Harvester
-            data['jobStatus'] = state
-            # publish work report
-            if publish_work_report(data, path):
-                log.debug('wrote to workerAttributesFile %s' % path)
-            else:
-                log.debug('Failed to write to workerAttributesFile %s' % path)
-                return False
-            # check if we are in final state then write out information for output files
-            if final:
-                # Use the job information to write Harvester event_status.dump file
-                event_status_file = get_event_status_file(args)
-                if publish_stageout_files(job, event_status_file):
-                    log.debug('wrote log and output files to file %s' % event_status_file)
-                else:
-                    log.debug('Warning - could not write log and output files to file %s' % event_status_file)
-                    return False
-                # publish job report
-                _path = os.path.join(job.workdir, config.Payload.jobreport)
-                if os.path.exists(_path):
-                    if publish_job_report(job, args, config.Payload.jobreport):
-                        log.debug('wrote job report file')
-                        return True
-                    else:
-                        log.debug('Failed to write job report file')
-                        return False
-            else:
-                log.info('finish writing various report files in Harvester mode')
-                return True
+            return publish_harvester_reports(state, args, data, job, final)
         else:
             # store the file in the main workdir
-            path = os.path.join(os.environ.get('PILOT_HOME'), config.Pilot.heartbeat_message)
-            if write_json(path, data):
-                log.debug('heartbeat dictionary: %s' % data)
-                log.debug('wrote heartbeat to file %s' % path)
-                return True
-            else:
-                return False
+            return write_heartbeat_to_file(data)
 
     try:
         if config.Pilot.pandajob == 'real':
@@ -322,6 +352,7 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
         else:
             log.info('skipping job update for fake test job')
             return True
+
     except Exception as e:
         log.warning('exception caught while sending https request: %s' % e)
         log.warning('possibly offending data: %s' % data)
