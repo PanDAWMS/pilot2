@@ -54,7 +54,7 @@ class StagingClient(object):
     # list of allowed schemas to be used for transfers from REMOTE sites
     remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm', 'storm', 'https']
 
-    def __init__(self, infosys_instance=None, acopytools=None, logger=None, default_copytools='rucio', trace_report=None):  # noqa: C901
+    def __init__(self, infosys_instance=None, acopytools=None, logger=None, default_copytools='rucio', trace_report=None):
         """
             If `acopytools` is not specified then it will be automatically resolved via infosys. In this case `infosys` requires initialization.
             :param acopytools: dict of copytool names per activity to be used for transfers. Accepts also list of names or string value without activity passed.
@@ -84,20 +84,10 @@ class StagingClient(object):
         self.acopytools = acopytools or {}
 
         if self.infosys.queuedata:
-            if not self.acopytools:  # resolve from queuedata.acopytools using infosys
-                self.acopytools = (self.infosys.queuedata.acopytools or {}).copy()
-            if not self.acopytools:  # resolve from queuedata.copytools using infosys
-                #self.acopytools = dict(default=(self.infosys.queuedata.copytools or {}).keys())  # Python 2
-                self.acopytools = dict(default=list((self.infosys.queuedata.copytools or {}).keys()))  # Python 2/3
+            self.set_acopytools()
 
         if not self.acopytools.get('default'):
-            try:
-                if isinstance(default_copytools, basestring):  # Python 2
-                    default_copytools = [default_copytools] if default_copytools else []
-            except Exception:
-                if isinstance(default_copytools, str):  # Python 3
-                    default_copytools = [default_copytools] if default_copytools else []
-            self.acopytools['default'] = default_copytools
+            self.acopytools['default'] = self.get_default_copytools(default_copytools)
 
         if not self.acopytools:
             msg = 'failed to initilize StagingClient: no acopytools options found, acopytools=%s' % self.acopytools
@@ -109,6 +99,34 @@ class StagingClient(object):
 
         # get an initialized trace report (has to be updated for get/put if not defined before)
         self.trace_report = trace_report if trace_report else TraceReport(pq=os.environ.get('PILOT_SITENAME', ''))
+
+    def set_acopytools(self):
+        """
+        Set the internal acopytools.
+
+        :return:
+        """
+        if not self.acopytools:  # resolve from queuedata.acopytools using infosys
+            self.acopytools = (self.infosys.queuedata.acopytools or {}).copy()
+        if not self.acopytools:  # resolve from queuedata.copytools using infosys
+            self.acopytools = dict(default=list((self.infosys.queuedata.copytools or {}).keys()))  # Python 2/3
+            #self.acopytools = dict(default=(self.infosys.queuedata.copytools or {}).keys())  # Python 2
+
+    @staticmethod
+    def get_default_copytools(default_copytools):
+        """
+        Get the default copytools.
+
+        :param default_copytools:
+        :return: default copytools (string).
+        """
+        try:
+            if isinstance(default_copytools, basestring):  # Python 2
+                default_copytools = [default_copytools] if default_copytools else []
+        except Exception:
+            if isinstance(default_copytools, str):  # Python 3
+                default_copytools = [default_copytools] if default_copytools else []
+        return default_copytools
 
     @classmethod
     def get_preferred_replica(self, replicas, allowed_schemas):
