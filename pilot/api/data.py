@@ -216,7 +216,7 @@ class StagingClient(object):
 
         return replicas
 
-    def resolve_replicas(self, files, use_vp=False):  # noqa: C901
+    def resolve_replicas(self, files, use_vp=False):
         """
         Populates filespec.replicas for each entry from `files` list
 
@@ -266,62 +266,35 @@ class StagingClient(object):
         logger.debug("replicas received from Rucio: %s" % replicas)
 
         files_lfn = dict(((e.scope, e.lfn), e) for e in xfiles)
-        for r in replicas:
-            k = r['scope'], r['name']
+        for replica in replicas:
+            k = replica['scope'], replica['name']
             fdat = files_lfn.get(k)
             if not fdat:  # not requested replica
                 continue
 
-            fdat.replicas = []  # reset replicas list
-
-            # sort replicas by priority value
-            try:
-                sorted_replicas = sorted(r.get('pfns', {}).iteritems(), key=lambda x: x[1]['priority'])  # Python 2
-            except Exception:
-                sorted_replicas = sorted(iter(list(r.get('pfns', {}).items())), key=lambda x: x[1]['priority'])  # Python 3
-
-            # prefer replicas from inputddms first
-            xreplicas = self.sort_replicas(sorted_replicas, fdat.inputddms)
-
-            for pfn, xdat in xreplicas:
-
-                if xdat.get('type') != 'DISK':  # consider only DISK replicas
-                    continue
-
-                rinfo = {'pfn': pfn, 'ddmendpoint': xdat.get('rse'), 'domain': xdat.get('domain')}
-
-                ## (TEMPORARY?) consider fspec.inputddms as a primary source for local/lan source list definition
-                ## backward compartible logic -- FIX ME LATER if NEED
-                ## in case we should rely on domain value from Rucio, just remove the overwrite line below
-                rinfo['domain'] = 'lan' if rinfo['ddmendpoint'] in fdat.inputddms else 'wan'
-
-                if not fdat.allow_lan and rinfo['domain'] == 'lan':
-                    continue
-                if not fdat.allow_wan and rinfo['domain'] == 'wan':
-                    continue
-
-                fdat.replicas.append(rinfo)
+            # add the replicas to the fdat structure
+            fdat = self.add_replicas(fdat, replica)
 
             # verify filesize and checksum values
             self.trace_report.update(validateStart=time.time())
             status = True
-            if fdat.filesize != r['bytes']:
+            if fdat.filesize != replica['bytes']:
                 logger.warning("Filesize of input file=%s mismatched with value from Rucio replica: filesize=%s, replica.filesize=%s, fdat=%s"
-                               % (fdat.lfn, fdat.filesize, r['bytes'], fdat))
+                               % (fdat.lfn, fdat.filesize, replica['bytes'], fdat))
                 status = False
 
             if not fdat.filesize:
-                fdat.filesize = r['bytes']
-                logger.warning("Filesize value for input file=%s is not defined, assigning info from Rucio replica: filesize=%s" % (fdat.lfn, r['bytes']))
+                fdat.filesize = replica['bytes']
+                logger.warning("Filesize value for input file=%s is not defined, assigning info from Rucio replica: filesize=%s" % (fdat.lfn, replica['bytes']))
 
             for ctype in ['adler32', 'md5']:
-                if fdat.checksum.get(ctype) != r[ctype] and r[ctype]:
+                if fdat.checksum.get(ctype) != replica[ctype] and replica[ctype]:
                     logger.warning("Checksum value of input file=%s mismatched with info got from Rucio replica: checksum=%s, replica.checksum=%s, fdat=%s"
-                                   % (fdat.lfn, fdat.checksum, r[ctype], fdat))
+                                   % (fdat.lfn, fdat.checksum, replica[ctype], fdat))
                     status = False
 
-                if not fdat.checksum.get(ctype) and r[ctype]:
-                    fdat.checksum[ctype] = r[ctype]
+                if not fdat.checksum.get(ctype) and replica[ctype]:
+                    fdat.checksum[ctype] = replica[ctype]
 
             if not status:
                 logger.info("filesize and checksum verification done")
@@ -332,6 +305,48 @@ class StagingClient(object):
                                % (f.lfn, len(f.replicas or []), f.is_directaccess(ensure_replica=False)) for f in files]))
 
         return files
+
+    def add_replicas(self, fdat, replica):
+        """
+        Add the replicas to the fdat structure.
+
+        :param fdat:
+        :param replica:
+        :return: updated fdat.
+        """
+
+        fdat.replicas = []  # reset replicas list
+
+        # sort replicas by priority value
+        try:
+            sorted_replicas = sorted(replica.get('pfns', {}).iteritems(), key=lambda x: x[1]['priority'])  # Python 2
+        except Exception:
+            sorted_replicas = sorted(iter(list(replica.get('pfns', {}).items())),
+                                     key=lambda x: x[1]['priority'])  # Python 3
+
+        # prefer replicas from inputddms first
+        xreplicas = self.sort_replicas(sorted_replicas, fdat.inputddms)
+
+        for pfn, xdat in xreplicas:
+
+            if xdat.get('type') != 'DISK':  # consider only DISK replicas
+                continue
+
+            rinfo = {'pfn': pfn, 'ddmendpoint': xdat.get('rse'), 'domain': xdat.get('domain')}
+
+            ## (TEMPORARY?) consider fspec.inputddms as a primary source for local/lan source list definition
+            ## backward compartible logic -- FIX ME LATER if NEED
+            ## in case we should rely on domain value from Rucio, just remove the overwrite line below
+            rinfo['domain'] = 'lan' if rinfo['ddmendpoint'] in fdat.inputddms else 'wan'
+
+            if not fdat.allow_lan and rinfo['domain'] == 'lan':
+                continue
+            if not fdat.allow_wan and rinfo['domain'] == 'wan':
+                continue
+
+            fdat.replicas.append(rinfo)
+
+        return fdat
 
     @classmethod
     def detect_client_location(self):
