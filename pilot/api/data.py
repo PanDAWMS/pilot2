@@ -858,10 +858,10 @@ class StageInClient(StagingClient):
         """
 
         for fspec in files:
-            direct_lan = (fspec.domain == 'lan' and fspec.direct_access_lan
-                          and fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.direct_localinput_allowed_schemas))
-            direct_wan = (fspec.domain == 'wan' and fspec.direct_access_wan
-                          and fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.remoteinput_allowed_schemas))
+            direct_lan = (fspec.domain == 'lan' and fspec.direct_access_lan and
+                          fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.direct_localinput_allowed_schemas))
+            direct_wan = (fspec.domain == 'wan' and fspec.direct_access_wan and
+                          fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.remoteinput_allowed_schemas))
 
             if not direct_lan and not direct_wan:
                 self.logger.debug('direct lan/wan transfer will not be used for lfn=%s' % fspec.lfn)
