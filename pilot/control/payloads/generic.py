@@ -418,7 +418,7 @@ class Executor(object):
 
         return exit_code
 
-    def run(self):  # noqa: C901
+    def run(self):
         """
         Run all payload processes (including pre- and post-processes, and utilities).
         In the case of HPO jobs, this function will loop over all processes until the preprocess returns a special
