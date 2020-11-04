@@ -427,9 +427,6 @@ class Executor(object):
         """
         log = get_logger(str(self.__job.jobid), logger)
 
-        exit_code = 1
-        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-
         # get the payload command from the user specific code
         self.pre_setup(self.__job)
         cmd = self.get_payload_command(self.__job)
@@ -489,18 +486,7 @@ class Executor(object):
 
                 # stop any running utilities
                 if self.__job.utilities != {}:
-                    for utcmd in list(self.__job.utilities.keys()):  # Python 2/3
-                        utproc = self.__job.utilities[utcmd][0]
-                        if utproc:
-                            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
-                            sig = user.get_utility_command_kill_signal(utcmd)
-                            log.info("stopping process \'%s\' with signal %d" % (utcmd, sig))
-                            try:
-                                os.killpg(os.getpgid(utproc.pid), sig)
-                            except Exception as e:
-                                log.warning('exception caught: %s (ignoring)' % e)
-
-                            user.post_utility_command_action(utcmd, self.__job)
+                    self.stop_utilities()
 
             if self.__job.is_hpo:
                 # in case there are more hyper-parameter points, move away the previous log files
@@ -510,6 +496,28 @@ class Executor(object):
                 break
 
         return exit_code
+
+    def stop_utilities(self):
+        """
+        Stop any running utilities.
+
+        :return:
+        """
+
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+
+        for utcmd in list(self.__job.utilities.keys()):  # Python 2/3
+            utproc = self.__job.utilities[utcmd][0]
+            if utproc:
+                user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+                sig = user.get_utility_command_kill_signal(utcmd)
+                logger.info("stopping process \'%s\' with signal %d" % (utcmd, sig))
+                try:
+                    os.killpg(os.getpgid(utproc.pid), sig)
+                except Exception as e:
+                    logger.warning('exception caught: %s (ignoring)' % e)
+
+                user.post_utility_command_action(utcmd, self.__job)
 
     def rename_log_files(self, iteration):
         """
