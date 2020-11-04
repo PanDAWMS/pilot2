@@ -165,7 +165,7 @@ def https_setup(args=None, version=None):
         logger.warn('Failed to initialize SSL context .. skipped, error: %s' % str(e))
 
 
-def request(url, data=None, plain=False, secure=True):  # noqa: C901
+def request(url, data=None, plain=False, secure=True):
     """
     This function sends a request using HTTPS.
     Sends :mailheader:`User-Agent` and certificates previously being set up by `https_setup`.
@@ -198,37 +198,16 @@ def request(url, data=None, plain=False, secure=True):  # noqa: C901
 
     logger.debug('server update dictionary = \n%s' % str(data))
 
-    strdata = ""
-    for key in data:
-        try:
-            strdata += 'data="%s"\n' % urllib.parse.urlencode({key: data[key]})  # Python 3
-        except Exception:
-            strdata += 'data="%s"\n' % urllib.urlencode({key: data[key]})  # Python 2
-    jobid = ''
-    if 'jobId' in list(data.keys()):  # Python 2/3
-        jobid = '_%s' % data['jobId']
-    # write data to temporary config file
-    tmpname = '%s/curl_%s%s.config' % (os.getenv('PILOT_HOME'), os.path.basename(url), jobid)
-    s = write_file(tmpname, strdata)
-    if not s:
-        logger.warning('failed to create curl config file (will attempt to urlencode data directly)')
-        try:
-            dat = pipes.quote(url + '?' + urllib.parse.urlencode(data) if data else '')  # Python 3
-        except Exception:
-            dat = pipes.quote(url + '?' + urllib.urlencode(data) if data else '')  # Python 2
-    else:
-        dat = '--config %s %s' % (tmpname, url)
+    # get the filename and strdata for the curl config file
+    filename, strdata = get_vars(url, data)
+    # write the strdata to file
+    writestatus = write_file(filename, strdata)
+    # get the config option for the curl command
+    dat = get_curl_config_option(writestatus, url, data, filename)
 
     if _ctx.ssl_context is None and secure:
-        req = 'curl -sS --compressed --connect-timeout %s --max-time %s '\
-              '--capath %s --cert %s --cacert %s --key %s '\
-              '-H %s %s %s' % (config.Pilot.http_connect_timeout, config.Pilot.http_maxtime,
-                               pipes.quote(_ctx.capath or ''), pipes.quote(_ctx.cacert or ''),
-                               pipes.quote(_ctx.cacert or ''), pipes.quote(_ctx.cacert or ''),
-                               pipes.quote('User-Agent: %s' % _ctx.user_agent),
-                               "-H " + pipes.quote('Accept: application/json') if not plain else '',
-                               dat)
-        logger.info('request: %s' % req)
+        req = get_curl_command(plain, dat)
+
         try:
             try:
                 status, output = subprocess.getstatusoutput(req)  # Python 3
@@ -284,3 +263,71 @@ def request(url, data=None, plain=False, secure=True):  # noqa: C901
                 return None
 
         return output.read() if plain else json.load(output)
+
+
+def get_curl_command(plain, dat):
+    """
+    Get the curl command.
+
+    :param plain:
+    :param dat: curl config option (string).
+    :return: curl command (string).
+    """
+    req = 'curl -sS --compressed --connect-timeout %s --max-time %s '\
+          '--capath %s --cert %s --cacert %s --key %s '\
+          '-H %s %s %s' % (config.Pilot.http_connect_timeout, config.Pilot.http_maxtime,
+                           pipes.quote(_ctx.capath or ''), pipes.quote(_ctx.cacert or ''),
+                           pipes.quote(_ctx.cacert or ''), pipes.quote(_ctx.cacert or ''),
+                           pipes.quote('User-Agent: %s' % _ctx.user_agent),
+                           "-H " + pipes.quote('Accept: application/json') if not plain else '',
+                           dat)
+    logger.info('request: %s' % req)
+    return req
+
+
+def get_vars(url, data):
+    """
+    Get the filename and strdata for the curl config file.
+
+    :param url: URL (string).
+    :param data: data to be written to file (dictionary).
+    :return: filename (string), strdata (string).
+    """
+
+    strdata = ""
+    for key in data:
+        try:
+            strdata += 'data="%s"\n' % urllib.parse.urlencode({key: data[key]})  # Python 3
+        except Exception:
+            strdata += 'data="%s"\n' % urllib.urlencode({key: data[key]})  # Python 2
+    jobid = ''
+    if 'jobId' in list(data.keys()):  # Python 2/3
+        jobid = '_%s' % data['jobId']
+
+    # write data to temporary config file
+    filename = '%s/curl_%s%s.config' % (os.getenv('PILOT_HOME'), os.path.basename(url), jobid)
+
+    return filename, strdata
+
+
+def get_curl_config_option(writestatus, url, data, filename):
+    """
+    Get the curl config option.
+
+    :param writestatus: status of write_file call (Boolean).
+    :param url: URL (string).
+    :param data: data structure (dictionary).
+    :param filename: file name of config file (string).
+    :return: config option (string).
+    """
+
+    if not writestatus:
+        logger.warning('failed to create curl config file (will attempt to urlencode data directly)')
+        try:
+            dat = pipes.quote(url + '?' + urllib.parse.urlencode(data) if data else '')  # Python 3
+        except Exception:
+            dat = pipes.quote(url + '?' + urllib.urlencode(data) if data else '')  # Python 2
+    else:
+        dat = '--config %s %s' % (filename, url)
+
+    return dat
