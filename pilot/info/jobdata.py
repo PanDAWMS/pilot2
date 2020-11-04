@@ -296,7 +296,7 @@ class JobData(BaseData):
             msg = ', '.join(["%s=%s" % (k, v) for k, v in sorted(dat.iteritems())])  # Python 2
         except Exception:
             msg = ', '.join(["%s=%s" % (k, v) for k, v in sorted(dat.items())])  # Python 3
-        logger.info('job.infosys.queuedata is not initialized: following access settings will be used by default: %s' % msg)
+        logger.info('job.infosys.queuedata is not initialized: the following access settings will be used by default: %s' % msg)
 
     @staticmethod
     def get_kmap():
