@@ -690,7 +690,8 @@ class JobData(BaseData):
 
         return ret, rawdata
 
-    def get_opts_pargs(self, data):
+    @staticmethod
+    def get_opts_pargs(data):
         """
         Get the opts and pargs variables.
 
