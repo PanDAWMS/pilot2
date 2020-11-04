@@ -230,31 +230,16 @@ def request(url, data=None, plain=False, secure=True):
             else:
                 return ret
     else:
-        req = execute_urllib(url, data)
-
-        if not plain:
-            req.add_header('Accept', 'application/json')
-        if secure:
-            req.add_header('User-Agent', _ctx.user_agent)
+        req = execute_urllib(url, data, plain, secure)
         context = _ctx.ssl_context if secure else None
 
         if is_python3():  # Python 3
-            try:
-                output = urllib.request.urlopen(req, context=context)
-            except urllib.error.HTTPError as e:
-                logger.warn('server error (%s): %s' % (e.code, e.read()))
-                return None
-            except urllib.error.URLError as e:
-                logger.warn('connection error: %s' % e.reason)
+            ec, output = get_urlopen_output(req, context)
+            if ec:
                 return None
         else:  # Python 2
-            try:
-                output = urllib2.urlopen(req, context=context)
-            except urllib2.HTTPError as e:
-                logger.warn('server error (%s): %s' % (e.code, e.read()))
-                return None
-            except urllib2.URLError as e:
-                logger.warn('connection error: %s' % e.reason)
+            ec, output = get_urlopen2_output(req, context)
+            if ec:
                 return None
 
         return output.read() if plain else json.load(output)
@@ -342,7 +327,7 @@ def execute_request(req):
     return status, output
 
 
-def execute_urllib(url, data):
+def execute_urllib(url, data, plain, secure):
     """
     Execute the request using urllib.
 
@@ -354,4 +339,56 @@ def execute_urllib(url, data):
         req = urllib.request.Request(url, urllib.parse.urlencode(data))  # Python 3
     except Exception:
         req = urllib2.Request(url, urllib.urlencode(data))  # Python 2
+
+    if not plain:
+        req.add_header('Accept', 'application/json')
+    if secure:
+        req.add_header('User-Agent', _ctx.user_agent)
+
     return req
+
+
+def get_urlopen_output(req, context):
+    """
+    Get the output from the urlopen request.
+
+    :param req:
+    :param context:
+    :return: ec (int), output (string).
+    """
+
+    ec = -1
+    output = ""
+    try:
+        output = urllib.request.urlopen(req, context=context)
+    except urllib.error.HTTPError as e:
+        logger.warn('server error (%s): %s' % (e.code, e.read()))
+    except urllib.error.URLError as e:
+        logger.warn('connection error: %s' % e.reason)
+    else:
+        ec = 0
+
+    return ec, output
+
+
+def get_urlopen2_output(req, context):
+    """
+    Get the output from the urlopen2 request.
+
+    :param req:
+    :param context:
+    :return: ec (int), output (string).
+    """
+
+    ec = -1
+    output = ""
+    try:
+        output = urllib2.urlopen(req, context=context)
+    except urllib2.HTTPError as e:
+        logger.warn('server error (%s): %s' % (e.code, e.read()))
+    except urllib2.URLError as e:
+        logger.warn('connection error: %s' % e.reason)
+    else:
+        ec = 0
+
+    return ec, output
