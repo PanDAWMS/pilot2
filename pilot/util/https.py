@@ -209,10 +209,7 @@ def request(url, data=None, plain=False, secure=True):
         req = get_curl_command(plain, dat)
 
         try:
-            try:
-                status, output = subprocess.getstatusoutput(req)  # Python 3
-            except Exception:
-                status, output = commands.getstatusoutput(req)  # Python 2
+            status, output = execute_request(req)
         except Exception as e:
             logger.warning('exception: %s' % e)
             return None
@@ -221,6 +218,7 @@ def request(url, data=None, plain=False, secure=True):
                 logger.warn('request failed (%s): %s' % (status, output))
                 return None
 
+        # return output if plain otherwise return json.loads(output)
         if plain:
             return output
         else:
@@ -231,12 +229,9 @@ def request(url, data=None, plain=False, secure=True):
                 return None
             else:
                 return ret
-        # return output if plain else json.loads(output)
     else:
-        try:
-            req = urllib.request.Request(url, urllib.parse.urlencode(data))  # Python 3
-        except Exception:
-            req = urllib2.Request(url, urllib.urlencode(data))  # Python 2
+        req = execute_urllib(url, data)
+
         if not plain:
             req.add_header('Accept', 'application/json')
         if secure:
@@ -331,3 +326,32 @@ def get_curl_config_option(writestatus, url, data, filename):
         dat = '--config %s %s' % (filename, url)
 
     return dat
+
+
+def execute_request(req):
+    """
+    Execute the curl request.
+
+    :param req: curl request command (string).
+    :return: status (int), output (string).
+    """
+    try:
+        status, output = subprocess.getstatusoutput(req)  # Python 3
+    except Exception:
+        status, output = commands.getstatusoutput(req)  # Python 2
+    return status, output
+
+
+def execute_urllib(url, data):
+    """
+    Execute the request using urllib.
+
+    :param url: URL (string).
+    :param data: data structure
+    :return: urllib request structure.
+    """
+    try:
+        req = urllib.request.Request(url, urllib.parse.urlencode(data))  # Python 3
+    except Exception:
+        req = urllib2.Request(url, urllib.urlencode(data))  # Python 2
+    return req
