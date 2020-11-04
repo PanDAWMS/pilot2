@@ -125,6 +125,7 @@ class JobData(BaseData):
     logdata = []                   # list of `FileSpec` objects for log file(s)
     preprocess = {}                # preprocess dictionary with command to execute before payload, {'command': '..', 'args': '..'}
     postprocess = {}               # postprocess dictionary with command to execute after payload, {'command': '..', 'args': '..'}
+    coprocess = {}                 # coprocess dictionary with command to execute during payload, {'command': '..', 'args': '..'}
     containeroptions = {}          #
     use_vp = False                 # True for VP jobs
 
@@ -154,7 +155,7 @@ class JobData(BaseData):
                    'infilesguids', 'memorymonitor', 'allownooutput'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'zombies', 'corecounts'],
              dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes', 'preprocess',
-                    'postprocess', 'containeroptions'],
+                    'postprocess', 'coprocess', 'containeroptions'],
              bool: ['is_eventservice', 'is_eventservicemerge', 'is_hpo', 'noexecstrcnv', 'debug', 'usecontainer', 'use_vp']
              }
 
@@ -662,7 +663,7 @@ class JobData(BaseData):
             :return: tuple: (dict of extracted options, raw string of final command line options)
         """
 
-        logger.debug('Do extract options=%s from data=%s' % (list(options.keys()), data))  # Python 2/3
+        logger.debug('extract options=%s from data=%s' % (list(options.keys()), data))  # Python 2/3
 
         if not options:
             return {}, data
