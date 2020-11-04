@@ -455,17 +455,28 @@ class Executor(object):
 
             # now run the main payload, when it finishes, run the postprocess (if necessary)
             proc = self.run_payload(self.__job, cmd, self.__out, self.__err)
+            proc_co = None
             if proc is None:
                 break
             else:
                 # the process is now running, update the server
                 send_state(self.__job, self.__args, self.__job.state)
 
+                # start any coprocess if necessary
+                if self.__job.coprocess:
+                    log.debug('starting coprocess')
+                    # proc_co = self.run_coprocess(self.__job)
+
                 log.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
                 state = 'finished' if exit_code == 0 else 'failed'
                 set_pilot_state(job=self.__job, state=state)
                 log.info('\n\nfinished pid=%s exit_code=%s state=%s\n' % (proc.pid, exit_code, self.__job.state))
+
+                # stop the coprocess if necessary
+                if proc_co:
+                    log.debug('stopping coprocess')
+                    # self.stop_coprocess(proc_co)
 
                 if exit_code is None:
                     log.warning('detected unset exit_code from wait_graceful - reset to -1')
