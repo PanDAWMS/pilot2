@@ -652,7 +652,7 @@ class JobData(BaseData):
 
         return jobparams, imagename
 
-    @classmethod  # noqa: C901
+    @classmethod
     def parse_args(self, data, options, remove=False):
         """
             Extract option/values from string containing command line options (arguments)
@@ -666,6 +666,36 @@ class JobData(BaseData):
 
         if not options:
             return {}, data
+
+        opts, pargs = self.get_opts_pargs(data)
+        if not opts:
+            return {}, data
+
+        ret = self.get_ret(options, opts)
+
+        ## serialize parameters back to string
+        rawdata = data
+        if remove:
+            final_args = []
+            for arg in pargs:
+                if isinstance(arg, (tuple, list)):  ## parsed option
+                    if arg[0] not in options:  # exclude considered options
+                        if arg[1] is None:
+                            arg.pop()
+                        final_args.extend(arg)
+                else:
+                    final_args.append(arg)
+            rawdata = " ".join(pipes.quote(e) for e in final_args)
+
+        return ret, rawdata
+
+    def get_opts_pargs(self, data):
+        """
+        Get the opts and pargs variables.
+
+        :param data: input command line arguments (raw string)
+        :return: opts (dict), pargs (list)
+        """
 
         try:
             args = shlex.split(data)
@@ -690,6 +720,18 @@ class JobData(BaseData):
         if curopt:
             pargs.append([curopt, None])
 
+        return opts, pargs
+
+    @staticmethod
+    def get_ret(options, opts):
+        """
+        Get the ret variable from the options.
+
+        :param options:
+        :param opts:
+        :return: ret (dict).
+        """
+
         ret = {}
         try:
             _items = list(options.items())  # Python 3
@@ -704,21 +746,7 @@ class JobData(BaseData):
                 continue
             ret[opt] = val
 
-        ## serialize parameters back to string
-        rawdata = data
-        if remove:
-            final_args = []
-            for arg in pargs:
-                if isinstance(arg, (tuple, list)):  ## parsed option
-                    if arg[0] not in options:  # exclude considered options
-                        if arg[1] is None:
-                            arg.pop()
-                        final_args.extend(arg)
-                else:
-                    final_args.append(arg)
-            rawdata = " ".join(pipes.quote(e) for e in final_args)
-
-        return ret, rawdata
+        return ret
 
     def add_workdir_size(self, workdir_size):
         """
