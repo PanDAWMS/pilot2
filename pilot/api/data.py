@@ -24,6 +24,7 @@ except Exception:
 
 from pilot.info import infosys
 from pilot.common.exception import PilotException, ErrorCodes, SizeTooLarge, NoLocalSpace, ReplicasNotFound
+from pilot.util.auxiliary import get_memory_usage
 from pilot.util.config import config
 from pilot.util.filehandling import calculate_checksum, write_json
 from pilot.util.math import convert_mb_to_b
@@ -485,6 +486,8 @@ class StagingClient(object):
                 self.logger.debug('kwargs=%s' % str(kwargs))
                 result = self.transfer_files(copytool, remain_files, activity, **kwargs)
                 self.logger.debug('transfer_files() using copytool=%s completed with result=%s' % (copytool, str(result)))
+                ec, stdout, stderr = get_memory_usage(os.getpid())
+                self.logger.debug('current pilot memory usage (after transfer_files())\n%s' % stdout)
                 break
             except PilotException as e:
                 self.logger.warning('failed to transfer_files() using copytool=%s .. skipped; error=%s' % (copytool, e))
@@ -837,6 +840,9 @@ class StageInClient(StagingClient):
 
         # verify file sizes and available space for stage-in
         self.check_availablespace(remain_files)
+
+        ec, stdout, stderr = get_memory_usage(os.getpid())
+        self.logger.debug('current pilot memory usage (just before stage-in)\n%s' % stdout)
 
         # add the trace report
         kwargs['trace_report'] = self.trace_report

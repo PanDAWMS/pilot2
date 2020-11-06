@@ -30,6 +30,7 @@ from time import sleep
 
 from .basedata import BaseData
 from .filespec import FileSpec
+from pilot.util.auxiliary import get_object_size
 from pilot.util.constants import LOG_TRANSFER_NOT_DONE
 from pilot.util.filehandling import get_guid, get_valid_path_from_list
 from pilot.util.timing import get_elapsed_real_time
@@ -929,6 +930,15 @@ class JobData(BaseData):
 
         # add a data point to the sizes dictionary
         self.sizes[time_stamp] = size
+
+    def get_size(self):
+        """
+        Determine the size (B) of the job object.
+
+        :return: size (int).
+        """
+
+        return get_object_size(self)
 
     def collect_zombies(self, tn=None):
         """

@@ -18,7 +18,7 @@ from subprocess import PIPE
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.control.job import send_state
-from pilot.util.auxiliary import get_logger, set_pilot_state
+from pilot.util.auxiliary import get_logger, set_pilot_state, get_memory_usage
 from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED, \
@@ -439,6 +439,8 @@ class Executor(object):
         iteration = 1
         while True:
             log.info('payload iteration loop #%d' % iteration)
+            ec, stdout, stderr = get_memory_usage(os.getpid())
+            log.debug('current pilot memory usage (before payload execution)\n%s' % stdout)
 
             # first run the preprocess (if necessary) - note: this might update jobparams -> must update cmd
             jobparams_pre = self.__job.jobparams
@@ -472,6 +474,8 @@ class Executor(object):
                 state = 'finished' if exit_code == 0 else 'failed'
                 set_pilot_state(job=self.__job, state=state)
                 log.info('\n\nfinished pid=%s exit_code=%s state=%s\n' % (proc.pid, exit_code, self.__job.state))
+                ec, stdout, stderr = get_memory_usage(os.getpid())
+                log.debug('current pilot memory usage (after payload execution)\n%s' % stdout)
 
                 # stop the coprocess if necessary
                 if proc_co:

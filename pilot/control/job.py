@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 from __future__ import print_function  # Python 2
@@ -31,7 +31,8 @@ from pilot.common.exception import ExcThread, PilotException  #, JobAlreadyRunni
 from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
-    set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine, is_python3
+    set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine, \
+    is_python3, get_memory_usage
 from pilot.util.config import config
 from pilot.util.common import should_abort, was_pilot_killed
 from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
@@ -854,6 +855,8 @@ def create_data_payload(queues, traces, args):
         if job.indata:
             # if the job has input data, put the job object in the data_in queue which will trigger stage-in
             set_pilot_state(job=job, state='stagein')
+            ec, stdout, stderr = get_memory_usage(os.getpid())
+            logger.debug('current pilot memory usage (before stage-in)\n%s' % stdout)
             put_in_queue(job, queues.data_in)
 
         else:
@@ -1481,11 +1484,14 @@ def retrieve(queues, traces, args):  # noqa: C901
             else:
                 # create the job object out of the raw dispatcher job dictionary
                 try:
+                    ec, stdout, stderr = get_memory_usage(os.getpid())
+                    logger.debug('current pilot memory usage (before job creation)\n%s' % stdout)
                     job = create_job(res, args.queue)
                 except PilotException as error:
                     raise error
                 else:
-                    pass
+                    ec, stdout, stderr = get_memory_usage(os.getpid())
+                    logger.debug('current pilot memory usage (before job creation)\n%s' % stdout)
                     # verify the job status on the server
                     #try:
                     #    job_status, job_attempt_nr, job_status_code = get_job_status_from_server(job.jobid, args.url, args.port)
@@ -2253,6 +2259,6 @@ def make_job_report(job):
     log.info('pgrp: %s' % str(job.pgrp))
     log.info('corecount: %d' % job.corecount)
     log.info('event service: %s' % str(job.is_eventservice))
-    #log.info('sizes: %s' % str(job.sizes))
+    log.info('sizes: %s' % str(job.sizes))
     log.info('--------------------------------------------------')
     log.info('')

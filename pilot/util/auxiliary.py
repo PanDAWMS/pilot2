@@ -400,7 +400,7 @@ def get_resource_name():
     return resource_name
 
 
-def get_size(obj, seen=None):
+def get_object_size(obj, seen=None):
     """
     Recursively find the size of any objects
 
@@ -418,11 +418,22 @@ def get_size(obj, seen=None):
     # self-referential objects
     seen.add(obj_id)
     if isinstance(obj, dict):
-        size += sum([get_size(v, seen) for v in obj.values()])
-        size += sum([get_size(k, seen) for k in obj.keys()])
+        size += sum([get_object_size(v, seen) for v in obj.values()])
+        size += sum([get_object_size(k, seen) for k in obj.keys()])
     elif hasattr(obj, '__dict__'):
-        size += get_size(obj.__dict__, seen)
+        size += get_object_size(obj.__dict__, seen)
     elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
-        size += sum([get_size(i, seen) for i in obj])
+        size += sum([get_object_size(i, seen) for i in obj])
 
     return size
+
+
+def get_memory_usage(pid):
+    """
+    Return the memory usage string (ps auxf <pid>) for the given process.
+
+    :param pid: process id (int).
+    :return: ps exit code (int), stderr (strint), stdout (string).
+    """
+
+    return execute('ps aux -q %d' % pid)
