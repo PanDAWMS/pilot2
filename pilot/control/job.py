@@ -342,6 +342,9 @@ def send_state(job, args, state, xml=None, metadata=None):
             log.info('server updateJob request completed in %ds for job %s' % (time_after - time_before, job.jobid))
             log.info("server responded with: res = %s" % str(res))
 
+            ec, stdout, stderr = get_memory_usage(os.getpid())
+            logger.debug('current pilot memory usage (after server update)\n%s' % stdout)
+
             if res is not None:
                 # does the server update contain any backchannel information? if so, update the job object
                 handle_backchannel_command(res, job, args)

@@ -120,9 +120,9 @@ def get_memory_monitor_setup(pid, pgrp, jobid, workdir, command, setup="", use_c
     if not setup.endswith(';'):
         setup += ';'
 
-    cmd = "%sprmon " % setup
+    cmd = "prmon"
     interval = 60
-    options = "--pid %d --filename %s --json-summary %s --interval %d" %\
+    options = " --pid %d --filename %s --json-summary %s --interval %d" %\
               (pid, get_memory_monitor_output_filename(), get_memory_monitor_summary_filename(), interval)
     cmd = "cd " + workdir + ";" + setup + cmd + options
 

@@ -27,7 +27,7 @@ from .setup import should_pilot_prepare_setup, is_standard_atlas_job,\
 from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
     get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
 
-from pilot.util.auxiliary import get_resource_name
+from pilot.util.auxiliary import get_resource_name, get_memory_usage
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import get_logger, is_python3
@@ -616,7 +616,7 @@ def get_analysis_run_command(job, trf_name):
     #        cmd += ' --directIn'
 
     if job.has_remoteio():
-        log.debug('direct access (remoteio) is used to access some input files: --usePFCTurl and --directIn will be added if need to payload command')
+        log.debug('direct access (remoteio) is used to access some input files: --usePFCTurl and --directIn will be added to payload command')
         if '--usePFCTurl' not in cmd:
             cmd += ' --usePFCTurl'
         if '--directIn' not in cmd:
@@ -633,6 +633,9 @@ def get_analysis_run_command(job, trf_name):
         _guids = get_guids_from_jobparams(job.jobparams, lfns, guids)
         if _guids:
             cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
+
+    ec, stdout, stderr = get_memory_usage(os.getpid())
+    log.debug('current pilot memory usage (after get_analysis_run_command())\n%s' % stdout)
 
     return cmd
 
