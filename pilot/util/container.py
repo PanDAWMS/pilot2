@@ -8,7 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch
 
 import subprocess
-from os import environ, getcwd, setpgrp, getpid  #, getpgid  #setsid
+from os import environ, getcwd, setpgrp  #, getpgid  #setsid
 from sys import version_info
 
 from pilot.common.errorcodes import ErrorCodes

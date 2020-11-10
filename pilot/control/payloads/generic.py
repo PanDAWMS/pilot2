@@ -363,6 +363,8 @@ class Executor(object):
 
         log = get_logger(str(job), logger)
 
+        log.debug('1. job object id=%d' % id(job))
+
         cmd = ""
         # for testing looping job:    cmd = user.get_payload_command(job) + ';sleep 240'
         try:
@@ -432,6 +434,7 @@ class Executor(object):
         self.pre_setup(self.__job)
         _ec, _stdout, _stderr = get_memory_usage(os.getpid())
         log.debug('current pilot memory usage (run() start)\n%s' % _stdout)
+        log.debug('job object id=%d' % id(self.__job))
 
         cmd = self.get_payload_command(self.__job)
         # extract the setup in case the preprocess command needs it
