@@ -28,14 +28,7 @@ from pilot.eventservice.esprocess.esmessage import MessageThread
 from pilot.util.container import containerise_executable
 from pilot.util.processes import kill_child_processes
 
-
 logger = logging.getLogger(__name__)
-
-try:
-    file_type = file
-except NameError:
-    file_type = io.IOBase
-
 
 """
 Main process to handle event service.
@@ -148,7 +141,7 @@ class ESProcess(threading.Thread):
 
         return executable
 
-    def init_payload_process(self):  # noqa: C901
+    def init_payload_process(self):
         """
         init payload process.
 
@@ -157,42 +150,14 @@ class ESProcess(threading.Thread):
 
         logger.info("start to init payload process")
         try:
-            executable = self.__payload['executable']
-            executable = self.init_yampl_socket(executable)
-            workdir = ''
-            if 'workdir' in self.__payload:
-                workdir = self.__payload['workdir']
-                if not os.path.exists(workdir):
-                    os.makedirs(workdir)
-                elif not os.path.isdir(workdir):
-                    raise SetupFailure('Workdir exists but it is not a directory.')
-                executable = 'cd %s; %s' % (workdir, executable)
+            try:
+                workdir = self.get_workdir()
+            except Exception as e:
+                raise e
 
-            if 'output_file' in self.__payload:
-                if isinstance(self.__payload['output_file'], file_type):
-                    output_file_fd = self.__payload['output_file']
-                else:
-                    if '/' in self.__payload['output_file']:
-                        output_file = self.__payload['output_file']
-                    else:
-                        output_file = os.path.join(workdir, self.__payload['output_file'])
-                    output_file_fd = open(output_file, 'w')
-            else:
-                output_file = os.path.join(workdir, "ES_payload_output.txt")
-                output_file_fd = open(output_file, 'w')
-
-            if 'error_file' in self.__payload:
-                if isinstance(self.__payload['error_file'], file_type):
-                    error_file_fd = self.__payload['error_file']
-                else:
-                    if '/' in self.__payload['error_file']:
-                        error_file = self.__payload['error_file']
-                    else:
-                        error_file = os.path.join(workdir, self.__payload['error_file'])
-                    error_file_fd = open(error_file, 'w')
-            else:
-                error_file = os.path.join(workdir, "ES_payload_error.txt")
-                error_file_fd = open(error_file, 'w')
+            executable = self.get_executable(workdir)
+            output_file_fd = self.get_file(workdir, file_label='output_file', file_name='ES_payload_output.txt')
+            error_file_fd = self.get_file(workdir, file_label='error_file', file_name='ES_payload_error.txt')
 
             # containerise executable if required
             if 'job' in self.__payload and self.__payload['job']:
@@ -209,13 +174,14 @@ class ESProcess(threading.Thread):
             else:
                 logger.warning('could not containerise executable')
 
+            # get the process
             self.__process = subprocess.Popen(executable, stdout=output_file_fd, stderr=error_file_fd, shell=True)
             self.pid = self.__process.pid
             self.__is_payload_started = True
-            logger.debug("Started new processs(executable: %s, stdout: %s, stderr: %s, pid: %s)" % (executable,
-                                                                                                    output_file_fd,
-                                                                                                    error_file_fd,
-                                                                                                    self.__process.pid))
+            logger.debug("Started new processs (executable: %s, stdout: %s, stderr: %s, pid: %s)" % (executable,
+                                                                                                     output_file_fd,
+                                                                                                     error_file_fd,
+                                                                                                     self.__process.pid))
             if 'job' in self.__payload and self.__payload['job'] and self.__payload['job'].corecount:
                 self.corecount = int(self.__payload['job'].corecount)
         except PilotException as e:
@@ -225,7 +191,62 @@ class ESProcess(threading.Thread):
             logger.error("Failed to start payload process: %s, %s" % (str(e), traceback.format_exc()))
             self.__ret_code = -1
             raise SetupFailure(e)
-        logger.info("finished to init payload process")
+        logger.info("finished initializing payload process")
+
+    def get_file(self, workdir, file_label='output_file', file_name='ES_payload_output.txt'):
+        """
+        Return the requested file.
+
+        :param file_label:
+        :param workdir:
+        :return:
+        """
+
+        try:
+            file_type = file  # Python 2
+        except NameError:
+            file_type = io.IOBase  # Python 3
+
+        if file_label in self.__payload:
+            if isinstance(self.__payload[file_label], file_type):
+                _file_fd = self.__payload[file_label]
+            else:
+                _file = self.__payload[file_label] if '/' in self.__payload[file_label] else os.path.join(workdir, self.__payload[file_label])
+                _file_fd = open(_file, 'w')
+        else:
+            _file = os.path.join(workdir, file_name)
+            _file_fd = open(_file, 'w')
+
+        return _file_fd
+
+    def get_workdir(self):
+        """
+        Return the workdir.
+        If the workdir is set but is not a directory, return None.
+
+        :return: workdir (string or None).
+        :raises SetupFailure: in case workdir is not a directory.
+        """
+
+        workdir = ''
+        if 'workdir' in self.__payload:
+            workdir = self.__payload['workdir']
+            if not os.path.exists(workdir):
+                os.makedirs(workdir)
+            elif not os.path.isdir(workdir):
+                raise SetupFailure('workdir exists but is not a directory')
+        return workdir
+
+    def get_executable(self, workdir):
+        """
+        Return the executable string.
+
+        :param workdir: work directory (string).
+        :return: executable (string).
+        """
+        executable = self.__payload['executable']
+        executable = self.init_yampl_socket(executable)
+        return 'cd %s; %s' % (workdir, executable)
 
     def set_get_event_ranges_hook(self, hook):
         """

@@ -21,23 +21,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_job_metrics(job):  # noqa: C901
+def get_job_metrics_string(job):
     """
-    Return a properly formatted job metrics string.
-    The format of the job metrics string is defined by the server. It will be reported to the server during updateJob.
-
-    Example of job metrics:
-    Number of events read | Number of events written | vmPeak maximum | vmPeak average | RSS average | ..
-    Format: nEvents=<int> nEventsW=<int> vmPeakMax=<int> vmPeakMean=<int> RSSMean=<int> hs06=<float> shutdownTime=<int>
-            cpuFactor=<float> cpuLimit=<float> diskLimit=<float> jobStart=<int> memLimit=<int> runLimit=<float>
+    Get the job metrics string.
 
     :param job: job object.
     :return: job metrics (string).
     """
 
-    log = get_logger(job.jobid)
-
     job_metrics = ""
+    log = get_logger(job.jobid)
 
     # report core count (will also set corecount in job object)
     corecount = get_core_count(job)
@@ -64,30 +57,6 @@ def get_job_metrics(job):  # noqa: C901
     if job.dbdata and job.dbdata != "":
         job_metrics += get_job_metrics_entry("dbData", job.dbdata)
 
-    # event service
-    # if job.external_stageout_time:
-    #     job_metrics += get_job_metrics_entry("ExStageoutTime", job.external_stageout_time)
-
-    # eventservice zip file
-    # if job.output_zip_name and job.output_zip_bucket_id:
-    #     job_metrics += get_job_metrics_entry("outputZipName", os.path.basename(job.output_zip_name))
-    #     job_metrics += get_job_metrics_entry("outputZipBucketID", job.output_zip_bucket_id)
-
-    # report on which OS bucket the log was written to, if any
-    # if job.log_bucket_id != -1:
-    #     job_metrics += get_job_metrics_entry("logBucketID", job.log_bucket_id)
-
-    # yoda
-    # if job.yoda_job_metrics:
-    #     for key in job.yoda_job_metrics:
-    #         if key == 'startTime' or key == 'endTime':
-    #             value = strftime("%Y-%m-%d %H:%M:%S", gmtime(job.yoda_mob_metrics[key]))
-    #             job_metrics += get_job_metrics_entry(key, value)
-    #         elif key.startswith("min") or key.startswith("max"):
-    #             pass
-    #         else:
-    #             job_metrics += get_job_metrics_entry(key, job.yoda_job_metrics[key])
-
     # get the max disk space used by the payload (at the end of a job)
     if job.state == "finished" or job.state == "failed" or job.state == "holding":
         max_space = job.get_max_workdir_size()
@@ -100,7 +69,7 @@ def get_job_metrics(job):  # noqa: C901
         if max_space > zero:
             job_metrics += get_job_metrics_entry("workDirSize", max_space)
         else:
-            log.info("will not add max space = %d B to job metrics" % (max_space))
+            log.info("will not add max space = %d B to job metrics" % max_space)
 
     # get analytics data
     path = os.path.join(job.workdir, get_memory_monitor_output_filename())
@@ -116,7 +85,27 @@ def get_job_metrics(job):  # noqa: C901
         if chi2 != "":
             job_metrics += get_job_metrics_entry("chi2", chi2)
 
-    # done with job metrics, now verify the string
+    return job_metrics
+
+
+def get_job_metrics(job):
+    """
+    Return a properly formatted job metrics string.
+    The format of the job metrics string is defined by the server. It will be reported to the server during updateJob.
+
+    Example of job metrics:
+    Number of events read | Number of events written | vmPeak maximum | vmPeak average | RSS average | ..
+    Format: nEvents=<int> nEventsW=<int> vmPeakMax=<int> vmPeakMean=<int> RSSMean=<int> hs06=<float> shutdownTime=<int>
+            cpuFactor=<float> cpuLimit=<float> diskLimit=<float> jobStart=<int> memLimit=<int> runLimit=<float>
+
+    :param job: job object.
+    :return: job metrics (string).
+    """
+
+    log = get_logger(job.jobid)
+
+    # get job metrics string
+    job_metrics = get_job_metrics_string(job)
 
     # correct for potential initial and trailing space
     job_metrics = job_metrics.lstrip().rstrip()

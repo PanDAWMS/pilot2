@@ -517,7 +517,47 @@ def extract_tarball_url(_tail):
     return tarball_url
 
 
-def process_job_report(job):  # noqa: C901
+def process_metadata_from_xml(job):
+    """
+    Extract necessary metadata from XML when job report is not available.
+
+    :param job: job object.
+    :return: [updated job object - return not needed].
+    """
+
+    log = get_logger(job.jobid)
+
+    # get the metadata from the xml file instead, which must exist for most production transforms
+    path = os.path.join(job.workdir, config.Payload.metadata)
+    if os.path.exists(path):
+        job.metadata = read_file(path)
+    else:
+        if not job.is_analysis() and job.transformation != 'Archive_tf.py':
+            diagnostics = 'metadata does not exist: %s' % path
+            log.warning(diagnostics)
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOPAYLOADMETADATA)
+            job.piloterrorcode = errors.NOPAYLOADMETADATA
+            job.piloterrordiag = diagnostics
+
+    # add missing guids
+    for dat in job.outdata:
+        if not dat.guid:
+            # try to read it from the metadata before the last resort of generating it
+            metadata = None
+            try:
+                metadata = get_metadata_from_xml(job.workdir)
+            except Exception as e:
+                msg = "Exception caught while interpreting XML: %s (ignoring it, but guids must now be generated)" % e
+                log.warning(msg)
+            if metadata:
+                dat.guid = get_guid_from_xml(metadata, dat.lfn)
+                log.info('read guid for lfn=%s from xml: %s' % (dat.lfn, dat.guid))
+            else:
+                dat.guid = get_guid()
+                log.info('generated guid for lfn=%s: %s' % (dat.lfn, dat.guid))
+
+
+def process_job_report(job):
     """
     Process the job report produced by the payload/transform if it exists.
     Payload error codes and diagnostics, as well as payload metadata (for output files) and stageout type will be
@@ -537,34 +577,7 @@ def process_job_report(job):  # noqa: C901
         log.warning('job report does not exist: %s' % path)
 
         # get the metadata from the xml file instead, which must exist for most production transforms
-        path = os.path.join(job.workdir, config.Payload.metadata)
-        if os.path.exists(path):
-            job.metadata = read_file(path)
-        else:
-            if not job.is_analysis() and job.transformation != 'Archive_tf.py':
-                diagnostics = 'metadata does not exist: %s' % path
-                log.warning(diagnostics)
-                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOPAYLOADMETADATA)
-                job.piloterrorcode = errors.NOPAYLOADMETADATA
-                job.piloterrordiag = diagnostics
-
-        # add missing guids
-        for dat in job.outdata:
-            if not dat.guid:
-                # try to read it from the metadata before the last resort of generating it
-                metadata = None
-                try:
-                    metadata = get_metadata_from_xml(job.workdir)
-                except Exception as e:
-                    msg = "Exception caught while interpreting XML: %s (ignoring it, but guids must now be generated)" % e
-                    log.warning(msg)
-                if metadata:
-                    dat.guid = get_guid_from_xml(metadata, dat.lfn)
-                    log.info('read guid for lfn=%s from xml: %s' % (dat.lfn, dat.guid))
-                else:
-                    dat.guid = get_guid()
-                    log.info('generated guid for lfn=%s: %s' % (dat.lfn, dat.guid))
-
+        process_metadata_from_xml(job)
     else:
         with open(path) as data_file:
             # compulsory field; the payload must produce a job report (see config file for file name), attach it to the

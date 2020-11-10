@@ -27,7 +27,7 @@ from .setup import should_pilot_prepare_setup, is_standard_atlas_job,\
 from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
     get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
 
-from pilot.util.auxiliary import get_resource_name
+from pilot.util.auxiliary import get_resource_name, get_memory_usage
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import get_logger, is_python3
@@ -162,10 +162,16 @@ def open_remote_files(indata, workdir):
             _cmd = get_file_open_command(final_script_path, turls)
             cmd = create_root_container_command(workdir, _cmd)
 
+            _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+            logger.debug('current pilot memory usage (before file open verification)\n%s' % _stdout)
+
             logger.info('*** executing file open verification script:\n\n\'%s\'\n\n' % cmd)
             exit_code, stdout, stderr = execute(cmd, usecontainer=False)
             if config.Pilot.remotefileverification_log:
                 write_file(os.path.join(workdir, config.Pilot.remotefileverification_log), stdout + stderr, mute=False)
+
+            _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+            logger.debug('current pilot memory usage (after file open verification)\n%s' % _stdout)
 
             # error handling
             if exit_code:
@@ -220,7 +226,47 @@ def extract_turls(indata):
     return turls
 
 
-def get_payload_command(job):  # noqa: C901
+def process_remote_file_traces(path, job, not_opened_turls):
+    """
+    Report traces for remote files.
+    The function reads back the base trace report (common part of all traces) and updates it per file before reporting
+    it to the Rucio server.
+
+    :param path: path to base trace report (string).
+    :param job: job object.
+    :param not_opened_turls: list of turls that could not be opened (list).
+    :return:
+    """
+
+    log = get_logger(job.jobid)
+
+    try:
+        base_trace_report = read_json(path)
+    except PilotException as e:
+        log.warning('failed to open base trace report (cannot send trace reports): %s' % e)
+    else:
+        if not base_trace_report:
+            log.warning('failed to read back base trace report (cannot send trace reports)')
+        else:
+            # update and send the trace info
+            for fspec in job.indata:
+                if fspec.status == 'remote_io':
+                    base_trace_report.update(url=fspec.turl)
+                    base_trace_report.update(remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
+                    base_trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
+                    base_trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
+                    if fspec.turl in not_opened_turls:
+                        base_trace_report.update(clientState='FAILED_REMOTE_OPEN')
+
+                    # copy the base trace report (only a dictionary) into a real trace report object
+                    trace_report = TraceReport(**base_trace_report)
+                    if trace_report:
+                        trace_report.send()
+                    else:
+                        log.warning('failed to create trace report for turl=%s' % fspec.turl)
+
+
+def get_payload_command(job):
     """
     Return the full command for executing the payload, including the sourcing of all setup files and setting of
     environment variables.
@@ -231,6 +277,9 @@ def get_payload_command(job):  # noqa: C901
     """
 
     log = get_logger(job.jobid)
+
+    _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+    log.debug('current pilot memory usage (beginning of get_payload_command)\n%s' % _stdout)
 
     # Should the pilot do the setup or does jobPars already contain the information?
     preparesetup = should_pilot_prepare_setup(job.noexecstrcnv, job.jobparams)
@@ -267,30 +316,8 @@ def get_payload_command(job):  # noqa: C901
             if not os.path.exists(path):
                 log.warning('base trace report does not exist (%s) - input file traces should already have been sent' % path)
             else:
-                try:
-                    base_trace_report = read_json(path)
-                except PilotException as e:
-                    log.warning('failed to open base trace report (cannot send trace reports): %s' % e)
-                else:
-                    if not base_trace_report:
-                        log.warning('failed to read back base trace report (cannot send trace reports)')
-                    else:
-                        # update and send the trace info
-                        for fspec in job.indata:
-                            if fspec.status == 'remote_io':
-                                base_trace_report.update(url=fspec.turl)
-                                base_trace_report.update(remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
-                                base_trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
-                                base_trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
-                                if fspec.turl in not_opened_turls:
-                                    base_trace_report.update(clientState='FAILED_REMOTE_OPEN')
+                process_remote_file_traces(path, job, not_opened_turls)
 
-                                # copy the base trace report (only a dictionary) into a real trace report object
-                                trace_report = TraceReport(**base_trace_report)
-                                if trace_report:
-                                    trace_report.send()
-                                else:
-                                    log.warning('failed to create trace report for turl=%s' % fspec.turl)
             # fail the job if the remote files could not be verified
             if ec != 0:
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
@@ -337,6 +364,9 @@ def get_payload_command(job):  # noqa: C901
 
     # Explicitly add the ATHENA_PROC_NUMBER (or JOB value)
     cmd = add_athena_proc_number(cmd)
+
+    _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+    log.debug('current pilot memory usage (end of get_payload_command)\n%s' % _stdout)
 
     log.info('payload run command: %s' % cmd)
 
@@ -598,7 +628,7 @@ def get_analysis_run_command(job, trf_name):
     #        cmd += ' --directIn'
 
     if job.has_remoteio():
-        log.debug('direct access (remoteio) is used to access some input files: --usePFCTurl and --directIn will be added if need to payload command')
+        log.debug('direct access (remoteio) is used to access some input files: --usePFCTurl and --directIn will be added to payload command')
         if '--usePFCTurl' not in cmd:
             cmd += ' --usePFCTurl'
         if '--directIn' not in cmd:
@@ -615,6 +645,9 @@ def get_analysis_run_command(job, trf_name):
         _guids = get_guids_from_jobparams(job.jobparams, lfns, guids)
         if _guids:
             cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
+
+    ec, stdout, stderr = get_memory_usage(os.getpid())
+    log.debug('current pilot memory usage (after get_analysis_run_command())\n%s' % stdout)
 
     return cmd
 
@@ -910,7 +943,7 @@ def extract_output_file_guids(job):
         #job.outdata = extra
 
 
-def verify_output_files(job):  # noqa: C901
+def verify_output_files(job):
     """
     Make sure that the known output files from the job definition are listed in the job report and number of processed events
     is greater than zero. If the output file is not listed in the job report, then if the file is listed in allowNoOutput
@@ -958,51 +991,8 @@ def verify_output_files(job):  # noqa: C901
         # ie job report is ancient / output could not be extracted
         log.warning('output file list could not be extracted from job report (nothing to verify)')
     else:
-        output_jobrep = {}  # {lfn: nentries, ..}
-        log.debug('extracted output file list from job report - make sure all known output files are listed')
-        failed = False
-        # first collect the output files from the job report
-        for dat in output:
-            for fdat in dat.get('subFiles', []):
-                # get the lfn
-                name = fdat.get('name', None)
-
-                # get the number of processed events and add the output file info to the dictionary
-                output_jobrep[name] = fdat.get('nentries', None)
-
-        # now make sure that the known output files are in the job report dictionary
-        for lfn in lfns_jobdef:
-            if lfn not in output_jobrep and lfn not in job.allownooutput:
-                if job.is_analysis():
-                    log.warning('output file %s from job definition is not present in job report and is not listed in allowNoOutput' % lfn)
-                else:
-                    log.warning('output file %s from job definition is not present in job report and is not listed in allowNoOutput - job will fail' % lfn)
-                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGOUTPUTFILE)
-                    failed = True
-                    break
-            if lfn not in output_jobrep and lfn in job.allownooutput:
-                log.warning('output file %s from job definition is not present in job report but is listed in allowNoOutput - remove from stage-out' % lfn)
-                remove_from_stageout(lfn, job)
-            else:
-                nentries = output_jobrep[lfn]
-                if nentries == "UNDEFINED":
-                    log.warning('encountered file with nentries=UNDEFINED - will ignore %s' % lfn)
-                    continue
-                elif nentries is None and lfn not in job.allownooutput:
-                    log.warning('output file %s is listed in job report, but has no events and is not listed in allowNoOutput - will ignore' % lfn)
-                    continue
-                elif nentries is None and lfn in job.allownooutput:
-                    log.warning('output file %s is listed in job report, nentries is None and is listed in allowNoOutput - remove from stage-out' % lfn)
-                    remove_from_stageout(lfn, job)
-                elif type(nentries) is int and nentries == 0 and lfn not in job.allownooutput:
-                    log.warning('output file %s is listed in job report, has zero events and is not listed in allowNoOutput - will ignore' % lfn)
-                elif type(nentries) is int and nentries == 0 and lfn in job.allownooutput:
-                    log.warning('output file %s is listed in job report, has zero events and is listed in allowNoOutput - remove from stage-out' % lfn)
-                    remove_from_stageout(lfn, job)
-                elif type(nentries) is int and nentries:
-                    log.info('output file %s has %d events' % (lfn, nentries))
-                else:  # should not reach this step
-                    log.warning('case not handled for output file %s with %s events (ignore)' % (lfn, str(nentries)))
+        verified = verify_extracted_output_files(output, lfns_jobdef, job)
+        failed = True if not verified else False
 
     status = True if not failed else False
 
@@ -1012,6 +1002,75 @@ def verify_output_files(job):  # noqa: C901
         log.warning('output file verification failed')
 
     return status
+
+
+def verify_extracted_output_files(output, lfns_jobdef, job):
+    """
+    Make sure all output files extracted from the job report are listed.
+
+    :param output: list of FileSpecs (list).
+    :param lfns_jobdef: list of lfns strings from job definition (list).
+    :param job: job object.
+    :return: True if successful, False if failed (Boolean)
+    """
+
+    failed = False
+    log = get_logger(job.jobid)
+
+    output_jobrep = {}  # {lfn: nentries, ..}
+    log.debug('extracted output file list from job report - make sure all known output files are listed')
+
+    # first collect the output files from the job report
+    for dat in output:
+        for fdat in dat.get('subFiles', []):
+            # get the lfn
+            name = fdat.get('name', None)
+
+            # get the number of processed events and add the output file info to the dictionary
+            output_jobrep[name] = fdat.get('nentries', None)
+
+    # now make sure that the known output files are in the job report dictionary
+    for lfn in lfns_jobdef:
+        if lfn not in output_jobrep and lfn not in job.allownooutput:
+            if job.is_analysis():
+                log.warning(
+                    'output file %s from job definition is not present in job report and is not listed in allowNoOutput' % lfn)
+            else:
+                log.warning(
+                    'output file %s from job definition is not present in job report and is not listed in allowNoOutput - job will fail' % lfn)
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGOUTPUTFILE)
+                failed = True
+                break
+        if lfn not in output_jobrep and lfn in job.allownooutput:
+            log.warning(
+                'output file %s from job definition is not present in job report but is listed in allowNoOutput - remove from stage-out' % lfn)
+            remove_from_stageout(lfn, job)
+        else:
+            nentries = output_jobrep[lfn]
+            if nentries == "UNDEFINED":
+                log.warning('encountered file with nentries=UNDEFINED - will ignore %s' % lfn)
+                continue
+            elif nentries is None and lfn not in job.allownooutput:
+                log.warning(
+                    'output file %s is listed in job report, but has no events and is not listed in allowNoOutput - will ignore' % lfn)
+                continue
+            elif nentries is None and lfn in job.allownooutput:
+                log.warning(
+                    'output file %s is listed in job report, nentries is None and is listed in allowNoOutput - remove from stage-out' % lfn)
+                remove_from_stageout(lfn, job)
+            elif type(nentries) is int and nentries == 0 and lfn not in job.allownooutput:
+                log.warning(
+                    'output file %s is listed in job report, has zero events and is not listed in allowNoOutput - will ignore' % lfn)
+            elif type(nentries) is int and nentries == 0 and lfn in job.allownooutput:
+                log.warning(
+                    'output file %s is listed in job report, has zero events and is listed in allowNoOutput - remove from stage-out' % lfn)
+                remove_from_stageout(lfn, job)
+            elif type(nentries) is int and nentries:
+                log.info('output file %s has %d events' % (lfn, nentries))
+            else:  # should not reach this step
+                log.warning('case not handled for output file %s with %s events (ignore)' % (lfn, str(nentries)))
+
+    return False if failed else True
 
 
 def remove_from_stageout(lfn, job):
@@ -1548,35 +1607,15 @@ def ls(workdir):
     logger.debug('%s:\n' % stdout + stderr)
 
 
-def remove_redundant_files(workdir, outputfiles=[], islooping=False):  # noqa: C901
+def remove_special_files(workdir, dir_list, outputfiles):
     """
-    Remove redundant files and directories prior to creating the log file.
+    Remove list of special files from the workdir.
 
-    :param workdir: working directory (string).
-    :param outputfiles: list of output files.
-    :param islooping: looping job variable to make sure workDir is not removed in case of looping (boolean).
+    :param workdir: work directory (string).
+    :param dir_list: list of special files (list).
+    :param outputfiles: output files (list).
     :return:
     """
-
-    logger.debug("removing redundant files prior to log creation")
-    workdir = os.path.abspath(workdir)
-
-    ls(workdir)
-
-    # get list of redundant files and directories (to be removed)
-    dir_list = get_redundants()
-
-    # remove core and pool.root files from AthenaMP sub directories
-    try:
-        logger.debug('cleaning up payload')
-        cleanup_payload(workdir, outputfiles)
-    except Exception as e:
-        logger.warning("failed to execute cleanup_payload(): %s" % e)
-
-    # explicitly remove any soft linked archives (.a files) since they will be dereferenced by the tar command
-    # (--dereference option)
-    logger.debug('removing archives')
-    remove_archives(workdir)
 
     # note: these should be partial file/dir names, not containing any wildcards
     exceptions_list = ["runargs", "runwrapper", "jobReport", "log."]
@@ -1609,6 +1648,40 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):  # noqa: C
             else:
                 remove_dir_tree(f)
 
+
+def remove_redundant_files(workdir, outputfiles=[], islooping=False):
+    """
+    Remove redundant files and directories prior to creating the log file.
+
+    :param workdir: working directory (string).
+    :param outputfiles: list of protected output files (list).
+    :param islooping: looping job variable to make sure workDir is not removed in case of looping (boolean).
+    :return:
+    """
+
+    logger.debug("removing redundant files prior to log creation")
+    workdir = os.path.abspath(workdir)
+
+    ls(workdir)
+
+    # get list of redundant files and directories (to be removed)
+    dir_list = get_redundants()
+
+    # remove core and pool.root files from AthenaMP sub directories
+    try:
+        logger.debug('cleaning up payload')
+        cleanup_payload(workdir, outputfiles)
+    except Exception as e:
+        logger.warning("failed to execute cleanup_payload(): %s" % e)
+
+    # explicitly remove any soft linked archives (.a files) since they will be dereferenced by the tar command
+    # (--dereference option)
+    logger.debug('removing archives')
+    remove_archives(workdir)
+
+    # remove special files
+    remove_special_files(workdir, dir_list, outputfiles)
+
     # run a second pass to clean up any broken links
     logger.debug('cleaning up broken links')
     cleanup_broken_links(workdir)
@@ -1616,23 +1689,16 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):  # noqa: C
     # remove any present user workDir
     path = os.path.join(workdir, 'workDir')
     if os.path.exists(path) and not islooping:
-        logger.debug('removing workDir')
+        logger.debug('removing \'workDir\' from workdir=%s' % workdir)
         remove_dir_tree(path)
 
-    path = os.path.join(workdir, "singularity")
-    if os.path.exists(path):
-        logger.debug('removing singularity')
-        remove_dir_tree(path)
-
-    path = os.path.join(workdir, "pilot")
-    if os.path.exists(path):
-        logger.debug('removing pilot source dir from workdir')
-        remove_dir_tree(path)
-
-    path = os.path.join(workdir, "cores")
-    if os.path.exists(path):
-        logger.debug('removing cores dir from workdir')
-        remove_dir_tree(path)
+    # remove additional dirs
+    additionals = ['singularity', 'pilot', 'cores']
+    for additional in additionals:
+        path = os.path.join(workdir, additional)
+        if os.path.exists(path):
+            logger.debug('removing \'%s\' from workdir=%s' % (additional, workdir))
+            remove_dir_tree(path)
 
     ls(workdir)
 

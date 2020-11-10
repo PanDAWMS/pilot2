@@ -10,7 +10,8 @@
 import time
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.util.auxiliary import get_logger, set_pilot_state  #, get_size
+from pilot.info import JobData
+from pilot.util.auxiliary import get_logger, set_pilot_state
 
 import logging
 logger = logging.getLogger(__name__)
@@ -141,9 +142,7 @@ def put_in_queue(obj, queue):
     """
 
     # update job object size (currently not used)
-    #try:
-    #size = get_size(obj)
-    #job.add_size(size) - only if obj = job
-    #except Exception:
-    #pass
+    if isinstance(obj, JobData):
+        obj.add_size(obj.get_size())
+
     queue.put(obj)

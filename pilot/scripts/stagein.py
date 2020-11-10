@@ -323,7 +323,7 @@ def extract_error_info(err):
     error_code = 0
     error_message = ""
 
-    _code = re.search('error code: (\d+)', err)
+    _code = re.search(r'error code: (\d+)', err)
     if _code:
         error_code = _code.group(1)
 

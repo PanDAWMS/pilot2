@@ -18,7 +18,7 @@ from subprocess import PIPE
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.control.job import send_state
-from pilot.util.auxiliary import get_logger, set_pilot_state
+from pilot.util.auxiliary import get_logger, set_pilot_state, get_memory_usage
 from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED, \
@@ -363,6 +363,8 @@ class Executor(object):
 
         log = get_logger(str(job), logger)
 
+        log.debug('1. job object id=%d' % id(job))
+
         cmd = ""
         # for testing looping job:    cmd = user.get_payload_command(job) + ';sleep 240'
         try:
@@ -418,20 +420,22 @@ class Executor(object):
 
         return exit_code
 
-    def run(self):  # noqa: C901
+    def run(self):
         """
         Run all payload processes (including pre- and post-processes, and utilities).
         In the case of HPO jobs, this function will loop over all processes until the preprocess returns a special
         exit code.
         :return:
         """
-        log = get_logger(str(self.__job.jobid), logger)
 
-        exit_code = 1
-        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        log = get_logger(str(self.__job.jobid), logger)
 
         # get the payload command from the user specific code
         self.pre_setup(self.__job)
+        _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+        log.debug('current pilot memory usage (run() start)\n%s' % _stdout)
+        log.debug('job object id=%d' % id(self.__job))
+
         cmd = self.get_payload_command(self.__job)
         # extract the setup in case the preprocess command needs it
         self.__job.setup = self.extract_setup(cmd)
@@ -442,6 +446,8 @@ class Executor(object):
         iteration = 1
         while True:
             log.info('payload iteration loop #%d' % iteration)
+            _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+            log.debug('current pilot memory usage (before payload execution)\n%s' % _stdout)
 
             # first run the preprocess (if necessary) - note: this might update jobparams -> must update cmd
             jobparams_pre = self.__job.jobparams
@@ -458,17 +464,30 @@ class Executor(object):
 
             # now run the main payload, when it finishes, run the postprocess (if necessary)
             proc = self.run_payload(self.__job, cmd, self.__out, self.__err)
+            proc_co = None
             if proc is None:
                 break
             else:
                 # the process is now running, update the server
                 send_state(self.__job, self.__args, self.__job.state)
 
+                # start any coprocess if necessary
+                if self.__job.coprocess:
+                    log.debug('starting coprocess')
+                    # proc_co = self.run_coprocess(self.__job)
+
                 log.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
                 state = 'finished' if exit_code == 0 else 'failed'
                 set_pilot_state(job=self.__job, state=state)
                 log.info('\n\nfinished pid=%s exit_code=%s state=%s\n' % (proc.pid, exit_code, self.__job.state))
+                ec, stdout, stderr = get_memory_usage(os.getpid())
+                log.debug('current pilot memory usage (after payload execution)\n%s' % stdout)
+
+                # stop the coprocess if necessary
+                if proc_co:
+                    log.debug('stopping coprocess')
+                    # self.stop_coprocess(proc_co)
 
                 if exit_code is None:
                     log.warning('detected unset exit_code from wait_graceful - reset to -1')
@@ -489,18 +508,7 @@ class Executor(object):
 
                 # stop any running utilities
                 if self.__job.utilities != {}:
-                    for utcmd in list(self.__job.utilities.keys()):  # Python 2/3
-                        utproc = self.__job.utilities[utcmd][0]
-                        if utproc:
-                            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
-                            sig = user.get_utility_command_kill_signal(utcmd)
-                            log.info("stopping process \'%s\' with signal %d" % (utcmd, sig))
-                            try:
-                                os.killpg(os.getpgid(utproc.pid), sig)
-                            except Exception as e:
-                                log.warning('exception caught: %s (ignoring)' % e)
-
-                            user.post_utility_command_action(utcmd, self.__job)
+                    self.stop_utilities()
 
             if self.__job.is_hpo:
                 # in case there are more hyper-parameter points, move away the previous log files
@@ -510,6 +518,28 @@ class Executor(object):
                 break
 
         return exit_code
+
+    def stop_utilities(self):
+        """
+        Stop any running utilities.
+
+        :return:
+        """
+
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+
+        for utcmd in list(self.__job.utilities.keys()):  # Python 2/3
+            utproc = self.__job.utilities[utcmd][0]
+            if utproc:
+                user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+                sig = user.get_utility_command_kill_signal(utcmd)
+                logger.info("stopping process \'%s\' with signal %d" % (utcmd, sig))
+                try:
+                    os.killpg(os.getpgid(utproc.pid), sig)
+                except Exception as e:
+                    logger.warning('exception caught: %s (ignoring)' % e)
+
+                user.post_utility_command_action(utcmd, self.__job)
 
     def rename_log_files(self, iteration):
         """
