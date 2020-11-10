@@ -162,10 +162,16 @@ def open_remote_files(indata, workdir):
             _cmd = get_file_open_command(final_script_path, turls)
             cmd = create_root_container_command(workdir, _cmd)
 
+            _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+            logger.debug('current pilot memory usage (before file open verification)\n%s' % _stdout)
+
             logger.info('*** executing file open verification script:\n\n\'%s\'\n\n' % cmd)
             exit_code, stdout, stderr = execute(cmd, usecontainer=False)
             if config.Pilot.remotefileverification_log:
                 write_file(os.path.join(workdir, config.Pilot.remotefileverification_log), stdout + stderr, mute=False)
+
+            _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+            logger.debug('current pilot memory usage (after file open verification)\n%s' % _stdout)
 
             # error handling
             if exit_code:
@@ -272,6 +278,9 @@ def get_payload_command(job):
 
     log = get_logger(job.jobid)
 
+    _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+    log.debug('current pilot memory usage (beginning of get_payload_command)\n%s' % _stdout)
+
     # Should the pilot do the setup or does jobPars already contain the information?
     preparesetup = should_pilot_prepare_setup(job.noexecstrcnv, job.jobparams)
 
@@ -355,6 +364,9 @@ def get_payload_command(job):
 
     # Explicitly add the ATHENA_PROC_NUMBER (or JOB value)
     cmd = add_athena_proc_number(cmd)
+
+    _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+    log.debug('current pilot memory usage (end of get_payload_command)\n%s' % _stdout)
 
     log.info('payload run command: %s' % cmd)
 

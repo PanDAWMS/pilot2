@@ -12,7 +12,6 @@ from os import environ, getcwd, setpgrp, getpid  #, getpgid  #setsid
 from sys import version_info
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.util.auxiliary import get_memory_usage
 from pilot.util.config import config
 
 import logging
@@ -92,9 +91,6 @@ def execute(executable, **kwargs):
     if returnproc:
         return process
     else:
-        ec, stdout, stderr = get_memory_usage(getpid())
-        logger.debug('current pilot memory usage (after Popen())\n%s' % stdout)
-
         stdout, stderr = process.communicate()
         exit_code = process.poll()
 
