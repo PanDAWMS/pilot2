@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 from __future__ import print_function  # Python 2
@@ -31,7 +31,8 @@ from pilot.common.exception import ExcThread, PilotException  #, JobAlreadyRunni
 from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
-    set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine, is_python3
+    set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine, \
+    is_python3, get_memory_usage
 from pilot.util.config import config
 from pilot.util.common import should_abort, was_pilot_killed
 from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
@@ -200,10 +201,78 @@ def get_proper_state(job, state):
     return job.serverstate
 
 
-def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
+def publish_harvester_reports(state, args, data, job, final):
+    """
+    Publish all reports needed by Harvester.
+
+    :param state: job state (string).
+    :param args: pilot args object.
+    :param data: data structure for server update (dictionary).
+    :param job: job object.
+    :param final: is this the final update? (Boolean).
+    :return: True if successful, False otherwise (Boolean).
+    """
+
+    log = get_logger(job.jobid, logger)
+
+    # write part of the heartbeat message to worker attributes files needed by Harvester
+    path = get_worker_attributes_file(args)
+
+    # add jobStatus (state) for Harvester
+    data['jobStatus'] = state
+
+    # publish work report
+    if not publish_work_report(data, path):
+        log.debug('failed to write to workerAttributesFile %s' % path)
+        return False
+
+    # check if we are in final state then write out information for output files
+    if final:
+        # Use the job information to write Harvester event_status.dump file
+        event_status_file = get_event_status_file(args)
+        if publish_stageout_files(job, event_status_file):
+            log.debug('wrote log and output files to file %s' % event_status_file)
+        else:
+            log.warning('could not write log and output files to file %s' % event_status_file)
+            return False
+
+        # publish job report
+        _path = os.path.join(job.workdir, config.Payload.jobreport)
+        if os.path.exists(_path):
+            if publish_job_report(job, args, config.Payload.jobreport):
+                log.debug('wrote job report file')
+                return True
+            else:
+                log.warning('failed to write job report file')
+                return False
+    else:
+        log.info('finished writing various report files in Harvester mode')
+
+    return True
+
+
+def write_heartbeat_to_file(data):
+    """
+    Write heartbeat dictionary to file.
+    This is only done when server updates are not wanted.
+
+    :param data: server data (dictionary).
+    :return: True if successful, False otherwise (Boolean).
+    """
+
+    path = os.path.join(os.environ.get('PILOT_HOME'), config.Pilot.heartbeat_message)
+    if write_json(path, data):
+        logger.debug('heartbeat dictionary: %s' % data)
+        logger.debug('wrote heartbeat to file %s' % path)
+        return True
+    else:
+        return False
+
+
+def send_state(job, args, state, xml=None, metadata=None):
     """
     Update the server (send heartbeat message).
-    Interpret and handle any server instructions arriving with the updateJob backchannel.
+    Interpret and handle any server instructions arriving with the updateJob back channel.
 
     :param job: job object.
     :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
@@ -214,9 +283,7 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
     """
 
     log = get_logger(job.jobid, logger)
-
     # _state = get_job_status(job, 'SERVER_UPDATE')
-
     state = get_proper_state(job, state)
 
     # should the pilot make any server updates?
@@ -249,46 +316,10 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
         log.debug('is_harvester_mode(args) : {0}'.format(is_harvester_mode(args)))
         # if in harvester mode write to files required by harvester
         if is_harvester_mode(args):
-            # write part of the heartbeat message to worker attributes files needed by Harvester
-            path = get_worker_attributes_file(args)
-            # add jobStatus (state) for Harvester
-            data['jobStatus'] = state
-            # publish work report
-            if publish_work_report(data, path):
-                log.debug('wrote to workerAttributesFile %s' % path)
-            else:
-                log.debug('Failed to write to workerAttributesFile %s' % path)
-                return False
-            # check if we are in final state then write out information for output files
-            if final:
-                # Use the job information to write Harvester event_status.dump file
-                event_status_file = get_event_status_file(args)
-                if publish_stageout_files(job, event_status_file):
-                    log.debug('wrote log and output files to file %s' % event_status_file)
-                else:
-                    log.debug('Warning - could not write log and output files to file %s' % event_status_file)
-                    return False
-                # publish job report
-                _path = os.path.join(job.workdir, config.Payload.jobreport)
-                if os.path.exists(_path):
-                    if publish_job_report(job, args, config.Payload.jobreport):
-                        log.debug('wrote job report file')
-                        return True
-                    else:
-                        log.debug('Failed to write job report file')
-                        return False
-            else:
-                log.info('finish writing various report files in Harvester mode')
-                return True
+            return publish_harvester_reports(state, args, data, job, final)
         else:
             # store the file in the main workdir
-            path = os.path.join(os.environ.get('PILOT_HOME'), config.Pilot.heartbeat_message)
-            if write_json(path, data):
-                log.debug('heartbeat dictionary: %s' % data)
-                log.debug('wrote heartbeat to file %s' % path)
-                return True
-            else:
-                return False
+            return write_heartbeat_to_file(data)
 
     try:
         if config.Pilot.pandajob == 'real':
@@ -311,6 +342,9 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
             log.info('server updateJob request completed in %ds for job %s' % (time_after - time_before, job.jobid))
             log.info("server responded with: res = %s" % str(res))
 
+            ec, stdout, stderr = get_memory_usage(os.getpid())
+            logger.debug('current pilot memory usage (after server update)\n%s' % stdout)
+
             if res is not None:
                 # does the server update contain any backchannel information? if so, update the job object
                 handle_backchannel_command(res, job, args)
@@ -322,6 +356,7 @@ def send_state(job, args, state, xml=None, metadata=None):  # noqa: C901
         else:
             log.info('skipping job update for fake test job')
             return True
+
     except Exception as e:
         log.warning('exception caught while sending https request: %s' % e)
         log.warning('possibly offending data: %s' % data)
@@ -823,6 +858,8 @@ def create_data_payload(queues, traces, args):
         if job.indata:
             # if the job has input data, put the job object in the data_in queue which will trigger stage-in
             set_pilot_state(job=job, state='stagein')
+            ec, stdout, stderr = get_memory_usage(os.getpid())
+            logger.debug('current pilot memory usage (before stage-in)\n%s' % stdout)
             put_in_queue(job, queues.data_in)
 
         else:
@@ -1450,11 +1487,14 @@ def retrieve(queues, traces, args):  # noqa: C901
             else:
                 # create the job object out of the raw dispatcher job dictionary
                 try:
+                    ec, stdout, stderr = get_memory_usage(os.getpid())
+                    logger.debug('current pilot memory usage (before job creation)\n%s' % stdout)
                     job = create_job(res, args.queue)
                 except PilotException as error:
                     raise error
                 else:
-                    pass
+                    ec, stdout, stderr = get_memory_usage(os.getpid())
+                    logger.debug('current pilot memory usage (before job creation)\n%s' % stdout)
                     # verify the job status on the server
                     #try:
                     #    job_status, job_attempt_nr, job_status_code = get_job_status_from_server(job.jobid, args.url, args.port)
@@ -2222,6 +2262,6 @@ def make_job_report(job):
     log.info('pgrp: %s' % str(job.pgrp))
     log.info('corecount: %d' % job.corecount)
     log.info('event service: %s' % str(job.is_eventservice))
-    #log.info('sizes: %s' % str(job.sizes))
+    log.info('sizes: %s' % str(job.sizes))
     log.info('--------------------------------------------------')
     log.info('')

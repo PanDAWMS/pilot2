@@ -22,7 +22,7 @@ except Exception:
 
 from pilot.control.payloads import generic, eventservice, eventservicemerge
 from pilot.control.job import send_state
-from pilot.util.auxiliary import get_logger, set_pilot_state
+from pilot.util.auxiliary import get_logger, set_pilot_state, get_memory_usage
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
 from pilot.util.filehandling import read_file, remove_core_dumps
@@ -213,6 +213,9 @@ def execute_payloads(queues, traces, args):
 
             payload_executor = get_payload_executor(args, job, out, err, traces)
             log.info("Got payload executor: %s" % payload_executor)
+
+            _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+            log.debug('current pilot memory usage\n%s' % _stdout)
 
             # run the payload and measure the execution time
             job.t0 = os.times()

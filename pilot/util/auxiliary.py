@@ -398,3 +398,66 @@ def get_resource_name():
     if not resource_name:
         resource_name = 'grid'
     return resource_name
+
+
+def get_object_size(obj, seen=None):
+    """
+    Recursively find the size of any objects
+
+    :param obj: object.
+    """
+
+    size = sys.getsizeof(obj)
+    if seen is None:
+        seen = set()
+    obj_id = id(obj)
+    if obj_id in seen:
+        return 0
+
+    # Important mark as seen *before* entering recursion to gracefully handle
+    # self-referential objects
+    seen.add(obj_id)
+    if isinstance(obj, dict):
+        size += sum([get_object_size(v, seen) for v in obj.values()])
+        size += sum([get_object_size(k, seen) for k in obj.keys()])
+    elif hasattr(obj, '__dict__'):
+        size += get_object_size(obj.__dict__, seen)
+    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
+        size += sum([get_object_size(i, seen) for i in obj])
+
+    return size
+
+
+def get_memory_usage(pid):
+    """
+    Return the memory usage string (ps auxf <pid>) for the given process.
+
+    :param pid: process id (int).
+    :return: ps exit code (int), stderr (strint), stdout (string).
+    """
+
+    return execute('ps aux -q %d' % pid)
+
+
+def extract_memory_usage_value(output):
+    """
+    Extract the memory usage value from the ps output (in kB).
+
+    # USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+    # usatlas1 13917  1.5  0.0 1324968 152832 ?      Sl   09:33   2:55 /bin/python2 ..
+    # -> 152832 (kB)
+
+    :param output: ps output (string).
+    :return: memory value in kB (int).
+    """
+
+    memory_usage = 0
+    for row in output.split('\n'):
+        try:
+            memory_usage = int(" ".join(row.split()).split(' ')[5])
+        except Exception:
+            pass
+        else:
+            break
+
+    return memory_usage

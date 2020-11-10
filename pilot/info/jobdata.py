@@ -30,6 +30,7 @@ from time import sleep
 
 from .basedata import BaseData
 from .filespec import FileSpec
+from pilot.util.auxiliary import get_object_size
 from pilot.util.constants import LOG_TRANSFER_NOT_DONE
 from pilot.util.filehandling import get_guid, get_valid_path_from_list
 from pilot.util.timing import get_elapsed_real_time
@@ -125,6 +126,7 @@ class JobData(BaseData):
     logdata = []                   # list of `FileSpec` objects for log file(s)
     preprocess = {}                # preprocess dictionary with command to execute before payload, {'command': '..', 'args': '..'}
     postprocess = {}               # postprocess dictionary with command to execute after payload, {'command': '..', 'args': '..'}
+    coprocess = {}                 # coprocess dictionary with command to execute during payload, {'command': '..', 'args': '..'}
     containeroptions = {}          #
     use_vp = False                 # True for VP jobs
 
@@ -154,7 +156,7 @@ class JobData(BaseData):
                    'infilesguids', 'memorymonitor', 'allownooutput'],
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'zombies', 'corecounts'],
              dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes', 'preprocess',
-                    'postprocess', 'containeroptions'],
+                    'postprocess', 'coprocess', 'containeroptions'],
              bool: ['is_eventservice', 'is_eventservicemerge', 'is_hpo', 'noexecstrcnv', 'debug', 'usecontainer', 'use_vp']
              }
 
@@ -215,45 +217,27 @@ class JobData(BaseData):
 
         return s.get(key)
 
-    def prepare_infiles(self, data):  # noqa: C901
+    def prepare_infiles(self, data):
         """
             Construct FileSpec objects for input files from raw dict `data`
             :return: list of validated `FileSpec` objects
         """
 
         # direct access handling
-        self.accessmode = None
-        if '--accessmode=direct' in self.jobparams:
-            self.accessmode = 'direct'
-        if '--accessmode=copy' in self.jobparams or '--useLocalIO' in self.jobparams:
-            self.accessmode = 'copy'
+        self.set_accessmode()
 
         access_keys = ['allow_lan', 'allow_wan', 'direct_access_lan', 'direct_access_wan']
         if not self.infosys or not self.infosys.queuedata:
-            dat = dict([k, getattr(FileSpec, k, None)] for k in access_keys)
-            try:
-                msg = ', '.join(["%s=%s" % (k, v) for k, v in sorted(dat.iteritems())])  # Python 2
-            except Exception:
-                msg = ', '.join(["%s=%s" % (k, v) for k, v in sorted(dat.items())])  # Python 3
-            logger.info('job.infosys.queuedata is not initialized: following access settings will be used by default: %s' % msg)
+            self.show_access_settings(access_keys)
 
         # form raw list data from input comma-separated values for further validation by FileSpec
-        kmap = {
-            # 'internal_name': 'ext_key_structure'
-            'lfn': 'inFiles',
-            ##'??': 'dispatchDblock', '??define_proper_internal_name': 'dispatchDBlockToken',
-            'dataset': 'realDatasetsIn', 'guid': 'GUID',
-            'filesize': 'fsize', 'checksum': 'checksum', 'scope': 'scopeIn',
-            ##'??define_internal_key': 'prodDBlocks',
-            'storage_token': 'prodDBlockToken',
-            'ddmendpoint': 'ddmEndPointIn',
-        }
+        kmap = self.get_kmap()
 
         try:
             ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in list(kmap.values()))  # Python 3
         except Exception:
             ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())  # Python 2
-        logger.debug('ksources=%s' % str(ksources))
+
         ret, lfns = [], set()
         for ind, lfn in enumerate(ksources.get('inFiles', [])):
             if lfn in ['', 'NULL'] or lfn in lfns:  # exclude null data and duplicates
@@ -288,6 +272,53 @@ class JobData(BaseData):
             ret.append(finfo)
 
         return ret
+
+    def set_accessmode(self):
+        """
+        Set the accessmode field using jobparams.
+
+        :return:
+        """
+        self.accessmode = None
+        if '--accessmode=direct' in self.jobparams:
+            self.accessmode = 'direct'
+        if '--accessmode=copy' in self.jobparams or '--useLocalIO' in self.jobparams:
+            self.accessmode = 'copy'
+
+    @staticmethod
+    def show_access_settings(access_keys):
+        """
+        Show access settings for the case job.infosys.queuedata is not initialized.
+
+        :param access_keys: list of access keys (list).
+        :return:
+        """
+        dat = dict([k, getattr(FileSpec, k, None)] for k in access_keys)
+        try:
+            msg = ', '.join(["%s=%s" % (k, v) for k, v in sorted(dat.iteritems())])  # Python 2
+        except Exception:
+            msg = ', '.join(["%s=%s" % (k, v) for k, v in sorted(dat.items())])  # Python 3
+        logger.info('job.infosys.queuedata is not initialized: the following access settings will be used by default: %s' % msg)
+
+    @staticmethod
+    def get_kmap():
+        """
+        Return the kmap dictionary for server data to pilot conversions.
+
+        :return: kmap (dict).
+        """
+        kmap = {
+            # 'internal_name': 'ext_key_structure'
+            'lfn': 'inFiles',
+            ##'??': 'dispatchDblock', '??define_proper_internal_name': 'dispatchDBlockToken',
+            'dataset': 'realDatasetsIn', 'guid': 'GUID',
+            'filesize': 'fsize', 'checksum': 'checksum', 'scope': 'scopeIn',
+            ##'??define_internal_key': 'prodDBlocks',
+            'storage_token': 'prodDBlockToken',
+            'ddmendpoint': 'ddmEndPointIn',
+        }
+
+        return kmap
 
     def prepare_outfiles(self, data):
         """
@@ -623,7 +654,7 @@ class JobData(BaseData):
 
         return jobparams, imagename
 
-    @classmethod  # noqa: C901
+    @classmethod
     def parse_args(self, data, options, remove=False):
         """
             Extract option/values from string containing command line options (arguments)
@@ -633,10 +664,41 @@ class JobData(BaseData):
             :return: tuple: (dict of extracted options, raw string of final command line options)
         """
 
-        logger.debug('Do extract options=%s from data=%s' % (list(options.keys()), data))  # Python 2/3
+        logger.debug('extract options=%s from data=%s' % (list(options.keys()), data))  # Python 2/3
 
         if not options:
             return {}, data
+
+        opts, pargs = self.get_opts_pargs(data)
+        if not opts:
+            return {}, data
+
+        ret = self.get_ret(options, opts)
+
+        ## serialize parameters back to string
+        rawdata = data
+        if remove:
+            final_args = []
+            for arg in pargs:
+                if isinstance(arg, (tuple, list)):  ## parsed option
+                    if arg[0] not in options:  # exclude considered options
+                        if arg[1] is None:
+                            arg.pop()
+                        final_args.extend(arg)
+                else:
+                    final_args.append(arg)
+            rawdata = " ".join(pipes.quote(e) for e in final_args)
+
+        return ret, rawdata
+
+    @staticmethod
+    def get_opts_pargs(data):
+        """
+        Get the opts and pargs variables.
+
+        :param data: input command line arguments (raw string)
+        :return: opts (dict), pargs (list)
+        """
 
         try:
             args = shlex.split(data)
@@ -661,6 +723,18 @@ class JobData(BaseData):
         if curopt:
             pargs.append([curopt, None])
 
+        return opts, pargs
+
+    @staticmethod
+    def get_ret(options, opts):
+        """
+        Get the ret variable from the options.
+
+        :param options:
+        :param opts:
+        :return: ret (dict).
+        """
+
         ret = {}
         try:
             _items = list(options.items())  # Python 3
@@ -675,21 +749,7 @@ class JobData(BaseData):
                 continue
             ret[opt] = val
 
-        ## serialize parameters back to string
-        rawdata = data
-        if remove:
-            final_args = []
-            for arg in pargs:
-                if isinstance(arg, (tuple, list)):  ## parsed option
-                    if arg[0] not in options:  # exclude considered options
-                        if arg[1] is None:
-                            arg.pop()
-                        final_args.extend(arg)
-                else:
-                    final_args.append(arg)
-            rawdata = " ".join(pipes.quote(e) for e in final_args)
-
-        return ret, rawdata
+        return ret
 
     def add_workdir_size(self, workdir_size):
         """
@@ -870,6 +930,15 @@ class JobData(BaseData):
 
         # add a data point to the sizes dictionary
         self.sizes[time_stamp] = size
+
+    def get_size(self):
+        """
+        Determine the size (B) of the job object.
+
+        :return: size (int).
+        """
+
+        return get_object_size(self)
 
     def collect_zombies(self, tn=None):
         """
