@@ -425,10 +425,14 @@ class Executor(object):
         exit code.
         :return:
         """
+
         log = get_logger(str(self.__job.jobid), logger)
 
         # get the payload command from the user specific code
         self.pre_setup(self.__job)
+        _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+        log.debug('current pilot memory usage (run() start)\n%s' % _stdout)
+
         cmd = self.get_payload_command(self.__job)
         # extract the setup in case the preprocess command needs it
         self.__job.setup = self.extract_setup(cmd)
@@ -439,8 +443,8 @@ class Executor(object):
         iteration = 1
         while True:
             log.info('payload iteration loop #%d' % iteration)
-            ec, stdout, stderr = get_memory_usage(os.getpid())
-            log.debug('current pilot memory usage (before payload execution)\n%s' % stdout)
+            _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+            log.debug('current pilot memory usage (before payload execution)\n%s' % _stdout)
 
             # first run the preprocess (if necessary) - note: this might update jobparams -> must update cmd
             jobparams_pre = self.__job.jobparams

@@ -24,7 +24,7 @@ except Exception:
 
 from pilot.info import infosys
 from pilot.common.exception import PilotException, ErrorCodes, SizeTooLarge, NoLocalSpace, ReplicasNotFound
-from pilot.util.auxiliary import get_memory_usage
+from pilot.util.auxiliary import get_memory_usage, extract_memory_usage_value
 from pilot.util.config import config
 from pilot.util.filehandling import calculate_checksum, write_json
 from pilot.util.math import convert_mb_to_b
@@ -231,9 +231,17 @@ class StagingClient(object):
         logger = self.logger
         xfiles = []
 
+        _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+        logger.debug('current pilot memory usage (resolve_replicas: start):\n%s' % _stdout)
+        logger.debug('extracted pilot memory usage: %d kB' % extract_memory_usage_value(_stdout))
+
         for fdat in files:
             ## skip fdat if need for further workflow (e.g. to properly handle OS ddms)
             xfiles.append(fdat)
+
+        _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+        logger.debug('current pilot memory usage (resolve_replicas: added fspecs):\n%s' % _stdout)
+        logger.debug('extracted pilot memory usage: %d kB' % extract_memory_usage_value(_stdout))
 
         if not xfiles:  # no files for replica look-up
             return files
@@ -241,6 +249,10 @@ class StagingClient(object):
         # load replicas from Rucio
         from rucio.client import Client
         c = Client()
+
+        _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+        logger.debug('current pilot memory usage (resolve_replicas: imported rucio):\n%s' % _stdout)
+        logger.debug('extracted pilot memory usage: %d kB' % extract_memory_usage_value(_stdout))
 
         location = self.detect_client_location()
         if not location:
@@ -262,6 +274,10 @@ class StagingClient(object):
             replicas = c.list_replicas(**query)
         except Exception as e:
             raise PilotException("Failed to get replicas from Rucio: %s" % e, code=ErrorCodes.RUCIOLISTREPLICASFAILED)
+
+        _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+        logger.debug('current pilot memory usage (resolve_replicas: called list_replicas):\n%s' % _stdout)
+        logger.debug('extracted pilot memory usage: %d kB' % extract_memory_usage_value(_stdout))
 
         replicas = list(replicas)
         logger.debug("replicas received from Rucio: %s" % replicas)
@@ -300,6 +316,10 @@ class StagingClient(object):
             if not status:
                 logger.info("filesize and checksum verification done")
                 self.trace_report.update(clientState="DONE")
+
+        _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+        logger.debug('current pilot memory usage (resolve_replicas: added replicas):\n%s' % _stdout)
+        logger.debug('extracted pilot memory usage: %d kB' % extract_memory_usage_value(_stdout))
 
         logger.info('Number of resolved replicas:\n' +
                     '\n'.join(["lfn=%s: replicas=%s, is_directaccess=%s"
@@ -884,7 +904,7 @@ class StageInClient(StagingClient):
                                  (fspec.lfn, direct_lan, direct_wan, fspec.turl))
 
                 # send trace
-                localsite = os.environ.get('RUCIO_LOCAL_SITE_ID') or os.environ.get('DQ2_LOCAL_SITE_ID')  # VERIFY ME LATER
+                localsite = os.environ.get('RUCIO_LOCAL_SITE_ID')
                 localsite = localsite or fspec.ddmendpoint
                 self.trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
                 self.trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))

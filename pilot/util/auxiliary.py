@@ -437,3 +437,27 @@ def get_memory_usage(pid):
     """
 
     return execute('ps aux -q %d' % pid)
+
+
+def extract_memory_usage_value(output):
+    """
+    Extract the memory usage value from the ps output (in kB).
+
+    # USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+    # usatlas1 13917  1.5  0.0 1324968 152832 ?      Sl   09:33   2:55 /bin/python2 ..
+    # -> 152832 (kB)
+
+    :param output: ps output (string).
+    :return: memory value in kB (int).
+    """
+
+    memory_usage = 0
+    for row in output.split('\n'):
+        try:
+            memory_usage = int(" ".join(row.split()).split(' ')[5])
+        except Exception:
+            pass
+        else:
+            break
+
+    return memory_usage

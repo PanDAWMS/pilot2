@@ -72,7 +72,7 @@ def copy_in(files, **kwargs):
     # don't spoil the output, we depend on stderr parsing
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
-    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', os.environ.get('DQ2_LOCAL_SITE_ID', None))
+    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', None)
     for fspec in files:
         logger.info('rucio copytool, downloading file with scope:%s lfn:%s' % (str(fspec.scope), str(fspec.lfn)))
         # update the trace report
@@ -209,7 +209,7 @@ def copy_in_bulk(files, **kwargs):
         # If there was Exception from Rucio, but still some traces returned, we continue to VALIDATION section
         if not trace_report_out:
             trace_report = deepcopy(trace_common_fields)
-            localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', os.environ.get('DQ2_LOCAL_SITE_ID', None))
+            localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', None)
             diagnostics = 'None of the traces received from Rucio. Response from Rucio: %s' % error_msg
             for fspec in files:
                 localsite = localsite if localsite else fspec.ddmendpoint
@@ -316,7 +316,7 @@ def copy_out(files, **kwargs):  # noqa: C901
     ignore_errors = kwargs.pop('ignore_errors', False)
     trace_report = kwargs.get('trace_report')
 
-    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', os.environ.get('DQ2_LOCAL_SITE_ID', None))
+    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', None)
     for fspec in files:
         logger.info('rucio copytool, uploading file with scope: %s and lfn: %s' % (str(fspec.scope), str(fspec.lfn)))
         localsite = localsite if localsite else fspec.ddmendpoint

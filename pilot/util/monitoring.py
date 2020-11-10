@@ -15,7 +15,7 @@ from subprocess import PIPE
 from glob import glob
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.util.auxiliary import get_logger, set_pilot_state, get_memory_usage
+from pilot.util.auxiliary import get_logger, set_pilot_state, get_memory_usage, extract_memory_usage_value
 from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.filehandling import get_directory_size, remove_files, get_local_file_size
@@ -142,8 +142,9 @@ def verify_memory_usage(current_time, mt, job):
     :return: exit code (int), error diagnostics (string).
     """
 
-    ec, stdout, stderr = get_memory_usage(os.getpid())
-    logger.debug('current pilot memory usage (monitoring)\n%s' % stdout)
+    _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+    logger.debug('current pilot memory usage:\n%s' % _stdout)
+    logger.debug('extracted pilot memory usage: %d kB' % extract_memory_usage_value(_stdout))
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     memory = __import__('pilot.user.%s.memory' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
