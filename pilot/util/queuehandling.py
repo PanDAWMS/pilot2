@@ -11,7 +11,7 @@ import time
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.info import JobData
-from pilot.util.auxiliary import get_logger, set_pilot_state
+from pilot.util.auxiliary import set_pilot_state
 
 import logging
 logger = logging.getLogger(__name__)
@@ -112,8 +112,7 @@ def abort_jobs_in_queues(queues, sig):
     logger.info('found %d job(s) in %d queues' % (len(jobs_list), len(queues._fields)))
     for job in jobs_list:
         try:
-            log = get_logger(job.jobid)
-            log.info('aborting job %s' % job.jobid)
+            logger.info('aborting job %s' % job.jobid)
             declare_failed_by_kill(job, queues.failed_jobs, sig)
         except Exception as e:
             logger.warning('failed to declare job as failed: %s' % e)

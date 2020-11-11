@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2020
 
 import json
 import threading
@@ -13,7 +14,6 @@ import traceback
 
 from pilot.common import exception
 from pilot.util import https
-from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 from ..communicationmanager import CommunicationResponse
 from .basecommunicator import BaseCommunicator
@@ -58,9 +58,9 @@ class PandaCommunicator(BaseCommunicator):
 
         :return: job definiton dictionary.
         """
+
         self.get_jobs_lock.acquire()
 
-        resp = None
         try:
             jobs = []
             resp_attrs = None
@@ -134,8 +134,6 @@ class PandaCommunicator(BaseCommunicator):
 
         resp = None
         try:
-            log = get_logger(str(req.jobid), logger)
-
             if not req.num_ranges:
                 # ToBeFix num_ranges with corecount
                 req.num_ranges = 1
@@ -145,10 +143,10 @@ class PandaCommunicator(BaseCommunicator):
                     'taskID': req.taskid,
                     'nRanges': req.num_ranges}
 
-            log.info("Downloading new event ranges: %s" % data)
+            logger.info("Downloading new event ranges: %s" % data)
             res = https.request('{pandaserver}/server/panda/getEventRanges'.format(pandaserver=config.Pilot.pandaserver),
                                 data=data)
-            log.info("Downloaded event ranges: %s" % res)
+            logger.info("Downloaded event ranges: %s" % res)
 
             if res['StatusCode'] == 0 or str(res['StatusCode']) == '0':
                 resp_attrs = {'status': 0, 'content': res['eventRanges'], 'exception': None}
@@ -159,7 +157,7 @@ class PandaCommunicator(BaseCommunicator):
 
             resp = CommunicationResponse(resp_attrs)
         except Exception as e:  # Python 2/3
-            log.error("Failed to download event ranges: %s, %s" % (e, traceback.format_exc()))
+            logger.error("Failed to download event ranges: %s, %s" % (e, traceback.format_exc()))
             resp_attrs = {'status': -1, 'content': None, 'exception': exception.UnknownException("Failed to get events: %s" % (traceback.format_exc()))}
             resp = CommunicationResponse(resp_attrs)
 

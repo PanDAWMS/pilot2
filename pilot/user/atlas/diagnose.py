@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2020
 
 import json
 import os
@@ -14,7 +14,6 @@ from glob import glob
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import PilotException, BadXML
-from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 from pilot.util.filehandling import get_guid, tail, grep, open_file, read_file, scan_file  #, write_file
 from pilot.util.math import convert_mb_to_b
@@ -38,12 +37,11 @@ def interpret(job):
     """
 
     exit_code = 0
-    log = get_logger(job.jobid)
 
     # extract errors from job report
     process_job_report(job)
     if job.piloterrorcodes:
-        log.warning('aborting payload error diagnosis since an error has already been set')
+        logger.warning('aborting payload error diagnosis since an error has already been set')
         return -1
 
     if job.exitcode != 0:
@@ -51,10 +49,10 @@ def interpret(job):
 
     # check for special errors
     if exit_code == 146:
-        log.warning('user tarball was not downloaded (payload exit code %d)' % exit_code)
+        logger.warning('user tarball was not downloaded (payload exit code %d)' % exit_code)
         set_error_nousertarball(job)
     elif exit_code == 160:
-        log.info('ignoring harmless preprocess exit code %d' % exit_code)
+        logger.info('ignoring harmless preprocess exit code %d' % exit_code)
         job.transexitcode = 0
         job.exitcode = 0
         exit_code = 0
@@ -63,7 +61,7 @@ def interpret(job):
     try:
         extract_special_information(job)
     except PilotException as error:
-        log.error('PilotException caught while extracting special job information: %s' % error)
+        logger.error('PilotException caught while extracting special job information: %s' % error)
         exit_code = error.get_error_code()
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
 
@@ -129,7 +127,6 @@ def is_out_of_memory(job):
     """
 
     out_of_memory = False
-    log = get_logger(job.jobid)
 
     stdout = os.path.join(job.workdir, config.Payload.payloadstdout)
     stderr = os.path.join(job.workdir, config.Payload.payloadstderr)
@@ -137,16 +134,16 @@ def is_out_of_memory(job):
     files = {stderr: ["FATAL out of memory: taking the application down"], stdout: ["St9bad_alloc", "std::bad_alloc"]}
     for path in files:
         if os.path.exists(path):
-            log.info('looking for out-of-memory errors in %s' % os.path.basename(path))
+            logger.info('looking for out-of-memory errors in %s' % os.path.basename(path))
             if os.path.getsize(path) > 0:
                 matched_lines = grep(files[path], path)
                 if len(matched_lines) > 0:
-                    log.warning("identified an out of memory error in %s %s:" % (job.payload, os.path.basename(path)))
+                    logger.warning("identified an out of memory error in %s %s:" % (job.payload, os.path.basename(path)))
                     for line in matched_lines:
-                        log.info(line)
+                        logger.info(line)
                     out_of_memory = True
         else:
-            log.warning('file does not exist: %s (cannot look for out-of-memory error in it)')
+            logger.warning('file does not exist: %s (cannot look for out-of-memory error in it)')
 
     return out_of_memory
 
@@ -212,8 +209,7 @@ def is_atlassetup_error(job):
     _tail = tail(stdout)
     res_tmp = _tail[:2048]
     if "AtlasSetup(FATAL): Fatal exception" in res_tmp:
-        log = get_logger(job.jobid)
-        log.warning('AtlasSetup FATAL failure detected')
+        logger.warning('AtlasSetup FATAL failure detected')
         return True
     else:
         return False
@@ -261,32 +257,30 @@ def find_number_of_events(job):
     :return:
     """
 
-    log = get_logger(job.jobid)
-
     if job.nevents:
-        log.info('number of events already known: %d' % job.nevents)
+        logger.info('number of events already known: %d' % job.nevents)
         return
 
-    log.info('looking for number of processed events (source #1: jobReport.json)')
+    logger.info('looking for number of processed events (source #1: jobReport.json)')
     find_number_of_events_in_jobreport(job)
     if job.nevents > 0:
-        log.info('found %d processed events' % job.nevents)
+        logger.info('found %d processed events' % job.nevents)
         return
 
-    log.info('looking for number of processed events (source #2: metadata.xml)')
+    logger.info('looking for number of processed events (source #2: metadata.xml)')
     find_number_of_events_in_xml(job)
     if job.nevents > 0:
-        log.info('found %d processed events' % job.nevents)
+        logger.info('found %d processed events' % job.nevents)
         return
 
-    log.info('looking for number of processed events (source #3: athena summary file(s)')
+    logger.info('looking for number of processed events (source #3: athena summary file(s)')
     n1, n2 = process_athena_summary(job)
     if n1 > 0:
         job.nevents = n1
-        log.info('found %d processed (read) events' % job.nevents)
+        logger.info('found %d processed (read) events' % job.nevents)
     if n2 > 0:
         job.neventsw = n2
-        log.info('found %d processed (written) events' % job.neventsw)
+        logger.info('found %d processed (written) events' % job.neventsw)
 
 
 def find_number_of_events_in_jobreport(job):
@@ -341,8 +335,6 @@ def process_athena_summary(job):
     :return: number of read events (int), number of written events (int).
     """
 
-    log = get_logger(job.jobid)
-
     n1 = 0
     n2 = 0
     file_pattern_list = ['AthSummary*', 'AthenaSummary*']
@@ -357,24 +349,24 @@ def process_athena_summary(job):
             file_list.append(summary_file)
 
     if file_list == [] or file_list == ['']:
-        log.info("did not find any athena summary files")
+        logger.info("did not find any athena summary files")
     else:
         # find the most recent and the oldest files
         recent_summary_file, recent_time, oldest_summary_file, oldest_time = \
             find_most_recent_and_oldest_summary_files(file_list)
         if oldest_summary_file == recent_summary_file:
-            log.info("summary file %s will be processed for errors and number of events" %
+            logger.info("summary file %s will be processed for errors and number of events" %
                      os.path.basename(oldest_summary_file))
         else:
-            log.info("most recent summary file %s (updated at %d) will be processed for errors [to be implemented]" %
+            logger.info("most recent summary file %s (updated at %d) will be processed for errors [to be implemented]" %
                      (os.path.basename(recent_summary_file), recent_time))
-            log.info("oldest summary file %s (updated at %d) will be processed for number of events" %
+            logger.info("oldest summary file %s (updated at %d) will be processed for number of events" %
                      (os.path.basename(oldest_summary_file), oldest_time))
 
         # Get the number of events from the oldest summary file
         n1, n2 = get_number_of_events_from_summary_file(oldest_summary_file)
-        log.info("number of events: %d (read)" % n1)
-        log.info("number of events: %d (written)" % n2)
+        logger.info("number of events: %d (read)" % n1)
+        logger.info("number of events: %d (written)" % n2)
 
     return n1, n2
 
@@ -460,21 +452,19 @@ def find_db_info(job):
     :return:
     """
 
-    log = get_logger(job.jobid)
-
     work_attributes = parse_jobreport_data(job.metadata)
     if '__db_time' in work_attributes:
         try:
             job.dbtime = int(work_attributes.get('__db_time'))
         except ValueError as e:
             logger.warning('failed to convert dbtime to int: %s' % e)
-        log.info('dbtime (total): %d' % job.dbtime)
+        logger.info('dbtime (total): %d' % job.dbtime)
     if '__db_data' in work_attributes:
         try:
             job.dbdata = work_attributes.get('__db_data')
         except ValueError as e:
             logger.warning('failed to convert dbdata to int: %s' % e)
-        log.info('dbdata (total): %d' % job.dbdata)
+        logger.info('dbdata (total): %d' % job.dbdata)
 
 
 def set_error_nousertarball(job):
@@ -525,8 +515,6 @@ def process_metadata_from_xml(job):
     :return: [updated job object - return not needed].
     """
 
-    log = get_logger(job.jobid)
-
     # get the metadata from the xml file instead, which must exist for most production transforms
     path = os.path.join(job.workdir, config.Payload.metadata)
     if os.path.exists(path):
@@ -534,7 +522,7 @@ def process_metadata_from_xml(job):
     else:
         if not job.is_analysis() and job.transformation != 'Archive_tf.py':
             diagnostics = 'metadata does not exist: %s' % path
-            log.warning(diagnostics)
+            logger.warning(diagnostics)
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOPAYLOADMETADATA)
             job.piloterrorcode = errors.NOPAYLOADMETADATA
             job.piloterrordiag = diagnostics
@@ -548,13 +536,13 @@ def process_metadata_from_xml(job):
                 metadata = get_metadata_from_xml(job.workdir)
             except Exception as e:
                 msg = "Exception caught while interpreting XML: %s (ignoring it, but guids must now be generated)" % e
-                log.warning(msg)
+                logger.warning(msg)
             if metadata:
                 dat.guid = get_guid_from_xml(metadata, dat.lfn)
-                log.info('read guid for lfn=%s from xml: %s' % (dat.lfn, dat.guid))
+                logger.info('read guid for lfn=%s from xml: %s' % (dat.lfn, dat.guid))
             else:
                 dat.guid = get_guid()
-                log.info('generated guid for lfn=%s: %s' % (dat.lfn, dat.guid))
+                logger.info('generated guid for lfn=%s: %s' % (dat.lfn, dat.guid))
 
 
 def process_job_report(job):
@@ -569,12 +557,10 @@ def process_job_report(job):
     :return:
     """
 
-    log = get_logger(job.jobid)
-
     # get the job report
     path = os.path.join(job.workdir, config.Payload.jobreport)
     if not os.path.exists(path):
-        log.warning('job report does not exist: %s' % path)
+        logger.warning('job report does not exist: %s' % path)
 
         # get the metadata from the xml file instead, which must exist for most production transforms
         process_metadata_from_xml(job)
@@ -591,14 +577,14 @@ def process_job_report(job):
             try:
                 job.exitcode = job.metadata['exitCode']
             except Exception as e:
-                log.warning('could not find compulsory payload exitCode in job report: %s (will be set to 0)' % e)
+                logger.warning('could not find compulsory payload exitCode in job report: %s (will be set to 0)' % e)
                 job.exitcode = 0
             else:
-                log.info('extracted exit code from job report: %d' % job.exitcode)
+                logger.info('extracted exit code from job report: %d' % job.exitcode)
             try:
                 job.exitmsg = job.metadata['exitMsg']
             except Exception as e:
-                log.warning('could not find compulsory payload exitMsg in job report: %s '
+                logger.warning('could not find compulsory payload exitMsg in job report: %s '
                             '(will be set to empty string)' % e)
                 job.exitmsg = ""
             else:
@@ -606,12 +592,12 @@ def process_job_report(job):
                 if "got a SIGSEGV signal" in job.exitmsg:
                     diagnostics = 'Invalid memory reference or a segmentation fault in payload: %s (job report)' % \
                                   job.exitmsg
-                    log.warning(diagnostics)
+                    logger.warning(diagnostics)
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADSIGSEGV)
                     job.piloterrorcode = errors.PAYLOADSIGSEGV
                     job.piloterrordiag = diagnostics
                 else:
-                    log.info('extracted exit message from job report: %s' % job.exitmsg)
+                    logger.info('extracted exit message from job report: %s' % job.exitmsg)
                     if job.exitmsg != 'OK':
                         job.exeerrordiag = job.exitmsg
                         job.exeerrorcode = job.exitcode
@@ -640,23 +626,23 @@ def get_job_report_errors(job_report_dictionary, log):
 
     job_report_errors = []
     if 'reportVersion' in job_report_dictionary:
-        log.info("scanning jobReport (v %s) for error info" % job_report_dictionary.get('reportVersion'))
+        logger.info("scanning jobReport (v %s) for error info" % job_report_dictionary.get('reportVersion'))
     else:
-        log.warning("jobReport does not have the reportVersion key")
+        logger.warning("jobReport does not have the reportVersion key")
 
     if 'executor' in job_report_dictionary:
         try:
             error_details = job_report_dictionary['executor'][0]['logfileReport']['details']['ERROR']
         except Exception as e:
-            log.warning("WARNING: aborting jobReport scan: %s" % e)
+            logger.warning("WARNING: aborting jobReport scan: %s" % e)
         else:
             try:
                 for m in error_details:
                     job_report_errors.append(m['message'])
             except Exception as e:
-                log.warning("did not get a list object: %s" % e)
+                logger.warning("did not get a list object: %s" % e)
     else:
-        log.warning("jobReport does not have the executor key (aborting)")
+        logger.warning("jobReport does not have the executor key (aborting)")
 
     return job_report_errors
 
@@ -674,7 +660,7 @@ def is_bad_alloc(job_report_errors, log):
     diagnostics = ""
     for m in job_report_errors:
         if "bad_alloc" in m:
-            log.warning("encountered a bad_alloc error: %s" % m)
+            logger.warning("encountered a bad_alloc error: %s" % m)
             bad_alloc = True
             diagnostics = m
             break
@@ -692,17 +678,16 @@ def get_log_extracts(job, state):
     :return: log extracts (string).
     """
 
-    log = get_logger(job.jobid)
-    log.info("building log extracts (sent to the server as \'pilotLog\')")
+    logger.info("building log extracts (sent to the server as \'pilotLog\')")
 
     # did the job have any outbound connections?
-    # look for the pandatracerlog.txt file, produced if the user payload attempted any outgoing connections
+    # look for the pandatracerlogger.txt file, produced if the user payload attempted any outgoing connections
     extracts = get_panda_tracer_log(job)
 
     # for failed/holding jobs, add extracts from the pilot log file, but always add it to the pilot log itself
     _extracts = get_pilot_log_extracts(job)
     if _extracts != "":
-        log.warning('detected the following tail of warning/fatal messages in the pilot log:\n%s' % _extracts)
+        logger.warning('detected the following tail of warning/fatal messages in the pilot log:\n%s' % _extracts)
         if state == 'failed' or state == 'holding':
             extracts += _extracts
 
@@ -718,13 +703,12 @@ def get_panda_tracer_log(job):
     This file will contain information about outbound connections.
 
     :param job: job object.
-    :return: log extracts from pandatracerlog.txt (string).
+    :return: log extracts from pandatracerlogger.txt (string).
     """
 
     extracts = ""
-    log = get_logger(job.jobid)
 
-    tracerlog = os.path.join(job.workdir, "pandatracerlog.txt")
+    tracerlog = os.path.join(job.workdir, "pandatracerlogger.txt")
     if os.path.exists(tracerlog):
         # only add if file is not empty
         if os.path.getsize(tracerlog) > 0:
@@ -732,11 +716,11 @@ def get_panda_tracer_log(job):
             extracts += message
             message = read_file(tracerlog)
             extracts += message
-            log.warning(message)
+            logger.warning(message)
         else:
-            log.info("PanDA tracer log (%s) has zero size (no outbound connections detected)" % tracerlog)
+            logger.info("PanDA tracer log (%s) has zero size (no outbound connections detected)" % tracerlog)
     else:
-        log.debug("PanDA tracer log does not exist: %s (ignoring)" % tracerlog)
+        logger.debug("PanDA tracer log does not exist: %s (ignoring)" % tracerlog)
 
     return extracts
 
@@ -749,7 +733,6 @@ def get_pilot_log_extracts(job):
     :return: tail of pilot log (string).
     """
 
-    log = get_logger(job.jobid)
     extracts = ""
 
     path = os.path.join(job.workdir, config.Pilot.pilotlog)
@@ -767,7 +750,7 @@ def get_pilot_log_extracts(job):
         #matched_lines = grep(errormsgs, path)
         #_extracts = ""
         #if len(matched_lines) > 0:
-        #    log.debug("dumping warning messages from %s:\n" % os.path.basename(path))
+        #    logger.debug("dumping warning messages from %s:\n" % os.path.basename(path))
         #    for line in matched_lines:
         #        _extracts += line + "\n"
         #if _extracts != "":
@@ -777,6 +760,6 @@ def get_pilot_log_extracts(job):
         #    extracts += "\n- Error messages from %s -\n" % config.Pilot.pilotlog
         #    extracts += _extracts
     else:
-        log.warning('pilot log file does not exist: %s' % path)
+        logger.warning('pilot log file does not exist: %s' % path)
 
     return extracts

@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Miha Muskinja, miha.muskinja@cern.ch, 2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2020
 
 import json
 import os
@@ -15,7 +16,6 @@ import traceback
 from pilot.common.errorcodes import ErrorCodes
 from pilot.eventservice.esprocess.esprocess import ESProcess
 from pilot.info.filespec import FileSpec
-from pilot.util.auxiliary import get_logger
 from pilot.util.filehandling import calculate_checksum
 
 from .baseexecutor import BaseExecutor
@@ -68,9 +68,8 @@ class RaythenaExecutor(BaseExecutor):
 
         :param out_messages: messages from AthenaMP.
         """
-        job = self.get_job()
-        log = get_logger(job.jobid, logger)
-        log.info("update_finished_event_ranges:")
+
+        logger.info("update_finished_event_ranges:")
 
         if len(out_messagess) == 0:
             return
@@ -115,9 +114,8 @@ class RaythenaExecutor(BaseExecutor):
                                                            'wall': <wall>, 'message': <full message>}.
                         Fro 'failed' event ranges, it's {'id': <id>, 'status': 'failed', 'message': <full message>}.
         """
-        job = self.get_job()
-        log = get_logger(job.jobid, logger)
-        log.info("Handling out message: %s" % message)
+
+        logger.info("Handling out message: %s" % message)
 
         self.__all_out_messages.append(message)
 
@@ -131,9 +129,8 @@ class RaythenaExecutor(BaseExecutor):
         Stage out event service outputs.
 
         """
-        job = self.get_job()
-        log = get_logger(job.jobid, logger)
-        log.info("job.infosys.queuedata.es_stageout_gap: %s" % job.infosys.queuedata.es_stageout_gap)
+
+        logger.info("job.infosys.queuedata.es_stageout_gap: %s" % job.infosys.queuedata.es_stageout_gap)
         job = self.get_job()
         if len(self.__queued_out_messages):
             if force or self.__last_stageout_time is None or (time.time() > self.__last_stageout_time + job.infosys.queuedata.es_stageout_gap):
@@ -146,9 +143,8 @@ class RaythenaExecutor(BaseExecutor):
         """
         Clean temp produced files
         """
-        job = self.get_job()
-        log = get_logger(job.jobid, logger)
-        log.info("shutting down...")
+
+        logger.info("shutting down...")
 
         self.__queued_out_messages = []
         self.__last_stageout_time = None
@@ -174,21 +170,19 @@ class RaythenaExecutor(BaseExecutor):
             else:
                 logger.error("Payload is not set but is_retrieve_payload is also not set. No payloads.")
 
-            job = self.get_job()
-            log = get_logger(job.jobid, logger)
-            log.info("payload: %s" % payload)
+            logger.info("payload: %s" % payload)
 
-            log.info("Starting ESProcess")
+            logger.info("Starting ESProcess")
             proc = ESProcess(payload, waiting_time=999999)
             self.proc = proc
-            log.info("ESProcess initialized")
+            logger.info("ESProcess initialized")
 
             proc.set_get_event_ranges_hook(self.get_event_ranges)
             proc.set_handle_out_message_hook(self.handle_out_message)
 
-            log.info('ESProcess starts to run')
+            logger.info('ESProcess starts to run')
             proc.start()
-            log.info('ESProcess started to run')
+            logger.info('ESProcess started to run')
 
             exit_code = None
             try:
@@ -198,19 +192,19 @@ class RaythenaExecutor(BaseExecutor):
             while proc.is_alive():
                 iteration += 1
                 if self.is_stop():
-                    log.info('Stop is set. breaking -- stop process pid=%s' % proc.pid)
+                    logger.info('Stop is set. breaking -- stop process pid=%s' % proc.pid)
                     proc.stop()
                     break
                 self.stageout_es()
 
                 exit_code = proc.poll()
                 if iteration % 60 == 0:
-                    log.info('running: iteration=%d pid=%s exit_code=%s' % (iteration, proc.pid, exit_code))
+                    logger.info('running: iteration=%d pid=%s exit_code=%s' % (iteration, proc.pid, exit_code))
                 time.sleep(5)
 
             while proc.is_alive():
                 time.sleep(1)
-            log.info("ESProcess finished")
+            logger.info("ESProcess finished")
 
             self.stageout_es(force=True)
             self.clean()

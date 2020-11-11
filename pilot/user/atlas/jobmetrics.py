@@ -5,10 +5,9 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2020
 
 from pilot.api import analytics
-from pilot.util.auxiliary import get_logger
 from pilot.util.jobmetrics import get_job_metrics_entry
 
 from .cpu import get_core_count
@@ -17,7 +16,6 @@ from .utilities import get_memory_monitor_output_filename
 
 import os
 import logging
-
 logger = logging.getLogger(__name__)
 
 
@@ -30,11 +28,10 @@ def get_job_metrics_string(job):
     """
 
     job_metrics = ""
-    log = get_logger(job.jobid)
 
     # report core count (will also set corecount in job object)
     corecount = get_core_count(job)
-    log.debug('job definition core count: %d' % corecount)
+    logger.debug('job definition core count: %d' % corecount)
 
     #if corecount is not None and corecount != "NULL" and corecount != 'null':
     #    job_metrics += get_job_metrics_entry("coreCount", corecount)
@@ -69,7 +66,7 @@ def get_job_metrics_string(job):
         if max_space > zero:
             job_metrics += get_job_metrics_entry("workDirSize", max_space)
         else:
-            log.info("will not add max space = %d B to job metrics" % max_space)
+            logger.info("will not add max space = %d B to job metrics" % max_space)
 
     # get analytics data
     path = os.path.join(job.workdir, get_memory_monitor_output_filename())
@@ -102,8 +99,6 @@ def get_job_metrics(job):
     :return: job metrics (string).
     """
 
-    log = get_logger(job.jobid)
-
     # get job metrics string
     job_metrics = get_job_metrics_string(job)
 
@@ -111,17 +106,17 @@ def get_job_metrics(job):
     job_metrics = job_metrics.lstrip().rstrip()
 
     if job_metrics != "":
-        log.debug('job metrics=\"%s\"' % (job_metrics))
+        logger.debug('job metrics=\"%s\"' % (job_metrics))
     else:
-        log.debug("no job metrics (all values are zero)")
+        logger.debug("no job metrics (all values are zero)")
 
     # is job_metrics within allowed size?
     if len(job_metrics) > 500:
-        log.warning("job_metrics out of size (%d)" % (len(job_metrics)))
+        logger.warning("job_metrics out of size (%d)" % (len(job_metrics)))
 
         # try to reduce the field size and remove the last entry which might be cut
         job_metrics = job_metrics[:500]
         job_metrics = " ".join(job_metrics.split(" ")[:-1])
-        log.warning("job_metrics has been reduced to: %s" % (job_metrics))
+        logger.warning("job_metrics has been reduced to: %s" % (job_metrics))
 
     return job_metrics

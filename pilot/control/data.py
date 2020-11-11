@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
 # - Wen Guan, wen.guan@cern.ch, 2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
 
@@ -27,7 +27,7 @@ from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException, LogFileCreationFailure
 from pilot.util.config import config
-from pilot.util.auxiliary import get_logger, set_pilot_state, check_for_final_server_update  #, abort_jobs_in_queues
+from pilot.util.auxiliary import set_pilot_state, check_for_final_server_update  #, abort_jobs_in_queues
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT, LOG_TRANSFER_IN_PROGRESS,\
     LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME
@@ -40,8 +40,8 @@ from pilot.util.tracereport import TraceReport
 import pilot.util.middleware
 
 import logging
-
 logger = logging.getLogger(__name__)
+
 errors = ErrorCodes()
 
 
@@ -168,10 +168,8 @@ def _stage_in(args, job):
         :return: True in case of success
     """
 
-    log = get_logger(job.jobid)
-
     # tested ok:
-    #log.info('testing sending SIGUSR1')
+    #logger.info('testing sending SIGUSR1')
     #import signal
     #os.kill(os.getpid(), signal.SIGUSR1)
 
@@ -208,10 +206,10 @@ def _stage_in(args, job):
             trace_report = create_trace_report(job, label=label)
 
             if job.is_eventservicemerge:
-                client = StageInESClient(job.infosys, logger=log, trace_report=trace_report)
+                client = StageInESClient(job.infosys, logger=logger, trace_report=trace_report)
                 activity = 'es_events_read'
             else:
-                client = StageInClient(job.infosys, logger=log, trace_report=trace_report)
+                client = StageInClient(job.infosys, logger=logger, trace_report=trace_report)
                 activity = 'pr'
             use_pcache = job.infosys.queuedata.use_pcache
             kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, use_pcache=use_pcache, use_bulk=False,
@@ -221,22 +219,22 @@ def _stage_in(args, job):
         except PilotException as error:
             import traceback
             error_msg = traceback.format_exc()
-            log.error(error_msg)
+            logger.error(error_msg)
             msg = errors.format_diagnostics(error.get_error_code(), error_msg)
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=msg)
         except Exception as error:
-            log.error('failed to stage-in: error=%s' % error)
+            logger.error('failed to stage-in: error=%s' % error)
 
-    log.info('summary of transferred files:')
+    logger.info('summary of transferred files:')
     for e in job.indata:
         status = e.status if e.status else "(not transferred)"
-        log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, status))
+        logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, status))
 
     # write time stamps to pilot timing file
     add_to_pilot_timing(job.jobid, PILOT_POST_STAGEIN, time.time(), args)
 
     remain_files = [e for e in job.indata if e.status not in ['remote_io', 'transferred', 'no_transfer']]
-    log.info("stage-in finished") if not remain_files else log.info("stage-in failed")
+    logger.info("stage-in finished") if not remain_files else logger.info("stage-in failed")
 
     return not remain_files
 
@@ -444,18 +442,17 @@ def copytool_in(queues, traces, args):
             # ready to set the job in running state
             send_state(job, args, 'running')
             os.environ['SERVER_UPDATE'] = SERVER_UPDATE_RUNNING
-            log = get_logger(job.jobid)
 
             if args.abort_job.is_set():
                 traces.pilot['command'] = 'abort'
-                log.warning('copytool_in detected a set abort_job pre stage-in (due to a kill signal)')
+                logger.warning('copytool_in detected a set abort_job pre stage-in (due to a kill signal)')
                 declare_failed_by_kill(job, queues.failed_data_in, args.signal)
                 break
 
             if _stage_in(args, job):
                 if args.abort_job.is_set():
                     traces.pilot['command'] = 'abort'
-                    log.warning('copytool_in detected a set abort_job post stage-in (due to a kill signal)')
+                    logger.warning('copytool_in detected a set abort_job post stage-in (due to a kill signal)')
                     declare_failed_by_kill(job, queues.failed_data_in, args.signal)
                     break
 
@@ -463,7 +460,7 @@ def copytool_in(queues, traces, args):
                 # remove the job from the current stage-in queue
                 _job = queues.current_data_in.get(block=True, timeout=1)
                 if _job:
-                    log.debug('job %s has been removed from the current_data_in queue' % _job.jobid)
+                    logger.debug('job %s has been removed from the current_data_in queue' % _job.jobid)
 
                 # now create input file metadata if required by the payload
                 if config.Payload.executor_type.lower() != 'raythena':
@@ -471,9 +468,9 @@ def copytool_in(queues, traces, args):
                     user = __import__('pilot.user.%s.metadata' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
                     file_dictionary = get_input_file_dictionary(job.indata)
                     xml = user.create_input_file_metadata(file_dictionary, job.workdir)
-                    log.info('created input file metadata:\n%s' % xml)
+                    logger.info('created input file metadata:\n%s' % xml)
             else:
-                log.warning('stage-in failed, adding job object to failed_data_in queue')
+                logger.warning('stage-in failed, adding job object to failed_data_in queue')
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINFAILED)
                 set_pilot_state(job=job, state="failed")
                 traces.pilot['error_code'] = job.piloterrorcodes[0]
@@ -528,8 +525,6 @@ def copytool_out(queues, traces, args):
         try:
             job = queues.data_out.get(block=True, timeout=1)
             if job:
-                log = get_logger(job.jobid)
-
                 # hack to prevent stage-out to be called more than once for same job object (can apparently happen
                 # in multi-output jobs)
                 # should not be necessary unless job object is added to queues.data_out more than once - check this
@@ -538,31 +533,31 @@ def copytool_out(queues, traces, args):
                     if is_already_processed(queues, processed_jobs):
                         continue
 
-                log.info('will perform stage-out for job id=%s' % job.jobid)
+                logger.info('will perform stage-out for job id=%s' % job.jobid)
 
                 if args.abort_job.is_set():
                     traces.pilot['command'] = 'abort'
-                    log.warning('copytool_out detected a set abort_job pre stage-out (due to a kill signal)')
+                    logger.warning('copytool_out detected a set abort_job pre stage-out (due to a kill signal)')
                     declare_failed_by_kill(job, queues.failed_data_out, args.signal)
                     break
 
                 if _stage_out_new(job, args):
                     if args.abort_job.is_set():
                         traces.pilot['command'] = 'abort'
-                        log.warning('copytool_out detected a set abort_job post stage-out (due to a kill signal)')
+                        logger.warning('copytool_out detected a set abort_job post stage-out (due to a kill signal)')
                         #declare_failed_by_kill(job, queues.failed_data_out, args.signal)
                         break
 
                     #queues.finished_data_out.put(job)
                     processed_jobs.append(job.jobid)
                     put_in_queue(job, queues.finished_data_out)
-                    log.debug('job object added to finished_data_out queue')
+                    logger.debug('job object added to finished_data_out queue')
                 else:
                     #queues.failed_data_out.put(job)
                     put_in_queue(job, queues.failed_data_out)
-                    log.debug('job object added to failed_data_out queue')
+                    logger.debug('job object added to failed_data_out queue')
             else:
-                log.debug('no returned job - why no exception?')
+                logger.debug('no returned job - why no exception?')
         except queue.Empty:
             if abort:
                 cont = False
@@ -660,12 +655,11 @@ def create_log(job, logfile, tarball_name, args):
     :return:
     """
 
-    log = get_logger(job.jobid)
-    log.debug('preparing to create log file')
+    logger.debug('preparing to create log file')
     pilot_home = os.environ.get('PILOT_HOME', os.getcwd())
     current_dir = os.getcwd()
     if pilot_home != current_dir:
-        log.debug('cd from %s to %s for log creation' % (current_dir, pilot_home))
+        logger.debug('cd from %s to %s for log creation' % (current_dir, pilot_home))
         os.chdir(pilot_home)
 
     # perform special cleanup (user specific) prior to log file creation
@@ -674,7 +668,7 @@ def create_log(job, logfile, tarball_name, args):
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
         user.remove_redundant_files(job.workdir, islooping=errors.LOOPINGJOB in job.piloterrorcodes)
     else:
-        log.debug('user specific cleanup not performed')
+        logger.debug('user specific cleanup not performed')
 
     input_files = [e.lfn for e in job.indata]
     output_files = [e.lfn for e in job.outdata]
@@ -683,19 +677,19 @@ def create_log(job, logfile, tarball_name, args):
     for f in input_files + output_files:
         path = os.path.join(job.workdir, f)
         if os.path.exists(path):
-            log.info('removing file: %s' % path)
+            logger.info('removing file: %s' % path)
             remove(path)
 
     # rename the workdir for the tarball creation
     newworkdir = os.path.join(os.path.dirname(job.workdir), tarball_name)
     orgworkdir = job.workdir
-    log.debug('renaming %s to %s' % (job.workdir, newworkdir))
+    logger.debug('renaming %s to %s' % (job.workdir, newworkdir))
     os.rename(job.workdir, newworkdir)
     job.workdir = newworkdir
 
-    fullpath = os.path.join(job.workdir, logfile.lfn)  # /some/path/to/dirname/log.tgz
+    fullpath = os.path.join(job.workdir, logfile.lfn)  # /some/path/to/dirname/logger.tgz
 
-    log.info('will create archive %s' % fullpath)
+    logger.info('will create archive %s' % fullpath)
     try:
         #newdirnm = "tarball_PandaJob_%s" % job.jobid
         #tarballnm = "%s.tar.gz" % newdirnm
@@ -709,9 +703,9 @@ def create_log(job, logfile, tarball_name, args):
         raise LogFileCreationFailure(e)
     else:
         if pilot_home != current_dir:
-            log.debug('cd from %s to %s after log creation' % (pilot_home, current_dir))
+            logger.debug('cd from %s to %s after log creation' % (pilot_home, current_dir))
             os.chdir(pilot_home)
-        log.debug('stdout = %s' % stdout)
+        logger.debug('stdout = %s' % stdout)
 
         # verify the size of the log file
         size = get_local_file_size(fullpath)
@@ -720,11 +714,11 @@ def create_log(job, logfile, tarball_name, args):
         else:
             logger.info('log file size: %d B' % size)
 
-    log.debug('renaming %s back to %s' % (job.workdir, orgworkdir))
+    logger.debug('renaming %s back to %s' % (job.workdir, orgworkdir))
     try:
         os.rename(job.workdir, orgworkdir)
     except Exception as e:
-        log.debug('exception caught: %s' % e)
+        logger.debug('exception caught: %s' % e)
     job.workdir = orgworkdir
 
     #fullpath = os.path.join(job.workdir, logfile.lfn)  # reset fullpath since workdir has changed since above
@@ -746,8 +740,7 @@ def _do_stageout(job, xdata, activity, queue, title, output_dir=''):
     :return: True in case of success transfers
     """
 
-    log = get_logger(job.jobid)
-    log.info('prepare to stage-out %d %s file(s)' % (len(xdata), title))
+    logger.info('prepare to stage-out %d %s file(s)' % (len(xdata), title))
     label = 'stage-out'
 
     # should stage-in be done by a script (for containerisation) or by invoking the API (ie classic mode)?
@@ -769,7 +762,7 @@ def _do_stageout(job, xdata, activity, queue, title, output_dir=''):
             # create the trace report
             trace_report = create_trace_report(job, label=label)
 
-            client = StageOutClient(job.infosys, logger=log, trace_report=trace_report)
+            client = StageOutClient(job.infosys, logger=logger, trace_report=trace_report)
             kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job, output_dir=output_dir)  #, mode='stage-out')
             # prod analy unification: use destination preferences from PanDA server for unified queues
             if job.infosys.queuedata.type != 'unified':
@@ -778,28 +771,28 @@ def _do_stageout(job, xdata, activity, queue, title, output_dir=''):
         except PilotException as error:
             import traceback
             error_msg = traceback.format_exc()
-            log.error(error_msg)
+            logger.error(error_msg)
             msg = errors.format_diagnostics(error.get_error_code(), error_msg)
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=msg)
         except Exception:
             import traceback
-            log.error(traceback.format_exc())
+            logger.error(traceback.format_exc())
             # do not raise the exception since that will prevent also the log from being staged out
             # error = PilotException("stageOut failed with error=%s" % e, code=ErrorCodes.STAGEOUTFAILED)
         else:
-            log.debug('stage-out client completed')
+            logger.debug('stage-out client completed')
 
-    log.info('summary of transferred files:')
+    logger.info('summary of transferred files:')
     for e in xdata:
         if not e.status:
             status = "(not transferred)"
         else:
             status = e.status
-        log.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, status))
+        logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, status))
 
     remain_files = [e for e in xdata if e.status not in ['transferred']]
-    log.debug('remain_files=%s' % str(remain_files))
-    log.debug('xdata=%s' % str(xdata))
+    logger.debug('remain_files=%s' % str(remain_files))
+    logger.debug('xdata=%s' % str(xdata))
 
     return not remain_files
 
@@ -814,9 +807,7 @@ def _stage_out_new(job, args):
     :return: True in case of success, False otherwise.
     """
 
-    log = get_logger(job.jobid)
-
-    #log.info('testing sending SIGUSR1')
+    #logger.info('testing sending SIGUSR1')
     #import signal
     #os.kill(os.getpid(), signal.SIGUSR1)
 
@@ -826,19 +817,19 @@ def _stage_out_new(job, args):
     is_success = True
 
     if not job.outdata or job.is_eventservice:
-        log.info('this job does not have any output files, only stage-out log file')
+        logger.info('this job does not have any output files, only stage-out log file')
         job.stageout = 'log'
 
     if job.stageout != 'log':  ## do stage-out output files
         if not _do_stageout(job, job.outdata, ['pw', 'w'], args.queue, title='output', output_dir=args.output_dir):
             is_success = False
-            log.warning('transfer of output file(s) failed')
+            logger.warning('transfer of output file(s) failed')
 
     if job.stageout in ['log', 'all'] and job.logdata:  ## do stage-out log files
         # prepare log file, consider only 1st available log file
         status = job.get_status('LOG_TRANSFER')
         if status != LOG_TRANSFER_NOT_DONE:
-            log.warning('log transfer already attempted')
+            logger.warning('log transfer already attempted')
             return False
 
         job.status['LOG_TRANSFER'] = LOG_TRANSFER_IN_PROGRESS
@@ -847,19 +838,19 @@ def _stage_out_new(job, args):
         try:
             create_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue), args)
         except LogFileCreationFailure as e:
-            log.warning('failed to create tar file: %s' % e)
+            logger.warning('failed to create tar file: %s' % e)
             set_pilot_state(job=job, state="failed")
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.LOGFILECREATIONFAILURE)
             return False
 
         if not _do_stageout(job, [logfile], ['pl', 'pw', 'w'], args.queue, title='log', output_dir=args.output_dir):
             is_success = False
-            log.warning('log transfer failed')
+            logger.warning('log transfer failed')
             job.status['LOG_TRANSFER'] = LOG_TRANSFER_FAILED
         else:
             job.status['LOG_TRANSFER'] = LOG_TRANSFER_DONE
     elif not job.logdata:
-        log.info('no log was defined - will not create log file')
+        logger.info('no log was defined - will not create log file')
         job.status['LOG_TRANSFER'] = LOG_TRANSFER_DONE
 
     # write time stamps to pilot timing file
@@ -869,30 +860,30 @@ def _stage_out_new(job, args):
     fileinfo = {}
     for e in job.outdata + job.logdata:
         if e.status in ['transferred']:
-            log.debug('got surl=%s' % e.surl)
-            log.debug('got turl=%s' % e.turl)
+            logger.debug('got surl=%s' % e.surl)
+            logger.debug('got turl=%s' % e.turl)
             fileinfo[e.lfn] = {'guid': e.guid, 'fsize': e.filesize,
                                'adler32': e.checksum.get('adler32'),
                                'surl': e.turl}
 
     job.fileinfo = fileinfo
-    log.info('prepared job.fileinfo=%s' % job.fileinfo)
+    logger.info('prepared job.fileinfo=%s' % job.fileinfo)
 
     # WARNING THE FOLLOWING RESETS ANY PREVIOUS STAGEOUT ERRORS
     if not is_success:
         # set error code + message (a more precise error code might have been set already)
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEOUTFAILED)
         set_pilot_state(job=job, state="failed")
-        log.warning('stage-out failed')  # with error: %d, %s (setting job state to failed)' %
-        # log.warning('stage-out failed with error: %d, %s (setting job state to failed)' %
+        logger.warning('stage-out failed')  # with error: %d, %s (setting job state to failed)' %
+        # logger.warning('stage-out failed with error: %d, %s (setting job state to failed)' %
         #  (job['pilotErrorCode'], job['pilotErrorDiag']))
         # send_state(job, args, 'failed')
         return False
 
-    log.info('stage-out finished correctly')
+    logger.info('stage-out finished correctly')
 
     if not job.state or (job.state and job.state == 'stageout'):  # is the job state already set? if so, don't change the state (unless it's the stageout state)
-        log.debug('changing job state from %s to finished' % job.state)
+        logger.debug('changing job state from %s to finished' % job.state)
         set_pilot_state(job=job, state="finished")
 
     # send final server update since all transfers have finished correctly
@@ -927,20 +918,18 @@ def queue_monitoring(queues, traces, args):
         except queue.Empty:
             pass
         else:
-            log = get_logger(job.jobid)
-
             # stage-out log file then add the job to the failed_jobs queue
             job.stageout = "log"
 
             # TODO: put in data_out queue instead?
 
             if not _stage_out_new(job, args):
-                log.info("job %s failed during stage-in and stage-out of log, adding job object to failed_data_outs "
+                logger.info("job %s failed during stage-in and stage-out of log, adding job object to failed_data_outs "
                          "queue" % job.jobid)
                 #queues.failed_data_out.put(job)
                 put_in_queue(job, queues.failed_data_out)
             else:
-                log.info("job %s failed during stage-in, adding job object to failed_jobs queue" % job.jobid)
+                logger.info("job %s failed during stage-in, adding job object to failed_jobs queue" % job.jobid)
                 #queues.failed_jobs.put(job)
                 put_in_queue(job, queues.failed_jobs)
 
@@ -950,15 +939,13 @@ def queue_monitoring(queues, traces, args):
         except queue.Empty:
             pass
         else:
-            log = get_logger(job.jobid)
-
             # use the payload/transform exitCode from the job report if it exists
             if job.transexitcode == 0 and job.exitcode == 0 and job.piloterrorcodes == []:
-                log.info('finished stage-out for finished payload, adding job to finished_jobs queue')
+                logger.info('finished stage-out for finished payload, adding job to finished_jobs queue')
                 #queues.finished_jobs.put(job)
                 put_in_queue(job, queues.finished_jobs)
             else:
-                log.info('finished stage-out (of log) for failed payload')
+                logger.info('finished stage-out (of log) for failed payload')
                 #queues.failed_jobs.put(job)
                 put_in_queue(job, queues.failed_jobs)
 
@@ -968,16 +955,14 @@ def queue_monitoring(queues, traces, args):
         except queue.Empty:
             pass
         else:
-            log = get_logger(job.jobid)
-
             # attempt to upload the log in case the previous stage-out failure was not an SE error
             job.stageout = "log"
             set_pilot_state(job=job, state="failed")
             if not _stage_out_new(job, args):
-                log.info("job %s failed during stage-out of data file(s) as well as during stage-out of log, "
+                logger.info("job %s failed during stage-out of data file(s) as well as during stage-out of log, "
                          "adding job object to failed_jobs queue" % job.jobid)
             else:
-                log.info("job %s failed during stage-out of data file(s) - stage-out of log succeeded, adding job "
+                logger.info("job %s failed during stage-out of data file(s) - stage-out of log succeeded, adding job "
                          "object to failed_jobs queue" % job.jobid)
 
             #queues.failed_jobs.put(job)

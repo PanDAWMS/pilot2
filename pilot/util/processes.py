@@ -13,7 +13,6 @@ import signal
 import re
 import threading
 
-# from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 from pilot.util.auxiliary import whoami
 from pilot.util.filehandling import read_file, remove_dir_tree

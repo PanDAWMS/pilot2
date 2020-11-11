@@ -5,13 +5,9 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
-
-# from pilot.util.auxiliary import get_logger
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2020
 
 from os import environ
-
-from pilot.util.auxiliary import get_logger
 
 import logging
 logger = logging.getLogger(__name__)
@@ -50,14 +46,12 @@ def get_job_metrics(job):
     :return: job metrics (string).
     """
 
-    log = get_logger(job.jobid)
-
     user = environ.get('PILOT_USER', 'generic').lower()  # TODO: replace with singleton
     try:
         job_metrics_module = __import__('pilot.user.%s.jobmetrics' % user, globals(), locals(), [user], 0)  # Python 2/3
     except AttributeError as e:
         job_metrics = None
-        log.warning('function not implemented in jobmetrics module: %s' % e)
+        logger.warning('function not implemented in jobmetrics module: %s' % e)
     else:
         job_metrics = job_metrics_module.get_job_metrics(job)
 
