@@ -11,6 +11,7 @@
 import os
 import threading
 
+from pilot.util.config import config
 from pilot.common.pluginfactory import PluginFactory
 from pilot.control.job import create_job
 from pilot.eventservice.communicationmanager.communicationmanager import CommunicationManager
@@ -65,7 +66,7 @@ class BaseExecutor(threading.Thread, PluginFactory):
             self.__stop.set()
 
     def is_stop(self):
-        return self.__stop.isSet()
+        return self.__stop.is_set()
 
     def stop_communicator(self):
         logger.info("Stopping communication manager")
@@ -119,7 +120,11 @@ class BaseExecutor(threading.Thread, PluginFactory):
         return self.payload['job'] if self.payload and 'job' in list(self.payload.keys()) else None  # Python 2/3
 
     def get_event_ranges(self, num_event_ranges=1, queue_factor=2):
-        logger.info("Getting event ranges: (num_ranges: %s)" % num_event_ranges)
+        if config.Payload.executor_type.lower() == 'raythena':
+            old_queue_factor = queue_factor
+            queue_factor = 1
+            logger.info("raythena - Changing queue_factor from %s to %s" % (old_queue_factor, queue_factor))
+        logger.info("Getting event ranges: (num_ranges: %s) (queue_factor: %s)" % (num_event_ranges, queue_factor))
         if len(self.__event_ranges) < num_event_ranges:
             ret = self.communication_manager.get_event_ranges(num_event_ranges=num_event_ranges * queue_factor, job=self.get_job())
             for event_range in ret:

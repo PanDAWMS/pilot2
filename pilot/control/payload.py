@@ -22,10 +22,11 @@ except Exception:
 
 from pilot.control.payloads import generic, eventservice, eventservicemerge
 from pilot.control.job import send_state
-from pilot.util.auxiliary import get_logger, set_pilot_state
+from pilot.util.auxiliary import get_logger, set_pilot_state, get_memory_usage
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
-from pilot.util.filehandling import read_file, remove
+from pilot.util.filehandling import read_file, remove_core_dumps
+from pilot.util.processes import threads_aborted
 from pilot.util.queuehandling import put_in_queue
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread
@@ -84,6 +85,13 @@ def control(queues, traces, args):
             # find all running jobs and stop them, find all jobs in queues relevant to this module
             #abort_jobs_in_queues(queues, args.signal)
 
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
+
     logger.debug('[payload] control thread has finished')
 
 
@@ -110,6 +118,13 @@ def validate_pre(queues, traces, args):
             #queues.failed_payloads.put(job)
             put_in_queue(job, queues.failed_payloads)
 
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
+
     logger.info('[payload] validate_pre thread has finished')
 
 
@@ -124,8 +139,6 @@ def _validate_payload(job):
     status = True
 
     log = get_logger(job.jobid, logger)
-    log.debug('PandaID = %s' % os.environ.get('PandaID', 'unknown'))
-    log.debug('PanDA_TaskID = %s' % os.environ.get('PanDA_TaskID', 'unknown'))
 
     # perform user specific validation
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -150,7 +163,7 @@ def get_payload_executor(args, job, out, err, traces):
     :param traces: traces object.
     :return: instance of a payload executor
     """
-    if job.is_eventservice:
+    if job.is_eventservice:  # True for native HPO workflow as well
         payload_executor = eventservice.Executor(args, job, out, err, traces)
     elif job.is_eventservicemerge:
         payload_executor = eventservicemerge.Executor(args, job, out, err, traces)
@@ -201,6 +214,9 @@ def execute_payloads(queues, traces, args):
             payload_executor = get_payload_executor(args, job, out, err, traces)
             log.info("Got payload executor: %s" % payload_executor)
 
+            _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+            log.debug('current pilot memory usage\n%s' % _stdout)
+
             # run the payload and measure the execution time
             job.t0 = os.times()
             exit_code = payload_executor.run()
@@ -210,6 +226,11 @@ def execute_payloads(queues, traces, args):
 
             out.close()
             err.close()
+
+            #if traces.pilot['nr_jobs'] == 1:
+            #    log.debug('faking job failure in first multi-job')
+            #    job.transexitcode = 1
+            #    exit_code = 1
 
             # analyze and interpret the payload execution output
             perform_initial_payload_error_analysis(job, exit_code)
@@ -251,6 +272,13 @@ def execute_payloads(queues, traces, args):
             while not args.graceful_stop.is_set():
                 # let stage-out of log finish, but stop running payloads as there should be a problem with the pilot
                 time.sleep(5)
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
 
     logger.info('[payload] execute_payloads thread has finished')
 
@@ -311,12 +339,11 @@ def perform_initial_payload_error_analysis(job, exit_code):
             if job.piloterrorcodes:
                 log.warning('error code(s) already set: %s' % str(job.piloterrorcodes))
             else:
-                if os.path.exists(os.path.join(job.workdir, "core")):
-                    log.warning("detected a core dump file (will be removed)")
-                    remove(os.path.join(job.workdir, "core"))
+                # check if core dumps exist, if so remove them and return True
+                if remove_core_dumps(job.workdir):
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.COREDUMP)
                 else:
-                    log.warning('initial error analysis did not resolve the issue')
+                    log.warning('initial error analysis did not resolve the issue (and core dumps were not found)')
     else:
         log.info('main payload execution returned zero exit code, but will check it more carefully')
 
@@ -380,6 +407,13 @@ def validate_post(queues, traces, args):
         set_pilot_state(job=job, state='stageout')
         put_in_queue(job, queues.data_out)
 
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
+
     logger.info('[payload] validate_post thread has finished')
 
 
@@ -409,5 +443,12 @@ def failed_post(queues, traces, args):
         #queues.data_out.put(job)
         set_pilot_state(job=job, state='stageout')
         put_in_queue(job, queues.data_out)
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
 
     logger.info('[payload] failed_post thread has finished')

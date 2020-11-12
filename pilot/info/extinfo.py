@@ -19,6 +19,7 @@ which is mainly used to retrive Queue, Site, etc data required for Information S
 import os
 import json
 import random
+
 from pilot.util.config import config
 from .dataloader import DataLoader, merge_dict_data
 
@@ -52,30 +53,30 @@ class ExtInfoProvider(DataLoader):
         :return:
         """
 
-        pandaqueues = set(pandaqueues)
+        pandaqueues = sorted(set(pandaqueues))
 
         cache_dir = config.Information.cache_dir
         if not cache_dir:
             cache_dir = os.environ.get('PILOT_HOME', '.')
 
-        sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_schedconf.json',
+        sources = {'CVMFS': {'url': getattr(config.Information, 'queues_cvmfs', None) or '/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_pandaqueues.json',
                              'nretry': 1,
                              'fname': os.path.join(cache_dir, 'agis_schedconf.cvmfs.json')},
-                   'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json'
-                                   '&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
+                   'CRIC': {'url': (getattr(config.Information, 'queues_url', None) or 'https://atlas-cric.cern.ch/api/atlas/pandaqueue/query/?json') +
+                            '&pandaqueue[]='.join([''] + pandaqueues),
                             'nretry': 3,
                             'sleep_time': lambda: 15 + random.randint(0, 30),  ## max sleep time 45 seconds between retries
                             'cache_time': 3 * 60 * 60,  # 3 hours
                             'fname': os.path.join(cache_dir, 'agis_schedconf.agis.%s.json' %
-                                                  ('_'.join(sorted(pandaqueues)) or 'ALL'))},
-                   'LOCAL': {'url': os.environ.get('LOCAL_AGIS_SCHEDCONF', None),
+                                                  ('_'.join(pandaqueues) or 'ALL'))},
+                   'LOCAL': {'url': os.environ.get('LOCAL_AGIS_SCHEDCONF'),
                              'nretry': 1,
                              'cache_time': 3 * 60 * 60,  # 3 hours
-                             'fname': os.path.join(cache_dir, 'agis_schedconf.json')},
+                             'fname': os.path.join(cache_dir, getattr(config.Information, 'queues_cache', None) or 'agis_schedconf.json')},
                    'PANDA': None  ## NOT implemented, FIX ME LATER
                    }
 
-        priority = priority or ['LOCAL', 'CVMFS', 'AGIS', 'PANDA']
+        priority = priority or ['LOCAL', 'CVMFS', 'CRIC', 'PANDA']
 
         return self.load_data(sources, priority, cache_time)
 
@@ -107,11 +108,13 @@ class ExtInfoProvider(DataLoader):
                 raise Exception('response contains error, data=%s' % dat)
             return {pandaqueue: dat}
 
-        sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_schedconf.json',
+        queuedata_url = (os.environ.get('QUEUEDATA_SERVER_URL') or getattr(config.Information, 'queuedata_url', '')).format(**{'pandaqueue': pandaqueues[0]})
+
+        sources = {'CVMFS': {'url': getattr(config.Information, 'queuedata_cvmfs', None) or '/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_pandaqueues.json',
                              'nretry': 1,
                              'fname': os.path.join(cache_dir, 'agis_schedconf.cvmfs.json')},
-                   'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/pandaqueue/query/list/?json'
-                                   '&preset=schedconf.all&panda_queue=%s' % ','.join(pandaqueues),
+                   'CRIC': {'url': (getattr(config.Information, 'queues_url', None) or 'https://atlas-cric.cern.ch/api/atlas/pandaqueue/query/?json') +
+                            '&pandaqueue[]='.join([''] + pandaqueues),
                             'nretry': 3,
                             'sleep_time': lambda: 15 + random.randint(0, 30),  # max sleep time 45 seconds between retries
                             'cache_time': 3 * 60 * 60,  # 3 hours
@@ -120,20 +123,19 @@ class ExtInfoProvider(DataLoader):
                    'LOCAL': {'url': None,
                              'nretry': 1,
                              'cache_time': 3 * 60 * 60,  # 3 hours
-                             'fname': os.path.join(cache_dir, 'queuedata.json'),
+                             'fname': os.path.join(cache_dir, getattr(config.Information, 'queuedata_cache', None) or 'queuedata.json'),
                              'parser': jsonparser_panda
                              },
-                   # FIX ME LATER: move hardcoded urls to the Config?
-                   'PANDA': {'url': 'http://pandaserver.cern.ch:25085/cache/schedconfig/%s.all.json' % pandaqueues[0],
+                   'PANDA': {'url': queuedata_url,
                              'nretry': 3,
                              'sleep_time': lambda: 15 + random.randint(0, 30),  # max sleep time 45 seconds between retries
                              'cache_time': 3 * 60 * 60,  # 3 hours,
-                             'fname': os.path.join(cache_dir, 'queuedata.json'),
+                             'fname': os.path.join(cache_dir, getattr(config.Information, 'queuedata_cache', None) or 'queuedata.json'),
                              'parser': jsonparser_panda
                              }
                    }
 
-        priority = priority or ['LOCAL', 'PANDA', 'CVMFS', 'AGIS']
+        priority = priority or ['LOCAL', 'PANDA', 'CVMFS', 'CRIC']
 
         return self.load_data(sources, priority, cache_time)
 
@@ -148,31 +150,31 @@ class ExtInfoProvider(DataLoader):
         :return: dict of DDMEndpoint settings by DDMendpoint name as a key
         """
 
-        ddmendpoints = set(ddmendpoints)
+        ddmendpoints = sorted(set(ddmendpoints))
 
         cache_dir = config.Information.cache_dir
         if not cache_dir:
             cache_dir = os.environ.get('PILOT_HOME', '.')
 
         # list of sources to fetch ddmconf data from
-        sources = {'CVMFS': {'url': '/cvmfs/atlas.cern.ch/repo/sw/local/etc/agis_ddmendpoints.json',
+        sources = {'CVMFS': {'url': config.Information.storages_cvmfs or '/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_ddmendpoints.json',
                              'nretry': 1,
-                             'fname': os.path.join(cache_dir, 'agis_ddmendpoints.json')},
-                   'AGIS': {'url': 'http://atlas-agis-api.cern.ch/request/ddmendpoint/query/list/?json&'
-                                   'state=ACTIVE&preset=dict&ddmendpoint=%s' % ','.join(ddmendpoints),
+                             'fname': os.path.join(cache_dir, getattr(config.Information, 'storages_cache', None) or 'agis_ddmendpoints.json')},
+                   'CRIC': {'url': (getattr(config.Information, 'storages_url', None) or 'https://atlas-cric.cern.ch/api/atlas/ddmendpoint/query/?json') +
+                            '&ddmendpoint[]='.join([''] + ddmendpoints),
                             'nretry': 3,
                             'sleep_time': lambda: 15 + random.randint(0, 30),  ## max sleep time 45 seconds between retries
                             'cache_time': 3 * 60 * 60,  # 3 hours
                             'fname': os.path.join(cache_dir, 'agis_ddmendpoints.agis.%s.json' %
-                                                  ('_'.join(sorted(ddmendpoints)) or 'ALL'))},
+                                                  ('_'.join(ddmendpoints) or 'ALL'))},
                    'LOCAL': {'url': None,
                              'nretry': 1,
                              'cache_time': 3 * 60 * 60,  # 3 hours
-                             'fname': os.path.join(cache_dir, 'agis_ddmendpoints.json')},
+                             'fname': os.path.join(cache_dir, getattr(config.Information, 'storages_cache', None) or 'agis_ddmendpoints.json')},
                    'PANDA': None  ## NOT implemented, FIX ME LATER if need
                    }
 
-        priority = priority or ['LOCAL', 'CVMFS', 'AGIS', 'PANDA']
+        priority = priority or ['LOCAL', 'CVMFS', 'CRIC', 'PANDA']
 
         return self.load_data(sources, priority, cache_time)
 

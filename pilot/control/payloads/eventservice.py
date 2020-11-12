@@ -16,6 +16,7 @@ from pilot.common import exception
 from pilot.control.payloads import generic
 from pilot.eventservice.workexecutor.workexecutor import WorkExecutor
 from pilot.util.auxiliary import get_logger
+from pilot.util.config import config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -25,13 +26,14 @@ class Executor(generic.Executor):
     def __init__(self, args, job, out, err, traces):
         super(Executor, self).__init__(args, job, out, err, traces)
 
-    def run_payload(self, job, out, err):
+    def run_payload(self, job, cmd, out, err):
         """
         (add description)
 
-        :param job:
-        :param out:
-        :param err:
+        :param job: job object.
+        :param cmd: (unused in ES mode)
+        :param out: stdout file object.
+        :param err: stderr file object.
         :return:
         """
         log = get_logger(job.jobid, logger)
@@ -61,7 +63,8 @@ class Executor(generic.Executor):
             log.debug("payload: %s" % payload)
 
             log.info("Starting EventService WorkExecutor")
-            executor = WorkExecutor()
+            executor_type = self.get_executor_type(job)
+            executor = WorkExecutor(args=executor_type)
             executor.set_payload(payload)
             executor.start()
             log.info("EventService WorkExecutor started")
@@ -77,6 +80,21 @@ class Executor(generic.Executor):
             return None
 
         return executor
+
+    def get_executor_type(self, job):
+        """
+        Get the executor type.
+        This is usually the 'generic' type, which means normal event service. It can also be 'raythena' if specified
+        in the pilot config file, and can also be dynamically decided using the job object (in the case of interceptor
+        job).
+
+        :param job: job object.
+        :return: executor type dictionary.
+        """
+
+        # executor_type = 'hpo' if job.is_hpo else config.Payload.executor_type
+        # return {'executor_type': executor_type}
+        return {'executor_type': config.Payload.executor_type}
 
     def wait_graceful(self, args, proc, job):
         """

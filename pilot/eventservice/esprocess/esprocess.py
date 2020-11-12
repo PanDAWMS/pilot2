@@ -7,11 +7,13 @@
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
+import io
 import json
 import logging
 import os
 import re
 import subprocess
+import sys
 import time
 import threading
 import traceback
@@ -23,8 +25,8 @@ except Exception:
 
 from pilot.common.exception import PilotException, MessageFailure, SetupFailure, RunPayloadFailure, UnknownException
 from pilot.eventservice.esprocess.esmessage import MessageThread
+from pilot.util.container import containerise_executable
 from pilot.util.processes import kill_child_processes
-
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +41,7 @@ class ESProcess(threading.Thread):
     """
     Main EventService Process.
     """
-    def __init__(self, payload):
+    def __init__(self, payload, waiting_time=30 * 60):
         """
         Init ESProcess.
 
@@ -59,7 +61,7 @@ class ESProcess(threading.Thread):
         self.__monitor_log_time = None
         self.is_no_more_events = False
         self.__no_more_event_time = None
-        self.__waiting_time = 30 * 60
+        self.__waiting_time = waiting_time
         self.__stop = threading.Event()
         self.__stop_time = 180
         self.pid = None
@@ -135,7 +137,7 @@ class ESProcess(threading.Thread):
                     new_str = "--preExec \'from AthenaMP.AthenaMPFlags import jobproperties as jps;jps.AthenaMPFlags.EventRangeChannel=\"%s\"\' " % socket_name
                     executable = executable.replace("--preExec ", new_str)
                 else:
-                    logger.warn("!!WARNING!!43431! --preExec has an unknown format - expected \'--preExec \"\' or \"--preExec \'\", got: %s" % (executable))
+                    logger.warn("--preExec has an unknown format - expected \'--preExec \"\' or \"--preExec \'\", got: %s" % (executable))
 
         return executable
 
@@ -148,50 +150,38 @@ class ESProcess(threading.Thread):
 
         logger.info("start to init payload process")
         try:
-            executable = self.__payload['executable']
-            executable = self.init_yampl_socket(executable)
-            workdir = ''
-            if 'workdir' in self.__payload:
-                workdir = self.__payload['workdir']
-                if not os.path.exists(workdir):
-                    os.makedirs(workdir)
-                elif not os.path.isdir(workdir):
-                    raise SetupFailure('Workdir exists but it is not a directory.')
-                executable = 'cd %s; %s' % (workdir, executable)
+            try:
+                workdir = self.get_workdir()
+            except Exception as e:
+                raise e
 
-            if 'output_file' in self.__payload:
-                if type(self.__payload['output_file']) in [file]:
-                    output_file_fd = self.__payload['output_file']
-                else:
-                    if '/' in self.__payload['output_file']:
-                        output_file = self.__payload['output_file']
-                    else:
-                        output_file = os.path.join(workdir, self.__payload['output_file'])
-                    output_file_fd = open(output_file, 'w')
+            executable = self.get_executable(workdir)
+            output_file_fd = self.get_file(workdir, file_label='output_file', file_name='ES_payload_output.txt')
+            error_file_fd = self.get_file(workdir, file_label='error_file', file_name='ES_payload_error.txt')
+
+            # containerise executable if required
+            if 'job' in self.__payload and self.__payload['job']:
+                try:
+                    executable, diagnostics = containerise_executable(executable, job=self.__payload['job'], workdir=workdir)
+                    if diagnostics:
+                        msg = 'containerisation of executable failed: %s' % diagnostics
+                        logger.warning(msg)
+                        raise SetupFailure(msg)
+                except Exception as e:
+                    msg = 'exception caught while preparing container command: %s' % e
+                    logger.warning(msg)
+                    raise SetupFailure(msg)
             else:
-                output_file = os.path.join(workdir, "ES_payload_output.txt")
-                output_file_fd = open(output_file, 'w')
+                logger.warning('could not containerise executable')
 
-            if 'error_file' in self.__payload:
-                if type(self.__payload['error_file']) in [file]:
-                    error_file_fd = self.__payload['error_file']
-                else:
-                    if '/' in self.__payload['error_file']:
-                        error_file = self.__payload['error_file']
-                    else:
-                        error_file = os.path.join(workdir, self.__payload['error_file'])
-                    error_file_fd = open(error_file, 'w')
-            else:
-                error_file = os.path.join(workdir, "ES_payload_error.txt")
-                error_file_fd = open(error_file, 'w')
-
+            # get the process
             self.__process = subprocess.Popen(executable, stdout=output_file_fd, stderr=error_file_fd, shell=True)
             self.pid = self.__process.pid
             self.__is_payload_started = True
-            logger.debug("Started new processs(executable: %s, stdout: %s, stderr: %s, pid: %s)" % (executable,
-                                                                                                    output_file_fd,
-                                                                                                    error_file_fd,
-                                                                                                    self.__process.pid))
+            logger.debug("Started new processs (executable: %s, stdout: %s, stderr: %s, pid: %s)" % (executable,
+                                                                                                     output_file_fd,
+                                                                                                     error_file_fd,
+                                                                                                     self.__process.pid))
             if 'job' in self.__payload and self.__payload['job'] and self.__payload['job'].corecount:
                 self.corecount = int(self.__payload['job'].corecount)
         except PilotException as e:
@@ -201,7 +191,62 @@ class ESProcess(threading.Thread):
             logger.error("Failed to start payload process: %s, %s" % (str(e), traceback.format_exc()))
             self.__ret_code = -1
             raise SetupFailure(e)
-        logger.info("finished to init payload process")
+        logger.info("finished initializing payload process")
+
+    def get_file(self, workdir, file_label='output_file', file_name='ES_payload_output.txt'):
+        """
+        Return the requested file.
+
+        :param file_label:
+        :param workdir:
+        :return:
+        """
+
+        try:
+            file_type = file  # Python 2
+        except NameError:
+            file_type = io.IOBase  # Python 3
+
+        if file_label in self.__payload:
+            if isinstance(self.__payload[file_label], file_type):
+                _file_fd = self.__payload[file_label]
+            else:
+                _file = self.__payload[file_label] if '/' in self.__payload[file_label] else os.path.join(workdir, self.__payload[file_label])
+                _file_fd = open(_file, 'w')
+        else:
+            _file = os.path.join(workdir, file_name)
+            _file_fd = open(_file, 'w')
+
+        return _file_fd
+
+    def get_workdir(self):
+        """
+        Return the workdir.
+        If the workdir is set but is not a directory, return None.
+
+        :return: workdir (string or None).
+        :raises SetupFailure: in case workdir is not a directory.
+        """
+
+        workdir = ''
+        if 'workdir' in self.__payload:
+            workdir = self.__payload['workdir']
+            if not os.path.exists(workdir):
+                os.makedirs(workdir)
+            elif not os.path.isdir(workdir):
+                raise SetupFailure('workdir exists but is not a directory')
+        return workdir
+
+    def get_executable(self, workdir):
+        """
+        Return the executable string.
+
+        :param workdir: work directory (string).
+        :return: executable (string).
+        """
+        executable = self.__payload['executable']
+        executable = self.init_yampl_socket(executable)
+        return 'cd %s; %s' % (workdir, executable)
 
     def set_get_event_ranges_hook(self, hook):
         """
@@ -263,7 +308,7 @@ class ESProcess(threading.Thread):
 
         if self.__no_more_event_time and time.time() - self.__no_more_event_time > self.__waiting_time:
             self.__ret_code = -1
-            raise Exception('Too long time(%s seconds) since "No more events" is injected' %
+            raise Exception('Too long time (%s seconds) since "No more events" is injected' %
                             (time.time() - self.__no_more_event_time))
 
         if self.__monitor_log_time is None or self.__monitor_log_time < time.time() - 10 * 60:
@@ -276,7 +321,7 @@ class ESProcess(threading.Thread):
             raise MessageFailure("Message thread is not alive.")
 
         if self.__process is None:
-            raise RunPayloadFailure("Payload Process has not started.")
+            raise RunPayloadFailure("Payload process has not started.")
         if self.__process.poll() is not None:
             if self.is_no_more_events:
                 logger.info("Payload finished with no more events")
@@ -360,6 +405,8 @@ class ESProcess(threading.Thread):
         msg = None
         if "No more events" in event_ranges:
             msg = event_ranges
+            if (sys.version_info > (3, 0)):  # needed for Python 3
+                msg = msg.encode('utf-8')
             self.is_no_more_events = True
             self.__no_more_event_time = time.time()
         else:
@@ -451,6 +498,8 @@ class ESProcess(threading.Thread):
         except queue.Empty:
             pass
         else:
+            if (sys.version_info > (3, 0)):  # needed for Python 3
+                message = message.decode('utf-8')
             logger.debug('received message from payload: %s' % message)
             if "Ready for events" in message:
                 event_ranges = self.get_event_range_to_payload()

@@ -15,6 +15,7 @@ import re
 import tarfile
 import time
 import uuid
+from glob import glob
 from json import load
 from json import dump as dumpjson
 from shutil import copy2, rmtree
@@ -24,7 +25,7 @@ from zlib import adler32
 from pilot.common.exception import ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile, \
     NotImplemented
 from pilot.util.config import config
-from pilot.util.mpi import get_ranks_info
+#from pilot.util.mpi import get_ranks_info
 from .container import execute
 from .math import diff_lists
 
@@ -82,15 +83,16 @@ def rmdirs(path):
     return status
 
 
-def read_file(filename):
+def read_file(filename, mode='r'):
     """
     Open, read and close a file.
     :param filename: file name (string).
+    :param mode:
     :return: file contents (string).
     """
 
     out = ""
-    f = open_file(filename, 'r')
+    f = open_file(filename, mode)
     if f:
         out = f.read()
         f.close()
@@ -98,19 +100,24 @@ def read_file(filename):
     return out
 
 
-def write_file(path, contents, mute=True, mode='w'):
+def write_file(path, contents, mute=True, mode='w', unique=False):
     """
     Write the given contents to a file.
-
+    If unique=True, then if the file already exists, an index will be added (e.g. 'out.txt' -> 'out-1.txt')
     :param path: full path for file (string).
-    :param contents: file contents (string).
+    :param contents: file contents (object).
     :param mute: boolean to control stdout info message.
-    :param mode: file mode (e.g. 'w', 'a') (string).
+    :param mode: file mode (e.g. 'w', 'r', 'a', 'wb', 'rb') (string).
+    :param unique: file must be unique (Boolean).
     :raises PilotException: FileHandlingFailure.
     :return: True if successful, otherwise False.
     """
 
     status = False
+
+    # add an incremental file name (add -%d if path already exists) if necessary
+    if unique:
+        path = get_nonexistant_path(path)
 
     f = open_file(path, mode)
     if f:
@@ -143,9 +150,6 @@ def open_file(filename, mode):
     """
 
     f = None
-    if not mode == 'w' and not os.path.exists(filename):
-        raise NoSuchFile("File does not exist: %s" % filename)
-
     try:
         f = open(filename, mode)
     except IOError as e:
@@ -905,11 +909,12 @@ def dump(path, cmd="cat"):
         logger.info("path %s does not exist" % path)
 
 
-def establish_logging(args):
+def establish_logging(args, filename=config.Pilot.pilotlog):
     """
     Setup and establish logging.
 
     :param args: pilot arguments object.
+    :param filename: name of log file.
     :return:
     """
 
@@ -924,15 +929,96 @@ def establish_logging(args):
     else:
         format_str = '%(asctime)s | %(levelname)-8s | %(message)s'
         level = logging.INFO
-    rank, maxrank = get_ranks_info()
-    if rank is not None:
-        format_str = 'Rank {0} |'.format(rank) + format_str
+    #rank, maxrank = get_ranks_info()
+    #if rank is not None:
+    #    format_str = 'Rank {0} |'.format(rank) + format_str
     if args.nopilotlog:
         logging.basicConfig(level=level, format=format_str, filemode='w')
     else:
-        logging.basicConfig(filename=config.Pilot.pilotlog, level=level, format=format_str, filemode='w')
+        logging.basicConfig(filename=filename, level=level, format=format_str, filemode='w')
     console.setLevel(level)
     console.setFormatter(logging.Formatter(format_str))
     logging.Formatter.converter = time.gmtime
     #if not len(_logger.handlers):
     _logger.addHandler(console)
+
+
+def remove_core_dumps(workdir):
+    """
+    Remove any remaining core dumps so they do not end up in the log tarball
+
+    :param workdir:
+    :return: Boolean (True if a core dump is found)
+    """
+
+    found = False
+    coredumps1 = glob("%s/core.*" % workdir)
+    coredumps2 = glob("%s/core" % workdir)
+    coredumps = coredumps1 + coredumps2
+    if coredumps:
+        for coredump in coredumps:
+            logger.info("removing core dump: %s" % str(coredump))
+            remove(coredump)
+        found = True
+
+    return found
+
+
+def get_nonexistant_path(fname_path):
+    """
+    Get the path to a filename which does not exist by incrementing path.
+
+    :param fname_path: file name path (string).
+    :return: file name path (string).
+    """
+
+    if not os.path.exists(fname_path):
+        return fname_path
+    filename, file_extension = os.path.splitext(fname_path)
+    i = 1
+    new_fname = "{}-{}{}".format(filename, i, file_extension)
+    while os.path.exists(new_fname):
+        i += 1
+        new_fname = "{}-{}{}".format(filename, i, file_extension)
+    return new_fname
+
+
+def get_valid_path_from_list(paths):
+    """
+    Return the first valid path from the given list.
+
+    :param paths: list of file paths.
+    :return: first valid path from list (string).
+    """
+
+    valid_path = None
+    for path in paths:
+        if os.path.exists(path):
+            valid_path = path
+            break
+
+    return valid_path
+
+
+def copy_pilot_source(workdir):
+    """
+    Copy the pilot source into the work directory.
+
+    :param workdir: working directory (string).
+    :return: diagnostics (string).
+    """
+
+    diagnostics = ""
+    srcdir = os.path.join(os.environ.get('PILOT_SOURCE_DIR', '.'), 'pilot2')
+    try:
+        logger.debug('copy %s to %s' % (srcdir, workdir))
+        cmd = 'cp -r %s/* %s' % (srcdir, workdir)
+        exit_code, stdout, stderr = execute(cmd)
+        if exit_code != 0:
+            diagnostics = 'file copy failed: %d, %s' % (exit_code, stdout)
+            logger.warning(diagnostics)
+    except Exception as e:
+        diagnostics = 'exception caught when copying pilot2 source: %s' % e
+        logger.warning(diagnostics)
+
+    return diagnostics

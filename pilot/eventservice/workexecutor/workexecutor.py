@@ -45,18 +45,26 @@ class WorkExecutor(PluginFactory):
         return self.payload
 
     def get_plugin_confs(self):
-        plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.genericexecutor.GenericExecutor'}
+        plugin_confs = {}
         if self.args and 'executor_type' in list(self.args.keys()):  # Python 2/3
-            if self.args['executor_type'] == 'base':
+            if self.args['executor_type'] == 'hpo':
+                plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.hpoexecutor.HPOExecutor'}
+            elif self.args['executor_type'] == 'raythena':
+                plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.raythenaexecutor.RaythenaExecutor'}
+            elif self.args['executor_type'] == 'generic':
+                plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.genericexecutor.GenericExecutor'}
+            elif self.args['executor_type'] == 'base':
                 plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.baseexecutor.BaseExecutor'}
-            if self.args['executor_type'] == 'nl':  # network-less
+            elif self.args['executor_type'] == 'nl':  # network-less
                 plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.nlexecutor.NLExecutor'}
-            if self.args['executor_type'] == 'boinc':
+            elif self.args['executor_type'] == 'boinc':
                 plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.boincexecutor.BOINCExecutor'}
-            if self.args['executor_type'] == 'hammercloud':  # hammercloud test: refine normal simul to ES
+            elif self.args['executor_type'] == 'hammercloud':  # hammercloud test: refine normal simul to ES
                 plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.hammercloudexecutor.HammerCloudExecutor'}
-            if self.args['executor_type'] == 'mpi':  # network-less
+            elif self.args['executor_type'] == 'mpi':  # network-less
                 plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.mpiexecutor.MPIExecutor'}
+        else:
+            plugin_confs = {'class': 'pilot.eventservice.workexecutor.plugins.genericexecutor.GenericExecutor'}
 
         plugin_confs['args'] = self.args
         return plugin_confs
@@ -79,7 +87,7 @@ class WorkExecutor(PluginFactory):
 
         logger.info("Starting plugin: %s" % self.plugin)
         self.plugin.start()
-        logger.info("Waiting payload to start")
+        logger.info("Waiting for payload to start")
         while self.plugin.is_alive():
             if self.plugin.is_payload_started():
                 logger.info("Payload started with pid: %s" % self.get_pid())

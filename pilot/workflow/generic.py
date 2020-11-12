@@ -31,7 +31,7 @@ from collections import namedtuple
 from pilot.common.exception import ExcThread
 from pilot.control import job, payload, data, monitor
 from pilot.util.constants import SUCCESS, PILOT_KILL_SIGNAL, MAX_KILL_WAIT_TIME
-from pilot.util.processes import kill_processes
+from pilot.util.processes import kill_processes, threads_aborted
 from pilot.util.timing import add_to_pilot_timing
 
 import logging
@@ -79,10 +79,23 @@ def interrupt(args, signum, frame):
     args.signal = sig
     logger.warning('will instruct threads to abort and update the server')
     args.abort_job.set()
+    logger.warning('setting graceful stop (in case it was not set already)')
+    args.graceful_stop.set()
     logger.warning('waiting for threads to finish')
     args.job_aborted.wait()
-    logger.warning('setting graceful stop (in case it was not set already), pilot will abort')
-    args.graceful_stop.set()
+
+
+def register_signals(signals, args):
+    """
+    Register kill signals for intercept function.
+
+    :param signals: list of signals.
+    :param args: pilot args.
+    :return:
+    """
+
+    for sig in signals:
+        signal.signal(sig, functools.partial(interrupt, args))
 
 
 def run(args):
@@ -96,20 +109,14 @@ def run(args):
     """
 
     logger.info('setting up signal handling')
-    signal.signal(signal.SIGINT, functools.partial(interrupt, args))
-    signal.signal(signal.SIGTERM, functools.partial(interrupt, args))
-    signal.signal(signal.SIGQUIT, functools.partial(interrupt, args))
-    signal.signal(signal.SIGSEGV, functools.partial(interrupt, args))
-    signal.signal(signal.SIGXCPU, functools.partial(interrupt, args))
-    signal.signal(signal.SIGUSR1, functools.partial(interrupt, args))
-    signal.signal(signal.SIGBUS, functools.partial(interrupt, args))
+    register_signals([signal.SIGINT, signal.SIGTERM, signal.SIGQUIT, signal.SIGSEGV, signal.SIGXCPU, signal.SIGUSR1, signal.SIGBUS], args)
 
     logger.info('setting up queues')
     queues = namedtuple('queues', ['jobs', 'payloads', 'data_in', 'data_out', 'current_data_in',
                                    'validated_jobs', 'validated_payloads', 'monitored_payloads',
                                    'finished_jobs', 'finished_payloads', 'finished_data_in', 'finished_data_out',
                                    'failed_jobs', 'failed_payloads', 'failed_data_in', 'failed_data_out',
-                                   'completed_jobs', 'completed_jobids'])
+                                   'completed_jobs', 'completed_jobids'])  #, 'interceptor_messages'])
 
     queues.jobs = queue.Queue()
     queues.payloads = queue.Queue()
@@ -133,6 +140,8 @@ def run(args):
 
     queues.completed_jobs = queue.Queue()
     queues.completed_jobids = queue.Queue()
+
+    # queues.interceptor_messages = queue.Queue()
 
     logger.info('setting up tracing')
     traces = namedtuple('traces', ['pilot'])
@@ -184,20 +193,10 @@ def run(args):
 
         abort = False
         if thread_count != threading.activeCount():
-            thread_count = threading.activeCount()
-            logger.debug('thread count now at %d threads' % thread_count)
-            logger.debug('enumerate: %s' % str(threading.enumerate()))
-            # count all non-daemon threads
-            daemon_threads = 0
-            for thread in threading.enumerate():
-                if thread.isDaemon():  # ignore any daemon threads, they will be aborted when python ends
-                    daemon_threads += 1
-            if thread_count - daemon_threads == 1:
-                logger.debug('aborting since there is[are] %d daemon thread[s] which can be ignored' % daemon_threads)
-                abort = True
-
-        if abort:
-            break
+            # has all threads finished?
+            abort = threads_aborted(abort_at=1)
+            if abort:
+                break
 
         sleep(1)
 

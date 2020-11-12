@@ -51,8 +51,22 @@ def get_setup_command(job, prepareasetup):
     :return:
     """
 
+    # if cvmfs is not available, assume that asetup is not needed
+    # note that there is an exception for sites (BOINC, some HPCs) that have cvmfs but still
+    # uses is_cvmfs=False.. these sites do not use containers, so check for that instead
+    if job.infosys.queuedata.is_cvmfs or not job.infosys.queuedata.container_type:
+        logger.debug('return asetup path as normal since: is_cvmfs=%s, job.container_type=%s' %
+                     (job.infosys.queuedata.is_cvmfs, job.infosys.queuedata.container_type))
+    else:
+        # if not job.infosys.queuedata.is_cvmfs:
+        logger.debug('will not return asetup path since: is_cvmfs=%s, job.container_type=%s' %
+                     (job.infosys.queuedata.is_cvmfs, job.infosys.queuedata.container_type))
+        return ""
+
     # return immediately if there is no release or if user containers are used
-    if job.swrelease == 'NULL' or '--containerImage' in job.jobparams:
+    # if job.swrelease == 'NULL' or (('--containerImage' in job.jobparams or job.imagename) and job.swrelease == 'NULL'):
+    if job.swrelease == 'NULL' or job.swrelease == '':
+        logger.debug('will not return asetup path since there is no swrelease set')
         return ""
 
     # Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
@@ -60,7 +74,9 @@ def get_setup_command(job, prepareasetup):
 
     if prepareasetup:
         options = get_asetup_options(job.swrelease, job.homepackage)
-        asetupoptions = " " + options + " --platform " + job.platform
+        asetupoptions = " " + options
+        if job.platform:
+            asetupoptions += " --platform " + job.platform
 
         # Always set the --makeflags option (to prevent asetup from overwriting it)
         asetupoptions += " --makeflags=\'$MAKEFLAGS\'"

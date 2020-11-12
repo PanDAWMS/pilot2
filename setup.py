@@ -1,8 +1,12 @@
+#!/usr/bin/env python
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
 #
-#
-# Setup for Pilot 2
-#
-#
+# Authors:
+# - Fernando Barreiro Megino, fernando.harald.barreiro.megino@cern.ch, 2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019-2020
 import sys
 
 from setuptools import setup, find_packages
@@ -17,14 +21,15 @@ setup(
     name="panda-pilot",
     version=release_version,
     description='PanDA Pilot 2',
-    long_description='''This package contains the PanDA pilot 2 code''',
+    long_description='''This package contains the PanDA Pilot 2 source code''',
     license='Apache License 2.0',
-    author='Panda Team',
+    author='PanDA Team',
     author_email='atlas-adc-panda@cern.ch',
     url='https://github.com/PanDAWMS/pilot2/wiki',
     python_requires='>=2.7',
     packages=find_packages(),
-    install_requires=[], # TODO: check with Paul the dependencies
-    data_files=[], # TODO: check with Paul if anything apart of the code needs to be installed
-    scripts=[]
+    install_requires=[],
+    data_files=[],
+    include_package_data=True,
+    scripts=['pilot.py']
     )

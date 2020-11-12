@@ -11,8 +11,9 @@ import os
 import time
 import signal
 import re
+import threading
 
-from pilot.util.auxiliary import get_logger
+# from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 from pilot.util.auxiliary import whoami
 from pilot.util.filehandling import read_file, remove_dir_tree
@@ -499,36 +500,6 @@ def get_current_cpu_consumption_time(pid):
     return cpuconsumptiontime
 
 
-def get_core_count(job):
-    """
-    Return the core count from ATHENA_PROC_NUMBER.
-
-    :param job: job object.
-    :return: core count (int).
-    """
-
-    log = get_logger(job.jobid)
-
-    if "HPC_HPC" in job.infosys.queuedata.catchall:
-        if job.corecount is None:
-            job.corecount = 0
-    else:
-        if job.corecount:
-            # Always use the ATHENA_PROC_NUMBER first, if set
-            if 'ATHENA_PROC_NUMBER' in os.environ:
-                try:
-                    job.corecount = int(os.environ.get('ATHENA_PROC_NUMBER'))
-                except Exception as e:
-                    log.warning("ATHENA_PROC_NUMBER is not properly set: %s (will use existing job.corecount value)" % e)
-        else:
-            try:
-                job.corecount = int(os.environ.get('ATHENA_PROC_NUMBER'))
-            except Exception:
-                log.warning("environment variable ATHENA_PROC_NUMBER is not set. corecount is not set")
-
-    return job.corecount
-
-
 def is_process_running(process_id):
     """
     Check whether process is still running.
@@ -544,7 +515,7 @@ def is_process_running(process_id):
         return False
 
 
-def cleanup(job):
+def cleanup(job, args):
     """
     Cleanup called after completion of job.
 
@@ -555,13 +526,16 @@ def cleanup(job):
     logger.info("overall cleanup function is called")
 
     # make sure the workdir is deleted
-    if remove_dir_tree(job.workdir):
-        logger.info('removed %s' % job.workdir)
+    if args.cleanup:
+        if remove_dir_tree(job.workdir):
+            logger.info('removed %s' % job.workdir)
 
-    if os.path.exists(job.workdir):
-        logger.warning('work directory still exists: %s' % job.workdir)
+        if os.path.exists(job.workdir):
+            logger.warning('work directory still exists: %s' % job.workdir)
+        else:
+            logger.debug('work directory was removed: %s' % job.workdir)
     else:
-        logger.debug('work directory was removed: %s' % job.workdir)
+        logger.info('workdir not removed %s' % job.workdir)
 
     # collect any zombie processes
     job.collect_zombies(tn=10)
@@ -571,3 +545,27 @@ def cleanup(job):
     kill_processes(job.pid)
     #logger.info("deleting job object")
     #del job
+
+
+def threads_aborted(abort_at=2):
+    """
+    Have the threads been aborted?
+
+    :param abort_at: 1 for workflow finish, 2 for thread finish (since check is done just before thread finishes) (int).
+    :return: Boolean.
+    """
+
+    aborted = False
+    thread_count = threading.activeCount()
+
+    # count all non-daemon threads
+    daemon_threads = 0
+    for thread in threading.enumerate():
+        if thread.isDaemon():  # ignore any daemon threads, they will be aborted when python ends
+            daemon_threads += 1
+
+    if thread_count - daemon_threads == abort_at:
+        logger.debug('aborting since the last relevant thread is about to finish')
+        aborted = True
+
+    return aborted

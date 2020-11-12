@@ -21,7 +21,7 @@ from copy import deepcopy
 
 from .common import resolve_common_transfer_errors, verify_catalog_checksum, get_timeout
 from pilot.common.exception import PilotException, StageOutFailure, ErrorCodes
-from pilot.util.timer import timeout
+from pilot.util.timer import timeout, TimedThread
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -64,13 +64,15 @@ def copy_in(files, **kwargs):
 
     ignore_errors = kwargs.get('ignore_errors')
     trace_report = kwargs.get('trace_report')
-    job = kwargs.get('job')
-    use_pcache = job.infosys.queuedata.use_pcache if job else False
+    use_pcache = kwargs.get('use_pcache')
+    #job = kwargs.get('job')
+    #use_pcache = job.infosys.queuedata.use_pcache if job else False
+    logger.debug('use_pcache=%s' % use_pcache)
 
     # don't spoil the output, we depend on stderr parsing
     os.environ['RUCIO_LOGGING_FORMAT'] = '%(asctime)s %(levelname)s [%(message)s]'
 
-    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', os.environ.get('DQ2_LOCAL_SITE_ID', None))
+    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', None)
     for fspec in files:
         logger.info('rucio copytool, downloading file with scope:%s lfn:%s' % (str(fspec.scope), str(fspec.lfn)))
         # update the trace report
@@ -78,7 +80,7 @@ def copy_in(files, **kwargs):
         trace_report.update(localSite=localsite, remoteSite=fspec.ddmendpoint, filesize=fspec.filesize)
         trace_report.update(filename=fspec.lfn, guid=fspec.guid.replace('-', ''))
         trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
-
+        trace_report.update(url=fspec.turl if fspec.turl else fspec.surl)
         trace_report.update(catStart=time())  ## is this metric still needed? LFC catalog
         fspec.status_code = 0
         dst = fspec.workdir or kwargs.get('workdir') or '.'
@@ -92,7 +94,7 @@ def copy_in(files, **kwargs):
         error_msg = ""
         ec = 0
         try:
-            ec, trace_report_out = timeout(ctimeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out, transfer_timeout, use_pcache)
+            ec, trace_report_out = timeout(ctimeout, timer=TimedThread)(_stage_in_api)(dst, fspec, trace_report, trace_report_out, transfer_timeout, use_pcache)
             #_stage_in_api(dst, fspec, trace_report, trace_report_out)
         except Exception as error:
             error_msg = str(error)
@@ -155,9 +157,16 @@ def handle_rucio_error(error_msg, trace_report, trace_report_out, fspec, stagein
     """
 
     # try to get a better error message from the traces
+    error_msg_org = error_msg
     if trace_report_out:
+        logger.debug('reading stateReason from trace_report_out: %s' % trace_report_out)
         error_msg = trace_report_out[0].get('stateReason', '')
-    logger.info('rucio returned an error: %s' % error_msg)
+        if not error_msg:
+            logger.warning('could not extract error message from trace report - reverting to original error message')
+            error_msg = error_msg_org
+    else:
+        logger.debug('no trace_report_out')
+    logger.info('rucio returned an error: \"%s\"' % error_msg)
 
     error_details = resolve_common_transfer_errors(error_msg, is_stagein=stagein)
     fspec.status = 'failed'
@@ -200,7 +209,7 @@ def copy_in_bulk(files, **kwargs):
         # If there was Exception from Rucio, but still some traces returned, we continue to VALIDATION section
         if not trace_report_out:
             trace_report = deepcopy(trace_common_fields)
-            localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', os.environ.get('DQ2_LOCAL_SITE_ID', None))
+            localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', None)
             diagnostics = 'None of the traces received from Rucio. Response from Rucio: %s' % error_msg
             for fspec in files:
                 localsite = localsite if localsite else fspec.ddmendpoint
@@ -307,7 +316,7 @@ def copy_out(files, **kwargs):  # noqa: C901
     ignore_errors = kwargs.pop('ignore_errors', False)
     trace_report = kwargs.get('trace_report')
 
-    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', os.environ.get('DQ2_LOCAL_SITE_ID', None))
+    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', None)
     for fspec in files:
         logger.info('rucio copytool, uploading file with scope: %s and lfn: %s' % (str(fspec.scope), str(fspec.lfn)))
         localsite = localsite if localsite else fspec.ddmendpoint
@@ -330,7 +339,7 @@ def copy_out(files, **kwargs):  # noqa: C901
         error_msg = ""
         ec = 0
         try:
-            ec, trace_report_out = timeout(ctimeout)(_stage_out_api)(fspec, summary_file_path, trace_report, trace_report_out, transfer_timeout)
+            ec, trace_report_out = timeout(ctimeout, TimedThread)(_stage_out_api)(fspec, summary_file_path, trace_report, trace_report_out, transfer_timeout)
             #_stage_out_api(fspec, summary_file_path, trace_report, trace_report_out)
         except PilotException as error:
             error_msg = str(error)
@@ -369,6 +378,7 @@ def copy_out(files, **kwargs):  # noqa: C901
                     summary_json = json.load(f)
                     dat = summary_json.get("%s:%s" % (fspec.scope, fspec.lfn)) or {}
                     fspec.turl = dat.get('pfn')
+                    logger.debug('set turl=%s' % fspec.turl)
                     # quick transfer verification:
                     # the logic should be unified and moved to base layer shared for all the movers
                     adler32 = dat.get('adler32')
@@ -428,20 +438,23 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout, 
 
     if transfer_timeout:
         f['transfer_timeout'] = transfer_timeout
+    f['connection_timeout'] = 60 * 60
 
     # proceed with the download
-    logger.info('_stage_in_api file: %s' % str(f))
+    logger.info('rucio API stage-in dictionary: %s' % f)
     trace_pattern = {}
     if trace_report:
         trace_pattern = trace_report
 
     # download client raises an exception if any file failed
     try:
+        logger.info('*** rucio API downloading file (taking over logging) ***')
         if fspec.turl:
             result = download_client.download_pfns([f], 1, trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
         else:
             result = download_client.download_dids([f], trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
     except Exception as e:
+        logger.warning('*** rucio API download client failed ***')
         logger.warning('caught exception: %s' % e)
         logger.debug('trace_report_out=%s' % trace_report_out)
         # only raise an exception if the error info cannot be extracted
@@ -451,7 +464,8 @@ def _stage_in_api(dst, fspec, trace_report, trace_report_out, transfer_timeout, 
             raise e
         ec = -1
     else:
-        logger.debug('Rucio download client returned %s' % result)
+        logger.info('*** rucio API download client finished ***')
+        logger.debug('client returned %s' % result)
 
     logger.debug('trace_report_out=%s' % trace_report_out)
 
@@ -498,6 +512,7 @@ def _stage_in_bulk(dst, files, trace_report_out=None, trace_common_fields=None):
 
         if fspec.filesize:
             f['transfer_timeout'] = get_timeout(fspec.filesize)
+        f['connection_timeout'] = 60 * 60
 
         file_list.append(f)
 
@@ -506,8 +521,21 @@ def _stage_in_bulk(dst, files, trace_report_out=None, trace_common_fields=None):
 
     # download client raises an exception if any file failed
     num_threads = len(file_list)
-    result = download_client.download_pfns(file_list, num_threads, trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
-    logger.debug('Rucio download client returned %s' % result)
+    logger.info('*** rucio API downloading files (taking over logging) ***')
+    try:
+        result = download_client.download_pfns(file_list, num_threads, trace_custom_fields=trace_pattern, traces_copy_out=trace_report_out)
+    except Exception as e:
+        logger.warning('*** rucio API download client failed ***')
+        logger.warning('caught exception: %s' % e)
+        logger.debug('trace_report_out=%s' % trace_report_out)
+        # only raise an exception if the error info cannot be extracted
+        if not trace_report_out:
+            raise e
+        if not trace_report_out[0].get('stateReason'):
+            raise e
+    else:
+        logger.info('*** rucio API download client finished ***')
+        logger.debug('client returned %s' % result)
 
 
 def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, transfer_timeout):
@@ -533,6 +561,7 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, tra
 
     if transfer_timeout:
         f['transfer_timeout'] = transfer_timeout
+    f['connection_timeout'] = 60 * 60
 
     # if fspec.storageId and int(fspec.storageId) > 0:
     #     if fspec.turl and fspec.is_nondeterministic:
@@ -542,14 +571,19 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, tra
     if fspec.lfn and '.root' in fspec.lfn:
         f['guid'] = fspec.guid
 
-    # process with the upload
-    logger.info('_stage_out_api: %s' % str(f))
+    logger.info('rucio API stage-out dictionary: %s' % f)
 
     # upload client raises an exception if any file failed
     try:
+        logger.info('*** rucio API uploading file (taking over logging) ***')
+        logger.debug('summary_file_path=%s' % summary_file_path)
+        logger.debug('trace_report_out=%s' % trace_report_out)
         result = upload_client.upload([f], summary_file_path=summary_file_path, traces_copy_out=trace_report_out)
     except Exception as e:
+        logger.warning('*** rucio API upload client failed ***')
         logger.warning('caught exception: %s' % e)
+        import traceback
+        logger.error(traceback.format_exc())
         logger.debug('trace_report_out=%s' % trace_report_out)
         if not trace_report_out:
             raise e
@@ -557,17 +591,19 @@ def _stage_out_api(fspec, summary_file_path, trace_report, trace_report_out, tra
             raise e
         ec = -1
     except UnboundLocalError:
+        logger.warning('*** rucio API upload client failed ***')
         logger.warning('rucio still needs a bug fix of the summary in the uploadclient')
     else:
-        logger.debug('Rucio upload client returned %s' % result)
+        logger.warning('*** rucio API upload client finished ***')
+        logger.debug('client returned %s' % result)
 
     try:
         file_exists = verify_stage_out(fspec)
-        logger.info('File exists at the storage: %s' % str(file_exists))
+        logger.info('file exists at the storage: %s' % str(file_exists))
         if not file_exists:
-            raise StageOutFailure('stageOut: Physical check after upload failed.')
+            raise StageOutFailure('physical check after upload failed')
     except Exception as e:
-        msg = 'stageOut: File existence verification failed with: %s' % str(e)
+        msg = 'file existence verification failed with: %s' % e
         logger.info(msg)
         raise StageOutFailure(msg)
 

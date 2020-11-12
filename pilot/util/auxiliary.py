@@ -23,7 +23,7 @@ except NameError:
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.container import execute
-from pilot.util.constants import SUCCESS, FAILURE, SERVER_UPDATE_FINAL, SERVER_UPDATE_NOT_DONE, get_pilot_version
+from pilot.util.constants import SUCCESS, FAILURE, SERVER_UPDATE_FINAL, SERVER_UPDATE_NOT_DONE, SERVER_UPDATE_TROUBLE, get_pilot_version
 from pilot.util.filehandling import dump
 
 import logging
@@ -189,22 +189,12 @@ def get_logger(job_id, log=None):
     return log
 
 
-def shell_exit_code(exit_code):
+def get_error_code_translation_dictionary():
     """
-    Translate the pilot exit code to a proper exit code for the shell (wrapper).
-    Any error code that is to be converted by this function, should be added to the traces object like:
-      traces.pilot['error_code'] = errors.<ERRORCODE>
-    The traces object will be checked by the pilot module.
+    Define the error code translation dictionary.
 
-    :param exit_code: pilot error code (int).
-    :return: standard shell exit code (int).
+    :return: populated error code translation dictionary.
     """
-
-    # Error code translation dictionary
-    # FORMAT: { pilot_error_code : [ shell_error_code, meaning ], .. }
-
-    # Restricting user (pilot) exit codes to the range 64 - 113, as suggested by http://tldp.org/LDP/abs/html/exitcodes.html
-    # Using exit code 137 for kill signal error codes (this actually means a hard kill signal 9, (128+9), 128+2 would mean CTRL+C)
 
     error_code_translation_dictionary = {
         -1: [64, "Site offline"],
@@ -222,6 +212,7 @@ def shell_exit_code(exit_code):
         errors.BLACKHOLE: [75, "Black hole detected in file system"],  # ..
         errors.MIDDLEWAREIMPORTFAILURE: [76, "Failed to import middleware module"],  # added to traces object
         errors.MISSINGINPUTFILE: [77, "Missing input file in SE"],  # should pilot report this type of error to wrapper?
+        errors.PANDAQUEUENOTACTIVE: [78, "PanDA queue is not active"],
         errors.KILLSIGNAL: [137, "General kill signal"],  # Job terminated by unknown kill signal
         errors.SIGTERM: [143, "Job killed by signal: SIGTERM"],  # 128+15
         errors.SIGQUIT: [131, "Job killed by signal: SIGQUIT"],  # 128+3
@@ -231,13 +222,56 @@ def shell_exit_code(exit_code):
         errors.SIGBUS: [138, "Job killed by signal: SIGBUS"]   # 128+10
     }
 
+    return error_code_translation_dictionary
+
+
+def shell_exit_code(exit_code):
+    """
+    Translate the pilot exit code to a proper exit code for the shell (wrapper).
+    Any error code that is to be converted by this function, should be added to the traces object like:
+      traces.pilot['error_code'] = errors.<ERRORCODE>
+    The traces object will be checked by the pilot module.
+
+    :param exit_code: pilot error code (int).
+    :return: standard shell exit code (int).
+    """
+
+    # Error code translation dictionary
+    # FORMAT: { pilot_error_code : [ shell_error_code, meaning ], .. }
+
+    # Restricting user (pilot) exit codes to the range 64 - 113, as suggested by http://tldp.org/LDP/abs/html/exitcodes.html
+    # Using exit code 137 for kill signal error codes (this actually means a hard kill signal 9, (128+9), 128+2 would mean CTRL+C)
+
+    error_code_translation_dictionary = get_error_code_translation_dictionary()
+
     if exit_code in error_code_translation_dictionary:
         return error_code_translation_dictionary.get(exit_code)[0]  # Only return the shell exit code, not the error meaning
     elif exit_code != 0:
-        print("no translation to shell exit code for error code %d" % (exit_code))
+        print("no translation to shell exit code for error code %d" % exit_code)
         return FAILURE
     else:
         return SUCCESS
+
+
+def convert_to_pilot_error_code(exit_code):
+    """
+    This conversion function is used to revert a batch system exit code back to a pilot error code.
+    Note: the function is used by Harvester.
+
+    :param exit_code: batch system exit code (int).
+    :return: pilot error code (int).
+    """
+    error_code_translation_dictionary = get_error_code_translation_dictionary()
+
+    list_of_keys = [key for (key, value) in error_code_translation_dictionary.items() if value[0] == exit_code]
+    # note: do not use logging object as this function is used by Harvester
+    if not list_of_keys:
+        print('unknown exit code: %d (no matching pilot error code)' % exit_code)
+        list_of_keys = [-1]
+    elif len(list_of_keys) > 1:
+        print('found multiple pilot error codes: %s' % list_of_keys)
+
+    return list_of_keys[0]
 
 
 def get_size(obj_0):
@@ -334,7 +368,8 @@ def check_for_final_server_update(update_server):
         return
 
     while i < max_i and update_server:
-        if os.environ.get('SERVER_UPDATE', '') == SERVER_UPDATE_FINAL:
+        server_update = os.environ.get('SERVER_UPDATE', '')
+        if server_update == SERVER_UPDATE_FINAL or server_update == SERVER_UPDATE_TROUBLE:
             logger.info('server update done, finishing')
             break
         logger.info('server update not finished (#%d/#%d)' % (i + 1, max_i))
@@ -350,3 +385,79 @@ def is_python3():
     """
 
     return sys.version_info >= (3, 0)
+
+
+def get_resource_name():
+    """
+    Return the name of the resource (only set for HPC resources; e.g. Cori, otherwise return 'grid').
+
+    :return: resource_name (string).
+    """
+
+    resource_name = os.environ.get('PILOT_RESOURCE_NAME', '').lower()
+    if not resource_name:
+        resource_name = 'grid'
+    return resource_name
+
+
+def get_object_size(obj, seen=None):
+    """
+    Recursively find the size of any objects
+
+    :param obj: object.
+    """
+
+    size = sys.getsizeof(obj)
+    if seen is None:
+        seen = set()
+    obj_id = id(obj)
+    if obj_id in seen:
+        return 0
+
+    # Important mark as seen *before* entering recursion to gracefully handle
+    # self-referential objects
+    seen.add(obj_id)
+    if isinstance(obj, dict):
+        size += sum([get_object_size(v, seen) for v in obj.values()])
+        size += sum([get_object_size(k, seen) for k in obj.keys()])
+    elif hasattr(obj, '__dict__'):
+        size += get_object_size(obj.__dict__, seen)
+    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
+        size += sum([get_object_size(i, seen) for i in obj])
+
+    return size
+
+
+def get_memory_usage(pid):
+    """
+    Return the memory usage string (ps auxf <pid>) for the given process.
+
+    :param pid: process id (int).
+    :return: ps exit code (int), stderr (strint), stdout (string).
+    """
+
+    return execute('ps aux -q %d' % pid)
+
+
+def extract_memory_usage_value(output):
+    """
+    Extract the memory usage value from the ps output (in kB).
+
+    # USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+    # usatlas1 13917  1.5  0.0 1324968 152832 ?      Sl   09:33   2:55 /bin/python2 ..
+    # -> 152832 (kB)
+
+    :param output: ps output (string).
+    :return: memory value in kB (int).
+    """
+
+    memory_usage = 0
+    for row in output.split('\n'):
+        try:
+            memory_usage = int(" ".join(row.split()).split(' ')[5])
+        except Exception:
+            pass
+        else:
+            break
+
+    return memory_usage

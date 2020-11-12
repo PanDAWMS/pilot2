@@ -9,6 +9,7 @@
 
 import os
 import re
+import glob
 from time import sleep
 
 from pilot.common.errorcodes import ErrorCodes
@@ -16,7 +17,7 @@ from pilot.common.exception import NoSoftwareDir
 from pilot.info import infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
-from pilot.util.filehandling import read_file, write_file
+from pilot.util.filehandling import read_file, write_file, copy
 
 from .metadata import get_file_info_from_xml
 
@@ -38,48 +39,56 @@ def get_file_system_root_path():
     return os.environ.get('ATLAS_SW_BASE', '/cvmfs')
 
 
-def should_pilot_prepare_asetup(noexecstrcnv, jobpars):
+def should_pilot_prepare_setup(noexecstrcnv, jobpars, imagename=None):
     """
-    Determine whether the pilot should add the asetup to the payload command or not.
+    Determine whether the pilot should add the setup to the payload command or not.
     The pilot will not add asetup if jobPars already contain the information (i.e. it was set by the payload creator).
     If noExecStrCnv is set, then jobPars is expected to contain asetup.sh + options
+    If a stand-alone container / user defined container is used, pilot should not prepare asetup.
 
-    :param noexecstrcnv: boolean
-    :param jobpars: string
-    :return: boolean
+    :param noexecstrcnv: boolean.
+    :param jobpars: job parameters (string).
+    :param imagename: container image (string).
+    :return: boolean.
     """
 
-    prepareasetup = True
+    if imagename:
+        return False
+
     if noexecstrcnv:
         if "asetup.sh" in jobpars:
             logger.info("asetup will be taken from jobPars")
-            prepareasetup = False
+            preparesetup = False
         else:
             logger.info("noExecStrCnv is set but asetup command was not found in jobPars (pilot will prepare asetup)")
-            prepareasetup = True
+            preparesetup = True
     else:
-        logger.info("pilot will prepare asetup")
-        prepareasetup = True
+        logger.info("pilot will prepare the setup")
+        preparesetup = True
 
-    return prepareasetup
+    return preparesetup
 
 
-def get_alrb_export():
+def get_alrb_export(add_if=False):
     """
     Return the export command for the ALRB path if it exists.
     If the path does not exist, return empty string.
+
+    :param add_if: Boolean. True means that an if statement will be placed around the export.
     :return: export command
     """
 
     path = "%s/atlas.cern.ch/repo" % get_file_system_root_path()
-    if os.path.exists(path):
-        cmd = "export ATLAS_LOCAL_ROOT_BASE=%s/ATLASLocalRootBase;" % path
-    else:
-        cmd = ""
+    cmd = "export ATLAS_LOCAL_ROOT_BASE=%s/ATLASLocalRootBase;" % path if os.path.exists(path) else ""
+
+    # if [ -z "$ATLAS_LOCAL_ROOT_BASE" ]; then export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase; fi;
+    if cmd and add_if:
+        cmd = 'if [ -z \"$ATLAS_LOCAL_ROOT_BASE\" ]; then ' + cmd + ' fi;'
+
     return cmd
 
 
-def get_asetup(asetup=True, alrb=False):
+def get_asetup(asetup=True, alrb=False, add_if=False):
     """
     Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
     Only include the actual asetup script if asetup=True. This is not needed if the jobPars contain the payload command
@@ -87,12 +96,13 @@ def get_asetup(asetup=True, alrb=False):
 
     :param asetup: Boolean. True value means that the pilot should include the asetup command.
     :param alrb: Boolean. True value means that the function should return special setup used with ALRB and containers.
+    :param add_if: Boolean. True means that an if statement will be placed around the export.
     :raises: NoSoftwareDir if appdir does not exist.
     :return: source <path>/asetup.sh (string).
     """
 
     cmd = ""
-    alrb_cmd = get_alrb_export()
+    alrb_cmd = get_alrb_export(add_if=add_if)
     if alrb_cmd != "":
         cmd = alrb_cmd
         if not alrb:
@@ -114,6 +124,10 @@ def get_asetup(asetup=True, alrb=False):
                 raise NoSoftwareDir(msg)
             if asetup:
                 cmd = "source %s/scripts/asetup.sh" % appdir
+
+    # do not return an empty string
+    #if not cmd:
+    #    cmd = "what?"
 
     return cmd
 
@@ -202,13 +216,30 @@ def get_analysis_trf(transform, workdir):
     ec = 0
     diagnostics = ""
 
-    #pilot_initdir = os.environ.get('PILOT_HOME', '')
+    # test if $HARVESTER_WORKDIR is set
+    harvester_workdir = os.environ.get('HARVESTER_WORKDIR')
+    if harvester_workdir is not None:
+        search_pattern = "%s/jobO.*.tar.gz" % harvester_workdir
+        logger.debug("search_pattern - %s" % search_pattern)
+        jobopt_files = glob.glob(search_pattern)
+        for jobopt_file in jobopt_files:
+            logger.debug("jobopt_file = %s workdir = %s" % (jobopt_file, workdir))
+            try:
+                copy(jobopt_file, workdir)
+            except Exception as e:
+                logger.error("could not copy file %s to %s : %s" % (jobopt_file, workdir, e))
+
     if '/' in transform:
         transform_name = transform.split('/')[-1]
     else:
-        logger.warning('did not detect any / in %s (using full transform name)' % (transform))
+        logger.warning('did not detect any / in %s (using full transform name)' % transform)
         transform_name = transform
-    logger.debug("transform_name = %s" % (transform_name))
+
+    # is the command already available? (e.g. if already downloaded by a preprocess/main process step)
+    if os.path.exists(os.path.join(workdir, transform_name)):
+        logger.info('script %s is already available - no need to download again' % transform_name)
+        return ec, diagnostics, transform_name
+
     original_base_url = ""
 
     # verify the base URL
@@ -218,16 +249,14 @@ def get_analysis_trf(transform, workdir):
             break
 
     if original_base_url == "":
-        diagnostics = "invalid base URL: %s" % (transform)
+        diagnostics = "invalid base URL: %s" % transform
         return errors.TRFDOWNLOADFAILURE, diagnostics, ""
-    else:
-        logger.debug("verified the trf base url: %s" % (original_base_url))
 
     # try to download from the required location, if not - switch to backup
     status = False
     for base_url in get_valid_base_urls(order=original_base_url):
         trf = re.sub(original_base_url, base_url, transform)
-        logger.debug("attempting to download trf: %s" % (trf))
+        logger.debug("attempting to download script: %s" % trf)
         status, diagnostics = download_transform(trf, transform_name, workdir)
         if status:
             break
@@ -235,7 +264,7 @@ def get_analysis_trf(transform, workdir):
     if not status:
         return errors.TRFDOWNLOADFAILURE, diagnostics, ""
 
-    logger.info("successfully downloaded transform")
+    logger.info("successfully downloaded script")
     path = os.path.join(workdir, transform_name)
     logger.debug("changing permission of %s to 0o755" % path)
     try:
@@ -263,6 +292,20 @@ def download_transform(url, transform_name, workdir):
     trial = 1
     max_trials = 3
 
+    # test if $HARVESTER_WORKDIR is set
+    harvester_workdir = os.environ.get('HARVESTER_WORKDIR')
+    if harvester_workdir is not None:
+        # skip curl by setting max_trials = 0
+        max_trials = 0
+        source_path = os.path.join(harvester_workdir, transform_name)
+        try:
+            copy(source_path, path)
+            status = True
+        except Exception as error:
+            status = False
+            diagnostics = "Failed to copy file %s to %s : %s" % (source_path, path, error)
+            logger.error(diagnostics)
+
     # try to download the trf a maximum of 3 times
     while trial <= max_trials:
         logger.info("executing command [trial %d/%d]: %s" % (trial, max_trials, cmd))
@@ -282,7 +325,7 @@ def download_transform(url, transform_name, workdir):
                 logger.info("will try again after 60 s")
                 sleep(60)
         else:
-            logger.info("curl command returned: %s" % (stdout))
+            logger.info("curl command returned: %s" % stdout)
             status = True
             break
         trial += 1
@@ -341,7 +384,7 @@ def get_payload_environment_variables(cmd, job_id, task_id, attempt_nr, processi
     variables.append('export PANDA_RESOURCE=\'%s\';' % site_name)
     variables.append('export FRONTIER_ID=\"[%s_%s]\";' % (task_id, job_id))
     variables.append('export CMSSW_VERSION=$FRONTIER_ID;')
-    variables.append('export PandaID=\'%s\';' % os.environ.get('PandaID', 'unknown'))
+    variables.append('export PandaID=%s;' % os.environ.get('PANDAID', 'unknown'))
     variables.append('export PanDA_TaskID=\'%s\';' % os.environ.get('PanDA_TaskID', 'unknown'))
     variables.append('export PanDA_AttemptNr=\'%d\';' % attempt_nr)
     variables.append('export INDS=\'%s\';' % os.environ.get('INDS', 'unknown'))

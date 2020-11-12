@@ -21,7 +21,7 @@ from pilot.util.math import convert_mb_to_b
 from pilot.util.workernode import get_local_disk_space
 
 from .common import update_job_data, parse_jobreport_data
-from .metadata import get_metadata_from_xml, get_total_number_of_events
+from .metadata import get_metadata_from_xml, get_total_number_of_events, get_guid_from_xml
 
 import logging
 logger = logging.getLogger(__name__)
@@ -53,6 +53,11 @@ def interpret(job):
     if exit_code == 146:
         log.warning('user tarball was not downloaded (payload exit code %d)' % exit_code)
         set_error_nousertarball(job)
+    elif exit_code == 160:
+        log.info('ignoring harmless preprocess exit code %d' % exit_code)
+        job.transexitcode = 0
+        job.exitcode = 0
+        exit_code = 0
 
     # extract special information, e.g. number of events
     try:
@@ -512,6 +517,46 @@ def extract_tarball_url(_tail):
     return tarball_url
 
 
+def process_metadata_from_xml(job):
+    """
+    Extract necessary metadata from XML when job report is not available.
+
+    :param job: job object.
+    :return: [updated job object - return not needed].
+    """
+
+    log = get_logger(job.jobid)
+
+    # get the metadata from the xml file instead, which must exist for most production transforms
+    path = os.path.join(job.workdir, config.Payload.metadata)
+    if os.path.exists(path):
+        job.metadata = read_file(path)
+    else:
+        if not job.is_analysis() and job.transformation != 'Archive_tf.py':
+            diagnostics = 'metadata does not exist: %s' % path
+            log.warning(diagnostics)
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOPAYLOADMETADATA)
+            job.piloterrorcode = errors.NOPAYLOADMETADATA
+            job.piloterrordiag = diagnostics
+
+    # add missing guids
+    for dat in job.outdata:
+        if not dat.guid:
+            # try to read it from the metadata before the last resort of generating it
+            metadata = None
+            try:
+                metadata = get_metadata_from_xml(job.workdir)
+            except Exception as e:
+                msg = "Exception caught while interpreting XML: %s (ignoring it, but guids must now be generated)" % e
+                log.warning(msg)
+            if metadata:
+                dat.guid = get_guid_from_xml(metadata, dat.lfn)
+                log.info('read guid for lfn=%s from xml: %s' % (dat.lfn, dat.guid))
+            else:
+                dat.guid = get_guid()
+                log.info('generated guid for lfn=%s: %s' % (dat.lfn, dat.guid))
+
+
 def process_job_report(job):
     """
     Process the job report produced by the payload/transform if it exists.
@@ -529,26 +574,10 @@ def process_job_report(job):
     # get the job report
     path = os.path.join(job.workdir, config.Payload.jobreport)
     if not os.path.exists(path):
-        log.warning('job report does not exist: %s (any missing output file guids must be generated)' % path)
+        log.warning('job report does not exist: %s' % path)
 
         # get the metadata from the xml file instead, which must exist for most production transforms
-        path = os.path.join(job.workdir, config.Payload.metadata)
-        if os.path.exists(path):
-            job.metadata = read_file(path)
-        else:
-            if not job.is_analysis() and job.transformation != 'Archive_tf.py':
-                diagnostics = 'metadata does not exist: %s' % path
-                log.warning(diagnostics)
-                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOPAYLOADMETADATA)
-                job.piloterrorcode = errors.NOPAYLOADMETADATA
-                job.piloterrordiag = diagnostics
-
-        # add missing guids
-        for dat in job.outdata:
-            if not dat.guid:
-                dat.guid = get_guid()
-                log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
-
+        process_metadata_from_xml(job)
     else:
         with open(path) as data_file:
             # compulsory field; the payload must produce a job report (see config file for file name), attach it to the

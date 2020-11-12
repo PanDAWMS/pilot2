@@ -35,7 +35,7 @@ class _ConfigurationSection(object):
         if attr in self.__dict__:
             return self.__dict__[attr]
         else:
-            raise AttributeError('Setting \"%s\" does not exist in the section' % attr)
+            raise AttributeError('Setting \"%s\" does not exist in the section; __dict__=%s' % (attr, self.__dict__))
 
 
 def read(config_file):

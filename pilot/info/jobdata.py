@@ -30,8 +30,9 @@ from time import sleep
 
 from .basedata import BaseData
 from .filespec import FileSpec
+from pilot.util.auxiliary import get_object_size
 from pilot.util.constants import LOG_TRANSFER_NOT_DONE
-from pilot.util.filehandling import get_guid
+from pilot.util.filehandling import get_guid, get_valid_path_from_list
 from pilot.util.timing import get_elapsed_real_time
 
 import logging
@@ -58,6 +59,7 @@ class JobData(BaseData):
     platform = ""                  # cmtconfig value from the task definition
     is_eventservice = False        # True for event service jobs
     is_eventservicemerge = False   # True for event service merge jobs
+    is_hpo = False                 # True for HPO jobs
     transfertype = ""              # direct access instruction from server
     accessmode = ""                # direct access instruction from jobparams
     processingtype = ""            # e.g. nightlies
@@ -65,7 +67,7 @@ class JobData(BaseData):
     allownooutput = ""             # used to disregard empty files from job report
 
     # set by the pilot (not from job definition)
-    workdir = ""                   # working directoty for this job
+    workdir = ""                   # working directory for this job
     workdirsizes = []              # time ordered list of work dir sizes
     fileinfo = {}                  #
     piloterrorcode = 0             # current pilot error code
@@ -94,9 +96,11 @@ class JobData(BaseData):
     pgrp = None                    # payload process group
     sizes = {}                     # job object sizes { timestamp: size, .. }
     command = ""                   # full payload command (set for container jobs)
+    setup = ""                     # full payload setup (needed by postprocess command)
     zombies = []                   # list of zombie process ids
     memorymonitor = ""             # memory monitor name, e.g. prmon
     actualcorecount = 0            # number of cores actually used by the payload
+    corecounts = []                # keep track of all actual core count measurements
 
     # time variable used for on-the-fly cpu consumption time measurements done by job monitoring
     t0 = None                      # payload startup time
@@ -105,7 +109,8 @@ class JobData(BaseData):
     overwrite_storagedata = {}     # custom settings extracted from job parameters (--overwriteStorageData) to be used as master values for `StorageData`
 
     zipmap = ""                    # ZIP MAP values extracted from jobparameters
-    imagename = ""                 # user defined container image name extracted from job parameters
+    imagename = ""                 # container image name extracted from job parameters or job definition
+    imagename_jobdef = ""
     usecontainer = False           # boolean, True if a container is to be used for the payload
 
     # from job definition
@@ -119,6 +124,11 @@ class JobData(BaseData):
     indata = []                    # list of `FileSpec` objects for input files (aggregated inFiles, ddmEndPointIn, scopeIn, filesizeIn, etc)
     outdata = []                   # list of `FileSpec` objects for output files
     logdata = []                   # list of `FileSpec` objects for log file(s)
+    preprocess = {}                # preprocess dictionary with command to execute before payload, {'command': '..', 'args': '..'}
+    postprocess = {}               # postprocess dictionary with command to execute after payload, {'command': '..', 'args': '..'}
+    coprocess = {}                 # coprocess dictionary with command to execute during payload, {'command': '..', 'args': '..'}
+    containeroptions = {}          #
+    use_vp = False                 # True for VP jobs
 
     # home package string with additional payload release information; does not need to be added to
     # the conversion function since it's already lower case
@@ -141,12 +151,13 @@ class JobData(BaseData):
                    'state', 'serverstate', 'workdir', 'stageout',
                    'platform', 'piloterrordiag', 'exitmsg', 'produserid', 'jobdefinitionid', 'writetofile',
                    'cpuconsumptionunit', 'homepackage', 'jobsetid', 'payload', 'processingtype',
-                   'swrelease', 'zipmap', 'imagename', 'accessmode', 'transfertype',
+                   'swrelease', 'zipmap', 'imagename', 'imagename_jobdef', 'accessmode', 'transfertype',
                    'datasetin',    ## TO BE DEPRECATED: moved to FileSpec (job.indata)
                    'infilesguids', 'memorymonitor', 'allownooutput'],
-             list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'zombies'],
-             dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes'],
-             bool: ['is_eventservice', 'is_eventservicemerge', 'noexecstrcnv', 'debug', 'usecontainer']
+             list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'zombies', 'corecounts'],
+             dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes', 'preprocess',
+                    'postprocess', 'coprocess', 'containeroptions'],
+             bool: ['is_eventservice', 'is_eventservicemerge', 'is_hpo', 'noexecstrcnv', 'debug', 'usecontainer', 'use_vp']
              }
 
     def __init__(self, data):
@@ -156,57 +167,77 @@ class JobData(BaseData):
 
         self.infosys = None  # reference to Job specific InfoService instance
         self._rawdata = data
-
         self.load(data)
 
+        # for native HPO pilot support
+        if self.is_hpo and False:
+            self.is_eventservice = True
+
     def init(self, infosys):
-
+        """
+            :param infosys: infosys object
+        """
         self.infosys = infosys
-
         self.indata = self.prepare_infiles(self._rawdata)
         self.outdata, self.logdata = self.prepare_outfiles(self._rawdata)
 
-        #logger.debug('Final parsed Job content:\n%s' % self)
+        # overwrites
+        if self.imagename_jobdef and not self.imagename:
+            logger.debug('using imagename_jobdef as imagename (\"%s\")' % (self.imagename_jobdef))
+            self.imagename = self.imagename_jobdef
+        elif self.imagename_jobdef and self.imagename:
+            logger.debug('using imagename from jobparams (ignoring imagename_jobdef)')
+        elif not self.imagename_jobdef and self.imagename:
+            logger.debug('using imagename from jobparams (imagename_jobdef not set)')
 
-    def prepare_infiles(self, data):  # noqa: C901
+        if self.imagename:
+            # prepend IMAGE_BASE to imagename if necessary (for testing purposes)
+            image_base = os.environ.get('IMAGE_BASE', '')
+            if not image_base and 'IMAGE_BASE' in infosys.queuedata.catchall:
+                image_base = self.get_key_value(infosys.queuedata.catchall, key='IMAGE_BASE')
+            if image_base:
+                paths = [os.path.join(image_base, os.path.basename(self.imagename)),
+                         os.path.join(image_base, self.imagename)]
+                local_path = get_valid_path_from_list(paths)
+                if local_path:
+                    self.imagename = local_path
+            #if image_base and not os.path.isabs(self.imagename) and not self.imagename.startswith('docker'):
+            #    self.imagename = os.path.join(image_base, self.imagename)
+
+    def get_key_value(self, catchall, key='SOMEKEY'):
+        """
+        Return the value corresponding to key in catchall.
+        :param catchall: catchall free string.
+        :param key: key name (string).
+        :return: value (string).
+        """
+
+        # ignore any non-key-value pairs that might be present in the catchall string
+        s = dict(s.split('=', 1) for s in catchall.split() if '=' in s)
+
+        return s.get(key)
+
+    def prepare_infiles(self, data):
         """
             Construct FileSpec objects for input files from raw dict `data`
             :return: list of validated `FileSpec` objects
         """
 
         # direct access handling
-        self.accessmode = None
-        if '--accessmode=direct' in self.jobparams:
-            self.accessmode = 'direct'
-        if '--accessmode=copy' in self.jobparams or '--useLocalIO' in self.jobparams:
-            self.accessmode = 'copy'
+        self.set_accessmode()
 
         access_keys = ['allow_lan', 'allow_wan', 'direct_access_lan', 'direct_access_wan']
         if not self.infosys or not self.infosys.queuedata:
-            dat = dict([k, getattr(FileSpec, k, None)] for k in access_keys)
-            try:
-                msg = ', '.join(["%s=%s" % (k, v) for k, v in sorted(dat.iteritems())])  # Python 2
-            except Exception:
-                msg = ', '.join(["%s=%s" % (k, v) for k, v in sorted(dat.items())])  # Python 3
-            logger.info('job.infosys.queuedata is not initialized: following access settings will be used by default: %s' % msg)
+            self.show_access_settings(access_keys)
 
         # form raw list data from input comma-separated values for further validation by FileSpec
-        kmap = {
-            # 'internal_name': 'ext_key_structure'
-            'lfn': 'inFiles',
-            ##'??': 'dispatchDblock', '??define_proper_internal_name': 'dispatchDBlockToken',
-            'dataset': 'realDatasetsIn', 'guid': 'GUID',
-            'filesize': 'fsize', 'checksum': 'checksum', 'scope': 'scopeIn',
-            ##'??define_internal_key': 'prodDBlocks',
-            'storage_token': 'prodDBlockToken',
-            'ddmendpoint': 'ddmEndPointIn',
-        }
+        kmap = self.get_kmap()
 
         try:
             ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in list(kmap.values()))  # Python 3
         except Exception:
             ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())  # Python 2
-        logger.debug('ksources=%s' % str(ksources))
+
         ret, lfns = [], set()
         for ind, lfn in enumerate(ksources.get('inFiles', [])):
             if lfn in ['', 'NULL'] or lfn in lfns:  # exclude null data and duplicates
@@ -241,6 +272,53 @@ class JobData(BaseData):
             ret.append(finfo)
 
         return ret
+
+    def set_accessmode(self):
+        """
+        Set the accessmode field using jobparams.
+
+        :return:
+        """
+        self.accessmode = None
+        if '--accessmode=direct' in self.jobparams:
+            self.accessmode = 'direct'
+        if '--accessmode=copy' in self.jobparams or '--useLocalIO' in self.jobparams:
+            self.accessmode = 'copy'
+
+    @staticmethod
+    def show_access_settings(access_keys):
+        """
+        Show access settings for the case job.infosys.queuedata is not initialized.
+
+        :param access_keys: list of access keys (list).
+        :return:
+        """
+        dat = dict([k, getattr(FileSpec, k, None)] for k in access_keys)
+        try:
+            msg = ', '.join(["%s=%s" % (k, v) for k, v in sorted(dat.iteritems())])  # Python 2
+        except Exception:
+            msg = ', '.join(["%s=%s" % (k, v) for k, v in sorted(dat.items())])  # Python 3
+        logger.info('job.infosys.queuedata is not initialized: the following access settings will be used by default: %s' % msg)
+
+    @staticmethod
+    def get_kmap():
+        """
+        Return the kmap dictionary for server data to pilot conversions.
+
+        :return: kmap (dict).
+        """
+        kmap = {
+            # 'internal_name': 'ext_key_structure'
+            'lfn': 'inFiles',
+            ##'??': 'dispatchDblock', '??define_proper_internal_name': 'dispatchDBlockToken',
+            'dataset': 'realDatasetsIn', 'guid': 'GUID',
+            'filesize': 'fsize', 'checksum': 'checksum', 'scope': 'scopeIn',
+            ##'??define_internal_key': 'prodDBlocks',
+            'storage_token': 'prodDBlockToken',
+            'ddmendpoint': 'ddmEndPointIn',
+        }
+
+        return kmap
 
     def prepare_outfiles(self, data):
         """
@@ -382,8 +460,12 @@ class JobData(BaseData):
             'writetofile': 'writeToFile',
             'is_eventservice': 'eventService',
             'is_eventservicemerge': 'eventServiceMerge',
+            'is_hpo': 'isHPO',
+            'use_vp': 'useVP',
             'maxcpucount': 'maxCpuCount',
             'allownooutput': 'allowNoOutput',
+            'imagename_jobdef': 'container_name',
+            'containeroptions': 'containerOptions'
         }
 
         self._load_data(data, kmap)
@@ -572,7 +654,7 @@ class JobData(BaseData):
 
         return jobparams, imagename
 
-    @classmethod  # noqa: C901
+    @classmethod
     def parse_args(self, data, options, remove=False):
         """
             Extract option/values from string containing command line options (arguments)
@@ -582,10 +664,41 @@ class JobData(BaseData):
             :return: tuple: (dict of extracted options, raw string of final command line options)
         """
 
-        logger.debug('Do extract options=%s from data=%s' % (list(options.keys()), data))  # Python 2/3
+        logger.debug('extract options=%s from data=%s' % (list(options.keys()), data))  # Python 2/3
 
         if not options:
             return {}, data
+
+        opts, pargs = self.get_opts_pargs(data)
+        if not opts:
+            return {}, data
+
+        ret = self.get_ret(options, opts)
+
+        ## serialize parameters back to string
+        rawdata = data
+        if remove:
+            final_args = []
+            for arg in pargs:
+                if isinstance(arg, (tuple, list)):  ## parsed option
+                    if arg[0] not in options:  # exclude considered options
+                        if arg[1] is None:
+                            arg.pop()
+                        final_args.extend(arg)
+                else:
+                    final_args.append(arg)
+            rawdata = " ".join(pipes.quote(e) for e in final_args)
+
+        return ret, rawdata
+
+    @staticmethod
+    def get_opts_pargs(data):
+        """
+        Get the opts and pargs variables.
+
+        :param data: input command line arguments (raw string)
+        :return: opts (dict), pargs (list)
+        """
 
         try:
             args = shlex.split(data)
@@ -610,6 +723,18 @@ class JobData(BaseData):
         if curopt:
             pargs.append([curopt, None])
 
+        return opts, pargs
+
+    @staticmethod
+    def get_ret(options, opts):
+        """
+        Get the ret variable from the options.
+
+        :param options:
+        :param opts:
+        :return: ret (dict).
+        """
+
         ret = {}
         try:
             _items = list(options.items())  # Python 3
@@ -624,21 +749,7 @@ class JobData(BaseData):
                 continue
             ret[opt] = val
 
-        ## serialize parameters back to string
-        rawdata = data
-        if remove:
-            final_args = []
-            for arg in pargs:
-                if isinstance(arg, (tuple, list)):  ## parsed option
-                    if arg[0] not in options:  # exclude considered options
-                        if arg[1] is None:
-                            arg.pop()
-                        final_args.extend(arg)
-                else:
-                    final_args.append(arg)
-            rawdata = " ".join(pipes.quote(e) for e in final_args)
-
-        return ret, rawdata
+        return ret
 
     def add_workdir_size(self, workdir_size):
         """
@@ -820,6 +931,15 @@ class JobData(BaseData):
         # add a data point to the sizes dictionary
         self.sizes[time_stamp] = size
 
+    def get_size(self):
+        """
+        Determine the size (B) of the job object.
+
+        :return: size (int).
+        """
+
+        return get_object_size(self)
+
     def collect_zombies(self, tn=None):
         """
         Collect zombie child processes, tn is the max number of loops, plus 1,
@@ -890,3 +1010,4 @@ class JobData(BaseData):
         self.exeerrordiag = ""
         self.exitcode = 0
         self.exitmsg = ""
+        self.corecounts = []

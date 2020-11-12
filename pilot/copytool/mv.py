@@ -122,8 +122,11 @@ def copy_out(files, copy_type="mv", **kwargs):
         # raise failure
         raise StageOutFailure(stdout)
 
-    # Create output list for ARC CE
-    create_output_list(files, os.path.dirname(kwargs.get('workdir')), kwargs.get('ddmconf', None))
+    # Create output list for ARC CE if necessary
+    logger.debug('init_dir for output.list=%s' % os.path.dirname(kwargs.get('workdir')))
+    output_dir = kwargs.get('output_dir', '')
+    if not output_dir:
+        create_output_list(files, os.path.dirname(kwargs.get('workdir')), kwargs.get('ddmconf', None))
 
     return files
 

@@ -138,6 +138,12 @@ class ErrorCodes:
     NOSUCHPROCESS = 1353
     GENERALCPUCALCPROBLEM = 1354
     COREDUMP = 1355
+    PREPROCESSFAILURE = 1356
+    POSTPROCESSFAILURE = 1357
+    MISSINGRELEASEUNPACKED = 1358
+    PANDAQUEUENOTACTIVE = 1359
+    IMAGENOTFOUND = 1360
+    REMOTEFILECOULDNOTBEOPENED = 1361
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -254,7 +260,13 @@ class ErrorCodes:
         STATFILEPROBLEM: "Failed to stat proc file for CPU consumption calculation",
         NOSUCHPROCESS: "CPU consumption calculation failed: No such process",
         GENERALCPUCALCPROBLEM: "General CPU consumption calculation problem (consult Pilot log)",
-        COREDUMP: "Core dump detected"
+        COREDUMP: "Core dump detected",
+        PREPROCESSFAILURE: "Pre-process command failed",
+        POSTPROCESSFAILURE: "Post-process command failed",
+        MISSINGRELEASEUNPACKED: "Missing release setup in unpacked container",
+        PANDAQUEUENOTACTIVE: "PanDA queue is not active",
+        IMAGENOTFOUND: "Image not found",
+        REMOTEFILECOULDNOTBEOPENED: "Remote file could not be opened"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
@@ -303,7 +315,7 @@ class ErrorCodes:
         :param pilot_error_diags: list of pilot error diags (list of strings)
         :param priority: if set to True, the new errorcode will be added to the error code list first (highest priority)
         :param msg: error message (more detailed) to overwrite standard error message (string).
-        :return: pilotErrorCodes, pilotErrorDiags
+        :return: pilot_error_codes, pilot_error_diags
         """
 
         # do nothing if the error code has already been added
