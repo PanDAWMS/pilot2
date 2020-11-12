@@ -27,7 +27,7 @@ from .setup import should_pilot_prepare_setup, is_standard_atlas_job,\
 from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
     get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
 
-from pilot.util.auxiliary import get_resource_name, get_memory_usage
+from pilot.util.auxiliary import get_resource_name, show_memory_usage
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import is_python3
@@ -161,16 +161,14 @@ def open_remote_files(indata, workdir):
             _cmd = get_file_open_command(final_script_path, turls)
             cmd = create_root_container_command(workdir, _cmd)
 
-            _ec, _stdout, _stderr = get_memory_usage(os.getpid())
-            logger.debug('current pilot memory usage (before file open verification)\n%s' % _stdout)
+            show_memory_usage()
 
             logger.info('*** executing file open verification script:\n\n\'%s\'\n\n' % cmd)
             exit_code, stdout, stderr = execute(cmd, usecontainer=False)
             if config.Pilot.remotefileverification_log:
                 write_file(os.path.join(workdir, config.Pilot.remotefileverification_log), stdout + stderr, mute=False)
 
-            _ec, _stdout, _stderr = get_memory_usage(os.getpid())
-            logger.debug('current pilot memory usage (after file open verification)\n%s' % _stdout)
+            show_memory_usage()
 
             # error handling
             if exit_code:
@@ -273,8 +271,7 @@ def get_payload_command(job):
     :return: command (string).
     """
 
-    _ec, _stdout, _stderr = get_memory_usage(os.getpid())
-    logger.debug('current pilot memory usage (beginning of get_payload_command)\n%s' % _stdout)
+    show_memory_usage()
 
     # Should the pilot do the setup or does jobPars already contain the information?
     preparesetup = should_pilot_prepare_setup(job.noexecstrcnv, job.jobparams)
@@ -360,8 +357,7 @@ def get_payload_command(job):
     # Explicitly add the ATHENA_PROC_NUMBER (or JOB value)
     cmd = add_athena_proc_number(cmd)
 
-    _ec, _stdout, _stderr = get_memory_usage(os.getpid())
-    logger.debug('current pilot memory usage (end of get_payload_command)\n%s' % _stdout)
+    show_memory_usage()
 
     logger.info('payload run command: %s' % cmd)
 
@@ -635,8 +631,7 @@ def get_analysis_run_command(job, trf_name):
         if _guids:
             cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
 
-    ec, stdout, stderr = get_memory_usage(os.getpid())
-    logger.debug('current pilot memory usage (after get_analysis_run_command())\n%s' % stdout)
+    show_memory_usage()
 
     return cmd
 

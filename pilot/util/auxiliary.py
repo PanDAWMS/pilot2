@@ -439,7 +439,11 @@ def show_memory_usage():
     """
 
     _ec, _stdout, _stderr = get_memory_usage(os.getpid())
-    logger.debug('current pilot memory usage:\n\n%s\n' % _stdout)
+    try:
+        _value = extract_memory_usage_value(_stdout)
+    except Exception:
+        _value = "(unknown)"
+    logger.debug('current pilot memory usage:\n\n%s\n\nusage: %s kB\n' % (_stdout, _value))
 
 
 def get_memory_usage(pid):

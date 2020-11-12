@@ -32,7 +32,7 @@ from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, \
     set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine, \
-    is_python3, get_memory_usage
+    is_python3, show_memory_usage
 from pilot.util.config import config
 from pilot.util.common import should_abort, was_pilot_killed
 from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
@@ -336,8 +336,7 @@ def send_state(job, args, state, xml=None, metadata=None):
             logger.info('server updateJob request completed in %ds for job %s' % (time_after - time_before, job.jobid))
             logger.info("server responded with: res = %s" % str(res))
 
-            ec, stdout, stderr = get_memory_usage(os.getpid())
-            logger.debug('current pilot memory usage (after server update)\n%s' % stdout)
+            show_memory_usage()
 
             if res is not None:
                 # does the server update contain any backchannel information? if so, update the job object
@@ -845,8 +844,7 @@ def create_data_payload(queues, traces, args):
         if job.indata:
             # if the job has input data, put the job object in the data_in queue which will trigger stage-in
             set_pilot_state(job=job, state='stagein')
-            ec, stdout, stderr = get_memory_usage(os.getpid())
-            logger.debug('current pilot memory usage (before stage-in)\n%s' % stdout)
+            show_memory_usage()
             put_in_queue(job, queues.data_in)
 
         else:
@@ -1474,14 +1472,12 @@ def retrieve(queues, traces, args):  # noqa: C901
             else:
                 # create the job object out of the raw dispatcher job dictionary
                 try:
-                    ec, stdout, stderr = get_memory_usage(os.getpid())
-                    logger.debug('current pilot memory usage (before job creation)\n%s' % stdout)
+                    show_memory_usage()
                     job = create_job(res, args.queue)
                 except PilotException as error:
                     raise error
                 else:
-                    ec, stdout, stderr = get_memory_usage(os.getpid())
-                    logger.debug('current pilot memory usage (before job creation)\n%s' % stdout)
+                    show_memory_usage()
                     # verify the job status on the server
                     #try:
                     #    job_status, job_attempt_nr, job_status_code = get_job_status_from_server(job.jobid, args.url, args.port)
