@@ -829,7 +829,7 @@ def post_memory_monitor_action(job):
         if os.path.exists(path1):
             break
         logger.info("taking a short nap (%d s) to allow the memory monitor to finish writing to the summary file (#%d/#%d)"
-                 % (nap, i, maxretry))
+                    % (nap, i, maxretry))
         time.sleep(nap)
         i += 1
 

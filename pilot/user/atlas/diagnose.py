@@ -356,12 +356,12 @@ def process_athena_summary(job):
             find_most_recent_and_oldest_summary_files(file_list)
         if oldest_summary_file == recent_summary_file:
             logger.info("summary file %s will be processed for errors and number of events" %
-                     os.path.basename(oldest_summary_file))
+                        os.path.basename(oldest_summary_file))
         else:
             logger.info("most recent summary file %s (updated at %d) will be processed for errors [to be implemented]" %
-                     (os.path.basename(recent_summary_file), recent_time))
+                        (os.path.basename(recent_summary_file), recent_time))
             logger.info("oldest summary file %s (updated at %d) will be processed for number of events" %
-                     (os.path.basename(oldest_summary_file), oldest_time))
+                        (os.path.basename(oldest_summary_file), oldest_time))
 
         # Get the number of events from the oldest summary file
         n1, n2 = get_number_of_events_from_summary_file(oldest_summary_file)
@@ -585,7 +585,7 @@ def process_job_report(job):
                 job.exitmsg = job.metadata['exitMsg']
             except Exception as e:
                 logger.warning('could not find compulsory payload exitMsg in job report: %s '
-                            '(will be set to empty string)' % e)
+                               '(will be set to empty string)' % e)
                 job.exitmsg = ""
             else:
                 # assign special payload error code
@@ -604,23 +604,22 @@ def process_job_report(job):
 
             if job.exitcode != 0:
                 # get list with identified errors in job report
-                job_report_errors = get_job_report_errors(job.metadata, log)
+                job_report_errors = get_job_report_errors(job.metadata)
 
                 # is it a bad_alloc failure?
-                bad_alloc, diagnostics = is_bad_alloc(job_report_errors, log)
+                bad_alloc, diagnostics = is_bad_alloc(job_report_errors)
                 if bad_alloc:
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.BADALLOC)
                     job.piloterrorcode = errors.BADALLOC
                     job.piloterrordiag = diagnostics
 
 
-def get_job_report_errors(job_report_dictionary, log):
+def get_job_report_errors(job_report_dictionary):
     """
     Extract the error list from the jobReport.json dictionary.
     The returned list is scanned for special errors.
 
     :param job_report_dictionary:
-    :param log: job logger object.
     :return: job_report_errors list.
     """
 
@@ -647,12 +646,11 @@ def get_job_report_errors(job_report_dictionary, log):
     return job_report_errors
 
 
-def is_bad_alloc(job_report_errors, log):
+def is_bad_alloc(job_report_errors):
     """
     Check for bad_alloc errors.
 
     :param job_report_errors: list with errors extracted from the job report.
-    :param log: job logger object.
     :return: bad_alloc (bool), diagnostics (string).
     """
 

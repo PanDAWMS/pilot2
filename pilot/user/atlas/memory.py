@@ -112,7 +112,7 @@ def memory_usage(job):
                         kill_processes(job.pid)
                     else:
                         logger.info("max memory (maxPSS) used by the payload is within the allowed limit: "
-                                 "%d B (2 * maxRSS = %d B)" % (maxpss_int, maxrss_int))
+                                    "%d B (2 * maxRSS = %d B)" % (maxpss_int, maxrss_int))
         else:
             if maxrss == 0 or maxrss == "0":
                 logger.info("queuedata.maxrss set to 0 (no memory checks will be done)")

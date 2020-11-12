@@ -204,8 +204,7 @@ def get_postgetjob_time(job_id, args):
             time_measurement = time_measurement_dictionary.get(timing_constant, None)
 
         if not time_measurement:
-            logger.warning('failed to extract time measurement %s from %s (no such key)' %
-                        (timing_constant, time_measurement_dictionary))
+            logger.warning('failed to extract time measurement %s from %s (no such key)' % (timing_constant, time_measurement_dictionary))
 
     return time_measurement
 
@@ -229,8 +228,7 @@ def get_time_measurement(timing_constant, time_measurement_dictionary, timing_di
         if time_measurement_dictionary_0:
             time_measurement = time_measurement_dictionary_0.get(timing_constant, None)
         else:
-            logger.warning('failed to extract time measurement %s from %s (no such key)' %
-                        (timing_constant, time_measurement_dictionary))
+            logger.warning('failed to extract time measurement %s from %s (no such key)' % (timing_constant, time_measurement_dictionary))
 
     return time_measurement
 

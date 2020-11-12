@@ -145,10 +145,8 @@ class GenericExecutor(BaseExecutor):
                 if exit_code == 0:
                     ret_messages.append(out_msg)
                 else:
-                    logger.error("Failed to add event output to tar/zip file: out_message: %s, exit_code: %s, stdout: %s, stderr: %s" % (out_msg,
-                                                                                                                                      exit_code,
-                                                                                                                                      stdout,
-                                                                                                                                      stderr))
+                    logger.error("Failed to add event output to tar/zip file: out_message: "
+                                 "%s, exit_code: %s, stdout: %s, stderr: %s" % (out_msg, exit_code, stdout, stderr))
                     if 'retries' in out_msg and out_msg['retries'] >= 3:
                         logger.error("Discard out messages because it has been retried more than 3 times: %s" % out_msg)
                     else:

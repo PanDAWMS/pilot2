@@ -24,7 +24,7 @@ except Exception:
 
 from pilot.info import infosys
 from pilot.common.exception import PilotException, ErrorCodes, SizeTooLarge, NoLocalSpace, ReplicasNotFound
-from pilot.util.auxiliary import show_memory_usage, extract_memory_usage_value
+from pilot.util.auxiliary import show_memory_usage
 from pilot.util.config import config
 from pilot.util.filehandling import calculate_checksum, write_json
 from pilot.util.math import convert_mb_to_b

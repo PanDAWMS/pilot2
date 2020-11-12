@@ -190,8 +190,7 @@ def get_looping_job_limit(job):
         _looping_limit = max(looping_limit, job.maxcpucount)
 
     if _looping_limit != looping_limit:
-        logger.info("task request has updated looping job limit from %d s to %d s using maxCpuCount" %
-                 (looping_limit, _looping_limit))
+        logger.info("task request has updated looping job limit from %d s to %d s using maxCpuCount" % (looping_limit, _looping_limit))
         looping_limit = _looping_limit
     else:
         logger.info("using standard looping job limit: %d s" % looping_limit)

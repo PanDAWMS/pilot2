@@ -925,7 +925,7 @@ def queue_monitoring(queues, traces, args):
 
             if not _stage_out_new(job, args):
                 logger.info("job %s failed during stage-in and stage-out of log, adding job object to failed_data_outs "
-                         "queue" % job.jobid)
+                            "queue" % job.jobid)
                 #queues.failed_data_out.put(job)
                 put_in_queue(job, queues.failed_data_out)
             else:
@@ -960,10 +960,10 @@ def queue_monitoring(queues, traces, args):
             set_pilot_state(job=job, state="failed")
             if not _stage_out_new(job, args):
                 logger.info("job %s failed during stage-out of data file(s) as well as during stage-out of log, "
-                         "adding job object to failed_jobs queue" % job.jobid)
+                            "adding job object to failed_jobs queue" % job.jobid)
             else:
                 logger.info("job %s failed during stage-out of data file(s) - stage-out of log succeeded, adding job "
-                         "object to failed_jobs queue" % job.jobid)
+                            "object to failed_jobs queue" % job.jobid)
 
             #queues.failed_jobs.put(job)
             put_in_queue(job, queues.failed_jobs)

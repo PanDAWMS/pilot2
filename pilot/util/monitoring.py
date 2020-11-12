@@ -15,7 +15,7 @@ from subprocess import PIPE
 from glob import glob
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.util.auxiliary import set_pilot_state, show_memory_usage, extract_memory_usage_value
+from pilot.util.auxiliary import set_pilot_state, show_memory_usage
 from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.filehandling import get_directory_size, remove_files, get_local_file_size
@@ -343,8 +343,7 @@ def utility_monitor(job):
                     # command has been launched
                     job.utilities[utcmd] = [proc1, utility_subprocess_launches + 1, utility_command]
             else:
-                logger.warning('detected crashed utility subprocess - too many restarts, will not restart %s again' %
-                            utcmd)
+                logger.warning('detected crashed utility subprocess - too many restarts, will not restart %s again' % utcmd)
         else:  # check the utility output (the selector option adds a substring to the output file name)
             filename = usercommon.get_utility_command_output_filename(utcmd, selector=True)
             path = os.path.join(job.workdir, filename)
@@ -439,8 +438,7 @@ def check_payload_stdout(job):
                         # remove any lingering input files from the work dir
                         exit_code = remove_files(job.workdir, lfns)
                 else:
-                    logger.info("payload stdout (%s) within allowed size limit (%d B): %d B" %
-                             (_stdout, localsizelimit_stdout, fsize))
+                    logger.info("payload stdout (%s) within allowed size limit (%d B): %d B" % (_stdout, localsizelimit_stdout, fsize))
         else:
             logger.info("skipping file size check of payload stdout file (%s) since it has not been created yet" % _stdout)
 
@@ -517,8 +515,7 @@ def check_work_dir(job):
                     # remeasure the size of the workdir at this point since the value is stored below
                     workdirsize = get_directory_size(directory=job.workdir)
             else:
-                logger.info("size of work directory %s: %d B (within %d B limit)" %
-                         (job.workdir, workdirsize, maxwdirsize))
+                logger.info("size of work directory %s: %d B (within %d B limit)" % (job.workdir, workdirsize, maxwdirsize))
 
             # Store the measured disk space (the max value will later be sent with the job metrics)
             if workdirsize > 0:

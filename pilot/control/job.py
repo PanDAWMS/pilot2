@@ -483,13 +483,13 @@ def handle_backchannel_command(res, job, args):
         # look for 'tobekilled', 'softkill', 'debug', 'debugoff'
         if res.get('command') == 'tobekilled':
             logger.info('pilot received a panda server signal to kill job %s at %s' %
-                     (job.jobid, time_stamp()))
+                        (job.jobid, time_stamp()))
             set_pilot_state(job=job, state="failed")
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL)
             args.abort_job.set()
         elif res.get('command') == 'softkill':
             logger.info('pilot received a panda server signal to softkill job %s at %s' %
-                     (job.jobid, time_stamp()))
+                        (job.jobid, time_stamp()))
             # event service kill instruction
         elif res.get('command') == 'debug':
             logger.info('pilot received a command to turn on debug mode from the server')

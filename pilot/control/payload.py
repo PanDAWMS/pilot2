@@ -291,7 +291,7 @@ def set_cpu_consumption_time(job):
     job.cpuconsumptionunit = "s"
     job.cpuconversionfactor = 1.0
     logger.info('CPU consumption time: %f %s (rounded to %d %s)' %
-             (cpuconsumptiontime, job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconsumptionunit))
+                (cpuconsumptiontime, job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconsumptionunit))
 
 
 def perform_initial_payload_error_analysis(job, exit_code):
