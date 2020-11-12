@@ -8,7 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
 
 import os
@@ -22,7 +22,7 @@ except Exception:
 
 from pilot.control.payloads import generic, eventservice, eventservicemerge
 from pilot.control.job import send_state
-from pilot.util.auxiliary import get_logger, set_pilot_state, get_memory_usage
+from pilot.util.auxiliary import set_pilot_state, show_memory_usage
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
 from pilot.util.filehandling import read_file, remove_core_dumps
@@ -138,15 +138,13 @@ def _validate_payload(job):
 
     status = True
 
-    log = get_logger(job.jobid, logger)
-
     # perform user specific validation
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
     try:
         status = user.validate(job)
     except Exception as e:
-        log.fatal('failed to execute user validate() function: %s' % e)
+        logger.fatal('failed to execute user validate() function: %s' % e)
         status = False
 
     return status
@@ -187,7 +185,6 @@ def execute_payloads(queues, traces, args):
         time.sleep(0.5)
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
-            log = get_logger(job.jobid, logger)
 
             q_snapshot = list(queues.finished_data_in.queue)
             peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
@@ -204,7 +201,7 @@ def execute_payloads(queues, traces, args):
             #queues.monitored_payloads.put(job)
             put_in_queue(job, queues.monitored_payloads)
 
-            log.info('job %s added to monitored payloads queue' % job.jobid)
+            logger.info('job %s added to monitored payloads queue' % job.jobid)
 
             out = open(os.path.join(job.workdir, config.Payload.payloadstdout), 'wb')
             err = open(os.path.join(job.workdir, config.Payload.payloadstderr), 'wb')
@@ -212,10 +209,9 @@ def execute_payloads(queues, traces, args):
             send_state(job, args, 'starting')
 
             payload_executor = get_payload_executor(args, job, out, err, traces)
-            log.info("Got payload executor: %s" % payload_executor)
+            logger.info("Got payload executor: %s" % payload_executor)
 
-            _ec, _stdout, _stderr = get_memory_usage(os.getpid())
-            log.debug('current pilot memory usage\n%s' % _stdout)
+            show_memory_usage()
 
             # run the payload and measure the execution time
             job.t0 = os.times()
@@ -228,7 +224,7 @@ def execute_payloads(queues, traces, args):
             err.close()
 
             #if traces.pilot['nr_jobs'] == 1:
-            #    log.debug('faking job failure in first multi-job')
+            #    logger.debug('faking job failure in first multi-job')
             #    job.transexitcode = 1
             #    exit_code = 1
 
@@ -244,12 +240,12 @@ def execute_payloads(queues, traces, args):
                 try:
                     exit_code_interpret = user.interpret(job)
                 except Exception as e:
-                    log.warning('exception caught: %s' % e)
+                    logger.warning('exception caught: %s' % e)
                     exit_code_interpret = -1
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.INTERNALPILOTPROBLEM)
 
             if exit_code_interpret == 0 and exit_code == 0:
-                log.info('main payload error analysis completed - did not find any errors')
+                logger.info('main payload error analysis completed - did not find any errors')
 
                 # update output lists if zipmaps were used
                 #job.add_archives_to_output_lists()
@@ -257,7 +253,7 @@ def execute_payloads(queues, traces, args):
                 # queues.finished_payloads.put(job)
                 put_in_queue(job, queues.finished_payloads)
             else:
-                log.debug('main payload error analysis completed - adding job to failed_payloads queue')
+                logger.debug('main payload error analysis completed - adding job to failed_payloads queue')
                 #queues.failed_payloads.put(job)
                 put_in_queue(job, queues.failed_payloads)
 
@@ -290,14 +286,12 @@ def set_cpu_consumption_time(job):
     :return:
     """
 
-    log = get_logger(job.jobid, logger)
-
     cpuconsumptiontime = get_cpu_consumption_time(job.t0)
     job.cpuconsumptiontime = int(round(cpuconsumptiontime))
     job.cpuconsumptionunit = "s"
     job.cpuconversionfactor = 1.0
-    log.info('CPU consumption time: %f %s (rounded to %d %s)' %
-             (cpuconsumptiontime, job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconsumptionunit))
+    logger.info('CPU consumption time: %f %s (rounded to %d %s)' %
+                (cpuconsumptiontime, job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconsumptionunit))
 
 
 def perform_initial_payload_error_analysis(job, exit_code):
@@ -310,12 +304,10 @@ def perform_initial_payload_error_analysis(job, exit_code):
     :return:
     """
 
-    log = get_logger(job.jobid, logger)
-
     if exit_code != 0:
         msg = ""
         ec = 0
-        log.warning('main payload execution returned non-zero exit code: %d' % exit_code)
+        logger.warning('main payload execution returned non-zero exit code: %d' % exit_code)
         stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
         if stderr != "":
             msg = errors.extract_stderr_error(stderr)
@@ -326,7 +318,7 @@ def perform_initial_payload_error_analysis(job, exit_code):
             else:
                 fatal = True
             if msg != "":
-                log.warning("extracted message from stderr:\n%s" % msg)
+                logger.warning("extracted message from stderr:\n%s" % msg)
                 ec = set_error_code_from_stderr(msg, fatal)
 
         if not ec:
@@ -337,15 +329,15 @@ def perform_initial_payload_error_analysis(job, exit_code):
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec, msg=msg)
         else:
             if job.piloterrorcodes:
-                log.warning('error code(s) already set: %s' % str(job.piloterrorcodes))
+                logger.warning('error code(s) already set: %s' % str(job.piloterrorcodes))
             else:
                 # check if core dumps exist, if so remove them and return True
                 if remove_core_dumps(job.workdir):
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.COREDUMP)
                 else:
-                    log.warning('initial error analysis did not resolve the issue (and core dumps were not found)')
+                    logger.warning('initial error analysis did not resolve the issue (and core dumps were not found)')
     else:
-        log.info('main payload execution returned zero exit code, but will check it more carefully')
+        logger.info('main payload execution returned zero exit code, but will check it more carefully')
 
 
 def set_error_code_from_stderr(msg, fatal):
@@ -398,11 +390,10 @@ def validate_post(queues, traces, args):
         except queue.Empty:
             time.sleep(0.1)
             continue
-        log = get_logger(job.jobid, logger)
 
         # by default, both output and log should be staged out
         job.stageout = 'all'
-        log.debug('adding job to data_out queue')
+        logger.debug('adding job to data_out queue')
         #queues.data_out.put(job)
         set_pilot_state(job=job, state='stageout')
         put_in_queue(job, queues.data_out)
@@ -435,9 +426,8 @@ def failed_post(queues, traces, args):
         except queue.Empty:
             time.sleep(0.1)
             continue
-        log = get_logger(job.jobid, logger)
 
-        log.debug('adding log for log stageout')
+        logger.debug('adding log for log stageout')
 
         job.stageout = 'log'  # only stage-out log file
         #queues.data_out.put(job)

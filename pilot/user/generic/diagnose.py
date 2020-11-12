@@ -10,7 +10,6 @@
 
 import os
 
-from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 from pilot.util.filehandling import read_file, tail
 
@@ -26,15 +25,14 @@ def interpret(job):
     :return: exit code (payload) (int).
     """
 
-    log = get_logger(job.jobid)
     stdout = os.path.join(job.workdir, config.Payload.payloadstdout)
     message = 'payload stdout dump\n'
     message += read_file(stdout)
-    log.debug(message)
+    logger.debug(message)
     stderr = os.path.join(job.workdir, config.Payload.payloadstderr)
     message = 'payload stderr dump\n'
     message += read_file(stderr)
-    log.debug(message)
+    logger.debug(message)
 
     return 0
 
@@ -49,14 +47,13 @@ def get_log_extracts(job, state):
     :return: log extracts (string).
     """
 
-    log = get_logger(job.jobid)
-    log.info("building log extracts (sent to the server as \'pilotLog\')")
+    logger.info("building log extracts (sent to the server as \'pilotLog\')")
 
     # for failed/holding jobs, add extracts from the pilot log file, but always add it to the pilot log itself
     extracts = ""
     _extracts = get_pilot_log_extracts(job)
     if _extracts != "":
-        log.warning('detected the following tail of warning/fatal messages in the pilot log:\n%s' % _extracts)
+        logger.warning('detected the following tail of warning/fatal messages in the pilot log:\n%s' % _extracts)
         if state == 'failed' or state == 'holding':
             extracts += _extracts
 
@@ -71,7 +68,6 @@ def get_pilot_log_extracts(job):
     :return: tail of pilot log (string).
     """
 
-    log = get_logger(job.jobid)
     extracts = ""
 
     path = os.path.join(job.workdir, config.Pilot.pilotlog)
@@ -84,6 +80,6 @@ def get_pilot_log_extracts(job):
             extracts += "- Log from %s -\n" % config.Pilot.pilotlog
             extracts += _tail
     else:
-        log.warning('pilot log file does not exist: %s' % path)
+        logger.warning('pilot log file does not exist: %s' % path)
 
     return extracts

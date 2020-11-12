@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2020
 
 import os
 import time
@@ -14,7 +14,7 @@ from re import search
 
 # from pilot.info import infosys
 from .setup import get_asetup
-from pilot.util.auxiliary import get_logger, is_python3
+from pilot.util.auxiliary import is_python3
 from pilot.util.container import execute
 from pilot.util.filehandling import read_json, copy
 from pilot.util.parameters import convert_to_int
@@ -820,8 +820,6 @@ def post_memory_monitor_action(job):
     :return:
     """
 
-    log = get_logger(job.jobid)
-
     nap = 3
     path1 = os.path.join(job.workdir, get_memory_monitor_summary_filename())
     path2 = os.environ.get('PILOT_HOME')
@@ -830,12 +828,12 @@ def post_memory_monitor_action(job):
     while i <= maxretry:
         if os.path.exists(path1):
             break
-        log.info("taking a short nap (%d s) to allow the memory monitor to finish writing to the summary file (#%d/#%d)"
-                 % (nap, i, maxretry))
+        logger.info("taking a short nap (%d s) to allow the memory monitor to finish writing to the summary file (#%d/#%d)"
+                    % (nap, i, maxretry))
         time.sleep(nap)
         i += 1
 
     try:
         copy(path1, path2)
     except Exception as e:
-        log.warning('failed to copy memory monitor output: %s' % e)
+        logger.warning('failed to copy memory monitor output: %s' % e)

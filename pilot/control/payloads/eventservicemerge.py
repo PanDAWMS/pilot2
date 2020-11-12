@@ -6,12 +6,11 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2018
-
+# - Paul Nilsson, paul.nilsson@cern.ch, 2020
 
 import os
 
 from pilot.control.payloads import generic
-from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 
 import logging
@@ -23,6 +22,7 @@ class Executor(generic.Executor):
         super(Executor, self).__init__(args, job, out, err, traces)
 
     def untar_file(self, lfn, job):
+
         pfn = os.path.join(job.workdir, lfn)
         command = "tar -xf %s -C %s" % (pfn, job.workdir)
         logger.info("Untar file: %s" % command)
@@ -36,14 +36,13 @@ class Executor(generic.Executor):
 
         :param job: job object
         """
-        log = get_logger(job.jobid, logger)
 
-        log.info("untar input tar files for eventservicemerge job")
+        logger.info("untar input tar files for eventservicemerge job")
         for fspec in job.indata:
             if fspec.is_tar:
                 self.untar_file(fspec.lfn, job)
 
-        log.info("Processing writeToFile for eventservicemerge job")
+        logger.info("Processing writeToFile for eventservicemerge job")
         job.process_writetofile()
 
         super(Executor, self).utility_before_payload(job)

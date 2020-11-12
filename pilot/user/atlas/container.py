@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
 
 import os
 import pipes
@@ -16,7 +16,6 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import PilotException
 from pilot.user.atlas.setup import get_asetup, get_file_system_root_path
 from pilot.info import InfoService, infosys
-from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 from pilot.util.filehandling import write_file
 
@@ -354,25 +353,24 @@ def alrb_wrapper(cmd, workdir, job=None):
         logger.warning('the ALRB wrapper did not get a job object - cannot proceed')
         return cmd
 
-    log = get_logger(job.jobid)
     queuedata = job.infosys.queuedata
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
     if container_name:
-        log.debug('cmd 1=%s' % cmd)
+        logger.debug('cmd 1=%s' % cmd)
         # first get the full setup, which should be removed from cmd (or ALRB setup won't work)
         _asetup = get_asetup()
         # get_asetup()
         # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
         #     --quiet;source $AtlasSetup/scripts/asetup.sh
-        log.debug('_asetup: %s' % _asetup)
+        logger.debug('_asetup: %s' % _asetup)
         # atlas_setup = $AtlasSetup/scripts/asetup.sh
         # clean_asetup = export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source
         #                   ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
         atlas_setup, clean_asetup = extract_atlas_setup(_asetup, job.swrelease)
-        log.debug('atlas_setup=%s' % atlas_setup)
-        log.debug('clean_asetup=%s' % clean_asetup)
+        logger.debug('atlas_setup=%s' % atlas_setup)
+        logger.debug('clean_asetup=%s' % clean_asetup)
         full_atlas_setup = get_full_asetup(cmd, 'source ' + atlas_setup) if atlas_setup and clean_asetup else ''
-        log.debug('full_atlas_setup=%s' % full_atlas_setup)
+        logger.debug('full_atlas_setup=%s' % full_atlas_setup)
 
         # do not include 'clean_asetup' in the container script
         if clean_asetup and full_atlas_setup:
@@ -381,7 +379,7 @@ def alrb_wrapper(cmd, workdir, job=None):
             if job.imagename:
                 cmd = cmd.replace(full_atlas_setup, '')
 
-        log.debug('cmd 2=%s' % cmd)
+        logger.debug('cmd 2=%s' % cmd)
         # get_asetup(asetup=False)
         # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
 
@@ -391,7 +389,7 @@ def alrb_wrapper(cmd, workdir, job=None):
         # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
         # get_asetup(alrb=True, add_if=True)
         # -> if [ -z "$ATLAS_LOCAL_ROOT_BASE" ]; then export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase; fi;
-        log.debug('initial alrb_setup: %s' % alrb_setup)
+        logger.debug('initial alrb_setup: %s' % alrb_setup)
 
         # add user proxy if necessary (actually it should also be removed from cmd)
         alrb_setup, cmd = update_for_user_proxy(alrb_setup, cmd)
@@ -403,12 +401,12 @@ def alrb_wrapper(cmd, workdir, job=None):
         # it is used to identify the pid for the process to be tracked by the memory monitor
         if 'export PandaID' not in alrb_setup:
             alrb_setup += "export PandaID=%s;" % job.jobid
-        log.debug('alrb_setup=%s' % alrb_setup)
+        logger.debug('alrb_setup=%s' % alrb_setup)
 
         # add TMPDIR
         cmd = "export TMPDIR=/srv;export GFORTRAN_TMPDIR=/srv;" + cmd
         cmd = cmd.replace(';;', ';')
-        log.debug('cmd = %s' % cmd)
+        logger.debug('cmd = %s' % cmd)
 
         # get the proper release setup script name, and create the script if necessary
         release_setup, cmd = create_release_setup(cmd, atlas_setup, full_atlas_setup, job.swrelease, job.imagename,
@@ -422,16 +420,16 @@ def alrb_wrapper(cmd, workdir, job=None):
         # correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)
         if job.preprocess and job.containeroptions:
             cmd = replace_last_command(cmd, job.containeroptions.get('containerExec'))
-            log.debug('updated cmd with containerExec: %s' % cmd)
+            logger.debug('updated cmd with containerExec: %s' % cmd)
 
         # write the full payload command to a script file
         container_script = config.Container.container_script
-        log.debug('command to be written to container script file:\n\n%s:\n\n%s\n' % (container_script, cmd))
+        logger.debug('command to be written to container script file:\n\n%s:\n\n%s\n' % (container_script, cmd))
         try:
             write_file(os.path.join(job.workdir, container_script), cmd, mute=False)
             os.chmod(os.path.join(job.workdir, container_script), 0o755)  # Python 2/3
         except Exception as e:
-            log.warning('exception caught: %s' % e)
+            logger.warning('exception caught: %s' % e)
             return ""
 
         # also store the command string in the job object
@@ -444,9 +442,9 @@ def alrb_wrapper(cmd, workdir, job=None):
         execargs = job.containeroptions.get('execArgs', None)
         if execargs:
             cmd += ' ' + execargs
-        log.debug('\n\nfinal command:\n\n%s\n' % cmd)
+        logger.debug('\n\nfinal command:\n\n%s\n' % cmd)
     else:
-        log.warning('container name not defined in AGIS')
+        logger.warning('container name not defined in AGIS')
 
     return cmd
 
