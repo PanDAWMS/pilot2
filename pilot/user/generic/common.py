@@ -5,13 +5,12 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
 
 import os
 from signal import SIGTERM
 
 from pilot.common.exception import TrfDownloadFailure
-from pilot.util.auxiliary import get_logger
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_AFTER_PAYLOAD
 from .setup import get_analysis_trf
 
@@ -53,17 +52,15 @@ def get_payload_command(job):
     :return: command (string)
     """
 
-    log = get_logger(job.jobid)
-
     # Try to download the trf
     # if job.imagename != "" or "--containerImage" in job.jobparams:
     #    job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
-    #    log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
+    #    logger.warning('overwrote job.transformation, now set to: %s' % job.transformation)
     ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
     if ec != 0:
         raise TrfDownloadFailure(diagnostics)
     else:
-        log.debug('user analysis trf: %s' % trf_name)
+        logger.debug('user analysis trf: %s' % trf_name)
 
     return get_analysis_run_command(job, trf_name)
 

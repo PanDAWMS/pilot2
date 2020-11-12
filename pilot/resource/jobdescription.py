@@ -5,11 +5,9 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Danila?
-# - Paul Nilsson, paul.nilsson@cern.ch, 2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2020
 
 import re
-import logging
 import json
 import numbers
 import traceback
@@ -17,7 +15,8 @@ import threading
 
 from pilot.util.auxiliary import is_python3
 
-log = logging.getLogger(__name__)
+import logging
+logger = logging.getLogger(__name__)
 
 
 def camel_to_snake(name):
@@ -190,7 +189,7 @@ def get_input_files(description):
     :param description:
     :return: file list
     """
-    log.info("Extracting input files from job description")
+    logger.info("Extracting input files from job description")
     files = {}
     if description['inFiles'] and description['inFiles'] != "NULL":
         in_files = split(description["inFiles"])
@@ -233,7 +232,7 @@ def fix_log(description, files):
     :param files: output files
     :return: fixed output files
     """
-    log.info("modifying log-specific values in a log file description")
+    logger.info("modifying log-specific values in a log file description")
     if description["logFile"] and description["logFile"] != "NULL":
         if description["logGUID"] and description["logGUID"] != "NULL" and description["logFile"] in \
                 files:
@@ -250,7 +249,7 @@ def get_output_files(description):
     :param description:
     :return: output files
     """
-    log.info("Extracting output files in description")
+    logger.info("Extracting output files in description")
     files = {}
     if description['outFiles'] and description['outFiles'] != "NULL":
         out_files = split(description["outFiles"])
@@ -412,7 +411,7 @@ class JobDescription(object):
                 new_desc = json.loads(new_desc)
 
         if "PandaID" in new_desc:
-            log.info("Parsing description to be of readable, easy to use format")
+            logger.info("Parsing description to be of readable, easy to use format")
 
             fixed = {}
 
@@ -473,21 +472,18 @@ class JobDescription(object):
                 return self.__holder[key]
 
             if key in self.__input_file_keys:
-                log.warning(("Old key JobDescription.%s is used. Better to use JobDescription.input_files[][%s] to"
-                             " access and manipulate this value.\n" % (key, self.__input_file_keys[key])) +
-                            self.get_traceback())
+                logger.warning(("Old key JobDescription.%s is used. Better to use JobDescription.input_files[][%s] to "
+                                "access and manipulate this value.\n" % (key, self.__input_file_keys[key])) + self.get_traceback())
                 return self.get_input_file_prop(key)
             if key in self.__output_file_keys:
-                log.warning(("Old key JobDescription.%s is used. Better to use JobDescription.output_files[][%s] to"
-                             " access and manipulate this value.\n" % (key, self.__output_file_keys[key])) +
-                            self.get_traceback())
+                logger.warning(("Old key JobDescription.%s is used. Better to use JobDescription.output_files[][%s] to"
+                                " access and manipulate this value.\n" % (key, self.__output_file_keys[key])) + self.get_traceback())
                 return self.get_output_file_prop(key)
 
             snake_key = camel_to_snake(key)
             if snake_key in self.__key_aliases_snake:
-                log.warning(("Old key JobDescription.%s is used. Better to use JobDescription.%s to access and "
-                             "manipulate this value.\n" % (key, self.__key_aliases_snake[snake_key])) +
-                            self.get_traceback())
+                logger.warning(("Old key JobDescription.%s is used. Better to use JobDescription.%s to access and "
+                                "manipulate this value.\n" % (key, self.__key_aliases_snake[snake_key])) + self.get_traceback())
                 return stringify_weird(self.__holder[self.__key_aliases_snake[snake_key]])
 
             if key in self.__soft_key_aliases:
@@ -521,9 +517,8 @@ class JobDescription(object):
 
             snake_key = camel_to_snake(key)
             if snake_key in self.__key_aliases_snake:
-                log.warning(("Old key JobDescription.%s is used. Better to use JobDescription.%s to access and"
-                             "manipulate this value.\n" % (key, self.__key_aliases_snake[snake_key])) +
-                            self.get_traceback())
+                logger.warning(("Old key JobDescription.%s is used. Better to use JobDescription.%s to access and"
+                                "manipulate this value.\n" % (key, self.__key_aliases_snake[snake_key])) + self.get_traceback())
                 self.__holder[self.__key_aliases_snake[snake_key]] = parse_value(value)
 
             if key in self.__soft_key_aliases:
@@ -574,7 +569,7 @@ class JobDescription(object):
 if __name__ == "__main__":
     import sys
     logging.basicConfig()
-    log.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
 
     jd = JobDescription()
     with open(sys.argv[1], "r") as f:
@@ -582,13 +577,13 @@ if __name__ == "__main__":
 
     jd.load(contents)
 
-    log.debug(jd.id)
-    log.debug(jd.command)
-    log.debug(jd.PandaID)
-    log.debug(jd.scopeOut)
-    log.debug(jd.scopeLog)
-    log.debug(jd.fileDestinationSE)
-    log.debug(jd.inFiles)
-    log.debug(json.dumps(jd.output_files, indent=4, sort_keys=True))
+    logger.debug(jd.id)
+    logger.debug(jd.command)
+    logger.debug(jd.PandaID)
+    logger.debug(jd.scopeOut)
+    logger.debug(jd.scopeLog)
+    logger.debug(jd.fileDestinationSE)
+    logger.debug(jd.inFiles)
+    logger.debug(json.dumps(jd.output_files, indent=4, sort_keys=True))
 
-    log.debug(jd.to_json(True, indent=4, sort_keys=True))
+    logger.debug(jd.to_json(True, indent=4, sort_keys=True))

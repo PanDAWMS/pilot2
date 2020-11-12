@@ -8,7 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 import time
@@ -18,7 +18,7 @@ from subprocess import PIPE
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.control.job import send_state
-from pilot.util.auxiliary import get_logger, set_pilot_state, get_memory_usage
+from pilot.util.auxiliary import set_pilot_state, show_memory_usage
 from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED, \
@@ -79,7 +79,6 @@ class Executor(object):
         :param job: job object.
         """
         cmd = ""
-        log = get_logger(job.jobid, logger)
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -89,7 +88,7 @@ class Executor(object):
         cmd_dictionary = user.get_utility_commands(order=UTILITY_BEFORE_PAYLOAD, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
-            log.debug('utility command to be executed before the payload: %s' % cmd)
+            logger.debug('utility command to be executed before the payload: %s' % cmd)
 
         return cmd
 
@@ -99,7 +98,6 @@ class Executor(object):
 
         :param job: job object.
         """
-        log = get_logger(job.jobid, logger)
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -109,7 +107,7 @@ class Executor(object):
         cmd_dictionary = user.get_utility_commands(order=UTILITY_WITH_PAYLOAD, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
-            log.debug('utility command to be executed with the payload: %s' % cmd)
+            logger.debug('utility command to be executed with the payload: %s' % cmd)
 
         return cmd
 
@@ -118,7 +116,6 @@ class Executor(object):
         Functions to run after payload started
         :param job: job object
         """
-        log = get_logger(job.jobid, logger)
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -128,18 +125,18 @@ class Executor(object):
         cmd_dictionary = user.get_utility_commands(order=UTILITY_AFTER_PAYLOAD_STARTED, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
-            log.info('utility command to be executed after the payload: %s' % cmd)
+            logger.info('utility command to be executed after the payload: %s' % cmd)
 
             # how should this command be executed?
             utilitycommand = user.get_utility_command_setup(cmd_dictionary.get('command'), job)
             if not utilitycommand:
-                log.warning('empty utility command - nothing to run')
+                logger.warning('empty utility command - nothing to run')
                 return
             try:
                 proc1 = execute(utilitycommand, workdir=job.workdir, returnproc=True, usecontainer=False,
                                 stdout=PIPE, stderr=PIPE, cwd=job.workdir, job=job)
             except Exception as e:
-                log.error('could not execute: %s' % e)
+                logger.error('could not execute: %s' % e)
             else:
                 # store process handle in job object, and keep track on how many times the command has been launched
                 # also store the full command in case it needs to be restarted later (by the job_monitor() thread)
@@ -155,7 +152,6 @@ class Executor(object):
         """
 
         cmd = ""
-        log = get_logger(job.jobid, logger)
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -165,7 +161,7 @@ class Executor(object):
         cmd_dictionary = user.get_utility_commands(order=UTILITY_AFTER_PAYLOAD_FINISHED, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
-            log.debug('utility command to be executed after the payload has finished: %s' % cmd)
+            logger.debug('utility command to be executed after the payload has finished: %s' % cmd)
 
         return cmd
 
@@ -179,10 +175,9 @@ class Executor(object):
         :return: exit code (int).
         """
 
-        log = get_logger(job.jobid, logger)
         exit_code, stdout, stderr = execute(cmd, workdir=job.workdir, cwd=job.workdir, usecontainer=False)
         if exit_code:
-            log.warning('command returned non-zero exit code: %s (exit code = %d) - see utility logs for details' % (cmd, exit_code))
+            logger.warning('command returned non-zero exit code: %s (exit code = %d) - see utility logs for details' % (cmd, exit_code))
             if label == 'preprocess':
                 err = errors.PREPROCESSFAILURE
             elif label == 'postprocess':
@@ -258,8 +253,6 @@ class Executor(object):
         :return: proc (subprocess returned by Popen())
         """
 
-        log = get_logger(job.jobid, logger)
-
         # main payload process steps
 
         # add time for PILOT_PRE_PAYLOAD
@@ -267,20 +260,20 @@ class Executor(object):
 
         _cmd = self.utility_with_payload(job)
         if _cmd:
-            log.info('could have executed: %s (currently not used)' % _cmd)
+            logger.info('could have executed: %s (currently not used)' % _cmd)
 
-        log.info("\n\npayload execution command:\n\n%s\n" % cmd)
+        logger.info("\n\npayload execution command:\n\n%s\n" % cmd)
         try:
             proc = execute(cmd, workdir=job.workdir, returnproc=True,
                            usecontainer=True, stdout=out, stderr=err, cwd=job.workdir, job=job)
         except Exception as e:
-            log.error('could not execute: %s' % str(e))
+            logger.error('could not execute: %s' % str(e))
             return None
         if type(proc) == tuple and not proc[0]:
-            log.error('failed to execute payload')
+            logger.error('failed to execute payload')
             return None
 
-        log.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
+        logger.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
         job.pid = proc.pid
         job.pgrp = os.getpgid(job.pid)
         set_pilot_state(job=job, state="running")
@@ -315,8 +308,6 @@ class Executor(object):
         :return:
         """
 
-        log = get_logger(job.jobid, logger)
-
         breaker = False
         exit_code = None
         try:
@@ -330,13 +321,13 @@ class Executor(object):
             for i in range(60):  # Python 2/3
                 if args.graceful_stop.is_set():
                     breaker = True
-                    log.info('breaking -- sending SIGTERM pid=%s' % proc.pid)
+                    logger.info('breaking -- sending SIGTERM pid=%s' % proc.pid)
                     os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
                     # proc.terminate()
                     break
                 time.sleep(1)
             if breaker:
-                log.info('breaking -- sleep 3s before sending SIGKILL pid=%s' % proc.pid)
+                logger.info('breaking -- sleep 3s before sending SIGKILL pid=%s' % proc.pid)
                 time.sleep(3)
                 proc.kill()
                 break
@@ -344,7 +335,7 @@ class Executor(object):
             exit_code = proc.poll()
 
             if iteration % 10 == 0:
-                log.info('running: iteration=%d pid=%s exit_code=%s' % (iteration, proc.pid, exit_code))
+                logger.info('running: iteration=%d pid=%s exit_code=%s' % (iteration, proc.pid, exit_code))
             if exit_code is not None:
                 break
             else:
@@ -361,9 +352,7 @@ class Executor(object):
         :return: command (string).
         """
 
-        log = get_logger(str(job), logger)
-
-        log.debug('1. job object id=%d' % id(job))
+        show_memory_usage()
 
         cmd = ""
         # for testing looping job:    cmd = user.get_payload_command(job) + ';sleep 240'
@@ -371,14 +360,15 @@ class Executor(object):
             pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
             user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user],
                               0)  # Python 2/3
+            show_memory_usage()
             cmd = user.get_payload_command(job)
         except PilotException as error:
             self.post_setup(job)
             import traceback
-            log.error(traceback.format_exc())
+            logger.error(traceback.format_exc())
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())
             self.__traces.pilot['error_code'] = job.piloterrorcodes[0]
-            log.fatal(
+            logger.fatal(
                 'could not define payload command (traces error set to: %d)' % self.__traces.pilot['error_code'])
 
         return cmd
@@ -391,31 +381,30 @@ class Executor(object):
         :return:
         """
 
-        log = get_logger(str(self.__job.jobid), logger)
         exit_code = 0
 
         try:
             # note: this might update the jobparams
             cmd_before_payload = self.utility_before_payload(job)
         except Exception as e:
-            log.error(e)
+            logger.error(e)
             raise e
 
         if cmd_before_payload:
             cmd_before_payload = job.setup + cmd_before_payload
-            log.info("\n\npreprocess execution command:\n\n%s\n" % cmd_before_payload)
+            logger.info("\n\npreprocess execution command:\n\n%s\n" % cmd_before_payload)
             exit_code = self.execute_utility_command(cmd_before_payload, job, 'preprocess')
             if exit_code == 160:
-                log.fatal('no more HP points - time to abort processing loop')
+                logger.fatal('no more HP points - time to abort processing loop')
             elif exit_code:
                 # set error code
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PREPROCESSFAILURE)
-                log.fatal('cannot continue since preprocess failed: exit_code=%d' % exit_code)
+                logger.fatal('cannot continue since preprocess failed: exit_code=%d' % exit_code)
             else:
                 # in case the preprocess produced a command, chmod it
                 path = os.path.join(job.workdir, job.containeroptions.get('containerExec', 'does_not_exist'))
                 if os.path.exists(path):
-                    log.debug('chmod 0o755: %s' % path)
+                    logger.debug('chmod 0o755: %s' % path)
                     os.chmod(path, 0o755)
 
         return exit_code
@@ -428,13 +417,10 @@ class Executor(object):
         :return:
         """
 
-        log = get_logger(str(self.__job.jobid), logger)
-
         # get the payload command from the user specific code
         self.pre_setup(self.__job)
-        _ec, _stdout, _stderr = get_memory_usage(os.getpid())
-        log.debug('current pilot memory usage (run() start)\n%s' % _stdout)
-        log.debug('job object id=%d' % id(self.__job))
+
+        show_memory_usage()
 
         cmd = self.get_payload_command(self.__job)
         # extract the setup in case the preprocess command needs it
@@ -445,9 +431,8 @@ class Executor(object):
         # abort when nothing more to run, or when the preprocess returns a special exit code
         iteration = 1
         while True:
-            log.info('payload iteration loop #%d' % iteration)
-            _ec, _stdout, _stderr = get_memory_usage(os.getpid())
-            log.debug('current pilot memory usage (before payload execution)\n%s' % _stdout)
+            logger.info('payload iteration loop #%d' % iteration)
+            show_memory_usage()
 
             # first run the preprocess (if necessary) - note: this might update jobparams -> must update cmd
             jobparams_pre = self.__job.jobparams
@@ -458,7 +443,7 @@ class Executor(object):
                     exit_code = 0
                 break
             if jobparams_pre != jobparams_post:
-                log.debug('jobparams were updated by utility_before_payload()')
+                logger.debug('jobparams were updated by utility_before_payload()')
                 # must update cmd
                 cmd = cmd.replace(jobparams_pre, jobparams_post)
 
@@ -473,35 +458,34 @@ class Executor(object):
 
                 # start any coprocess if necessary
                 if self.__job.coprocess:
-                    log.debug('starting coprocess')
+                    logger.debug('starting coprocess')
                     # proc_co = self.run_coprocess(self.__job)
 
-                log.info('will wait for graceful exit')
+                logger.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
                 state = 'finished' if exit_code == 0 else 'failed'
                 set_pilot_state(job=self.__job, state=state)
-                log.info('\n\nfinished pid=%s exit_code=%s state=%s\n' % (proc.pid, exit_code, self.__job.state))
-                ec, stdout, stderr = get_memory_usage(os.getpid())
-                log.debug('current pilot memory usage (after payload execution)\n%s' % stdout)
+                logger.info('\n\nfinished pid=%s exit_code=%s state=%s\n' % (proc.pid, exit_code, self.__job.state))
+                show_memory_usage()
 
                 # stop the coprocess if necessary
                 if proc_co:
-                    log.debug('stopping coprocess')
+                    logger.debug('stopping coprocess')
                     # self.stop_coprocess(proc_co)
 
                 if exit_code is None:
-                    log.warning('detected unset exit_code from wait_graceful - reset to -1')
+                    logger.warning('detected unset exit_code from wait_graceful - reset to -1')
                     exit_code = -1
 
                 if state != 'failed':
                     try:
                         cmd_after_payload = self.utility_after_payload_finished(self.__job)
                     except Exception as e:
-                        log.error(e)
+                        logger.error(e)
                     else:
                         if cmd_after_payload:
                             cmd_after_payload = self.__job.setup + cmd_after_payload
-                            log.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
+                            logger.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
                             exit_code = self.execute_utility_command(cmd_after_payload, self.__job, 'postprocess')
 
                 self.post_payload(self.__job)
