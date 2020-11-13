@@ -828,7 +828,7 @@ class StageInClient(StagingClient):
         self.set_status_for_direct_access(files, kwargs.get('workdir', ''))
 
         # get remain files that need to be transferred by copytool
-        remain_files = [e for e in files if e.status not in ['remote_io', 'transferred', 'no_transfer']]
+        remain_files = [e for e in files if e.status not in ['direct', 'remote_io', 'transferred', 'no_transfer']]
 
         if not remain_files:
             return files

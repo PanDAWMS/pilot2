@@ -1678,13 +1678,12 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):
     ls(workdir)
 
 
-def download_command(process, workdir, label='preprocess'):
+def download_command(process, workdir):
     """
     Download the pre/postprocess commands if necessary.
 
     :param process: pre/postprocess dictionary.
     :param workdir: job workdir (string).
-    :param label: pre/postprocess label (string).
     :return: updated pre/postprocess dictionary.
     """
 
@@ -1695,7 +1694,7 @@ def download_command(process, workdir, label='preprocess'):
         # Try to download the trf (skip when user container is to be used)
         ec, diagnostics, cmd = get_analysis_trf(cmd, workdir)
         if ec != 0:
-            logger.warning('cannot execute %s command due to previous error' % label)
+            logger.warning('cannot execute command due to previous error: %s' % cmd)
             return {}
 
         # update the preprocess command (the URL should be stripped)
@@ -1726,19 +1725,21 @@ def get_utility_commands(order=None, job=None):
     if order:
         if order == UTILITY_BEFORE_PAYLOAD and job and job.preprocess:
             if job.preprocess.get('command', ''):
-                return download_command(job.preprocess, job.workdir, label='preprocess')
+                return download_command(job.preprocess, job.workdir)
         elif order == UTILITY_WITH_PAYLOAD:
             return {'command': 'NetworkMonitor', 'args': ''}
-        elif order == UTILITY_AFTER_PAYLOAD_STARTED:
-            cmd = config.Pilot.utility_after_payload_started
-            if cmd:
-                return {'command': cmd, 'args': ''}
+        elif order == UTILITY_AFTER_PAYLOAD_STARTED and job and job.coprocess:
+            # cmd = config.Pilot.utility_after_payload_started  DEPRECATED
+            #if cmd:
+            #    return {'command': cmd, 'args': ''}
+            if job.coprocess.get('command', ''):
+                return download_command(job.coprocess, job.workdir)
         elif order == UTILITY_AFTER_PAYLOAD and job and job.postprocess:
             if job.postprocess.get('command', ''):
-                return download_command(job.postprocess, job.workdir, label='postprocess')
+                return download_command(job.postprocess, job.workdir)
         elif order == UTILITY_AFTER_PAYLOAD_FINISHED and job and job.postprocess:
             if job.postprocess.get('command', ''):
-                return download_command(job.postprocess, job.workdir, label='postprocess')
+                return download_command(job.postprocess, job.workdir)
         elif order == UTILITY_WITH_STAGEIN:
             return {'command': 'Benchmark', 'args': ''}
 
