@@ -306,7 +306,7 @@ class Executor(object):
             logger.error('failed to execute command')
             return None
 
-        logger.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
+        logger.info('started %s -- pid=%s executable=%s' % (label, proc.pid, cmd))
 
         return proc
 
