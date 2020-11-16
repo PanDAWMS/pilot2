@@ -38,13 +38,13 @@ class Executor(object):
     def __init__(self, args, job, out, err, traces):
         self.__args = args
         self.__job = job
-        self.__out = out
-        self.__err = err
+        self.__out = out  # payload stdout
+        self.__err = err  # payload stderr
         self.__traces = traces
-        self.__payload_stdout = config.Payload.payloadstdout
-        self.__payload_stderr = config.Payload.payloadstderr
         self.__preprocess_stdout = ''
         self.__preprocess_stderr = ''
+        self.__coprocess_stdout = 'coprocess_stdout.txt'
+        self.__coprocess_stderr = 'coprocess_stderr.txt'
         self.__postprocess_stdout = ''
         self.__postprocess_stderr = ''
 
@@ -290,9 +290,14 @@ class Executor(object):
 
         if label:
             logger.info('\n\n%s:\n\n%s\n' % (label, cmd))
-
+        if label == 'coprocess':
+            out = self.__coprocess_stdout
+            err = self.__coprocess_stderr
+        else:
+            out = None
+            err = None
         try:
-            proc = execute(cmd, workdir=self.__job.workdir, returnproc=True,
+            proc = execute(cmd, workdir=self.__job.workdir, returnproc=True, stdout=out, stderr=err,
                            usecontainer=False, cwd=self.__job.workdir, job=self.__job)
         except Exception as e:
             logger.error('could not execute: %s' % str(e))
@@ -524,7 +529,8 @@ class Executor(object):
                 utility_cmd = self.get_utility_command(order=UTILITY_AFTER_PAYLOAD_STARTED)
                 if utility_cmd:
                     logger.debug('starting utility command: %s' % utility_cmd)
-                    proc_co = self.run_command(utility_cmd)
+                    label = 'coprocess' if 'coprocess' in utility_cmd else None
+                    proc_co = self.run_command(utility_cmd, label=label)
 
                 logger.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
@@ -536,7 +542,7 @@ class Executor(object):
                 # stop the utility command (e.g. a coprocess if necessary
                 if proc_co:
                     logger.debug('stopping utility command')
-                    kill_processes(proc_co)
+                    kill_processes(proc_co.pid)
 
                 if exit_code is None:
                     logger.warning('detected unset exit_code from wait_graceful - reset to -1')
@@ -597,7 +603,7 @@ class Executor(object):
         :return:
         """
 
-        names = [self.__payload_stdout, self.__payload_stderr, self.__preprocess_stdout, self.__preprocess_stderr,
+        names = [self.__preprocess_stdout, self.__preprocess_stderr,
                  self.__postprocess_stdout, self.__postprocess_stderr]
         for name in names:
             if os.path.exists(name):

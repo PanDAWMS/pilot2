@@ -616,6 +616,9 @@ class JobData(BaseData):
 
         logger.info('cleaned jobparams: %s' % ret)
 
+#        self.coprocess = {u'args': u'--coprocess -o output.json -j "" -p "bash%20./exec_in_container.sh" --inSampleFile input.json -a jobO.83699547-623a-4d8c-9b1f-4ff5332bdb77.tar --sourceURL https://aipanda048.cern.ch:25443 --checkPointToSave aaa --writeInputToTxt IN_DATA:input_ds.json -i "[\'v04.trt_sharded_weighted_1M5K.tar.gz\']" --inMap "{\'IN_DATA\': [\'v04.trt_sharded_weighted_1M5K.tar.gz\']}" --outMetricsFile=23136708.metrics.000006.tgz^metrics.tgz', u'command': u'http://pandaserver.cern.ch:25080/trf/user/runHPO-00-00-01'}
+#        logger.debug('hardcoding coprocess: %s' % self.coprocess)
+
         return ret
 
     def extract_container_image(self, jobparams):
