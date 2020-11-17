@@ -103,6 +103,7 @@ class Executor(object):
 
         :param job: job object.
         """
+        cmd = ""
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -149,6 +150,7 @@ class Executor(object):
 
         :param job: job object
         """
+        cmd = ""
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
