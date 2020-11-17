@@ -53,12 +53,18 @@ def verify_proxy(limit=None):
     #  (memory issues on queues with limited memory)
 
     ec, diagnostics = verify_arcproxy(envsetup, limit)
-    if ec != 0:
+    if ec != 0 and ec != -1:
         return ec, diagnostics
+    elif ec == -1:
+        pass  # go to next test
+    else:
+        return 0, diagnostics
 
     ec, diagnostics = verify_vomsproxy(envsetup, limit)
     if ec != 0:
         return ec, diagnostics
+    else:
+        return 0, diagnostics
 
     ec, diagnostics = verify_gridproxy(envsetup, limit)
     if ec != 0:
@@ -86,15 +92,19 @@ def verify_arcproxy(envsetup, limit):
         if 'command not found' in stdout:
             logger.warning("arcproxy is not available on this queue,"
                            "this can lead to memory issues with voms-proxy-info on SL6: %s" % (stdout))
+            ec = -1
         else:
             ec, diagnostics = interpret_proxy_info(exit_code, stdout, stderr, limit)
             if ec == 0:
                 logger.info("voms proxy verified using arcproxy")
                 return 0, diagnostics
+            elif ec == -1:  # skip to next proxy test
+                return ec, diagnostics
             elif ec == errors.NOVOMSPROXY:
                 return ec, diagnostics
             else:
                 logger.info("will try voms-proxy-info instead")
+                ec = -1
     else:
         logger.warning('command execution failed')
 
@@ -195,6 +205,9 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
         if "Unable to verify signature! Server certificate possibly not installed" in stdout:
             logger.warning("skipping voms proxy check: %s" % (stdout))
         # test for command errors
+        elif "arcproxy: error while loading shared libraries" in stderr:
+            exitcode = -1
+            logger.warning('skipping arcproxy test')
         elif "arcproxy:" in stdout:
             diagnostics = "arcproxy failed: %s" % (stdout)
             logger.warning(diagnostics)
