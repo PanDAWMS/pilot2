@@ -590,7 +590,7 @@ def create_release_setup(cmd, atlas_setup, full_atlas_setup, release, imagename,
 
     # note: if release_setup_name.startswith('/'), the pilot will NOT create the script
     if not release_setup_name.startswith('/'):
-        # in the new mode, extracted_asetup should be written to 'my_release_setup.sh' and cmd to 'container_script.sh'
+        # extracted_asetup should be written to 'my_release_setup.sh' and cmd to 'container_script.sh'
         content = ''
         if is_cvmfs:
             content, cmd = extract_full_atlas_setup(cmd, atlas_setup)
@@ -633,8 +633,10 @@ def get_release_setup_name(release, imagename):
     """
 
     if imagename and release and release != 'NULL':
-        # stand-alone containers (script is assumed to exist inside image/container)
-        release_setup_name = '/release_setup.sh'
+        # stand-alone containers (script is assumed to exist inside image/container so will ignore this /srv/my_release_setup.sh)
+        release_setup_name = '/srv/my_release_setup.sh'
+#        # stand-alone containers (script is assumed to exist inside image/container)
+#        release_setup_name = '/release_setup.sh'
     else:
         # OS containers (script will be created by pilot)
         release_setup_name = config.Container.release_setup
