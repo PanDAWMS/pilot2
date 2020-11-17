@@ -348,11 +348,11 @@ def get_payload_command(job):
     #if not userjob and use_direct_access and job.transfertype == 'direct':
     if not userjob and not job.is_build_job() and job.has_remoteio():  ## ported from old logic
         ## ported from old logic but still it looks strange (anisyonk)
-        ## the "PoolFileCatalogger.xml" should already contains proper TURLs values as it created by create_input_file_metadata()
+        ## the "PoolFileCatalog.xml" should already contains proper TURLs values as it created by create_input_file_metadata()
         ## if the case is just to patch `writetofile` file, than logic should be cleaned and decoupled
         ## anyway, instead of parsing the file, it's much more easy to generate properly `writetofile` content from the beginning with TURL data
         lfns = job.get_lfns_and_guids()[0]
-        cmd = replace_lfns_with_turls(cmd, job.workdir, "PoolFileCatalogger.xml", lfns, writetofile=job.writetofile)
+        cmd = replace_lfns_with_turls(cmd, job.workdir, "PoolFileCatalog.xml", lfns, writetofile=job.writetofile)
 
     # Explicitly add the ATHENA_PROC_NUMBER (or JOB value)
     cmd = add_athena_proc_number(cmd)
@@ -1509,7 +1509,7 @@ def get_redundants():
                 "*proxy",
                 "ckpt*",
                 "*runcontainer*",
-                "*job.logger.tgz",
+                "*job.log.tgz",
                 "runGen-*",
                 "runAthena-*",
                 "pandawnutil/*",
@@ -1593,7 +1593,7 @@ def remove_special_files(workdir, dir_list, outputfiles):
     """
 
     # note: these should be partial file/dir names, not containing any wildcards
-    exceptions_list = ["runargs", "runwrapper", "jobReport", "logger."]
+    exceptions_list = ["runargs", "runwrapper", "jobReport", "log."]
 
     to_delete = []
     for _dir in dir_list:

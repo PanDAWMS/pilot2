@@ -298,7 +298,7 @@ class Executor(object):
             err = None
         try:
             proc = execute(cmd, workdir=self.__job.workdir, returnproc=True, stdout=out, stderr=err,
-                           usecontainer=False, cwd=self.__job.workdir, job=self.__job)
+                           usecontainer=True, cwd=self.__job.workdir, job=self.__job)
         except Exception as e:
             logger.error('could not execute: %s' % str(e))
             return None

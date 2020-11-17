@@ -679,7 +679,7 @@ def get_log_extracts(job, state):
     logger.info("building log extracts (sent to the server as \'pilotLog\')")
 
     # did the job have any outbound connections?
-    # look for the pandatracerlogger.txt file, produced if the user payload attempted any outgoing connections
+    # look for the pandatracerlog.txt file, produced if the user payload attempted any outgoing connections
     extracts = get_panda_tracer_log(job)
 
     # for failed/holding jobs, add extracts from the pilot log file, but always add it to the pilot log itself
@@ -701,12 +701,12 @@ def get_panda_tracer_log(job):
     This file will contain information about outbound connections.
 
     :param job: job object.
-    :return: log extracts from pandatracerlogger.txt (string).
+    :return: log extracts from pandatracerlog.txt (string).
     """
 
     extracts = ""
 
-    tracerlog = os.path.join(job.workdir, "pandatracerlogger.txt")
+    tracerlog = os.path.join(job.workdir, "pandatracerlog.txt")
     if os.path.exists(tracerlog):
         # only add if file is not empty
         if os.path.getsize(tracerlog) > 0:
