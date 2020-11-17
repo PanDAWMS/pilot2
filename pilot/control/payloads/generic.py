@@ -38,15 +38,15 @@ class Executor(object):
     def __init__(self, args, job, out, err, traces):
         self.__args = args
         self.__job = job
-        self.__out = out  # payload stdout
-        self.__err = err  # payload stderr
+        self.__out = out  # payload stdout file object
+        self.__err = err  # payload stderr file object
         self.__traces = traces
-        self.__preprocess_stdout = ''
-        self.__preprocess_stderr = ''
-        self.__coprocess_stdout = 'coprocess_stdout.txt'
-        self.__coprocess_stderr = 'coprocess_stderr.txt'
-        self.__postprocess_stdout = ''
-        self.__postprocess_stderr = ''
+        self.__preprocess_stdout_name = ''
+        self.__preprocess_stderr_name = ''
+        self.__coprocess_stdout_name = 'coprocess_stdout.txt'
+        self.__coprocess_stderr_name = 'coprocess_stderr.txt'
+        self.__postprocess_stdout_name = ''
+        self.__postprocess_stderr_name = ''
 
     def get_job(self):
         """
@@ -247,11 +247,11 @@ class Executor(object):
             name_stdout = step + '_stdout.txt'
             name_stderr = step + '_stderr.txt'
             if step == 'preprocess':
-                self.__preprocess_stdout = name_stdout
-                self.__preprocess_stderr = name_stderr
+                self.__preprocess_stdout_name = name_stdout
+                self.__preprocess_stderr_name = name_stderr
             elif step == 'postprocess':
-                self.__postprocess_stdout = name_stdout
-                self.__postprocess_stderr = name_stderr
+                self.__postprocess_stdout_name = name_stdout
+                self.__postprocess_stderr_name = name_stderr
             write_file(os.path.join(workdir, step + '_stdout.txt'), stdout, unique=True)
         except PilotException as e:
             logger.warning('failed to write utility stdout to file: %s, %s' % (e, stdout))
@@ -291,14 +291,19 @@ class Executor(object):
         if label:
             logger.info('\n\n%s:\n\n%s\n' % (label, cmd))
         if label == 'coprocess':
-            out = self.__coprocess_stdout
-            err = self.__coprocess_stderr
+            try:
+                out = open(os.path.join(self.__job.workdir, self.__coprocess_stdout_name), 'wb')
+                err = open(os.path.join(self.__job.workdir, self.__coprocess_stderr_name), 'wb')
+            except Exception as e:
+                logger.warning('failed to open coprocess stdout/err: %s' % e)
+                out = None
+                err = None
         else:
             out = None
             err = None
         try:
             proc = execute(cmd, workdir=self.__job.workdir, returnproc=True, stdout=out, stderr=err,
-                           usecontainer=True, cwd=self.__job.workdir, job=self.__job)
+                           usecontainer=False, cwd=self.__job.workdir, job=self.__job)
         except Exception as e:
             logger.error('could not execute: %s' % str(e))
             return None
@@ -603,8 +608,8 @@ class Executor(object):
         :return:
         """
 
-        names = [self.__preprocess_stdout, self.__preprocess_stderr,
-                 self.__postprocess_stdout, self.__postprocess_stderr]
+        names = [self.__preprocess_stdout_name, self.__preprocess_stderr_name,
+                 self.__postprocess_stdout_name, self.__postprocess_stderr_name]
         for name in names:
             if os.path.exists(name):
                 os.rename(name, name + '%d' % iteration)
