@@ -53,18 +53,16 @@ def verify_proxy(limit=None):
     #  (memory issues on queues with limited memory)
 
     ec, diagnostics = verify_arcproxy(envsetup, limit)
-    if ec == 0:
+    if ec != 0:
         return ec, diagnostics
 
     ec, diagnostics = verify_vomsproxy(envsetup, limit)
-    if ec == 0:
+    if ec != 0:
         return ec, diagnostics
 
     ec, diagnostics = verify_gridproxy(envsetup, limit)
-    if ec == 0:
+    if ec != 0:
         return ec, diagnostics
-
-    logger.warning('none of the proxy verification methods worked - skipping verification')
 
     return exit_code, diagnostics
 
