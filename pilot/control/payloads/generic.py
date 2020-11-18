@@ -14,12 +14,12 @@
 import time
 import os
 import signal
-from subprocess import PIPE
+# from subprocess import PIPE
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.control.job import send_state
 from pilot.util.auxiliary import set_pilot_state, show_memory_usage
-from pilot.util.config import config
+# from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED, \
     UTILITY_AFTER_PAYLOAD_FINISHED, PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD
@@ -140,7 +140,6 @@ class Executor(object):
             logger.info('utility command to be executed after the payload: %s' % cmd)
 
         return cmd
-
 
     def utility_after_payload_started(self, job):
         """

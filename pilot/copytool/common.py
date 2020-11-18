@@ -159,7 +159,7 @@ def output_line_scan(ret, output):
     return ret
 
 
-def resolve_common_transfer_errors(output, is_stagein=True):
+def resolve_common_transfer_errors(output, is_stagein=True):  # noqa: C901
     """
     Resolve any common transfer related errors.
 

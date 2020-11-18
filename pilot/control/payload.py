@@ -170,7 +170,7 @@ def get_payload_executor(args, job, out, err, traces):
     return payload_executor
 
 
-def execute_payloads(queues, traces, args):
+def execute_payloads(queues, traces, args):  # noqa: C901
     """
     Execute queued payloads.
 
