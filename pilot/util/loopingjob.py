@@ -8,7 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018-2020
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.util.auxiliary import whoami, set_pilot_state
+from pilot.util.auxiliary import whoami, set_pilot_state, cut_output
 from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.filehandling import remove_files, find_latest_modified_file, verify_file_list
@@ -117,6 +117,9 @@ def get_time_for_last_touch(job, mt, looping_limit):
         else:
             logger.warning('found no recently updated files')
     else:
+        # cut the output if too long
+        stdout = cut_output(stdout)
+        stderr = cut_output(stderr)
         logger.warning('find command failed: %d, %s, %s' % (exit_code, stdout, stderr))
 
     return mt.ct_looping_last_touched

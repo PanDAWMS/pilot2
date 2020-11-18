@@ -390,7 +390,7 @@ def check_payload_stdout(job):
     diagnostics = ""
 
     # get list of log files
-    file_list = glob(os.path.join(job.workdir, 'logger.*'))
+    file_list = glob(os.path.join(job.workdir, 'log.*'))
 
     # is this a multi-trf job?
     n_jobs = job.jobparams.count("\n") + 1
@@ -406,7 +406,7 @@ def check_payload_stdout(job):
     # now loop over all files and check each individually (any large enough file will fail the job)
     for filename in file_list:
 
-        if "job.logger.tgz" in filename:
+        if "job.log.tgz" in filename:
             logger.info("skipping file size check of file (%s) since it is a special log file" % (filename))
             continue
 

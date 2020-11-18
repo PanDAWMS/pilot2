@@ -170,7 +170,7 @@ def get_payload_executor(args, job, out, err, traces):
     return payload_executor
 
 
-def execute_payloads(queues, traces, args):
+def execute_payloads(queues, traces, args):  # noqa: C901
     """
     Execute queued payloads.
 
@@ -203,9 +203,13 @@ def execute_payloads(queues, traces, args):
 
             logger.info('job %s added to monitored payloads queue' % job.jobid)
 
-            out = open(os.path.join(job.workdir, config.Payload.payloadstdout), 'wb')
-            err = open(os.path.join(job.workdir, config.Payload.payloadstderr), 'wb')
-
+            try:
+                out = open(os.path.join(job.workdir, config.Payload.payloadstdout), 'wb')
+                err = open(os.path.join(job.workdir, config.Payload.payloadstderr), 'wb')
+            except Exception as e:
+                logger.warning('failed to open payload stdout/err: %s' % e)
+                out = None
+                err = None
             send_state(job, args, 'starting')
 
             payload_executor = get_payload_executor(args, job, out, err, traces)
