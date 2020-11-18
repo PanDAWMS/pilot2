@@ -624,7 +624,7 @@ def get_release_setup_name(release, imagename):
 
     For OS containers, return config.Container.release_setup (my_release_setup.sh);
     for stand-alone containers (user defined containers, ie when --containerImage or job.imagename was used/set),
-    return '/release_setup.sh'. my_release_setup.sh will NOT be created for stand-alone containers.
+    return '/release_setup.sh'. release_setup.sh will NOT be created for stand-alone containers.
     The pilot will specify /release_setup.sh only when jobs use the Athena environment (ie has a set job.swrelease).
 
     :param release: software release (string).
