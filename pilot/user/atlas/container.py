@@ -634,9 +634,9 @@ def get_release_setup_name(release, imagename):
 
     if imagename and release and release != 'NULL':
         # stand-alone containers (script is assumed to exist inside image/container so will ignore this /srv/my_release_setup.sh)
-        release_setup_name = '/srv/my_release_setup.sh'
-#        # stand-alone containers (script is assumed to exist inside image/container)
-#        release_setup_name = '/release_setup.sh'
+#        release_setup_name = '/srv/my_release_setup.sh'
+        # stand-alone containers (script is assumed to exist inside image/container)
+        release_setup_name = '/release_setup.sh'
     else:
         # OS containers (script will be created by pilot)
         release_setup_name = config.Container.release_setup
