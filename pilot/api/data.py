@@ -828,7 +828,7 @@ class StageInClient(StagingClient):
         self.set_status_for_direct_access(files, kwargs.get('workdir', ''))
 
         # get remain files that need to be transferred by copytool
-        remain_files = [e for e in files if e.status not in ['remote_io', 'transferred', 'no_transfer']]
+        remain_files = [e for e in files if e.status not in ['direct', 'remote_io', 'transferred', 'no_transfer']]
 
         if not remain_files:
             return files
@@ -910,8 +910,9 @@ class StageInClient(StagingClient):
                     path = os.path.join(_workdir, config.Pilot.base_trace_report)
                     if not os.path.exists(_workdir):
                         path = os.path.join('/srv', config.Pilot.base_trace_report)
-                    self.logger.debug('writing base trace report to: %s' % path)
-                    write_json(path, self.trace_report)
+                    if not os.path.exists(path):
+                        self.logger.debug('writing base trace report to: %s' % path)
+                        write_json(path, self.trace_report)
                 else:
                     self.trace_report.send()
 

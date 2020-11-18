@@ -148,7 +148,11 @@ class PandaCommunicator(BaseCommunicator):
                                 data=data)
             logger.info("Downloaded event ranges: %s" % res)
 
-            if res['StatusCode'] == 0 or str(res['StatusCode']) == '0':
+            if res is None:
+                resp_attrs = {'status': -1,
+                              'content': None,
+                              'exception': exception.CommunicationFailure("Get events from panda returns None as return value")}
+            elif res['StatusCode'] == 0 or str(res['StatusCode']) == '0':
                 resp_attrs = {'status': 0, 'content': res['eventRanges'], 'exception': None}
             else:
                 resp_attrs = {'status': res['StatusCode'],

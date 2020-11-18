@@ -14,16 +14,17 @@
 import time
 import os
 import signal
-from subprocess import PIPE
+# from subprocess import PIPE
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.control.job import send_state
 from pilot.util.auxiliary import set_pilot_state, show_memory_usage
-from pilot.util.config import config
+# from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED, \
     UTILITY_AFTER_PAYLOAD_FINISHED, PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD
 from pilot.util.filehandling import write_file
+from pilot.util.processes import kill_processes
 from pilot.util.timing import add_to_pilot_timing
 from pilot.common.exception import PilotException
 
@@ -37,15 +38,15 @@ class Executor(object):
     def __init__(self, args, job, out, err, traces):
         self.__args = args
         self.__job = job
-        self.__out = out
-        self.__err = err
+        self.__out = out  # payload stdout file object
+        self.__err = err  # payload stderr file object
         self.__traces = traces
-        self.__payload_stdout = config.Payload.payloadstdout
-        self.__payload_stderr = config.Payload.payloadstderr
-        self.__preprocess_stdout = ''
-        self.__preprocess_stderr = ''
-        self.__postprocess_stdout = ''
-        self.__postprocess_stderr = ''
+        self.__preprocess_stdout_name = ''
+        self.__preprocess_stderr_name = ''
+        self.__coprocess_stdout_name = 'coprocess_stdout.txt'
+        self.__coprocess_stderr_name = 'coprocess_stderr.txt'
+        self.__postprocess_stdout_name = ''
+        self.__postprocess_stderr_name = ''
 
     def get_job(self):
         """
@@ -76,6 +77,8 @@ class Executor(object):
         These commands will be executed later (as eg the payload command setup is unknown at this point, which is
         needed for the preprocessing. Preprocessing is prepared here).
 
+        REFACTOR
+
         :param job: job object.
         """
         cmd = ""
@@ -96,8 +99,11 @@ class Executor(object):
         """
         Functions to run with payload.
 
+        REFACTOR
+
         :param job: job object.
         """
+        cmd = ""
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -111,11 +117,39 @@ class Executor(object):
 
         return cmd
 
+    def get_utility_command(self, order=None):
+        """
+        Return the command for the requested utility command (will be downloaded if necessary).
+        Note: the utility itself is defined in the user common code and is defined according to the order,
+        e.g. UTILITY_AFTER_PAYLOAD_STARTED means a co-process (see ATLAS user code).
+
+        :param order: order constant (const).
+        :return: command to be executed (string).
+        """
+
+        cmd = ""
+
+        # get the payload command from the user specific code
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+
+        # should any additional commands be executed after the payload?
+        cmd_dictionary = user.get_utility_commands(order=order, job=self.__job)
+        if cmd_dictionary:
+            cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
+            logger.info('utility command to be executed after the payload: %s' % cmd)
+
+        return cmd
+
     def utility_after_payload_started(self, job):
         """
         Functions to run after payload started
+
+        REFACTOR
+
         :param job: job object
         """
+        cmd = ""
 
         # get the payload command from the user specific code
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
@@ -127,26 +161,30 @@ class Executor(object):
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
             logger.info('utility command to be executed after the payload: %s' % cmd)
 
-            # how should this command be executed?
-            utilitycommand = user.get_utility_command_setup(cmd_dictionary.get('command'), job)
-            if not utilitycommand:
-                logger.warning('empty utility command - nothing to run')
-                return
-            try:
-                proc1 = execute(utilitycommand, workdir=job.workdir, returnproc=True, usecontainer=False,
-                                stdout=PIPE, stderr=PIPE, cwd=job.workdir, job=job)
-            except Exception as e:
-                logger.error('could not execute: %s' % e)
-            else:
-                # store process handle in job object, and keep track on how many times the command has been launched
-                # also store the full command in case it needs to be restarted later (by the job_monitor() thread)
-                job.utilities[cmd_dictionary.get('command')] = [proc1, 1, utilitycommand]
+        return cmd
+
+#            # how should this command be executed?
+#            utilitycommand = user.get_utility_command_setup(cmd_dictionary.get('command'), job)
+#            if not utilitycommand:
+#                logger.warning('empty utility command - nothing to run')
+#                return
+#            try:
+#                proc = execute(utilitycommand, workdir=job.workdir, returnproc=True, usecontainer=False,
+#                               stdout=PIPE, stderr=PIPE, cwd=job.workdir, job=job)
+#            except Exception as e:
+#                logger.error('could not execute: %s' % e)
+#            else:
+#                # store process handle in job object, and keep track on how many times the command has been launched
+#                # also store the full command in case it needs to be restarted later (by the job_monitor() thread)
+#                job.utilities[cmd_dictionary.get('command')] = [proc, 1, utilitycommand]
 
     def utility_after_payload_finished(self, job):
         """
         Prepare commands/utilities to run after payload has finished.
 
         This command will be executed later.
+
+        REFACTOR
 
         :param job: job object.
         """
@@ -210,11 +248,11 @@ class Executor(object):
             name_stdout = step + '_stdout.txt'
             name_stderr = step + '_stderr.txt'
             if step == 'preprocess':
-                self.__preprocess_stdout = name_stdout
-                self.__preprocess_stderr = name_stderr
+                self.__preprocess_stdout_name = name_stdout
+                self.__preprocess_stderr_name = name_stderr
             elif step == 'postprocess':
-                self.__postprocess_stdout = name_stdout
-                self.__postprocess_stderr = name_stderr
+                self.__postprocess_stdout_name = name_stdout
+                self.__postprocess_stderr_name = name_stderr
             write_file(os.path.join(workdir, step + '_stdout.txt'), stdout, unique=True)
         except PilotException as e:
             logger.warning('failed to write utility stdout to file: %s, %s' % (e, stdout))
@@ -243,9 +281,46 @@ class Executor(object):
         # write time stamps to pilot timing file
         add_to_pilot_timing(job.jobid, PILOT_POST_PAYLOAD, time.time(), self.__args)
 
+    def run_command(self, cmd, label=None):
+        """
+        Execute the given command and return the process id.
+
+        :param cmd: command (string).
+        :return: process id (int).
+        """
+
+        if label:
+            logger.info('\n\n%s:\n\n%s\n' % (label, cmd))
+        if label == 'coprocess':
+            try:
+                out = open(os.path.join(self.__job.workdir, self.__coprocess_stdout_name), 'wb')
+                err = open(os.path.join(self.__job.workdir, self.__coprocess_stderr_name), 'wb')
+            except Exception as e:
+                logger.warning('failed to open coprocess stdout/err: %s' % e)
+                out = None
+                err = None
+        else:
+            out = None
+            err = None
+        try:
+            proc = execute(cmd, workdir=self.__job.workdir, returnproc=True, stdout=out, stderr=err,
+                           usecontainer=False, cwd=self.__job.workdir, job=self.__job)
+        except Exception as e:
+            logger.error('could not execute: %s' % str(e))
+            return None
+        if type(proc) == tuple and not proc[0]:
+            logger.error('failed to execute command')
+            return None
+
+        logger.info('started %s -- pid=%s executable=%s' % (label, proc.pid, cmd))
+
+        return proc
+
     def run_payload(self, job, cmd, out, err):
         """
         Setup and execute the main payload process.
+
+        REFACTOR using run_command()
 
         :param job: job object.
         :param out: (currently not used; deprecated)
@@ -257,10 +332,6 @@ class Executor(object):
 
         # add time for PILOT_PRE_PAYLOAD
         self.pre_payload(job)
-
-        _cmd = self.utility_with_payload(job)
-        if _cmd:
-            logger.info('could have executed: %s (currently not used)' % _cmd)
 
         logger.info("\n\npayload execution command:\n\n%s\n" % cmd)
         try:
@@ -278,7 +349,11 @@ class Executor(object):
         job.pgrp = os.getpgid(job.pid)
         set_pilot_state(job=job, state="running")
 
-        self.utility_after_payload_started(job)
+        #_cmd = self.utility_with_payload(job)
+        #if _cmd:
+        #    logger.info('could have executed: %s' % _cmd)
+
+        # self.utility_after_payload_started(job)
 
         return proc
 
@@ -429,9 +504,10 @@ class Executor(object):
 
         # a loop is needed for HPO jobs
         # abort when nothing more to run, or when the preprocess returns a special exit code
-        iteration = 1
+        iteration = 0
         while True:
-            logger.info('payload iteration loop #%d' % iteration)
+            logger.info('payload iteration loop #%d' % (iteration + 1))
+            os.environ['PILOT_EXEC_ITERATION_COUNT'] = '%s' % iteration
             show_memory_usage()
 
             # first run the preprocess (if necessary) - note: this might update jobparams -> must update cmd
@@ -456,10 +532,11 @@ class Executor(object):
                 # the process is now running, update the server
                 send_state(self.__job, self.__args, self.__job.state)
 
-                # start any coprocess if necessary
-                if self.__job.coprocess:
-                    logger.debug('starting coprocess')
-                    # proc_co = self.run_coprocess(self.__job)
+                utility_cmd = self.get_utility_command(order=UTILITY_AFTER_PAYLOAD_STARTED)
+                if utility_cmd:
+                    logger.debug('starting utility command: %s' % utility_cmd)
+                    label = 'coprocess' if 'coprocess' in utility_cmd else None
+                    proc_co = self.run_command(utility_cmd, label=label)
 
                 logger.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
@@ -468,10 +545,10 @@ class Executor(object):
                 logger.info('\n\nfinished pid=%s exit_code=%s state=%s\n' % (proc.pid, exit_code, self.__job.state))
                 show_memory_usage()
 
-                # stop the coprocess if necessary
+                # stop the utility command (e.g. a coprocess if necessary
                 if proc_co:
-                    logger.debug('stopping coprocess')
-                    # self.stop_coprocess(proc_co)
+                    logger.debug('stopping utility command')
+                    kill_processes(proc_co.pid)
 
                 if exit_code is None:
                     logger.warning('detected unset exit_code from wait_graceful - reset to -1')
@@ -532,8 +609,8 @@ class Executor(object):
         :return:
         """
 
-        names = [self.__payload_stdout, self.__payload_stderr, self.__preprocess_stdout, self.__preprocess_stderr,
-                 self.__postprocess_stdout, self.__postprocess_stderr]
+        names = [self.__preprocess_stdout_name, self.__preprocess_stderr_name,
+                 self.__postprocess_stdout_name, self.__postprocess_stderr_name]
         for name in names:
             if os.path.exists(name):
                 os.rename(name, name + '%d' % iteration)

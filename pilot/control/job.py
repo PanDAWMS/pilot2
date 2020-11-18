@@ -704,7 +704,7 @@ def get_list_of_log_files():
 
     list_of_files = get_files()
     if not list_of_files:  # some TRFs produce logs with different naming scheme
-        list_of_files = get_files(pattern="logger.*")
+        list_of_files = get_files(pattern="log.*")
 
     return list_of_files
 
@@ -1280,7 +1280,7 @@ def get_fake_job(input=True):
                'swRelease': 'Atlas-20.1.4',
                'nucleus': 'NULL',
                'maxCpuCount': 0,
-               'outFiles': 'RDO_%s.root,%s.job.logger.tgz' % (job_name, job_name),
+               'outFiles': 'RDO_%s.root,%s.job.log.tgz' % (job_name, job_name),
                'currentPriority': 1000,
                'scopeIn': 'mc15_13TeV',
                'PandaID': '0',
@@ -1291,7 +1291,7 @@ def get_fake_job(input=True):
                'jobName': job_name,
                'ddmEndPointIn': 'UTA_SWT2_DATADISK',
                'taskID': 'NULL',
-               'logFile': '%s.job.logger.tgz' % job_name}
+               'logFile': '%s.job.log.tgz' % job_name}
     elif config.Pilot.testjobtype == 'user':
         logger.info('creating fake test user job definition')
         res = {'jobsetID': 'NULL',
@@ -1336,7 +1336,7 @@ def get_fake_job(input=True):
                'swRelease': 'Atlas-20.7.6',
                'nucleus': 'NULL',
                'maxCpuCount': '0',
-               'outFiles': '%s.root,%s.job.logger.tgz' % (job_name, job_name),
+               'outFiles': '%s.root,%s.job.log.tgz' % (job_name, job_name),
                'currentPriority': '1000',
                'scopeIn': 'data15_13TeV',
                'PandaID': '0',
@@ -1347,7 +1347,7 @@ def get_fake_job(input=True):
                'jobName': job_name,
                'ddmEndPointIn': 'SWT2_CPB_SCRATCHDISK',
                'taskID': 'NULL',
-               'logFile': '%s.job.logger.tgz' % job_name}
+               'logFile': '%s.job.log.tgz' % job_name}
     else:
         logger.warning('unknown test job type: %s' % config.Pilot.testjobtype)
 
@@ -1529,7 +1529,7 @@ def retrieve(queues, traces, args):  # noqa: C901
 
 def print_node_info():
     """
-    Print information about the local node to the logger.
+    Print information about the local node to the log.
 
     :return:
     """

@@ -687,7 +687,7 @@ def create_log(job, logfile, tarball_name, args):
     os.rename(job.workdir, newworkdir)
     job.workdir = newworkdir
 
-    fullpath = os.path.join(job.workdir, logfile.lfn)  # /some/path/to/dirname/logger.tgz
+    fullpath = os.path.join(job.workdir, logfile.lfn)  # /some/path/to/dirname/log.tgz
 
     logger.info('will create archive %s' % fullpath)
     try:

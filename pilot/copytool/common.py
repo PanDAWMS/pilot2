@@ -159,7 +159,7 @@ def output_line_scan(ret, output):
     return ret
 
 
-def resolve_common_transfer_errors(output, is_stagein=True):
+def resolve_common_transfer_errors(output, is_stagein=True):  # noqa: C901
     """
     Resolve any common transfer related errors.
 
@@ -207,6 +207,8 @@ def resolve_common_transfer_errors(output, is_stagein=True):
         ret = get_error_info(ErrorCodes.SERVICENOTAVAILABLE, 'SERVICE_ERROR', output)
     elif "Network is unreachable" in output:
         ret = get_error_info(ErrorCodes.UNREACHABLENETWORK, 'NETWORK_UNREACHABLE', output)
+    elif "Run: [ERROR] Server responded with an error" in output:
+        ret = get_error_info(ErrorCodes.XRDCPERROR, 'XRDCP_ERROR', output)
 
     # reg exp the output to get real error message
     ret = output_line_scan(ret, output)

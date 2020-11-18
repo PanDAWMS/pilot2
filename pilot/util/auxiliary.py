@@ -479,3 +479,19 @@ def extract_memory_usage_value(output):
             break
 
     return memory_usage
+
+
+def cut_output(txt, cutat=1024, separator='\n[...]\n'):
+    """
+    Cut the given string if longer that 2*cutat value.
+
+    :param txt: text to be cut at position cutat (string).
+    :param cutat: max length of uncut text (int).
+    :param separator: separator text (string).
+    :return: cut text (string).
+    """
+
+    if len(txt) > 2 * cutat:
+        txt = txt[:cutat] + separator + txt[-cutat:]
+
+    return txt
