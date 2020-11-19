@@ -20,12 +20,13 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def verify_proxy(limit=None):
+def verify_proxy(limit=None, x509=None):
     """
     Check for a valid voms/grid proxy longer than N hours.
     Use `limit` to set required time limit.
 
     :param limit: time limit in hours (int).
+    :param x509: points to the proxy file. If not set (=None) - get proxy file from X509_USER_PROXY environment
     :return: exit code (NOPROXY or NOVOMSPROXY), diagnostics (error diagnostics string).
     """
 
@@ -37,7 +38,8 @@ def verify_proxy(limit=None):
 
     # add setup for arcproxy if it exists
     #arcproxy_setup = "%s/atlas.cern.ch/repo/sw/arc/client/latest/slc6/x86_64/setup.sh" % get_file_system_root_path()
-    x509 = os.environ.get('X509_USER_PROXY', '')
+    if x509 is None:
+		x509 = os.environ.get('X509_USER_PROXY', '')
     if x509 != '':
         envsetup = 'export X509_USER_PROXY=%s;' % x509
     else:
