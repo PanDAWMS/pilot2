@@ -16,6 +16,7 @@ import re
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import PilotException
 from pilot.user.atlas.setup import get_asetup, get_file_system_root_path
+from pilot.user.atlas.proxy import verify_proxy
 from pilot.info import InfoService, infosys
 from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
@@ -55,6 +56,7 @@ def get_payload_proxy(proxy_outfile_name, voms_role='atlas'):
         return False
 
     return write_file(proxy_outfile_name, proxy_contents, mute=False)
+
 
 def do_use_container(**kwargs):
     """
@@ -293,31 +295,43 @@ def update_alrb_setup(cmd, use_release_setup):
 def update_for_user_proxy(_cmd, cmd):
     """
     Add the X509 user proxy to the container sub command string if set, and remove it from the main container command.
+    Try to receive payload proxy and update X509_USER_PROXY in container setup command
 
-    :param _cmd:
-    :param cmd:
+    :param _cmd: container setup command
+    :param cmd: command the container will execute
     :return:
     """
+    
+    x509 = os.environ.get('X509_USER_PROXY', '')
+    if x509 != "":
+        # do not include the X509_USER_PROXY in the command the container will execute
+        cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, '')
+        # add it instead to the container setup command:
 
-	# X509_USER_PROXY in the command the container will execute
-	x509 = os.environ.get('X509_USER_PROXY', '')
-	if x509 != "":
-		# substitute pilot proxy with payload proxy
-		log.info("try to get payload proxy...")
-		x509new = x509 + "-payload"
-		if get_payload_proxy(x509new):
-			log.info("payload proxy was received")
-			# container run command: replace pilot->payload proxy
-			cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, "export X509_USER_PROXY=%s;" % x509new)
-			# add payload proxy to the container setup command
-			_cmd = "export X509_USER_PROXY=%s;" % x509new + _cmd
-			log.info("pilot->payload proxy substitution was successful")
-		else:
-			log.warning("get_payload_proxy() failed -- no user proxy will be used in container")
-			# do not include the X509_USER_PROXY in the command the container will execute
-			cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, '')
-			# add it instead to the container setup command
-			_cmd = "export X509_USER_PROXY=%s;" % x509 + _cmd
+        # try to receive payload proxy and update x509 
+        x509_payload = re.sub('.proxy$', '', x509) + '-payload.proxy' # compose new name to store payload proxy
+        
+        logger.info("try to get payload proxy...")
+        if get_payload_proxy(x509_payload):
+            logger.info("payload proxy was received")
+            
+            logger.info("verify payload proxy...")
+            exit_code, diagnostics = verify_proxy(x509=x509_payload)
+            # if all verifications fail, verify_proxy()  returns exit_code=0 and last failure in diagnostics
+            if exit_code != 0 or (exit_code==0 and diagnostics != ''): 
+                logger.warning(diagnostics)
+                logger.info("payload proxy is not ok")
+            else:
+                logger.info("payload proxy is ok")
+                # is commented: no user proxy should be in the command the container will execute
+                #cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, "export X509_USER_PROXY=%s;" % x509_payload)
+                x509=x509_payload
+                logger.info("pilot_proxy->payload_proxy substitution in container setup was successful")
+        else:
+            logger.warning("get_payload_proxy() failed => X509_USER_PROXY is unchanged in container setup command")
+
+        # add X509_USER_PROXY setting to the container setup command
+        _cmd = "export X509_USER_PROXY=%s;" % x509 + _cmd
 
     return _cmd, cmd
 
