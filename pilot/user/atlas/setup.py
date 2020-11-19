@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
 
 import os
 import re
@@ -15,7 +15,6 @@ from time import sleep
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import NoSoftwareDir
 from pilot.info import infosys
-from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 from pilot.util.filehandling import read_file, write_file, copy
 
@@ -378,8 +377,6 @@ def get_payload_environment_variables(cmd, job_id, task_id, attempt_nr, processi
     :return: list of environment variables needed by the payload.
     """
 
-    log = get_logger(job_id)
-
     variables = []
     variables.append('export PANDA_RESOURCE=\'%s\';' % site_name)
     variables.append('export FRONTIER_ID=\"[%s_%s]\";' % (task_id, job_id))
@@ -405,7 +402,7 @@ def get_payload_environment_variables(cmd, job_id, task_id, attempt_nr, processi
         variables.append(_core_count)
 
     if processing_type == "":
-        log.warning("RUCIO_APPID needs job.processingType but it is not set!")
+        logger.warning("RUCIO_APPID needs job.processingType but it is not set!")
     else:
         variables.append('export RUCIO_APPID=\'%s\';' % processing_type)
     variables.append('export RUCIO_ACCOUNT=\'%s\';' % os.environ.get('RUCIO_ACCOUNT', 'pilot'))

@@ -30,9 +30,9 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException  #, JobAlreadyRunning
 from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
-from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, get_logger, \
+from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, \
     set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine, \
-    is_python3, get_memory_usage
+    is_python3, show_memory_usage
 from pilot.util.config import config
 from pilot.util.common import should_abort, was_pilot_killed
 from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
@@ -157,21 +157,19 @@ def verify_error_code(job):
     :return:
     """
 
-    log = get_logger(job.jobid, logger)
-
     if job.piloterrorcode == 0 and len(job.piloterrorcodes) > 0:
-        log.warning('piloterrorcode set to first piloterrorcodes list entry: %s' % str(job.piloterrorcodes))
+        logger.warning('piloterrorcode set to first piloterrorcodes list entry: %s' % str(job.piloterrorcodes))
         job.piloterrorcode = job.piloterrorcodes[0]
 
     if job.piloterrorcode != 0 and job.is_analysis():
         if errors.is_recoverable(code=job.piloterrorcode):
             job.piloterrorcode = -abs(job.piloterrorcode)
             job.state = 'failed'
-            log.info('failed user job is recoverable (error code=%s)' % job.piloterrorcode)
+            logger.info('failed user job is recoverable (error code=%s)' % job.piloterrorcode)
         else:
-            log.info('failed user job is not recoverable')
+            logger.info('failed user job is not recoverable')
     else:
-        log.info('verified error code')
+        logger.info('verified error code')
 
 
 def get_proper_state(job, state):
@@ -213,8 +211,6 @@ def publish_harvester_reports(state, args, data, job, final):
     :return: True if successful, False otherwise (Boolean).
     """
 
-    log = get_logger(job.jobid, logger)
-
     # write part of the heartbeat message to worker attributes files needed by Harvester
     path = get_worker_attributes_file(args)
 
@@ -223,7 +219,7 @@ def publish_harvester_reports(state, args, data, job, final):
 
     # publish work report
     if not publish_work_report(data, path):
-        log.debug('failed to write to workerAttributesFile %s' % path)
+        logger.debug('failed to write to workerAttributesFile %s' % path)
         return False
 
     # check if we are in final state then write out information for output files
@@ -231,22 +227,22 @@ def publish_harvester_reports(state, args, data, job, final):
         # Use the job information to write Harvester event_status.dump file
         event_status_file = get_event_status_file(args)
         if publish_stageout_files(job, event_status_file):
-            log.debug('wrote log and output files to file %s' % event_status_file)
+            logger.debug('wrote log and output files to file %s' % event_status_file)
         else:
-            log.warning('could not write log and output files to file %s' % event_status_file)
+            logger.warning('could not write log and output files to file %s' % event_status_file)
             return False
 
         # publish job report
         _path = os.path.join(job.workdir, config.Payload.jobreport)
         if os.path.exists(_path):
             if publish_job_report(job, args, config.Payload.jobreport):
-                log.debug('wrote job report file')
+                logger.debug('wrote job report file')
                 return True
             else:
-                log.warning('failed to write job report file')
+                logger.warning('failed to write job report file')
                 return False
     else:
-        log.info('finished writing various report files in Harvester mode')
+        logger.info('finished writing various report files in Harvester mode')
 
     return True
 
@@ -282,23 +278,21 @@ def send_state(job, args, state, xml=None, metadata=None):
     :return: boolean (True if successful, False otherwise).
     """
 
-    log = get_logger(job.jobid, logger)
-    # _state = get_job_status(job, 'SERVER_UPDATE')
     state = get_proper_state(job, state)
 
     # should the pilot make any server updates?
     if not args.update_server:
-        log.info('pilot will not update the server (heartbeat message will be written to file)')
+        logger.info('pilot will not update the server (heartbeat message will be written to file)')
     tag = 'sending' if args.update_server else 'writing'
 
     if state == 'finished' or state == 'failed' or state == 'holding':
         final = True
         os.environ['SERVER_UPDATE'] = SERVER_UPDATE_UPDATING
-        log.info('job %s has %s - %s final server update' % (job.jobid, state, tag))
+        logger.info('job %s has %s - %s final server update' % (job.jobid, state, tag))
 
         # make sure that job.state is 'failed' if there's a set error code
         if job.piloterrorcode or job.piloterrorcodes:
-            log.warning('making sure that job.state is set to failed since a pilot error code is set')
+            logger.warning('making sure that job.state is set to failed since a pilot error code is set')
             state = 'failed'
             job.state = state
         # make sure an error code is properly set
@@ -306,14 +300,14 @@ def send_state(job, args, state, xml=None, metadata=None):
             verify_error_code(job)
     else:
         final = False
-        log.info('job %s has state \'%s\' - %s heartbeat' % (job.jobid, state, tag))
+        logger.info('job %s has state \'%s\' - %s heartbeat' % (job.jobid, state, tag))
 
     # build the data structure needed for getJob, updateJob
     data = get_data_structure(job, state, args, xml=xml, metadata=metadata)
 
     # write the heartbeat message to file if the server is not to be updated by the pilot (Nordugrid mode)
     if not args.update_server:
-        log.debug('is_harvester_mode(args) : {0}'.format(is_harvester_mode(args)))
+        logger.debug('is_harvester_mode(args) : {0}'.format(is_harvester_mode(args)))
         # if in harvester mode write to files required by harvester
         if is_harvester_mode(args):
             return publish_harvester_reports(state, args, data, job, final)
@@ -328,7 +322,7 @@ def send_state(job, args, state, xml=None, metadata=None):
             attempt = 0
             done = False
             while attempt < max_attempts and not done:
-                log.info('job update attempt %d/%d' % (attempt + 1, max_attempts))
+                logger.info('job update attempt %d/%d' % (attempt + 1, max_attempts))
 
                 # get the URL for the PanDA server from pilot options or from config
                 pandaserver = get_panda_server(args.url, args.port)
@@ -339,11 +333,10 @@ def send_state(job, args, state, xml=None, metadata=None):
                 attempt += 1
 
             time_after = int(time.time())
-            log.info('server updateJob request completed in %ds for job %s' % (time_after - time_before, job.jobid))
-            log.info("server responded with: res = %s" % str(res))
+            logger.info('server updateJob request completed in %ds for job %s' % (time_after - time_before, job.jobid))
+            logger.info("server responded with: res = %s" % str(res))
 
-            ec, stdout, stderr = get_memory_usage(os.getpid())
-            logger.debug('current pilot memory usage (after server update)\n%s' % stdout)
+            show_memory_usage()
 
             if res is not None:
                 # does the server update contain any backchannel information? if so, update the job object
@@ -351,20 +344,20 @@ def send_state(job, args, state, xml=None, metadata=None):
 
                 if final:
                     os.environ['SERVER_UPDATE'] = SERVER_UPDATE_FINAL
-                    log.debug('set SERVER_UPDATE=SERVER_UPDATE_FINAL')
+                    logger.debug('set SERVER_UPDATE=SERVER_UPDATE_FINAL')
                 return True
         else:
-            log.info('skipping job update for fake test job')
+            logger.info('skipping job update for fake test job')
             return True
 
     except Exception as e:
-        log.warning('exception caught while sending https request: %s' % e)
-        log.warning('possibly offending data: %s' % data)
+        logger.warning('exception caught while sending https request: %s' % e)
+        logger.warning('possibly offending data: %s' % data)
         pass
 
     if final:
         os.environ['SERVER_UPDATE'] = SERVER_UPDATE_TROUBLE
-        log.debug('set SERVER_UPDATE=SERVER_UPDATE_TROUBLE')
+        logger.debug('set SERVER_UPDATE=SERVER_UPDATE_TROUBLE')
 
     return False
 
@@ -486,28 +479,26 @@ def handle_backchannel_command(res, job, args):
     :return:
     """
 
-    log = get_logger(job.jobid, logger)
-
     if 'command' in res and res.get('command') != 'NULL':
         # look for 'tobekilled', 'softkill', 'debug', 'debugoff'
         if res.get('command') == 'tobekilled':
-            log.info('pilot received a panda server signal to kill job %s at %s' %
-                     (job.jobid, time_stamp()))
+            logger.info('pilot received a panda server signal to kill job %s at %s' %
+                        (job.jobid, time_stamp()))
             set_pilot_state(job=job, state="failed")
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL)
             args.abort_job.set()
         elif res.get('command') == 'softkill':
-            log.info('pilot received a panda server signal to softkill job %s at %s' %
-                     (job.jobid, time_stamp()))
+            logger.info('pilot received a panda server signal to softkill job %s at %s' %
+                        (job.jobid, time_stamp()))
             # event service kill instruction
         elif res.get('command') == 'debug':
-            log.info('pilot received a command to turn on debug mode from the server')
+            logger.info('pilot received a command to turn on debug mode from the server')
             job.debug = True
         elif res.get('command') == 'debugoff':
-            log.info('pilot received a command to turn off debug mode from the server')
+            logger.info('pilot received a command to turn off debug mode from the server')
             job.debug = False
         else:
-            log.warning('received unknown server command via backchannel: %s' % res.get('command'))
+            logger.warning('received unknown server command via backchannel: %s' % res.get('command'))
 
 
 def get_data_structure(job, state, args, xml=None, metadata=None):
@@ -522,8 +513,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     :return: data structure (dictionary).
     """
 
-    log = get_logger(job.jobid, logger)
-    log.debug('building data structure to be sent to server with heartbeat')
+    logger.debug('building data structure to be sent to server with heartbeat')
 
     data = {'jobId': job.jobid,
             'state': state,
@@ -576,15 +566,15 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
         #data['coreCount'] = mean(job.corecounts) if job.corecounts else job.corecount
     if job.corecounts:
         _mean = mean(job.corecounts)
-        log.info('mean actualcorecount: %f' % _mean)
+        logger.info('mean actualcorecount: %f' % _mean)
         data['meanCoreCount'] = _mean
 
     # get the number of events, should report in heartbeat in case of preempted.
     if job.nevents != 0:
         data['nEvents'] = job.nevents
-        log.info("total number of processed events: %d (read)" % job.nevents)
+        logger.info("total number of processed events: %d (read)" % job.nevents)
     else:
-        log.info("payload/TRF did not report the number of read events")
+        logger.info("payload/TRF did not report the number of read events")
 
     # get the CU consumption time
     constime = get_cpu_consumption_time(job.cpuconsumptiontime)
@@ -611,13 +601,11 @@ def add_error_codes(data, job):
     :return:
     """
 
-    log = get_logger(job.jobid, logger)
-
     # error codes
     pilot_error_code = job.piloterrorcode
     pilot_error_codes = job.piloterrorcodes
     if pilot_error_codes != []:
-        log.warning('pilotErrorCodes = %s (will report primary/first error code)' % str(pilot_error_codes))
+        logger.warning('pilotErrorCodes = %s (will report primary/first error code)' % str(pilot_error_codes))
         data['pilotErrorCode'] = pilot_error_codes[0]
     else:
         data['pilotErrorCode'] = pilot_error_code
@@ -626,7 +614,7 @@ def add_error_codes(data, job):
     pilot_error_diag = job.piloterrordiag
     pilot_error_diags = job.piloterrordiags
     if pilot_error_diags != []:
-        log.warning('pilotErrorDiags = %s (will report primary/first error diag)' % str(pilot_error_diags))
+        logger.warning('pilotErrorDiags = %s (will report primary/first error diag)' % str(pilot_error_diags))
         data['pilotErrorDiag'] = pilot_error_diags[0]
     else:
         data['pilotErrorDiag'] = pilot_error_diag
@@ -729,24 +717,23 @@ def get_payload_log_tail(job):
     :return: tail of stdout (string).
     """
 
-    log = get_logger(job.jobid, logger)
     stdout_tail = ""
 
     # find the latest updated log file
     list_of_files = get_list_of_log_files()
     if not list_of_files:
-        log.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
+        logger.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
         list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]  # get_files(pattern=config.Payload.payloadstdout)
 
     try:
         latest_file = max(list_of_files, key=os.path.getmtime)
-        log.info('tail of file %s will be added to heartbeat' % latest_file)
+        logger.info('tail of file %s will be added to heartbeat' % latest_file)
 
         # now get the tail of the found log file and protect against potentially large tails
         stdout_tail = latest_file + "\n" + tail(latest_file)
         stdout_tail = stdout_tail[-2048:]
     except Exception as e:
-        log.warning('failed to get payload stdout tail: %s' % e)
+        logger.warning('failed to get payload stdout tail: %s' % e)
 
     return stdout_tail
 
@@ -768,12 +755,11 @@ def validate(queues, traces, args):
         except queue.Empty:
             continue
 
-        log = get_logger(job.jobid, logger)
         traces.pilot['nr_jobs'] += 1
 
         # set the environmental variable for the task id
         os.environ['PanDA_TaskID'] = str(job.taskid)
-        log.info('processing PanDA job %s from task %s' % (job.jobid, job.taskid))
+        logger.info('processing PanDA job %s from task %s' % (job.jobid, job.taskid))
 
         if _validate_job(job):
 
@@ -781,24 +767,24 @@ def validate(queues, traces, args):
             os.setpgrp()
 
             job_dir = os.path.join(args.mainworkdir, 'PanDA_Pilot-%s' % job.jobid)
-            log.debug('creating job working directory: %s' % job_dir)
+            logger.debug('creating job working directory: %s' % job_dir)
             try:
                 os.mkdir(job_dir)
                 os.chmod(job_dir, 0o770)
                 job.workdir = job_dir
             except Exception as e:
-                log.debug('cannot create working directory: %s' % str(e))
+                logger.debug('cannot create working directory: %s' % str(e))
                 traces.pilot['error_code'] = errors.MKDIR
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(traces.pilot['error_code'])
                 job.piloterrordiag = e
                 put_in_queue(job, queues.failed_jobs)
                 break
 
-            log.debug('symlinking pilot log')
+            logger.debug('symlinking pilot log')
             try:
-                os.symlink('../pilotlog.txt', os.path.join(job_dir, 'pilotlog.txt'))
+                os.symlink('../%s' % config.Pilot.pilotlog, os.path.join(job_dir, config.Pilot.pilotlog))
             except Exception as e:
-                log.warning('cannot symlink pilot log: %s' % str(e))
+                logger.warning('cannot symlink pilot log: %s' % str(e))
 
             # store the PanDA job id for the wrapper to pick up
             store_jobid(job.jobid, args.sourcedir)
@@ -806,7 +792,7 @@ def validate(queues, traces, args):
             put_in_queue(job, queues.validated_jobs)
 
         else:
-            log.debug('Failed to validate job=%s' % job.jobid)
+            logger.debug('Failed to validate job=%s' % job.jobid)
             put_in_queue(job, queues.failed_jobs)
 
     # proceed to set the job_aborted flag?
@@ -858,8 +844,7 @@ def create_data_payload(queues, traces, args):
         if job.indata:
             # if the job has input data, put the job object in the data_in queue which will trigger stage-in
             set_pilot_state(job=job, state='stagein')
-            ec, stdout, stderr = get_memory_usage(os.getpid())
-            logger.debug('current pilot memory usage (before stage-in)\n%s' % stdout)
+            show_memory_usage()
             put_in_queue(job, queues.data_in)
 
         else:
@@ -1487,14 +1472,12 @@ def retrieve(queues, traces, args):  # noqa: C901
             else:
                 # create the job object out of the raw dispatcher job dictionary
                 try:
-                    ec, stdout, stderr = get_memory_usage(os.getpid())
-                    logger.debug('current pilot memory usage (before job creation)\n%s' % stdout)
+                    show_memory_usage()
                     job = create_job(res, args.queue)
                 except PilotException as error:
                     raise error
                 else:
-                    ec, stdout, stderr = get_memory_usage(os.getpid())
-                    logger.debug('current pilot memory usage (before job creation)\n%s' % stdout)
+                    show_memory_usage()
                     # verify the job status on the server
                     #try:
                     #    job_status, job_attempt_nr, job_status_code = get_job_status_from_server(job.jobid, args.url, args.port)
@@ -1601,17 +1584,15 @@ def has_job_completed(queues, args):
         # logger.info("(job still running)")
         pass
     else:
-        log = get_logger(job.jobid, logger)
-
         make_job_report(job)
         cmd = 'ls -lF %s' % os.environ.get('PILOT_HOME')
-        log.debug('%s:\n' % cmd)
+        logger.debug('%s:\n' % cmd)
         ec, stdout, stderr = execute(cmd)
-        log.debug(stdout)
+        logger.debug(stdout)
 
         queue_report(queues)
         job.reset_errors()
-        log.info("job %s has completed (purged errors)" % job.jobid)
+        logger.info("job %s has completed (purged errors)" % job.jobid)
 
         # cleanup of any remaining processes
         if job.pid:
@@ -1696,14 +1677,12 @@ def order_log_transfer(queues, job):
     :return:
     """
 
-    log = get_logger(job.jobid)
-
     # add the job object to the data_out queue to have it staged out
     job.stageout = 'log'  # only stage-out log file
     #set_pilot_state(job=job, state='stageout')
     put_in_queue(job, queues.data_out)
 
-    log.debug('job added to data_out queue')
+    logger.debug('job added to data_out queue')
 
     # wait for the log transfer to finish
     n = 0
@@ -1711,18 +1690,18 @@ def order_log_transfer(queues, job):
     while n < nmax:
         # refresh the log_transfer since it might have changed
         log_transfer = job.get_status('LOG_TRANSFER')
-        log.info('waiting for log transfer to finish (#%d/#%d): %s' % (n + 1, nmax, log_transfer))
+        logger.info('waiting for log transfer to finish (#%d/#%d): %s' % (n + 1, nmax, log_transfer))
         if is_queue_empty(queues, 'data_out') and \
                 (log_transfer == LOG_TRANSFER_DONE or log_transfer == LOG_TRANSFER_FAILED):  # set in data component
-            log.info('stage-out of log has completed')
+            logger.info('stage-out of log has completed')
             break
         else:
             if log_transfer == LOG_TRANSFER_IN_PROGRESS:  # set in data component, job object is singleton
-                log.info('log transfer is in progress')
+                logger.info('log transfer is in progress')
             time.sleep(2)
             n += 1
 
-    log.info('proceeding with server update (n=%d)' % n)
+    logger.info('proceeding with server update (n=%d)' % n)
 
 
 def wait_for_aborted_job_stageout(args, queues, job):
@@ -1735,35 +1714,33 @@ def wait_for_aborted_job_stageout(args, queues, job):
     :return:
     """
 
-    log = get_logger(job.jobid)
-
     # if the pilot received a kill signal, how much time has passed since the signal was intercepted?
     try:
         time_since_kill = get_time_since('1', PILOT_KILL_SIGNAL, args)
         was_killed = was_pilot_killed(args.timing)
         if was_killed:
-            log.info('%d s passed since kill signal was intercepted - make sure that stage-out has finished' % time_since_kill)
+            logger.info('%d s passed since kill signal was intercepted - make sure that stage-out has finished' % time_since_kill)
     except Exception as e:
-        log.warning('exception caught: %s' % e)
+        logger.warning('exception caught: %s' % e)
         time_since_kill = 60
     else:
         if time_since_kill > 60 or time_since_kill < 0:  # fail-safe
-            log.warning('reset time_since_kill to 60 since value is out of allowed limits')
+            logger.warning('reset time_since_kill to 60 since value is out of allowed limits')
             time_since_kill = 60
 
     # if stage-out has not finished, we need to wait (less than two minutes or the batch system will issue
     # a hard SIGKILL)
     max_wait_time = 2 * 60 - time_since_kill - 5
-    log.debug('using max_wait_time = %d s' % max_wait_time)
+    logger.debug('using max_wait_time = %d s' % max_wait_time)
     t0 = time.time()
     while time.time() - t0 < max_wait_time:
         if job in queues.finished_data_out.queue or job in queues.failed_data_out.queue:
-            log.info('stage-out has finished, proceed with final server update')
+            logger.info('stage-out has finished, proceed with final server update')
             break
         else:
             time.sleep(0.5)
 
-    log.info('proceeding with final server update')
+    logger.info('proceeding with final server update')
 
 
 def get_job_status(job, key):
@@ -1838,8 +1815,7 @@ def queue_monitor(queues, traces, args):  # noqa: C901
 
         completed_jobids = queues.completed_jobids.queue if queues.completed_jobids else []
         if job and job.jobid not in completed_jobids:
-            log = get_logger(job.jobid)
-            log.info("preparing for final server update for job %s in state=\'%s\'" % (job.jobid, job.state))
+            logger.info("preparing for final server update for job %s in state=\'%s\'" % (job.jobid, job.state))
 
             if args.job_aborted.is_set():
                 # wait for stage-out to finish for aborted job
@@ -1886,19 +1862,17 @@ def update_server(job, args):
     :return:
     """
 
-    log = get_logger(job.jobid)
-
     path = os.path.join(job.workdir, config.Payload.jobreport)
     if os.path.exists(path):
         metadata = read_file(path)  # read_json(path)
     else:
         metadata = None
-    log.debug('metadata=%s' % str(metadata))
+    logger.debug('metadata=%s' % str(metadata))
     if job.fileinfo:
-        log.debug('xml:will send fileinfo')
+        logger.debug('xml:will send fileinfo')
         send_state(job, args, job.state, xml=dumps(job.fileinfo), metadata=metadata)
     else:
-        log.debug('will not send fileinfo')
+        logger.debug('will not send fileinfo')
         send_state(job, args, job.state, metadata=metadata)
 
 
@@ -2097,11 +2071,10 @@ def job_monitor(queues, traces, args):  # noqa: C901
             # update the peeking time
             peeking_time = int(time.time())
             for i in range(len(jobs)):
-                log = get_logger(jobs[i].jobid)
                 current_id = jobs[i].jobid
-                log.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, current_id, jobs[i].state))
+                logger.info('monitor loop #%d: job %d:%s is in state \'%s\'' % (n, i, current_id, jobs[i].state))
                 if jobs[i].state == 'finished' or jobs[i].state == 'failed':
-                    log.info('will abort job monitoring soon since job state=%s (job is still in queue)' % jobs[i].state)
+                    logger.info('will abort job monitoring soon since job state=%s (job is still in queue)' % jobs[i].state)
                     break
 
                 # perform the monitoring tasks
@@ -2110,7 +2083,7 @@ def job_monitor(queues, traces, args):  # noqa: C901
                     try:
                         fail_monitored_job(jobs[i], exit_code, diagnostics, queues, traces)
                     except Exception as e:
-                        log.warning('(1) exception caught: %s (job id=%s)' % (e, current_id))
+                        logger.warning('(1) exception caught: %s (job id=%s)' % (e, current_id))
                     break
 
                 # run this check again in case job_monitor_tasks() takes a long time to finish (and the job object
@@ -2118,7 +2091,7 @@ def job_monitor(queues, traces, args):  # noqa: C901
                 try:
                     _job = jobs[i]
                 except Exception:
-                    log.info('aborting job monitoring since job object (job id=%s) has expired' % current_id)
+                    logger.info('aborting job monitoring since job object (job id=%s) has expired' % current_id)
                     break
 
                 # send heartbeat if it is time (note that the heartbeat function might update the job object, e.g.
@@ -2126,7 +2099,7 @@ def job_monitor(queues, traces, args):  # noqa: C901
                 try:
                     update_time = send_heartbeat_if_time(_job, args, update_time)
                 except Exception as e:
-                    log.warning('(2) exception caught: %s (job id=%s)' % (e, current_id))
+                    logger.warning('(2) exception caught: %s (job id=%s)' % (e, current_id))
                     break
         elif os.environ.get('PILOT_JOB_STATE') == 'stagein':
             logger.info('job monitoring is waiting for stage-in to finish')
@@ -2207,14 +2180,12 @@ def fail_monitored_job(job, exit_code, diagnostics, queues, traces):
     :return:
     """
 
-    log = get_logger(job.jobid)
-
     set_pilot_state(job=job, state="failed")
     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
     job.pilorerrordiag = diagnostics
     traces.pilot['error_code'] = exit_code
     put_in_queue(job, queues.failed_payloads)
-    log.info('aborting job monitoring since job state=%s' % job.state)
+    logger.info('aborting job monitoring since job state=%s' % job.state)
 
 
 def make_job_report(job):
@@ -2226,42 +2197,40 @@ def make_job_report(job):
     :return:
     """
 
-    log = get_logger(job.jobid)
-
-    log.info('')
-    log.info('job summary report')
-    log.info('--------------------------------------------------')
-    log.info('PanDA job id: %s' % job.jobid)
-    log.info('task id: %s' % job.taskid)
+    logger.info('')
+    logger.info('job summary report')
+    logger.info('--------------------------------------------------')
+    logger.info('PanDA job id: %s' % job.jobid)
+    logger.info('task id: %s' % job.taskid)
     n = len(job.piloterrorcodes)
     if n > 0:
         for i in range(n):
-            log.info('error %d/%d: %s: %s' % (i + 1, n, job.piloterrorcodes[i], job.piloterrordiags[i]))
+            logger.info('error %d/%d: %s: %s' % (i + 1, n, job.piloterrorcodes[i], job.piloterrordiags[i]))
     else:
-        log.info('errors: (none)')
+        logger.info('errors: (none)')
     if job.piloterrorcode != 0:
-        log.info('pilot error code: %d' % job.piloterrorcode)
-        log.info('pilot error diag: %s' % job.piloterrordiag)
+        logger.info('pilot error code: %d' % job.piloterrorcode)
+        logger.info('pilot error diag: %s' % job.piloterrordiag)
     info = ""
     for key in job.status:
         info += key + " = " + job.status[key] + " "
-    log.info('status: %s' % info)
+    logger.info('status: %s' % info)
     s = ""
     if job.is_analysis() and job.state != 'finished':
         s = '(user job is recoverable)' if errors.is_recoverable(code=job.piloterrorcode) else '(user job is not recoverable)'
-    log.info('pilot state: %s %s' % (job.state, s))
-    log.info('transexitcode: %d' % job.transexitcode)
-    log.info('exeerrorcode: %d' % job.exeerrorcode)
-    log.info('exeerrordiag: %s' % job.exeerrordiag)
-    log.info('exitcode: %d' % job.exitcode)
-    log.info('exitmsg: %s' % job.exitmsg)
-    log.info('cpuconsumptiontime: %d %s' % (job.cpuconsumptiontime, job.cpuconsumptionunit))
-    log.info('nevents: %d' % job.nevents)
-    log.info('neventsw: %d' % job.neventsw)
-    log.info('pid: %s' % job.pid)
-    log.info('pgrp: %s' % str(job.pgrp))
-    log.info('corecount: %d' % job.corecount)
-    log.info('event service: %s' % str(job.is_eventservice))
-    log.info('sizes: %s' % str(job.sizes))
-    log.info('--------------------------------------------------')
-    log.info('')
+    logger.info('pilot state: %s %s' % (job.state, s))
+    logger.info('transexitcode: %d' % job.transexitcode)
+    logger.info('exeerrorcode: %d' % job.exeerrorcode)
+    logger.info('exeerrordiag: %s' % job.exeerrordiag)
+    logger.info('exitcode: %d' % job.exitcode)
+    logger.info('exitmsg: %s' % job.exitmsg)
+    logger.info('cpuconsumptiontime: %d %s' % (job.cpuconsumptiontime, job.cpuconsumptionunit))
+    logger.info('nevents: %d' % job.nevents)
+    logger.info('neventsw: %d' % job.neventsw)
+    logger.info('pid: %s' % job.pid)
+    logger.info('pgrp: %s' % str(job.pgrp))
+    logger.info('corecount: %d' % job.corecount)
+    logger.info('event service: %s' % str(job.is_eventservice))
+    logger.info('sizes: %s' % str(job.sizes))
+    logger.info('--------------------------------------------------')
+    logger.info('')

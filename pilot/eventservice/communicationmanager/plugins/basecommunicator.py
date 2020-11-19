@@ -6,12 +6,11 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2018
-
-import logging
+# - Paul Nilsson, paul.nilsson@cern.ch, 2020
 
 from pilot.common import exception
 
-
+import logging
 logger = logging.getLogger(__name__)
 
 """

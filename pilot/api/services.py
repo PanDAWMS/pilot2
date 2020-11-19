@@ -5,9 +5,8 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2020
 
-# from pilot.util.auxiliary import get_logger
 # from pilot.util.container import execute
 
 import logging

@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
-# - Paul Nilsson, paul.nilsson@cern.ch, 2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2020
 
 
 import os
@@ -15,7 +15,6 @@ import time
 from pilot.common import exception
 from pilot.control.payloads import generic
 from pilot.eventservice.workexecutor.workexecutor import WorkExecutor
-from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 
 import logging
@@ -36,7 +35,6 @@ class Executor(generic.Executor):
         :param err: stderr file object.
         :return:
         """
-        log = get_logger(job.jobid, logger)
 
         self.pre_setup(job)
 
@@ -53,30 +51,30 @@ class Executor(generic.Executor):
         try:
             executable = user.get_payload_command(job)
         except exception.PilotException as e:
-            log.fatal('could not define payload command')
+            logger.fatal('could not define payload command')
             return None
 
-        log.info("payload execution command: %s" % executable)
+        logger.info("payload execution command: %s" % executable)
 
         try:
             payload = {'executable': executable, 'workdir': job.workdir, 'output_file': out, 'error_file': err, 'job': job}
-            log.debug("payload: %s" % payload)
+            logger.debug("payload: %s" % payload)
 
-            log.info("Starting EventService WorkExecutor")
+            logger.info("Starting EventService WorkExecutor")
             executor_type = self.get_executor_type(job)
             executor = WorkExecutor(args=executor_type)
             executor.set_payload(payload)
             executor.start()
-            log.info("EventService WorkExecutor started")
+            logger.info("EventService WorkExecutor started")
 
-            log.info("ESProcess started with pid: %s" % executor.get_pid())
+            logger.info("ESProcess started with pid: %s" % executor.get_pid())
             job.pid = executor.get_pid()
             if job.pid:
                 job.pgrp = os.getpgid(job.pid)
 
             self.utility_after_payload_started(job)
         except Exception as e:
-            log.error('could not execute: %s' % str(e))
+            logger.error('could not execute: %s' % str(e))
             return None
 
         return executor
@@ -106,16 +104,14 @@ class Executor(generic.Executor):
         :return:
         """
 
-        log = get_logger(job.jobid, logger)
-
         t1 = time.time()
         while proc.is_alive():
             if args.graceful_stop.is_set():
-                log.debug("Graceful stop is set, stopping work executor")
+                logger.debug("Graceful stop is set, stopping work executor")
                 proc.stop()
                 break
             if time.time() > t1 + 300:  # 5 minutes
-                log.info("Process is still running")
+                logger.info("Process is still running")
                 t1 = time.time()
             time.sleep(2)
 
