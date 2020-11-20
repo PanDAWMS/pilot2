@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite, container_options, label='stage-in'):
+def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite, container_options, external_dir, label='stage-in'):
     """
     Containerise the middleware by performing stage-in/out steps in a script that in turn can be run in a container.
 
@@ -31,6 +31,7 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
     :param localsite:
     :param remotesite:
     :param container_options: container options from queuedata (string).
+    :param external_dir: input or output files directory (string).
     :param label: 'stage-in/out' (String).
     :return:
     :raises NotImplemented: if stagein=False, until stage-out script has been written
@@ -39,13 +40,12 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
     """
 
     cwd = getcwd()
-    logger.debug('cwd=%s' % cwd)
 
     # get the name of the stage-in/out isolation script
     script = config.Container.middleware_container_stagein_script if label == 'stage-in' else config.Container.middleware_container_stageout_script
 
     try:
-        cmd = get_command(job, xdata, queue, script, eventtype, localsite, remotesite, label=label)
+        cmd = get_command(job, xdata, queue, script, eventtype, localsite, remotesite, external_dir, label=label)
     except PilotException as e:
         raise e
 
@@ -115,7 +115,7 @@ def get_script_path(script):
     return _path
 
 
-def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, label='stage-in'):
+def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, external_dir, label='stage-in'):
     """
     Get the middleware container execution command.
 
@@ -126,6 +126,7 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, lab
     :param eventtype:
     :param localsite:
     :param remotesite:
+    :param external_dir: input or output files directory (string).
     :param label: 'stage-[in|out]' (string).
     :return: stage-in/out command (string).
     :raises PilotException: for stage-in/out related failures
@@ -175,18 +176,8 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, lab
                                           job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
                                           job.is_eventservicemerge, job.infosys.queuedata.use_pcache, job.use_vp,
                                           config.Container.stagein_replica_dictionary)
-#        cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
-#              '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
-#              '--eventservicemerge=%s --usepcache=%s --filesizes=%s --checksums=%s --allowlans=%s --allowwans=%s ' \
-#              '--directaccesslans=%s --directaccesswans=%s --istars=%s --accessmodes=%s --storagetokens=%s --guids=%s ' \
-#              '--usevp=%s' % \
-#              (final_script_path, filedata_dictionary['lfns'], filedata_dictionary['scopes'], workdir, queue, eventtype, localsite,
-#               remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
-#               job.is_eventservicemerge, job.infosys.queuedata.use_pcache, filedata_dictionary['filesizes'],
-#               filedata_dictionary['checksums'], filedata_dictionary['allowlans'], filedata_dictionary['allowwans'],
-#               filedata_dictionary['directaccesslans'], filedata_dictionary['directaccesswans'], filedata_dictionary['istars'],
-#               filedata_dictionary['accessmodes'], filedata_dictionary['storagetokens'], filedata_dictionary['guids'],
-#               job.use_vp)
+        if external_dir:
+            cmd += ' --inputdir=%s' % external_dir
     else:  # stage-out
         cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
               '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
@@ -194,6 +185,8 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, lab
               (final_script_path, filedata_dictionary['lfns'], filedata_dictionary['scopes'], workdir, queue, eventtype, localsite,
                remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
                filedata_dictionary['datasets'], filedata_dictionary['ddmendpoints'], filedata_dictionary['guids'])
+        if external_dir:
+            cmd += ' --outputdir=%s' % external_dir
 
     return cmd
 
