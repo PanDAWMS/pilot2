@@ -25,7 +25,7 @@ class TestUtils(unittest.TestCase):
             self.mac = True
 
         from pilot.info import infosys
-        infosys.init("CERN-PROD")
+        infosys.init("CERN")
 
     def test_collect_workernode_info(self):
         """

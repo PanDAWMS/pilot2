@@ -76,14 +76,14 @@ class TestStager(unittest.TestCase):
             client.prepare_destinations(xdata, activity='es_events')
             client.transfer(xdata, activity='es_events', **kwargs)
         except exception.PilotException as error:  # Python 2/3
-            logger.error("Pilot Exeception: %s, %s" % (error.get_detail(), traceback.format_exc()))
+            logger.error("Pilot Exception: %s, %s" % (error.get_detail(), traceback.format_exc()))
         except Exception as e:  # Python 2/3
             logger.error(traceback.format_exc())
             error = exception.StageOutFailure("stageOut failed with error=%s" % e)
-
-        logger.info('Summary of transferred files:')
-        for e in xdata:
-            logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
+        else:
+            logger.info('Summary of transferred files:')
+            for e in xdata:
+                logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
 
         if error:
             logger.error('Failed to stage-out eventservice file(%s): error=%s' % (output_file, error.get_detail()))
@@ -123,10 +123,10 @@ class TestStager(unittest.TestCase):
         except Exception as e:  # Python 2/3
             logger.error(traceback.format_exc())
             error = exception.StageOutFailure("stageOut failed with error=%s" % e)
-
-        logger.info('Summary of transferred files:')
-        for e in xdata:
-            logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
+        else:
+            logger.info('Summary of transferred files:')
+            for e in xdata:
+                logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
 
         if error:
             logger.error('Failed to stage-out eventservice file(%s): error=%s' % (output_file, error.get_detail()))
@@ -166,10 +166,10 @@ class TestStager(unittest.TestCase):
         except Exception as e:  # Python 2/3
             logger.error(traceback.format_exc())
             error = exception.StageOutFailure("stageOut failed with error=%s" % e)
-
-        logger.info('Summary of transferred files:')
-        for e in xdata:
-            logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
+        else:
+            logger.info('Summary of transferred files:')
+            for e in xdata:
+                logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
 
         if error:
             logger.error('Failed to stage-out eventservice file(%s): error=%s' % (output_file, error.get_detail()))
@@ -209,10 +209,10 @@ class TestStager(unittest.TestCase):
         except Exception as e:  # Python 2/3
             logger.error(traceback.format_exc())
             error = exception.StageOutFailure("stageOut failed with error=%s" % e)
-
-        logger.info('Summary of transferred files:')
-        for e in xdata:
-            logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
+        else:
+            logger.info('Summary of transferred files:')
+            for e in xdata:
+                logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
 
         if error:
             logger.error('Failed to stage-out eventservice file(%s): error=%s' % (output_file, error.get_detail()))
@@ -238,10 +238,10 @@ class TestStager(unittest.TestCase):
         except Exception as e:  # Python 2/3
             logger.error(traceback.format_exc())
             error = exception.StageInFailure("stagein failed with error=%s" % e)
-
-        logger.info('Summary of transferred files:')
-        for e in xdata:
-            logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
+        else:
+            logger.info('Summary of transferred files:')
+            for e in xdata:
+                logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
 
         if error:
             logger.error('Failed to stage-in eventservice file(%s): error=%s' % (output_file, error.get_detail()))
@@ -281,10 +281,10 @@ class TestStager(unittest.TestCase):
         except Exception as e:  # Python 2/3
             logger.error(traceback.format_exc())
             error = exception.StageOutFailure("stageOut failed with error=%s" % e)
-
-        logger.info('Summary of transferred files:')
-        for e in xdata:
-            logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
+        else:
+            logger.info('Summary of transferred files:')
+            for e in xdata:
+                logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
 
         if error:
             logger.error('Failed to stage-out eventservice file(%s): error=%s' % (output_file, error.get_detail()))
@@ -310,10 +310,10 @@ class TestStager(unittest.TestCase):
         except Exception as e:  # Python 2/3
             logger.error(traceback.format_exc())
             error = exception.StageInFailure("stagein failed with error=%s" % e)
-
-        logger.info('Summary of transferred files:')
-        for e in xdata:
-            logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
+        else:
+            logger.info('Summary of transferred files:')
+            for e in xdata:
+                logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, e.status))
 
         if error:
             logger.error('Failed to stage-in eventservice file(%s): error=%s' % (output_file, error.get_detail()))

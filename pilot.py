@@ -82,7 +82,6 @@ def main():
 
     # set requested workflow
     logger.info('pilot arguments: %s' % str(args))
-    logger.info('selected workflow: %s' % args.workflow)
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], 0)  # Python 3, -1 -> 0
 
     # execute workflow
