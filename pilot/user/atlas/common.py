@@ -33,7 +33,7 @@ from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import is_python3
 from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
-    UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_WITH_STAGEIN
+    UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_WITH_STAGEIN, UTILITY_AFTER_PAYLOAD_STARTED2
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps, copy,\
     copy_pilot_source, write_file, read_json
@@ -1728,9 +1728,13 @@ def get_utility_commands(order=None, job=None):
                 return download_command(job.preprocess, job.workdir)
         elif order == UTILITY_WITH_PAYLOAD:
             return {'command': 'NetworkMonitor', 'args': ''}
-        elif order == UTILITY_AFTER_PAYLOAD_STARTED and job and job.coprocess:
+        elif order == UTILITY_AFTER_PAYLOAD_STARTED:
+            cmd = config.Pilot.utility_after_payload_started
+            if cmd:
+                return {'command': cmd, 'args': ''}
+        elif order == UTILITY_AFTER_PAYLOAD_STARTED2 and job and job.coprocess:
             # cmd = config.Pilot.utility_after_payload_started  DEPRECATED
-            #if cmd:
+            # if cmd:
             #    return {'command': cmd, 'args': ''}
             if job.coprocess.get('command', ''):
                 return download_command(job.coprocess, job.workdir)
