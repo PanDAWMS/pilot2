@@ -29,6 +29,7 @@ import logging
 logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
+
 def get_payload_proxy(proxy_outfile_name, voms_role='atlas'):
     """
     :param proxy_outfile_name: specify the file to store proxy
@@ -300,31 +301,31 @@ def update_for_user_proxy(_cmd, cmd):
     :param cmd: command the container will execute
     :return:
     """
-    
+
     x509 = os.environ.get('X509_USER_PROXY', '')
     if x509 != "":
         # do not include the X509_USER_PROXY in the command the container will execute
         cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, '')
         # add it instead to the container setup command:
 
-        # try to receive payload proxy and update x509 
-        x509_payload = re.sub('.proxy$', '', x509) + '-payload.proxy' # compose new name to store payload proxy
-        
+        # try to receive payload proxy and update x509
+        x509_payload = re.sub('.proxy$', '', x509) + '-payload.proxy'  # compose new name to store payload proxy
+
         logger.info("try to get payload proxy...")
         if get_payload_proxy(x509_payload):
             logger.info("payload proxy was received")
-            
+
             logger.info("verify payload proxy...")
             exit_code, diagnostics = verify_proxy(x509=x509_payload)
             # if all verifications fail, verify_proxy()  returns exit_code=0 and last failure in diagnostics
-            if exit_code != 0 or (exit_code==0 and diagnostics != ''): 
+            if exit_code != 0 or (exit_code == 0 and diagnostics != ''):
                 logger.warning(diagnostics)
                 logger.info("payload proxy is not ok")
             else:
                 logger.info("payload proxy is ok")
                 # is commented: no user proxy should be in the command the container will execute
                 #cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, "export X509_USER_PROXY=%s;" % x509_payload)
-                x509=x509_payload
+                x509 = x509_payload
                 logger.info("pilot_proxy->payload_proxy substitution in container setup was successful")
         else:
             logger.warning("get_payload_proxy() failed => X509_USER_PROXY is unchanged in container setup command")

@@ -39,7 +39,7 @@ def verify_proxy(limit=None, x509=None):
     # add setup for arcproxy if it exists
     #arcproxy_setup = "%s/atlas.cern.ch/repo/sw/arc/client/latest/slc6/x86_64/setup.sh" % get_file_system_root_path()
     if x509 is None:
-		x509 = os.environ.get('X509_USER_PROXY', '')
+        x509 = os.environ.get('X509_USER_PROXY', '')
     if x509 != '':
         envsetup = 'export X509_USER_PROXY=%s;' % x509
     else:
