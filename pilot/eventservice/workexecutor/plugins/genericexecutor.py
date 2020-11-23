@@ -7,6 +7,7 @@
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2020
 
 import json
 import os
@@ -20,7 +21,6 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.eventservice.esprocess.esprocess import ESProcess
 from pilot.info.filespec import FileSpec
 from pilot.info import infosys
-from pilot.util.auxiliary import get_logger
 from pilot.util.container import execute
 
 from .baseexecutor import BaseExecutor
@@ -66,6 +66,7 @@ class GenericExecutor(BaseExecutor):
         :param adler32: checksum (adler32) of the file.
         :param storage_id: the id of the storage.
         """
+
         if len(out_messagess) == 0:
             return
 
@@ -92,6 +93,7 @@ class GenericExecutor(BaseExecutor):
 
         :param out_messages: messages from AthenaMP.
         """
+
         if len(out_messagess) == 0:
             return
 
@@ -112,9 +114,8 @@ class GenericExecutor(BaseExecutor):
                                                            'wall': <wall>, 'message': <full message>}.
                         Fro 'failed' event ranges, it's {'id': <id>, 'status': 'failed', 'message': <full message>}.
         """
-        job = self.get_job()
-        log = get_logger(job.jobid, logger)
-        log.info("Handling out message: %s" % message)
+
+        logger.info("Handling out message: %s" % message)
 
         self.__all_out_messages.append(message)
 
@@ -129,8 +130,6 @@ class GenericExecutor(BaseExecutor):
 
         :return: out_messages, output_file
         """
-        job = self.get_job()
-        log = get_logger(job.jobid, logger)
 
         out_messages = []
         while len(self.__queued_out_messages) > 0:
@@ -146,12 +145,10 @@ class GenericExecutor(BaseExecutor):
                 if exit_code == 0:
                     ret_messages.append(out_msg)
                 else:
-                    log.error("Failed to add event output to tar/zip file: out_message: %s, exit_code: %s, stdout: %s, stderr: %s" % (out_msg,
-                                                                                                                                      exit_code,
-                                                                                                                                      stdout,
-                                                                                                                                      stderr))
+                    logger.error("Failed to add event output to tar/zip file: out_message: "
+                                 "%s, exit_code: %s, stdout: %s, stderr: %s" % (out_msg, exit_code, stdout, stderr))
                     if 'retries' in out_msg and out_msg['retries'] >= 3:
-                        log.error("Discard out messages because it has been retried more than 3 times: %s" % out_msg)
+                        logger.error("Discard out messages because it has been retried more than 3 times: %s" % out_msg)
                     else:
                         if 'retries' in out_msg:
                             out_msg['retries'] += 1
@@ -159,7 +156,7 @@ class GenericExecutor(BaseExecutor):
                             out_msg['retries'] = 1
                         self.__queued_out_messages.append(out_msg)
         except Exception as e:
-            log.error("Failed to tar/zip event ranges: %s" % str(e))
+            logger.error("Failed to tar/zip event ranges: %s" % str(e))
             self.__queued_out_messages += out_messages
             return None, None
 
@@ -173,8 +170,7 @@ class GenericExecutor(BaseExecutor):
         """
 
         job = self.get_job()
-        log = get_logger(job.jobid, logger)
-        log.info('prepare to stage-out eventservice files')
+        logger.info('prepare to stage-out eventservice files')
 
         error = None
         file_data = {'scope': 'transient',
@@ -188,25 +184,25 @@ class GenericExecutor(BaseExecutor):
         activity = ['es_events', 'pw']  ## FIX ME LATER: replace `pw` with `write_lan` once AGIS is updated (acopytools)
 
         try:
-            client = StageOutESClient(job.infosys, logger=log)
+            client = StageOutESClient(job.infosys, logger=logger)
             try_failover = True
 
             client.prepare_destinations(xdata, activity)  ## IF ES job should be allowed to write only at `es_events` astorages, then fix activity names here
             client.transfer(xdata, activity=activity, **kwargs)
         except PilotException as error:
-            log.error(error.get_detail())
+            logger.error(error.get_detail())
         except Exception as e:
-            log.error(traceback.format_exc())
+            logger.error(traceback.format_exc())
             error = StageOutFailure("stageOut failed with error=%s" % e)
 
-        log.info('Summary of transferred files:')
-        log.info(" -- lfn=%s, status_code=%s, status=%s" % (file_spec.lfn, file_spec.status_code, file_spec.status))
+        logger.info('Summary of transferred files:')
+        logger.info(" -- lfn=%s, status_code=%s, status=%s" % (file_spec.lfn, file_spec.status_code, file_spec.status))
 
         if error:
-            log.error('Failed to stage-out eventservice file(%s): error=%s' % (output_file, error.get_detail()))
+            logger.error('Failed to stage-out eventservice file(%s): error=%s' % (output_file, error.get_detail()))
         elif file_spec.status != 'transferred':
             msg = 'Failed to stage-out ES file(%s): logic corrupted: unknown internal error, fspec=%s' % (output_file, file_spec)
-            log.error(msg)
+            logger.error(msg)
             raise StageOutFailure(msg)
 
         failover_storage_activity = ['es_failover', 'pw']
@@ -219,20 +215,20 @@ class GenericExecutor(BaseExecutor):
                 client.prepare_destinations(xdata2, failover_storage_activity)
                 if xdata2[0].ddmendpoint != xdata[0].ddmendpoint:  ## skip transfer to same output storage
                     msg = 'Will try to failover ES transfer to astorage with activity=%s, rse=%s' % (failover_storage_activity, xdata2[0].ddmendpoint)
-                    log.info(msg)
+                    logger.info(msg)
                     client.transfer(xdata2, activity=activity, **kwargs)
 
-                    log.info('Summary of transferred files (failover transfer):')
-                    log.info(" -- lfn=%s, status_code=%s, status=%s" % (xdata2[0].lfn, xdata2[0].status_code, xdata2[0].status))
+                    logger.info('Summary of transferred files (failover transfer):')
+                    logger.info(" -- lfn=%s, status_code=%s, status=%s" % (xdata2[0].lfn, xdata2[0].status_code, xdata2[0].status))
 
             except PilotException as e:
                 if e.get_error_code() == ErrorCodes.NOSTORAGE:
-                    log.info('Failover ES storage is not defined for activity=%s .. skipped' % failover_storage_activity)
+                    logger.info('Failover ES storage is not defined for activity=%s .. skipped' % failover_storage_activity)
                 else:
-                    log.error('Transfer to failover storage=%s failed .. skipped, error=%s' % (xdata2[0].ddmendpoint, e.get_detail()))
+                    logger.error('Transfer to failover storage=%s failed .. skipped, error=%s' % (xdata2[0].ddmendpoint, e.get_detail()))
             except Exception as e:
-                log.error('Failover ES stageout failed .. skipped')
-                log.error(traceback.format_exc())
+                logger.error('Failover ES stageout failed .. skipped')
+                logger.error(traceback.format_exc())
 
             if xdata2[0].status == 'transferred':
                 error = None
@@ -250,47 +246,45 @@ class GenericExecutor(BaseExecutor):
         Stage out event service outputs.
 
         """
+
         job = self.get_job()
-        log = get_logger(job.jobid, logger)
         if len(self.__queued_out_messages):
             if force or self.__last_stageout_time is None or (time.time() > self.__last_stageout_time + job.infosys.queuedata.es_stageout_gap):
 
                 out_messagess, output_file = self.tarzip_output_es()
-                log.info("tar/zip event ranges: %s, output_file: %s" % (out_messagess, output_file))
+                logger.info("tar/zip event ranges: %s, output_file: %s" % (out_messagess, output_file))
 
                 if out_messagess:
                     self.__last_stageout_time = time.time()
                     try:
-                        log.info("Staging output file: %s" % output_file)
+                        logger.info("Staging output file: %s" % output_file)
                         storage, storage_id, fsize, checksum = self.stageout_es_real(output_file)
-                        log.info("Staged output file (%s) to storage: %s storage_id: %s" % (output_file, storage, storage_id))
+                        logger.info("Staged output file (%s) to storage: %s storage_id: %s" % (output_file, storage, storage_id))
 
                         self.update_finished_event_ranges(out_messagess, output_file, fsize, checksum, storage_id)
                     except Exception as e:
-                        log.error("Failed to stage out file(%s): %s, %s" % (output_file, str(e), traceback.format_exc()))
+                        logger.error("Failed to stage out file(%s): %s, %s" % (output_file, str(e), traceback.format_exc()))
 
                         if force:
                             self.update_failed_event_ranges(out_messagess)
                         else:
-                            log.info("Failed to stageout, adding messages back to the queued messages")
+                            logger.info("Failed to stageout, adding messages back to the queued messages")
                             self.__queued_out_messages += out_messagess
 
     def clean(self):
         """
         Clean temp produced files
         """
-        job = self.get_job()
-        log = get_logger(job.jobid, logger)
 
         for msg in self.__all_out_messages:
             if msg['status'] in ['failed', 'fatal']:
                 pass
             elif 'output' in msg:
                 try:
-                    log.info("Removing es premerge file: %s" % msg['output'])
+                    logger.info("Removing es premerge file: %s" % msg['output'])
                     os.remove(msg['output'])
                 except Exception as e:
-                    log.error("Failed to remove file(%s): %s" % (msg['output'], str(e)))
+                    logger.error("Failed to remove file(%s): %s" % (msg['output'], str(e)))
         self.__queued_out_messages = []
         self.__last_stageout_time = None
         self.__all_out_messages = []
@@ -306,6 +300,7 @@ class GenericExecutor(BaseExecutor):
         """
         Initialize and run ESProcess.
         """
+
         try:
             logger.info("starting ES GenericExecutor with thread ident: %s" % (self.ident))
             if self.is_set_payload():
@@ -315,21 +310,19 @@ class GenericExecutor(BaseExecutor):
             else:
                 logger.error("Payload is not set but is_retrieve_payload is also not set. No payloads.")
 
-            job = self.get_job()
-            log = get_logger(job.jobid, logger)
-            log.info("payload: %s" % payload)
+            logger.info("payload: %s" % payload)
 
-            log.info("Starting ESProcess")
+            logger.info("Starting ESProcess")
             proc = ESProcess(payload)
             self.proc = proc
-            log.info("ESProcess initialized")
+            logger.info("ESProcess initialized")
 
             proc.set_get_event_ranges_hook(self.get_event_ranges)
             proc.set_handle_out_message_hook(self.handle_out_message)
 
-            log.info('ESProcess starts to run')
+            logger.info('ESProcess starts to run')
             proc.start()
-            log.info('ESProcess started to run')
+            logger.info('ESProcess started to run')
 
             try:
                 iteration = long(0)  # Python 2
@@ -338,19 +331,19 @@ class GenericExecutor(BaseExecutor):
             while proc.is_alive():
                 iteration += 1
                 if self.is_stop():
-                    log.info('Stop is set. breaking -- stop process pid=%s' % proc.pid)
+                    logger.info('Stop is set. breaking -- stop process pid=%s' % proc.pid)
                     proc.stop()
                     break
                 self.stageout_es()
 
                 exit_code = proc.poll()
                 if iteration % 60 == 0:
-                    log.info('running: iteration=%d pid=%s exit_code=%s' % (iteration, proc.pid, exit_code))
+                    logger.info('running: iteration=%d pid=%s exit_code=%s' % (iteration, proc.pid, exit_code))
                 time.sleep(5)
 
             while proc.is_alive():
                 time.sleep(1)
-            log.info("ESProcess finished")
+            logger.info("ESProcess finished")
 
             self.stageout_es(force=True)
             self.clean()

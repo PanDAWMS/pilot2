@@ -15,7 +15,7 @@ from subprocess import PIPE
 from glob import glob
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.util.auxiliary import get_logger, set_pilot_state, get_memory_usage, extract_memory_usage_value
+from pilot.util.auxiliary import set_pilot_state, show_memory_usage
 from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.filehandling import get_directory_size, remove_files, get_local_file_size
@@ -46,7 +46,6 @@ def job_monitor_tasks(job, mt, args):
     exit_code = 0
     diagnostics = ""
 
-    log = get_logger(job.jobid)
     current_time = int(time.time())
 
     # update timing info for running jobs (to avoid an update after the job has finished)
@@ -57,9 +56,9 @@ def job_monitor_tasks(job, mt, args):
             cpuconsumptiontime = get_current_cpu_consumption_time(job.pid)
         except Exception as e:
             diagnostics = "Exception caught: %s" % e
-            log.warning(diagnostics)
+            logger.warning(diagnostics)
             import traceback
-            log.warning(traceback.format_exc())
+            logger.warning(traceback.format_exc())
             if "Resource temporarily unavailable" in diagnostics:
                 exit_code = errors.RESOURCEUNAVAILABLE
             elif "No such file or directory" in diagnostics:
@@ -73,7 +72,7 @@ def job_monitor_tasks(job, mt, args):
             job.cpuconsumptiontime = int(round(cpuconsumptiontime))
             job.cpuconsumptionunit = "s"
             job.cpuconversionfactor = 1.0
-            log.info('CPU consumption time for pid=%d: %f (rounded to %d)' % (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
+            logger.info('CPU consumption time for pid=%d: %f (rounded to %d)' % (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
 
         # check how many cores the payload is using
         set_number_used_cores(job)
@@ -142,9 +141,7 @@ def verify_memory_usage(current_time, mt, job):
     :return: exit code (int), error diagnostics (string).
     """
 
-    _ec, _stdout, _stderr = get_memory_usage(os.getpid())
-    logger.debug('current pilot memory usage:\n%s' % _stdout)
-    logger.debug('extracted pilot memory usage: %d kB' % extract_memory_usage_value(_stdout))
+    show_memory_usage()
 
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     memory = __import__('pilot.user.%s.memory' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
@@ -208,8 +205,6 @@ def verify_looping_job(current_time, mt, job):
     :return: exit code (int), error diagnostics (string).
     """
 
-    log = get_logger(job.jobid)
-
     looping_verification_time = convert_to_int(config.Pilot.looping_verification_time, default=600)
     if current_time - mt.get('ct_looping') > looping_verification_time:
         # is the job looping?
@@ -217,7 +212,7 @@ def verify_looping_job(current_time, mt, job):
             exit_code, diagnostics = looping_job(job, mt)
         except Exception as e:
             diagnostics = 'exception caught in looping job algorithm: %s' % e
-            log.warning(diagnostics)
+            logger.warning(diagnostics)
             if "No module named" in diagnostics:
                 exit_code = errors.BLACKHOLE
             else:
@@ -321,8 +316,6 @@ def utility_monitor(job):
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     usercommon = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
-    log = get_logger(job.jobid)
-
     # loop over all utilities
     for utcmd in list(job.utilities.keys()):  # E.g. utcmd = MemoryMonitor, Python 2/3
 
@@ -330,35 +323,34 @@ def utility_monitor(job):
         utproc = job.utilities[utcmd][0]
         if not utproc.poll() is None:
             if job.state == 'finished' or job.state == 'failed' or job.state == 'stageout':
-                log.debug('no need to restart utility command since payload has finished running')
+                logger.debug('no need to restart utility command since payload has finished running')
                 continue
 
             # if poll() returns anything but None it means that the subprocess has ended - which it
             # should not have done by itself
             utility_subprocess_launches = job.utilities[utcmd][1]
             if utility_subprocess_launches <= 5:
-                log.warning('detected crashed utility subprocess - will restart it')
+                logger.warning('detected crashed utility subprocess - will restart it')
                 utility_command = job.utilities[utcmd][2]
 
                 try:
                     proc1 = execute(utility_command, workdir=job.workdir, returnproc=True, usecontainer=False,
                                     stdout=PIPE, stderr=PIPE, cwd=job.workdir, queuedata=job.infosys.queuedata)
                 except Exception as e:
-                    log.error('could not execute: %s' % e)
+                    logger.error('could not execute: %s' % e)
                 else:
                     # store process handle in job object, and keep track on how many times the
                     # command has been launched
                     job.utilities[utcmd] = [proc1, utility_subprocess_launches + 1, utility_command]
             else:
-                log.warning('detected crashed utility subprocess - too many restarts, will not restart %s again' %
-                            utcmd)
+                logger.warning('detected crashed utility subprocess - too many restarts, will not restart %s again' % utcmd)
         else:  # check the utility output (the selector option adds a substring to the output file name)
             filename = usercommon.get_utility_command_output_filename(utcmd, selector=True)
             path = os.path.join(job.workdir, filename)
             if os.path.exists(path):
-                log.info('file: %s exists' % path)
+                logger.info('file: %s exists' % path)
             else:
-                log.warning('file: %s does not exist' % path)
+                logger.warning('file: %s does not exist' % path)
 
             # rest
             time.sleep(10)
@@ -397,8 +389,6 @@ def check_payload_stdout(job):
     exit_code = 0
     diagnostics = ""
 
-    log = get_logger(job.jobid)
-
     # get list of log files
     file_list = glob(os.path.join(job.workdir, 'log.*'))
 
@@ -417,7 +407,7 @@ def check_payload_stdout(job):
     for filename in file_list:
 
         if "job.log.tgz" in filename:
-            log.info("skipping file size check of file (%s) since it is a special log file" % (filename))
+            logger.info("skipping file size check of file (%s) since it is a special log file" % (filename))
             continue
 
         if os.path.exists(filename):
@@ -425,7 +415,7 @@ def check_payload_stdout(job):
                 # get file size in bytes
                 fsize = os.path.getsize(filename)
             except Exception as e:
-                log.warning("could not read file size of %s: %s" % (filename, e))
+                logger.warning("could not read file size of %s: %s" % (filename, e))
             else:
                 # is the file too big?
                 localsizelimit_stdout = get_local_size_limit_stdout()
@@ -433,7 +423,7 @@ def check_payload_stdout(job):
                     exit_code = errors.STDOUTTOOBIG
                     diagnostics = "Payload stdout file too big: %d B (larger than limit %d B)" % \
                                   (fsize, localsizelimit_stdout)
-                    log.warning(diagnostics)
+                    logger.warning(diagnostics)
 
                     # kill the job
                     set_pilot_state(job=job, state="failed")
@@ -448,10 +438,9 @@ def check_payload_stdout(job):
                         # remove any lingering input files from the work dir
                         exit_code = remove_files(job.workdir, lfns)
                 else:
-                    log.info("payload stdout (%s) within allowed size limit (%d B): %d B" %
-                             (_stdout, localsizelimit_stdout, fsize))
+                    logger.info("payload stdout (%s) within allowed size limit (%d B): %d B" % (_stdout, localsizelimit_stdout, fsize))
         else:
-            log.info("skipping file size check of payload stdout file (%s) since it has not been created yet" % _stdout)
+            logger.info("skipping file size check of payload stdout file (%s) since it has not been created yet" % _stdout)
 
     return exit_code, diagnostics
 
@@ -494,8 +483,6 @@ def check_work_dir(job):
     exit_code = 0
     diagnostics = ""
 
-    log = get_logger(job.jobid)
-
     if os.path.exists(job.workdir):
         # get the limit of the workdir
         maxwdirsize = get_max_allowed_work_dir_size(job.infosys.queuedata)
@@ -508,11 +495,11 @@ def check_work_dir(job):
                 exit_code = errors.USERDIRTOOLARGE
                 diagnostics = "work directory (%s) is too large: %d B (must be < %d B)" % \
                               (job.workdir, workdirsize, maxwdirsize)
-                log.fatal("%s" % diagnostics)
+                logger.fatal("%s" % diagnostics)
 
                 cmd = 'ls -altrR %s' % job.workdir
                 _ec, stdout, stderr = execute(cmd, mute=True)
-                log.info("%s: %s" % (cmd + '\n', stdout))
+                logger.info("%s: %s" % (cmd + '\n', stdout))
 
                 # kill the job
                 # pUtil.createLockFile(True, self.__env['jobDic'][k][1].workdir, lockfile="JOBWILLBEKILLED")
@@ -528,16 +515,15 @@ def check_work_dir(job):
                     # remeasure the size of the workdir at this point since the value is stored below
                     workdirsize = get_directory_size(directory=job.workdir)
             else:
-                log.info("size of work directory %s: %d B (within %d B limit)" %
-                         (job.workdir, workdirsize, maxwdirsize))
+                logger.info("size of work directory %s: %d B (within %d B limit)" % (job.workdir, workdirsize, maxwdirsize))
 
             # Store the measured disk space (the max value will later be sent with the job metrics)
             if workdirsize > 0:
                 job.add_workdir_size(workdirsize)
         else:
-            log.warning('job work dir does not exist: %s' % job.workdir)
+            logger.warning('job work dir does not exist: %s' % job.workdir)
     else:
-        log.warning('skipping size check of workdir since it has not been created yet')
+        logger.warning('skipping size check of workdir since it has not been created yet')
 
     return exit_code, diagnostics
 
@@ -616,8 +602,6 @@ def check_output_file_sizes(job):
     exit_code = 0
     diagnostics = ""
 
-    log = get_logger(job.jobid)
-
     # loop over all known output files
     for fspec in job.outdata:
         path = os.path.join(job.workdir, fspec.lfn)
@@ -626,12 +610,12 @@ def check_output_file_sizes(job):
             fsize = get_local_file_size(path)
             max_fsize = human2bytes(config.Pilot.maximum_output_file_size)
             if fsize and fsize < max_fsize:
-                log.info('output file %s is within allowed size limit (%d B < %d B)' % (path, fsize, max_fsize))
+                logger.info('output file %s is within allowed size limit (%d B < %d B)' % (path, fsize, max_fsize))
             else:
                 exit_code = errors.OUTPUTFILETOOLARGE
                 diagnostics = 'output file %s is not within allowed size limit (%d B > %d B)' % (path, fsize, max_fsize)
-                log.warning(diagnostics)
+                logger.warning(diagnostics)
         else:
-            log.info('output file size check: skipping output file %s since it does not exist' % path)
+            logger.info('output file size check: skipping output file %s since it does not exist' % path)
 
     return exit_code, diagnostics

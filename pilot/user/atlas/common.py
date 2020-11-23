@@ -27,10 +27,10 @@ from .setup import should_pilot_prepare_setup, is_standard_atlas_job,\
 from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
     get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
 
-from pilot.util.auxiliary import get_resource_name, get_memory_usage
+from pilot.util.auxiliary import get_resource_name, show_memory_usage
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import TrfDownloadFailure, PilotException
-from pilot.util.auxiliary import get_logger, is_python3
+from pilot.util.auxiliary import is_python3
 from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
     UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_WITH_STAGEIN
@@ -76,11 +76,10 @@ def validate(job):
     :return: Boolean (True if validation is successful).
     """
 
-    log = get_logger(job.jobid)
     status = True
 
     if 'DBRelease' in job.jobparams:
-        log.debug('encountered DBRelease info in job parameters - will attempt to create a local DBRelease file')
+        logger.debug('encountered DBRelease info in job parameters - will attempt to create a local DBRelease file')
         version = get_dbrelease_version(job.jobparams)
         if version:
             status = create_dbrelease(version, job.workdir)
@@ -93,20 +92,20 @@ def validate(job):
     if status:
         if job.imagename and job.imagename.startswith('/'):
             if os.path.exists(job.imagename):
-                log.info('verified that image exists: %s' % job.imagename)
+                logger.info('verified that image exists: %s' % job.imagename)
             else:
                 status = False
-                log.warning('image does not exist: %s' % job.imagename)
+                logger.warning('image does not exist: %s' % job.imagename)
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.IMAGENOTFOUND)
 
     # cleanup job parameters if only copy-to-scratch
     #if job.only_copy_to_scratch():
-    #    log.debug('job.params=%s' % job.jobparams)
+    #    logger.debug('job.params=%s' % job.jobparams)
     #    if ' --usePFCTurl' in job.jobparams:
-    #        log.debug('cleaning up --usePFCTurl from job parameters since all input is copy-to-scratch')
+    #        logger.debug('cleaning up --usePFCTurl from job parameters since all input is copy-to-scratch')
     #        job.jobparams = job.jobparams.replace(' --usePFCTurl', '')
     #    if ' --directIn' in job.jobparams:
-    #        log.debug('cleaning up --directIn from job parameters since all input is copy-to-scratch')
+    #        logger.debug('cleaning up --directIn from job parameters since all input is copy-to-scratch')
     #        job.jobparams = job.jobparams.replace(' --directIn', '')
 
     return status
@@ -162,16 +161,14 @@ def open_remote_files(indata, workdir):
             _cmd = get_file_open_command(final_script_path, turls)
             cmd = create_root_container_command(workdir, _cmd)
 
-            _ec, _stdout, _stderr = get_memory_usage(os.getpid())
-            logger.debug('current pilot memory usage (before file open verification)\n%s' % _stdout)
+            show_memory_usage()
 
             logger.info('*** executing file open verification script:\n\n\'%s\'\n\n' % cmd)
             exit_code, stdout, stderr = execute(cmd, usecontainer=False)
             if config.Pilot.remotefileverification_log:
                 write_file(os.path.join(workdir, config.Pilot.remotefileverification_log), stdout + stderr, mute=False)
 
-            _ec, _stdout, _stderr = get_memory_usage(os.getpid())
-            logger.debug('current pilot memory usage (after file open verification)\n%s' % _stdout)
+            show_memory_usage()
 
             # error handling
             if exit_code:
@@ -238,15 +235,13 @@ def process_remote_file_traces(path, job, not_opened_turls):
     :return:
     """
 
-    log = get_logger(job.jobid)
-
     try:
         base_trace_report = read_json(path)
     except PilotException as e:
-        log.warning('failed to open base trace report (cannot send trace reports): %s' % e)
+        logger.warning('failed to open base trace report (cannot send trace reports): %s' % e)
     else:
         if not base_trace_report:
-            log.warning('failed to read back base trace report (cannot send trace reports)')
+            logger.warning('failed to read back base trace report (cannot send trace reports)')
         else:
             # update and send the trace info
             for fspec in job.indata:
@@ -263,7 +258,7 @@ def process_remote_file_traces(path, job, not_opened_turls):
                     if trace_report:
                         trace_report.send()
                     else:
-                        log.warning('failed to create trace report for turl=%s' % fspec.turl)
+                        logger.warning('failed to create trace report for turl=%s' % fspec.turl)
 
 
 def get_payload_command(job):
@@ -276,10 +271,7 @@ def get_payload_command(job):
     :return: command (string).
     """
 
-    log = get_logger(job.jobid)
-
-    _ec, _stdout, _stderr = get_memory_usage(os.getpid())
-    log.debug('current pilot memory usage (beginning of get_payload_command)\n%s' % _stdout)
+    show_memory_usage()
 
     # Should the pilot do the setup or does jobPars already contain the information?
     preparesetup = should_pilot_prepare_setup(job.noexecstrcnv, job.jobparams)
@@ -309,12 +301,12 @@ def get_payload_command(job):
         try:
             ec, diagnostics, not_opened_turls = open_remote_files(job.indata, job.workdir)
         except Exception as e:
-            log.warning('caught exception: %s' % e)
+            logger.warning('caught exception: %s' % e)
         else:
             # read back the base trace report
             path = os.path.join(job.workdir, config.Pilot.base_trace_report)
             if not os.path.exists(path):
-                log.warning('base trace report does not exist (%s) - input file traces should already have been sent' % path)
+                logger.warning('base trace report does not exist (%s) - input file traces should already have been sent' % path)
             else:
                 process_remote_file_traces(path, job, not_opened_turls)
 
@@ -326,12 +318,12 @@ def get_payload_command(job):
     if is_standard_atlas_job(job.swrelease):
 
         # Normal setup (production and user jobs)
-        log.info("preparing normal production/analysis job setup command")
+        logger.info("preparing normal production/analysis job setup command")
         cmd = get_normal_payload_command(cmd, job, preparesetup, userjob)
 
     else:  # Generic, non-ATLAS specific jobs, or at least a job with undefined swRelease
 
-        log.info("generic job (non-ATLAS specific or with undefined swRelease)")
+        logger.info("generic job (non-ATLAS specific or with undefined swRelease)")
         cmd = get_generic_payload_command(cmd, job, preparesetup, userjob)
 
     # add any missing trailing ;
@@ -365,10 +357,9 @@ def get_payload_command(job):
     # Explicitly add the ATHENA_PROC_NUMBER (or JOB value)
     cmd = add_athena_proc_number(cmd)
 
-    _ec, _stdout, _stderr = get_memory_usage(os.getpid())
-    log.debug('current pilot memory usage (end of get_payload_command)\n%s' % _stdout)
+    show_memory_usage()
 
-    log.info('payload run command: %s' % cmd)
+    logger.info('payload run command: %s' % cmd)
 
     return cmd
 
@@ -384,8 +375,6 @@ def get_normal_payload_command(cmd, job, preparesetup, userjob):
     :return: normal payload command (string).
     """
 
-    log = get_logger(job.jobid)
-
     # set the INDS env variable (used by runAthena but also for EventIndex production jobs)
     set_inds(job.datasetin)  # realDatasetsIn
 
@@ -395,7 +384,7 @@ def get_normal_payload_command(cmd, job, preparesetup, userjob):
         if ec != 0:
             raise TrfDownloadFailure(diagnostics)
         else:
-            log.debug('user analysis trf: %s' % trf_name)
+            logger.debug('user analysis trf: %s' % trf_name)
 
         if preparesetup:
             _cmd = get_analysis_run_command(job, trf_name)
@@ -435,18 +424,16 @@ def get_generic_payload_command(cmd, job, preparesetup, userjob):
     :return: generic job command (string).
     """
 
-    log = get_logger(job.jobid)
-
     if userjob:
         # Try to download the trf
         #if job.imagename != "" or "--containerImage" in job.jobparams:
         #    job.transformation = os.path.join(os.path.dirname(job.transformation), "runcontainer")
-        #    log.warning('overwrote job.transformation, now set to: %s' % job.transformation)
+        #    logger.warning('overwrote job.transformation, now set to: %s' % job.transformation)
         ec, diagnostics, trf_name = get_analysis_trf(job.transformation, job.workdir)
         if ec != 0:
             raise TrfDownloadFailure(diagnostics)
         else:
-            log.debug('user analysis trf: %s' % trf_name)
+            logger.debug('user analysis trf: %s' % trf_name)
 
         if preparesetup:
             _cmd = get_analysis_run_command(job, trf_name)
@@ -581,13 +568,11 @@ def get_analysis_run_command(job, trf_name):
 
     cmd = ""
 
-    log = get_logger(job.jobid)
-
     # get relevant file transfer info
     #use_copy_tool, use_direct_access, use_pfc_turl = get_file_transfer_info(job)
     # check if the input files are to be accessed locally (ie if prodDBlockToken is set to local)
     #if job.is_local():   ## useless since stage-in phase has already passed (DEPRECATE ME, anisyonk)
-    #    log.debug('switched off direct access for local prodDBlockToken')
+    #    logger.debug('switched off direct access for local prodDBlockToken')
     #    use_direct_access = False
     #    use_pfc_turl = False
 
@@ -608,12 +593,12 @@ def get_analysis_run_command(job, trf_name):
         # check if image is on disk as defined by envar PAYLOAD_CONTAINER_LOCATION
         payload_container_location = os.environ.get('PAYLOAD_CONTAINER_LOCATION')
         if payload_container_location is not None:
-            log.debug("$PAYLOAD_CONTAINER_LOCATION = %s" % payload_container_location)
+            logger.debug("$PAYLOAD_CONTAINER_LOCATION = %s" % payload_container_location)
             # get container name
             containername = imagename.rsplit('/')[-1]
             image_location = os.path.join(payload_container_location, containername)
             if os.path.exists(image_location):
-                log.debug("image exists at %s" % image_location)
+                logger.debug("image exists at %s" % image_location)
                 imagename = image_location
 
         # restore the image name if necessary
@@ -628,7 +613,7 @@ def get_analysis_run_command(job, trf_name):
     #        cmd += ' --directIn'
 
     if job.has_remoteio():
-        log.debug('direct access (remoteio) is used to access some input files: --usePFCTurl and --directIn will be added to payload command')
+        logger.debug('direct access (remoteio) is used to access some input files: --usePFCTurl and --directIn will be added to payload command')
         if '--usePFCTurl' not in cmd:
             cmd += ' --usePFCTurl'
         if '--directIn' not in cmd:
@@ -646,8 +631,7 @@ def get_analysis_run_command(job, trf_name):
         if _guids:
             cmd += ' --inputGUIDs \"%s\"' % (str(_guids))
 
-    ec, stdout, stderr = get_memory_usage(os.getpid())
-    log.debug('current pilot memory usage (after get_analysis_run_command())\n%s' % stdout)
+    show_memory_usage()
 
     return cmd
 
@@ -677,7 +661,7 @@ def update_forced_accessmode(log, cmd, transfertype, jobparams, trf_name):  ## D
         for _mode in list(_accessmode_dic.keys()):  # Python 2/3
             if _mode in jobparams:
                 # any accessmode set in jobPars should overrule schedconfig
-                log.info("enforcing %s" % _accessmode_dic[_mode][0])
+                logger.info("enforcing %s" % _accessmode_dic[_mode][0])
                 if _mode == "--accessmode=copy":
                     # make sure direct access is turned off
                     accessmode_usect = True
@@ -697,16 +681,16 @@ def update_forced_accessmode(log, cmd, transfertype, jobparams, trf_name):  ## D
 
         # force usage of copy tool for stage-in or direct access
         if accessmode_usect:
-            log.info('forced copy tool usage selected')
+            logger.info('forced copy tool usage selected')
             # remove again the "--directIn"
             if "directIn" in cmd:
                 cmd = cmd.replace(' --directIn', ' ')
         elif accessmode_directin:
-            log.info('forced direct access usage selected')
+            logger.info('forced direct access usage selected')
             if "directIn" not in cmd:
                 cmd += ' --directIn'
         else:
-            log.warning('neither forced copy tool usage nor direct access was selected')
+            logger.warning('neither forced copy tool usage nor direct access was selected')
 
         if "directIn" in cmd and "usePFCTurl" not in cmd:
             cmd += ' --usePFCTurl'
@@ -819,8 +803,6 @@ def update_job_data(job):
     ## since in general it's Job related part
     ## later on once we introduce VO specific Job class (inherited from JobData) this can be easily customized
 
-    log = get_logger(job.jobid)
-
     stageout = "all"
 
     if job.is_eventservice:
@@ -833,13 +815,13 @@ def update_job_data(job):
             if job.exeerrorcode == 0:
                 stageout = "all"
             else:
-                log.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
+                logger.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
                 stageout = "log"
 
     if 'exeErrorDiag' in job.metadata:
         job.exeerrordiag = job.metadata['exeErrorDiag']
         if job.exeerrordiag:
-            log.warning('payload failed: exeErrorDiag=%s' % job.exeerrordiag)
+            logger.warning('payload failed: exeErrorDiag=%s' % job.exeerrordiag)
 
     # determine what should be staged out
     job.stageout = stageout  # output and log file or only log file
@@ -848,9 +830,9 @@ def update_job_data(job):
     try:
         work_attributes = parse_jobreport_data(job.metadata)
     except Exception as e:
-        log.warning('failed to parse job report: %s' % e)
+        logger.warning('failed to parse job report: %s' % e)
 
-    log.info('work_attributes = %s' % work_attributes)
+    logger.info('work_attributes = %s' % work_attributes)
 
     # note: the number of events can be set already at this point if the value was extracted from the job report
     # (a more thorough search for this value is done later unless it was set here)
@@ -865,10 +847,10 @@ def update_job_data(job):
         try:
             verify_output_files(job)
         except Exception as e:
-            log.warning('exception caught while trying verify output files: %s' % e)
+            logger.warning('exception caught while trying verify output files: %s' % e)
     else:
         if not job.allownooutput:  # i.e. if it's an empty list/string, do nothing
-            log.debug("will not try to extract output files from jobReport for user job (and allowNoOut list is empty)")
+            logger.debug("will not try to extract output files from jobReport for user job (and allowNoOut list is empty)")
         else:
             # remove the files listed in allowNoOutput if they don't exist
             remove_no_output_files(job)
@@ -879,7 +861,7 @@ def update_job_data(job):
     for dat in job.outdata:
         if not dat.guid:
             dat.guid = get_guid()
-            log.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
+            logger.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
 
 
 def extract_output_file_guids(job):
@@ -892,15 +874,13 @@ def extract_output_file_guids(job):
     :return:
     """
 
-    log = get_logger(job.jobid)
-
     # make sure there is a defined output file list in the job report - unless it is allowed by task parameter allowNoOutput
     if not job.allownooutput:
         output = job.metadata.get('files', {}).get('output', [])
         if output:
-            log.info('verified that job report contains metadata for %d file(s)' % len(output))
+            logger.info('verified that job report contains metadata for %d file(s)' % len(output))
         else:
-            log.warning('job report contains no output files and allowNoOutput is not set')  #- will fail job since allowNoOutput is not set')
+            logger.warning('job report contains no output files and allowNoOutput is not set')  #- will fail job since allowNoOutput is not set')
             #job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOOUTPUTINJOBREPORT)
             return
 
@@ -939,7 +919,7 @@ def extract_output_file_guids(job):
             logger.debug('verified guid=%s for lfn=%s' % (fspec.guid, fspec.lfn))
 
     #if extra:
-        #log.info('found extra output files in job report, will overwrite output file list: extra=%s' % extra)
+        #logger.info('found extra output files in job report, will overwrite output file list: extra=%s' % extra)
         #job.outdata = extra
 
 
@@ -957,14 +937,13 @@ def verify_output_files(job):
     """
 
     failed = False
-    log = get_logger(job.jobid)
 
     # get list of output files from the job definition
     lfns_jobdef = []
     for fspec in job.outdata:
         lfns_jobdef.append(fspec.lfn)
     if not lfns_jobdef:
-        log.debug('empty output file list from job definition (nothing to verify)')
+        logger.debug('empty output file list from job definition (nothing to verify)')
         return True
 
     # get list of output files from job report
@@ -972,24 +951,24 @@ def verify_output_files(job):
     output = job.metadata.get('files', {}).get('output', None)
     if not output and output is not None:
         # ie empty list, output=[] - are all known output files in allowNoOutput?
-        log.warning('encountered an empty output file list in job report, consulting allowNoOutput list')
+        logger.warning('encountered an empty output file list in job report, consulting allowNoOutput list')
         failed = False
         for lfn in lfns_jobdef:
             if lfn not in job.allownooutput:
                 if job.is_analysis():
-                    log.warning('lfn %s is not in allowNoOutput list - ignore for user job' % lfn)
+                    logger.warning('lfn %s is not in allowNoOutput list - ignore for user job' % lfn)
                 else:
                     failed = True
-                    log.warning('lfn %s is not in allowNoOutput list - job will fail' % lfn)
+                    logger.warning('lfn %s is not in allowNoOutput list - job will fail' % lfn)
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGOUTPUTFILE)
                     break
             else:
-                log.info('lfn %s listed in allowNoOutput - will be removed from stage-out' % lfn)
+                logger.info('lfn %s listed in allowNoOutput - will be removed from stage-out' % lfn)
                 remove_from_stageout(lfn, job)
 
     elif output is None:
         # ie job report is ancient / output could not be extracted
-        log.warning('output file list could not be extracted from job report (nothing to verify)')
+        logger.warning('output file list could not be extracted from job report (nothing to verify)')
     else:
         verified = verify_extracted_output_files(output, lfns_jobdef, job)
         failed = True if not verified else False
@@ -997,9 +976,9 @@ def verify_output_files(job):
     status = True if not failed else False
 
     if status:
-        log.info('output file verification succeeded')
+        logger.info('output file verification succeeded')
     else:
-        log.warning('output file verification failed')
+        logger.warning('output file verification failed')
 
     return status
 
@@ -1015,10 +994,9 @@ def verify_extracted_output_files(output, lfns_jobdef, job):
     """
 
     failed = False
-    log = get_logger(job.jobid)
 
     output_jobrep = {}  # {lfn: nentries, ..}
-    log.debug('extracted output file list from job report - make sure all known output files are listed')
+    logger.debug('extracted output file list from job report - make sure all known output files are listed')
 
     # first collect the output files from the job report
     for dat in output:
@@ -1033,42 +1011,42 @@ def verify_extracted_output_files(output, lfns_jobdef, job):
     for lfn in lfns_jobdef:
         if lfn not in output_jobrep and lfn not in job.allownooutput:
             if job.is_analysis():
-                log.warning(
+                logger.warning(
                     'output file %s from job definition is not present in job report and is not listed in allowNoOutput' % lfn)
             else:
-                log.warning(
+                logger.warning(
                     'output file %s from job definition is not present in job report and is not listed in allowNoOutput - job will fail' % lfn)
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGOUTPUTFILE)
                 failed = True
                 break
         if lfn not in output_jobrep and lfn in job.allownooutput:
-            log.warning(
+            logger.warning(
                 'output file %s from job definition is not present in job report but is listed in allowNoOutput - remove from stage-out' % lfn)
             remove_from_stageout(lfn, job)
         else:
             nentries = output_jobrep[lfn]
             if nentries == "UNDEFINED":
-                log.warning('encountered file with nentries=UNDEFINED - will ignore %s' % lfn)
+                logger.warning('encountered file with nentries=UNDEFINED - will ignore %s' % lfn)
                 continue
             elif nentries is None and lfn not in job.allownooutput:
-                log.warning(
+                logger.warning(
                     'output file %s is listed in job report, but has no events and is not listed in allowNoOutput - will ignore' % lfn)
                 continue
             elif nentries is None and lfn in job.allownooutput:
-                log.warning(
+                logger.warning(
                     'output file %s is listed in job report, nentries is None and is listed in allowNoOutput - remove from stage-out' % lfn)
                 remove_from_stageout(lfn, job)
             elif type(nentries) is int and nentries == 0 and lfn not in job.allownooutput:
-                log.warning(
+                logger.warning(
                     'output file %s is listed in job report, has zero events and is not listed in allowNoOutput - will ignore' % lfn)
             elif type(nentries) is int and nentries == 0 and lfn in job.allownooutput:
-                log.warning(
+                logger.warning(
                     'output file %s is listed in job report, has zero events and is listed in allowNoOutput - remove from stage-out' % lfn)
                 remove_from_stageout(lfn, job)
             elif type(nentries) is int and nentries:
-                log.info('output file %s has %d events' % (lfn, nentries))
+                logger.info('output file %s has %d events' % (lfn, nentries))
             else:  # should not reach this step
-                log.warning('case not handled for output file %s with %s events (ignore)' % (lfn, str(nentries)))
+                logger.warning('case not handled for output file %s with %s events (ignore)' % (lfn, str(nentries)))
 
     return False if failed else True
 
@@ -1082,11 +1060,10 @@ def remove_from_stageout(lfn, job):
     :return: [updated job object]
     """
 
-    log = get_logger(job.jobid)
     outdata = []
     for fspec in job.outdata:
         if fspec.lfn == lfn:
-            log.info('removing %s from stage-out list' % lfn)
+            logger.info('removing %s from stage-out list' % lfn)
         else:
             outdata.append(fspec)
     job.outdata = outdata
@@ -1100,8 +1077,6 @@ def remove_no_output_files(job):
     :return:
     """
 
-    log = get_logger(job.jobid)
-
     # first identify the files to keep
     _outfiles = []
     for fspec in job.outdata:
@@ -1110,15 +1085,15 @@ def remove_no_output_files(job):
 
         if filename in job.allownooutput:
             if os.path.exists(path):
-                log.info("file %s is listed in allowNoOutput but exists (will not be removed from list of files to be staged-out)" % filename)
+                logger.info("file %s is listed in allowNoOutput but exists (will not be removed from list of files to be staged-out)" % filename)
                 _outfiles.append(filename)
             else:
-                log.info("file %s is listed in allowNoOutput and does not exist (will be removed from list of files to be staged-out)" % filename)
+                logger.info("file %s is listed in allowNoOutput and does not exist (will be removed from list of files to be staged-out)" % filename)
         else:
             if os.path.exists(path):
-                log.info("file %s is not listed in allowNoOutput (will be staged-out)" % filename)
+                logger.info("file %s is not listed in allowNoOutput (will be staged-out)" % filename)
             else:
-                log.warning("file %s is not listed in allowNoOutput and does not exist (job will fail)" % filename)
+                logger.warning("file %s is not listed in allowNoOutput and does not exist (job will fail)" % filename)
             _outfiles.append(filename)
 
     # now remove the unwanted fspecs
@@ -1703,13 +1678,12 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):
     ls(workdir)
 
 
-def download_command(process, workdir, label='preprocess'):
+def download_command(process, workdir):
     """
     Download the pre/postprocess commands if necessary.
 
     :param process: pre/postprocess dictionary.
     :param workdir: job workdir (string).
-    :param label: pre/postprocess label (string).
     :return: updated pre/postprocess dictionary.
     """
 
@@ -1720,7 +1694,7 @@ def download_command(process, workdir, label='preprocess'):
         # Try to download the trf (skip when user container is to be used)
         ec, diagnostics, cmd = get_analysis_trf(cmd, workdir)
         if ec != 0:
-            logger.warning('cannot execute %s command due to previous error' % label)
+            logger.warning('cannot execute command due to previous error: %s' % cmd)
             return {}
 
         # update the preprocess command (the URL should be stripped)
@@ -1751,19 +1725,21 @@ def get_utility_commands(order=None, job=None):
     if order:
         if order == UTILITY_BEFORE_PAYLOAD and job and job.preprocess:
             if job.preprocess.get('command', ''):
-                return download_command(job.preprocess, job.workdir, label='preprocess')
+                return download_command(job.preprocess, job.workdir)
         elif order == UTILITY_WITH_PAYLOAD:
             return {'command': 'NetworkMonitor', 'args': ''}
-        elif order == UTILITY_AFTER_PAYLOAD_STARTED:
-            cmd = config.Pilot.utility_after_payload_started
-            if cmd:
-                return {'command': cmd, 'args': ''}
+        elif order == UTILITY_AFTER_PAYLOAD_STARTED and job and job.coprocess:
+            # cmd = config.Pilot.utility_after_payload_started  DEPRECATED
+            #if cmd:
+            #    return {'command': cmd, 'args': ''}
+            if job.coprocess.get('command', ''):
+                return download_command(job.coprocess, job.workdir)
         elif order == UTILITY_AFTER_PAYLOAD and job and job.postprocess:
             if job.postprocess.get('command', ''):
-                return download_command(job.postprocess, job.workdir, label='postprocess')
+                return download_command(job.postprocess, job.workdir)
         elif order == UTILITY_AFTER_PAYLOAD_FINISHED and job and job.postprocess:
             if job.postprocess.get('command', ''):
-                return download_command(job.postprocess, job.workdir, label='postprocess')
+                return download_command(job.postprocess, job.workdir)
         elif order == UTILITY_WITH_STAGEIN:
             return {'command': 'Benchmark', 'args': ''}
 
@@ -1944,12 +1920,11 @@ def verify_job(job):
     """
 
     status = False
-    log = get_logger(job.jobid)
 
     # are LFNs of correct lengths?
     ec, diagnostics = verify_lfn_length(job.outdata)
     if ec != 0:
-        log.fatal(diagnostics)
+        logger.fatal(diagnostics)
         job.piloterrordiag = diagnostics
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
     else:

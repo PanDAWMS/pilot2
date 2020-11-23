@@ -144,6 +144,7 @@ class ErrorCodes:
     PANDAQUEUENOTACTIVE = 1359
     IMAGENOTFOUND = 1360
     REMOTEFILECOULDNOTBEOPENED = 1361
+    XRDCPERROR = 1362
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -266,7 +267,8 @@ class ErrorCodes:
         MISSINGRELEASEUNPACKED: "Missing release setup in unpacked container",
         PANDAQUEUENOTACTIVE: "PanDA queue is not active",
         IMAGENOTFOUND: "Image not found",
-        REMOTEFILECOULDNOTBEOPENED: "Remote file could not be opened"
+        REMOTEFILECOULDNOTBEOPENED: "Remote file could not be opened",
+        XRDCPERROR: "Xrdcp was unable to open file"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]

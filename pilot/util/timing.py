@@ -18,7 +18,6 @@
 import os
 import time
 
-from pilot.util.auxiliary import get_logger
 from pilot.util.config import config
 from pilot.util.constants import PILOT_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_PRE_SETUP, \
     PILOT_POST_SETUP, PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, PILOT_PRE_STAGEOUT,\
@@ -205,9 +204,7 @@ def get_postgetjob_time(job_id, args):
             time_measurement = time_measurement_dictionary.get(timing_constant, None)
 
         if not time_measurement:
-            log = get_logger(job_id)
-            log.warning('failed to extract time measurement %s from %s (no such key)' %
-                        (timing_constant, time_measurement_dictionary))
+            logger.warning('failed to extract time measurement %s from %s (no such key)' % (timing_constant, time_measurement_dictionary))
 
     return time_measurement
 
@@ -231,9 +228,7 @@ def get_time_measurement(timing_constant, time_measurement_dictionary, timing_di
         if time_measurement_dictionary_0:
             time_measurement = time_measurement_dictionary_0.get(timing_constant, None)
         else:
-            log = get_logger(job_id)
-            log.warning('failed to extract time measurement %s from %s (no such key)' %
-                        (timing_constant, time_measurement_dictionary))
+            logger.warning('failed to extract time measurement %s from %s (no such key)' % (timing_constant, time_measurement_dictionary))
 
     return time_measurement
 
@@ -271,7 +266,6 @@ def get_time_since(job_id, timing_constant, args):
     """
 
     diff = 0
-    log = get_logger(job_id)
 
     if job_id in args.timing:
 
@@ -283,9 +277,9 @@ def get_time_since(job_id, timing_constant, args):
             if time_measurement:
                 diff = time.time() - time_measurement
         else:
-            log.warning('failed to extract time measurement dictionary from %s' % str(args.timing))
+            logger.warning('failed to extract time measurement dictionary from %s' % str(args.timing))
     else:
-        log.warning('job id %s not found in timing dictionary' % job_id)
+        logger.warning('job id %s not found in timing dictionary' % job_id)
 
     return diff
 
@@ -311,8 +305,6 @@ def get_time_difference(job_id, timing_constant_1, timing_constant_2, args):
 
     diff = 0
 
-    log = get_logger(job_id)
-
     if job_id in args.timing:
 
         # extract time measurements
@@ -327,9 +319,9 @@ def get_time_difference(job_id, timing_constant_1, timing_constant_2, args):
             if time_measurement_1 and time_measurement_2:
                 diff = time_measurement_2 - time_measurement_1
         else:
-            log.warning('failed to extract time measurement dictionary from %s' % str(args.timing))
+            logger.warning('failed to extract time measurement dictionary from %s' % str(args.timing))
     else:
-        log.warning('job id %s not found in timing dictionary' % job_id)
+        logger.warning('job id %s not found in timing dictionary' % job_id)
 
     # always return a positive number
     if diff < 0:
@@ -339,7 +331,7 @@ def get_time_difference(job_id, timing_constant_1, timing_constant_2, args):
     try:
         diff = int(diff)
     except Exception as e:
-        log.warning('failed to convert %s to int: %s (will reset to 0)' % (diff, e))
+        logger.warning('failed to convert %s to int: %s (will reset to 0)' % (diff, e))
         diff = 0
 
     return diff
@@ -354,8 +346,6 @@ def timing_report(job_id, args):
     :return: time_getjob, time_stagein, time_payload, time_stageout, time_total_setup (integer strings).
     """
 
-    log = get_logger(job_id)
-
     # collect pilot timing data
     time_getjob = get_getjob_time(job_id, args)
     time_initial_setup = get_initial_setup_time(job_id, args)
@@ -364,16 +354,16 @@ def timing_report(job_id, args):
     time_stagein = get_stagein_time(job_id, args)
     time_payload = get_payload_execution_time(job_id, args)
     time_stageout = get_stageout_time(job_id, args)
-    log.info('.' * 30)
-    log.info('. Timing measurements:')
-    log.info('. get job = %d s' % time_getjob)
-    log.info('. initial setup = %d s' % time_initial_setup)
-    log.info('. payload setup = %d s' % time_setup)
-    log.info('. total setup = %d s' % time_total_setup)
-    log.info('. stage-in = %d s' % time_stagein)
-    log.info('. payload execution = %d s' % time_payload)
-    log.info('. stage-out = %d s' % time_stageout)
-    log.info('.' * 30)
+    logger.info('.' * 30)
+    logger.info('. Timing measurements:')
+    logger.info('. get job = %d s' % time_getjob)
+    logger.info('. initial setup = %d s' % time_initial_setup)
+    logger.info('. payload setup = %d s' % time_setup)
+    logger.info('. total setup = %d s' % time_total_setup)
+    logger.info('. stage-in = %d s' % time_stagein)
+    logger.info('. payload execution = %d s' % time_payload)
+    logger.info('. stage-out = %d s' % time_stageout)
+    logger.info('.' * 30)
 
     return time_getjob, time_stagein, time_payload, time_stageout, time_total_setup
 

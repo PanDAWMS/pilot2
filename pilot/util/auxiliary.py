@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
 
 import os
 import sys
@@ -171,8 +171,11 @@ def whoami():
 def get_logger(job_id, log=None):
     """
     Return the logger object.
-    Use this function to get the proper logger object. It relies on a pythno 2.7 function, getChild(), but if the queue
+    Use this function to get the proper logger object. It relies on a python 2.7 function, getChild(), but if the queue
     is only using Python 2.6, the standard logger object will be returned instead.
+
+    WARNING: it seems using this function can lead to severe memory leaks (multiple GB) in some jobs. Do not use. Keep
+    this definition for possible later investigation.
 
     :param jod_id: PanDA job id (string).
     :return: logger object.
@@ -428,6 +431,21 @@ def get_object_size(obj, seen=None):
     return size
 
 
+def show_memory_usage():
+    """
+    Display the current memory usage by the pilot process.
+
+    :return:
+    """
+
+    _ec, _stdout, _stderr = get_memory_usage(os.getpid())
+    try:
+        _value = extract_memory_usage_value(_stdout)
+    except Exception:
+        _value = "(unknown)"
+    logger.debug('current pilot memory usage:\n\n%s\n\nusage: %s kB\n' % (_stdout, _value))
+
+
 def get_memory_usage(pid):
     """
     Return the memory usage string (ps auxf <pid>) for the given process.
@@ -461,3 +479,19 @@ def extract_memory_usage_value(output):
             break
 
     return memory_usage
+
+
+def cut_output(txt, cutat=1024, separator='\n[...]\n'):
+    """
+    Cut the given string if longer that 2*cutat value.
+
+    :param txt: text to be cut at position cutat (string).
+    :param cutat: max length of uncut text (int).
+    :param separator: separator text (string).
+    :return: cut text (string).
+    """
+
+    if len(txt) > 2 * cutat:
+        txt = txt[:cutat] + separator + txt[-cutat:]
+
+    return txt

@@ -5,16 +5,14 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018-9
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2020
 
-# from pilot.util.auxiliary import get_logger
 from pilot.common.exception import NotDefined
 
 from decimal import Decimal
 from re import split, sub
 
 import logging
-
 logger = logging.getLogger(__name__)
 
 SYMBOLS = {
