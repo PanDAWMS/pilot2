@@ -126,6 +126,10 @@ def get_args():
                             action='store_true',
                             default=False,
                             help='Do not write the pilot log to file')
+    arg_parser.add_argument('--outputdir',
+                            dest='outputdir',
+                            required=False,
+                            help='Output files directory')
 
     return arg_parser.parse_args()
 
@@ -312,7 +316,7 @@ if __name__ == '__main__':
     activity = 'pw'
 
     client = StageOutClient(infoservice, logger=logger, trace_report=trace_report)
-    kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, job=job)  # , mode='stage-out')
+    kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, job=job, output_dir=args.outputdir)  # , mode='stage-out')
 
     xfiles = []
     for lfn, scope, dataset, ddmendpoint, guid in list(zip(lfns, scopes, datasets, ddmendpoints, guids)):
