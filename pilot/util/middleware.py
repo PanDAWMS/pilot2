@@ -160,7 +160,6 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, ext
     script_path = path.join('pilot/scripts', script)
     full_script_path = path.join(path.join(job.workdir, script_path))
     copy(full_script_path, final_script_path)
-    # chmod(final_script_path, 0o755)  # Python 2/3
 
     if config.Container.use_middleware_container:
         # correct the path when containers have been used
@@ -169,24 +168,24 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, ext
     else:
         workdir = job.workdir
 
+    cmd = "%s -d -w %s -q %s --eventtype=%s --localsite=%s --remotesite=%s --produserid=\"%s\" --jobid=%s" % \
+          (final_script_path, workdir, queue, eventtype, localsite, remotesite, job.produserid.replace(' ', '%20'), job.jobid)
+
     if label == 'stage-in':
-        cmd = "%s -w %s -d -q %s --eventtype=%s --localsite=%s --remotesite=%s --produserid=\"%s\" --jobid=%s " \
-              "--taskid=%s --jobdefinitionid=%s --eventservicemerge=%s --usepcache=%s --usevp=%s " \
-              "--replicadictionary=%s" % (final_script_path, workdir, queue, eventtype, localsite, remotesite,
-                                          job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
-                                          job.is_eventservicemerge, job.infosys.queuedata.use_pcache, job.use_vp,
-                                          config.Container.stagein_replica_dictionary)
+        cmd += "--eventservicemerge=%s --usepcache=%s --usevp=%s --replicadictionary=%s" % \
+               (job.is_eventservicemerge, job.infosys.queuedata.use_pcache, job.use_vp, config.Container.stagein_replica_dictionary)
         if external_dir:
             cmd += ' --inputdir=%s' % external_dir
     else:  # stage-out
-        cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
-              '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
-              '--datasets=%s --ddmendpoints=%s --guids=%s' % \
-              (final_script_path, filedata_dictionary['lfns'], filedata_dictionary['scopes'], workdir, queue, eventtype, localsite,
-               remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
-               filedata_dictionary['datasets'], filedata_dictionary['ddmendpoints'], filedata_dictionary['guids'])
+        cmd += ' --lfns=%s --scopes=%s --datasets=%s --ddmendpoints=%s --guids=%s' % \
+               (filedata_dictionary['lfns'], filedata_dictionary['scopes'], filedata_dictionary['datasets'],
+                filedata_dictionary['ddmendpoints'], filedata_dictionary['guids'])
         if external_dir:
             cmd += ' --outputdir=%s' % external_dir
+
+    cmd += ' --taskid=%s' % job.taskid
+    cmd += ' --jobdefinitionid=%s' % job.jobdefinitionid
+    cmd += ' --catchall=%s' % job.infosys.queuedata.catchall
 
     return cmd
 

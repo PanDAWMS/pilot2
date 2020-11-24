@@ -129,7 +129,13 @@ def get_args():
     arg_parser.add_argument('--outputdir',
                             dest='outputdir',
                             required=False,
+                            default='',
                             help='Output files directory')
+    arg_parser.add_argument('--catchall',
+                            dest='catchall',
+                            required=False,
+                            default='',
+                            help='PQ catchall field')
 
     return arg_parser.parse_args()
 
@@ -316,7 +322,8 @@ if __name__ == '__main__':
     activity = 'pw'
 
     client = StageOutClient(infoservice, logger=logger, trace_report=trace_report)
-    kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, job=job, output_dir=args.outputdir)  # , mode='stage-out')
+    kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, job=job, output_dir=args.outputdir,
+                  catchall=args.catchall)  # , mode='stage-out')
 
     xfiles = []
     for lfn, scope, dataset, ddmendpoint, guid in list(zip(lfns, scopes, datasets, ddmendpoints, guids)):
