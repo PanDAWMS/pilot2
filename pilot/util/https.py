@@ -80,7 +80,7 @@ def capath(args=None):
     """
 
     return _tester(os.path.isdir,
-                   None if args is None or args.capath is None else args.capath,
+                   args and args.capath,
                    os.environ.get('X509_CERT_DIR'),
                    '/etc/grid-security/certificates')
 
@@ -114,7 +114,7 @@ def cacert(args=None):
     """
 
     return _tester(os.path.isfile,
-                   None if args is None or args.cacert is None else args.capath,
+                   args and args.cacert,
                    os.environ.get('X509_USER_PROXY'),
                    cacert_default_location())
 
