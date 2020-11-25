@@ -654,7 +654,10 @@ def get_metadata_dict_from_txt(path, storejson=False):
 
     if dictionary and storejson:
         path = os.path.join(os.path.dirname(path), get_memory_monitor_output_filename(suffix='json'))
+        logger.debug('writing prmon dictionary to: %s' % path)
         write_json(path, dictionary)
+    else:
+        logger.debug('nothing to write (no prmon dictionary)')
 
     # filter dictionary?
     # ..

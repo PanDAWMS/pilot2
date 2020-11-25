@@ -1969,6 +1969,37 @@ def get_metadata(workdir):
     return metadata
 
 
+def update_metadata(jobid, metadata_dictionary):
+    """
+    Prepare prmon dictionary for logstash.
+
+    :param jobid: PanDA job id (int).
+    :param metadata_dictionary: prmon info (dictionary).
+    :return: updated prmon info (dictionary).
+    """
+
+    # add metadata
+    metadata_dictionary['type'] = 'MemoryMonitorData'
+    metadata_dictionary['pandaid'] = jobid
+
+    return metadata_dictionary
+
+
+def should_update_logstash(frequency=10):
+    """
+    Should logstash be updated with prmon dictionary?
+
+    :param frequency:
+    :return: return True once per 'frequency' times
+    """
+
+    from random import randint
+    if randint(0, frequency - 1) == 0:
+        return True
+    else:
+        return False
+
+
 def update_server(job):
     """
     Perform any user specific server actions.
@@ -1980,12 +2011,21 @@ def update_server(job):
     """
 
     # attempt to read memory_monitor_output.txt and convert it to json
-    path = os.path.join(job.workdir, get_memory_monitor_output_filename())
-    if os.path.exists(path):
-        # convert memory monitor text output to json, store it, and return the selection
-        metadata_dictionary = get_metadata_dict_from_txt(path, storejson=True)
+    if should_update_logstash():
+        path = os.path.join(job.workdir, get_memory_monitor_output_filename())
+        if os.path.exists(path):
+            # convert memory monitor text output to json and return the selection (don't store it, log has already been created)
+            metadata_dictionary = get_metadata_dict_from_txt(path)
+            metadata_dictionary = update_metadata(job.jobid, metadata_dictionary)
+            logger.debug('final logstash prmon dictionary: %s' % str(metadata_dictionary))
+            url = 'http://collector.atlas-ml.org:80'
+            cmd = "curl --connect-timeout 20 --max-time 120 -H \"Content-Type: application/json\" -X POST -d \'%s\' %s" % \
+                  (str(metadata_dictionary).replace("'", '"'), url)
 
-        # send metadata to logstash
-        logger.debug('could have sent memory monitor dictionary to logstash')
+            # send metadata to logstash
+            exit_code, stdout, stderr = execute(cmd, usecontainer=False)
+            logger.info('stdout: %s' % stdout)
+        else:
+            logger.warning('path does not exist: %s' % path)
     else:
-        logger.warning('path does not exist: %s' % path)
+        logger.debug('no need to update logstash for this job')
