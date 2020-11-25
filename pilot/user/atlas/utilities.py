@@ -600,8 +600,6 @@ def get_average_summary_dictionary_prmon(path):
     """
 
     summary_dictionary = {}
-    summary_keys = []  # to keep track of content
-    header_locked = False
 
     # get the raw memory monitor output, convert to dictionary
     dictionary = convert_text_file_to_dictionary(path)
@@ -677,7 +675,10 @@ def convert_text_file_to_dictionary(path):
     :return: dictionary.
     """
 
+    summary_keys = []  # to keep track of content
+    header_locked = False
     dictionary = {}
+
     with open(path) as f:
         for line in f:
             line = convert_unicode_string(line)
