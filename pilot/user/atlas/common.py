@@ -253,6 +253,8 @@ def process_remote_file_traces(path, job, not_opened_turls):
                     base_trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
                     if fspec.turl in not_opened_turls:
                         base_trace_report.update(clientState='FAILED_REMOTE_OPEN')
+                    else:
+                        base_trace_report.update(clientState='FOUND_ROOT')
 
                     # copy the base trace report (only a dictionary) into a real trace report object
                     trace_report = TraceReport(**base_trace_report)
@@ -1990,7 +1992,7 @@ def should_update_logstash(frequency=10):
     Should logstash be updated with prmon dictionary?
 
     :param frequency:
-    :return: return True once per 'frequency' times
+    :return: return True once per 'frequency' times.
     """
 
     from random import randint
