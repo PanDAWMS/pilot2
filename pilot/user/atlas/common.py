@@ -36,7 +36,7 @@ from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, U
     UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_WITH_STAGEIN, UTILITY_AFTER_PAYLOAD_STARTED2
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps, copy,\
-    copy_pilot_source, write_file, read_json
+    copy_pilot_source, write_file, read_json, read_file
 from pilot.util.tracereport import TraceReport
 
 import logging
@@ -1951,3 +1951,31 @@ def update_stagein(job):
     for fspec in job.indata:
         if 'DBRelease' in fspec.lfn:
             fspec.status = 'no_transfer'
+
+
+def get_metadata(workdir):
+    """
+    Return the metadata from file.
+
+    :param workdir: work directory (string)
+    :return:
+    """
+
+    path = os.path.join(workdir, config.Payload.jobreport)
+    metadata = read_file(path) if os.path.exists(path) else None
+    logger.debug('metadata=%s' % str(metadata))
+
+    return metadata
+
+
+def update_server(job):
+    """
+    Perform any user specific server actions.
+
+    E.g. this can be used to send special information to a logstash.
+
+    :param job: job object.
+    :return:
+    """
+
+    pass

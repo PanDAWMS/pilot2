@@ -22,7 +22,8 @@ from pilot.util.auxiliary import set_pilot_state, show_memory_usage
 # from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED, \
-    UTILITY_AFTER_PAYLOAD_FINISHED, PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD
+    UTILITY_AFTER_PAYLOAD_FINISHED, PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, \
+    UTILITY_AFTER_PAYLOAD_STARTED2
 from pilot.util.filehandling import write_file
 from pilot.util.processes import kill_processes
 from pilot.util.timing import add_to_pilot_timing
@@ -563,11 +564,14 @@ class Executor(object):
                 # the process is now running, update the server
                 send_state(self.__job, self.__args, self.__job.state)
 
-                utility_cmd = self.get_utility_command(order=UTILITY_AFTER_PAYLOAD_STARTED)
+                # allow for a secondary command to be started after the payload (e.g. a coprocess)
+                utility_cmd = self.get_utility_command(order=UTILITY_AFTER_PAYLOAD_STARTED2)
                 if utility_cmd:
                     logger.debug('starting utility command: %s' % utility_cmd)
                     label = 'coprocess' if 'coprocess' in utility_cmd else None
                     proc_co = self.run_command(utility_cmd, label=label)
+                else:
+                    logger.debug('no command (UTILITY_AFTER_PAYLOAD_STARTED2)')
 
                 logger.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)

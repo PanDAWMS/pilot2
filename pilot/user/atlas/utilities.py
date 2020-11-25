@@ -78,14 +78,14 @@ def get_memory_monitor_summary_filename(selector=None):
     return name
 
 
-def get_memory_monitor_output_filename():
+def get_memory_monitor_output_filename(postfix='txt'):
     """
     Return the filename of the memory monitor text output file.
 
     :return: File name (string).
     """
 
-    return "memory_monitor_output.txt"
+    return "memory_monitor_output.%s" % postfix
 
 
 def get_memory_monitor_setup(pid, pgrp, jobid, workdir, command, setup="", use_container=True, transformation="", outdata=None, dump_ps=False):
