@@ -450,8 +450,7 @@ def alrb_wrapper(cmd, workdir, job=None):
         logger.debug('initial alrb_setup: %s' % alrb_setup)
 
         # add user proxy if necessary (actually it should also be removed from cmd)
-        if job.is_analysis():
-            alrb_setup, cmd = update_for_user_proxy(alrb_setup, cmd)
+        alrb_setup, cmd = update_for_user_proxy(alrb_setup, cmd)
 
         # set the platform info
         alrb_setup = set_platform(job, alrb_setup)
