@@ -15,7 +15,6 @@ from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_AFTER_PAYLOAD
 from pilot.util.filehandling import read_file
 from .setup import get_analysis_trf
-from pilot.user.atlas.utilities import get_memory_monitor_output_filename, get_metadata_dict_from_txt
 
 import logging
 logger = logging.getLogger(__name__)
@@ -256,13 +255,4 @@ def update_server(job):
     :return:
     """
 
-    # attempt to read memory_monitor_output.txt and convert it to json
-    path = os.path.join(job.workdir, get_memory_monitor_output_filename())
-    if os.path.exists(path):
-        # convert memory monitor text output to json, store it, and return the selection
-        metadata_dictionary = get_metadata_dict_from_txt(path, storejson=True)
-
-        # send metadata to logstash
-        logger.debug('could have sent memory monitor dictionary to logstash')
-    else:
-        logger.warning('path does not exist: %s' % path)
+    pass

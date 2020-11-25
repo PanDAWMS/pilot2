@@ -25,7 +25,8 @@ from .dbrelease import get_dbrelease_version, create_dbrelease
 from .setup import should_pilot_prepare_setup, is_standard_atlas_job,\
     set_inds, get_analysis_trf, get_payload_environment_variables, replace_lfns_with_turls
 from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
-    get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
+    get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup, get_memory_monitor_output_filename,\
+    get_metadata_dict_from_txt
 
 from pilot.util.auxiliary import get_resource_name, show_memory_usage
 from pilot.common.errorcodes import ErrorCodes
@@ -1978,4 +1979,13 @@ def update_server(job):
     :return:
     """
 
-    pass
+    # attempt to read memory_monitor_output.txt and convert it to json
+    path = os.path.join(job.workdir, get_memory_monitor_output_filename())
+    if os.path.exists(path):
+        # convert memory monitor text output to json, store it, and return the selection
+        metadata_dictionary = get_metadata_dict_from_txt(path, storejson=True)
+
+        # send metadata to logstash
+        logger.debug('could have sent memory monitor dictionary to logstash')
+    else:
+        logger.warning('path does not exist: %s' % path)
