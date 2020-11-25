@@ -16,7 +16,7 @@ from re import search
 from .setup import get_asetup
 from pilot.util.auxiliary import is_python3
 from pilot.util.container import execute
-from pilot.util.filehandling import read_json, copy
+from pilot.util.filehandling import read_json, copy, write_json
 from pilot.util.parameters import convert_to_int
 from pilot.util.processes import is_process_running
 
@@ -78,14 +78,14 @@ def get_memory_monitor_summary_filename(selector=None):
     return name
 
 
-def get_memory_monitor_output_filename(postfix='txt'):
+def get_memory_monitor_output_filename(suffix='txt'):
     """
     Return the filename of the memory monitor text output file.
 
     :return: File name (string).
     """
 
-    return "memory_monitor_output.%s" % postfix
+    return "memory_monitor_output.%s" % suffix
 
 
 def get_memory_monitor_setup(pid, pgrp, jobid, workdir, command, setup="", use_container=True, transformation="", outdata=None, dump_ps=False):
@@ -599,37 +599,13 @@ def get_average_summary_dictionary_prmon(path):
     :return: summary dictionary.
     """
 
-    dictionary = {}
     summary_dictionary = {}
     summary_keys = []  # to keep track of content
     header_locked = False
-    with open(path) as f:
-        for line in f:
-            line = convert_unicode_string(line)
-            if line != "":
-                try:
-                    # Remove empty entries from list (caused by multiple \t)
-                    _l = line.replace('\n', '')
-                    if is_python3():
-                        _l = [_f for _f in _l.split('\t') if _f]  # Python 3
-                    else:
-                        _l = filter(None, _l.split('\t'))  # Python 2
 
-                    # define dictionary keys
-                    if type(_l[0]) == str and not header_locked:
-                        summary_keys = _l
-                        for key in _l:
-                            dictionary[key] = []
-                        header_locked = True
-                    else:  # sort the memory measurements in the correct columns
-                        for i, key in enumerate(_l):
-                            # for key in _l:
-                            key_entry = summary_keys[i]  # e.g. Time
-                            value = convert_to_int(key)
-                            dictionary[key_entry].append(value)
-                except Exception:
-                    logger.warning("unexpected format of utility output: %s" % line)
-    #
+    # get the raw memory monitor output, convert to dictionary
+    dictionary = convert_text_file_to_dictionary(path)
+
     if dictionary:
         # Calculate averages and store all values
         summary_dictionary = {"Max": {}, "Avg": {}, "Other": {}}
@@ -664,6 +640,72 @@ def get_average_summary_dictionary_prmon(path):
                 summary_dictionary["Other"][key] = value
 
     return summary_dictionary
+
+
+def get_metadata_dict_from_txt(path, storejson=False):
+    """
+    Convert memory monitor text output to json, store it, and return a selection as a dictionary.
+
+    :param path:
+    :param storejson: store dictionary on disk if True (boolean).
+    :return: prmon metadata (dictionary).
+    """
+
+    # get the raw memory monitor output, convert to dictionary
+    dictionary = convert_text_file_to_dictionary(path)
+
+    if dictionary and storejson:
+        path = os.path.join(os.path.dirname(path), get_memory_monitor_output_filename(suffix='json'))
+        write_json(path, dictionary)
+
+    # filter dictionary?
+    # ..
+
+    return dictionary
+
+
+def convert_text_file_to_dictionary(path):
+    """
+    Convert row-column text file to dictionary.
+    User first row identifiers as dictionary keys.
+    Note: file must follow the convention:
+        NAME1   NAME2   ..
+        value1  value2  ..
+        ..      ..      ..
+
+    :param path: path to file (string).
+    :return: dictionary.
+    """
+
+    dictionary = {}
+    with open(path) as f:
+        for line in f:
+            line = convert_unicode_string(line)
+            if line != "":
+                try:
+                    # Remove empty entries from list (caused by multiple \t)
+                    _l = line.replace('\n', '')
+                    if is_python3():
+                        _l = [_f for _f in _l.split('\t') if _f]  # Python 3
+                    else:
+                        _l = filter(None, _l.split('\t'))  # Python 2
+
+                    # define dictionary keys
+                    if type(_l[0]) == str and not header_locked:
+                        summary_keys = _l
+                        for key in _l:
+                            dictionary[key] = []
+                        header_locked = True
+                    else:  # sort the memory measurements in the correct columns
+                        for i, key in enumerate(_l):
+                            # for key in _l:
+                            key_entry = summary_keys[i]  # e.g. Time
+                            value = convert_to_int(key)
+                            dictionary[key_entry].append(value)
+                except Exception:
+                    logger.warning("unexpected format of utility output: %s" % line)
+
+    return dictionary
 
 
 def get_last_value(value_list):
