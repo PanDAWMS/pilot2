@@ -132,7 +132,7 @@ def get_batchsystem_jobid():
         except Exception:
             from subprocess import getoutput  # Python 3
         return "Condor", getoutput(
-            'sed -n "s/GlobalJobId.*\\"\\(.*\\)\\".*/\\1/p" %s' % os.environ.get("_CONDOR_JOB_AD"))
+            'sed -n "s/^GlobalJobId.*\\"\\(.*\\)\\".*/\\1/p" %s' % os.environ.get("_CONDOR_JOB_AD"))
 
     return None, ""
 
