@@ -161,7 +161,7 @@ def handle_rucio_error(error_msg, trace_report, trace_report_out, fspec, stagein
     if trace_report_out:
         logger.debug('reading stateReason from trace_report_out: %s' % trace_report_out)
         error_msg = trace_report_out[0].get('stateReason', '')
-        if not error_msg:
+        if not error_msg or error_msg == 'OK':
             logger.warning('could not extract error message from trace report - reverting to original error message')
             error_msg = error_msg_org
     else:

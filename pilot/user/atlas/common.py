@@ -2020,7 +2020,7 @@ def update_server(job):
             metadata_dictionary = get_metadata_dict_from_txt(path)
             metadata_dictionary = update_metadata(job.jobid, metadata_dictionary)
             logger.debug('final logstash prmon dictionary: %s' % str(metadata_dictionary))
-            url = 'http://collector.atlas-ml.org:80'
+            url = 'https://pilot.atlas-ml.org'  # 'http://collector.atlas-ml.org:80'
             cmd = "curl --connect-timeout 20 --max-time 120 -H \"Content-Type: application/json\" -X POST -d \'%s\' %s" % \
                   (str(metadata_dictionary).replace("'", '"'), url)
 
