@@ -185,14 +185,14 @@ def _stage_in(args, job):
     label = 'stage-in'
 
     # should stage-in be done by a script (for containerisation) or by invoking the API (ie classic mode)?
-    use_container = pilot.util.middleware.use_middleware_container(job.infosys.queuedata.container_type.get("middleware"))
+    use_container = pilot.util.middleware.use_middleware_script(job.infosys.queuedata.container_type.get("middleware"))
     if use_container:
-        logger.info('stage-in will be done in a container')
+        logger.info('stage-in will be done by a script')
         try:
             eventtype, localsite, remotesite = get_trace_report_variables(job, label=label)
             pilot.util.middleware.containerise_middleware(job, job.indata, args.queue, eventtype, localsite, remotesite,
                                                           job.infosys.queuedata.container_options, args.input_dir,
-                                                          label=label)
+                                                          label=label, container_type=job.infosys.queuedata.container_type.get("middleware")))
         except PilotException as e:
             logger.warning('stage-in containerisation threw a pilot exception: %s' % e)
         except Exception as e:
@@ -745,13 +745,14 @@ def _do_stageout(job, xdata, activity, queue, title, output_dir=''):
     label = 'stage-out'
 
     # should stage-in be done by a script (for containerisation) or by invoking the API (ie classic mode)?
-    use_container = pilot.util.middleware.use_middleware_container(job.infosys.queuedata.container_type.get("middleware"))
+    use_container = pilot.util.middleware.use_middleware_script(job.infosys.queuedata.container_type.get("middleware"))
     if use_container:
-        logger.info('stage-out will be done in a container')
+        logger.info('stage-out will be done by a script')
         try:
             eventtype, localsite, remotesite = get_trace_report_variables(job, label=label)
             pilot.util.middleware.containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
-                                                          job.infosys.queuedata.container_options, output_dir, label=label)
+                                                          job.infosys.queuedata.container_options, output_dir,
+                                                          label=label, container_type=job.infosys.queuedata.container_type.get("middleware"))
         except PilotException as e:
             logger.warning('stage-out containerisation threw a pilot exception: %s' % e)
         except Exception as e:

@@ -398,11 +398,32 @@ class Executor(object):
         :return: updated secondary command (string).
         """
 
-        # remove any trailing spaces and ;-signs
-        cmd = cmd.strip()
-        cmd = cmd[:-1] if cmd.endswith(';') else cmd
-        last_bit = cmd.split(';')[-1]
-        setup = cmd.replace(last_bit.strip(), '')
+        def cut_str_from(_cmd, s):
+            # cut the string from the position of the given _cmd
+            return _cmd[:_cmd.find(s)]
+
+        def cut_str_from_last_semicolon(_cmd):
+            # cut the string from the last semicolon
+            # NOTE: this will not work if jobParams also contain ;
+            # remove any trailing spaces and ;-signs
+            _cmd = _cmd.strip()
+            _cmd = _cmd[:-1] if _cmd.endswith(';') else _cmd
+            last_bit = _cmd.split(';')[-1]
+            return _cmd.replace(last_bit.strip(), '')
+
+        if '/' in self.__job.transformation:  # e.g. http://pandaserver.cern.ch:25080/trf/user/runHPO-00-00-01
+            trfname = self.__job.transformation[self.__job.transformation.rfind('/') + 1:]  # runHPO-00-00-01
+            _trf = './' + trfname
+        else:
+            trfname = self.__job.transformation
+            _trf = './' + self.__job.transformation
+
+        if _trf in cmd:
+            setup = cut_str_from(cmd, _trf)
+        elif trfname in cmd:
+            setup = cut_str_from(cmd, trfname)
+        else:
+            setup = cut_str_from_last_semicolon(cmd)
 
         return setup
 
