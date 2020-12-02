@@ -297,7 +297,8 @@ def get_payload_command(job):
             raise PilotException(diagnostics, code=ec)
 
     # make sure that remote file can be opened before executing payload
-    if config.Pilot.remotefileverification_log:
+    catchall = job.infosys.queuedata.catchall.lower() if job.infosys.queuedata.catchall else ''
+    if config.Pilot.remotefileverification_log and 'remoteio_test=false' not in catchall:
         ec = 0
         diagnostics = ""
         not_opened_turls = ""

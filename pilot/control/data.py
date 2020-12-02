@@ -214,7 +214,7 @@ def _stage_in(args, job):
                 activity = 'pr'
             use_pcache = job.infosys.queuedata.use_pcache
             kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, use_pcache=use_pcache, use_bulk=False,
-                          input_dir=args.input_dir, use_vp=job.use_vp)
+                          input_dir=args.input_dir, use_vp=job.use_vp, catchall=job.infosys.queuedata.catchall)
             client.prepare_sources(job.indata)
             client.transfer(job.indata, activity=activity, **kwargs)
         except PilotException as error:
@@ -765,7 +765,8 @@ def _do_stageout(job, xdata, activity, queue, title, output_dir=''):
             trace_report = create_trace_report(job, label=label)
 
             client = StageOutClient(job.infosys, logger=logger, trace_report=trace_report)
-            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job, output_dir=output_dir)  #, mode='stage-out')
+            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job, output_dir=output_dir,
+                          catchall=job.infosys.queuedata.catchall)  #, mode='stage-out')
             # prod analy unification: use destination preferences from PanDA server for unified queues
             if job.infosys.queuedata.type != 'unified':
                 client.prepare_destinations(xdata, activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)
