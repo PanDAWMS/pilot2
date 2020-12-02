@@ -882,21 +882,29 @@ def get_root_container_script(cmd):
     return content
 
 
-def get_middleware_container_script(middleware_container, cmd):
+def get_middleware_container_script(middleware_container, cmd, asetup=False):
     """
     Return the content of the middleware container script.
+    If asetup is True, atlasLocalSetup will be added to the command.
 
     :param middleware_container: container image (string).
     :param cmd: isolated stage-in/out command (string).
+    :param asetup: optional True/False (boolean).
     :return: script content (string).
     """
 
     content = 'export PILOT_RUCIO_SITENAME=%s; ' % os.environ.get('PILOT_RUCIO_SITENAME')
     if 'rucio' in middleware_container:
-        content += 'python3 %s\nexit $?' % cmd
+        content += 'python3 %s' % cmd
     else:
-        content += 'lsetup rucio davix xrootd;python %s\nexit $?' % cmd
-    logger.debug('setup.sh content:\n%s' % content)
+        content += 'lsetup rucio davix xrootd;python %s' % cmd
+
+    if asetup:
+        content = get_asetup(asetup=False) + content
+    else:
+        content += '\nexit $?'
+
+    logger.debug('content:\n%s' % content)
 
     return content
 

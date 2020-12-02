@@ -124,8 +124,10 @@ class JobData(BaseData):
     indata = []                    # list of `FileSpec` objects for input files (aggregated inFiles, ddmEndPointIn, scopeIn, filesizeIn, etc)
     outdata = []                   # list of `FileSpec` objects for output files
     logdata = []                   # list of `FileSpec` objects for log file(s)
-    preprocess = {u'args': u'preprocess', u'command': u'echo'}  #{}                # preprocess dictionary with command to execute before payload, {'command': '..', 'args': '..'}
-    postprocess = {u'args': u'postprocess', u'command': u'echo'}  #{}               # postprocess dictionary with command to execute after payload, {'command': '..', 'args': '..'}
+    # preprocess = {u'args': u'preprocess', u'command': u'echo'}
+    # postprocess = {u'args': u'postprocess', u'command': u'echo'}
+    preprocess = {}                # preprocess dictionary with command to execute before payload, {'command': '..', 'args': '..'}
+    postprocess = {}               # postprocess dictionary with command to execute after payload, {'command': '..', 'args': '..'}
     coprocess = {}                 # coprocess dictionary with command to execute during payload, {'command': '..', 'args': '..'}
     containeroptions = {}          #
     use_vp = False                 # True for VP jobs

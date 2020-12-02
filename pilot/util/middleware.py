@@ -49,7 +49,7 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
     script = config.Container.middleware_container_stagein_script if label == 'stage-in' else config.Container.middleware_container_stageout_script
 
     try:
-        cmd = get_command(job, xdata, queue, script, eventtype, localsite, remotesite, external_dir, label=label)
+        cmd = get_command(job, xdata, queue, script, eventtype, localsite, remotesite, external_dir, label=label, container_type=container_type)
     except PilotException as e:
         raise e
 
@@ -119,7 +119,7 @@ def get_script_path(script):
     return _path
 
 
-def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, external_dir, label='stage-in'):
+def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, external_dir, label='stage-in', container_type='container'):
     """
     Get the middleware container execution command.
 
@@ -131,7 +131,8 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, ext
     :param localsite:
     :param remotesite:
     :param external_dir: input or output files directory (string).
-    :param label: 'stage-[in|out]' (string).
+    :param label: optional 'stage-[in|out]' (string).
+    :param container_type: optional 'container/bash' (string).
     :return: stage-in/out command (string).
     :raises PilotException: for stage-in/out related failures
     """
@@ -165,11 +166,18 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, ext
     full_script_path = path.join(path.join(job.workdir, script_path))
     copy(full_script_path, final_script_path)
 
-    if config.Container.use_middleware_container:
+    if config.Container.use_middleware_container and container_type == 'container':
         # correct the path when containers have been used
         final_script_path = path.join('.', script)
         workdir = '/srv'
     else:
+        # for container_type=bash we need to add the rucio setup
+        pilot_user = environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+        try:
+            final_script_path = user.get_middleware_container_script('', final_script_path, asetup=True)
+        except PilotException as e:
+            final_script_path = 'python %s' % final_script_path
         workdir = job.workdir
 
     cmd = "%s -d -w %s -q %s --eventtype=%s --localsite=%s --remotesite=%s --produserid=\"%s\" --jobid=%s" % \
@@ -190,6 +198,9 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, ext
     cmd += ' --taskid=%s' % job.taskid
     cmd += ' --jobdefinitionid=%s' % job.jobdefinitionid
     cmd += ' --catchall=%s' % job.infosys.queuedata.catchall
+
+    if container_type == 'bash':
+        cmd += '\nexit $?'
 
     return cmd
 
