@@ -25,7 +25,8 @@ from .dbrelease import get_dbrelease_version, create_dbrelease
 from .setup import should_pilot_prepare_setup, is_standard_atlas_job,\
     set_inds, get_analysis_trf, get_payload_environment_variables, replace_lfns_with_turls
 from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
-    get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup
+    get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup, get_memory_monitor_output_filename,\
+    get_metadata_dict_from_txt
 
 from pilot.util.auxiliary import get_resource_name, show_memory_usage
 from pilot.common.errorcodes import ErrorCodes
@@ -36,7 +37,7 @@ from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, U
     UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_WITH_STAGEIN, UTILITY_AFTER_PAYLOAD_STARTED2
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps, copy,\
-    copy_pilot_source, write_file, read_json
+    copy_pilot_source, write_file, read_json, read_file
 from pilot.util.tracereport import TraceReport
 
 import logging
@@ -252,6 +253,8 @@ def process_remote_file_traces(path, job, not_opened_turls):
                     base_trace_report.update(scope=fspec.scope, dataset=fspec.dataset)
                     if fspec.turl in not_opened_turls:
                         base_trace_report.update(clientState='FAILED_REMOTE_OPEN')
+                    else:
+                        base_trace_report.update(clientState='FOUND_ROOT')
 
                     # copy the base trace report (only a dictionary) into a real trace report object
                     trace_report = TraceReport(**base_trace_report)
@@ -294,7 +297,8 @@ def get_payload_command(job):
             raise PilotException(diagnostics, code=ec)
 
     # make sure that remote file can be opened before executing payload
-    if config.Pilot.remotefileverification_log:
+    catchall = job.infosys.queuedata.catchall.lower() if job.infosys.queuedata.catchall else ''
+    if config.Pilot.remotefileverification_log and 'remoteio_test=false' not in catchall:
         ec = 0
         diagnostics = ""
         not_opened_turls = ""
@@ -314,6 +318,8 @@ def get_payload_command(job):
             if ec != 0:
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
                 raise PilotException(diagnostics, code=ec)
+    else:
+        logger.debug('no remote file open verification')
 
     if is_standard_atlas_job(job.swrelease):
 
@@ -1951,3 +1957,80 @@ def update_stagein(job):
     for fspec in job.indata:
         if 'DBRelease' in fspec.lfn:
             fspec.status = 'no_transfer'
+
+
+def get_metadata(workdir):
+    """
+    Return the metadata from file.
+
+    :param workdir: work directory (string)
+    :return:
+    """
+
+    path = os.path.join(workdir, config.Payload.jobreport)
+    metadata = read_file(path) if os.path.exists(path) else None
+    logger.debug('metadata=%s' % str(metadata))
+
+    return metadata
+
+
+def update_metadata(jobid, metadata_dictionary):
+    """
+    Prepare prmon dictionary for logstash.
+
+    :param jobid: PanDA job id (int).
+    :param metadata_dictionary: prmon info (dictionary).
+    :return: updated prmon info (dictionary).
+    """
+
+    # add metadata
+    metadata_dictionary['type'] = 'MemoryMonitorData'
+    metadata_dictionary['pandaid'] = jobid
+
+    return metadata_dictionary
+
+
+def should_update_logstash(frequency=10):
+    """
+    Should logstash be updated with prmon dictionary?
+
+    :param frequency:
+    :return: return True once per 'frequency' times.
+    """
+
+    from random import randint
+    if randint(0, frequency - 1) == 0:
+        return True
+    else:
+        return False
+
+
+def update_server(job):
+    """
+    Perform any user specific server actions.
+
+    E.g. this can be used to send special information to a logstash.
+
+    :param job: job object.
+    :return:
+    """
+
+    # attempt to read memory_monitor_output.txt and convert it to json
+    if should_update_logstash():
+        path = os.path.join(job.workdir, get_memory_monitor_output_filename())
+        if os.path.exists(path):
+            # convert memory monitor text output to json and return the selection (don't store it, log has already been created)
+            metadata_dictionary = get_metadata_dict_from_txt(path)
+            metadata_dictionary = update_metadata(job.jobid, metadata_dictionary)
+            logger.debug('final logstash prmon dictionary: %s' % str(metadata_dictionary))
+            url = 'https://pilot.atlas-ml.org'  # 'http://collector.atlas-ml.org:80'
+            cmd = "curl --connect-timeout 20 --max-time 120 -H \"Content-Type: application/json\" -X POST -d \'%s\' %s" % \
+                  (str(metadata_dictionary).replace("'", '"'), url)
+
+            # send metadata to logstash
+            exit_code, stdout, stderr = execute(cmd, usecontainer=False)
+            logger.info('stdout: %s' % stdout)
+        else:
+            logger.warning('path does not exist: %s' % path)
+    else:
+        logger.debug('no need to update logstash for this job')

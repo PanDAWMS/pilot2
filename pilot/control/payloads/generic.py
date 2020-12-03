@@ -22,7 +22,8 @@ from pilot.util.auxiliary import set_pilot_state, show_memory_usage
 # from pilot.util.config import config
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED, \
-    UTILITY_AFTER_PAYLOAD_FINISHED, PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD
+    UTILITY_AFTER_PAYLOAD_FINISHED, PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, \
+    UTILITY_AFTER_PAYLOAD_STARTED2
 from pilot.util.filehandling import write_file
 from pilot.util.processes import kill_processes
 from pilot.util.timing import add_to_pilot_timing
@@ -397,11 +398,32 @@ class Executor(object):
         :return: updated secondary command (string).
         """
 
-        # remove any trailing spaces and ;-signs
-        cmd = cmd.strip()
-        cmd = cmd[:-1] if cmd.endswith(';') else cmd
-        last_bit = cmd.split(';')[-1]
-        setup = cmd.replace(last_bit.strip(), '')
+        def cut_str_from(_cmd, s):
+            # cut the string from the position of the given _cmd
+            return _cmd[:_cmd.find(s)]
+
+        def cut_str_from_last_semicolon(_cmd):
+            # cut the string from the last semicolon
+            # NOTE: this will not work if jobParams also contain ;
+            # remove any trailing spaces and ;-signs
+            _cmd = _cmd.strip()
+            _cmd = _cmd[:-1] if _cmd.endswith(';') else _cmd
+            last_bit = _cmd.split(';')[-1]
+            return _cmd.replace(last_bit.strip(), '')
+
+        if '/' in self.__job.transformation:  # e.g. http://pandaserver.cern.ch:25080/trf/user/runHPO-00-00-01
+            trfname = self.__job.transformation[self.__job.transformation.rfind('/') + 1:]  # runHPO-00-00-01
+            _trf = './' + trfname
+        else:
+            trfname = self.__job.transformation
+            _trf = './' + self.__job.transformation
+
+        if _trf in cmd:
+            setup = cut_str_from(cmd, _trf)
+        elif trfname in cmd:
+            setup = cut_str_from(cmd, trfname)
+        else:
+            setup = cut_str_from_last_semicolon(cmd)
 
         return setup
 
@@ -563,11 +585,14 @@ class Executor(object):
                 # the process is now running, update the server
                 send_state(self.__job, self.__args, self.__job.state)
 
-                utility_cmd = self.get_utility_command(order=UTILITY_AFTER_PAYLOAD_STARTED)
+                # allow for a secondary command to be started after the payload (e.g. a coprocess)
+                utility_cmd = self.get_utility_command(order=UTILITY_AFTER_PAYLOAD_STARTED2)
                 if utility_cmd:
                     logger.debug('starting utility command: %s' % utility_cmd)
                     label = 'coprocess' if 'coprocess' in utility_cmd else None
                     proc_co = self.run_command(utility_cmd, label=label)
+                else:
+                    logger.debug('no command (UTILITY_AFTER_PAYLOAD_STARTED2)')
 
                 logger.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)

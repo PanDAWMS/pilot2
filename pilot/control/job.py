@@ -39,7 +39,7 @@ from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PI
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
 from pilot.util.container import execute
-from pilot.util.filehandling import get_files, tail, is_json, copy, remove, read_file, write_json, establish_logging, write_file
+from pilot.util.filehandling import get_files, tail, is_json, copy, remove, write_json, establish_logging, write_file
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file, \
     is_harvester_mode, get_worker_attributes_file, publish_job_report, publish_work_report, get_event_status_file, \
     publish_stageout_files
@@ -1862,17 +1862,15 @@ def update_server(job, args):
     :return:
     """
 
-    path = os.path.join(job.workdir, config.Payload.jobreport)
-    if os.path.exists(path):
-        metadata = read_file(path)  # read_json(path)
-    else:
-        metadata = None
-    logger.debug('metadata=%s' % str(metadata))
+    # user specific actions
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+    metadata = user.get_metadata(job.workdir)
+    user.update_server(job)
+
     if job.fileinfo:
-        logger.debug('xml:will send fileinfo')
         send_state(job, args, job.state, xml=dumps(job.fileinfo), metadata=metadata)
     else:
-        logger.debug('will not send fileinfo')
         send_state(job, args, job.state, metadata=metadata)
 
 

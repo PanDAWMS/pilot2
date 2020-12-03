@@ -161,7 +161,13 @@ def get_args():
     arg_parser.add_argument('--inputdir',
                             dest='inputdir',
                             required=False,
+                            default='',
                             help='Input files directory')
+    arg_parser.add_argument('--catchall',
+                            dest='catchall',
+                            required=False,
+                            default='',
+                            help='PQ catchall field')
 
     return arg_parser.parse_args()
 
@@ -402,7 +408,7 @@ if __name__ == '__main__':
         client = StageInClient(infoservice, logger=logger, trace_report=trace_report)
         activity = 'pr'
     kwargs = dict(workdir=args.workdir, cwd=args.workdir, usecontainer=False, use_pcache=args.usepcache, use_bulk=False,
-                  use_vp=args.usevp, input_dir=args.inputdir)
+                  use_vp=args.usevp, input_dir=args.inputdir, catchall=args.catchall)
     xfiles = []
     for lfn in replica_dictionary:
         files = [{'scope': replica_dictionary[lfn]['scope'],
