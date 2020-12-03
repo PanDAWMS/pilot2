@@ -296,6 +296,25 @@ def update_alrb_setup(cmd, use_release_setup):
 def update_for_user_proxy(_cmd, cmd):
     """
     Add the X509 user proxy to the container sub command string if set, and remove it from the main container command.
+
+    :param _cmd:
+    :param cmd:
+    :return:
+    """
+
+    x509 = os.environ.get('X509_USER_PROXY')
+    if x509 != "":
+        # do not include the X509_USER_PROXY in the command the container will execute
+        cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, "")
+        # add it instead to the container setup command
+        _cmd = "export X509_USER_PROXY=%s;" % x509 + _cmd
+
+    return _cmd, cmd
+
+
+def update_for_user_proxy_new(_cmd, cmd):
+    """
+    Add the X509 user proxy to the container sub command string if set, and remove it from the main container command.
     Try to receive payload proxy and update X509_USER_PROXY in container setup command
 
     :param _cmd: container setup command
@@ -451,7 +470,7 @@ def alrb_wrapper(cmd, workdir, job=None):
         logger.debug('initial alrb_setup: %s' % alrb_setup)
 
         # add user proxy if necessary (actually it should also be removed from cmd)
-        # IN TESTING: alrb_setup, cmd = update_for_user_proxy(alrb_setup, cmd)
+        alrb_setup, cmd = update_for_user_proxy(alrb_setup, cmd)
 
         # set the platform info
         alrb_setup = set_platform(job, alrb_setup)
