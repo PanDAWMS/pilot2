@@ -11,7 +11,9 @@ import os
 from signal import SIGTERM
 
 from pilot.common.exception import TrfDownloadFailure
+from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_AFTER_PAYLOAD
+from pilot.util.filehandling import read_file
 from .setup import get_analysis_trf
 
 import logging
@@ -221,6 +223,33 @@ def update_stagein(job):
     """
     In case special files need to be skipped during stage-in, the job.indata list can be updated here.
     See ATLAS code for an example.
+
+    :param job: job object.
+    :return:
+    """
+
+    pass
+
+
+def get_metadata(workdir):
+    """
+    Return the metadata from file.
+
+    :param workdir: work directory (string)
+    :return:
+    """
+
+    path = os.path.join(workdir, config.Payload.jobreport)
+    metadata = read_file(path) if os.path.exists(path) else None
+
+    return metadata
+
+
+def update_server(job):
+    """
+    Perform any user specific server actions.
+
+    E.g. this can be used to send special information to a logstash.
 
     :param job: job object.
     :return:

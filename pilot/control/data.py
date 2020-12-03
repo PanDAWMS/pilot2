@@ -185,14 +185,14 @@ def _stage_in(args, job):
     label = 'stage-in'
 
     # should stage-in be done by a script (for containerisation) or by invoking the API (ie classic mode)?
-    use_container = pilot.util.middleware.use_middleware_container(job.infosys.queuedata.container_type.get("middleware"))
+    use_container = pilot.util.middleware.use_middleware_script(job.infosys.queuedata.container_type.get("middleware"))
     if use_container:
-        logger.info('stage-in will be done in a container')
+        logger.info('stage-in will be done by a script')
         try:
             eventtype, localsite, remotesite = get_trace_report_variables(job, label=label)
             pilot.util.middleware.containerise_middleware(job, job.indata, args.queue, eventtype, localsite, remotesite,
                                                           job.infosys.queuedata.container_options, args.input_dir,
-                                                          label=label)
+                                                          label=label, container_type=job.infosys.queuedata.container_type.get("middleware"))
         except PilotException as e:
             logger.warning('stage-in containerisation threw a pilot exception: %s' % e)
         except Exception as e:
@@ -214,7 +214,7 @@ def _stage_in(args, job):
                 activity = 'pr'
             use_pcache = job.infosys.queuedata.use_pcache
             kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, use_pcache=use_pcache, use_bulk=False,
-                          input_dir=args.input_dir, use_vp=job.use_vp)
+                          input_dir=args.input_dir, use_vp=job.use_vp, catchall=job.infosys.queuedata.catchall)
             client.prepare_sources(job.indata)
             client.transfer(job.indata, activity=activity, **kwargs)
         except PilotException as error:
@@ -745,13 +745,14 @@ def _do_stageout(job, xdata, activity, queue, title, output_dir=''):
     label = 'stage-out'
 
     # should stage-in be done by a script (for containerisation) or by invoking the API (ie classic mode)?
-    use_container = pilot.util.middleware.use_middleware_container(job.infosys.queuedata.container_type.get("middleware"))
+    use_container = pilot.util.middleware.use_middleware_script(job.infosys.queuedata.container_type.get("middleware"))
     if use_container:
-        logger.info('stage-out will be done in a container')
+        logger.info('stage-out will be done by a script')
         try:
             eventtype, localsite, remotesite = get_trace_report_variables(job, label=label)
             pilot.util.middleware.containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
-                                                          job.infosys.queuedata.container_options, output_dir, label=label)
+                                                          job.infosys.queuedata.container_options, output_dir,
+                                                          label=label, container_type=job.infosys.queuedata.container_type.get("middleware"))
         except PilotException as e:
             logger.warning('stage-out containerisation threw a pilot exception: %s' % e)
         except Exception as e:
@@ -764,7 +765,8 @@ def _do_stageout(job, xdata, activity, queue, title, output_dir=''):
             trace_report = create_trace_report(job, label=label)
 
             client = StageOutClient(job.infosys, logger=logger, trace_report=trace_report)
-            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job, output_dir=output_dir)  #, mode='stage-out')
+            kwargs = dict(workdir=job.workdir, cwd=job.workdir, usecontainer=False, job=job, output_dir=output_dir,
+                          catchall=job.infosys.queuedata.catchall)  #, mode='stage-out')
             # prod analy unification: use destination preferences from PanDA server for unified queues
             if job.infosys.queuedata.type != 'unified':
                 client.prepare_destinations(xdata, activity)  ## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)

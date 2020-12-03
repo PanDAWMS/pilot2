@@ -86,10 +86,10 @@ class TestHarvesterStageIn(unittest.TestCase):
                                                    'destination': '/neither_do_i'}])
 
         self.assertIsNotNone(result)
-        for file in result:
-            self.assertEqual(file['errno'], 1)
-            self.assertEqual(file['status'], 'failed')
-            #self.assertIn(file['errmsg'], ['Destination directory does not exist: /i_do_not_exist',
+        for _file in result:
+            self.assertEqual(_file['errno'], 1)
+            self.assertEqual(_file['status'], 'failed')
+            #self.assertIn(_file['errmsg'], ['Destination directory does not exist: /i_do_not_exist',
             #                              'Destination directory does not exist: /neither_do_i'])
 
     def test_stagein_sync_fail_noexist(self):
@@ -107,10 +107,10 @@ class TestHarvesterStageIn(unittest.TestCase):
                                                    'destination': '/tmp'}])
 
         self.assertIsNotNone(result)
-        for file in result:
-            self.assertEqual(file['errno'], 3)
-            self.assertEqual(file['status'], 'failed')
-            #self.assertIn(file['errmsg'], ['Data identifier \'no_scope1:no_name1\' not found',
+        for _file in result:
+            self.assertEqual(_file['errno'], 3)
+            self.assertEqual(_file['status'], 'failed')
+            #self.assertIn(_file['errmsg'], ['Data identifier \'no_scope1:no_name1\' not found',
             #                               'Data identifier \'no_scope2:no_name2\' not found'])
 
     def test_stagein_sync_fail_mix(self):
@@ -143,11 +143,11 @@ class TestHarvesterStageIn(unittest.TestCase):
         self.assertIn('HITS.06828093._000096.pool.root.1', ls_tmp_dir2)
 
         self.assertIsNotNone(result)
-        for file in result:
-            if file['name'] in ['no_name1', 'no_name2']:
-                self.assertEqual(file['errno'], 3)
-                self.assertEqual(file['status'], 'failed')
-                #self.assertIn(file['errmsg'], ['Data identifier \'no_scope1:no_name1\' not found',
+        for _file in result:
+            if _file['name'] in ['no_name1', 'no_name2']:
+                self.assertEqual(_file['errno'], 3)
+                self.assertEqual(_file['status'], 'failed')
+                #self.assertIn(_file['errmsg'], ['Data identifier \'no_scope1:no_name1\' not found',
                 #                               'Data identifier \'no_scope2:no_name2\' not found'])
             else:
                 self.assertEqual(file['errno'], 0)
@@ -167,8 +167,8 @@ class TestHarvesterStageIn(unittest.TestCase):
         os.remove('/tmp/HITS.06828093._000096.pool.root.1')
 
         self.assertIsNotNone(result)
-        for file in result:
-            self.assertEqual(file['errno'], 0)
+        for _file in result:
+            self.assertEqual(_file['errno'], 0)
 
     def test_stagein_sync_merged_same(self):
         '''
@@ -188,8 +188,8 @@ class TestHarvesterStageIn(unittest.TestCase):
         os.remove('/tmp/HITS.10075481._000433.pool.root.1')
 
         self.assertIsNotNone(result)
-        for file in result:
-            self.assertEqual(file['errno'], 0)
+        for _file in result:
+            self.assertEqual(_file['errno'], 0)
 
     def test_stagein_sync_merged_diff(self):
         '''
@@ -212,8 +212,8 @@ class TestHarvesterStageIn(unittest.TestCase):
         shutil.rmtree(tmp_dir2)
 
         self.assertIsNotNone(result)
-        for file in result:
-            self.assertEqual(file['errno'], 0)
+        for _file in result:
+            self.assertEqual(_file['errno'], 0)
             self.assertIn('HITS.10075481._000432.pool.root.1', ls_tmp_dir1)
             self.assertIn('HITS.10075481._000433.pool.root.1', ls_tmp_dir2)
 
@@ -250,8 +250,8 @@ class TestHarvesterStageOut(unittest.TestCase):
                                                    'file': 'neither_do_i',
                                                    'rse': 'CERN-PROD_SCRATCHDISK'}])
 
-        for file in result:
-            self.assertEqual(file['errno'], 1)
+        for _file in result:
+            self.assertEqual(_file['errno'], 1)
 
     def test_stageout_file(self):
         '''
@@ -294,8 +294,8 @@ class TestHarvesterStageOut(unittest.TestCase):
                                                    'guid': str(uuid.uuid4()),
                                                    'rse': 'CERN-PROD_SCRATCHDISK'}])
 
-        for file in result:
-            self.assertEqual(file['errno'], 0)
+        for _file in result:
+            self.assertEqual(_file['errno'], 0)
 
     def test_stageout_file_and_attach(self):
         '''
@@ -325,8 +325,8 @@ class TestHarvesterStageOut(unittest.TestCase):
                                                    'attach': {'scope': 'tests',
                                                               'name': 'pilot2.tests.test_harvester'}}])
 
-        for file in result:
-            self.assertEqual(file['errno'], 0)
+        for _file in result:
+            self.assertEqual(_file['errno'], 0)
 
     def test_stageout_file_noregister(self):
         '''
@@ -353,8 +353,8 @@ class TestHarvesterStageOut(unittest.TestCase):
                                                    'rse': 'CERN-PROD_SCRATCHDISK',
                                                    'no_register': True}])
 
-        for file in result:
-            self.assertEqual(file['errno'], 0)
+        for _file in result:
+            self.assertEqual(_file['errno'], 0)
 
     def test_stageout_dir(self):
         '''
@@ -381,8 +381,8 @@ class TestHarvesterStageOut(unittest.TestCase):
                                                    'file': tmp_dir,
                                                    'rse': 'CERN-PROD_SCRATCHDISK'}])
 
-        for file in result:
-            self.assertEqual(file['errno'], 0)
+        for _file in result:
+            self.assertEqual(_file['errno'], 0)
 
     def test_stageout_dir_and_attach(self):
         '''
@@ -412,8 +412,8 @@ class TestHarvesterStageOut(unittest.TestCase):
                                                    'attach': {'scope': 'tests',
                                                               'name': 'pilot2.tests.test_harvester'}}])
 
-        for file in result:
-            self.assertEqual(file['errno'], 0)
+        for _file in result:
+            self.assertEqual(_file['errno'], 0)
 
     def test_stageout_dir_noregister(self):
         '''
@@ -441,5 +441,5 @@ class TestHarvesterStageOut(unittest.TestCase):
                                                    'no_register': True,
                                                    'rse': 'CERN-PROD_SCRATCHDISK'}])
 
-        for file in result:
-            self.assertEqual(file['errno'], 0)
+        for _file in result:
+            self.assertEqual(_file['errno'], 0)

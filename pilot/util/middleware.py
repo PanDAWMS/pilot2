@@ -20,9 +20,12 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite, container_options, external_dir, label='stage-in'):
+def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite, container_options, external_dir,
+                            label='stage-in', container_type='container'):
     """
     Containerise the middleware by performing stage-in/out steps in a script that in turn can be run in a container.
+    Note: a container will only be used for option container_type='container'. If this is 'bash', then stage-in/out
+    will still be done by a script, but not containerised.
 
     :param job: job object.
     :param xdata: list of FileSpec objects.
@@ -32,7 +35,8 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
     :param remotesite:
     :param container_options: container options from queuedata (string).
     :param external_dir: input or output files directory (string).
-    :param label: 'stage-in/out' (String).
+    :param label: optional 'stage-in/out' (String).
+    :param container_type: optional 'container/bash'
     :return:
     :raises NotImplemented: if stagein=False, until stage-out script has been written
     :raises StageInFailure: for stage-in failures
@@ -45,11 +49,11 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
     script = config.Container.middleware_container_stagein_script if label == 'stage-in' else config.Container.middleware_container_stageout_script
 
     try:
-        cmd = get_command(job, xdata, queue, script, eventtype, localsite, remotesite, external_dir, label=label)
+        cmd = get_command(job, xdata, queue, script, eventtype, localsite, remotesite, external_dir, label=label, container_type=container_type)
     except PilotException as e:
         raise e
 
-    if config.Container.use_middleware_container:
+    if config.Container.use_middleware_container and container_type == 'container':
         # add bits and pieces needed to run the cmd in a container
         pilot_user = environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
@@ -58,7 +62,7 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
         except PilotException as e:
             raise e
     else:
-        logger.warning('bad configuration? check config.Container.use_middleware_container value')
+        logger.warning('%s will not be done in a container (but it will be done by a script)' % label)
 
     try:
         logger.info('*** executing %s (logging will be redirected) ***' % label)
@@ -115,7 +119,7 @@ def get_script_path(script):
     return _path
 
 
-def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, external_dir, label='stage-in'):
+def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, external_dir, label='stage-in', container_type='container'):
     """
     Get the middleware container execution command.
 
@@ -127,7 +131,8 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, ext
     :param localsite:
     :param remotesite:
     :param external_dir: input or output files directory (string).
-    :param label: 'stage-[in|out]' (string).
+    :param label: optional 'stage-[in|out]' (string).
+    :param container_type: optional 'container/bash' (string).
     :return: stage-in/out command (string).
     :raises PilotException: for stage-in/out related failures
     """
@@ -160,33 +165,42 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, ext
     script_path = path.join('pilot/scripts', script)
     full_script_path = path.join(path.join(job.workdir, script_path))
     copy(full_script_path, final_script_path)
-    # chmod(final_script_path, 0o755)  # Python 2/3
 
-    if config.Container.use_middleware_container:
+    if config.Container.use_middleware_container and container_type == 'container':
         # correct the path when containers have been used
         final_script_path = path.join('.', script)
         workdir = '/srv'
     else:
+        # for container_type=bash we need to add the rucio setup
+        pilot_user = environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+        try:
+            final_script_path = user.get_middleware_container_script('', final_script_path, asetup=True)
+        except PilotException as e:
+            final_script_path = 'python %s' % final_script_path
         workdir = job.workdir
 
+    cmd = "%s -d -w %s -q %s --eventtype=%s --localsite=%s --remotesite=%s --produserid=\"%s\" --jobid=%s" % \
+          (final_script_path, workdir, queue, eventtype, localsite, remotesite, job.produserid.replace(' ', '%20'), job.jobid)
+
     if label == 'stage-in':
-        cmd = "%s -w %s -d -q %s --eventtype=%s --localsite=%s --remotesite=%s --produserid=\"%s\" --jobid=%s " \
-              "--taskid=%s --jobdefinitionid=%s --eventservicemerge=%s --usepcache=%s --usevp=%s " \
-              "--replicadictionary=%s" % (final_script_path, workdir, queue, eventtype, localsite, remotesite,
-                                          job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
-                                          job.is_eventservicemerge, job.infosys.queuedata.use_pcache, job.use_vp,
-                                          config.Container.stagein_replica_dictionary)
+        cmd += "--eventservicemerge=%s --usepcache=%s --usevp=%s --replicadictionary=%s" % \
+               (job.is_eventservicemerge, job.infosys.queuedata.use_pcache, job.use_vp, config.Container.stagein_replica_dictionary)
         if external_dir:
             cmd += ' --inputdir=%s' % external_dir
     else:  # stage-out
-        cmd = '%s --lfns=%s --scopes=%s -w %s -d -q %s --eventtype=%s --localsite=%s ' \
-              '--remotesite=%s --produserid=\"%s\" --jobid=%s --taskid=%s --jobdefinitionid=%s ' \
-              '--datasets=%s --ddmendpoints=%s --guids=%s' % \
-              (final_script_path, filedata_dictionary['lfns'], filedata_dictionary['scopes'], workdir, queue, eventtype, localsite,
-               remotesite, job.produserid.replace(' ', '%20'), job.jobid, job.taskid, job.jobdefinitionid,
-               filedata_dictionary['datasets'], filedata_dictionary['ddmendpoints'], filedata_dictionary['guids'])
+        cmd += ' --lfns=%s --scopes=%s --datasets=%s --ddmendpoints=%s --guids=%s' % \
+               (filedata_dictionary['lfns'], filedata_dictionary['scopes'], filedata_dictionary['datasets'],
+                filedata_dictionary['ddmendpoints'], filedata_dictionary['guids'])
         if external_dir:
             cmd += ' --outputdir=%s' % external_dir
+
+    cmd += ' --taskid=%s' % job.taskid
+    cmd += ' --jobdefinitionid=%s' % job.jobdefinitionid
+    cmd += ' --catchall=%s' % job.infosys.queuedata.catchall
+
+    if container_type == 'bash':
+        cmd += '\nexit $?'
 
     return cmd
 
@@ -351,10 +365,10 @@ def get_filedata_strings(data):
             'accessmodes': accessmodes, 'storagetokens': storagetokens}
 
 
-def use_middleware_container(container_type):
+def use_middleware_script(container_type):
     """
-    Should the pilot use a container for the stage-in/out?
-    Check the container_type (from queuedata) if 'middleware' is set to 'container'.
+    Should the pilot use a script for the stage-in/out?
+    Check the container_type (from queuedata) if 'middleware' is set to 'container' or 'bash'.
 
     :param container_type: container type (string).
     :return: Boolean (True if middleware should be containerised).
@@ -375,4 +389,4 @@ def use_middleware_container(container_type):
 
     # FOR TESTING
     #return True if config.Container.middleware_container_stagein_script else False
-    return True if container_type == 'container' else False
+    return True if container_type == 'container' or container_type == 'bash' else False

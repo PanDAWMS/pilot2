@@ -18,6 +18,7 @@ from pilot.common.exception import PilotException
 from pilot.user.atlas.setup import get_asetup, get_file_system_root_path
 from pilot.user.atlas.proxy import verify_proxy
 from pilot.info import InfoService, infosys
+from pilot.util.auxiliary import is_python3
 from pilot.util.config import config
 from pilot.util.filehandling import write_file
 
@@ -450,7 +451,7 @@ def alrb_wrapper(cmd, workdir, job=None):
         logger.debug('initial alrb_setup: %s' % alrb_setup)
 
         # add user proxy if necessary (actually it should also be removed from cmd)
-        alrb_setup, cmd = update_for_user_proxy(alrb_setup, cmd)
+        # IN TESTING: alrb_setup, cmd = update_for_user_proxy(alrb_setup, cmd)
 
         # set the platform info
         alrb_setup = set_platform(job, alrb_setup)
@@ -882,21 +883,33 @@ def get_root_container_script(cmd):
     return content
 
 
-def get_middleware_container_script(middleware_container, cmd):
+def get_middleware_container_script(middleware_container, cmd, asetup=False):
     """
     Return the content of the middleware container script.
+    If asetup is True, atlasLocalSetup will be added to the command.
 
     :param middleware_container: container image (string).
     :param cmd: isolated stage-in/out command (string).
+    :param asetup: optional True/False (boolean).
     :return: script content (string).
     """
 
-    content = 'export PILOT_RUCIO_SITENAME=%s; ' % os.environ.get('PILOT_RUCIO_SITENAME')
+    sitename = 'export PILOT_RUCIO_SITENAME=%s; ' % os.environ.get('PILOT_RUCIO_SITENAME')
     if 'rucio' in middleware_container:
-        content += 'python3 %s\nexit $?' % cmd
+        content = sitename + 'python3 %s ' % cmd  # only works with python 3
     else:
-        content += 'lsetup rucio davix xrootd;python %s\nexit $?' % cmd
-    logger.debug('setup.sh content:\n%s' % content)
+        content = ''
+        if is_python3():
+            content += 'export ALRB_LOCAL_PY3=YES; '
+        if asetup:  # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/..;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
+            content += get_asetup(asetup=False)
+        content += sitename + 'lsetup rucio davix xrootd; '
+        content += 'python3 %s ' % cmd if is_python3() else 'python %s' % cmd
+
+    if not asetup:
+        content += '\nexit $?'
+
+    logger.debug('content:\n%s' % content)
 
     return content
 
