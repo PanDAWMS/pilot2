@@ -18,6 +18,7 @@ from pilot.common.exception import PilotException
 from pilot.user.atlas.setup import get_asetup, get_file_system_root_path
 from pilot.user.atlas.proxy import verify_proxy
 from pilot.info import InfoService, infosys
+from pilot.util.auxiliary import is_python3
 from pilot.util.config import config
 from pilot.util.filehandling import write_file
 
@@ -893,15 +894,19 @@ def get_middleware_container_script(middleware_container, cmd, asetup=False):
     :return: script content (string).
     """
 
-    content = 'export PILOT_RUCIO_SITENAME=%s; ' % os.environ.get('PILOT_RUCIO_SITENAME')
+    sitename = 'export PILOT_RUCIO_SITENAME=%s; ' % os.environ.get('PILOT_RUCIO_SITENAME')
     if 'rucio' in middleware_container:
-        content += 'python3 %s' % cmd
+        content = sitename + 'python3 %s ' % cmd  # only works with python 3
     else:
-        content += 'lsetup rucio davix xrootd;python %s' % cmd
+        content = ''
+        if is_python3():
+            content += 'export ALRB_LOCAL_PY3=YES; '
+        if asetup:  # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/..;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
+            content += get_asetup(asetup=False)
+        content += sitename + 'lsetup rucio davix xrootd; '
+        content += 'python3 %s ' % cmd if is_python3() else 'python %s' % cmd
 
-    if asetup:
-        content = get_asetup(asetup=False) + content
-    else:
+    if not asetup:
         content += '\nexit $?'
 
     logger.debug('content:\n%s' % content)

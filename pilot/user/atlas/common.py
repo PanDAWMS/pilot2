@@ -318,6 +318,8 @@ def get_payload_command(job):
             if ec != 0:
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
                 raise PilotException(diagnostics, code=ec)
+    else:
+        logger.debug('no remote file open verification')
 
     if is_standard_atlas_job(job.swrelease):
 
