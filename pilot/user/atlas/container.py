@@ -316,7 +316,7 @@ def update_for_user_proxy(_cmd, cmd):
             logger.info("payload proxy was received")
 
             logger.info("verify payload proxy...")
-            exit_code, diagnostics = verify_proxy(x509=x509_payload)
+            exit_code, diagnostics = verify_proxy(x509=x509_payload, proxy_id='payload')
             # if all verifications fail, verify_proxy()  returns exit_code=0 and last failure in diagnostics
             if exit_code != 0 or (exit_code == 0 and diagnostics != ''):
                 logger.warning(diagnostics)
