@@ -293,7 +293,7 @@ def update_alrb_setup(cmd, use_release_setup):
     return updated_cmd
 
 
-def update_for_user_proxy(_cmd, cmd):
+def update_for_user_proxy_old(_cmd, cmd):
     """
     Add the X509 user proxy to the container sub command string if set, and remove it from the main container command.
 
@@ -312,15 +312,19 @@ def update_for_user_proxy(_cmd, cmd):
     return _cmd, cmd
 
 
-def update_for_user_proxy_new(_cmd, cmd):
+def update_for_user_proxy(_cmd, cmd):
     """
     Add the X509 user proxy to the container sub command string if set, and remove it from the main container command.
     Try to receive payload proxy and update X509_USER_PROXY in container setup command
+    In case payload proxy from server is required, this function will also download and verify this proxy.
 
     :param _cmd: container setup command
     :param cmd: command the container will execute
-    :return:
+    :return: exit_code (int), diagnostics (string), updated _cmd (string), updated cmd (string).
     """
+
+    exit_code = 0
+    diagnostics = ""
 
     x509 = os.environ.get('X509_USER_PROXY', '')
     if x509 != "":
@@ -328,32 +332,49 @@ def update_for_user_proxy_new(_cmd, cmd):
         cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, '')
         # add it instead to the container setup command:
 
-        # try to receive payload proxy and update x509
-        x509_payload = re.sub('.proxy$', '', x509) + '-payload.proxy'  # compose new name to store payload proxy
-
-        logger.info("try to get payload proxy...")
-        if get_payload_proxy(x509_payload):
-            logger.info("payload proxy was received")
-
-            logger.info("verify payload proxy...")
-            exit_code, diagnostics = verify_proxy(x509=x509_payload)
-            # if all verifications fail, verify_proxy()  returns exit_code=0 and last failure in diagnostics
-            if exit_code != 0 or (exit_code == 0 and diagnostics != ''):
-                logger.warning(diagnostics)
-                logger.info("payload proxy is not ok")
-            else:
-                logger.info("payload proxy is ok")
-                # is commented: no user proxy should be in the command the container will execute
-                #cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, "export X509_USER_PROXY=%s;" % x509_payload)
-                x509 = x509_payload
-                logger.info("pilot_proxy->payload_proxy substitution in container setup was successful")
-        else:
-            logger.warning("get_payload_proxy() failed => X509_USER_PROXY is unchanged in container setup command")
+        # download and verify payload proxy from the server if desired
+        if config.Pilot.payload_proxy_from_server:
+            exit_code, diagnostics, x509 = get_and_verify_payload_proxy_from_server(x509)
+            if exit_code != 0:  # do not return non-zero exit code if only download fails
+                logger.warning('payload proxy verification failed')
 
         # add X509_USER_PROXY setting to the container setup command
         _cmd = "export X509_USER_PROXY=%s;" % x509 + _cmd
 
-    return _cmd, cmd
+    return exit_code, diagnostics, _cmd, cmd
+
+
+def get_and_verify_payload_proxy_from_server(x509):
+    """
+    Download a payload proxy from the server and verify it.
+
+    :param x509: X509_USER_PROXY (string).
+    :return:  exit code (int), diagnostics (string), updated X509_USER_PROXY (string).
+    """
+
+    exit_code = 0
+    diagnostics = ""
+
+    # try to receive payload proxy and update x509
+    x509_payload = re.sub('.proxy$', '', x509) + '-payload.proxy'  # compose new name to store payload proxy
+
+    logger.info("download payload proxy from server")
+    if get_payload_proxy(x509_payload):
+        logger.info("server returned payload proxy (verifying)")
+        exit_code, diagnostics = verify_proxy(x509=x509_payload)
+        # if all verifications fail, verify_proxy()  returns exit_code=0 and last failure in diagnostics
+        if exit_code != 0 or (exit_code == 0 and diagnostics != ''):
+            logger.warning(diagnostics)
+            logger.info("payload proxy verification failed")
+        else:
+            logger.info("payload proxy verified")
+            # is commented: no user proxy should be in the command the container will execute
+            # cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, "export X509_USER_PROXY=%s;" % x509_payload)
+            x509 = x509_payload
+    else:
+        logger.warning("get_payload_proxy() failed")
+
+    return exit_code, diagnostics, x509
 
 
 def set_platform(job, alrb_setup):
@@ -470,8 +491,10 @@ def alrb_wrapper(cmd, workdir, job=None):
         logger.debug('initial alrb_setup: %s' % alrb_setup)
 
         # add user proxy if necessary (actually it should also be removed from cmd)
-        alrb_setup, cmd = update_for_user_proxy(alrb_setup, cmd)
-
+        exit_code, diagnostics, alrb_setup, cmd = update_for_user_proxy(alrb_setup, cmd)
+        if exit_code:
+            job.piloterrordiag = diagnostics
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
         # set the platform info
         alrb_setup = set_platform(job, alrb_setup)
 
