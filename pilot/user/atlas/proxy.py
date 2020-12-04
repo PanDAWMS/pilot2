@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Alexander Bogdanchikov, Alexander.Bogdanchikov@cern.ch, 2020
 
 # from pilot.util.container import execute
 
@@ -15,12 +16,13 @@ import logging
 from pilot.user.atlas.setup import get_file_system_root_path
 from pilot.util.container import execute
 from pilot.common.errorcodes import ErrorCodes
+from time import time
 
 logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def verify_proxy(limit=None, x509=None):
+def verify_proxy(limit=None, x509=None, proxy_id="pilot"):
     """
     Check for a valid voms/grid proxy longer than N hours.
     Use `limit` to set required time limit.
@@ -32,6 +34,8 @@ def verify_proxy(limit=None, x509=None):
 
     exit_code = 0
     diagnostics = ""
+
+    logger.debug("verify_proxy() begin")
 
     if limit is None:
         limit = 48
@@ -54,7 +58,7 @@ def verify_proxy(limit=None, x509=None):
     # first try to use arcproxy since voms-proxy-info is not working properly on SL6
     #  (memory issues on queues with limited memory)
 
-    ec, diagnostics = verify_arcproxy(envsetup, limit)
+    ec, diagnostics = verify_arcproxy(envsetup, limit, proxy_id)
     if ec != 0 and ec != -1:
         return ec, diagnostics
     elif ec == -1:
@@ -75,28 +79,59 @@ def verify_proxy(limit=None, x509=None):
     return exit_code, diagnostics
 
 
-def verify_arcproxy(envsetup, limit):
+def verify_arcproxy(envsetup, limit, proxy_id="pilot"):
     """
     Verify the proxy using arcproxy.
 
     :param envsetup: general setup string for proxy commands (string).
     :param limit: time limit in hours (int).
+    :param  proxy_id: proxy unique id name. The verification result will be cached for this id. If None the result will not be cached (string)
     :return: exit code (int), error diagnostics (string).
     """
-
     ec = 0
     diagnostics = ""
 
-    cmd = "%sarcproxy -i vomsACvalidityLeft" % (envsetup)
+    logger.debug("verify_arcproxy() begin")
 
-    exit_code, stdout, stderr = execute(cmd, shell=True)  #, usecontainer=True, copytool=True)
+    if proxy_id is not None:
+        if not hasattr(verify_arcproxy, "cache"):
+            verify_arcproxy.cache = {}
+        logger.info("current cache=%s" % (verify_arcproxy.cache))
+        if proxy_id in verify_arcproxy.cache:  # if exist, then calculate result from current cache
+            validity_end = verify_arcproxy.cache[proxy_id]
+            if validity_end < 0:  # previous validity check failed, do not try to re-check
+                ec = -1
+                diagnostics = "arcproxy verification failed (cached result)"
+            else:
+                tnow = int(time() + 0.5)  # round to seconds
+                seconds_left = validity_end - tnow
+                logger.info("cache: check '%s' proxy validity: wanted=%dh left=%.2fh (now=%d validity_end=%d left=%d)"
+                            % (proxy_id, limit, float(seconds_left) / 3600, tnow, validity_end, seconds_left))
+                if seconds_left < limit * 3600:
+                    logger.info("'%s' proxy validity time is too short" % (proxy_id))
+                    ec = -1
+                    diagnostics = "validity time is too short"
+                else:
+                    logger.info("'%s' proxy validity time is enough" % (proxy_id))
+            return ec, diagnostics
+
+    # options and options' sequence are important for parsing, do not change it
+    cmd = "%sarcproxy -i vomsACvalidityEnd -i vomsACvalidityLeft" % (envsetup)
+
+    exit_code, stdout, stderr = execute(cmd, shell=True)  # , usecontainer=True, copytool=True)
     if stdout is not None:
         if 'command not found' in stdout:
             logger.warning("arcproxy is not available on this queue,"
                            "this can lead to memory issues with voms-proxy-info on SL6: %s" % (stdout))
             ec = -1
         else:
-            ec, diagnostics = interpret_proxy_info(exit_code, stdout, stderr, limit)
+            ec, diagnostics, validity_end = interpret_proxy_info(exit_code, stdout, stderr, limit)
+            if proxy_id and validity_end:  # setup cache if requered
+                if ec == 0:
+                    logger.info("cache the validity_end: cache['%s'] = %d" % (proxy_id, validity_end))
+                    verify_arcproxy.cache[proxy_id] = validity_end
+                else:
+                    verify_arcproxy.cache[proxy_id] = -1  # -1 in cache means any error in prev validation
             if ec == 0:
                 logger.info("voms proxy verified using arcproxy")
                 return 0, diagnostics
@@ -125,6 +160,8 @@ def verify_vomsproxy(envsetup, limit):
     ec = 0
     diagnostics = ""
 
+    logger.debug("verify_arcproxy() begin")
+
     if os.environ.get('X509_USER_PROXY', '') != '':
         cmd = "%svoms-proxy-info -actimeleft --file $X509_USER_PROXY" % (envsetup)
         logger.info('executing command: %s' % cmd)
@@ -133,7 +170,7 @@ def verify_vomsproxy(envsetup, limit):
             if "command not found" in stdout:
                 logger.info("skipping voms proxy check since command is not available")
             else:
-                ec, diagnostics = interpret_proxy_info(exit_code, stdout, stderr, limit)
+                ec, diagnostics, validity_end = interpret_proxy_info(exit_code, stdout, stderr, limit)
                 if ec == 0:
                     logger.info("voms proxy verified using voms-proxy-info")
                     return 0, diagnostics
@@ -194,11 +231,12 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
     :param stdout: stdout from proxy command (string).
     :param stderr: stderr from proxy command (string).
     :param limit: time limit in hours (int).
-    :return: exit code (int), diagnostics (string).
+    :return: exit code (int), diagnostics (string). validity end in seconds if detected, None if not detected(int)
     """
 
     exitcode = 0
     diagnostics = ""
+    validity_end = None  # not detected
 
     logger.debug('stdout = %s' % stdout)
     logger.debug('stderr = %s' % stderr)
@@ -225,7 +263,18 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
             # also remove the last \n in case there is one
             if stdout[-1] == '\n':
                 stdout = stdout[:-1]
-            stdout = stdout.split('\n')[-1]
+            stdout_split = stdout.split('\n')
+            logger.debug("splitted stdout = %s" % (stdout_split))
+            # try to get validity_end in penult line, it may fail, throw exception
+            try:
+                validity_end_str = stdout_split[-2]  # imay raise exception IndexError if stdout is too short
+                logger.debug("try to get validity_end from the line: \"%s\"" % validity_end_str)
+                validity_end = int(validity_end_str)  # may raise ValueError if not string
+                logger.info("validity_end = %d" % (validity_end))
+            except (IndexError, ValueError) as err:
+                logger.info("validity_end not found in stdout (%s)" % err)
+                pass
+            stdout = stdout_split[-1]  # remove everything except last line
 
         # test for command errors
         if "arcproxy:" in stdout:
@@ -250,4 +299,4 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
                 logger.warning(diagnostics)
                 exitcode = errors.GENERALERROR
 
-    return exitcode, diagnostics
+    return exitcode, diagnostics, validity_end
