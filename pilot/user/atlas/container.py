@@ -56,7 +56,17 @@ def get_payload_proxy(proxy_outfile_name, voms_role='atlas'):
         logger.error("Get proxy from panda server failed: %s, %s" % (e, traceback.format_exc()))
         return False
 
-    return write_file(proxy_outfile_name, proxy_contents, mute=False)
+    res = False
+    try:
+        # pre-create empty proxy file with secure permissions. Prepare it for write_file() which can not
+        # set file permission mode, it will writes to the existing file with correct permissions.
+        f = os.open(proxy_outfile_name, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        os.close(f)
+        res = write_file(proxy_outfile_name, proxy_contents, mute=False)  # returns True on success
+    except Exception as e:
+        logger.error("Exception when try to save proxy to the file '%s': %s, %s" % (proxy_outfile_name, e, traceback.format_exc()))
+
+    return res
 
 
 def do_use_container(**kwargs):
@@ -336,7 +346,7 @@ def update_for_user_proxy_new(_cmd, cmd):
             logger.info("payload proxy was received")
 
             logger.info("verify payload proxy...")
-            exit_code, diagnostics = verify_proxy(x509=x509_payload)
+            exit_code, diagnostics = verify_proxy(x509=x509_payload, proxy_id='payload')
             # if all verifications fail, verify_proxy()  returns exit_code=0 and last failure in diagnostics
             if exit_code != 0 or (exit_code == 0 and diagnostics != ''):
                 logger.warning(diagnostics)
