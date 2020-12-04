@@ -106,7 +106,7 @@ def verify_arcproxy(envsetup, limit, proxy_id="pilot"):
                 tnow = int(time() + 0.5)  # round to seconds
                 seconds_left = validity_end - tnow
                 logger.info("cache: check '%s' proxy validity: wanted=%dh left=%.2fh (now=%d validity_end=%d left=%d)"
-                            % (proxy_id, limit, float(seconds_left)/3600, tnow, validity_end, seconds_left))
+                            % (proxy_id, limit, float(seconds_left) / 3600, tnow, validity_end, seconds_left))
                 if seconds_left < limit * 3600:
                     logger.info("'%s' proxy validity time is too short" % (proxy_id))
                     ec = -1
@@ -269,7 +269,7 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
             try:
                 validity_end_str = stdout_split[-2]  # imay raise exception IndexError if stdout is too short
                 logger.debug("try to get validity_end from the line: \"%s\"" % validity_end_str)
-                validity_end = int(validity_end_str) # may raise ValueError if not string
+                validity_end = int(validity_end_str)  # may raise ValueError if not string
                 logger.info("validity_end = %d" % (validity_end))
             except (IndexError, ValueError) as err:
                 logger.info("validity_end not found in stdout (%s)" % err)
