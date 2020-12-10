@@ -405,9 +405,6 @@ class ESProcess(threading.Thread):
         msg = None
         if "No more events" in event_ranges:
             msg = event_ranges
-            if (sys.version_info > (3, 0)):  # needed for Python 3
-                if isinstance(msg, bytes):
-                    msg = msg.decode('utf-8')
             self.is_no_more_events = True
             self.__no_more_event_time = time.time()
         else:
@@ -499,8 +496,6 @@ class ESProcess(threading.Thread):
         except queue.Empty:
             pass
         else:
-            if (sys.version_info > (3, 0)):  # needed for Python 3
-                message = message.decode('utf-8')
             logger.debug('received message from payload: %s' % message)
             if "Ready for events" in message:
                 event_ranges = self.get_event_range_to_payload()
