@@ -303,7 +303,7 @@ def update_alrb_setup(cmd, use_release_setup):
     return updated_cmd
 
 
-def update_for_user_proxy(_cmd, cmd):
+def update_for_user_proxy_old(_cmd, cmd):
     """
     Add the X509 user proxy to the container sub command string if set, and remove it from the main container command.
 
@@ -322,15 +322,19 @@ def update_for_user_proxy(_cmd, cmd):
     return _cmd, cmd
 
 
-def update_for_user_proxy_new(_cmd, cmd):
+def update_for_user_proxy(_cmd, cmd):
     """
     Add the X509 user proxy to the container sub command string if set, and remove it from the main container command.
     Try to receive payload proxy and update X509_USER_PROXY in container setup command
+    In case payload proxy from server is required, this function will also download and verify this proxy.
 
     :param _cmd: container setup command
     :param cmd: command the container will execute
-    :return:
+    :return: exit_code (int), diagnostics (string), updated _cmd (string), updated cmd (string).
     """
+
+    exit_code = 0
+    diagnostics = ""
 
     x509 = os.environ.get('X509_USER_PROXY', '')
     if x509 != "":
@@ -338,32 +342,50 @@ def update_for_user_proxy_new(_cmd, cmd):
         cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, '')
         # add it instead to the container setup command:
 
-        # try to receive payload proxy and update x509
-        x509_payload = re.sub('.proxy$', '', x509) + '-payload.proxy'  # compose new name to store payload proxy
-
-        logger.info("try to get payload proxy...")
-        if get_payload_proxy(x509_payload):
-            logger.info("payload proxy was received")
-
-            logger.info("verify payload proxy...")
-            exit_code, diagnostics = verify_proxy(x509=x509_payload, proxy_id=None)
-            # if all verifications fail, verify_proxy()  returns exit_code=0 and last failure in diagnostics
-            if exit_code != 0 or (exit_code == 0 and diagnostics != ''):
-                logger.warning(diagnostics)
-                logger.info("payload proxy is not ok")
-            else:
-                logger.info("payload proxy is ok")
-                # is commented: no user proxy should be in the command the container will execute
-                #cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, "export X509_USER_PROXY=%s;" % x509_payload)
-                x509 = x509_payload
-                logger.info("pilot_proxy->payload_proxy substitution in container setup was successful")
-        else:
-            logger.warning("get_payload_proxy() failed => X509_USER_PROXY is unchanged in container setup command")
+        # download and verify payload proxy from the server if desired
+        if config.Pilot.payload_proxy_from_server:
+            exit_code, diagnostics, x509 = get_and_verify_payload_proxy_from_server(x509)
+            if exit_code != 0:  # do not return non-zero exit code if only download fails
+                logger.warning('payload proxy verification failed')
 
         # add X509_USER_PROXY setting to the container setup command
         _cmd = "export X509_USER_PROXY=%s;" % x509 + _cmd
 
-    return _cmd, cmd
+    return exit_code, diagnostics, _cmd, cmd
+
+
+def get_and_verify_payload_proxy_from_server(x509):
+    """
+    Download a payload proxy from the server and verify it.
+
+    :param x509: X509_USER_PROXY (string).
+    :return:  exit code (int), diagnostics (string), updated X509_USER_PROXY (string).
+    """
+
+    exit_code = 0
+    diagnostics = ""
+
+    # try to receive payload proxy and update x509
+    x509_payload = re.sub('.proxy$', '', x509) + '-payload.proxy'  # compose new name to store payload proxy
+    #x509_payload = re.sub('.proxy$', '', x509) + 'p.proxy'  # compose new name to store payload proxy
+
+    logger.info("download payload proxy from server")
+    if get_payload_proxy(x509_payload):
+        logger.info("server returned payload proxy (verifying)")
+        exit_code, diagnostics = verify_proxy(x509=x509_payload, proxy_id=None)
+        # if all verifications fail, verify_proxy()  returns exit_code=0 and last failure in diagnostics
+        if exit_code != 0 or (exit_code == 0 and diagnostics != ''):
+            logger.warning(diagnostics)
+            logger.info("payload proxy verification failed")
+        else:
+            logger.info("payload proxy verified")
+            # is commented: no user proxy should be in the command the container will execute
+            # cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, "export X509_USER_PROXY=%s;" % x509_payload)
+            x509 = x509_payload
+    else:
+        logger.warning("get_payload_proxy() failed")
+
+    return exit_code, diagnostics, x509
 
 
 def set_platform(job, alrb_setup):
@@ -480,8 +502,10 @@ def alrb_wrapper(cmd, workdir, job=None):
         logger.debug('initial alrb_setup: %s' % alrb_setup)
 
         # add user proxy if necessary (actually it should also be removed from cmd)
-        alrb_setup, cmd = update_for_user_proxy(alrb_setup, cmd)
-
+        exit_code, diagnostics, alrb_setup, cmd = update_for_user_proxy(alrb_setup, cmd)
+        if exit_code:
+            job.piloterrordiag = diagnostics
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
         # set the platform info
         alrb_setup = set_platform(job, alrb_setup)
 
@@ -674,18 +698,63 @@ def create_release_setup(cmd, atlas_setup, full_atlas_setup, release, imagename,
     :return: proper release setup name (string), updated cmd (string).
     """
 
+    release_setup_name = '/srv/my_release_setup.sh'
+
+    # extracted_asetup should be written to 'my_release_setup.sh' and cmd to 'container_script.sh'
+    content = 'echo \"INFO: sourcing %s inside the container. ' \
+              'This should not run if it is a ATLAS standalone container\"' % release_setup_name
+    if is_cvmfs and release and release != 'NULL':
+        content, cmd = extract_full_atlas_setup(cmd, atlas_setup)
+        if not content:
+            content = full_atlas_setup
+
+    content += '\nreturn $?'
+    logger.debug('command to be written to release setup file:\n\n%s:\n\n%s\n' % (release_setup_name, content))
+    try:
+        write_file(os.path.join(workdir, os.path.basename(release_setup_name)), content, mute=False)
+    except Exception as e:
+        logger.warning('exception caught: %s' % e)
+
+    # reset cmd in case release_setup.sh does not exist in unpacked image (only for those containers)
+    if imagename and release and release != 'NULL':
+        cmd = cmd.replace(';;', ';') if is_release_setup(release_setup_name, imagename) else ''
+
+    return release_setup_name, cmd
+
+
+def create_release_setup_old(cmd, atlas_setup, full_atlas_setup, release, imagename, workdir, is_cvmfs):
+    """
+    Get the proper release setup script name, and create the script if necessary.
+
+    This function also updates the cmd string (removes full asetup from payload command).
+
+    Note: for stand-alone containers, the function will return /release_setup.sh and assume that this script exists
+    in the container. The pilot will only create a my_release_setup.sh script for OS containers.
+
+    In case the release setup is not present in an unpacked container, the function will reset the cmd string.
+
+    :param cmd: Payload execution command (string).
+    :param atlas_setup: asetup command (string).
+    :param full_atlas_setup: full asetup command (string).
+    :param release: software release, needed to determine Athena environment (string).
+    :param imagename: container image name (string).
+    :param workdir: job workdir (string).
+    :param is_cvmfs: does the queue have cvmfs? (Boolean).
+    :return: proper release setup name (string), updated cmd (string).
+    """
+
     release_setup_name = get_release_setup_name(release, imagename)
 
     # note: if release_setup_name.startswith('/'), the pilot will NOT create the script
     if not release_setup_name.startswith('/'):
         # extracted_asetup should be written to 'my_release_setup.sh' and cmd to 'container_script.sh'
-        content = ''
+        content = 'echo \"INFO: sourcing %s inside the container. ' \
+                  'This should not run if it is a ATLAS standalone container\"' % release_setup_name
         if is_cvmfs:
             content, cmd = extract_full_atlas_setup(cmd, atlas_setup)
             if not content:
                 content = full_atlas_setup
         if not content:
-            content = 'echo \"Error: this setup file should not be run since %s should exist inside the container\"' % release_setup_name
             logger.debug(
                 'will create an empty (almost) release setup file since asetup could not be extracted from command')
         logger.debug('command to be written to release setup file:\n\n%s:\n\n%s\n' % (release_setup_name, content))
@@ -722,9 +791,9 @@ def get_release_setup_name(release, imagename):
 
     if imagename and release and release != 'NULL':
         # stand-alone containers (script is assumed to exist inside image/container so will ignore this /srv/my_release_setup.sh)
-        #        release_setup_name = '/srv/my_release_setup.sh'
+        release_setup_name = '/srv/my_release_setup.sh'
         # stand-alone containers (script is assumed to exist inside image/container)
-        release_setup_name = '/release_setup.sh'
+        # release_setup_name = '/release_setup.sh'
     else:
         # OS containers (script will be created by pilot)
         release_setup_name = config.Container.release_setup

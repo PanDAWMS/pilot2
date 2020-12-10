@@ -52,6 +52,7 @@ def verify_proxy(limit=None, x509=None, proxy_id="pilot"):
     envsetup += ". %s/atlas.cern.ch/repo/ATLASLocalRootBase/user/atlasLocalSetup.sh --quiet;" % get_file_system_root_path()
     if os.environ.get('ALRB_noGridMW', '').lower() != "yes":
         envsetup += "lsetup emi;"
+        #envsetup += "export; ls -l $X509_USER_PROXY; lsetup emi; export; ls -l $X509_USER_PROXY;"
     else:
         logger.warning('Skipping "lsetup emi" as ALRB_noGridMW=YES')
 
