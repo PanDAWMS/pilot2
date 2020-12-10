@@ -7,6 +7,7 @@
 # Authors:
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
+# - Mario Lassnig, mario.lassnig@cern.ch, 2020
 
 import logging
 import os
@@ -30,7 +31,7 @@ def get_timeout(filesize, add=0):
     timeout_max = 3 * 3600  # 3 hours
     timeout_min = 300  # self.timeout
 
-    timeout = timeout_min + int(filesize / 0.5e6) + add  # approx < 0.5 Mb/sec
+    timeout = timeout_min + int(filesize / 0.1e7) + add  # approx < 1 Mb/sec
 
     return min(timeout, timeout_max)
 
