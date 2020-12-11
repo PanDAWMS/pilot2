@@ -8,6 +8,7 @@
 
 import logging
 import os
+import sys
 import threading
 import time
 import traceback
@@ -73,6 +74,8 @@ class MessageThread(threading.Thread):
             if not self.__message_server:
                 raise MessageFailure("No message server.")
 
+            if (sys.version_info > (3, 0)):  # needed for Python 3
+                message = message.encode('utf8')
             self.__message_server.send_raw(message)
         except Exception as e:
             raise MessageFailure(e)
@@ -119,6 +122,8 @@ class MessageThread(threading.Thread):
                 if size == -1:
                     time.sleep(0.01)
                 else:
+                    if (sys.version_info > (3, 0)):  # needed for Python 3
+                        buf = buf.decode('utf8')
                     self.__message_queue.put(buf)
         except PilotException as e:
             self.terminate()
