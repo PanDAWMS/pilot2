@@ -786,6 +786,15 @@ def validate(queues, traces, args):
             except Exception as e:
                 logger.warning('cannot symlink pilot log: %s' % str(e))
 
+            # pre-cleanup
+            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+            utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user],
+                                   0)  # Python 2/3
+            try:
+                utilities.precleanup()
+            except Exception as e:
+                logger.warning('exception caught: %s' % e)
+
             # store the PanDA job id for the wrapper to pick up
             store_jobid(job.jobid, args.sourcedir)
 
@@ -1866,8 +1875,10 @@ def update_server(job, args):
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
     metadata = user.get_metadata(job.workdir)
-    user.update_server(job)
-
+    try:
+        user.update_server(job)
+    except Exception as e:
+        logger.warning('exception caught in update_server(): %s' % e)
     if job.fileinfo:
         send_state(job, args, job.state, xml=dumps(job.fileinfo), metadata=metadata)
     else:

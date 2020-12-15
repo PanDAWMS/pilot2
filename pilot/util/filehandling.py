@@ -983,6 +983,23 @@ def get_nonexistant_path(fname_path):
     return new_fname
 
 
+def update_extension(path='', extension=''):
+    """
+    Update the file name extension to the given extension.
+
+    :param path: file path (string).
+    :param extension: new extension (string).
+    :return: file path with new extension (string).
+    """
+
+    path, old_extension = os.path.splitext(path)
+    if not extension.startswith('.'):
+        extension = '.' + extension
+    path += extension
+
+    return path
+
+
 def get_valid_path_from_list(paths):
     """
     Return the first valid path from the given list.
