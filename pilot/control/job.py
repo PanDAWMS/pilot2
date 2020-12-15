@@ -1866,8 +1866,10 @@ def update_server(job, args):
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
     metadata = user.get_metadata(job.workdir)
-    user.update_server(job)
-
+    try:
+        user.update_server(job)
+    except Exception as e:
+        logger.warning('exception caught in update_server(): %s' % e)
     if job.fileinfo:
         send_state(job, args, job.state, xml=dumps(job.fileinfo), metadata=metadata)
     else:
