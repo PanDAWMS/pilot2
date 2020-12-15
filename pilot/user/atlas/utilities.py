@@ -16,7 +16,7 @@ from re import search
 from .setup import get_asetup
 from pilot.util.auxiliary import is_python3
 from pilot.util.container import execute
-from pilot.util.filehandling import read_json, copy, write_json
+from pilot.util.filehandling import read_json, copy, write_json, remove
 from pilot.util.parameters import convert_to_int
 from pilot.util.processes import is_process_running
 
@@ -640,12 +640,13 @@ def get_average_summary_dictionary_prmon(path):
     return summary_dictionary
 
 
-def get_metadata_dict_from_txt(path, storejson=False):
+def get_metadata_dict_from_txt(path, storejson=False, jobid=None):
     """
     Convert memory monitor text output to json, store it, and return a selection as a dictionary.
 
     :param path:
     :param storejson: store dictionary on disk if True (boolean).
+    :param jobid: job id (string).
     :return: prmon metadata (dictionary).
     """
 
@@ -653,6 +654,10 @@ def get_metadata_dict_from_txt(path, storejson=False):
     dictionary = convert_text_file_to_dictionary(path)
 
     if dictionary and storejson:
+        # add metadata
+        dictionary['type'] = 'MemoryMonitorData'
+        dictionary['pandaid'] = jobid
+
         path = os.path.join(os.path.dirname(path), get_memory_monitor_output_filename(suffix='json'))
         logger.debug('writing prmon dictionary to: %s' % path)
         write_json(path, dictionary)
@@ -883,3 +888,17 @@ def post_memory_monitor_action(job):
         copy(path1, path2)
     except Exception as e:
         logger.warning('failed to copy memory monitor output: %s' % e)
+
+
+def precleanup():
+    """
+    Pre-cleanup at the beginning of the job to remove any pre-existing files from previous jobs in the main work dir.
+
+    :return:
+    """
+
+    logger.debug('performing pre-cleanup of potentially pre-existing files from earlier job in main work dir')
+    path = os.path.join(os.environ.get('PILOT_HOME'), get_memory_monitor_summary_filename())
+    if os.path.exists(path):
+        logger.info('removing no longer needed file: %s' % path)
+        remove(path)

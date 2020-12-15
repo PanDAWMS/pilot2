@@ -153,7 +153,7 @@ class FileSpec(BaseData):
                 break
 
         if not is_rootfile:
-                return False
+            return False
 
         is_directaccess = False  ## default value
         if self.accessmode == 'direct':

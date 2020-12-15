@@ -37,7 +37,7 @@ from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, U
     UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_WITH_STAGEIN, UTILITY_AFTER_PAYLOAD_STARTED2
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps, copy,\
-    copy_pilot_source, write_file, read_json, read_file
+    copy_pilot_source, write_file, read_json, read_file, update_extension
 from pilot.util.tracereport import TraceReport
 
 import logging
@@ -1974,22 +1974,6 @@ def get_metadata(workdir):
     return metadata
 
 
-def update_metadata(jobid, metadata_dictionary):
-    """
-    Prepare prmon dictionary for logstash.
-
-    :param jobid: PanDA job id (int).
-    :param metadata_dictionary: prmon info (dictionary).
-    :return: updated prmon info (dictionary).
-    """
-
-    # add metadata
-    metadata_dictionary['type'] = 'MemoryMonitorData'
-    metadata_dictionary['pandaid'] = jobid
-
-    return metadata_dictionary
-
-
 def should_update_logstash(frequency=10):
     """
     Should logstash be updated with prmon dictionary?
@@ -2020,16 +2004,31 @@ def update_server(job):
         path = os.path.join(job.workdir, get_memory_monitor_output_filename())
         if os.path.exists(path):
             # convert memory monitor text output to json and return the selection (don't store it, log has already been created)
-            metadata_dictionary = get_metadata_dict_from_txt(path)
-            metadata_dictionary = update_metadata(job.jobid, metadata_dictionary)
-            logger.debug('final logstash prmon dictionary: %s' % str(metadata_dictionary))
-            url = 'https://pilot.atlas-ml.org'  # 'http://collector.atlas-ml.org:80'
-            cmd = "curl --connect-timeout 20 --max-time 120 -H \"Content-Type: application/json\" -X POST -d \'%s\' %s" % \
-                  (str(metadata_dictionary).replace("'", '"'), url)
-
-            # send metadata to logstash
-            exit_code, stdout, stderr = execute(cmd, usecontainer=False)
-            logger.info('stdout: %s' % stdout)
+            metadata_dictionary = get_metadata_dict_from_txt(path, storejson=True, jobid=job.jobid)
+            if metadata_dictionary:
+                # the output was previously written to file, update the path and tell curl to send it
+                new_path = update_extension(path=path, extension='json')
+                #out = read_json(new_path)
+                #logger.debug('prmon json=\n%s' % out)
+                # logger.debug('final logstash prmon dictionary: %s' % str(metadata_dictionary))
+                url = 'https://pilot.atlas-ml.org'  # 'http://collector.atlas-ml.org:80'
+                #cmd = "curl --connect-timeout 20 --max-time 120 -H \"Content-Type: application/json\" -X POST -d \'%s\' %s" % \
+                #      (str(metadata_dictionary).replace("'", '"'), url)
+                # curl --connect-timeout 20 --max-time 120 -H "Content-Type: application/json" -X POST --upload-file test.json
+                # https://pilot.atlas-ml.org
+                cmd = "curl --connect-timeout 20 --max-time 120 -H \"Content-Type: application/json\" -X POST --upload-file %s %s" % (new_path, url)
+                #cmd = "curl --connect-timeout 20 --max-time 120 -F 'data=@%s' %s" % (new_path, url)
+                # send metadata to logstash
+                try:
+                    exit_code, stdout, stderr = execute(cmd, usecontainer=False)
+                except Exception as e:
+                    logger.warning('exception caught: %s' % e)
+                else:
+                    logger.debug('sent prmon JSON dictionary to logstash server')
+                    logger.debug('stdout: %s' % stdout)
+                    logger.debug('stderr: %s' % stderr)
+            else:
+                logger.warning('no prmon json available - cannot send anything to logstash server')
         else:
             logger.warning('path does not exist: %s' % path)
     else:

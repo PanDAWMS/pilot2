@@ -9,3 +9,13 @@
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+def precleanup():
+    """
+    Pre-cleanup at the beginning of the job to remove any pre-existing files from previous jobs in the main work dir.
+
+    :return:
+    """
+
+    pass
