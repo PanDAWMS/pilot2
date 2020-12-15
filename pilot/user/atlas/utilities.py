@@ -16,7 +16,7 @@ from re import search
 from .setup import get_asetup
 from pilot.util.auxiliary import is_python3
 from pilot.util.container import execute
-from pilot.util.filehandling import read_json, copy, write_json
+from pilot.util.filehandling import read_json, copy, write_json, remove
 from pilot.util.parameters import convert_to_int
 from pilot.util.processes import is_process_running
 
@@ -888,3 +888,17 @@ def post_memory_monitor_action(job):
         copy(path1, path2)
     except Exception as e:
         logger.warning('failed to copy memory monitor output: %s' % e)
+
+
+def precleanup():
+    """
+    Pre-cleanup at the beginning of the job to remove any pre-existing files from previous jobs in the main work dir.
+
+    :return:
+    """
+
+    logger.debug('performing pre-cleanup of potentially pre-existing files from earlier job in main work dir')
+    path = os.path.join(os.environ.get('PILOT_HOME'), get_memory_monitor_summary_filename())
+    if os.path.exists(path):
+        logger.info('removing no longer needed file: %s' % path)
+        remove(path)

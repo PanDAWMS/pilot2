@@ -786,6 +786,15 @@ def validate(queues, traces, args):
             except Exception as e:
                 logger.warning('cannot symlink pilot log: %s' % str(e))
 
+            # pre-cleanup
+            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+            utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user],
+                                   0)  # Python 2/3
+            try:
+                utilities.precleanup()
+            except Exception as e:
+                logger.warning('exception caught: %s' % e)
+
             # store the PanDA job id for the wrapper to pick up
             store_jobid(job.jobid, args.sourcedir)
 
