@@ -844,6 +844,17 @@ def update_job_data(job):
     if nevents:
         job.nevents = nevents
 
+    # some HPO jobs will produce new output files (following lfn name pattern), discover those and replace the job.outdata list
+    if job.is_hpo:
+        try:
+            new_outdata = discover_new_outdata(job)
+        except Exception as e:
+            logger.warning('exception caught while discovering new outdata: %s' % e)
+        else:
+            if new_outdata:
+                logger.info('replacing job outdata with discovered output (%d file(s))' % len(new_outdata))
+                job.outdata = new_outdata
+
     # extract output files from the job report if required, in case the trf has created additional (overflow) files
     # also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
     if job.metadata and not job.is_eventservice:
@@ -858,17 +869,6 @@ def update_job_data(job):
         else:
             # remove the files listed in allowNoOutput if they don't exist
             remove_no_output_files(job)
-
-    # some HPO jobs will produce new output files (following lfn name pattern), discover those and replace the job.outdata list
-    if job.is_hpo:
-        try:
-            new_outdata = discover_new_outdata(job)
-        except Exception as e:
-            logger.warning('exception caught while discovering new outdata: %s' % e)
-        else:
-            if new_outdata:
-                logger.info('replacing job outdata with discovered output (%d file(s))' % len(new_outdata))
-                job.outdata = new_outdata
 
     ## validate output data (to be moved into the JobData)
     ## warning: do no execute this code unless guid lookup in job report has failed - pilot should only generate guids
@@ -895,10 +895,11 @@ def discover_new_outdata(job):
         if new_output:
             # create new FileSpec objects out of the new output
             for outfile in new_output:
+                # note: guid will be taken from job report after this function has been called
                 files = [{'scope': outdata_file.scope, 'lfn': outfile, 'workdir': job.workdir,
                           'dataset': outdata_file.dataset, 'ddmendpoint': outdata_file.ddmendpoint,
                           'ddmendpoint_alt': None, 'filesize': new_output[outfile]['filesize'],
-                          'checksum': new_output[outfile]['checksum'], 'guid': new_output[outfile]['guid']}]
+                          'checksum': new_output[outfile]['checksum'], 'guid': ''}]
                 # do not abbreviate the following two lines as otherwise the content of xfiles will be a list of generator objects
                 _xfiles = [FileSpec(type='output', **f) for f in files]
                 new_outdata += _xfiles
@@ -914,7 +915,7 @@ def discover_new_output(name_pattern, workdir):
     Example: name_pattern = 23578835.metrics.000001.tgz
              should discover files with names 23578835.metrics.000001.tgz_N (N = 0, 1, ..)
 
-    new_output = { lfn: {'path': path, 'size': size, 'checksum': .., 'guid': guid}, .. }
+    new_output = { lfn: {'path': path, 'size': size, 'checksum': checksum}, .. }
 
     :param name_pattern: assumed name pattern for file to discover (string).
     :param workdir: work directory (string).
@@ -930,14 +931,12 @@ def discover_new_output(name_pattern, workdir):
             filesize = get_local_file_size(path)
             # get checksum
             checksum = calculate_checksum(path)
-            # assign guid
-            guid = get_guid()
 
-            if filesize and checksum and guid:
-                new_output[lfn] = {'path': path, 'filesize': filesize, 'checksum': checksum, 'guid': guid}
+            if filesize and checksum:
+                new_output[lfn] = {'path': path, 'filesize': filesize, 'checksum': checksum}
             else:
-                logger.warning('failed to create file info (filesize=%d, checksum=%s, guid=%s) for lfn=%s' %
-                               (filesize, checksum, guid, lfn))
+                logger.warning('failed to create file info (filesize=%d, checksum=%s) for lfn=%s' %
+                               (filesize, checksum, lfn))
     return new_output
 
 
@@ -993,8 +992,10 @@ def extract_output_file_guids(job):
             fspec.guid = data[fspec.lfn].guid
             logger.debug('reset guid=%s for lfn=%s' % (fspec.guid, fspec.lfn))
         else:
-            logger.debug('verified guid=%s for lfn=%s' % (fspec.guid, fspec.lfn))
-
+            if fspec.guid:
+                logger.debug('verified guid=%s for lfn=%s' % (fspec.guid, fspec.lfn))
+            else:
+                logger.warning('guid not set for lfn=%s' % fspec.lfn)
     #if extra:
         #logger.info('found extra output files in job report, will overwrite output file list: extra=%s' % extra)
         #job.outdata = extra
@@ -1121,9 +1122,9 @@ def verify_extracted_output_files(output, lfns_jobdef, job):
                     'output file %s is listed in job report, has zero events and is listed in allowNoOutput - remove from stage-out' % lfn)
                 remove_from_stageout(lfn, job)
             elif type(nentries) is int and nentries:
-                logger.info('output file %s has %d events' % (lfn, nentries))
+                logger.info('output file %s has %d event(s)' % (lfn, nentries))
             else:  # should not reach this step
-                logger.warning('case not handled for output file %s with %s events (ignore)' % (lfn, str(nentries)))
+                logger.warning('case not handled for output file %s with %s event(s) (ignore)' % (lfn, str(nentries)))
 
     return False if failed else True
 
