@@ -37,7 +37,7 @@ from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, U
     UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_WITH_STAGEIN, UTILITY_AFTER_PAYLOAD_STARTED2
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps, copy,\
-    copy_pilot_source, write_file, read_json, read_file, update_extension
+    copy_pilot_source, write_file, read_json, read_file, update_extension, get_local_file_size, calculate_checksum
 from pilot.util.tracereport import TraceReport
 
 import logging
@@ -838,8 +838,6 @@ def update_job_data(job):
     except Exception as e:
         logger.warning('failed to parse job report: %s' % e)
 
-    logger.info('work_attributes = %s' % work_attributes)
-
     # note: the number of events can be set already at this point if the value was extracted from the job report
     # (a more thorough search for this value is done later unless it was set here)
     nevents = work_attributes.get('nEvents', 0)
@@ -861,6 +859,17 @@ def update_job_data(job):
             # remove the files listed in allowNoOutput if they don't exist
             remove_no_output_files(job)
 
+    # some HPO jobs will produce new output files (following lfn name pattern), discover those and replace the job.outdata list
+    if job.is_hpo:
+        try:
+            new_outdata = discover_new_outdata(job)
+        except Exception as e:
+            logger.warning('exception caught while discovering new outdata: %s' % e)
+        else:
+            if new_outdata:
+                logger.info('replacing job outdata with discovered output (%d file(s))' % len(new_outdata))
+                job.outdata = new_outdata
+
     ## validate output data (to be moved into the JobData)
     ## warning: do no execute this code unless guid lookup in job report has failed - pilot should only generate guids
     ## if they are not present in job report
@@ -868,6 +877,68 @@ def update_job_data(job):
         if not dat.guid:
             dat.guid = get_guid()
             logger.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
+
+
+def discover_new_outdata(job):
+    """
+    Discover new outdata created by HPO job.
+
+    :param job: job object.
+    :return: new_outdata (list of FileSpec objects)
+    """
+
+    from pilot.info.filespec import FileSpec
+    new_outdata = []
+
+    for outdata_file in job.outdata:
+        new_output = discover_new_output(outdata_file.lfn, job.workdir)
+        if new_output:
+            # create new FileSpec objects out of the new output
+            for outfile in new_output:
+                files = [{'scope': outdata_file.scope, 'lfn': outfile, 'workdir': job.workdir,
+                          'dataset': outdata_file.dataset, 'ddmendpoint': outdata_file.ddmendpoint,
+                          'ddmendpoint_alt': None, 'filesize': new_output[outfile]['filesize'],
+                          'checksum': new_output[outfile]['checksum'], 'guid': new_output[outfile]['guid']}]
+                # do not abbreviate the following two lines as otherwise the content of xfiles will be a list of generator objects
+                _xfiles = [FileSpec(type='output', **f) for f in files]
+                new_outdata += _xfiles
+
+    return new_outdata
+
+
+def discover_new_output(name_pattern, workdir):
+    """
+    Discover new output created by HPO job in the given work dir.
+
+    name_pattern for known 'filename' is 'filename_N' (N = 0, 1, 2, ..).
+    Example: name_pattern = 23578835.metrics.000001.tgz
+             should discover files with names 23578835.metrics.000001.tgz_N (N = 0, 1, ..)
+
+    new_output = { lfn: {'path': path, 'size': size, 'checksum': .., 'guid': guid}, .. }
+
+    :param name_pattern: assumed name pattern for file to discover (string).
+    :param workdir: work directory (string).
+    :return: new_output (dictionary).
+    """
+
+    new_output = {}
+    outputs = glob("%s/%s_*" % (workdir, name_pattern))
+    if outputs:
+        lfns = [os.path.basename(path) for path in outputs]
+        for lfn, path in list(zip(lfns, outputs)):
+            # get file size
+            filesize = get_local_file_size(path)
+            # get checksum
+            checksum = calculate_checksum(path)
+            # assign guid
+            guid = get_guid()
+
+            if filesize and checksum and guid:
+                new_output[lfn] = {'path': path, 'filesize': filesize, 'checksum': checksum, 'guid': guid}
+            else:
+                logger.warning('failed to create file info (filesize=%d, checksum=%s, guid=%s) for lfn=%s' %
+                               (filesize, checksum, guid, lfn))
+    return new_output
 
 
 def extract_output_file_guids(job):
