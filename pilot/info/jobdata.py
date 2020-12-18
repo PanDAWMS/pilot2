@@ -1020,3 +1020,7 @@ class JobData(BaseData):
         self.exitcode = 0
         self.exitmsg = ""
         self.corecounts = []
+
+    def to_json(self):
+        from json import dumps
+        return dumps(self, default=lambda o: o.__dict__)

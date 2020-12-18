@@ -780,6 +780,13 @@ def validate(queues, traces, args):
                 put_in_queue(job, queues.failed_jobs)
                 break
 
+            try:
+                # stream the job object to file
+                job_dict = job.to_json()
+                write_json(os.path.join(job.workdir, 'job.json'), job_dict)
+            except Exception as e:
+                logger.debug('exception caught: %s' % e)
+
             logger.debug('symlinking pilot log')
             try:
                 os.symlink('../%s' % config.Pilot.pilotlog, os.path.join(job_dir, config.Pilot.pilotlog))
