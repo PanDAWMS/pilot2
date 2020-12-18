@@ -809,20 +809,8 @@ def update_job_data(job):
     ## since in general it's Job related part
     ## later on once we introduce VO specific Job class (inherited from JobData) this can be easily customized
 
-    stageout = "all"
-
-    if job.is_eventservice:
-        logger.info('event service payload, will only stage-out log')
-        stageout = "log"
-    else:
-        # handle any error codes
-        if 'exeErrorCode' in job.metadata:
-            job.exeerrorcode = job.metadata['exeErrorCode']
-            if job.exeerrorcode == 0:
-                stageout = "all"
-            else:
-                logger.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
-                stageout = "log"
+    # get label "all" or "log"
+    stageout = get_stageout_label(job)
 
     if 'exeErrorDiag' in job.metadata:
         job.exeerrordiag = job.metadata['exeErrorDiag']
@@ -870,6 +858,32 @@ def update_job_data(job):
         if not dat.guid:
             dat.guid = get_guid()
             logger.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
+
+
+def get_stageout_label(job):
+    """
+    Get a proper stage-out label.
+
+    :param job: job object.
+    :return: "all"/"log" depending on stage-out type (string).
+    """
+
+    stageout = "all"
+
+    if job.is_eventservice:
+        logger.info('event service payload, will only stage-out log')
+        stageout = "log"
+    else:
+        # handle any error codes
+        if 'exeErrorCode' in job.metadata:
+            job.exeerrorcode = job.metadata['exeErrorCode']
+            if job.exeerrorcode == 0:
+                stageout = "all"
+            else:
+                logger.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
+                stageout = "log"
+
+    return stageout
 
 
 def update_output_for_hpo(job):
