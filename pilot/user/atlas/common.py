@@ -846,14 +846,7 @@ def update_job_data(job):
 
     # some HPO jobs will produce new output files (following lfn name pattern), discover those and replace the job.outdata list
     if job.is_hpo:
-        try:
-            new_outdata = discover_new_outdata(job)
-        except Exception as e:
-            logger.warning('exception caught while discovering new outdata: %s' % e)
-        else:
-            if new_outdata:
-                logger.info('replacing job outdata with discovered output (%d file(s))' % len(new_outdata))
-                job.outdata = new_outdata
+        update_output_for_hpo(job)
 
     # extract output files from the job report if required, in case the trf has created additional (overflow) files
     # also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
@@ -877,6 +870,24 @@ def update_job_data(job):
         if not dat.guid:
             dat.guid = get_guid()
             logger.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
+
+
+def update_output_for_hpo(job):
+    """
+    Update the output (outdata) for HPO jobs.
+
+    :param job: job object.
+    :return:
+    """
+
+    try:
+        new_outdata = discover_new_outdata(job)
+    except Exception as e:
+        logger.warning('exception caught while discovering new outdata: %s' % e)
+    else:
+        if new_outdata:
+            logger.info('replacing job outdata with discovered output (%d file(s))' % len(new_outdata))
+            job.outdata = new_outdata
 
 
 def discover_new_outdata(job):
