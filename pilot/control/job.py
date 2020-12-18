@@ -23,7 +23,7 @@ try:
 except Exception:
     import queue  # Python 3
 
-from json import dumps
+from json import dumps, loads
 from re import findall
 
 from pilot.common.errorcodes import ErrorCodes
@@ -39,7 +39,7 @@ from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PI
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
 from pilot.util.container import execute
-from pilot.util.filehandling import get_files, tail, is_json, copy, remove, write_json, establish_logging, write_file
+from pilot.util.filehandling import get_files, tail, is_json, copy, remove, write_json, establish_logging, write_file, read_json
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file, \
     is_harvester_mode, get_worker_attributes_file, publish_job_report, publish_work_report, get_event_status_file, \
     publish_stageout_files
@@ -780,13 +780,19 @@ def validate(queues, traces, args):
                 put_in_queue(job, queues.failed_jobs)
                 break
 
-            try:
-                # stream the job object to file
-                job_dict = job.to_json()
-                write_json(os.path.join(job.workdir, 'job.json'), job_dict)
-            except Exception as e:
-                logger.debug('exception caught: %s' % e)
-
+#            try:
+#                # stream the job object to file
+#                job_dict = job.to_json()
+#                write_json(os.path.join(job.workdir, 'job.json'), job_dict)
+#            except Exception as e:
+#                logger.debug('exception caught: %s' % e)
+#            else:
+#                try:
+#                    _job_dict = read_json(os.path.join(job.workdir, 'job.json'))
+#                    job_dict = loads(_job_dict)
+#                    _job = JobData(job_dict, use_kmap=False)
+#                except Exception as e:
+#                    logger.warning('exception caught: %s' % e)
             logger.debug('symlinking pilot log')
             try:
                 os.symlink('../%s' % config.Pilot.pilotlog, os.path.join(job_dir, config.Pilot.pilotlog))
