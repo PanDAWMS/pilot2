@@ -824,13 +824,13 @@ def update_job_data(job):
     try:
         work_attributes = parse_jobreport_data(job.metadata)
     except Exception as e:
-        logger.warning('failed to parse job report: %s' % e)
-
-    # note: the number of events can be set already at this point if the value was extracted from the job report
-    # (a more thorough search for this value is done later unless it was set here)
-    nevents = work_attributes.get('nEvents', 0)
-    if nevents:
-        job.nevents = nevents
+        logger.warning('failed to parse job report (cannot set job.nevents): %s' % e)
+    else:
+        # note: the number of events can be set already at this point if the value was extracted from the job report
+        # (a more thorough search for this value is done later unless it was set here)
+        nevents = work_attributes.get('nEvents', 0)
+        if nevents:
+            job.nevents = nevents
 
     # some HPO jobs will produce new output files (following lfn name pattern), discover those and replace the job.outdata list
     if job.is_hpo:
