@@ -339,6 +339,9 @@ def send_state(job, args, state, xml=None, metadata=None):
             show_memory_usage()
 
             if res is not None:
+
+                res['command'] = 'tobekilled'
+
                 # does the server update contain any backchannel information? if so, update the job object
                 handle_backchannel_command(res, job, args)
 
@@ -1971,7 +1974,6 @@ def get_heartbeat_period(debug=False):
 def check_for_abort_job(args, caller=''):
     """
     Check if args.abort_job.is_set().
-    This flag should
 
     :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :param caller: function name of caller (string).

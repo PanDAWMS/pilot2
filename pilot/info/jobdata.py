@@ -129,6 +129,7 @@ class JobData(BaseData):
     preprocess = {}                # preprocess dictionary with command to execute before payload, {'command': '..', 'args': '..'}
     postprocess = {}               # postprocess dictionary with command to execute after payload, {'command': '..', 'args': '..'}
     coprocess = {}                 # coprocess dictionary with command to execute during payload, {'command': '..', 'args': '..'}
+    # coprocess = {u'args': u'coprocess', u'command': u'echo'}
     containeroptions = {}          #
     use_vp = False                 # True for VP jobs
 

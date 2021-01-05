@@ -603,7 +603,7 @@ class Executor(object):
 
                 # stop the utility command (e.g. a coprocess if necessary
                 if proc_co:
-                    logger.debug('stopping utility command')
+                    logger.debug('stopping utility command: %s' % utility_cmd)
                     kill_processes(proc_co.pid)
 
                 if exit_code is None:
