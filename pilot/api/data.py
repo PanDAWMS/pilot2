@@ -357,6 +357,9 @@ class StagingClient(object):
 
             fdat.replicas.append(rinfo)
 
+        if not fdat.replicas:
+            self.logger.warning('no replicas were selected (verify replica type, allow_lan/wan and domain values)')
+
         return fdat
 
     @classmethod
@@ -650,7 +653,7 @@ class StageInClient(StagingClient):
         """
 
         if not fspec.replicas:
-            self.logger.warning('resolve_replicas() received no fspec.replicas')
+            self.logger.warning('resolve_replica() received no fspec.replicas')
             return
 
         allowed_schemas = allowed_schemas or [None]

@@ -15,8 +15,7 @@ import logging
 import threading
 import time
 import re
-from os import environ, getpid
-from getpass import getuser
+from os import environ, getpid, getuid
 from subprocess import Popen, PIPE
 
 from pilot.common.exception import PilotException, ExceededMaxWaitTime
@@ -128,7 +127,7 @@ def control(queues, traces, args):
 #                                                   traces.pilot['lifetime_max']))
 
 
-def get_process_info(cmd, user=getuser(), args='aufx', pid=None):
+def get_process_info(cmd, user=None, args='aufx', pid=None):
     """
     Return process info for given command.
     The function returns a list with format [cpu, mem, command, number of commands] as returned by 'ps -u user args' for
@@ -153,6 +152,8 @@ def get_process_info(cmd, user=getuser(), args='aufx', pid=None):
 
     processes = []
     n = 0
+    if not user:
+        user = getuid()
     pattern = re.compile(r"\S+|[-+]?\d*\.\d+|\d+")
     arguments = ['ps', '-u', user, args, '--no-headers']
 

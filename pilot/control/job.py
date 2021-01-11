@@ -23,7 +23,7 @@ try:
 except Exception:
     import queue  # Python 3
 
-from json import dumps
+from json import dumps  #, loads
 from re import findall
 
 from pilot.common.errorcodes import ErrorCodes
@@ -39,7 +39,7 @@ from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PI
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
 from pilot.util.container import execute
-from pilot.util.filehandling import get_files, tail, is_json, copy, remove, write_json, establish_logging, write_file
+from pilot.util.filehandling import get_files, tail, is_json, copy, remove, write_json, establish_logging, write_file  #, read_json
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file, \
     is_harvester_mode, get_worker_attributes_file, publish_job_report, publish_work_report, get_event_status_file, \
     publish_stageout_files
@@ -265,7 +265,7 @@ def write_heartbeat_to_file(data):
         return False
 
 
-def send_state(job, args, state, xml=None, metadata=None):
+def send_state(job, args, state, xml=None, metadata=None, test_tobekilled=False):
     """
     Update the server (send heartbeat message).
     Interpret and handle any server instructions arriving with the updateJob back channel.
@@ -275,6 +275,7 @@ def send_state(job, args, state, xml=None, metadata=None):
     :param state: job state (string).
     :param xml: optional metadata xml (string).
     :param metadata: job report metadata read as a string.
+    :param test_tobekilled: emulate a tobekilled command (boolean).
     :return: boolean (True if successful, False otherwise).
     """
 
@@ -340,7 +341,7 @@ def send_state(job, args, state, xml=None, metadata=None):
 
             if res is not None:
                 # does the server update contain any backchannel information? if so, update the job object
-                handle_backchannel_command(res, job, args)
+                handle_backchannel_command(res, job, args, test_tobekilled=test_tobekilled)
 
                 if final:
                     os.environ['SERVER_UPDATE'] = SERVER_UPDATE_FINAL
@@ -469,15 +470,20 @@ def get_panda_server(url, port):
     return pandaserver
 
 
-def handle_backchannel_command(res, job, args):
+def handle_backchannel_command(res, job, args, test_tobekilled=False):
     """
     Does the server update contain any backchannel information? if so, update the job object.
 
     :param res: server response (dictionary).
     :param job: job object.
     :param args: pilot args object.
+    :param test_tobekilled: emulate a tobekilled command (boolean).
     :return:
     """
+
+    if test_tobekilled:
+        logger.info('faking a \'tobekilled\' command')
+        res['command'] = 'tobekilled'
 
     if 'command' in res and res.get('command') != 'NULL':
         # look for 'tobekilled', 'softkill', 'debug', 'debugoff'
@@ -780,6 +786,19 @@ def validate(queues, traces, args):
                 put_in_queue(job, queues.failed_jobs)
                 break
 
+#            try:
+#                # stream the job object to file
+#                job_dict = job.to_json()
+#                write_json(os.path.join(job.workdir, 'job.json'), job_dict)
+#            except Exception as e:
+#                logger.debug('exception caught: %s' % e)
+#            else:
+#                try:
+#                    _job_dict = read_json(os.path.join(job.workdir, 'job.json'))
+#                    job_dict = loads(_job_dict)
+#                    _job = JobData(job_dict, use_kmap=False)
+#                except Exception as e:
+#                    logger.warning('exception caught: %s' % e)
             logger.debug('symlinking pilot log')
             try:
                 os.symlink('../%s' % config.Pilot.pilotlog, os.path.join(job_dir, config.Pilot.pilotlog))
@@ -1958,7 +1977,6 @@ def get_heartbeat_period(debug=False):
 def check_for_abort_job(args, caller=''):
     """
     Check if args.abort_job.is_set().
-    This flag should
 
     :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :param caller: function name of caller (string).
@@ -2064,6 +2082,12 @@ def job_monitor(queues, traces, args):  # noqa: C901
                         # by turning on debug mode, ie we need to get the heartbeat period in case it has changed)
                         update_time = send_heartbeat_if_time(jobs[i], args, update_time)
 
+                        # note: when sending a state change to the server, the server might respond with 'tobekilled'
+                        if jobs[i].state == 'failed':
+                            logger.warning('job state is \'failed\' - order log transfer and abort job_monitor() (1)')
+                            jobs[i].stageout = 'log'  # only stage-out log file
+                            put_in_queue(jobs[i], queues.data_out)
+
                     # sleep for a while if stage-in has not completed
                     time.sleep(1)
                     continue
@@ -2110,6 +2134,15 @@ def job_monitor(queues, traces, args):  # noqa: C901
                 except Exception as e:
                     logger.warning('(2) exception caught: %s (job id=%s)' % (e, current_id))
                     break
+                else:
+                    # note: when sending a state change to the server, the server might respond with 'tobekilled'
+                    if _job.state == 'failed':
+                        logger.warning('job state is \'failed\' - order log transfer and abort job_monitor() (2)')
+                        _job.stageout = 'log'  # only stage-out log file
+                        put_in_queue(_job, queues.data_out)
+                        abort = True
+                        break
+
         elif os.environ.get('PILOT_JOB_STATE') == 'stagein':
             logger.info('job monitoring is waiting for stage-in to finish')
         else:

@@ -212,6 +212,11 @@ def execute_payloads(queues, traces, args):  # noqa: C901
                 err = None
             send_state(job, args, 'starting')
 
+            # note: when sending a state change to the server, the server might respond with 'tobekilled'
+            if job.state == 'failed':
+                logger.warning('job state is \'failed\' - abort execute_payloads()')
+                break
+
             payload_executor = get_payload_executor(args, job, out, err, traces)
             logger.info("Got payload executor: %s" % payload_executor)
 
