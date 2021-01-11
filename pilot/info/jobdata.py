@@ -129,6 +129,7 @@ class JobData(BaseData):
     preprocess = {}                # preprocess dictionary with command to execute before payload, {'command': '..', 'args': '..'}
     postprocess = {}               # postprocess dictionary with command to execute after payload, {'command': '..', 'args': '..'}
     coprocess = {}                 # coprocess dictionary with command to execute during payload, {'command': '..', 'args': '..'}
+    # coprocess = {u'args': u'coprocess', u'command': u'echo'}
     containeroptions = {}          #
     use_vp = False                 # True for VP jobs
 
@@ -162,14 +163,14 @@ class JobData(BaseData):
              bool: ['is_eventservice', 'is_eventservicemerge', 'is_hpo', 'noexecstrcnv', 'debug', 'usecontainer', 'use_vp']
              }
 
-    def __init__(self, data):
+    def __init__(self, data, use_kmap=True):
         """
             :param data: input dictionary of data settings
         """
 
         self.infosys = None  # reference to Job specific InfoService instance
         self._rawdata = data
-        self.load(data)
+        self.load(data, use_kmap=use_kmap)
 
         # for native HPO pilot support
         if self.is_hpo and False:
@@ -428,7 +429,7 @@ class JobData(BaseData):
 
         return self._rawdata.get(key, defval)
 
-    def load(self, data):
+    def load(self, data, use_kmap=True):
         """
             Construct and initialize data from ext source
             :param data: input dictionary of job data settings
@@ -468,7 +469,7 @@ class JobData(BaseData):
             'allownooutput': 'allowNoOutput',
             'imagename_jobdef': 'container_name',
             'containeroptions': 'containerOptions'
-        }
+        } if use_kmap else {}
 
         self._load_data(data, kmap)
 
@@ -1020,3 +1021,7 @@ class JobData(BaseData):
         self.exitcode = 0
         self.exitmsg = ""
         self.corecounts = []
+
+    def to_json(self):
+        from json import dumps
+        return dumps(self, default=lambda o: o.__dict__)

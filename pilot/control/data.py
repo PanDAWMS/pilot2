@@ -442,6 +442,14 @@ def copytool_in(queues, traces, args):
 
             # ready to set the job in running state
             send_state(job, args, 'running')
+
+            # note: when sending a state change to the server, the server might respond with 'tobekilled'
+            if job.state == 'failed':
+                logger.warning('job state is \'failed\' - order log transfer and abort copytool_in()')
+                job.stageout = 'log'  # only stage-out log file
+                put_in_queue(job, queues.data_out)
+                break
+
             os.environ['SERVER_UPDATE'] = SERVER_UPDATE_RUNNING
 
             if args.abort_job.is_set():

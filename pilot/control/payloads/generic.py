@@ -537,7 +537,7 @@ class Executor(object):
 
         return exit_code
 
-    def run(self):
+    def run(self):  # noqa: C901
         """
         Run all payload processes (including pre- and post-processes, and utilities).
         In the case of HPO jobs, this function will loop over all processes until the preprocess returns a special
@@ -585,6 +585,12 @@ class Executor(object):
                 # the process is now running, update the server
                 send_state(self.__job, self.__args, self.__job.state)
 
+                # note: when sending a state change to the server, the server might respond with 'tobekilled'
+                if self.__job.state == 'failed':
+                    logger.warning('job state is \'failed\' - abort payload and run()')
+                    kill_processes(proc.pid)
+                    break
+
                 # allow for a secondary command to be started after the payload (e.g. a coprocess)
                 utility_cmd = self.get_utility_command(order=UTILITY_AFTER_PAYLOAD_STARTED2)
                 if utility_cmd:
@@ -603,7 +609,7 @@ class Executor(object):
 
                 # stop the utility command (e.g. a coprocess if necessary
                 if proc_co:
-                    logger.debug('stopping utility command')
+                    logger.debug('stopping utility command: %s' % utility_cmd)
                     kill_processes(proc_co.pid)
 
                 if exit_code is None:

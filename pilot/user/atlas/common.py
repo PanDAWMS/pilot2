@@ -37,7 +37,7 @@ from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, U
     UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_WITH_STAGEIN, UTILITY_AFTER_PAYLOAD_STARTED2
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps, copy,\
-    copy_pilot_source, write_file, read_json, read_file, update_extension
+    copy_pilot_source, write_file, read_json, read_file, update_extension, get_local_file_size, calculate_checksum
 from pilot.util.tracereport import TraceReport
 
 import logging
@@ -809,20 +809,8 @@ def update_job_data(job):
     ## since in general it's Job related part
     ## later on once we introduce VO specific Job class (inherited from JobData) this can be easily customized
 
-    stageout = "all"
-
-    if job.is_eventservice:
-        logger.info('event service payload, will only stage-out log')
-        stageout = "log"
-    else:
-        # handle any error codes
-        if 'exeErrorCode' in job.metadata:
-            job.exeerrorcode = job.metadata['exeErrorCode']
-            if job.exeerrorcode == 0:
-                stageout = "all"
-            else:
-                logger.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
-                stageout = "log"
+    # get label "all" or "log"
+    stageout = get_stageout_label(job)
 
     if 'exeErrorDiag' in job.metadata:
         job.exeerrordiag = job.metadata['exeErrorDiag']
@@ -836,15 +824,17 @@ def update_job_data(job):
     try:
         work_attributes = parse_jobreport_data(job.metadata)
     except Exception as e:
-        logger.warning('failed to parse job report: %s' % e)
+        logger.warning('failed to parse job report (cannot set job.nevents): %s' % e)
+    else:
+        # note: the number of events can be set already at this point if the value was extracted from the job report
+        # (a more thorough search for this value is done later unless it was set here)
+        nevents = work_attributes.get('nEvents', 0)
+        if nevents:
+            job.nevents = nevents
 
-    logger.info('work_attributes = %s' % work_attributes)
-
-    # note: the number of events can be set already at this point if the value was extracted from the job report
-    # (a more thorough search for this value is done later unless it was set here)
-    nevents = work_attributes.get('nEvents', 0)
-    if nevents:
-        job.nevents = nevents
+    # some HPO jobs will produce new output files (following lfn name pattern), discover those and replace the job.outdata list
+    if job.is_hpo:
+        update_output_for_hpo(job)
 
     # extract output files from the job report if required, in case the trf has created additional (overflow) files
     # also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
@@ -868,6 +858,111 @@ def update_job_data(job):
         if not dat.guid:
             dat.guid = get_guid()
             logger.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
+
+
+def get_stageout_label(job):
+    """
+    Get a proper stage-out label.
+
+    :param job: job object.
+    :return: "all"/"log" depending on stage-out type (string).
+    """
+
+    stageout = "all"
+
+    if job.is_eventservice:
+        logger.info('event service payload, will only stage-out log')
+        stageout = "log"
+    else:
+        # handle any error codes
+        if 'exeErrorCode' in job.metadata:
+            job.exeerrorcode = job.metadata['exeErrorCode']
+            if job.exeerrorcode == 0:
+                stageout = "all"
+            else:
+                logger.info('payload failed: exeErrorCode=%d' % job.exeerrorcode)
+                stageout = "log"
+
+    return stageout
+
+
+def update_output_for_hpo(job):
+    """
+    Update the output (outdata) for HPO jobs.
+
+    :param job: job object.
+    :return:
+    """
+
+    try:
+        new_outdata = discover_new_outdata(job)
+    except Exception as e:
+        logger.warning('exception caught while discovering new outdata: %s' % e)
+    else:
+        if new_outdata:
+            logger.info('replacing job outdata with discovered output (%d file(s))' % len(new_outdata))
+            job.outdata = new_outdata
+
+
+def discover_new_outdata(job):
+    """
+    Discover new outdata created by HPO job.
+
+    :param job: job object.
+    :return: new_outdata (list of FileSpec objects)
+    """
+
+    from pilot.info.filespec import FileSpec
+    new_outdata = []
+
+    for outdata_file in job.outdata:
+        new_output = discover_new_output(outdata_file.lfn, job.workdir)
+        if new_output:
+            # create new FileSpec objects out of the new output
+            for outfile in new_output:
+                # note: guid will be taken from job report after this function has been called
+                files = [{'scope': outdata_file.scope, 'lfn': outfile, 'workdir': job.workdir,
+                          'dataset': outdata_file.dataset, 'ddmendpoint': outdata_file.ddmendpoint,
+                          'ddmendpoint_alt': None, 'filesize': new_output[outfile]['filesize'],
+                          'checksum': new_output[outfile]['checksum'], 'guid': ''}]
+                # do not abbreviate the following two lines as otherwise the content of xfiles will be a list of generator objects
+                _xfiles = [FileSpec(type='output', **f) for f in files]
+                new_outdata += _xfiles
+
+    return new_outdata
+
+
+def discover_new_output(name_pattern, workdir):
+    """
+    Discover new output created by HPO job in the given work dir.
+
+    name_pattern for known 'filename' is 'filename_N' (N = 0, 1, 2, ..).
+    Example: name_pattern = 23578835.metrics.000001.tgz
+             should discover files with names 23578835.metrics.000001.tgz_N (N = 0, 1, ..)
+
+    new_output = { lfn: {'path': path, 'size': size, 'checksum': checksum}, .. }
+
+    :param name_pattern: assumed name pattern for file to discover (string).
+    :param workdir: work directory (string).
+    :return: new_output (dictionary).
+    """
+
+    new_output = {}
+    outputs = glob("%s/%s_*" % (workdir, name_pattern))
+    if outputs:
+        lfns = [os.path.basename(path) for path in outputs]
+        for lfn, path in list(zip(lfns, outputs)):
+            # get file size
+            filesize = get_local_file_size(path)
+            # get checksum
+            checksum = calculate_checksum(path)
+
+            if filesize and checksum:
+                new_output[lfn] = {'path': path, 'filesize': filesize, 'checksum': checksum}
+            else:
+                logger.warning('failed to create file info (filesize=%d, checksum=%s) for lfn=%s' %
+                               (filesize, checksum, lfn))
+    return new_output
 
 
 def extract_output_file_guids(job):
@@ -922,8 +1017,10 @@ def extract_output_file_guids(job):
             fspec.guid = data[fspec.lfn].guid
             logger.debug('reset guid=%s for lfn=%s' % (fspec.guid, fspec.lfn))
         else:
-            logger.debug('verified guid=%s for lfn=%s' % (fspec.guid, fspec.lfn))
-
+            if fspec.guid:
+                logger.debug('verified guid=%s for lfn=%s' % (fspec.guid, fspec.lfn))
+            else:
+                logger.warning('guid not set for lfn=%s' % fspec.lfn)
     #if extra:
         #logger.info('found extra output files in job report, will overwrite output file list: extra=%s' % extra)
         #job.outdata = extra
@@ -1050,9 +1147,9 @@ def verify_extracted_output_files(output, lfns_jobdef, job):
                     'output file %s is listed in job report, has zero events and is listed in allowNoOutput - remove from stage-out' % lfn)
                 remove_from_stageout(lfn, job)
             elif type(nentries) is int and nentries:
-                logger.info('output file %s has %d events' % (lfn, nentries))
+                logger.info('output file %s has %d event(s)' % (lfn, nentries))
             else:  # should not reach this step
-                logger.warning('case not handled for output file %s with %s events (ignore)' % (lfn, str(nentries)))
+                logger.warning('case not handled for output file %s with %s event(s) (ignore)' % (lfn, str(nentries)))
 
     return False if failed else True
 
