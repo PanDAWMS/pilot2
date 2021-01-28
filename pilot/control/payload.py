@@ -241,17 +241,20 @@ def execute_payloads(queues, traces, args):  # noqa: C901
             perform_initial_payload_error_analysis(job, exit_code)
 
             # was an error already found?
+            #if job.piloterrorcodes:
+            #    exit_code_interpret = 1
+            #else:
+            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+            user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+            try:
+                exit_code_interpret = user.interpret(job)
+            except Exception as e:
+                logger.warning('exception caught: %s' % e)
+                #exit_code_interpret = -1
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.INTERNALPILOTPROBLEM)
+
             if job.piloterrorcodes:
                 exit_code_interpret = 1
-            else:
-                pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-                user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
-                try:
-                    exit_code_interpret = user.interpret(job)
-                except Exception as e:
-                    logger.warning('exception caught: %s' % e)
-                    exit_code_interpret = -1
-                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.INTERNALPILOTPROBLEM)
 
             if exit_code_interpret == 0 and exit_code == 0:
                 logger.info('main payload error analysis completed - did not find any errors')

@@ -303,33 +303,15 @@ def update_alrb_setup(cmd, use_release_setup):
     return updated_cmd
 
 
-def update_for_user_proxy_old(_cmd, cmd):
-    """
-    Add the X509 user proxy to the container sub command string if set, and remove it from the main container command.
-
-    :param _cmd:
-    :param cmd:
-    :return:
-    """
-
-    x509 = os.environ.get('X509_USER_PROXY')
-    if x509 != "":
-        # do not include the X509_USER_PROXY in the command the container will execute
-        cmd = cmd.replace("export X509_USER_PROXY=%s;" % x509, "")
-        # add it instead to the container setup command
-        _cmd = "export X509_USER_PROXY=%s;" % x509 + _cmd
-
-    return _cmd, cmd
-
-
-def update_for_user_proxy(_cmd, cmd):
+def update_for_user_proxy(_cmd, cmd, is_analysis=False):
     """
     Add the X509 user proxy to the container sub command string if set, and remove it from the main container command.
     Try to receive payload proxy and update X509_USER_PROXY in container setup command
     In case payload proxy from server is required, this function will also download and verify this proxy.
 
-    :param _cmd: container setup command
-    :param cmd: command the container will execute
+    :param _cmd: container setup command (string).
+    :param cmd: command the container will execute (string).
+    :param is_analysis: True for user job (Boolean).
     :return: exit_code (int), diagnostics (string), updated _cmd (string), updated cmd (string).
     """
 
@@ -343,7 +325,7 @@ def update_for_user_proxy(_cmd, cmd):
         # add it instead to the container setup command:
 
         # download and verify payload proxy from the server if desired
-        if config.Pilot.payload_proxy_from_server:
+        if config.Pilot.payload_proxy_from_server and is_analysis:
             exit_code, diagnostics, x509 = get_and_verify_payload_proxy_from_server(x509)
             if exit_code != 0:  # do not return non-zero exit code if only download fails
                 logger.warning('payload proxy verification failed')
@@ -502,7 +484,7 @@ def alrb_wrapper(cmd, workdir, job=None):
         logger.debug('initial alrb_setup: %s' % alrb_setup)
 
         # add user proxy if necessary (actually it should also be removed from cmd)
-        exit_code, diagnostics, alrb_setup, cmd = update_for_user_proxy(alrb_setup, cmd)
+        exit_code, diagnostics, alrb_setup, cmd = update_for_user_proxy(alrb_setup, cmd, is_analysis=job.is_analysis())
         if exit_code:
             job.piloterrordiag = diagnostics
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
