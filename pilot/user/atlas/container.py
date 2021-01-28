@@ -1020,7 +1020,7 @@ def get_middleware_container():
     """
 
     path = config.Container.middleware_container
-    if not os.path.exists(path):
+    if path.startswith('/') and not os.path.exists(path):
         logger.warning('requested middleware container path does not exist: %s (switching to default value)' % path)
         path = 'CentOS7'
     logger.info('using image: %s for middleware container' % path)
