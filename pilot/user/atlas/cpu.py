@@ -104,6 +104,6 @@ def set_core_counts(job):
             logger.warning('failed to convert number of actual cores to int: %s' % e)
         else:
             job.corecounts = add_core_count(job.actualcorecount)  #, core_counts=job.corecounts)
-            logger.debug('current core counts list: %s' % str(job.corecounts))
+            #logger.debug('current core counts list: %s' % str(job.corecounts))
     else:
         logger.debug('payload process group not set - cannot check number of cores used by payload')

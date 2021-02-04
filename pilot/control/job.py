@@ -1155,6 +1155,7 @@ def get_job_definition_from_file(path, harvester):
             res = None  # this is a fatal error, no point in continuing as the file will not be replaced
         else:
             # parse response message
+            # logger.debug('%s:\n\n%s\n\n' % (path, response))
             try:
                 from urlparse import parse_qsl  # Python 2
             except Exception:
@@ -1232,7 +1233,7 @@ def get_job_definition(args):
     res = {}
     path = locate_job_definition(args)
 
-    # should we run a norma 'real' job or with a 'fake' job?
+    # should we run a normal 'real' job or a 'fake' job?
     if config.Pilot.pandajob == 'fake':
         logger.info('will use a fake PanDA job')
         res = get_fake_job()
