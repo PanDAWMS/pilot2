@@ -686,7 +686,7 @@ class StageInClient(StagingClient):
             self.logger.info("resolve_replica: %s" % error)
             return
 
-        # prefer SRM protocol for surl -- to be verified, can it be deprecaed?
+        # prefer SRM protocol for surl -- to be verified, can it be deprecated?
         rse_replicas = replicas.get(replica['ddmendpoint'], [])
         surl = self.get_preferred_replica(rse_replicas, ['srm']) or rse_replicas[0]
         self.logger.info("[stage-in] surl (srm replica) from Rucio: pfn=%s, ddmendpoint=%s" % (surl['pfn'], surl['ddmendpoint']))
