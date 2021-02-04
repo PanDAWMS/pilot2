@@ -9,7 +9,6 @@
 
 import os
 import time
-from getpass import getuser
 from re import search
 
 # from pilot.info import infosys
@@ -254,7 +253,7 @@ def get_proper_pid(pid, pgrp, jobid, command="", transformation="", outdata="", 
     return pid
 
 
-def get_ps_info(pgrp, whoami=getuser(), options='axfo pid,user,args'):
+def get_ps_info(pgrp, whoami=None, options='axfo pid,user,args'):
     """
     Return ps info for the given user.
 
@@ -262,6 +261,9 @@ def get_ps_info(pgrp, whoami=getuser(), options='axfo pid,user,args'):
     :param whoami: user name (string).
     :return: ps aux for given user (string).
     """
+
+    if not whoami:
+        whoami = os.getuid()
 
     cmd = "ps -u %s %s" % (whoami, options)
     #cmd = "ps %s | grep %s" % (options, whoami)

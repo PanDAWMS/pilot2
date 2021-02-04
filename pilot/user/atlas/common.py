@@ -284,6 +284,7 @@ def get_payload_command(job):
 
     # Is it a user job or not?
     userjob = job.is_analysis()
+    logger.info('pilot is running a user analysis job') if userjob else logger.info('pilot is running a production job')
 
     resource_name = get_resource_name()  # 'grid' if no hpc_resource is set
     resource = __import__('pilot.user.atlas.resource.%s' % resource_name, globals(), locals(), [resource_name], 0)  # Python 3, -1 -> 0
