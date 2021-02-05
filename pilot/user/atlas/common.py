@@ -832,10 +832,6 @@ def update_job_data(job):
         if nevents:
             job.nevents = nevents
 
-    # some HPO jobs will produce new output files (following lfn name pattern), discover those and replace the job.outdata list
-    if job.is_hpo:
-        update_output_for_hpo(job)
-
     # extract output files from the job report if required, in case the trf has created additional (overflow) files
     # also make sure all guids are assigned (use job report value if present, otherwise generate the guid)
     if job.metadata and not job.is_eventservice:

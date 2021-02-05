@@ -25,7 +25,7 @@ from pilot.control.job import send_state
 from pilot.util.auxiliary import set_pilot_state, show_memory_usage
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
-from pilot.util.filehandling import read_file, remove_core_dumps
+from pilot.util.filehandling import read_file, remove_core_dumps, get_guid
 from pilot.util.processes import threads_aborted
 from pilot.util.queuehandling import put_in_queue
 from pilot.common.errorcodes import ErrorCodes
@@ -232,6 +232,22 @@ def execute_payloads(queues, traces, args):  # noqa: C901
             out.close()
             err.close()
 
+            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+
+            # some HPO jobs will produce new output files (following lfn name pattern), discover those and replace the job.outdata list
+            if job.is_hpo:
+                user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user],
+                                  0)  # Python 2/3
+                try:
+                    user.update_output_for_hpo(job)
+                except Exception as e:
+                    logger.warning('exception caught by update_output_for_hpo(): %s' % e)
+                else:
+                    for dat in job.outdata:
+                        if not dat.guid:
+                            dat.guid = get_guid()
+                            logger.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
+
             #if traces.pilot['nr_jobs'] == 1:
             #    logger.debug('faking job failure in first multi-job')
             #    job.transexitcode = 1
@@ -244,7 +260,6 @@ def execute_payloads(queues, traces, args):  # noqa: C901
             #if job.piloterrorcodes:
             #    exit_code_interpret = 1
             #else:
-            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
             user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
             try:
                 exit_code_interpret = user.interpret(job)
