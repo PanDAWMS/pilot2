@@ -566,7 +566,7 @@ class ESProcess(threading.Thread):
 
         :param time_to_wait: integer, seconds to wait to force kill the payload process.
 
-        :raises: PilotExecption: when a PilotException is caught.
+        :raises: PilotException: when a PilotException is caught.
                  UnknownException: when other unknown exception is caught.
         """
         logger.info('terminate running threads and processes.')
