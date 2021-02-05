@@ -577,10 +577,21 @@ class Executor(object):
                 cmd = cmd.replace(jobparams_pre, jobparams_post)
 
             # now run the main payload, when it finishes, run the postprocess (if necessary)
-            proc = self.run_payload(self.__job, cmd, self.__out, self.__err)
+            # note: no need to run any main payload in HPO Horovod jobs on Kubernetes
+            if os.environ.get('HARVESTER_HOROVOD', '') == '':
+                proc = self.run_payload(self.__job, cmd, self.__out, self.__err)
+            else:
+                proc = None
+
             proc_co = None
             if proc is None:
-                break
+                # run the post-process command even if there was no main payload
+                if os.environ.get('HARVESTER_HOROVOD', '') != '':
+                    logger.info('No need to execute any main payload')
+                    exit_code = self.run_utility_after_payload_finished()
+                    self.post_payload(self.__job)
+                else:
+                    break
             else:
                 # the process is now running, update the server
                 send_state(self.__job, self.__args, self.__job.state)
@@ -617,15 +628,7 @@ class Executor(object):
                     exit_code = -1
 
                 if state != 'failed':
-                    try:
-                        cmd_after_payload = self.utility_after_payload_finished(self.__job)
-                    except Exception as e:
-                        logger.error(e)
-                    else:
-                        if cmd_after_payload:
-                            cmd_after_payload = self.__job.setup + cmd_after_payload
-                            logger.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
-                            exit_code = self.execute_utility_command(cmd_after_payload, self.__job, 'postprocess')
+                    exit_code = self.run_utility_after_payload_finished()
 
                 self.post_payload(self.__job)
 
@@ -639,6 +642,26 @@ class Executor(object):
                 iteration += 1
             else:
                 break
+
+        return exit_code
+
+    def run_utility_after_payload_finished(self):
+        """
+        Run utility command after the main payload has finished.
+
+        :return: exit code (int).
+        """
+
+        exit_code = 0
+        try:
+            cmd_after_payload = self.utility_after_payload_finished(self.__job)
+        except Exception as e:
+            logger.error(e)
+        else:
+            if cmd_after_payload:
+                cmd_after_payload = self.__job.setup + cmd_after_payload
+                logger.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
+                exit_code = self.execute_utility_command(cmd_after_payload, self.__job, 'postprocess')
 
         return exit_code
 
