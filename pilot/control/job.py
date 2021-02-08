@@ -49,7 +49,7 @@ from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
 from pilot.util.processes import cleanup, threads_aborted
 from pilot.util.proxy import get_distinguished_name
-from pilot.util.queuehandling import scan_for_jobs, put_in_queue, queue_report
+from pilot.util.queuehandling import scan_for_jobs, put_in_queue, queue_report, purge_queue
 from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since, time_stamp
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, get_cpu_model
 
@@ -1530,6 +1530,9 @@ def retrieve(queues, traces, args):  # noqa: C901
                     if has_job_completed(queues, args):
                         #import signal
                         #os.kill(os.getpid(), signal.SIGTERM)
+
+                        # purge queue(s) that retains job object
+                        purge_queue(queues.finished_data_in)
 
                         args.job_aborted.clear()
                         args.abort_job.clear()
