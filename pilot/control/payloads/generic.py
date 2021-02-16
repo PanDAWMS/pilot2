@@ -613,7 +613,16 @@ class Executor(object):
 
                 logger.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
-                state = 'finished' if exit_code == 0 else 'failed'
+                # reset error if Raythena decided to kill payload (no error)
+                if errors.KILLPAYLOAD in self.__job.piloterrorcodes:
+                    logger.debug('ignoring KILLPAYLOAD error')
+                    self.__job.piloterrorcodes, self.__job.piloterrordiags = errors.remove_error_code(errors.KILLPAYLOAD,
+                                                                                                      pilot_error_codes=self.__job.piloterrorcodes,
+                                                                                                      pilot_error_diags=self.__job.piloterrordiags)
+                    exit_code = 0
+                    state = 'finished'
+                else:
+                    state = 'finished' if exit_code == 0 else 'failed'
                 set_pilot_state(job=self.__job, state=state)
                 logger.info('\n\nfinished pid=%s exit_code=%s state=%s\n' % (proc.pid, exit_code, self.__job.state))
                 show_memory_usage()

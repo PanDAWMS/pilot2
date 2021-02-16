@@ -82,6 +82,11 @@ def job_monitor_tasks(job, mt, args):
         if exit_code != 0:
             return exit_code, diagnostics
 
+    # should the pilot abort the payload?
+    exit_code, diagnostics = should_abort_payload(current_time, mt)
+    if exit_code != 0:
+        return exit_code, diagnostics
+
     # is it time to verify the pilot running time?
 #    exit_code, diagnostics = verify_pilot_running_time(current_time, mt, job)
 #    if exit_code != 0:
@@ -164,6 +169,32 @@ def verify_memory_usage(current_time, mt, job):
         else:
             # update the ct_proxy with the current time
             mt.update('ct_memory')
+
+    return 0, ""
+
+
+def should_abort_payload(current_time, mt):
+    """
+    Should the pilot abort the payload?
+    In the case of Raythena, the Driver is monitoring the time to end jobs and may decide
+    that the pilot should abort the payload. Internally, this is achieved by letting the Actors
+    know it's time to end, and they in turn contacts the pilot by placing a 'pilot_kill_payload' file
+    in the run directory.
+
+    :param current_time: current time at the start of the monitoring loop (int).
+    :param mt: measured time object.
+    :return: exit code (int), error diagnostics (string).
+    """
+
+    # is it time to look for the kill instruction file?
+    killing_time = convert_to_int(config.Pilot.kill_instruction_time, default=600)
+    if current_time - mt.get('ct_kill') > killing_time:
+        #logger.info('pilot encountered payload kill instruction file - will abort payload')
+        #return errors.KILLPAYLOAD, ""  # note, this is not an error
+        path = os.path.join(os.environ.get('PILOT_HOME'), config.Pilot.kill_instruction_filename)
+        if os.path.exists(path):
+            logger.info('pilot encountered payload kill instruction file - will abort payload')
+            return errors.KILLPAYLOAD, ""  # note, this is not an error
 
     return 0, ""
 
