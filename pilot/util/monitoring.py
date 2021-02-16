@@ -57,16 +57,7 @@ def job_monitor_tasks(job, mt, args):
         except Exception as e:
             diagnostics = "Exception caught: %s" % e
             logger.warning(diagnostics)
-            import traceback
-            logger.warning(traceback.format_exc())
-            if "Resource temporarily unavailable" in diagnostics:
-                exit_code = errors.RESOURCEUNAVAILABLE
-            elif "No such file or directory" in diagnostics:
-                exit_code = errors.STATFILEPROBLEM
-            elif "No such process" in diagnostics:
-                exit_code = errors.NOSUCHPROCESS
-            else:
-                exit_code = errors.GENERALCPUCALCPROBLEM
+            exit_code = get_exception_error_code(diagnostics)
             return exit_code, diagnostics
         else:
             job.cpuconsumptiontime = int(round(cpuconsumptiontime))
@@ -119,6 +110,28 @@ def job_monitor_tasks(job, mt, args):
         utility_monitor(job)
 
     return exit_code, diagnostics
+
+
+def get_exception_error_code(diagnostics):
+    """
+    Identify a suitable error code to a given exception.
+
+    :param diagnostics: exception diagnostics (string).
+    :return: exit_code
+    """
+
+    import traceback
+    logger.warning(traceback.format_exc())
+    if "Resource temporarily unavailable" in diagnostics:
+        exit_code = errors.RESOURCEUNAVAILABLE
+    elif "No such file or directory" in diagnostics:
+        exit_code = errors.STATFILEPROBLEM
+    elif "No such process" in diagnostics:
+        exit_code = errors.NOSUCHPROCESS
+    else:
+        exit_code = errors.GENERALCPUCALCPROBLEM
+
+    return exit_code
 
 
 def set_number_used_cores(job):
