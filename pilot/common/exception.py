@@ -88,14 +88,14 @@ class PilotException(Exception):
         return self._message
 
 
-class NotImplemented(PilotException):
-    """
-    Not implemented exception.
-    """
-    def __init__(self, *args, **kwargs):
-        super(NotImplemented, self).__init__(args, kwargs)
-        self._errorCode = errors.NOTIMPLEMENTED
-        self._message = errors.get_error_message(self._errorCode)
+#class NotImplementedError(PilotException):
+#    """
+#    Not implemented exception.
+#    """
+#    def __init__(self, *args, **kwargs):
+#        super(NotImplementedError, self).__init__(args, kwargs)
+#        self._errorCode = errors.NOTIMPLEMENTED
+#        self._message = errors.get_error_message(self._errorCode)
 
 
 class UnknownException(PilotException):

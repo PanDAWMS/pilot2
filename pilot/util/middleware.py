@@ -38,7 +38,6 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
     :param label: optional 'stage-in/out' (String).
     :param container_type: optional 'container/bash'
     :return:
-    :raises NotImplemented: if stagein=False, until stage-out script has been written
     :raises StageInFailure: for stage-in failures
     :raises StageOutFailure: for stage-out failures
     """

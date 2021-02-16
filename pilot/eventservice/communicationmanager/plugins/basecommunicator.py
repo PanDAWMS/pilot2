@@ -35,70 +35,71 @@ class BaseCommunicator(object):
         """
         Precheck whether it's ok to send a requst to get jobs.
         """
-        raise exception.NotImplemented()
+        #raise exception.NotImplementedError()
+        raise NotImplementedError()
 
     def request_get_jobs(self, req):
         """
         Send a requst to get jobs.
         """
-        raise exception.NotImplemented()
+        raise NotImplementedError()
 
     def check_get_jobs_status(self, req):
         """
         Check whether jobs are prepared
         """
-        raise exception.NotImplemented()
+        raise NotImplementedError()
 
     def get_jobs(self, req):
         """
         Get the job
         """
-        raise exception.NotImplemented()
+        raise NotImplementedError()
 
     def update_jobs(self, req):
         """
         Update jobs status.
         """
-        raise exception.NotImplemented()
+        raise NotImplementedError()
 
     def pre_check_get_events(self, req):
         """
         Precheck whether it's ok to send a request to get events.
         """
-        raise exception.NotImplemented()
+        raise NotImplementedError()
 
     def request_get_events(self, req):
         """
         Send a requst to get events.
         """
-        raise exception.NotImplemented()
+        raise NotImplementedError()
 
     def check_get_events_status(self, req):
         """
         Check whether events prepared
         """
-        raise exception.NotImplemented()
+        raise NotImplementedError()
 
     def get_events(self, req):
         """
         Get events
         """
-        raise exception.NotImplemented()
+        raise NotImplementedError()
 
     def pre_check_update_events(self, req):
         """
         Precheck whether it's ok to update events.
         """
-        raise exception.NotImplemented()
+        raise NotImplementedError()
 
     def update_events(self, req):
         """
         Update events.
         """
-        raise exception.NotImplemented()
+        raise NotImplementedError()
 
     def pre_check_update_jobs(self, req):
         """
         Precheck whether it's ok to update event ranges.
         """
-        raise exception.NotImplemented()
+        raise NotImplementedError()
