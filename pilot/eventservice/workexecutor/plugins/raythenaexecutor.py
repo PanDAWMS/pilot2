@@ -186,7 +186,7 @@ class RaythenaExecutor(BaseExecutor):
 
             exit_code = None
             try:
-                iteration = long(0)  # Python 2
+                iteration = long(0)  # Python 2  # noqa: F821
             except Exception:
                 iteration = 0  # Python 3
             while proc.is_alive():

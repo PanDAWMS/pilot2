@@ -1406,7 +1406,7 @@ def get_db_info(jobreport_dictionary):
 
     db_time = 0
     try:
-        db_data = long(0)  # Python 2
+        db_data = long(0)  # Python 2  # noqa: F821
     except Exception:
         db_data = 0  # Python 3
 
@@ -1442,7 +1442,7 @@ def get_db_info_str(db_time, db_data):
     """
 
     try:
-        zero = long(0)  # Python 2
+        zero = long(0)  # Python 2  # noqa: F821
     except Exception:
         zero = 0  # Python 3
 
@@ -1470,7 +1470,7 @@ def get_cpu_times(jobreport_dictionary):
     """
 
     try:
-        total_cpu_time = long(0)  # Python 2
+        total_cpu_time = long(0)  # Python 2 # noqa: F821
     except Exception:
         total_cpu_time = 0  # Python 3
 

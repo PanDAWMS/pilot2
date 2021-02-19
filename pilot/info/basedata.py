@@ -80,7 +80,7 @@ class BaseData(object):
 
                 ext_names = kmap.get(kname) or kname
                 try:
-                    if isinstance(ext_names, basestring):  # Python 2
+                    if isinstance(ext_names, basestring):  # Python 2  # noqa: F821
                         ext_names = [ext_names]
                 except Exception:
                     if isinstance(ext_names, str):  # Python 3
@@ -128,7 +128,7 @@ class BaseData(object):
             return raw
 
         try:
-            if isinstance(raw, basestring):  # Python 2
+            if isinstance(raw, basestring):  # Python 2  # noqa: F821
                 raw = raw.strip()
         except Exception:
             if isinstance(raw, str):  # Python 3
@@ -156,7 +156,7 @@ class BaseData(object):
             return defval
         else:
             try:
-                if isinstance(raw, basestring):  # Python 2
+                if isinstance(raw, basestring):  # Python 2  # noqa: F821
                     raw = raw.strip()
             except Exception:
                 if isinstance(raw, str):  # Python 3
@@ -227,7 +227,7 @@ class BaseData(object):
             return defval
         else:
             try:
-                if isinstance(raw, basestring):  # Python 2
+                if isinstance(raw, basestring):  # Python 2  # noqa: F821
                     raw = raw.split(',')
             except Exception:
                 if isinstance(raw, str):  # Python 3

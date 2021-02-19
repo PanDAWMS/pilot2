@@ -73,7 +73,7 @@ class StagingClient(object):
         self.infosys = infosys_instance or infosys
 
         try:
-            if isinstance(acopytools, basestring):  # Python 2
+            if isinstance(acopytools, basestring):  # Python 2  # noqa: F821
                 acopytools = {'default': [acopytools]} if acopytools else {}
         except Exception:
             if isinstance(acopytools, str):  # Python 3
@@ -122,7 +122,7 @@ class StagingClient(object):
         :return: default copytools (string).
         """
         try:
-            if isinstance(default_copytools, basestring):  # Python 2
+            if isinstance(default_copytools, basestring):  # Python 2 # noqa: F821
                 default_copytools = [default_copytools] if default_copytools else []
         except Exception:
             if isinstance(default_copytools, str):  # Python 3
@@ -163,7 +163,7 @@ class StagingClient(object):
 
         activities = activities or 'read_lan'
         try:
-            if isinstance(activities, basestring):  # Python 2
+            if isinstance(activities, basestring):  # Python 2  # noqa: F821
                 activities = [activities]
         except Exception:
             if isinstance(activities, str):  # Python 3
@@ -425,7 +425,7 @@ class StagingClient(object):
         self.trace_report.update(relativeStart=time.time(), transferStart=time.time())
 
         try:
-            if isinstance(activity, basestring):  # Python 2
+            if isinstance(activity, basestring):  # Python 2 # noqa: F821
                 activity = [activity]
         except Exception:
             if isinstance(activity, str):  # Python 3
@@ -972,7 +972,7 @@ class StageOutClient(StagingClient):
             return files
 
         try:
-            if isinstance(activities, (str, unicode)):  # Python 2
+            if isinstance(activities, (str, unicode)):  # Python 2 # noqa: F821
                 activities = [activities]
         except Exception:
             if isinstance(activities, str):  # Python 3

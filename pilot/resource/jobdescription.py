@@ -116,9 +116,9 @@ def is_long(s):
     """
 
     try:
-        if not isinstance(s, basestring):  # Python 2
+        if not isinstance(s, basestring):  # Python 2 # noqa: F821
             try:
-                long(s)
+                long(s)  # noqa: F821
                 return True
             except ValueError:
                 return False
@@ -140,7 +140,7 @@ def parse_value(value):
     """
 
     try:
-        if not isinstance(value, basestring):  # Python 2
+        if not isinstance(value, basestring):  # Python 2 # noqa: F821
             return value
     except Exception:
         if not isinstance(value, str):  # Python 3
@@ -151,7 +151,7 @@ def parse_value(value):
             return int(value)
     else:
         if is_long(value):  # Python 2
-            return long(value)
+            return long(value)  # noqa: F821
     if is_float(value):
         return float(value)
 
@@ -404,7 +404,7 @@ class JobDescription(object):
 
     def load(self, new_desc):
         try:
-            if isinstance(new_desc, basestring):  # Python 2
+            if isinstance(new_desc, basestring):  # Python 2 # noqa: F821
                 new_desc = json.loads(new_desc)
         except Exception:
             if isinstance(new_desc, str):  # Python 3

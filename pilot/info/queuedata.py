@@ -145,7 +145,7 @@ class QueueData(BaseData):
         if not activity:
             activity = 'default'
         try:
-            if isinstance(activity, basestring):  # Python 2
+            if isinstance(activity, basestring):  # Python 2  # noqa: F821
                 activity = [activity]
         except Exception:
             if isinstance(activity, str):  # Python 3

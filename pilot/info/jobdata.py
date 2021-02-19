@@ -772,9 +772,9 @@ class JobData(BaseData):
 
         # Convert to long if necessary
         try:
-            if not isinstance(workdir_size, (int, long)):  # Python 2
+            if not isinstance(workdir_size, (int, long)):  # Python 2  # noqa: F821
                 try:
-                    workdir_size = long(workdir_size)
+                    workdir_size = long(workdir_size)  # noqa: F821
                 except Exception as e:
                     logger.warning('failed to convert %s to long: %s' % (workdir_size, e))
                     return
@@ -786,7 +786,7 @@ class JobData(BaseData):
                     logger.warning('failed to convert %s to int: %s' % (workdir_size, e))
                     return
         try:  # Python 2
-            total_size = long(0)  # B, note do not use 0L as it will generate a syntax error in Python 3
+            total_size = long(0)  # B, note do not use 0L as it will generate a syntax error in Python 3  # noqa: F821
         except Exception:
             total_size = 0  # B, Python 3
 
@@ -824,7 +824,7 @@ class JobData(BaseData):
         """
 
         try:
-            maxdirsize = long(0)  # Python 2, note do not use 0L as it will generate a syntax error in Python 3
+            maxdirsize = long(0)  # Python 2, note do not use 0L as it will generate a syntax error in Python 3  # noqa: F821
         except Exception:
             maxdirsize = 0  # Python 3
 
