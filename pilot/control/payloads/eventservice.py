@@ -50,7 +50,7 @@ class Executor(generic.Executor):
 
         try:
             executable = user.get_payload_command(job)
-        except exception.PilotException as e:
+        except exception.PilotException:
             logger.fatal('could not define payload command')
             return None
 

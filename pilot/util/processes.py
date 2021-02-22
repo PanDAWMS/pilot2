@@ -138,7 +138,7 @@ def kill_processes(pid):
     status = False
     try:
         pgrp = os.getpgid(pid)
-    except Exception as e:
+    except Exception:
         pgrp = 0
     if pgrp != 0:
         status = kill_process_group(pgrp)

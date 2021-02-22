@@ -175,7 +175,7 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, ext
         user = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
         try:
             final_script_path = user.get_middleware_container_script('', final_script_path, asetup=True)
-        except PilotException as e:
+        except PilotException:
             final_script_path = 'python %s' % final_script_path
         workdir = job.workdir
 

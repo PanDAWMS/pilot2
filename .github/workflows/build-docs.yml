@@ -1,0 +1,43 @@
+name: build-docs-workflow
+on:
+    push:
+       branches:
+            - master
+jobs:
+    build-docs:
+        name: "Build Sphinx docs"
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                python-version: ['3.7']
+        steps:
+            # Checkout the source code
+            - name: Checkout Pilot2 repo
+              uses: actions/checkout@v2
+
+              # - name: Hack me some python
+            #  run: |
+               # Hack to get setup-python to work on act
+               # if [ ! -f "/etc/lsb-release" ] ; then
+               #echo "DISTRIB_RELEASE=18.04" > /etc/lsb-release
+               #fi
+
+            # Install Python2
+            - name: Setup Python2
+              uses: actions/setup-python@v2
+              with:
+                python-version: ${{ matrix.python-version }}
+                architecture: x64
+
+            - name: Pip install
+              run: pip install sphinx
+
+            - name: Check sphinx version
+              run: python -c "import sphinx;print(sphinx.__version__)"
+
+            - name: Create html docs
+              run: cd ./doc && make github
+
+            - name: Commit changes
+              run: git add docs && git commit -m "Adding documentation" && git push origin github-actions
+

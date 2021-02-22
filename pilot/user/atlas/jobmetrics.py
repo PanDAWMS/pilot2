@@ -59,7 +59,7 @@ def get_job_metrics_string(job):
         max_space = job.get_max_workdir_size()
 
         try:
-            zero = long(0)  # Python 2
+            zero = long(0)  # Python 2 # noqa: F821
         except Exception:
             zero = 0  # Python 3
 

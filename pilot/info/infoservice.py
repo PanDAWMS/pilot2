@@ -161,7 +161,7 @@ class InfoService(object):
         """
 
         try:
-            if isinstance(ddmendpoints, basestring):  # Python 2
+            if isinstance(ddmendpoints, basestring):  # Python 2  # noqa: F821
                 ddmendpoints = [ddmendpoints]
         except Exception:
             if isinstance(ddmendpoints, str):  # Python 3

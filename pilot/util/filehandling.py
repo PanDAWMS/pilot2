@@ -256,7 +256,7 @@ def convert(data):
     """
 
     try:
-        _basestring = basestring  # Python 2
+        _basestring = basestring  # Python 2  # noqa: F821
     except Exception:
         _basestring = str  # Python 3 (note order in try statement)
     if isinstance(data, _basestring):
@@ -573,7 +573,7 @@ def add_to_total_size(path, total_size):
         if fsize:
             logger.info("size of file %s: %d B" % (path, fsize))
             try:
-                total_size += long(fsize)  # Python 2
+                total_size += long(fsize)  # Python 2  # noqa: F821
             except Exception:
                 total_size += int(fsize)  # Python 3 (note order in try statement)
     else:
