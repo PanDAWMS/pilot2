@@ -95,7 +95,7 @@ class TestCopytoolMv(unittest.TestCase):
             else:
                 turl = "," + fname
             new_file = open(fname, "wb")
-            new_file.write(str(_data))
+            new_file.write(str(_data).encode('utf-8'))
             new_file.close()
             # add to list
             #self.filelist.append({'name': fname, 'source': self.tmp_src_dir, 'destination': self.tmp_dst_dir})
