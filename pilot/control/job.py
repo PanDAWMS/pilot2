@@ -1263,7 +1263,7 @@ def get_fake_job(input=True):
 
     # create hashes
     hash = hashlib.md5()
-    hash.update(str(time.time()))
+    hash.update(str(time.time()).encode('utf-8'))
     log_guid = hash.hexdigest()
     hash.update(str(time.time()))
     guid = hash.hexdigest()
