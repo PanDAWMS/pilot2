@@ -57,7 +57,7 @@ class TestCopytoolMv(unittest.TestCase):
         """ Create temp files in source dir """
         for i in range(0, self.numfiles):
             # generate random name
-            fname = ''.join(random.choice(string.lowercase) for x in range(20))
+            fname = ''.join(random.choice(string.ascii_lowercase) for x in range(20))
             if infiles == "":
                 infiles = fname
             else:
