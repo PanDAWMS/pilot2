@@ -1250,6 +1250,14 @@ def get_job_definition(args):
     return res
 
 
+def now():
+    """
+    Return the current epoch as a UTF-8 encoded string.
+    :return: current time as encoded string
+    """
+    return str(time.time()).encode('utf-8')
+
+
 def get_fake_job(input=True):
     """
     Return a job definition for internal pilot testing.
@@ -1263,11 +1271,11 @@ def get_fake_job(input=True):
 
     # create hashes
     hash = hashlib.md5()
-    hash.update(str(time.time()))
+    hash.update(now())
     log_guid = hash.hexdigest()
-    hash.update(str(time.time()))
+    hash.update(now())
     guid = hash.hexdigest()
-    hash.update(str(time.time()))
+    hash.update(now())
     job_name = hash.hexdigest()
 
     if config.Pilot.testjobtype == 'production':
