@@ -1255,7 +1255,7 @@ def now():
     Return the current epoch as a UTF-8 encoded string.
     :return: current time as encoded string
     """
-    return str(time.time()).encode('utf-8'))
+    return str(time.time()).encode('utf-8')
 
 
 def get_fake_job(input=True):
