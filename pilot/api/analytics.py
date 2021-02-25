@@ -8,7 +8,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018
 
 from .services import Services
-from pilot.common.exception import NotImplemented, NotDefined, NotSameLength, UnknownException
+from pilot.common.exception import NotDefined, NotSameLength, UnknownException
 from pilot.util.filehandling import get_table_from_file
 from pilot.util.math import mean, sum_square_dev, sum_dev, chi2, float_to_rounded_string
 
@@ -214,7 +214,7 @@ class Fit(object):
         Init function.
 
         :param kwargs:
-        :raises PilotException: NotImplemented for unknown fitting model, NotDefined if input data not defined.
+        :raises PilotException: NotImplementedError for unknown fitting model, NotDefined if input data not defined.
         """
 
         # extract parameters
@@ -238,7 +238,8 @@ class Fit(object):
             self.set_intersect()
             self.set_chi2()
         else:
-            raise NotImplemented("\'%s\' model is not implemented" % self._model)
+            logger.warning("\'%s\' model is not implemented" % self._model)
+            raise NotImplementedError()
 
     def fit(self):
         """

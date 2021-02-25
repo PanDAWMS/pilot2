@@ -150,8 +150,8 @@ class TestHarvesterStageIn(unittest.TestCase):
                 #self.assertIn(_file['errmsg'], ['Data identifier \'no_scope1:no_name1\' not found',
                 #                               'Data identifier \'no_scope2:no_name2\' not found'])
             else:
-                self.assertEqual(file['errno'], 0)
-                self.assertEqual(file['status'], 'done')
+                self.assertEqual(_file['errno'], 0)
+                self.assertEqual(_file['status'], 'done')
 
     def test_stagein_sync_simple(self):
         '''

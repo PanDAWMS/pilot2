@@ -439,7 +439,7 @@ class Executor(object):
         breaker = False
         exit_code = None
         try:
-            iteration = long(0)  # Python 2, do not use 0L since it will create a syntax error in spite of the try
+            iteration = long(0)  # Python 2, do not use 0L since it will create a syntax error in spite of the try # noqa: F821
         except Exception:
             iteration = 0  # Python 3, long doesn't exist
         while True:
@@ -577,10 +577,21 @@ class Executor(object):
                 cmd = cmd.replace(jobparams_pre, jobparams_post)
 
             # now run the main payload, when it finishes, run the postprocess (if necessary)
-            proc = self.run_payload(self.__job, cmd, self.__out, self.__err)
+            # note: no need to run any main payload in HPO Horovod jobs on Kubernetes
+            if os.environ.get('HARVESTER_HOROVOD', '') == '':
+                proc = self.run_payload(self.__job, cmd, self.__out, self.__err)
+            else:
+                proc = None
+
             proc_co = None
             if proc is None:
-                break
+                # run the post-process command even if there was no main payload
+                if os.environ.get('HARVESTER_HOROVOD', '') != '':
+                    logger.info('No need to execute any main payload')
+                    exit_code = self.run_utility_after_payload_finished()
+                    self.post_payload(self.__job)
+                else:
+                    break
             else:
                 # the process is now running, update the server
                 send_state(self.__job, self.__args, self.__job.state)
@@ -602,7 +613,16 @@ class Executor(object):
 
                 logger.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
-                state = 'finished' if exit_code == 0 else 'failed'
+                # reset error if Raythena decided to kill payload (no error)
+                if errors.KILLPAYLOAD in self.__job.piloterrorcodes:
+                    logger.debug('ignoring KILLPAYLOAD error')
+                    self.__job.piloterrorcodes, self.__job.piloterrordiags = errors.remove_error_code(errors.KILLPAYLOAD,
+                                                                                                      pilot_error_codes=self.__job.piloterrorcodes,
+                                                                                                      pilot_error_diags=self.__job.piloterrordiags)
+                    exit_code = 0
+                    state = 'finished'
+                else:
+                    state = 'finished' if exit_code == 0 else 'failed'
                 set_pilot_state(job=self.__job, state=state)
                 logger.info('\n\nfinished pid=%s exit_code=%s state=%s\n' % (proc.pid, exit_code, self.__job.state))
                 show_memory_usage()
@@ -617,15 +637,7 @@ class Executor(object):
                     exit_code = -1
 
                 if state != 'failed':
-                    try:
-                        cmd_after_payload = self.utility_after_payload_finished(self.__job)
-                    except Exception as e:
-                        logger.error(e)
-                    else:
-                        if cmd_after_payload:
-                            cmd_after_payload = self.__job.setup + cmd_after_payload
-                            logger.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
-                            exit_code = self.execute_utility_command(cmd_after_payload, self.__job, 'postprocess')
+                    exit_code = self.run_utility_after_payload_finished()
 
                 self.post_payload(self.__job)
 
@@ -639,6 +651,26 @@ class Executor(object):
                 iteration += 1
             else:
                 break
+
+        return exit_code
+
+    def run_utility_after_payload_finished(self):
+        """
+        Run utility command after the main payload has finished.
+
+        :return: exit code (int).
+        """
+
+        exit_code = 0
+        try:
+            cmd_after_payload = self.utility_after_payload_finished(self.__job)
+        except Exception as e:
+            logger.error(e)
+        else:
+            if cmd_after_payload:
+                cmd_after_payload = self.__job.setup + cmd_after_payload
+                logger.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
+                exit_code = self.execute_utility_command(cmd_after_payload, self.__job, 'postprocess')
 
         return exit_code
 

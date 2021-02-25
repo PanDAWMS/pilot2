@@ -105,5 +105,11 @@ def set_core_counts(job):
         else:
             job.corecounts = add_core_count(job.actualcorecount)  #, core_counts=job.corecounts)
             #logger.debug('current core counts list: %s' % str(job.corecounts))
+            # check suspicious values
+            #if job.actualcorecount > 5:
+            #    logger.warning('detected large actualcorecount: %d' % job.actualcorecount)
+            #    cmd = "ps axo pgid,stat,euid,ruid,tty,tpgid,sess,pgrp,ppid,pid,pcpu,comm | sort | uniq | grep %d" % job.pgrp
+            #    exit_code, stdout, stderr = execute(cmd, mute=True)
+            #    logger.debug('%s (pgrp=%d): %s' % (cmd, job.pgrp, stdout))
     else:
         logger.debug('payload process group not set - cannot check number of cores used by payload')

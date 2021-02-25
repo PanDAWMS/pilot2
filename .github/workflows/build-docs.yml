@@ -1,0 +1,42 @@
+name: build-docs-workflow
+on:
+    push:
+       branches:
+            - master
+jobs:
+    build-docs:
+        name: "Build Sphinx docs"
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                python-version: ['3.7']
+        steps:
+            - name: Checkout Pilot2 repo
+              uses: actions/checkout@v2
+
+            - name: Setup Python
+              uses: actions/setup-python@v2
+              with:
+                python-version: ${{ matrix.python-version }}
+                architecture: x64
+
+            - name: Pip install
+              run: pip install sphinx
+
+            - name: Check sphinx version
+              run: python -c "import sphinx;print(sphinx.__version__)"
+
+            - name: Create html docs
+              run: |
+                  cd ./doc
+                  make github 
+                  cd ..
+
+            - name: Push docs to repo
+              run: |
+                  git config user.name "brinick"
+                  git config user.email "brinick@users.noreply.github.com"
+                  git add docs
+                  git commit -m "Adding documentation"
+                  git push 
+

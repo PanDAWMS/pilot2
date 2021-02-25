@@ -57,7 +57,7 @@ class TestCopytoolMv(unittest.TestCase):
         """ Create temp files in source dir """
         for i in range(0, self.numfiles):
             # generate random name
-            fname = ''.join(random.choice(string.lowercase) for x in range(20))
+            fname = ''.join(random.choice(string.ascii_lowercase) for x in range(20))
             if infiles == "":
                 infiles = fname
             else:
@@ -95,7 +95,7 @@ class TestCopytoolMv(unittest.TestCase):
             else:
                 turl = "," + fname
             new_file = open(fname, "wb")
-            new_file.write(str(_data))
+            new_file.write(str(_data).encode('utf-8'))
             new_file.close()
             # add to list
             #self.filelist.append({'name': fname, 'source': self.tmp_src_dir, 'destination': self.tmp_dst_dir})
