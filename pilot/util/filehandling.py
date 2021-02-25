@@ -22,8 +22,7 @@ from shutil import copy2, rmtree
 import sys
 from zlib import adler32
 
-from pilot.common.exception import ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile, \
-    NotImplemented
+from pilot.common.exception import ConversionFailure, FileHandlingFailure, MKDirFailure, NoSuchFile
 from pilot.util.config import config
 #from pilot.util.mpi import get_ranks_info
 from .container import execute
@@ -257,7 +256,7 @@ def convert(data):
     """
 
     try:
-        _basestring = basestring  # Python 2
+        _basestring = basestring  # Python 2  # noqa: F821
     except Exception:
         _basestring = str  # Python 3 (note order in try statement)
     if isinstance(data, _basestring):
@@ -574,7 +573,7 @@ def add_to_total_size(path, total_size):
         if fsize:
             logger.info("size of file %s: %d B" % (path, fsize))
             try:
-                total_size += long(fsize)  # Python 2
+                total_size += long(fsize)  # Python 2  # noqa: F821
             except Exception:
                 total_size += int(fsize)  # Python 3 (note order in try statement)
     else:
@@ -717,7 +716,7 @@ def calculate_checksum(filename, algorithm='adler32'):
 
     :param filename: file name (string).
     :param algorithm: optional algorithm string.
-    :raises FileHandlingFailure, NotImplemented: exception raised when file does not exist or for unknown algorithm.
+    :raises FileHandlingFailure, NotImplementedError: exception raised when file does not exist or for unknown algorithm.
     :return: checksum value (string).
     """
 
@@ -731,7 +730,7 @@ def calculate_checksum(filename, algorithm='adler32'):
     else:
         msg = 'unknown checksum algorithm: %s' % algorithm
         logger.warning(msg)
-        raise NotImplemented(msg)
+        raise NotImplementedError()
 
 
 def calculate_adler32_checksum(filename):

@@ -226,7 +226,7 @@ class GenericExecutor(BaseExecutor):
                     logger.info('Failover ES storage is not defined for activity=%s .. skipped' % failover_storage_activity)
                 else:
                     logger.error('Transfer to failover storage=%s failed .. skipped, error=%s' % (xdata2[0].ddmendpoint, e.get_detail()))
-            except Exception as e:
+            except Exception:
                 logger.error('Failover ES stageout failed .. skipped')
                 logger.error(traceback.format_exc())
 
@@ -325,7 +325,7 @@ class GenericExecutor(BaseExecutor):
             logger.info('ESProcess started to run')
 
             try:
-                iteration = long(0)  # Python 2
+                iteration = long(0)  # Python 2 # noqa: F821
             except Exception:
                 iteration = 0  # Python 3
             while proc.is_alive():

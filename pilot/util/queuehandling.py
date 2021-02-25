@@ -145,3 +145,20 @@ def put_in_queue(obj, queue):
         obj.add_size(obj.get_size())
 
     queue.put(obj)
+
+
+def purge_queue(queue):
+    """
+    Empty given queue.
+
+    :param queue:
+    :return:
+    """
+
+    while not queue.empty():
+        try:
+            queue.get(False)
+        except queue.Empty:
+            continue
+        queue.task_done()
+    logger.debug('queue purged')

@@ -84,7 +84,7 @@ def do_use_container(**kwargs):
     copytool = kwargs.get('copytool', False)
     if job:
         # for user jobs, TRF option --containerImage must have been used, ie imagename must be set
-        if job.imagename and job.imagename is not 'NULL':
+        if job.imagename and job.imagename != 'NULL':
             use_container = True
             logger.debug('job.imagename set -> use_container = True')
         elif not (job.platform or job.alrbuserplatform):

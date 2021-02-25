@@ -31,7 +31,7 @@ class MonitoringTime(object):
         self.ct_memory = ct
         self.ct_process = ct
         self.ct_heartbeat = ct
-        # add more here
+        self.ct_kill = ct
 
     def update(self, key, modtime=None):
         """

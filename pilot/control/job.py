@@ -47,9 +47,9 @@ from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.math import mean
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
-from pilot.util.processes import cleanup, threads_aborted
+from pilot.util.processes import cleanup, threads_aborted, kill_processes
 from pilot.util.proxy import get_distinguished_name
-from pilot.util.queuehandling import scan_for_jobs, put_in_queue, queue_report
+from pilot.util.queuehandling import scan_for_jobs, put_in_queue, queue_report, purge_queue
 from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since, time_stamp
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, get_cpu_model
 
@@ -1250,6 +1250,14 @@ def get_job_definition(args):
     return res
 
 
+def now():
+    """
+    Return the current epoch as a UTF-8 encoded string.
+    :return: current time as encoded string
+    """
+    return str(time.time()).encode('utf-8')
+
+
 def get_fake_job(input=True):
     """
     Return a job definition for internal pilot testing.
@@ -1263,11 +1271,11 @@ def get_fake_job(input=True):
 
     # create hashes
     hash = hashlib.md5()
-    hash.update(str(time.time()))
+    hash.update(now())
     log_guid = hash.hexdigest()
-    hash.update(str(time.time()))
+    hash.update(now())
     guid = hash.hexdigest()
-    hash.update(str(time.time()))
+    hash.update(now())
     job_name = hash.hexdigest()
 
     if config.Pilot.testjobtype == 'production':
@@ -1530,6 +1538,9 @@ def retrieve(queues, traces, args):  # noqa: C901
                     if has_job_completed(queues, args):
                         #import signal
                         #os.kill(os.getpid(), signal.SIGTERM)
+
+                        # purge queue(s) that retains job object
+                        purge_queue(queues.finished_data_in)
 
                         args.job_aborted.clear()
                         args.abort_job.clear()
@@ -2114,10 +2125,15 @@ def job_monitor(queues, traces, args):  # noqa: C901
                 # perform the monitoring tasks
                 exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
                 if exit_code != 0:
-                    try:
-                        fail_monitored_job(jobs[i], exit_code, diagnostics, queues, traces)
-                    except Exception as e:
-                        logger.warning('(1) exception caught: %s (job id=%s)' % (e, current_id))
+                    if exit_code == errors.KILLPAYLOAD:
+                        jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
+                        logger.debug('killing payload processes')
+                        kill_processes(jobs[i].pid)
+                    else:
+                        try:
+                            fail_monitored_job(jobs[i], exit_code, diagnostics, queues, traces)
+                        except Exception as e:
+                            logger.warning('(1) exception caught: %s (job id=%s)' % (e, current_id))
                     break
 
                 # run this check again in case job_monitor_tasks() takes a long time to finish (and the job object

@@ -154,4 +154,4 @@ class BaseExecutor(threading.Thread, PluginFactory):
         """
         Main run process
         """
-        raise NotImplemented()
+        raise NotImplementedError()

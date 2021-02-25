@@ -145,6 +145,7 @@ class ErrorCodes:
     IMAGENOTFOUND = 1360
     REMOTEFILECOULDNOTBEOPENED = 1361
     XRDCPERROR = 1362
+    KILLPAYLOAD = 1363  # note, not a failure but a kill instruction from Raythena
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -268,7 +269,8 @@ class ErrorCodes:
         PANDAQUEUENOTACTIVE: "PanDA queue is not active",
         IMAGENOTFOUND: "Image not found",
         REMOTEFILECOULDNOTBEOPENED: "Remote file could not be opened",
-        XRDCPERROR: "Xrdcp was unable to open file"
+        XRDCPERROR: "Xrdcp was unable to open file",
+        KILLPAYLOAD: "Raythena has decided to kill payload"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
@@ -329,6 +331,27 @@ class ErrorCodes:
             else:
                 pilot_error_codes.append(errorcode)
                 pilot_error_diags.append(error_msg)
+
+        return pilot_error_codes, pilot_error_diags
+
+    def remove_error_code(self, errorcode, pilot_error_codes=[], pilot_error_diags=[]):
+        """
+        Silently remove an error code and its diagnostics from the internal error lists.
+        There is no warning or exception thrown in case the error code is not present in the lists.
+
+        :param errorcode: error code (int).
+        :return: pilot_error_codes, pilot_error_diags
+        """
+
+        if errorcode in pilot_error_codes:
+            try:
+                index = pilot_error_codes.index(errorcode)
+            except ValueError:
+                pass
+            else:
+                # remove the entries in pilot_error_codes and pilot_error_diags
+                pilot_error_codes.pop(index)
+                pilot_error_diags.pop(index)
 
         return pilot_error_codes, pilot_error_diags
 
