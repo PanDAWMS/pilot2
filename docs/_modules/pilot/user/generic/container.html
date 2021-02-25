@@ -1,0 +1,144 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.user.generic.container &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.user.generic.container</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018</span>
+
+<span class="c1"># import logging</span>
+<span class="c1"># logger = logging.getLogger(__name__)</span>
+
+
+<div class="viewcode-block" id="do_use_container"><a class="viewcode-back" href="../../../../components/user/generic/container.html#pilot.user.generic.container.do_use_container">[docs]</a><span class="k">def</span> <span class="nf">do_use_container</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Decide whether to use a container or not.</span>
+
+<span class="sd">    :param kwargs: dictionary of key-word arguments.</span>
+<span class="sd">    :return: True is function has decided that a container should be used, False otherwise (boolean).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="wrapper"><a class="viewcode-back" href="../../../../components/user/generic/container.html#pilot.user.generic.container.wrapper">[docs]</a><span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">executable</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper function for any container specific usage.</span>
+<span class="sd">    This function will be called by pilot.util.container.execute() and prepends the executable with a container command.</span>
+
+<span class="sd">    :param executable: command to be executed (string).</span>
+<span class="sd">    :param kwargs: dictionary of key-word arguments.</span>
+<span class="sd">    :return: executable wrapped with container command (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">executable</span></div>
+
+
+<div class="viewcode-block" id="create_stagein_container_command"><a class="viewcode-back" href="../../../../components/user/generic/container.html#pilot.user.generic.container.create_stagein_container_command">[docs]</a><span class="k">def</span> <span class="nf">create_stagein_container_command</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">cmd</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create the stage-in container command.</span>
+
+<span class="sd">    The function takes the isolated stage-in command, adds bits and pieces needed for the containerisation and stores</span>
+<span class="sd">    it in a stagein.sh script file. It then generates the actual command that will execute the stage-in script in a</span>
+<span class="sd">    container.</span>
+
+<span class="sd">    :param workdir: working directory where script will be stored (string).</span>
+<span class="sd">    :param cmd: isolated stage-in command (string).</span>
+<span class="sd">    :return: container command to be executed (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">cmd</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

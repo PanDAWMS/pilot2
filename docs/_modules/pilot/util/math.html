@@ -1,0 +1,425 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.util.math &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.util.math</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018-2020</span>
+
+<span class="kn">from</span> <span class="nn">pilot.common.exception</span> <span class="kn">import</span> <span class="n">NotDefined</span>
+
+<span class="kn">from</span> <span class="nn">decimal</span> <span class="kn">import</span> <span class="n">Decimal</span>
+<span class="kn">from</span> <span class="nn">re</span> <span class="kn">import</span> <span class="n">split</span><span class="p">,</span> <span class="n">sub</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">SYMBOLS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;customary&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="s1">&#39;K&#39;</span><span class="p">,</span> <span class="s1">&#39;M&#39;</span><span class="p">,</span> <span class="s1">&#39;G&#39;</span><span class="p">,</span> <span class="s1">&#39;T&#39;</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;Z&#39;</span><span class="p">,</span> <span class="s1">&#39;Y&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;customary_ext&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;byte&#39;</span><span class="p">,</span> <span class="s1">&#39;kilo&#39;</span><span class="p">,</span> <span class="s1">&#39;mega&#39;</span><span class="p">,</span> <span class="s1">&#39;giga&#39;</span><span class="p">,</span> <span class="s1">&#39;tera&#39;</span><span class="p">,</span> <span class="s1">&#39;peta&#39;</span><span class="p">,</span> <span class="s1">&#39;exa&#39;</span><span class="p">,</span> <span class="s1">&#39;zetta&#39;</span><span class="p">,</span> <span class="s1">&#39;iotta&#39;</span><span class="p">),</span>
+
+    <span class="s1">&#39;iec&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;Bi&#39;</span><span class="p">,</span> <span class="s1">&#39;Ki&#39;</span><span class="p">,</span> <span class="s1">&#39;Mi&#39;</span><span class="p">,</span> <span class="s1">&#39;Gi&#39;</span><span class="p">,</span> <span class="s1">&#39;Ti&#39;</span><span class="p">,</span> <span class="s1">&#39;Pi&#39;</span><span class="p">,</span> <span class="s1">&#39;Ei&#39;</span><span class="p">,</span> <span class="s1">&#39;Zi&#39;</span><span class="p">,</span> <span class="s1">&#39;Yi&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;iec_ext&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;byte&#39;</span><span class="p">,</span> <span class="s1">&#39;kibi&#39;</span><span class="p">,</span> <span class="s1">&#39;mebi&#39;</span><span class="p">,</span> <span class="s1">&#39;gibi&#39;</span><span class="p">,</span> <span class="s1">&#39;tebi&#39;</span><span class="p">,</span> <span class="s1">&#39;pebi&#39;</span><span class="p">,</span> <span class="s1">&#39;exbi&#39;</span><span class="p">,</span> <span class="s1">&#39;zebi&#39;</span><span class="p">,</span> <span class="s1">&#39;yobi&#39;</span><span class="p">),</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="mean"><a class="viewcode-back" href="../../../components/util/math.html#pilot.util.math.mean">[docs]</a><span class="k">def</span> <span class="nf">mean</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the sample arithmetic mean of data.</span>
+
+<span class="sd">    :param data: list of floats or ints.</span>
+<span class="sd">    :return: mean value (float).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;mean requires at least one data point&#39;</span><span class="p">)</span>
+
+    <span class="c1"># return sum(data)/n # in Python 2 use sum(data)/float(n)</span>
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">n</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="sum_square_dev"><a class="viewcode-back" href="../../../components/util/math.html#pilot.util.math.sum_square_dev">[docs]</a><span class="k">def</span> <span class="nf">sum_square_dev</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return sum of square deviations of sequence data.</span>
+<span class="sd">    Sum (x - x_mean)**2</span>
+
+<span class="sd">    :param data: list of floats or ints.</span>
+<span class="sd">    :return: sum of squares (float).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">c</span> <span class="o">=</span> <span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">c</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="sum_dev"><a class="viewcode-back" href="../../../components/util/math.html#pilot.util.math.sum_dev">[docs]</a><span class="k">def</span> <span class="nf">sum_dev</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return sum of deviations of sequence data.</span>
+<span class="sd">    Sum (x - x_mean)**(y - y_mean)</span>
+
+<span class="sd">    :param x: list of ints or floats.</span>
+<span class="sd">    :param y:  list of ints or floats.</span>
+<span class="sd">    :return: sum of deviations (float).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">c1</span> <span class="o">=</span> <span class="n">mean</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">c2</span> <span class="o">=</span> <span class="n">mean</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">((</span><span class="n">_x</span> <span class="o">-</span> <span class="n">c1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">_y</span> <span class="o">-</span> <span class="n">c2</span><span class="p">)</span> <span class="k">for</span> <span class="n">_x</span><span class="p">,</span> <span class="n">_y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="chi2"><a class="viewcode-back" href="../../../components/util/math.html#pilot.util.math.chi2">[docs]</a><span class="k">def</span> <span class="nf">chi2</span><span class="p">(</span><span class="n">observed</span><span class="p">,</span> <span class="n">expected</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the chi2 sum of the provided observed and expected values.</span>
+
+<span class="sd">    :param observed: list of floats.</span>
+<span class="sd">    :param expected: list of floats.</span>
+<span class="sd">    :return: chi2 (float).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="mi">0</span> <span class="ow">in</span> <span class="n">expected</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">0.0</span>
+
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">((</span><span class="n">_o</span> <span class="o">-</span> <span class="n">_e</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">_e</span> <span class="k">for</span> <span class="n">_o</span><span class="p">,</span> <span class="n">_e</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">observed</span><span class="p">,</span> <span class="n">expected</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="float_to_rounded_string"><a class="viewcode-back" href="../../../components/util/math.html#pilot.util.math.float_to_rounded_string">[docs]</a><span class="k">def</span> <span class="nf">float_to_rounded_string</span><span class="p">(</span><span class="n">num</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert float to a string with a desired number of digits (the precision).</span>
+<span class="sd">    E.g. num=3.1415, precision=2 -&gt; &#39;3.14&#39;.</span>
+
+<span class="sd">    :param num: number to be converted (float).</span>
+<span class="sd">    :param precision: number of desired digits (int)</span>
+<span class="sd">    :raises NotDefined: for undefined precisions and float conversions to Decimal.</span>
+<span class="sd">    :return: rounded string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">_precision</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span> <span class="o">**</span> <span class="o">-</span><span class="n">precision</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">NotDefined</span><span class="p">(</span><span class="s1">&#39;failed to define precision=</span><span class="si">%s</span><span class="s1">: </span><span class="si">%e</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">precision</span><span class="p">),</span> <span class="n">e</span><span class="p">))</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">num</span><span class="p">))</span><span class="o">.</span><span class="n">quantize</span><span class="p">(</span><span class="n">_precision</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">NotDefined</span><span class="p">(</span><span class="s1">&#39;failed to convert </span><span class="si">%s</span><span class="s1"> to Decimal: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">num</span><span class="p">),</span> <span class="n">e</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="tryint"><a class="viewcode-back" href="../../../components/util/math.html#pilot.util.math.tryint">[docs]</a><span class="k">def</span> <span class="nf">tryint</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Used by numbered string comparison (to protect against unexpected letters in version number).</span>
+
+<span class="sd">    :param x: possible int.</span>
+<span class="sd">    :return: converted int or original value in case of ValueError.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">x</span></div>
+
+
+<div class="viewcode-block" id="split_version"><a class="viewcode-back" href="../../../components/util/math.html#pilot.util.math.split_version">[docs]</a><span class="k">def</span> <span class="nf">split_version</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Split version string into parts and convert the parts into integers when possible.</span>
+<span class="sd">    Any encountered strings are left as they are.</span>
+<span class="sd">    The function is used with release strings.</span>
+<span class="sd">    split_version(&quot;1.2.3&quot;) = (1,2,3)</span>
+<span class="sd">    split_version(&quot;1.2.Nightly&quot;) = (1,2,&quot;Nightly&quot;)</span>
+
+<span class="sd">    The function can also be used for sorting:</span>
+<span class="sd">    &gt; names = [&#39;YT4.11&#39;, &#39;4.3&#39;, &#39;YT4.2&#39;, &#39;4.10&#39;, &#39;PT2.19&#39;, &#39;PT2.9&#39;]</span>
+<span class="sd">    &gt; sorted(names, key=splittedname)</span>
+<span class="sd">    [&#39;4.3&#39;, &#39;4.10&#39;, &#39;PT2.9&#39;, &#39;PT2.19&#39;, &#39;YT4.2&#39;, &#39;YT4.11&#39;]</span>
+
+<span class="sd">    :param s: release string.</span>
+<span class="sd">    :return: converted release tuple.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">tryint</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">split</span><span class="p">(</span><span class="s1">&#39;([^.]+)&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="is_greater_or_equal"><a class="viewcode-back" href="../../../components/util/math.html#pilot.util.math.is_greater_or_equal">[docs]</a><span class="k">def</span> <span class="nf">is_greater_or_equal</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Is the numbered string a &gt;= b?</span>
+<span class="sd">    &quot;1.2.3&quot; &gt; &quot;1.2&quot;  -- more digits</span>
+<span class="sd">    &quot;1.2.3&quot; &gt; &quot;1.2.2&quot;  -- rank based comparison</span>
+<span class="sd">    &quot;1.3.2&quot; &gt; &quot;1.2.3&quot;  -- rank based comparison</span>
+<span class="sd">    &quot;1.2.N&quot; &gt; &quot;1.2.2&quot;  -- nightlies checker, always greater</span>
+
+<span class="sd">    :param a: numbered string.</span>
+<span class="sd">    :param b: numbered string.</span>
+<span class="sd">    :return: boolean.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">split_version</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">split_version</span><span class="p">(</span><span class="n">b</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="add_lists"><a class="viewcode-back" href="../../../components/util/math.html#pilot.util.math.add_lists">[docs]</a><span class="k">def</span> <span class="nf">add_lists</span><span class="p">(</span><span class="n">list1</span><span class="p">,</span> <span class="n">list2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add list1 and list2 and remove any duplicates.</span>
+<span class="sd">    Example:</span>
+<span class="sd">    list1=[1,2,3,4]</span>
+<span class="sd">    list2=[3,4,5,6]</span>
+<span class="sd">    add_lists(list1, list2) = [1, 2, 3, 4, 5, 6]</span>
+
+<span class="sd">    :param list1: input list 1</span>
+<span class="sd">    :param list2: input list 2</span>
+<span class="sd">    :return: added lists with removed duplicates</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">list1</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">list2</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">list1</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="convert_mb_to_b"><a class="viewcode-back" href="../../../components/util/math.html#pilot.util.math.convert_mb_to_b">[docs]</a><span class="k">def</span> <span class="nf">convert_mb_to_b</span><span class="p">(</span><span class="n">size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert value from MB to B for the given size variable.</span>
+<span class="sd">    If the size is a float, the function will convert it to int.</span>
+
+<span class="sd">    :param size: size in MB (float or int).</span>
+<span class="sd">    :return: size in B (int).</span>
+<span class="sd">    :raises: ValueError for conversion error.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;cannot convert </span><span class="si">%s</span><span class="s1"> to int: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">size</span><span class="p">),</span> <span class="n">e</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">size</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">**</span> <span class="mi">2</span></div>
+
+
+<div class="viewcode-block" id="diff_lists"><a class="viewcode-back" href="../../../components/util/math.html#pilot.util.math.diff_lists">[docs]</a><span class="k">def</span> <span class="nf">diff_lists</span><span class="p">(</span><span class="n">list_a</span><span class="p">,</span> <span class="n">list_b</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the difference between list_a and list_b.</span>
+
+<span class="sd">    :param list_a: input list a.</span>
+<span class="sd">    :param list_b: input list b.</span>
+<span class="sd">    :return: difference (list).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">list_a</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">list_b</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="bytes2human"><a class="viewcode-back" href="../../../components/util/math.html#pilot.util.math.bytes2human">[docs]</a><span class="k">def</span> <span class="nf">bytes2human</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">_format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(value).1f</span><span class="s1"> </span><span class="si">%(symbol)s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">symbols</span><span class="o">=</span><span class="s1">&#39;customary&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert n bytes into a human readable string based on format.</span>
+<span class="sd">    symbols can be either &quot;customary&quot;, &quot;customary_ext&quot;, &quot;iec&quot; or &quot;iec_ext&quot;,</span>
+<span class="sd">    see: http://goo.gl/kTQMs</span>
+
+<span class="sd">      &gt;&gt;&gt; bytes2human(0)</span>
+<span class="sd">      &#39;0.0 B&#39;</span>
+<span class="sd">      &gt;&gt;&gt; bytes2human(0.9)</span>
+<span class="sd">      &#39;0.0 B&#39;</span>
+<span class="sd">      &gt;&gt;&gt; bytes2human(1)</span>
+<span class="sd">      &#39;1.0 B&#39;</span>
+<span class="sd">      &gt;&gt;&gt; bytes2human(1.9)</span>
+<span class="sd">      &#39;1.0 B&#39;</span>
+<span class="sd">      &gt;&gt;&gt; bytes2human(1024)</span>
+<span class="sd">      &#39;1.0 K&#39;</span>
+<span class="sd">      &gt;&gt;&gt; bytes2human(1048576)</span>
+<span class="sd">      &#39;1.0 M&#39;</span>
+<span class="sd">      &gt;&gt;&gt; bytes2human(1099511627776127398123789121)</span>
+<span class="sd">      &#39;909.5 Y&#39;</span>
+
+<span class="sd">      &gt;&gt;&gt; bytes2human(9856, symbols=&quot;customary&quot;)</span>
+<span class="sd">      &#39;9.6 K&#39;</span>
+<span class="sd">      &gt;&gt;&gt; bytes2human(9856, symbols=&quot;customary_ext&quot;)</span>
+<span class="sd">      &#39;9.6 kilo&#39;</span>
+<span class="sd">      &gt;&gt;&gt; bytes2human(9856, symbols=&quot;iec&quot;)</span>
+<span class="sd">      &#39;9.6 Ki&#39;</span>
+<span class="sd">      &gt;&gt;&gt; bytes2human(9856, symbols=&quot;iec_ext&quot;)</span>
+<span class="sd">      &#39;9.6 kibi&#39;</span>
+
+<span class="sd">      &gt;&gt;&gt; bytes2human(10000, &quot;%(value).1f %(symbol)s/sec&quot;)</span>
+<span class="sd">      &#39;9.8 K/sec&#39;</span>
+
+<span class="sd">      &gt;&gt;&gt; # precision can be adjusted by playing with %f operator</span>
+<span class="sd">      &gt;&gt;&gt; bytes2human(10000, _format=&quot;%(value).5f %(symbol)s&quot;)</span>
+<span class="sd">      &#39;9.76562 K&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;n &lt; 0&quot;</span><span class="p">)</span>
+    <span class="n">symbols</span> <span class="o">=</span> <span class="n">SYMBOLS</span><span class="p">[</span><span class="n">symbols</span><span class="p">]</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">symbols</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+        <span class="n">prefix</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">10</span>
+    <span class="k">for</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">symbols</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;=</span> <span class="n">prefix</span><span class="p">[</span><span class="n">symbol</span><span class="p">]:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">/</span> <span class="n">prefix</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">_format</span> <span class="o">%</span> <span class="nb">locals</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">_format</span> <span class="o">%</span> <span class="nb">dict</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">value</span><span class="o">=</span><span class="n">n</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="human2bytes"><a class="viewcode-back" href="../../../components/util/math.html#pilot.util.math.human2bytes">[docs]</a><span class="k">def</span> <span class="nf">human2bytes</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">divider</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Attempts to guess the string format based on default symbols</span>
+<span class="sd">    set and return the corresponding bytes as an integer.</span>
+<span class="sd">    When unable to recognize the format ValueError is raised.</span>
+
+<span class="sd">    If no digit passed, only a letter, it is interpreted as a one of a kind. Eg &quot;KB&quot; = &quot;1 KB&quot;.</span>
+<span class="sd">    If no letter passed, it is assumed to be in bytes. Eg &quot;512&quot; = &quot;512 B&quot;</span>
+
+<span class="sd">    The second argument is used to convert to another magnitude (eg return not bytes but KB).</span>
+<span class="sd">    It can be interpreted as a cluster size. Eg &quot;512 B&quot;, or &quot;0.2 K&quot;.</span>
+
+<span class="sd">      &gt;&gt;&gt; human2bytes(&#39;0 B&#39;)</span>
+<span class="sd">      0</span>
+<span class="sd">      &gt;&gt;&gt; human2bytes(&#39;3&#39;)</span>
+<span class="sd">      3</span>
+<span class="sd">      &gt;&gt;&gt; human2bytes(&#39;K&#39;)</span>
+<span class="sd">      1024</span>
+<span class="sd">      &gt;&gt;&gt; human2bytes(&#39;1 K&#39;)</span>
+<span class="sd">      1024</span>
+<span class="sd">      &gt;&gt;&gt; human2bytes(&#39;1 M&#39;)</span>
+<span class="sd">      1048576</span>
+<span class="sd">      &gt;&gt;&gt; human2bytes(&#39;1 Gi&#39;)</span>
+<span class="sd">      1073741824</span>
+<span class="sd">      &gt;&gt;&gt; human2bytes(&#39;1 tera&#39;)</span>
+<span class="sd">      1099511627776</span>
+
+<span class="sd">      &gt;&gt;&gt; human2bytes(&#39;0.5kilo&#39;)</span>
+<span class="sd">      512</span>
+<span class="sd">      &gt;&gt;&gt; human2bytes(&#39;0.1  byte&#39;)</span>
+<span class="sd">      0</span>
+<span class="sd">      &gt;&gt;&gt; human2bytes(&#39;1 k&#39;)  # k is an alias for K</span>
+<span class="sd">      1024</span>
+<span class="sd">      &gt;&gt;&gt; human2bytes(&#39;12 foo&#39;)</span>
+<span class="sd">      Traceback (most recent call last):</span>
+<span class="sd">          ...</span>
+<span class="sd">      ValueError: can&#39;t interpret &#39;12 foo&#39;</span>
+
+<span class="sd">      &gt;&gt;&gt; human2bytes(&#39;1 M&#39;, &#39;K&#39;)</span>
+<span class="sd">      1024</span>
+<span class="sd">      &gt;&gt;&gt; human2bytes(&#39;2 G&#39;, &#39;M&#39;)</span>
+<span class="sd">      2048</span>
+<span class="sd">      &gt;&gt;&gt; human2bytes(&#39;G&#39;, &#39;2M&#39;)</span>
+<span class="sd">      512</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">init</span> <span class="o">=</span> <span class="n">s</span>
+    <span class="n">num</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">while</span> <span class="n">s</span> <span class="ow">and</span> <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="ow">or</span> <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;.&#39;</span><span class="p">:</span>
+        <span class="n">num</span> <span class="o">+=</span> <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">num</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">num</span> <span class="o">=</span> <span class="s2">&quot;1&quot;</span>
+    <span class="n">num</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
+    <span class="n">letter</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">letter</span> <span class="o">=</span> <span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(?i)(?&lt;=.)(bi?|bytes?)$&#39;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">letter</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">letter</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">letter</span> <span class="o">=</span> <span class="s2">&quot;B&quot;</span>
+
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">sset</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">SYMBOLS</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="n">letter</span> <span class="ow">in</span> <span class="n">sset</span><span class="p">:</span>
+            <span class="k">break</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">letter</span> <span class="o">==</span> <span class="s1">&#39;k&#39;</span><span class="p">:</span>
+            <span class="c1"># treat &#39;k&#39; as an alias for &#39;K&#39; as per: http://goo.gl/kTQMs</span>
+            <span class="n">sset</span> <span class="o">=</span> <span class="n">SYMBOLS</span><span class="p">[</span><span class="s1">&#39;customary&#39;</span><span class="p">]</span>
+            <span class="n">letter</span> <span class="o">=</span> <span class="n">letter</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;can&#39;t interpret </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">init</span><span class="p">)</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="p">{</span><span class="n">sset</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span> <span class="mi">1</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sset</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+        <span class="n">prefix</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">10</span>
+
+    <span class="n">div</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">divider</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">human2bytes</span><span class="p">(</span><span class="n">divider</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">num</span> <span class="o">*</span> <span class="n">prefix</span><span class="p">[</span><span class="n">letter</span><span class="p">]</span> <span class="o">/</span> <span class="n">div</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

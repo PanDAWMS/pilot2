@@ -1,0 +1,355 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.control.monitor &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.control.monitor</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Daniel Drizhuk, d.drizhuk@gmail.com, 2017</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019</span>
+
+<span class="c1"># NOTE: this module should deal with non-job related monitoring, such as thread monitoring. Job monitoring is</span>
+<span class="c1">#       a task for the job_monitor thread in the Job component.</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">environ</span><span class="p">,</span> <span class="n">getpid</span><span class="p">,</span> <span class="n">getuid</span>
+<span class="kn">from</span> <span class="nn">subprocess</span> <span class="kn">import</span> <span class="n">Popen</span><span class="p">,</span> <span class="n">PIPE</span>
+
+<span class="kn">from</span> <span class="nn">pilot.common.exception</span> <span class="kn">import</span> <span class="n">PilotException</span><span class="p">,</span> <span class="n">ExceededMaxWaitTime</span>
+<span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">check_for_final_server_update</span>
+<span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="n">MAX_KILL_WAIT_TIME</span>
+<span class="c1"># from pilot.util.container import execute</span>
+<span class="kn">from</span> <span class="nn">pilot.util.queuehandling</span> <span class="kn">import</span> <span class="n">get_queuedata_from_job</span><span class="p">,</span> <span class="n">abort_jobs_in_queues</span>
+<span class="kn">from</span> <span class="nn">pilot.util.timing</span> <span class="kn">import</span> <span class="n">get_time_since_start</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="c1"># Monitoring of threads functions</span>
+
+<div class="viewcode-block" id="control"><a class="viewcode-back" href="../../../components/control/monitor.html#pilot.control.monitor.control">[docs]</a><span class="k">def</span> <span class="nf">control</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">traces</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Main control function, run from the relevant workflow module.</span>
+
+<span class="sd">    :param queues:</span>
+<span class="sd">    :param traces:</span>
+<span class="sd">    :param args:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;lifetime_start&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">t0</span>  <span class="c1"># ie referring to when pilot monitoring began</span>
+    <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;lifetime_max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">t0</span>
+
+    <span class="n">threadchecktime</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">thread_check</span><span class="p">)</span>
+
+    <span class="c1"># for CPU usage debugging</span>
+    <span class="n">cpuchecktime</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">cpu_check</span><span class="p">)</span>
+    <span class="n">tcpu</span> <span class="o">=</span> <span class="n">t0</span>
+
+    <span class="n">queuedata</span> <span class="o">=</span> <span class="n">get_queuedata_from_job</span><span class="p">(</span><span class="n">queues</span><span class="p">)</span>
+    <span class="n">max_running_time</span> <span class="o">=</span> <span class="n">get_max_running_time</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">lifetime</span><span class="p">,</span> <span class="n">queuedata</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># overall loop counter (ignoring the fact that more than one job may be running)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+            <span class="c1"># every seconds, run the monitoring checks</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>  <span class="c1"># &#39;or&#39; added for 2.6 compatibility</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;aborting monitor loop since graceful_stop has been set&#39;</span><span class="p">)</span>
+                <span class="k">break</span>
+
+            <span class="c1"># abort if kill signal arrived too long time ago, ie loop is stuck</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">kill_time</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">-</span> <span class="n">args</span><span class="o">.</span><span class="n">kill_time</span> <span class="o">&gt;</span> <span class="n">MAX_KILL_WAIT_TIME</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;loop has run for too long time - will abort&#39;</span><span class="p">)</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+                <span class="k">break</span>
+
+            <span class="c1"># check if the pilot has run out of time (stop ten minutes before PQ limit)</span>
+            <span class="n">time_since_start</span> <span class="o">=</span> <span class="n">get_time_since_start</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+            <span class="n">grace_time</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="mi">60</span>
+            <span class="k">if</span> <span class="n">time_since_start</span> <span class="o">-</span> <span class="n">grace_time</span> <span class="o">&gt;</span> <span class="n">max_running_time</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;max running time (</span><span class="si">%d</span><span class="s1"> s) minus grace time (</span><span class="si">%d</span><span class="s1"> s) has been exceeded - must abort pilot&#39;</span> <span class="o">%</span>
+                             <span class="p">(</span><span class="n">max_running_time</span><span class="p">,</span> <span class="n">grace_time</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;setting REACHED_MAXTIME and graceful stop&#39;</span><span class="p">)</span>
+                <span class="n">environ</span><span class="p">[</span><span class="s1">&#39;REACHED_MAXTIME&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;REACHED_MAXTIME&#39;</span>  <span class="c1"># TODO: use singleton instead</span>
+                <span class="c1"># do not set graceful stop if pilot has not finished sending the final job update</span>
+                <span class="c1"># i.e. wait until SERVER_UPDATE is FINAL_DONE</span>
+                <span class="n">check_for_final_server_update</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">update_server</span><span class="p">)</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+                <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">n</span> <span class="o">%</span> <span class="mi">60</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> s have passed since pilot start&#39;</span> <span class="o">%</span> <span class="n">time_since_start</span><span class="p">)</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># time to check the CPU?</span>
+            <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">tcpu</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">cpuchecktime</span> <span class="ow">and</span> <span class="kc">False</span><span class="p">:</span>  <span class="c1"># for testing only</span>
+                <span class="n">processes</span> <span class="o">=</span> <span class="n">get_process_info</span><span class="p">(</span><span class="s1">&#39;python pilot2/pilot.py&#39;</span><span class="p">,</span> <span class="n">pid</span><span class="o">=</span><span class="n">getpid</span><span class="p">())</span>
+                <span class="k">if</span> <span class="n">processes</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;PID=</span><span class="si">%d</span><span class="s1"> has CPU usage=</span><span class="si">%s%%</span><span class="s1"> MEM usage=</span><span class="si">%s%%</span><span class="s1"> CMD=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">getpid</span><span class="p">(),</span> <span class="n">processes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">processes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">processes</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+                    <span class="n">n</span> <span class="o">=</span> <span class="n">processes</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;there are </span><span class="si">%d</span><span class="s1"> such processes running&#39;</span> <span class="o">%</span> <span class="n">n</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;there is </span><span class="si">%d</span><span class="s1"> such process running&#39;</span> <span class="o">%</span> <span class="n">n</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>
+                <span class="n">tcpu</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+            <span class="c1"># proceed with running the other checks</span>
+            <span class="n">run_checks</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+            <span class="c1"># thread monitoring</span>
+            <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;lifetime_start&#39;</span><span class="p">])</span> <span class="o">%</span> <span class="n">threadchecktime</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># get all threads</span>
+                <span class="k">for</span> <span class="n">thread</span> <span class="ow">in</span> <span class="n">threading</span><span class="o">.</span><span class="n">enumerate</span><span class="p">():</span>
+                    <span class="c1"># logger.info(&#39;thread name: %s&#39; % thread.name)</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;thread </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1"> is not alive&#39;</span> <span class="o">%</span> <span class="n">thread</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                        <span class="c1"># args.graceful_stop.set()</span>
+
+            <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">((</span><span class="s2">&quot;monitor: exception caught: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;[monitor] control thread has ended&#39;</span><span class="p">)</span></div>
+
+<span class="c1">#def log_lifetime(sig, frame, traces):</span>
+<span class="c1">#    logger.info(&#39;lifetime: %i used, %i maximum&#39; % (int(time.time() - traces.pilot[&#39;lifetime_start&#39;]),</span>
+<span class="c1">#                                                   traces.pilot[&#39;lifetime_max&#39;]))</span>
+
+
+<div class="viewcode-block" id="get_process_info"><a class="viewcode-back" href="../../../components/control/monitor.html#pilot.control.monitor.get_process_info">[docs]</a><span class="k">def</span> <span class="nf">get_process_info</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="s1">&#39;aufx&#39;</span><span class="p">,</span> <span class="n">pid</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return process info for given command.</span>
+<span class="sd">    The function returns a list with format [cpu, mem, command, number of commands] as returned by &#39;ps -u user args&#39; for</span>
+<span class="sd">    a given command (e.g. python pilot2/pilot.py).</span>
+
+<span class="sd">    Example</span>
+<span class="sd">      get_processes_for_command(&#39;sshd:&#39;)</span>
+
+<span class="sd">      nilspal   1362  0.0  0.0 183424  2528 ?        S    12:39   0:00 sshd: nilspal@pts/28</span>
+<span class="sd">      nilspal   1363  0.0  0.0 136628  2640 pts/28   Ss   12:39   0:00  _ -tcsh</span>
+<span class="sd">      nilspal   8603  0.0  0.0  34692  5072 pts/28   S+   12:44   0:00      _ python monitor.py</span>
+<span class="sd">      nilspal   8604  0.0  0.0  62036  1776 pts/28   R+   12:44   0:00          _ ps -u nilspal aufx --no-headers</span>
+
+<span class="sd">      -&gt; [&#39;0.0&#39;, &#39;0.0&#39;, &#39;sshd: nilspal@pts/28&#39;, 1]</span>
+
+<span class="sd">    :param cmd: command (string).</span>
+<span class="sd">    :param user: user (string).</span>
+<span class="sd">    :param args: ps arguments (string).</span>
+<span class="sd">    :param pid: process id (int).</span>
+<span class="sd">    :return: list with process info (l[0]=cpu usage(%), l[1]=mem usage(%), l[2]=command(string)).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">processes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="p">:</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">getuid</span><span class="p">()</span>
+    <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\S+|[-+]?\d*\.\d+|\d+&quot;</span><span class="p">)</span>
+    <span class="n">arguments</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ps&#39;</span><span class="p">,</span> <span class="s1">&#39;-u&#39;</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="s1">&#39;--no-headers&#39;</span><span class="p">]</span>
+
+    <span class="n">process</span> <span class="o">=</span> <span class="n">Popen</span><span class="p">(</span><span class="n">arguments</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">PIPE</span><span class="p">)</span>
+    <span class="n">stdout</span><span class="p">,</span> <span class="n">notused</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">stdout</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">found</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">processid</span> <span class="o">=</span> <span class="n">found</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">cpu</span> <span class="o">=</span> <span class="n">found</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">mem</span> <span class="o">=</span> <span class="n">found</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">command</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">found</span><span class="p">[</span><span class="mi">10</span><span class="p">:])</span>
+            <span class="k">if</span> <span class="n">cmd</span> <span class="ow">in</span> <span class="n">command</span><span class="p">:</span>
+                <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">processid</span> <span class="o">==</span> <span class="nb">str</span><span class="p">(</span><span class="n">pid</span><span class="p">):</span>
+                    <span class="n">processes</span> <span class="o">=</span> <span class="p">[</span><span class="n">cpu</span><span class="p">,</span> <span class="n">mem</span><span class="p">,</span> <span class="n">command</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">processes</span><span class="p">:</span>
+        <span class="n">processes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">processes</span></div>
+
+
+<div class="viewcode-block" id="run_checks"><a class="viewcode-back" href="../../../components/control/monitor.html#pilot.control.monitor.run_checks">[docs]</a><span class="k">def</span> <span class="nf">run_checks</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform non-job related monitoring checks.</span>
+
+<span class="sd">    :param queues:</span>
+<span class="sd">    :param args:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># check CPU consumption of pilot process and its children</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">abort_job</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+        <span class="c1"># find all running jobs and stop them, find all jobs in queues relevant to this module</span>
+        <span class="n">abort_jobs_in_queues</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">signal</span><span class="p">)</span>
+
+        <span class="n">t_max</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">60</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;pilot monitor received instruction that abort_job has been requested&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;will wait for a maximum of </span><span class="si">%d</span><span class="s1"> seconds for threads to finish&#39;</span> <span class="o">%</span> <span class="n">t_max</span><span class="p">)</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span> <span class="o">&lt;</span> <span class="n">t_max</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">job_aborted</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;job_aborted has been set - aborting pilot monitoring&#39;</span><span class="p">)</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">abort_job</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+                <span class="k">return</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;graceful_stop already set&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;setting graceful_stop&#39;</span><span class="p">)</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">job_aborted</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;will wait for a maximum of </span><span class="si">%d</span><span class="s1"> seconds for graceful_stop to take effect&#39;</span> <span class="o">%</span> <span class="n">t_max</span><span class="p">)</span>
+            <span class="n">t_max</span> <span class="o">=</span> <span class="mi">10</span>
+            <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="k">while</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span> <span class="o">&lt;</span> <span class="n">t_max</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">job_aborted</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;job_aborted has been set - aborting pilot monitoring&#39;</span><span class="p">)</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">abort_job</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+                    <span class="k">return</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;reached maximum waiting time - threads should have finished&#39;</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">abort_job</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">job_aborted</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="n">ExceededMaxWaitTime</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_max_running_time"><a class="viewcode-back" href="../../../components/control/monitor.html#pilot.control.monitor.get_max_running_time">[docs]</a><span class="k">def</span> <span class="nf">get_max_running_time</span><span class="p">(</span><span class="n">lifetime</span><span class="p">,</span> <span class="n">queuedata</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the maximum allowed running time for the pilot.</span>
+<span class="sd">    The max time is set either as a pilot option or via the schedconfig.maxtime for the PQ in question.</span>
+
+<span class="sd">    :param lifetime: optional pilot option time in seconds (int).</span>
+<span class="sd">    :param queuedata: queuedata object</span>
+<span class="sd">    :return: max running time in seconds (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">#return 40</span>
+
+    <span class="n">max_running_time</span> <span class="o">=</span> <span class="n">lifetime</span>
+
+    <span class="c1"># use the schedconfig value if set, otherwise use the pilot option lifetime value</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">queuedata</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;queuedata could not be extracted from queues, will use default for max running time &#39;</span>
+                       <span class="s1">&#39;(</span><span class="si">%d</span><span class="s1"> s)&#39;</span> <span class="o">%</span> <span class="n">max_running_time</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">queuedata</span><span class="o">.</span><span class="n">maxtime</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">max_running_time</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">queuedata</span><span class="o">.</span><span class="n">maxtime</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert maxtime from queuedata, will use default value for max running time &#39;</span>
+                               <span class="s1">&#39;(</span><span class="si">%d</span><span class="s1"> s)&#39;</span> <span class="o">%</span> <span class="n">max_running_time</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">max_running_time</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">max_running_time</span> <span class="o">=</span> <span class="n">lifetime</span>  <span class="c1"># fallback to default value</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;will use default value for max running time: </span><span class="si">%d</span><span class="s1"> s&#39;</span> <span class="o">%</span> <span class="n">max_running_time</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;will use queuedata.maxtime value for max running time: </span><span class="si">%d</span><span class="s1"> s&#39;</span> <span class="o">%</span> <span class="n">max_running_time</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">max_running_time</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

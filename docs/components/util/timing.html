@@ -1,0 +1,461 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>timing &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="workernode" href="workernode.html" />
+    <link rel="prev" title="timer" href="timer.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.util.timing">
+<span id="timing"></span><h1>timing<a class="headerlink" href="#module-pilot.util.timing" title="Permalink to this headline">¶</a></h1>
+<dl class="py function">
+<dt id="pilot.util.timing.add_to_pilot_timing">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">add_to_pilot_timing</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timing_constant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_measurement</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#add_to_pilot_timing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.add_to_pilot_timing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the given timing contant and measurement got job_id to the pilot timing dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_id</strong> – PanDA job id (string).</p></li>
+<li><p><strong>timing_constant</strong> – timing constant (string).</p></li>
+<li><p><strong>time_measurement</strong> – time measurement (float).</p></li>
+<li><p><strong>args</strong> – pilot arguments.</p></li>
+<li><p><strong>store</strong> – if True, write timing dictionary to file. False by default.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.get_elapsed_real_time">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_elapsed_real_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_elapsed_real_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_elapsed_real_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a time stamp corresponding to the elapsed real time (since t0 if requested).
+The function uses os.times() to get the current time stamp.
+If t0 is provided, the returned time stamp is relative to t0. t0 is assumed to be an os.times() tuple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>t0</strong> – os.times() tuple for the t0 time stamp.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time stamp (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.get_final_update_time">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_final_update_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_final_update_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_final_update_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>High level function that returns the time for execution the final update for the given job_id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_id</strong> – PanDA job id (string).</p></li>
+<li><p><strong>args</strong> – pilot arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time in seconds (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.get_getjob_time">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_getjob_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_getjob_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_getjob_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>High level function that returns the time for the getjob operation for the given job_id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_id</strong> – PanDA job id (string).</p></li>
+<li><p><strong>args</strong> – pilot arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time in seconds (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.get_initial_setup_time">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_initial_setup_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_initial_setup_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_initial_setup_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>High level function that returns the time for the initial setup.
+The initial setup time is measured from PILOT_START_TIME to PILOT_PRE_GETJOB.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_id</strong> – PanDA job id (string).</p></li>
+<li><p><strong>args</strong> – pilot arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time in seconds (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.get_payload_execution_time">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_payload_execution_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_payload_execution_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_payload_execution_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>High level function that returns the time for the payload execution for the given job_id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_id</strong> – PanDA job id (string).</p></li>
+<li><p><strong>args</strong> – pilot arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time in seconds (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.get_postgetjob_time">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_postgetjob_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_postgetjob_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_postgetjob_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the post getjob time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_id</strong> – job object.</p></li>
+<li><p><strong>args</strong> – pilot arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>post getjob time measurement (int). In case of failure, return None.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.get_setup_time">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_setup_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_setup_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_setup_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>High level function that returns the time for the setup operation for the given job_id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_id</strong> – PanDA job id (string).</p></li>
+<li><p><strong>args</strong> – pilot arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time in seconds (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.get_stagein_time">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_stagein_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_stagein_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_stagein_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>High level function that returns the time for the stage-in operation for the given job_id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_id</strong> – PanDA job id (string).</p></li>
+<li><p><strong>args</strong> – pilot arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time in seconds (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.get_stageout_time">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_stageout_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_stageout_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_stageout_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>High level function that returns the time for the stage-out operation for the given job_id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_id</strong> – PanDA job id (string).</p></li>
+<li><p><strong>args</strong> – pilot arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time in seconds (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.get_time_difference">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_time_difference</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timing_constant_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timing_constant_2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_time_difference"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_time_difference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the positive time difference between the given constants.
+The order is not important and a positive difference is always returned. The function collects the time measurements
+corresponding to the given timing constants from the pilot timing file.
+The job_id is used internally as a dictionary key. The given timing constants and their timing measurements, belong
+to the given job_id.
+Structure of pilot timing dictionary:</p>
+<blockquote>
+<div><p>{ job_id: { &lt;timing_constant_1&gt;: &lt;time measurement in seconds since epoch&gt;, .. }</p>
+</div></blockquote>
+<p>job_id = 0 means timing information from wrapper. Timing constants are defined in pilot.util.constants.
+Time measurement are time.time() values. The float value will be converted to an int as a last step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_id</strong> – PanDA job id (string).</p></li>
+<li><p><strong>timing_constant_1</strong> – </p></li>
+<li><p><strong>timing_constant_2</strong> – </p></li>
+<li><p><strong>args</strong> – pilot arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time difference in seconds (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.get_time_measurement">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_time_measurement</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timing_constant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_measurement_dictionary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timing_dictionary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_time_measurement"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_time_measurement" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a requested time measurement from the time measurement dictionary, read from the pilot timing file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>timing_constant</strong> – timing constant (e.g. PILOT_MULTIJOB_START_TIME)</p></li>
+<li><p><strong>time_measurement_dictionary</strong> – time measurement dictionary, extracted from pilot timing dictionary.</p></li>
+<li><p><strong>timing_dictionary</strong> – full timing dictionary from pilot timing file.</p></li>
+<li><p><strong>job_id</strong> – PanDA job id (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time measurement (float).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.get_time_since">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_time_since</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timing_constant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_time_since"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_time_since" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the amount of time that has passed since the time measurement of timing_constant.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_id</strong> – PanDA job id (string).</p></li>
+<li><p><strong>timing_constant</strong> – </p></li>
+<li><p><strong>args</strong> – pilot arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time in seconds (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.get_time_since_multijob_start">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_time_since_multijob_start</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_time_since_multijob_start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_time_since_multijob_start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the amount of time that has passed since the last multi job was launched.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>args</strong> – pilot arguments.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time in seconds (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.get_time_since_start">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_time_since_start</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_time_since_start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_time_since_start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the amount of time that has passed since the pilot was launched.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>args</strong> – pilot arguments.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time in seconds (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.get_total_pilot_time">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_total_pilot_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_total_pilot_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_total_pilot_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>High level function that returns the end time for the given job_id.
+This means the wall time that has passed from the start of the pilot until after the last job update.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_id</strong> – PanDA job id (string).</p></li>
+<li><p><strong>args</strong> – pilot arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time in seconds (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.read_pilot_timing">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">read_pilot_timing</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#read_pilot_timing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.read_pilot_timing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read the pilot timing dictionary from file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>pilot timing dictionary (json dictionary).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.time_stamp">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">time_stamp</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#time_stamp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.time_stamp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return ISO-8601 compliant date/time format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>time information</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.timing_report">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">timing_report</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#timing_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.timing_report" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write a timing report to the job log and return relevant timing measurements.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_id</strong> – job id (string).</p></li>
+<li><p><strong>args</strong> – pilot arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time_getjob, time_stagein, time_payload, time_stageout, time_total_setup (integer strings).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timing.write_pilot_timing">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">write_pilot_timing</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pilot_timing_dictionary</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#write_pilot_timing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.write_pilot_timing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the given pilot timing dictionary to file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pilot_timing_dictionary</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">util components</a><ul>
+      <li>Previous: <a href="timer.html" title="previous chapter">timer</a></li>
+      <li>Next: <a href="workernode.html" title="next chapter">workernode</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/util/timing.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/util/timing.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

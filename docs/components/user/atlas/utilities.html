@@ -1,0 +1,578 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>utilities &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="generic components" href="../generic/index.html" />
+    <link rel="prev" title="setup" href="setup.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.user.atlas.utilities">
+<span id="utilities"></span><h1>utilities<a class="headerlink" href="#module-pilot.user.atlas.utilities" title="Permalink to this headline">¶</a></h1>
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.convert_text_file_to_dictionary">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">convert_text_file_to_dictionary</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#convert_text_file_to_dictionary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.convert_text_file_to_dictionary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert row-column text file to dictionary.
+User first row identifiers as dictionary keys.
+Note: file must follow the convention:</p>
+<blockquote>
+<div><p>NAME1   NAME2   ..
+value1  value2  ..
+..      ..      ..</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> – path to file (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dictionary.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.convert_unicode_string">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">convert_unicode_string</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">unicode_string</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#convert_unicode_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.convert_unicode_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a unicode string into str.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>unicode_string</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>string.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_average_summary_dictionary">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_average_summary_dictionary</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_average_summary_dictionary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_average_summary_dictionary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loop over the memory monitor output file and create the averaged summary dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> – path to memory monitor txt output file (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>summary dictionary.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_average_summary_dictionary_prmon">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_average_summary_dictionary_prmon</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_average_summary_dictionary_prmon"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_average_summary_dictionary_prmon" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loop over the memory monitor output file and create the averaged summary dictionary.</p>
+<p>prmon keys:
+‘Time’, ‘nprocs’, ‘nthreads’, ‘pss’, ‘rchar’, ‘read_bytes’, ‘rss’, ‘rx_bytes’,
+‘rx_packets’, ‘stime’, ‘swap’, ‘tx_bytes’, ‘tx_packets’, ‘utime’, ‘vmem’, ‘wchar’,
+‘write_bytes’, ‘wtime’</p>
+<p>The function uses the first line in the output file to define the dictionary keys used
+later in the function. This means that any change in the format such as new columns
+will be handled automatically.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> – path to memory monitor txt output file (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>summary dictionary.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_benchmark_setup">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_benchmark_setup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_benchmark_setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_benchmark_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the proper setup for the benchmark command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>setup string for the benchmark command.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_last_value">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_last_value</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value_list</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_last_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_last_value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_max_memory_monitor_value">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_max_memory_monitor_value</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxvalue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">totalvalue</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_max_memory_monitor_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_max_memory_monitor_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the max and total value (used by memory monitoring).
+Return an error code, 1, in case of value error.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – value to be tested (integer).</p></li>
+<li><p><strong>maxvalue</strong> – current maximum value (integer).</p></li>
+<li><p><strong>totalvalue</strong> – total value (integer).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>exit code, maximum and total value (tuple of integers).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_memory_monitor_info">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_memory_monitor_info</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowtxtfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_memory_monitor_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_memory_monitor_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the utility info to the node structure if available.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>workdir</strong> – relevant work directory (string).</p></li>
+<li><p><strong>allowtxtfile</strong> – boolean attribute to allow for reading the raw memory monitor output.</p></li>
+<li><p><strong>name</strong> – name of memory monitor (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>node structure (dictionary).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_memory_monitor_info_path">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_memory_monitor_info_path</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowtxtfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_memory_monitor_info_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_memory_monitor_info_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the proper path to the utility info file
+Priority order:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>JSON summary file from workdir</p></li>
+<li><p>JSON summary file from pilot initdir</p></li>
+<li><p>Text output file from workdir (if allowtxtfile is True)</p></li>
+</ol>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>workdir</strong> – relevant work directory (string).</p></li>
+<li><p><strong>allowtxtfile</strong> – boolean attribute to allow for reading the raw memory monitor output.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>path (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_memory_monitor_output_filename">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_memory_monitor_output_filename</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'txt'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_memory_monitor_output_filename"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_memory_monitor_output_filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the filename of the memory monitor text output file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>File name (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_memory_monitor_setup">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_memory_monitor_setup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pgrp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jobid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_container</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transformation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outdata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dump_ps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_memory_monitor_setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_memory_monitor_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the proper setup for the memory monitor.
+If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the
+memory monitor was still located in the release area. After many problems with the memory monitor, it was decided
+to use a fixed version for the setup. Currently, release 21.0.22 is used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pid</strong> – job process id (int).</p></li>
+<li><p><strong>pgrp</strong> – process group id (int).</p></li>
+<li><p><strong>jobid</strong> – job id (int).</p></li>
+<li><p><strong>workdir</strong> – job work directory (string).</p></li>
+<li><p><strong>command</strong> – payload command (string).</p></li>
+<li><p><strong>setup</strong> – optional setup in case asetup can not be used, which uses infosys (string).</p></li>
+<li><p><strong>use_container</strong> – optional boolean.</p></li>
+<li><p><strong>transformation</strong> – optional name of transformation, e.g. Sim_tf.py (string).</p></li>
+<li><p><strong>outdata</strong> – optional list of output fspec objects (list).</p></li>
+<li><p><strong>dump_ps</strong> – should ps output be dumped when identifying prmon process? (Boolean).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>job work directory (string), pid for process inside container (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_memory_monitor_setup_old">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_memory_monitor_setup_old</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pgrp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jobid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_container</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transformation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outdata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dump_ps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_memory_monitor_setup_old"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_memory_monitor_setup_old" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the proper setup for the memory monitor.
+If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the
+memory monitor was still located in the release area. After many problems with the memory monitor, it was decided
+to use a fixed version for the setup. Currently, release 21.0.22 is used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pid</strong> – job process id (int).</p></li>
+<li><p><strong>pgrp</strong> – process group id (int).</p></li>
+<li><p><strong>jobid</strong> – job id (int).</p></li>
+<li><p><strong>workdir</strong> – job work directory (string).</p></li>
+<li><p><strong>command</strong> – payload command (string).</p></li>
+<li><p><strong>setup</strong> – optional setup in case asetup can not be used, which uses infosys (string).</p></li>
+<li><p><strong>use_container</strong> – optional boolean.</p></li>
+<li><p><strong>transformation</strong> – optional name of transformation, e.g. Sim_tf.py (string).</p></li>
+<li><p><strong>outdata</strong> – optional list of output fspec objects (list).</p></li>
+<li><p><strong>dump_ps</strong> – should ps output be dumped when identifying prmon process? (Boolean).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>job work directory (string), pid for process inside container (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_memory_monitor_summary_filename">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_memory_monitor_summary_filename</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">selector</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_memory_monitor_summary_filename"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_memory_monitor_summary_filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the name for the memory monitor summary file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>selector</strong> – special conditions flag (boolean).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>File name (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_memory_values">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_memory_values</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_memory_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_memory_values" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the values in the memory monitor output file.</p>
+<p>In case the summary JSON file has not yet been produced, create a summary dictionary with the same format
+using the output text file (produced by the memory monitor and which is updated once per minute).</p>
+<dl class="simple">
+<dt>FORMAT:</dt><dd><dl class="simple">
+<dt>{“Max”:{“maxVMEM”:40058624,”maxPSS”:10340177,”maxRSS”:16342012,”maxSwap”:16235568},</dt><dd><p>“Avg”:{“avgVMEM”:19384236,”avgPSS”:5023500,”avgRSS”:6501489,”avgSwap”:5964997},
+“Other”:{“rchar”:NN,”wchar”:NN,”rbytes”:NN,”wbytes”:NN}}</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>workdir</strong> – relevant work directory (string).</p></li>
+<li><p><strong>name</strong> – name of memory monitor (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>memory values dictionary.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_metadata_dict_from_txt">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_metadata_dict_from_txt</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storejson</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jobid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_metadata_dict_from_txt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_metadata_dict_from_txt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert memory monitor text output to json, store it, and return a selection as a dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – </p></li>
+<li><p><strong>storejson</strong> – store dictionary on disk if True (boolean).</p></li>
+<li><p><strong>jobid</strong> – job id (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>prmon metadata (dictionary).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_network_monitor_setup">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_network_monitor_setup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">setup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_network_monitor_setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_network_monitor_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the proper setup for the network monitor.
+The network monitor is currently setup together with the payload and is start before it. The payload setup should
+therefore be provided. The network monitor setup is prepended to it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>setup</strong> – payload setup string.</p></li>
+<li><p><strong>job</strong> – job object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>network monitor setup string.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_pid_for_command">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_pid_for_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'python</span> <span class="pre">pilot2/pilot.py'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_pid_for_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_pid_for_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the process id for the given command and user.
+The function returns 0 in case pid could not be found.
+If no command is specified, the function looks for the “python pilot2/pilot.py” command in the ps output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ps</strong> – ps command output (string).</p></li>
+<li><p><strong>command</strong> – command string expected to be in ps output (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>pid (int) or None if no such process.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_pid_for_jobid">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_pid_for_jobid</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jobid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_pid_for_jobid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_pid_for_jobid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the process id for the ps entry that contains the job id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ps</strong> – ps command output (string).</p></li>
+<li><p><strong>jobid</strong> – PanDA job id (int).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>pid (int) or None if no such process.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_pid_for_trf">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_pid_for_trf</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transformation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outdata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_pid_for_trf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_pid_for_trf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the process id for the given command and user.
+Note: function returns 0 in case pid could not be found.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ps</strong> – ps command output (string).</p></li>
+<li><p><strong>transformation</strong> – transformation name, e.g. Sim_tf.py (String).</p></li>
+<li><p><strong>outdata</strong> – fspec objects (list).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>pid (int) or None if no such process.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_prefetcher_setup">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_prefetcher_setup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_prefetcher_setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_prefetcher_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the proper setup for the Prefetcher.
+Prefetcher is a tool used with the Event Streaming Service.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>setup string for the Prefetcher command.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_proper_pid">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_proper_pid</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pgrp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jobid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transformation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outdata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_container</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dump_ps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_proper_pid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_proper_pid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a pid from the proper source to be used with the memory monitor.
+The given pid comes from Popen(), but in the case containers are used, the pid should instead come from a ps aux
+lookup.
+If the main process has finished before the proper pid has been identified (it will take time if the payload is
+running inside a container), then this function will abort and return -1. The called should handle this and not
+launch the memory monitor as it is not needed any longer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pid</strong> – process id (int).</p></li>
+<li><p><strong>pgrp</strong> – process group id (int).</p></li>
+<li><p><strong>jobid</strong> – job id (int).</p></li>
+<li><p><strong>command</strong> – payload command (string).</p></li>
+<li><p><strong>transformation</strong> – optional name of transformation, e.g. Sim_tf.py (string).</p></li>
+<li><p><strong>outdata</strong> – list of output fspec object (list).</p></li>
+<li><p><strong>use_container</strong> – optional boolean.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>pid (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_ps_info">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_ps_info</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pgrp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">whoami</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'axfo</span> <span class="pre">pid,user,args'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_ps_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_ps_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return ps info for the given user.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pgrp</strong> – process group id (int).</p></li>
+<li><p><strong>whoami</strong> – user name (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>ps aux for given user (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.get_trf_command">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">get_trf_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transformation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#get_trf_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.get_trf_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the last command in the full payload command string.
+Note: this function returns the last command in job.command which is only set for containers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>command</strong> – full payload command (string).</p></li>
+<li><p><strong>transformation</strong> – optional name of transformation, e.g. Sim_tf.py (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>trf command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.post_memory_monitor_action">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">post_memory_monitor_action</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#post_memory_monitor_action"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.post_memory_monitor_action" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform post action items for memory monitor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.utilities.precleanup">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.utilities.</span></code><code class="sig-name descname"><span class="pre">precleanup</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/utilities.html#precleanup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.utilities.precleanup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pre-cleanup at the beginning of the job to remove any pre-existing files from previous jobs in the main work dir.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../resource/index.html">resource components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">user components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../util/index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Components</a><ul>
+  <li><a href="../index.html">user components</a><ul>
+  <li><a href="index.html">atlas components</a><ul>
+      <li>Previous: <a href="setup.html" title="previous chapter">setup</a></li>
+      <li>Next: <a href="../generic/index.html" title="next chapter">generic components</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/components/user/atlas/utilities.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../../_sources/components/user/atlas/utilities.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,1057 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>common &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="container" href="container.html" />
+    <link rel="prev" title="atlas components" href="index.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.user.atlas.common">
+<span id="common"></span><h1>common<a class="headerlink" href="#module-pilot.user.atlas.common" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="pilot.user.atlas.common.DictQuery">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">DictQuery</span></code><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#DictQuery"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.DictQuery" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py attribute">
+<dt id="pilot.user.atlas.common.DictQuery.__dict__">
+<code class="sig-name descname"><span class="pre">__dict__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">mappingproxy({'__module__':</span> <span class="pre">'pilot.user.atlas.common',</span> <span class="pre">'get':</span> <span class="pre">&lt;function</span> <span class="pre">DictQuery.get&gt;,</span> <span class="pre">'__dict__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__dict__'</span> <span class="pre">of</span> <span class="pre">'DictQuery'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__weakref__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__weakref__'</span> <span class="pre">of</span> <span class="pre">'DictQuery'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__doc__':</span> <span class="pre">None,</span> <span class="pre">'__annotations__':</span> <span class="pre">{}})</span></em><a class="headerlink" href="#pilot.user.atlas.common.DictQuery.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.user.atlas.common.DictQuery.__module__">
+<code class="sig-name descname"><span class="pre">__module__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'pilot.user.atlas.common'</span></em><a class="headerlink" href="#pilot.user.atlas.common.DictQuery.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.user.atlas.common.DictQuery.__weakref__">
+<code class="sig-name descname"><span class="pre">__weakref__</span></code><a class="headerlink" href="#pilot.user.atlas.common.DictQuery.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.user.atlas.common.DictQuery.get">
+<code class="sig-name descname"><span class="pre">get</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dst_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dst_key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#DictQuery.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.DictQuery.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the value for key if key is in the dictionary, else default.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.add_athena_proc_number">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">add_athena_proc_number</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#add_athena_proc_number"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.add_athena_proc_number" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the ATHENA_PROC_NUMBER and ATHENA_CORE_NUMBER to the payload command if necessary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>cmd</strong> – payload execution command (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated payload execution command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.add_makeflags">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">add_makeflags</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_core_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#add_makeflags"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.add_makeflags" title="Permalink to this definition">¶</a></dt>
+<dd><p>Correct for multi-core if necessary (especially important in case coreCount=1 to limit parallel make).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_core_count</strong> – core count from the job definition (int).</p></li>
+<li><p><strong>cmd</strong> – payload execution command (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated payload execution command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.cleanup_broken_links">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">cleanup_broken_links</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#cleanup_broken_links"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.cleanup_broken_links" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run a second pass to clean up any broken links prior to log file creation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>workdir</strong> – working directory (string)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.cleanup_payload">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">cleanup_payload</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputfiles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#cleanup_payload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.cleanup_payload" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cleanup of payload (specifically AthenaMP) sub directories prior to log file creation.
+Also remove core dumps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>workdir</strong> – working directory (string)</p></li>
+<li><p><strong>outputfiles</strong> – list of output files</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.discover_new_outdata">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">discover_new_outdata</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#discover_new_outdata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.discover_new_outdata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Discover new outdata created by HPO job.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>new_outdata (list of FileSpec objects)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.discover_new_output">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">discover_new_output</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name_pattern</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#discover_new_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.discover_new_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Discover new output created by HPO job in the given work dir.</p>
+<p>name_pattern for known ‘filename’ is ‘filename_N’ (N = 0, 1, 2, ..).
+Example: name_pattern = 23578835.metrics.000001.tgz</p>
+<blockquote>
+<div><p>should discover files with names 23578835.metrics.000001.tgz_N (N = 0, 1, ..)</p>
+</div></blockquote>
+<p>new_output = { lfn: {‘path’: path, ‘size’: size, ‘checksum’: checksum}, .. }</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name_pattern</strong> – assumed name pattern for file to discover (string).</p></li>
+<li><p><strong>workdir</strong> – work directory (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>new_output (dictionary).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.download_command">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">download_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">process</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#download_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.download_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Download the pre/postprocess commands if necessary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>process</strong> – pre/postprocess dictionary.</p></li>
+<li><p><strong>workdir</strong> – job workdir (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated pre/postprocess dictionary.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.extract_output_file_guids">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">extract_output_file_guids</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#extract_output_file_guids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.extract_output_file_guids" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract output file info from the job report and make sure all guids are assigned (use job report value if present,
+otherwise generate the guid - note: guid generation is done later, not in this function since this function
+might not be called if metadata info is not found prior to the call).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.extract_turls">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">extract_turls</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">indata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#extract_turls"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.extract_turls" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract TURLs from indata for direct i/o files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>indata</strong> – list of FileSpec.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>comma-separated list of turls (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_analysis_run_command">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_analysis_run_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trf_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_analysis_run_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_analysis_run_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the proper run command for the user job.</p>
+<p>Example output: export X509_USER_PROXY=&lt;..&gt;;./runAthena &lt;job parameters&gt; –usePFCTurl –directIn</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>trf_name</strong> – name of the transform that will run the job (string). Used when containers are not used.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_cpu_times">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_cpu_times</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">jobreport_dictionary</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_cpu_times"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_cpu_times" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract and add up the total CPU times from the job report.
+E.g. (‘s’, 5790L, 1.0).</p>
+<p>Note: this function is used with Event Service jobs</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>jobreport_dictionary</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>cpu_conversion_unit (unit), total_cpu_time, conversion_factor (output consistent with set_time_consumed())</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_db_info">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_db_info</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">jobreport_dictionary</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_db_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_db_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract and add up the DB info from the job report.
+This information is reported with the jobMetrics.
+Note: this function adds up the different dbData and dbTime’s in the different executor steps. In modern job
+reports this might have been done already by the transform and stored in dbDataTotal and dbTimeTotal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>jobreport_dictionary</strong> – job report dictionary.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>db_time (int), db_data (long)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_db_info_str">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_db_info_str</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_db_info_str"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_db_info_str" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert db_time, db_data to strings.
+E.g. dbData=”105077960”, dbTime=”251.42”.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>db_time</strong> – time (s)</p></li>
+<li><p><strong>db_data</strong> – long integer</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>db_time_s, db_data_s (strings)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_executor_dictionary">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_executor_dictionary</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">jobreport_dictionary</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_executor_dictionary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_executor_dictionary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the ‘executor’ dictionary from with a job report.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>jobreport_dictionary</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>executor_dictionary</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_exit_info">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_exit_info</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">jobreport_dictionary</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_exit_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_exit_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the exit code (exitCode) and exit message (exitMsg).
+E.g. (0, ‘OK’).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>jobreport_dictionary</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>exit_code, exit_message</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_file_open_command">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_file_open_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">script_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">turls</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_file_open_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_file_open_command" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>script_path</strong> – path to script (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>comma-separated list of turls (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_file_transfer_info">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_file_transfer_info</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_file_transfer_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_file_transfer_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return information about desired file transfer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>use copy tool (boolean), use direct access (boolean), use PFC Turl (boolean).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_generic_payload_command">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_generic_payload_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preparesetup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">userjob</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_generic_payload_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_generic_payload_command" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmd</strong> – </p></li>
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>preparesetup</strong> – </p></li>
+<li><p><strong>userjob</strong> – True for user analysis jobs, False otherwise (bool).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>generic job command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_guids_from_jobparams">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_guids_from_jobparams</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">jobparams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infiles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infilesguids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_guids_from_jobparams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_guids_from_jobparams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the correct guid from the input file list.
+The guids list is used for direct reading.
+1. extract input file list for direct reading from job parameters
+2. for each input file in this list, find the corresponding guid from the input file guid list
+Since the job parameters string is entered by a human, the order of the input files might not be the same.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>jobparams</strong> – job parameters.</p></li>
+<li><p><strong>infiles</strong> – input file list.</p></li>
+<li><p><strong>infilesguids</strong> – input file guids list.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>guids list.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_metadata">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_metadata</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the metadata from file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>workdir</strong> – work directory (string)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_normal_payload_command">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_normal_payload_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preparesetup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">userjob</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_normal_payload_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_normal_payload_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the payload command for a normal production/analysis job.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmd</strong> – any preliminary command setup (string).</p></li>
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>userjob</strong> – True for user analysis jobs, False otherwise (bool).</p></li>
+<li><p><strong>preparesetup</strong> – True if the pilot should prepare the setup, False if already in the job parameters.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>normal payload command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_number_of_events_deprecated">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_number_of_events_deprecated</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">jobreport_dictionary</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_number_of_events_deprecated"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_number_of_events_deprecated" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the number of events from the job report.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>jobreport_dictionary</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_outfiles_records">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_outfiles_records</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subfiles</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_outfiles_records"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_outfiles_records" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract file info from job report JSON subfiles entry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>subfiles</strong> – list of subfiles.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>file info dictionary with format { ‘guid’: .., ‘size’: .., ‘nentries’: .. (optional)}</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_payload_command">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_payload_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_payload_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_payload_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the full command for executing the payload, including the sourcing of all setup files and setting of
+environment variables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference internal" href="../../common/exception.html#pilot.common.exception.PilotException" title="pilot.common.exception.PilotException"><strong>PilotException</strong></a> – TrfDownloadFailure.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_redundant_path">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_redundant_path</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_redundant_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_redundant_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the path to the file containing the redundant files and directories to be removed prior to log file creation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>file path (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_redundants">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_redundants</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_redundants"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_redundants" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get list of redundant files and directories (to be removed).
+The function will return the content of an external file. It that can’t be read, then a list defined in this
+function will be returned instead. Any updates to the external file must be propagated to this function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>files and directories list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_stageout_label">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_stageout_label</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_stageout_label"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_stageout_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a proper stage-out label.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>“all”/”log” depending on stage-out type (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_utility_command_execution_order">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_utility_command_execution_order</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_utility_command_execution_order"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_utility_command_execution_order" title="Permalink to this definition">¶</a></dt>
+<dd><p>Should the given utility command be executed before or after the payload?</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – utility name (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>execution order constant.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_utility_command_kill_signal">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_utility_command_kill_signal</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_utility_command_kill_signal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_utility_command_kill_signal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the proper kill signal used to stop the utility command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – name of utility command (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>kill signal</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_utility_command_output_filename">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_utility_command_output_filename</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selector</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_utility_command_output_filename"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_utility_command_output_filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the filename to the output of the utility command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – utility name (string).</p></li>
+<li><p><strong>selector</strong> – optional special conditions flag (boolean).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>filename (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_utility_command_setup">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_utility_command_setup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_utility_command_setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_utility_command_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the proper setup for the given utility command.
+If a payload setup is specified, then the utility command string should be prepended to it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – name of utility (string).</p></li>
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>setup</strong> – optional payload setup string.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>utility command setup (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_utility_commands">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_utility_commands</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_utility_commands"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_utility_commands" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a dictionary of utility commands and arguments to be executed in parallel with the payload.
+This could e.g. be memory and network monitor commands. A separate function can be used to determine the
+corresponding command setups using the utility command name.
+If the optional order parameter is set, the function should return the list of corresponding commands.
+E.g. if order=UTILITY_BEFORE_PAYLOAD, the function should return all commands that are to be executed before the
+payload. If order=UTILITY_WITH_PAYLOAD, the corresponding commands will be prepended to the payload execution
+string. If order=UTILITY_AFTER_PAYLOAD_STARTED, the commands that should be executed after the payload has been started
+should be returned. If order=UTILITY_WITH_STAGEIN, the commands that should be executed parallel with stage-in will
+be returned.</p>
+<p>FORMAT: {‘command’: &lt;command&gt;, ‘args’: &lt;args&gt;}</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>order</strong> – optional sorting order (see pilot.util.constants).</p></li>
+<li><p><strong>job</strong> – optional job object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dictionary of utilities to be executed in parallel with the payload.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.get_workdir_size">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">get_workdir_size</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#get_workdir_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.get_workdir_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tmp function - move later to file_handling</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.ls">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">ls</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#ls"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.ls" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.open_remote_files">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">open_remote_files</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">indata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#open_remote_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.open_remote_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verify that direct i/o files can be opened.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>indata</strong> – list of FileSpec.</p></li>
+<li><p><strong>workdir</strong> – working directory (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>exit code (int), diagnostics (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.parse_jobreport_data">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">parse_jobreport_data</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_report</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#parse_jobreport_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.parse_jobreport_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a job report and extract relevant fields.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job_report</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.post_utility_command_action">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">post_utility_command_action</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#post_utility_command_action"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.post_utility_command_action" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform post action for given utility command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – name of utility command (string).</p></li>
+<li><p><strong>job</strong> – job object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.process_remote_file_traces">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">process_remote_file_traces</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">not_opened_turls</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#process_remote_file_traces"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.process_remote_file_traces" title="Permalink to this definition">¶</a></dt>
+<dd><p>Report traces for remote files.
+The function reads back the base trace report (common part of all traces) and updates it per file before reporting
+it to the Rucio server.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – path to base trace report (string).</p></li>
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>not_opened_turls</strong> – list of turls that could not be opened (list).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.remove_archives">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">remove_archives</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#remove_archives"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.remove_archives" title="Permalink to this definition">¶</a></dt>
+<dd><p>Explicitly remove any soft linked archives (.a files) since they will be dereferenced by the tar command
+(–dereference option).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>workdir</strong> – working directory (string)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.remove_from_stageout">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">remove_from_stageout</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lfn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#remove_from_stageout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.remove_from_stageout" title="Permalink to this definition">¶</a></dt>
+<dd><p>From the given lfn from the stage-out list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lfn</strong> – local file name (string).</p></li>
+<li><p><strong>job</strong> – job object</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[updated job object]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.remove_no_output_files">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">remove_no_output_files</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#remove_no_output_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.remove_no_output_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove files from output file list if they are listed in allowNoOutput and do not exist.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.remove_redundant_files">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">remove_redundant_files</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputfiles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">islooping</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#remove_redundant_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.remove_redundant_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove redundant files and directories prior to creating the log file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>workdir</strong> – working directory (string).</p></li>
+<li><p><strong>outputfiles</strong> – list of protected output files (list).</p></li>
+<li><p><strong>islooping</strong> – looping job variable to make sure workDir is not removed in case of looping (boolean).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.remove_special_files">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">remove_special_files</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputfiles</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#remove_special_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.remove_special_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove list of special files from the workdir.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>workdir</strong> – work directory (string).</p></li>
+<li><p><strong>dir_list</strong> – list of special files (list).</p></li>
+<li><p><strong>outputfiles</strong> – output files (list).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.sanity_check">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">sanity_check</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#sanity_check"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.sanity_check" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform an initial sanity check before doing anything else in a given workflow.
+This function can be used to verify importing of modules that are otherwise used much later, but it is better to abort
+the pilot if a problem is discovered early.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>exit code (0 if all is ok, otherwise non-zero exit code).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.should_update_logstash">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">should_update_logstash</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frequency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#should_update_logstash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.should_update_logstash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Should logstash be updated with prmon dictionary?</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>frequency</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>return True once per ‘frequency’ times.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.update_forced_accessmode">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">update_forced_accessmode</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transfertype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jobparams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trf_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#update_forced_accessmode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.update_forced_accessmode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the payload command for forced accessmode.
+accessmode is an option that comes from HammerCloud and is used to force a certain input file access mode; i.e.
+copy-to-scratch or direct access.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>log</strong> – logging object.</p></li>
+<li><p><strong>cmd</strong> – payload command.</p></li>
+<li><p><strong>transfertype</strong> – transfer type (.e.g ‘direct’) from the job definition with priority over accessmode (string).</p></li>
+<li><p><strong>jobparams</strong> – job parameters (string).</p></li>
+<li><p><strong>trf_name</strong> – transformation name (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated payload command string.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.update_job_data">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">update_job_data</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#update_job_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.update_job_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function can be used to update/add data to the job object.
+E.g. user specific information can be extracted from other job object fields. In the case of ATLAS, information
+is extracted from the metadata field and added to other job object fields.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.update_output_for_hpo">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">update_output_for_hpo</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#update_output_for_hpo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.update_output_for_hpo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the output (outdata) for HPO jobs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.update_server">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">update_server</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#update_server"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.update_server" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform any user specific server actions.</p>
+<p>E.g. this can be used to send special information to a logstash.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.update_stagein">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">update_stagein</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#update_stagein"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.update_stagein" title="Permalink to this definition">¶</a></dt>
+<dd><p>Skip DBRelease files during stage-in.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.validate">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">validate</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#validate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.validate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform user specific payload/job validation.
+This function will produce a local DBRelease file if necessary (old releases).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Boolean (True if validation is successful).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.verify_extracted_output_files">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">verify_extracted_output_files</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lfns_jobdef</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#verify_extracted_output_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.verify_extracted_output_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make sure all output files extracted from the job report are listed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output</strong> – list of FileSpecs (list).</p></li>
+<li><p><strong>lfns_jobdef</strong> – list of lfns strings from job definition (list).</p></li>
+<li><p><strong>job</strong> – job object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if successful, False if failed (Boolean)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.verify_job">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">verify_job</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#verify_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.verify_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verify job parameters for specific errors.
+Note:</p>
+<blockquote>
+<div><p>in case of problem, the function should set the corresponding pilot error code using
+job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Boolean.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.verify_lfn_length">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">verify_lfn_length</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outdata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#verify_lfn_length"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.verify_lfn_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make sure that the LFNs are all within the allowed length.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>outdata</strong> – FileSpec object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>error code (int), diagnostics (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.verify_ncores">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">verify_ncores</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">corecount</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#verify_ncores"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.verify_ncores" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verify that nCores settings are correct</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>corecount</strong> – number of cores (int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.verify_output_files">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">verify_output_files</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#verify_output_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.verify_output_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make sure that the known output files from the job definition are listed in the job report and number of processed events
+is greater than zero. If the output file is not listed in the job report, then if the file is listed in allowNoOutput
+remove it from stage-out, otherwise fail the job.</p>
+<p>Note from Rod: fail scenario: The output file is not in output:[] or is there with zero events. Then if allownooutput is not
+set - fail the job. If it is set, then do not store the output, and finish ok.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Boolean (and potentially updated job.outdata list)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.verify_release_string">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">verify_release_string</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">release</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#verify_release_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.verify_release_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verify that the release (or homepackage) string is set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>release</strong> – release or homepackage string that might or might not be set.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>release (set string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../resource/index.html">resource components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">user components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../util/index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Components</a><ul>
+  <li><a href="../index.html">user components</a><ul>
+  <li><a href="index.html">atlas components</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">atlas components</a></li>
+      <li>Next: <a href="container.html" title="next chapter">container</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/components/user/atlas/common.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../../_sources/components/user/atlas/common.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,340 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.info.queuedata &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.info.queuedata</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Alexey Anisenkov, anisyonk@cern.ch, 2018-2019</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2019</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The implementation of data structure to host queuedata settings.</span>
+
+<span class="sd">The main reasons for such incapsulation are to</span>
+<span class="sd"> - apply in one place all data validation actions (for attributes and values)</span>
+<span class="sd"> - introduce internal information schema (names of attribues) to remove dependency</span>
+<span class="sd"> with data structrure, formats, names from external sources (e.g. AGIS/CRIC)</span>
+
+<span class="sd">This module should be standalone as much as possible and even does not depend</span>
+<span class="sd">on the configuration settings</span>
+<span class="sd">(for that purposed `PilotConfigProvider` can be user to customize data)</span>
+
+<span class="sd">:author: Alexey Anisenkov</span>
+<span class="sd">:contact: anisyonk@cern.ch</span>
+<span class="sd">:date: January 2018</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">from</span> <span class="nn">.basedata</span> <span class="kn">import</span> <span class="n">BaseData</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="QueueData"><a class="viewcode-back" href="../../../components/info/queuedata.html#pilot.info.queuedata.QueueData">[docs]</a><span class="k">class</span> <span class="nc">QueueData</span><span class="p">(</span><span class="n">BaseData</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        High-level object to host all queuedata settings associated to given PandaQueue</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># ## put explicit list of all the attributes with comments for better inline-documentation by sphinx</span>
+    <span class="c1"># ## FIX ME LATER: use proper doc format</span>
+    <span class="c1"># ## incomplete list of attributes .. to be extended once becomes used</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>       <span class="c1"># Name of Panda Queue</span>
+    <span class="n">resource</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>   <span class="c1"># Name of Panda Resource</span>
+    <span class="n">appdir</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>     <span class="c1">#</span>
+    <span class="n">catchall</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>   <span class="c1">#</span>
+
+    <span class="n">platform</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>     <span class="c1"># cmtconfig value</span>
+    <span class="n">container_options</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>  <span class="c1"># singularity only options? to be reviewed and forced to be a dict (support options for other containers?)</span>
+    <span class="n">container_type</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># dict of container names by user as a key</span>
+
+    <span class="n">copytools</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">acopytools</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1">## allowed protocol schemas for requested copytool/activity</span>
+    <span class="c1">## if passed value (per activity) is a list, then given schemas will be used for all allowed copytools</span>
+    <span class="c1">## in case of dict-based value, it specifies allowed schemas per copytool for given activity</span>
+    <span class="c1">## e.g. {&#39;pr&#39;:[&#39;root&#39;, &#39;srm&#39;], &#39;pw&#39;:[&#39;webdav&#39;], &#39;default&#39;:[&#39;root&#39;]}</span>
+    <span class="c1">##      {&#39;pr&#39;: {&#39;gfalcopy&#39;:[&#39;webdav&#39;], &#39;pw&#39;:{&#39;lsm&#39;:[&#39;root&#39;]}}}</span>
+    <span class="n">acopytools_schemas</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">astorages</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">aprotocols</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">state</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># AGIS PQ state, e.g. ACTIVE</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>   <span class="c1"># PQ status, e.g. online</span>
+    <span class="n">site</span> <span class="o">=</span> <span class="kc">None</span>   <span class="c1"># ATLAS Site name</span>
+
+    <span class="n">direct_access_lan</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># Prefer remote io (True) or use only copy2scratch method (False) for stage-in over LAN</span>
+    <span class="n">direct_access_wan</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># Prefer remote io (True) or use only copy2scratch method (False) for stage-in over WAN</span>
+
+    <span class="n">allow_lan</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># Allow LAN access (whatever method) for stage-in</span>
+    <span class="n">allow_wan</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># Allow WAN access (whatever method) for stage-in</span>
+
+    <span class="n">use_pcache</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">maxwdir</span> <span class="o">=</span> <span class="mi">0</span>    <span class="c1"># in MB</span>
+    <span class="n">maxrss</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">maxinputsize</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">timefloor</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># The maximum time during which the pilot is allowed to start a new job, in seconds</span>
+    <span class="n">corecount</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1">#</span>
+
+    <span class="n">maxtime</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># maximum allowed lifetime for pilot to run on the resource (0 will be ignored, fallback to default)</span>
+
+    <span class="n">pledgedcpu</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1">#</span>
+    <span class="n">es_stageout_gap</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1">## time gap value in seconds for ES stageout</span>
+
+    <span class="n">is_cvmfs</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># has cvmfs installed</span>
+
+    <span class="c1"># specify the type of attributes for proper data validation and casting</span>
+    <span class="n">_keys</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;timefloor&#39;</span><span class="p">,</span> <span class="s1">&#39;maxwdir&#39;</span><span class="p">,</span> <span class="s1">&#39;pledgedcpu&#39;</span><span class="p">,</span> <span class="s1">&#39;es_stageout_gap&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;corecount&#39;</span><span class="p">,</span> <span class="s1">&#39;maxrss&#39;</span><span class="p">,</span> <span class="s1">&#39;maxtime&#39;</span><span class="p">,</span> <span class="s1">&#39;maxinputsize&#39;</span><span class="p">],</span>
+             <span class="nb">str</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="s1">&#39;appdir&#39;</span><span class="p">,</span> <span class="s1">&#39;catchall&#39;</span><span class="p">,</span> <span class="s1">&#39;platform&#39;</span><span class="p">,</span> <span class="s1">&#39;container_options&#39;</span><span class="p">,</span> <span class="s1">&#39;container_type&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;resource&#39;</span><span class="p">,</span> <span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="s1">&#39;site&#39;</span><span class="p">],</span>
+             <span class="nb">dict</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;copytools&#39;</span><span class="p">,</span> <span class="s1">&#39;acopytools&#39;</span><span class="p">,</span> <span class="s1">&#39;astorages&#39;</span><span class="p">,</span> <span class="s1">&#39;aprotocols&#39;</span><span class="p">,</span> <span class="s1">&#39;acopytools_schemas&#39;</span><span class="p">],</span>
+             <span class="nb">bool</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;allow_lan&#39;</span><span class="p">,</span> <span class="s1">&#39;allow_wan&#39;</span><span class="p">,</span> <span class="s1">&#39;direct_access_lan&#39;</span><span class="p">,</span> <span class="s1">&#39;direct_access_wan&#39;</span><span class="p">,</span> <span class="s1">&#39;is_cvmfs&#39;</span><span class="p">,</span> <span class="s1">&#39;use_pcache&#39;</span><span class="p">]</span>
+             <span class="p">}</span>
+
+<div class="viewcode-block" id="QueueData.__init__"><a class="viewcode-back" href="../../../components/info/queuedata.html#pilot.info.queuedata.QueueData.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            :param data: input dictionary of queue data settings</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c1"># DEBUG</span>
+        <span class="c1">#import pprint</span>
+        <span class="c1">#logger.debug(&#39;initialize QueueData from raw:\n%s&#39; % pprint.pformat(data))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Final parsed QueueData content:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QueueData.load"><a class="viewcode-back" href="../../../components/info/queuedata.html#pilot.info.queuedata.QueueData.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Construct and initialize data from ext source</span>
+<span class="sd">            :param data: input dictionary of queue data settings</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># the translation map of the queue data attributes from external data to internal schema</span>
+        <span class="c1"># &#39;internal_name&#39;:(&#39;ext_name1&#39;, &#39;extname2_if_any&#39;)</span>
+        <span class="c1"># &#39;internal_name2&#39;:&#39;ext_name3&#39;</span>
+
+        <span class="c1"># first defined ext field will be used</span>
+        <span class="c1"># if key is not explicitly specified then ext name will be used as is</span>
+        <span class="c1">## fix me later to proper internal names if need</span>
+
+        <span class="n">kmap</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="s1">&#39;nickname&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;resource&#39;</span><span class="p">:</span> <span class="s1">&#39;panda_resource&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;platform&#39;</span><span class="p">:</span> <span class="s1">&#39;cmtconfig&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;site&#39;</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;atlas_site&#39;</span><span class="p">,</span> <span class="s1">&#39;gstat&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;es_stageout_gap&#39;</span><span class="p">:</span> <span class="s1">&#39;zip_time_gap&#39;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">kmap</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QueueData.resolve_allowed_schemas"><a class="viewcode-back" href="../../../components/info/queuedata.html#pilot.info.queuedata.QueueData.resolve_allowed_schemas">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_allowed_schemas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">activity</span><span class="p">,</span> <span class="n">copytool</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Resolve list of allowed schemas for given activity and requested copytool based on `acopytools_schemas` settings</span>
+<span class="sd">            :param activity: str or ordered list of transfer activity names to resolve acopytools related data</span>
+<span class="sd">            :return: list of protocol schemes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">activity</span><span class="p">:</span>
+            <span class="n">activity</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">activity</span><span class="p">,</span> <span class="n">basestring</span><span class="p">):</span>  <span class="c1"># Python 2  # noqa: F821</span>
+                <span class="n">activity</span> <span class="o">=</span> <span class="p">[</span><span class="n">activity</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">activity</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>  <span class="c1"># Python 3</span>
+                <span class="n">activity</span> <span class="o">=</span> <span class="p">[</span><span class="n">activity</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="s1">&#39;default&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">activity</span><span class="p">:</span>
+            <span class="n">activity</span> <span class="o">=</span> <span class="n">activity</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;default&#39;</span><span class="p">]</span>
+
+        <span class="n">adat</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">aname</span> <span class="ow">in</span> <span class="n">activity</span><span class="p">:</span>
+            <span class="n">adat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">acopytools_schemas</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">aname</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">adat</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">adat</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">adat</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">adat</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;default&#39;</span><span class="p">:</span> <span class="n">adat</span><span class="p">}</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">copytool</span> <span class="ow">or</span> <span class="n">copytool</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">adat</span><span class="p">:</span>
+            <span class="n">copytool</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>
+
+        <span class="k">return</span> <span class="n">adat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">copytool</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="QueueData.clean"><a class="viewcode-back" href="../../../components/info/queuedata.html#pilot.info.queuedata.QueueData.clean">[docs]</a>    <span class="k">def</span> <span class="nf">clean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Validate and finally clean up required data values (required object properties) if need</span>
+<span class="sd">            :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># validate es_stageout_gap value</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">es_stageout_gap</span><span class="p">:</span>
+            <span class="n">is_opportunistic</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pledgedcpu</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">pledgedcpu</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">es_stageout_gap</span> <span class="o">=</span> <span class="mi">600</span> <span class="k">if</span> <span class="n">is_opportunistic</span> <span class="k">else</span> <span class="mi">7200</span>  <span class="c1">## 10 munites for opportunistic or 5 hours for normal resources</span>
+
+        <span class="c1"># validate container_options: extract from the catchall if not set</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">container_options</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">catchall</span><span class="p">:</span>  <span class="c1">## container_options is considered for the singularity container, FIX ME LATER IF NEED</span>
+            <span class="c1"># expected format</span>
+            <span class="c1"># of catchall = &quot;singularity_options=\&#39;-B /etc/grid-security/certificates,/cvmfs,${workdir} --contain\&#39;&quot;</span>
+            <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;singularity_options=[&#39;</span><span class="se">\&quot;</span><span class="s2">]?([^&#39;</span><span class="se">\&quot;</span><span class="s2">]+)[&#39;</span><span class="se">\&quot;</span><span class="s2">]?&quot;</span><span class="p">)</span>  <span class="c1">### FIX ME LATER: move to proper args parsing via shlex at Job class</span>
+            <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">catchall</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">found</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">container_options</span> <span class="o">=</span> <span class="n">found</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;container_options extracted from catchall: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">container_options</span><span class="p">)</span>
+
+        <span class="c1"># verify container_options: add the workdir if missing</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">container_options</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;$</span><span class="si">{workdir}</span><span class="s2">&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">container_options</span> <span class="ow">and</span> <span class="s2">&quot; --contain&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">container_options</span><span class="p">:</span>  <span class="c1">## reimplement with shlex later</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">container_options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">container_options</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; --contain&quot;</span><span class="p">,</span> <span class="s2">&quot;,$</span><span class="si">{workdir}</span><span class="s2"> --contain&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Note: added missing $</span><span class="si">{workdir}</span><span class="s2"> to container_options/singularity_options: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">container_options</span><span class="p">)</span>
+
+        <span class="k">pass</span></div>
+
+    <span class="c1">## custom function pattern to apply extra validation to the key values</span>
+    <span class="c1">##def clean__keyname(self, raw, value):</span>
+    <span class="c1">##  :param raw: raw value passed from ext source as input</span>
+    <span class="c1">##  :param value: preliminary cleaned and casted to proper type value</span>
+    <span class="c1">##</span>
+    <span class="c1">##    return value</span>
+
+<div class="viewcode-block" id="QueueData.clean__timefloor"><a class="viewcode-back" href="../../../components/info/queuedata.html#pilot.info.queuedata.QueueData.clean__timefloor">[docs]</a>    <span class="k">def</span> <span class="nf">clean__timefloor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Verify and validate value for the timefloor key (convert to seconds)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">value</span> <span class="o">*</span> <span class="mi">60</span></div>
+
+<div class="viewcode-block" id="QueueData.clean__container_type"><a class="viewcode-back" href="../../../components/info/queuedata.html#pilot.info.queuedata.QueueData.clean__container_type">[docs]</a>    <span class="k">def</span> <span class="nf">clean__container_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Parse and prepare value for the container_type key</span>
+<span class="sd">            Expected raw data in format &#39;container_name:user_name;&#39;</span>
+<span class="sd">            E.g. container_type = &#39;singularity:pilot;docker:wrapper&#39;</span>
+
+<span class="sd">            :return: dict of container names by user as a key</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">ret</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">value</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">val</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">):</span>
+            <span class="n">dat</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dat</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">name</span><span class="p">,</span> <span class="n">user</span> <span class="o">=</span> <span class="n">dat</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">dat</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">ret</span><span class="p">[</span><span class="n">user</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="QueueData.clean__container_options"><a class="viewcode-back" href="../../../components/info/queuedata.html#pilot.info.queuedata.QueueData.clean__container_options">[docs]</a>    <span class="k">def</span> <span class="nf">clean__container_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Verify and validate value for the container_options key (remove bad values)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">value</span> <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;none&#39;</span><span class="p">]</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span></div>
+
+<div class="viewcode-block" id="QueueData.clean__corecount"><a class="viewcode-back" href="../../../components/info/queuedata.html#pilot.info.queuedata.QueueData.clean__corecount">[docs]</a>    <span class="k">def</span> <span class="nf">clean__corecount</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Verify and validate value for the corecount key (set to 1 if not set)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">value</span> <span class="k">if</span> <span class="n">value</span> <span class="k">else</span> <span class="mi">1</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

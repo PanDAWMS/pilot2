@@ -1,0 +1,191 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>loopingjob &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="math" href="math.html" />
+    <link rel="prev" title="jobmetrics" href="jobmetrics.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.util.loopingjob">
+<span id="loopingjob"></span><h1>loopingjob<a class="headerlink" href="#module-pilot.util.loopingjob" title="Permalink to this headline">¶</a></h1>
+<dl class="py function">
+<dt id="pilot.util.loopingjob.get_looping_job_limit">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.loopingjob.</span></code><code class="sig-name descname"><span class="pre">get_looping_job_limit</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/loopingjob.html#get_looping_job_limit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.loopingjob.get_looping_job_limit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the time limit for looping job detection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>looping job time limit (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.loopingjob.get_time_for_last_touch">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.loopingjob.</span></code><code class="sig-name descname"><span class="pre">get_time_for_last_touch</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">looping_limit</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/loopingjob.html#get_time_for_last_touch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.loopingjob.get_time_for_last_touch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the time when the files in the workdir were last touched.
+in case no file was touched since the last check, the returned value will be the same as the previous time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>mt</strong> – <a class="reference internal" href="monitoringtime.html#pilot.util.monitoringtime.MonitoringTime" title="pilot.util.monitoringtime.MonitoringTime"><code class="xref any py py-class docutils literal notranslate"><span class="pre">MonitoringTime</span></code></a> object.</p></li>
+<li><p><strong>looping_limit</strong> – looping limit in seconds.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time in seconds since epoch (int) (or None in case of failure).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.loopingjob.kill_looping_job">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.loopingjob.</span></code><code class="sig-name descname"><span class="pre">kill_looping_job</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/loopingjob.html#kill_looping_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.loopingjob.kill_looping_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kill the looping process.
+TODO: add allow_looping_job() exp. spec?</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(updated job object.)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.loopingjob.looping_job">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.loopingjob.</span></code><code class="sig-name descname"><span class="pre">looping_job</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/loopingjob.html#looping_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.loopingjob.looping_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looping job detection algorithm.
+Identify hanging tasks/processes. Did the stage-in/out finish within allowed time limit, or did the payload update
+any files recently? The files must have been touched within the given looping_limit, or the process will be
+terminated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>mt</strong> – <a class="reference internal" href="monitoringtime.html#pilot.util.monitoringtime.MonitoringTime" title="pilot.util.monitoringtime.MonitoringTime"><code class="xref any py py-class docutils literal notranslate"><span class="pre">MonitoringTime</span></code></a> object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>exit code (int), diagnostics (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">util components</a><ul>
+      <li>Previous: <a href="jobmetrics.html" title="previous chapter">jobmetrics</a></li>
+      <li>Next: <a href="math.html" title="next chapter">math</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/util/loopingjob.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/util/loopingjob.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

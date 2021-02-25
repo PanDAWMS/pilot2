@@ -1,0 +1,1133 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.util.filehandling &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.util.filehandling</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2018</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">tarfile</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">from</span> <span class="nn">glob</span> <span class="kn">import</span> <span class="n">glob</span>
+<span class="kn">from</span> <span class="nn">json</span> <span class="kn">import</span> <span class="n">load</span>
+<span class="kn">from</span> <span class="nn">json</span> <span class="kn">import</span> <span class="n">dump</span> <span class="k">as</span> <span class="n">dumpjson</span>
+<span class="kn">from</span> <span class="nn">shutil</span> <span class="kn">import</span> <span class="n">copy2</span><span class="p">,</span> <span class="n">rmtree</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">zlib</span> <span class="kn">import</span> <span class="n">adler32</span>
+
+<span class="kn">from</span> <span class="nn">pilot.common.exception</span> <span class="kn">import</span> <span class="n">ConversionFailure</span><span class="p">,</span> <span class="n">FileHandlingFailure</span><span class="p">,</span> <span class="n">MKDirFailure</span><span class="p">,</span> <span class="n">NoSuchFile</span>
+<span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="c1">#from pilot.util.mpi import get_ranks_info</span>
+<span class="kn">from</span> <span class="nn">.container</span> <span class="kn">import</span> <span class="n">execute</span>
+<span class="kn">from</span> <span class="nn">.math</span> <span class="kn">import</span> <span class="n">diff_lists</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_pilot_work_dir"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.get_pilot_work_dir">[docs]</a><span class="k">def</span> <span class="nf">get_pilot_work_dir</span><span class="p">(</span><span class="n">workdir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the full path to the main PanDA Pilot work directory. Called once at the beginning of the batch job.</span>
+
+<span class="sd">    :param workdir: The full path to where the main work directory should be created</span>
+<span class="sd">    :return: The name of main work directory</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="s2">&quot;PanDA_Pilot2_</span><span class="si">%d</span><span class="s2">_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">(),</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()))))</span></div>
+
+
+<div class="viewcode-block" id="mkdirs"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.mkdirs">[docs]</a><span class="k">def</span> <span class="nf">mkdirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">chmod</span><span class="o">=</span><span class="mo">0o770</span><span class="p">):</span>  <span class="c1"># Python 2/3</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a directory.</span>
+<span class="sd">    Perform a chmod if set.</span>
+
+<span class="sd">    :param workdir: Full path to the directory to be created</span>
+<span class="sd">    :param chmod: chmod code (default 0770) (octal).</span>
+<span class="sd">    :raises PilotException: MKDirFailure.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">workdir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">chmod</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">chmod</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">MKDirFailure</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="rmdirs"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.rmdirs">[docs]</a><span class="k">def</span> <span class="nf">rmdirs</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove directory in path.</span>
+
+<span class="sd">    :param path: path to directory to be removed (string).</span>
+<span class="sd">    :return: Boolean (True if success).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">rmtree</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;failed to remove directories </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">status</span></div>
+
+
+<div class="viewcode-block" id="read_file"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.read_file">[docs]</a><span class="k">def</span> <span class="nf">read_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Open, read and close a file.</span>
+<span class="sd">    :param filename: file name (string).</span>
+<span class="sd">    :param mode:</span>
+<span class="sd">    :return: file contents (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">open_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="write_file"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.write_file">[docs]</a><span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">contents</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write the given contents to a file.</span>
+<span class="sd">    If unique=True, then if the file already exists, an index will be added (e.g. &#39;out.txt&#39; -&gt; &#39;out-1.txt&#39;)</span>
+<span class="sd">    :param path: full path for file (string).</span>
+<span class="sd">    :param contents: file contents (object).</span>
+<span class="sd">    :param mute: boolean to control stdout info message.</span>
+<span class="sd">    :param mode: file mode (e.g. &#39;w&#39;, &#39;r&#39;, &#39;a&#39;, &#39;wb&#39;, &#39;rb&#39;) (string).</span>
+<span class="sd">    :param unique: file must be unique (Boolean).</span>
+<span class="sd">    :raises PilotException: FileHandlingFailure.</span>
+<span class="sd">    :return: True if successful, otherwise False.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1"># add an incremental file name (add -%d if path already exists) if necessary</span>
+    <span class="k">if</span> <span class="n">unique</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">get_nonexistant_path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="n">f</span> <span class="o">=</span> <span class="n">open_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">contents</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">FileHandlingFailure</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">mute</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;w&#39;</span> <span class="ow">in</span> <span class="n">mode</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;created file: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;a&#39;</span> <span class="ow">in</span> <span class="n">mode</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;appended file: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">status</span></div>
+
+
+<div class="viewcode-block" id="open_file"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.open_file">[docs]</a><span class="k">def</span> <span class="nf">open_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Open and return a file pointer for the given mode.</span>
+<span class="sd">    Note: the caller needs to close the file.</span>
+
+<span class="sd">    :param filename: file name (string).</span>
+<span class="sd">    :param mode: file mode (character).</span>
+<span class="sd">    :raises PilotException: FileHandlingFailure.</span>
+<span class="sd">    :return: file pointer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">f</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">FileHandlingFailure</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">f</span></div>
+
+
+<div class="viewcode-block" id="get_files"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.get_files">[docs]</a><span class="k">def</span> <span class="nf">get_files</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;*.log&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find all files whose names follow the given pattern.</span>
+
+<span class="sd">    :param pattern: file name pattern (string).</span>
+<span class="sd">    :return: list of files.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;find . -name </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">pattern</span>
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">stdout</span><span class="p">:</span>
+        <span class="c1"># remove last \n if present</span>
+        <span class="k">if</span> <span class="n">stdout</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+            <span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="n">stdout</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">files</span></div>
+
+
+<div class="viewcode-block" id="tail"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.tail">[docs]</a><span class="k">def</span> <span class="nf">tail</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">nlines</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the last n lines of a file.</span>
+<span class="sd">    Note: the function uses the posix tail function.</span>
+
+<span class="sd">    :param filename: name of file to do the tail on (string).</span>
+<span class="sd">    :param nlines: number of lines (int).</span>
+<span class="sd">    :return: file tail (str).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="s1">&#39;tail -n </span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">nlines</span><span class="p">,</span> <span class="n">filename</span><span class="p">))</span>
+    <span class="c1"># protection</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">stdout</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">stdout</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">stdout</span></div>
+
+
+<div class="viewcode-block" id="grep"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.grep">[docs]</a><span class="k">def</span> <span class="nf">grep</span><span class="p">(</span><span class="n">patterns</span><span class="p">,</span> <span class="n">file_name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Search for the patterns in the given list in a file.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">      grep([&quot;St9bad_alloc&quot;, &quot;FATAL&quot;], &quot;athena_stdout.txt&quot;)</span>
+<span class="sd">      -&gt; [list containing the lines below]</span>
+<span class="sd">        CaloTrkMuIdAlg2.sysExecute()             ERROR St9bad_alloc</span>
+<span class="sd">        AthAlgSeq.sysExecute()                   FATAL  Standard std::exception is caught</span>
+
+<span class="sd">    :param patterns: list of regexp patterns.</span>
+<span class="sd">    :param file_name: file name (string).</span>
+<span class="sd">    :return: list of matched lines in file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">matched_lines</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">patterns</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">pattern</span><span class="p">))</span>
+
+    <span class="n">f</span> <span class="o">=</span> <span class="n">open_file</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># get the next line in the file</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>
+                <span class="k">break</span>
+
+            <span class="c1"># can the search pattern be found</span>
+            <span class="k">for</span> <span class="n">cp</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">cp</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+                    <span class="n">matched_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">matched_lines</span></div>
+
+
+<div class="viewcode-block" id="convert"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.convert">[docs]</a><span class="k">def</span> <span class="nf">convert</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert unicode data to utf-8.</span>
+
+<span class="sd">    Usage examples:</span>
+<span class="sd">    1. Dictionary:</span>
+<span class="sd">      data = {u&#39;Max&#39;: {u&#39;maxRSS&#39;: 3664, u&#39;maxSwap&#39;: 0, u&#39;maxVMEM&#39;: 142260, u&#39;maxPSS&#39;: 1288}, u&#39;Avg&#39;:</span>
+<span class="sd">             {u&#39;avgVMEM&#39;: 94840, u&#39;avgPSS&#39;: 850, u&#39;avgRSS&#39;: 2430, u&#39;avgSwap&#39;: 0}}</span>
+<span class="sd">    convert(data)</span>
+<span class="sd">      {&#39;Max&#39;: {&#39;maxRSS&#39;: 3664, &#39;maxSwap&#39;: 0, &#39;maxVMEM&#39;: 142260, &#39;maxPSS&#39;: 1288}, &#39;Avg&#39;: {&#39;avgVMEM&#39;: 94840,</span>
+<span class="sd">       &#39;avgPSS&#39;: 850, &#39;avgRSS&#39;: 2430, &#39;avgSwap&#39;: 0}}</span>
+<span class="sd">    2. String:</span>
+<span class="sd">      data = u&#39;hello&#39;</span>
+<span class="sd">    convert(data)</span>
+<span class="sd">      &#39;hello&#39;</span>
+<span class="sd">    3. List:</span>
+<span class="sd">      data = [u&#39;1&#39;,u&#39;2&#39;,&#39;3&#39;]</span>
+<span class="sd">    convert(data)</span>
+<span class="sd">      [&#39;1&#39;, &#39;2&#39;, &#39;3&#39;]</span>
+
+<span class="sd">    :param data: unicode object to be converted to utf-8</span>
+<span class="sd">    :return: converted data to utf-8</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">_basestring</span> <span class="o">=</span> <span class="n">basestring</span>  <span class="c1"># Python 2  # noqa: F821</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">_basestring</span> <span class="o">=</span> <span class="nb">str</span>  <span class="c1"># Python 3 (note order in try statement)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">_basestring</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">convert</span><span class="p">,</span> <span class="nb">iter</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">())))))</span>  <span class="c1"># Python 3</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">convert</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()))</span>  <span class="c1"># Python 2</span>
+        <span class="k">return</span> <span class="n">ret</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">Iterable</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">)(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">convert</span><span class="p">,</span> <span class="n">data</span><span class="p">)))</span>  <span class="c1"># Python 3</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">)(</span><span class="nb">map</span><span class="p">(</span><span class="n">convert</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>  <span class="c1"># Python 2</span>
+        <span class="k">return</span> <span class="n">ret</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="is_json"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.is_json">[docs]</a><span class="k">def</span> <span class="nf">is_json</span><span class="p">(</span><span class="n">input_file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check if the file is in JSON format.</span>
+<span class="sd">    The function reads the first character of the file, and if it is &quot;{&quot; then returns True.</span>
+
+<span class="sd">    :param input_file: file name (string)</span>
+<span class="sd">    :return: Boolean.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">input_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">unknown_file</span><span class="p">:</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">unknown_file</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s1">&#39;{&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="read_list"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.read_list">[docs]</a><span class="k">def</span> <span class="nf">read_list</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read a list from a JSON file.</span>
+
+<span class="sd">    :param filename: file name (string).</span>
+<span class="sd">    :return: list.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># open output file for reading</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">filehandle</span><span class="p">:</span>
+            <span class="n">_list</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="n">filehandle</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to read </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">convert</span><span class="p">(</span><span class="n">_list</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="read_json"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.read_json">[docs]</a><span class="k">def</span> <span class="nf">read_json</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read a dictionary with unicode to utf-8 conversion</span>
+
+<span class="sd">    :param filename:</span>
+<span class="sd">    :raises PilotException: FileHandlingFailure, ConversionFailure</span>
+<span class="sd">    :return: json dictionary</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">dictionary</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">open_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">dictionary</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="c1">#raise FileHandlingFailure(str(e))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+            <span class="c1"># Try to convert the dictionary from unicode to utf-8</span>
+            <span class="k">if</span> <span class="n">dictionary</span> <span class="o">!=</span> <span class="p">{}:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">dictionary</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">dictionary</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">ConversionFailure</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dictionary</span></div>
+
+
+<div class="viewcode-block" id="write_json"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.write_json">[docs]</a><span class="k">def</span> <span class="nf">write_json</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;: &#39;</span><span class="p">)):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write the dictionary to a JSON file.</span>
+
+<span class="sd">    :param filename: file name (string).</span>
+<span class="sd">    :param data: object to be written to file (dictionary or list).</span>
+<span class="sd">    :param sort_keys: should entries be sorted? (boolean).</span>
+<span class="sd">    :param indent: indentation level, default 4 (int).</span>
+<span class="sd">    :param separators: field separators (default (&#39;,&#39;, &#39;: &#39;) for dictionaries, use e.g. (&#39;,\n&#39;) for lists) (tuple)</span>
+<span class="sd">    :raises PilotException: FileHandlingFailure.</span>
+<span class="sd">    :return: status (boolean).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+            <span class="n">dumpjson</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">fh</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="n">sort_keys</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="n">indent</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="n">separators</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">FileHandlingFailure</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">status</span></div>
+
+
+<div class="viewcode-block" id="touch"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.touch">[docs]</a><span class="k">def</span> <span class="nf">touch</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Touch a file and update mtime in case the file exists.</span>
+<span class="sd">    Default to use execute() if case of python problem with appending to non-existant path.</span>
+
+<span class="sd">    :param path: full path to file to be touched (string).</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">utime</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="s1">&#39;touch </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="remove_empty_directories"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.remove_empty_directories">[docs]</a><span class="k">def</span> <span class="nf">remove_empty_directories</span><span class="p">(</span><span class="n">src_dir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Removal of empty directories in the given src_dir tree.</span>
+<span class="sd">    Only empty directories will be removed.</span>
+
+<span class="sd">    :param src_dir: directory to be purged of empty directories.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">for</span> <span class="n">dirpath</span><span class="p">,</span> <span class="n">subdirs</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">src_dir</span><span class="p">,</span> <span class="n">topdown</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">dirpath</span> <span class="o">==</span> <span class="n">src_dir</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">rmdir</span><span class="p">(</span><span class="n">dirpath</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="remove"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.remove">[docs]</a><span class="k">def</span> <span class="nf">remove</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove file.</span>
+<span class="sd">    :param path: path to file (string).</span>
+<span class="sd">    :return: 0 if successful, -1 if failed (int)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;failed to remove file: </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">strerror</span><span class="p">))</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">return</span> <span class="mi">0</span></div>
+
+
+<div class="viewcode-block" id="remove_dir_tree"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.remove_dir_tree">[docs]</a><span class="k">def</span> <span class="nf">remove_dir_tree</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove directory tree.</span>
+<span class="sd">    :param path: path to directory (string).</span>
+<span class="sd">    :return: 0 if successful, -1 if failed (int)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">rmtree</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;failed to remove directory: </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">errno</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">strerror</span><span class="p">))</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">return</span> <span class="mi">0</span></div>
+
+
+<div class="viewcode-block" id="remove_files"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.remove_files">[docs]</a><span class="k">def</span> <span class="nf">remove_files</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">files</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove all given files from workdir.</span>
+
+<span class="sd">    :param workdir: working directory (string).</span>
+<span class="sd">    :param files: file list.</span>
+<span class="sd">    :return: exit code (0 if all went well, -1 otherwise)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;files parameter not a list: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="nb">list</span><span class="p">)))</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="n">_ec</span> <span class="o">=</span> <span class="n">remove</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">f</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">_ec</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">ec</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">ec</span> <span class="o">=</span> <span class="n">_ec</span>
+
+    <span class="k">return</span> <span class="n">ec</span></div>
+
+
+<div class="viewcode-block" id="tar_files"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.tar_files">[docs]</a><span class="k">def</span> <span class="nf">tar_files</span><span class="p">(</span><span class="n">wkdir</span><span class="p">,</span> <span class="n">excludedfiles</span><span class="p">,</span> <span class="n">logfile_name</span><span class="p">,</span> <span class="n">attempt</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Tarring of files in given directory.</span>
+
+<span class="sd">    :param wkdir: work directory (string)</span>
+<span class="sd">    :param excludedfiles: list of files to be excluded from tar operation (list)</span>
+<span class="sd">    :param logfile_name: file name (string)</span>
+<span class="sd">    :param attempt: attempt number (integer)</span>
+<span class="sd">    :return: 0 if successful, 1 in case of error (int)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">to_pack</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">pack_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">subdir</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">wkdir</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">file</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">excludedfiles</span><span class="p">:</span>
+                <span class="n">rel_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">wkdir</span><span class="p">)</span>
+                <span class="n">file_rel_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">rel_dir</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+                <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+                <span class="n">to_pack</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">file_path</span><span class="p">,</span> <span class="n">file_rel_path</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">to_pack</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">logfile_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">wkdir</span><span class="p">,</span> <span class="n">logfile_name</span><span class="p">)</span>
+            <span class="n">log_pack</span> <span class="o">=</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">logfile_name</span><span class="p">,</span> <span class="s1">&#39;w:gz&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">to_pack</span><span class="p">:</span>
+                <span class="n">log_pack</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">arcname</span><span class="o">=</span><span class="n">f</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">log_pack</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">attempt</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">safe_delay</span> <span class="o">=</span> <span class="mi">15</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;i/o error - will retry in </span><span class="si">{0}</span><span class="s1"> seconds&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">safe_delay</span><span class="p">))</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">safe_delay</span><span class="p">)</span>
+                <span class="n">tar_files</span><span class="p">(</span><span class="n">wkdir</span><span class="p">,</span> <span class="n">excludedfiles</span><span class="p">,</span> <span class="n">logfile_name</span><span class="p">,</span> <span class="n">attempt</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;continues i/o errors during packing of logs - job will fail&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="mi">1</span>
+
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">to_pack</span><span class="p">:</span>
+        <span class="n">remove</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">remove_empty_directories</span><span class="p">(</span><span class="n">wkdir</span><span class="p">)</span>
+    <span class="n">pack_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">pack_start</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;packing of logs took </span><span class="si">{0}</span><span class="s2"> seconds&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pack_time</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="mi">0</span></div>
+
+
+<div class="viewcode-block" id="copy"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.copy">[docs]</a><span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="n">path1</span><span class="p">,</span> <span class="n">path2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Copy path1 to path2.</span>
+
+<span class="sd">    :param path1: file path (string).</span>
+<span class="sd">    :param path2: file path (string).</span>
+<span class="sd">    :raises PilotException: FileHandlingFailure, NoSuchFile</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path1</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;file copy failure: path does not exist: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">path1</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">NoSuchFile</span><span class="p">(</span><span class="s2">&quot;File does not exist: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">path1</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">copy2</span><span class="p">(</span><span class="n">path1</span><span class="p">,</span> <span class="n">path2</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;exception caught during file copy: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">FileHandlingFailure</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;copied </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path1</span><span class="p">,</span> <span class="n">path2</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="find_executable"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.find_executable">[docs]</a><span class="k">def</span> <span class="nf">find_executable</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Is the command &#39;name&#39; available locally?</span>
+
+<span class="sd">    :param name: command name (string).</span>
+<span class="sd">    :return: full path to command if it exists, otherwise empty string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">distutils.spawn</span> <span class="kn">import</span> <span class="n">find_executable</span>
+    <span class="k">return</span> <span class="n">find_executable</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_directory_size"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.get_directory_size">[docs]</a><span class="k">def</span> <span class="nf">get_directory_size</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the size of the given directory in B.</span>
+
+<span class="sd">    :param directory: directory name (string).</span>
+<span class="sd">    :return: size of directory (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">size</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="s1">&#39;du -sk </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">directory</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">stdout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># convert to int and B</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">stdout</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="mi">1024</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught while trying convert dirsize: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">size</span></div>
+
+
+<div class="viewcode-block" id="add_to_total_size"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.add_to_total_size">[docs]</a><span class="k">def</span> <span class="nf">add_to_total_size</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">total_size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add the size of file in the given path to the total size of all in/output files.</span>
+
+<span class="sd">    :param path: path to file (string).</span>
+<span class="sd">    :param total_size: prior total size of all input/output files (long).</span>
+<span class="sd">    :return: total size of all input/output files (long).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="c1"># Get the file size</span>
+        <span class="n">fsize</span> <span class="o">=</span> <span class="n">get_local_file_size</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fsize</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;size of file </span><span class="si">%s</span><span class="s2">: </span><span class="si">%d</span><span class="s2"> B&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">fsize</span><span class="p">))</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">total_size</span> <span class="o">+=</span> <span class="n">long</span><span class="p">(</span><span class="n">fsize</span><span class="p">)</span>  <span class="c1"># Python 2  # noqa: F821</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">total_size</span> <span class="o">+=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fsize</span><span class="p">)</span>  <span class="c1"># Python 3 (note order in try statement)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;skipping file </span><span class="si">%s</span><span class="s2"> since it is not present&quot;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">total_size</span></div>
+
+
+<div class="viewcode-block" id="get_local_file_size"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.get_local_file_size">[docs]</a><span class="k">def</span> <span class="nf">get_local_file_size</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the file size of a local file.</span>
+
+<span class="sd">    :param filename: file name (string).</span>
+<span class="sd">    :return: file size (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">file_size</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">file_size</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;failed to get file size: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;local file does not exist: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">filename</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">file_size</span></div>
+
+
+<div class="viewcode-block" id="get_guid"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.get_guid">[docs]</a><span class="k">def</span> <span class="nf">get_guid</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate a GUID using the uuid library.</span>
+<span class="sd">    E.g. guid = &#39;92008FAF-BE4C-49CF-9C5C-E12BC74ACD19&#39;</span>
+
+<span class="sd">    :return: a random GUID (string)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="get_table_from_file"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.get_table_from_file">[docs]</a><span class="k">def</span> <span class="nf">get_table_from_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">convert_to_float</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract a table of data from a txt file.</span>
+<span class="sd">    E.g.</span>
+<span class="sd">    header=&quot;Time VMEM PSS RSS Swap rchar wchar rbytes wbytes&quot;</span>
+<span class="sd">    or the first line in the file is</span>
+<span class="sd">    Time VMEM PSS RSS Swap rchar wchar rbytes wbytes</span>
+<span class="sd">    each of which will become keys in the dictionary, whose corresponding values are stored in lists, with the entries</span>
+<span class="sd">    corresponding to the values in the rows of the input file.</span>
+
+<span class="sd">    The output dictionary will have the format</span>
+<span class="sd">    {&#39;Time&#39;: [ .. data from first row .. ], &#39;VMEM&#39;: [.. data from second row], ..}</span>
+
+<span class="sd">    :param filename: name of input text file, full path (string).</span>
+<span class="sd">    :param header: header string.</span>
+<span class="sd">    :param separator: separator character (char).</span>
+<span class="sd">    :param convert_to_float: boolean, if True, all values will be converted to floats.</span>
+<span class="sd">    :return: dictionary.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">tabledict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">keylist</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># ordered list of dictionary key names</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">open_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;failed to open file: </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">firstline</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">fields</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">separator</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">firstline</span><span class="p">:</span>
+                <span class="n">firstline</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">tabledict</span><span class="p">,</span> <span class="n">keylist</span> <span class="o">=</span> <span class="n">_define_tabledict_keys</span><span class="p">(</span><span class="n">header</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">separator</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">header</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+            <span class="c1"># from now on, fill the dictionary fields with the input data</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+                <span class="c1"># get the corresponding dictionary key from the keylist</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">keylist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="c1"># store the field value in the correct list</span>
+                <span class="k">if</span> <span class="n">convert_to_float</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">field</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;failed to convert </span><span class="si">%s</span><span class="s2"> to float: </span><span class="si">%s</span><span class="s2"> (aborting)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+                        <span class="k">return</span> <span class="kc">None</span>
+                <span class="n">tabledict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">tabledict</span></div>
+
+
+<div class="viewcode-block" id="_define_tabledict_keys"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling._define_tabledict_keys">[docs]</a><span class="k">def</span> <span class="nf">_define_tabledict_keys</span><span class="p">(</span><span class="n">header</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">separator</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Define the keys for the tabledict dictionary.</span>
+<span class="sd">    Note: this function is only used by parse_table_from_file().</span>
+
+<span class="sd">    :param header: header string.</span>
+<span class="sd">    :param fields: header content string.</span>
+<span class="sd">    :param separator: separator character (char).</span>
+<span class="sd">    :return: tabledict (dictionary), keylist (ordered list with dictionary key names).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">tabledict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">keylist</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">header</span><span class="p">:</span>
+        <span class="c1"># get the dictionary keys from the header of the file</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+            <span class="c1"># first line defines the header, whose elements will be used as dictionary keys</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">tabledict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">keylist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># get the dictionary keys from the provided header</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">separator</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">tabledict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">keylist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tabledict</span><span class="p">,</span> <span class="n">keylist</span></div>
+
+
+<div class="viewcode-block" id="calculate_checksum"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.calculate_checksum">[docs]</a><span class="k">def</span> <span class="nf">calculate_checksum</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s1">&#39;adler32&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the checksum value for the given file.</span>
+<span class="sd">    The default algorithm is adler32. Md5 is also be supported.</span>
+<span class="sd">    Valid algorithms are 1) adler32/adler/ad32/ad, 2) md5/md5sum/md.</span>
+
+<span class="sd">    :param filename: file name (string).</span>
+<span class="sd">    :param algorithm: optional algorithm string.</span>
+<span class="sd">    :raises FileHandlingFailure, NotImplementedError: exception raised when file does not exist or for unknown algorithm.</span>
+<span class="sd">    :return: checksum value (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">FileHandlingFailure</span><span class="p">(</span><span class="s1">&#39;file does not exist: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">filename</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">algorithm</span> <span class="o">==</span> <span class="s1">&#39;adler32&#39;</span> <span class="ow">or</span> <span class="n">algorithm</span> <span class="o">==</span> <span class="s1">&#39;adler&#39;</span> <span class="ow">or</span> <span class="n">algorithm</span> <span class="o">==</span> <span class="s1">&#39;ad&#39;</span> <span class="ow">or</span> <span class="n">algorithm</span> <span class="o">==</span> <span class="s1">&#39;ad32&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">calculate_adler32_checksum</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">algorithm</span> <span class="o">==</span> <span class="s1">&#39;md5&#39;</span> <span class="ow">or</span> <span class="n">algorithm</span> <span class="o">==</span> <span class="s1">&#39;md5sum&#39;</span> <span class="ow">or</span> <span class="n">algorithm</span> <span class="o">==</span> <span class="s1">&#39;md&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">calculate_md5_checksum</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;unknown checksum algorithm: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">algorithm</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="calculate_adler32_checksum"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.calculate_adler32_checksum">[docs]</a><span class="k">def</span> <span class="nf">calculate_adler32_checksum</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the adler32 checksum for the given file.</span>
+<span class="sd">    The file is assumed to exist.</span>
+
+<span class="sd">    :param filename: file name (string).</span>
+<span class="sd">    :return: checksum value (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">asum</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># default adler32 starting value</span>
+    <span class="n">blocksize</span> <span class="o">=</span> <span class="mi">64</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>  <span class="c1"># read buffer size, 64 Mb</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">blocksize</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">asum</span> <span class="o">=</span> <span class="n">adler32</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">asum</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">asum</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">asum</span> <span class="o">+=</span> <span class="mi">2</span><span class="o">**</span><span class="mi">32</span>
+
+    <span class="c1"># convert to hex</span>
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{0:08x}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">asum</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="calculate_md5_checksum"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.calculate_md5_checksum">[docs]</a><span class="k">def</span> <span class="nf">calculate_md5_checksum</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the md5 checksum for the given file.</span>
+<span class="sd">    The file is assumed to exist.</span>
+
+<span class="sd">    :param filename: file name (string).</span>
+<span class="sd">    :return: checksum value (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">length</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">DEFAULT_BUFFER_SIZE</span>
+    <span class="n">md5</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">io</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fd</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="nb">iter</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">fd</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">length</span><span class="p">),</span> <span class="sa">b</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+            <span class="n">md5</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">md5</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="get_checksum_value"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.get_checksum_value">[docs]</a><span class="k">def</span> <span class="nf">get_checksum_value</span><span class="p">(</span><span class="n">checksum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the checksum value.</span>
+<span class="sd">    The given checksum might either be a standard ad32 or md5 string, or a dictionary with the format</span>
+<span class="sd">    { checksum_type: value } as defined in the `FileSpec` class. This function extracts the checksum value from this</span>
+<span class="sd">    dictionary (or immediately returns the checksum value if the given value is a string).</span>
+
+<span class="sd">    :param checksum: checksum object (string or dictionary).</span>
+<span class="sd">    :return: checksum. checksum string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">checksum</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">checksum</span>
+
+    <span class="n">checksum_value</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">checksum_type</span> <span class="o">=</span> <span class="n">get_checksum_type</span><span class="p">(</span><span class="n">checksum</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">checksum</span><span class="p">)</span> <span class="o">==</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">checksum_value</span> <span class="o">=</span> <span class="n">checksum</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">checksum_type</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">checksum_value</span></div>
+
+
+<div class="viewcode-block" id="get_checksum_type"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.get_checksum_type">[docs]</a><span class="k">def</span> <span class="nf">get_checksum_type</span><span class="p">(</span><span class="n">checksum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the checksum type (ad32 or md5).</span>
+<span class="sd">    The given checksum can be either be a standard ad32 or md5 value, or a dictionary with the format</span>
+<span class="sd">    { checksum_type: value } as defined in the `FileSpec` class.</span>
+<span class="sd">    In case the checksum type cannot be identified, the function returns &#39;unknown&#39;.</span>
+
+<span class="sd">    :param checksum: checksum string or dictionary.</span>
+<span class="sd">    :return: checksum type (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">checksum_type</span> <span class="o">=</span> <span class="s1">&#39;unknown&#39;</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">checksum</span><span class="p">)</span> <span class="o">==</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">checksum</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>  <span class="c1"># Python 2/3</span>
+            <span class="c1"># the dictionary is assumed to only contain one key-value pair</span>
+            <span class="n">checksum_type</span> <span class="o">=</span> <span class="n">key</span>
+            <span class="k">break</span>
+    <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">checksum</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">checksum</span><span class="p">)</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="n">checksum_type</span> <span class="o">=</span> <span class="s1">&#39;ad32&#39;</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">checksum</span><span class="p">)</span> <span class="o">==</span> <span class="mi">32</span><span class="p">:</span>
+            <span class="n">checksum_type</span> <span class="o">=</span> <span class="s1">&#39;md5&#39;</span>
+
+    <span class="k">return</span> <span class="n">checksum_type</span></div>
+
+
+<div class="viewcode-block" id="scan_file"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.scan_file">[docs]</a><span class="k">def</span> <span class="nf">scan_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">error_messages</span><span class="p">,</span> <span class="n">warning_message</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Scan file for known error messages.</span>
+
+<span class="sd">    :param path: path to file (string).</span>
+<span class="sd">    :param error_messages: list of error messages.</span>
+<span class="sd">    :param warning_message: optional warning message to printed with any of the error_messages have been found (string).</span>
+<span class="sd">    :return: Boolean. (note: True means the error was found)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">found_problem</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">matched_lines</span> <span class="o">=</span> <span class="n">grep</span><span class="p">(</span><span class="n">error_messages</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matched_lines</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">warning_message</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">warning_message</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">matched_lines</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">found_problem</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">found_problem</span></div>
+
+
+<div class="viewcode-block" id="verify_file_list"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.verify_file_list">[docs]</a><span class="k">def</span> <span class="nf">verify_file_list</span><span class="p">(</span><span class="n">list_of_files</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Make sure that the files in the given list exist, return the list of files that does exist.</span>
+
+<span class="sd">    :param list_of_files: file list.</span>
+<span class="sd">    :return: list of existing files.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># remove any non-existent files from the input file list</span>
+    <span class="n">filtered_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">list_of_files</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">f</span><span class="p">)]</span>
+
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">diff_lists</span><span class="p">(</span><span class="n">list_of_files</span><span class="p">,</span> <span class="n">filtered_list</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">diff</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;found </span><span class="si">%d</span><span class="s1"> file(s) that do not exist (e.g. </span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">diff</span><span class="p">),</span> <span class="n">diff</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+    <span class="k">return</span> <span class="n">filtered_list</span></div>
+
+
+<div class="viewcode-block" id="find_latest_modified_file"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.find_latest_modified_file">[docs]</a><span class="k">def</span> <span class="nf">find_latest_modified_file</span><span class="p">(</span><span class="n">list_of_files</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find the most recently modified file among the list of given files.</span>
+<span class="sd">    In case int conversion of getmtime() fails, int(time.time()) will be returned instead.</span>
+
+<span class="sd">    :param list_of_files: list of files with full paths.</span>
+<span class="sd">    :return: most recently updated file (string), modification time (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">list_of_files</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;there were no files to check mod time for&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">latest_file</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">list_of_files</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">)</span>
+        <span class="n">mtime</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">(</span><span class="n">latest_file</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;int conversion failed for mod time: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">latest_file</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">mtime</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="n">latest_file</span><span class="p">,</span> <span class="n">mtime</span></div>
+
+
+<div class="viewcode-block" id="dump"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.dump">[docs]</a><span class="k">def</span> <span class="nf">dump</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">cmd</span><span class="o">=</span><span class="s2">&quot;cat&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Dump the content of the file in the given path to the log.</span>
+
+<span class="sd">    :param path: file path (string).</span>
+<span class="sd">    :param cmd: optional command (string).</span>
+<span class="sd">    :return: cat (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="ow">or</span> <span class="n">cmd</span> <span class="o">==</span> <span class="s2">&quot;echo&quot;</span><span class="p">:</span>
+        <span class="n">_cmd</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">_cmd</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">:</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_cmd</span><span class="p">,</span> <span class="n">stdout</span> <span class="o">+</span> <span class="n">stderr</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;path </span><span class="si">%s</span><span class="s2"> does not exist&quot;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="establish_logging"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.establish_logging">[docs]</a><span class="k">def</span> <span class="nf">establish_logging</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">pilotlog</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Setup and establish logging.</span>
+
+<span class="sd">    :param args: pilot arguments object.</span>
+<span class="sd">    :param filename: name of log file.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">_logger</span><span class="o">.</span><span class="n">handlers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">_logger</span><span class="o">.</span><span class="n">propagate</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">console</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+        <span class="n">format_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1"> | </span><span class="si">%(levelname)-8s</span><span class="s1"> | </span><span class="si">%(threadName)-19s</span><span class="s1"> | </span><span class="si">%(name)-32s</span><span class="s1"> | </span><span class="si">%(funcName)-25s</span><span class="s1"> | </span><span class="si">%(message)s</span><span class="s1">&#39;</span>
+        <span class="n">level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">format_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1"> | </span><span class="si">%(levelname)-8s</span><span class="s1"> | </span><span class="si">%(message)s</span><span class="s1">&#39;</span>
+        <span class="n">level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span>
+    <span class="c1">#rank, maxrank = get_ranks_info()</span>
+    <span class="c1">#if rank is not None:</span>
+    <span class="c1">#    format_str = &#39;Rank {0} |&#39;.format(rank) + format_str</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">nopilotlog</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="n">format_str</span><span class="p">,</span> <span class="n">filemode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="n">format_str</span><span class="p">,</span> <span class="n">filemode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+    <span class="n">console</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
+    <span class="n">console</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">(</span><span class="n">format_str</span><span class="p">))</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="o">.</span><span class="n">converter</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">gmtime</span>
+    <span class="c1">#if not len(_logger.handlers):</span>
+    <span class="n">_logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">console</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="remove_core_dumps"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.remove_core_dumps">[docs]</a><span class="k">def</span> <span class="nf">remove_core_dumps</span><span class="p">(</span><span class="n">workdir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove any remaining core dumps so they do not end up in the log tarball</span>
+
+<span class="sd">    :param workdir:</span>
+<span class="sd">    :return: Boolean (True if a core dump is found)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">found</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">coredumps1</span> <span class="o">=</span> <span class="n">glob</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/core.*&quot;</span> <span class="o">%</span> <span class="n">workdir</span><span class="p">)</span>
+    <span class="n">coredumps2</span> <span class="o">=</span> <span class="n">glob</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/core&quot;</span> <span class="o">%</span> <span class="n">workdir</span><span class="p">)</span>
+    <span class="n">coredumps</span> <span class="o">=</span> <span class="n">coredumps1</span> <span class="o">+</span> <span class="n">coredumps2</span>
+    <span class="k">if</span> <span class="n">coredumps</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">coredump</span> <span class="ow">in</span> <span class="n">coredumps</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;removing core dump: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">coredump</span><span class="p">))</span>
+            <span class="n">remove</span><span class="p">(</span><span class="n">coredump</span><span class="p">)</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">found</span></div>
+
+
+<div class="viewcode-block" id="get_nonexistant_path"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.get_nonexistant_path">[docs]</a><span class="k">def</span> <span class="nf">get_nonexistant_path</span><span class="p">(</span><span class="n">fname_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the path to a filename which does not exist by incrementing path.</span>
+
+<span class="sd">    :param fname_path: file name path (string).</span>
+<span class="sd">    :return: file name path (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">fname_path</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">fname_path</span>
+    <span class="n">filename</span><span class="p">,</span> <span class="n">file_extension</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">fname_path</span><span class="p">)</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">new_fname</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">-</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">file_extension</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">new_fname</span><span class="p">):</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">new_fname</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">-</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">file_extension</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">new_fname</span></div>
+
+
+<div class="viewcode-block" id="update_extension"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.update_extension">[docs]</a><span class="k">def</span> <span class="nf">update_extension</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update the file name extension to the given extension.</span>
+
+<span class="sd">    :param path: file path (string).</span>
+<span class="sd">    :param extension: new extension (string).</span>
+<span class="sd">    :return: file path with new extension (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">path</span><span class="p">,</span> <span class="n">old_extension</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">extension</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">):</span>
+        <span class="n">extension</span> <span class="o">=</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="n">extension</span>
+    <span class="n">path</span> <span class="o">+=</span> <span class="n">extension</span>
+
+    <span class="k">return</span> <span class="n">path</span></div>
+
+
+<div class="viewcode-block" id="get_valid_path_from_list"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.get_valid_path_from_list">[docs]</a><span class="k">def</span> <span class="nf">get_valid_path_from_list</span><span class="p">(</span><span class="n">paths</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the first valid path from the given list.</span>
+
+<span class="sd">    :param paths: list of file paths.</span>
+<span class="sd">    :return: first valid path from list (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">valid_path</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="n">valid_path</span> <span class="o">=</span> <span class="n">path</span>
+            <span class="k">break</span>
+
+    <span class="k">return</span> <span class="n">valid_path</span></div>
+
+
+<div class="viewcode-block" id="copy_pilot_source"><a class="viewcode-back" href="../../../components/util/filehandling.html#pilot.util.filehandling.copy_pilot_source">[docs]</a><span class="k">def</span> <span class="nf">copy_pilot_source</span><span class="p">(</span><span class="n">workdir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Copy the pilot source into the work directory.</span>
+
+<span class="sd">    :param workdir: working directory (string).</span>
+<span class="sd">    :return: diagnostics (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">srcdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_SOURCE_DIR&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">),</span> <span class="s1">&#39;pilot2&#39;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;copy </span><span class="si">%s</span><span class="s1"> to </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">srcdir</span><span class="p">,</span> <span class="n">workdir</span><span class="p">))</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;cp -r </span><span class="si">%s</span><span class="s1">/* </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">srcdir</span><span class="p">,</span> <span class="n">workdir</span><span class="p">)</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;file copy failed: </span><span class="si">%d</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;exception caught when copying pilot2 source: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">diagnostics</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

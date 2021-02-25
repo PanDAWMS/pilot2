@@ -1,0 +1,374 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>processes &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="proxy" href="proxy.html" />
+    <link rel="prev" title="parameters" href="parameters.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.util.processes">
+<span id="processes"></span><h1>processes<a class="headerlink" href="#module-pilot.util.processes" title="Permalink to this headline">¶</a></h1>
+<dl class="py function">
+<dt id="pilot.util.processes.cleanup">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">cleanup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#cleanup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.cleanup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cleanup called after completion of job.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.processes.dump_stack_trace">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">dump_stack_trace</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#dump_stack_trace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.dump_stack_trace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute the stack trace command (pstack &lt;pid&gt;).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pid</strong> – process id (int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.processes.find_processes_in_group">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">find_processes_in_group</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cpids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#find_processes_in_group"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.find_processes_in_group" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find all processes that belong to the same group.
+Recursively search for the children processes belonging to pid and return their pid’s.
+pid is the parent pid and cpids is a list that has to be initialized before calling this function and it contains
+the pids of the children AND the parent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cpids</strong> – list of pid’s for all child processes to the parent pid, as well as the parent pid itself (int).</p></li>
+<li><p><strong>pid</strong> – parent process id (int).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(updated cpids input parameter list).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.processes.get_cgroups_base_path">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">get_cgroups_base_path</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#get_cgroups_base_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.get_cgroups_base_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the base path for CGROUPS.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>base path for CGROUPS (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.processes.get_cpu_consumption_time">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">get_cpu_consumption_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#get_cpu_consumption_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.get_cpu_consumption_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the CPU consumption time for child processes measured by system+user time from os.times().
+Note: the os.times() tuple is user time, system time, s user time, s system time, and elapsed real time since a
+fixed point in the past.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>t0</strong> – initial os.times() tuple prior to measurement.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>system+user time for child processes (float).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.processes.get_current_cpu_consumption_time">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">get_current_cpu_consumption_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#get_current_cpu_consumption_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.get_current_cpu_consumption_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the current CPU consumption time (system+user time) for a given process, by looping over all child processes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pid</strong> – process id (int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>system+user time for a given pid (float).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.processes.get_instant_cpu_consumption_time">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">get_instant_cpu_consumption_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#get_instant_cpu_consumption_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.get_instant_cpu_consumption_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the CPU consumption time (system+user time) for a given process, by parsing /prod/pid/stat.
+Note 1: the function returns 0.0 if the pid is not set.
+Note 2: the function must sum up all the user+system times for both the main process (pid) and the child
+processes, since the main process is most likely spawning new processes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pid</strong> – process id (int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>system+user time for a given pid (float).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.processes.get_max_memory_usage_from_cgroups">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">get_max_memory_usage_from_cgroups</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#get_max_memory_usage_from_cgroups"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.get_max_memory_usage_from_cgroups" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read the max_memory from CGROUPS file memory.max_usage_in_bytes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>max_memory (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.processes.get_number_of_child_processes">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">get_number_of_child_processes</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#get_number_of_child_processes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.get_number_of_child_processes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the number of child processes for a given parent process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pid</strong> – parent process id (int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>number of child processes (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.processes.get_process_commands">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">get_process_commands</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">euid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#get_process_commands"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.get_process_commands" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of process commands corresponding to a pid list for user euid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>euid</strong> – user id (int).</p></li>
+<li><p><strong>pids</strong> – list of process id’s.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of process commands.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.processes.is_process_running">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">is_process_running</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">process_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#is_process_running"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.is_process_running" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether process is still running.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>process_id</strong> – process id (int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Boolean.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.processes.is_zombie">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">is_zombie</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#is_zombie"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.is_zombie" title="Permalink to this definition">¶</a></dt>
+<dd><p>Is the given process a zombie?
+:param pid: process id (int).
+:return: boolean.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.processes.kill_child_processes">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">kill_child_processes</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#kill_child_processes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.kill_child_processes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kill child processes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pid</strong> – process id (int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.processes.kill_orphans">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">kill_orphans</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#kill_orphans"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.kill_orphans" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find and kill all orphan processes belonging to current pilot user.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.processes.kill_process">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">kill_process</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#kill_process"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.kill_process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kill process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pid</strong> – process id (int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>boolean (True if successful SIGKILL)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.processes.kill_process_group">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">kill_process_group</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pgrp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#kill_process_group"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.kill_process_group" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kill the process group.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pgrp</strong> – process group id (int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>boolean (True if SIGMTERM followed by SIGKILL signalling was successful)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.processes.kill_processes">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">kill_processes</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#kill_processes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.kill_processes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Kill process beloging to given process group.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pid</strong> – process id (int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.processes.threads_aborted">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.processes.</span></code><code class="sig-name descname"><span class="pre">threads_aborted</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">abort_at</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/processes.html#threads_aborted"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.processes.threads_aborted" title="Permalink to this definition">¶</a></dt>
+<dd><p>Have the threads been aborted?</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>abort_at</strong> – 1 for workflow finish, 2 for thread finish (since check is done just before thread finishes) (int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Boolean.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">util components</a><ul>
+      <li>Previous: <a href="parameters.html" title="previous chapter">parameters</a></li>
+      <li>Next: <a href="proxy.html" title="next chapter">proxy</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/util/processes.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/util/processes.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

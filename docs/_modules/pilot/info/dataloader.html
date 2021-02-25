@@ -1,0 +1,333 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.info.dataloader &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.info.dataloader</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Alexey Anisenkov, anisyonk@cern.ch, 2018</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2019</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Base loader class to retrive data from Ext sources (file, url)</span>
+
+<span class="sd">:author: Alexey Anisenkov</span>
+<span class="sd">:contact: anisyonk@cern.ch</span>
+<span class="sd">:date: January 2018</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">urllib.request</span>  <span class="c1"># Python 3</span>
+    <span class="kn">import</span> <span class="nn">urllib.error</span>  <span class="c1"># Python 3</span>
+    <span class="kn">import</span> <span class="nn">urllib.parse</span>  <span class="c1"># Python 3</span>
+<span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">urllib2</span>  <span class="c1"># Python 2</span>
+
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+
+<span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">is_python3</span>
+<span class="kn">from</span> <span class="nn">pilot.util.timer</span> <span class="kn">import</span> <span class="n">timeout</span>
+<span class="kn">from</span> <span class="nn">pilot.util.https</span> <span class="kn">import</span> <span class="n">ctx</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="DataLoader"><a class="viewcode-back" href="../../../components/info/dataloader.html#pilot.info.dataloader.DataLoader">[docs]</a><span class="k">class</span> <span class="nc">DataLoader</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Base data loader</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="DataLoader.is_file_expired"><a class="viewcode-back" href="../../../components/info/dataloader.html#pilot.info.dataloader.DataLoader.is_file_expired">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">is_file_expired</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">cache_time</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if file fname is older than cache_time seconds from its last_update_time.</span>
+
+<span class="sd">        :param fname: File name.</span>
+<span class="sd">        :param cache_time: Cache time in seconds.</span>
+<span class="sd">        :return: Boolean.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">cache_time</span><span class="p">:</span>
+            <span class="n">lastupdate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_file_last_update_time</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+            <span class="k">return</span> <span class="ow">not</span> <span class="p">(</span><span class="n">lastupdate</span> <span class="ow">and</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">lastupdate</span> <span class="o">&lt;</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="n">cache_time</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="DataLoader.get_file_last_update_time"><a class="viewcode-back" href="../../../components/info/dataloader.html#pilot.info.dataloader.DataLoader.get_file_last_update_time">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_file_last_update_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the last update time of the given file.</span>
+
+<span class="sd">        :param fname: File name.</span>
+<span class="sd">        :return: Last update time in seconds or None if file does not exist.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">lastupdate</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">lastupdate</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">lastupdate</span></div>
+
+<div class="viewcode-block" id="DataLoader.load_url_data"><a class="viewcode-back" href="../../../components/info/dataloader.html#pilot.info.dataloader.DataLoader.load_url_data">[docs]</a>    <span class="nd">@classmethod</span>  <span class="c1"># noqa: C901</span>
+    <span class="k">def</span> <span class="nf">load_url_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">fname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cache_time</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">nretry</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">sleep_time</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download data from url or file resource and optionally save it into cache file fname.</span>
+<span class="sd">        The file will not be (re-)loaded again if cache age from last file modification does not exceed cache_time</span>
+<span class="sd">        seconds.</span>
+
+<span class="sd">        If url is None then data will be read from cache file fname (if any)</span>
+
+<span class="sd">        :param url: Source of data</span>
+<span class="sd">        :param fname: Cache file name. If given then loaded data will be saved into it.</span>
+<span class="sd">        :param cache_time: Cache time in seconds.</span>
+<span class="sd">        :param nretry: Number of retries (default is 3).</span>
+<span class="sd">        :param sleep_time: Sleep time (default is 60 s) between retry attempts.</span>
+<span class="sd">        :return: data loaded from the url or file content if url passed is a filename.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="nd">@timeout</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">_readfile</span><span class="p">(</span><span class="n">url</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">url</span><span class="p">):</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                <span class="k">return</span> <span class="n">content</span>
+
+        <span class="n">content</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">url</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_file_expired</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">cache_time</span><span class="p">):</span>  <span class="c1"># load data into temporary cache file</span>
+            <span class="k">for</span> <span class="n">trial</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nretry</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">content</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">native_access</span> <span class="o">=</span> <span class="s1">&#39;://&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">url</span>  <span class="c1">## trival check for file access, non accurate.. FIXME later if need</span>
+                    <span class="k">if</span> <span class="n">native_access</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;[attempt=</span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">] loading data from file=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">nretry</span><span class="p">,</span> <span class="n">url</span><span class="p">))</span>
+                        <span class="n">content</span> <span class="o">=</span> <span class="n">_readfile</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;[attempt=</span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">] loading data from url=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">nretry</span><span class="p">,</span> <span class="n">url</span><span class="p">))</span>
+
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">req</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>  <span class="c1"># Python 3</span>
+                        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                            <span class="n">req</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>  <span class="c1"># Python 2</span>
+
+                        <span class="n">req</span><span class="o">.</span><span class="n">add_header</span><span class="p">(</span><span class="s1">&#39;User-Agent&#39;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">user_agent</span><span class="p">)</span>
+
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">content</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">req</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">ssl_context</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>  <span class="c1"># Python 3</span>
+                        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                            <span class="n">content</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">req</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">ssl_context</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>  <span class="c1"># Python 2</span>
+                    <span class="k">if</span> <span class="n">fname</span><span class="p">:</span>  <span class="c1"># save to cache</span>
+                        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;w+&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="ow">and</span> <span class="n">is_python3</span><span class="p">():</span>  <span class="c1"># if-statement will always be needed for python 3</span>
+                                <span class="n">content</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>  <span class="c1"># Python 2/3 - only works for byte streams in python 3</span>
+                            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>  <span class="c1"># Python 3, added str (write() argument must be str, not bytes; JSON OK)</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;saved data from &quot;</span><span class="si">%s</span><span class="s1">&quot; resource into file=</span><span class="si">%s</span><span class="s1">, length=</span><span class="si">%.1f</span><span class="s1">Kb&#39;</span> <span class="o">%</span>
+                                        <span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1024.</span><span class="p">))</span>
+                    <span class="k">return</span> <span class="n">content</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># ignore errors, try to use old cache if any</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to load data from url=</span><span class="si">%s</span><span class="s1">, error: </span><span class="si">%s</span><span class="s1"> .. trying to use data from cache=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                                   <span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">fname</span><span class="p">))</span>
+                    <span class="c1"># will try to use old cache below</span>
+                    <span class="k">if</span> <span class="n">trial</span> <span class="o">&lt;</span> <span class="n">nretry</span><span class="p">:</span>
+                        <span class="n">xsleep_time</span> <span class="o">=</span> <span class="n">sleep_time</span><span class="p">()</span> <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">sleep_time</span><span class="p">)</span> <span class="k">else</span> <span class="n">sleep_time</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;will try again after </span><span class="si">%s</span><span class="s2">s..&quot;</span> <span class="o">%</span> <span class="n">xsleep_time</span><span class="p">)</span>
+                        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">xsleep_time</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">content</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># just loaded data</span>
+            <span class="k">return</span> <span class="n">content</span>
+
+        <span class="c1"># read data from old cache fname</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;cache file=</span><span class="si">%s</span><span class="s2"> is not available: </span><span class="si">%s</span><span class="s2"> .. skipped&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">content</span></div>
+
+<div class="viewcode-block" id="DataLoader.load_data"><a class="viewcode-back" href="../../../components/info/dataloader.html#pilot.info.dataloader.DataLoader.load_data">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sources</span><span class="p">,</span> <span class="n">priority</span><span class="p">,</span> <span class="n">cache_time</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download data from various sources (prioritized).</span>
+<span class="sd">        Try to get data from sources according to priority values passed</span>
+
+<span class="sd">        Expected format of source entry:</span>
+<span class="sd">        sources = {&#39;NAME&#39;:{&#39;url&#39;:&quot;source url&quot;, &#39;nretry&#39;:int, &#39;fname&#39;:&#39;cache file (optional)&#39;, &#39;cache_time&#39;:int (optional), &#39;sleep_time&#39;:opt}}</span>
+
+<span class="sd">        :param sources: Dict of source configuration</span>
+<span class="sd">        :param priority: Ordered list of source names</span>
+<span class="sd">        :param cache_time: Default cache time in seconds. Can be overwritten by cache_time value passed in sources dict</span>
+<span class="sd">        :param parser: Callback function to interpret/validate data which takes read data from source as input. Default is json.loads</span>
+<span class="sd">        :return: Data loaded and processed by parser callback</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">priority</span><span class="p">:</span>  <span class="c1"># no priority set ## randomly order if need (FIX ME LATER)</span>
+            <span class="n">priority</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sources</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>  <span class="c1"># Python 3</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">priority</span><span class="p">:</span>
+            <span class="n">dat</span> <span class="o">=</span> <span class="n">sources</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">dat</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">accepted_keys</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;url&#39;</span><span class="p">,</span> <span class="s1">&#39;fname&#39;</span><span class="p">,</span> <span class="s1">&#39;cache_time&#39;</span><span class="p">,</span> <span class="s1">&#39;nretry&#39;</span><span class="p">,</span> <span class="s1">&#39;sleep_time&#39;</span><span class="p">]</span>
+            <span class="n">idat</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="n">dat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">accepted_keys</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">dat</span><span class="p">)</span>
+            <span class="n">idat</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;cache_time&#39;</span><span class="p">,</span> <span class="n">cache_time</span><span class="p">)</span>
+
+            <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_url_data</span><span class="p">(</span><span class="o">**</span><span class="n">idat</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="ow">and</span> <span class="n">is_python3</span><span class="p">():</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;converted content to utf-8&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">content</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">dat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;parser&#39;</span><span class="p">):</span>
+                <span class="n">parser</span> <span class="o">=</span> <span class="n">dat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;parser&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">parser</span><span class="p">:</span>
+                <span class="k">def</span> <span class="nf">jsonparser</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
+                    <span class="n">dat</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">dat</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dat</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s1">&#39;error&#39;</span> <span class="ow">in</span> <span class="n">dat</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;response contains error, data=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">dat</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">dat</span>
+                <span class="n">parser</span> <span class="o">=</span> <span class="n">jsonparser</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">parser</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s2">&quot;failed to parse data from source=</span><span class="si">%s</span><span class="s2"> (resource=</span><span class="si">%s</span><span class="s2">, cache=</span><span class="si">%s</span><span class="s2">).. skipped, error=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;url&#39;</span><span class="p">),</span> <span class="n">key</span><span class="p">,</span> <span class="n">dat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;fname&#39;</span><span class="p">),</span> <span class="n">e</span><span class="p">))</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">data</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">data</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div></div>
+
+
+<div class="viewcode-block" id="merge_dict_data"><a class="viewcode-back" href="../../../components/info/dataloader.html#pilot.info.dataloader.merge_dict_data">[docs]</a><span class="k">def</span> <span class="nf">merge_dict_data</span><span class="p">(</span><span class="n">d1</span><span class="p">,</span> <span class="n">d2</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="p">[],</span> <span class="n">common</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">left</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">rec</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Recursively merge two dict objects</span>
+<span class="sd">        Merge content of d2 dict into copy of d1</span>
+<span class="sd">        :param common: if True then do merge keys exist in both dicts</span>
+<span class="sd">        :param left: if True then preseve keys exist only in d1</span>
+<span class="sd">        :param right: if True then preserve keys exist only in d2</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">### TODO: verify and configure logic later</span>
+
+    <span class="k">if</span> <span class="ow">not</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">d1</span><span class="p">)</span> <span class="o">==</span> <span class="nb">type</span><span class="p">(</span><span class="n">d2</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">d1</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">d2</span>
+
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">d1</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">keys</span> <span class="ow">and</span> <span class="n">rec</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">d2</span><span class="p">):</span>
+            <span class="n">ret</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">d2</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">if</span> <span class="n">common</span><span class="p">:</span>  <span class="c1"># common</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">d1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">d2</span><span class="p">):</span>
+            <span class="n">ret</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">merge_dict_data</span><span class="p">(</span><span class="n">d1</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">d2</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">keys</span><span class="p">,</span> <span class="n">rec</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">left</span><span class="p">:</span>  <span class="c1"># left</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">d1</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">d2</span><span class="p">):</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">right</span><span class="p">:</span>  <span class="c1"># right</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">d2</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">d1</span><span class="p">):</span>
+            <span class="n">ret</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">d2</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">ret</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

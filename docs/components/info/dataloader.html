@@ -1,0 +1,243 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dataloader &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="extinfo" href="extinfo.html" />
+    <link rel="prev" title="configinfo" href="configinfo.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.info.dataloader">
+<span id="dataloader"></span><h1>dataloader<a class="headerlink" href="#module-pilot.info.dataloader" title="Permalink to this headline">¶</a></h1>
+<p>Base loader class to retrive data from Ext sources (file, url)</p>
+<dl class="field-list simple">
+<dt class="field-odd">author</dt>
+<dd class="field-odd"><p>Alexey Anisenkov</p>
+</dd>
+<dt class="field-even">contact</dt>
+<dd class="field-even"><p><a class="reference external" href="mailto:anisyonk&#37;&#52;&#48;cern&#46;ch">anisyonk<span>&#64;</span>cern<span>&#46;</span>ch</a></p>
+</dd>
+<dt class="field-odd">date</dt>
+<dd class="field-odd"><p>January 2018</p>
+</dd>
+</dl>
+<dl class="py class">
+<dt id="pilot.info.dataloader.DataLoader">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">pilot.info.dataloader.</span></code><code class="sig-name descname"><span class="pre">DataLoader</span></code><a class="reference internal" href="../../_modules/pilot/info/dataloader.html#DataLoader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.dataloader.DataLoader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base data loader</p>
+<dl class="py attribute">
+<dt id="pilot.info.dataloader.DataLoader.__dict__">
+<code class="sig-name descname"><span class="pre">__dict__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">mappingproxy({'__module__':</span> <span class="pre">'pilot.info.dataloader',</span> <span class="pre">'__doc__':</span> <span class="pre">'\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Base</span> <span class="pre">data</span> <span class="pre">loader\n</span>&#160;&#160;&#160; <span class="pre">',</span> <span class="pre">'is_file_expired':</span> <span class="pre">&lt;classmethod</span> <span class="pre">object&gt;,</span> <span class="pre">'get_file_last_update_time':</span> <span class="pre">&lt;classmethod</span> <span class="pre">object&gt;,</span> <span class="pre">'load_url_data':</span> <span class="pre">&lt;classmethod</span> <span class="pre">object&gt;,</span> <span class="pre">'load_data':</span> <span class="pre">&lt;classmethod</span> <span class="pre">object&gt;,</span> <span class="pre">'__dict__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__dict__'</span> <span class="pre">of</span> <span class="pre">'DataLoader'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__weakref__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__weakref__'</span> <span class="pre">of</span> <span class="pre">'DataLoader'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__annotations__':</span> <span class="pre">{}})</span></em><a class="headerlink" href="#pilot.info.dataloader.DataLoader.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.info.dataloader.DataLoader.__module__">
+<code class="sig-name descname"><span class="pre">__module__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'pilot.info.dataloader'</span></em><a class="headerlink" href="#pilot.info.dataloader.DataLoader.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.info.dataloader.DataLoader.__weakref__">
+<code class="sig-name descname"><span class="pre">__weakref__</span></code><a class="headerlink" href="#pilot.info.dataloader.DataLoader.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.info.dataloader.DataLoader.get_file_last_update_time">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">get_file_last_update_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/dataloader.html#DataLoader.get_file_last_update_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.dataloader.DataLoader.get_file_last_update_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the last update time of the given file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>fname</strong> – File name.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Last update time in seconds or None if file does not exist.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.info.dataloader.DataLoader.is_file_expired">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">is_file_expired</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/dataloader.html#DataLoader.is_file_expired"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.dataloader.DataLoader.is_file_expired" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if file fname is older than cache_time seconds from its last_update_time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fname</strong> – File name.</p></li>
+<li><p><strong>cache_time</strong> – Cache time in seconds.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Boolean.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.info.dataloader.DataLoader.load_data">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">load_data</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sources</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/dataloader.html#DataLoader.load_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.dataloader.DataLoader.load_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Download data from various sources (prioritized).
+Try to get data from sources according to priority values passed</p>
+<p>Expected format of source entry:
+sources = {‘NAME’:{‘url’:”source url”, ‘nretry’:int, ‘fname’:’cache file (optional)’, ‘cache_time’:int (optional), ‘sleep_time’:opt}}</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sources</strong> – Dict of source configuration</p></li>
+<li><p><strong>priority</strong> – Ordered list of source names</p></li>
+<li><p><strong>cache_time</strong> – Default cache time in seconds. Can be overwritten by cache_time value passed in sources dict</p></li>
+<li><p><strong>parser</strong> – Callback function to interpret/validate data which takes read data from source as input. Default is json.loads</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Data loaded and processed by parser callback</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.info.dataloader.DataLoader.load_url_data">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">load_url_data</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nretry</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sleep_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/dataloader.html#DataLoader.load_url_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.dataloader.DataLoader.load_url_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Download data from url or file resource and optionally save it into cache file fname.
+The file will not be (re-)loaded again if cache age from last file modification does not exceed cache_time
+seconds.</p>
+<p>If url is None then data will be read from cache file fname (if any)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>url</strong> – Source of data</p></li>
+<li><p><strong>fname</strong> – Cache file name. If given then loaded data will be saved into it.</p></li>
+<li><p><strong>cache_time</strong> – Cache time in seconds.</p></li>
+<li><p><strong>nretry</strong> – Number of retries (default is 3).</p></li>
+<li><p><strong>sleep_time</strong> – Sleep time (default is 60 s) between retry attempts.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>data loaded from the url or file content if url passed is a filename.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.info.dataloader.merge_dict_data">
+<code class="sig-prename descclassname"><span class="pre">pilot.info.dataloader.</span></code><code class="sig-name descname"><span class="pre">merge_dict_data</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">common</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">left</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">right</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/dataloader.html#merge_dict_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.dataloader.merge_dict_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recursively merge two dict objects
+Merge content of d2 dict into copy of d1
+:param common: if True then do merge keys exist in both dicts
+:param left: if True then preseve keys exist only in d1
+:param right: if True then preserve keys exist only in d2</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../util/index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">info components</a><ul>
+      <li>Previous: <a href="configinfo.html" title="previous chapter">configinfo</a></li>
+      <li>Next: <a href="extinfo.html" title="next chapter">extinfo</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/info/dataloader.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/info/dataloader.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

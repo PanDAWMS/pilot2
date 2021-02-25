@@ -1,0 +1,240 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.util.container &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.util.container</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch</span>
+
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">environ</span><span class="p">,</span> <span class="n">getcwd</span><span class="p">,</span> <span class="n">setpgrp</span>  <span class="c1">#, getpgid  #setsid</span>
+<span class="kn">from</span> <span class="nn">sys</span> <span class="kn">import</span> <span class="n">version_info</span>
+
+<span class="kn">from</span> <span class="nn">pilot.common.errorcodes</span> <span class="kn">import</span> <span class="n">ErrorCodes</span>
+<span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">errors</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="is_python3"><a class="viewcode-back" href="../../../components/util/container.html#pilot.util.container.is_python3">[docs]</a><span class="k">def</span> <span class="nf">is_python3</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check if we are running on Python 3.</span>
+
+<span class="sd">    :return: boolean.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">version_info</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="execute"><a class="viewcode-back" href="../../../components/util/container.html#pilot.util.container.execute">[docs]</a><span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="n">executable</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execute the command and its options in the provided executable list.</span>
+<span class="sd">    The function also determines whether the command should be executed within a container.</span>
+<span class="sd">    TODO: add time-out functionality.</span>
+
+<span class="sd">    :param executable: command to be executed (string or list).</span>
+<span class="sd">    :param kwargs (timeout, usecontainer, returnproc):</span>
+<span class="sd">    :return: exit code, stdout and stderr (or process if requested via returnproc argument)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">mute</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mute&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">mode</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mode&#39;</span><span class="p">,</span> <span class="s1">&#39;bash&#39;</span><span class="p">)</span>
+    <span class="n">cwd</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;cwd&#39;</span><span class="p">,</span> <span class="n">getcwd</span><span class="p">())</span>
+    <span class="n">stdout</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;stdout&#39;</span><span class="p">,</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+    <span class="n">stderr</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;stderr&#39;</span><span class="p">,</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+    <span class="n">usecontainer</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;usecontainer&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">returnproc</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;returnproc&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">job</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;job&#39;</span><span class="p">)</span>
+
+    <span class="c1"># convert executable to string if it is a list</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">executable</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="n">executable</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">executable</span><span class="p">)</span>
+
+    <span class="c1"># switch off pilot controlled containers for user defined containers</span>
+    <span class="k">if</span> <span class="n">job</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">imagename</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="s2">&quot;runcontainer&quot;</span> <span class="ow">in</span> <span class="n">executable</span><span class="p">:</span>
+        <span class="n">usecontainer</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">job</span><span class="o">.</span><span class="n">usecontainer</span> <span class="o">=</span> <span class="n">usecontainer</span>
+
+    <span class="c1"># Import user specific code if necessary (in case the command should be executed in a container)</span>
+    <span class="c1"># Note: the container.wrapper() function must at least be declared</span>
+    <span class="k">if</span> <span class="n">usecontainer</span><span class="p">:</span>
+        <span class="n">executable</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">containerise_executable</span><span class="p">(</span><span class="n">executable</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;exe=</span><span class="si">%s</span><span class="s1"> , diag=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">executable</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">executable</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">returnproc</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">diagnostics</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">mute</span><span class="p">:</span>
+        <span class="n">executable_readable</span> <span class="o">=</span> <span class="n">executable</span>
+        <span class="n">executables</span> <span class="o">=</span> <span class="n">executable_readable</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;;&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">sub_cmd</span> <span class="ow">in</span> <span class="n">executables</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;S3_SECRET_KEY=&#39;</span> <span class="ow">in</span> <span class="n">sub_cmd</span><span class="p">:</span>
+                <span class="n">secret_key</span> <span class="o">=</span> <span class="n">sub_cmd</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;S3_SECRET_KEY=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">secret_key</span> <span class="o">=</span> <span class="s1">&#39;S3_SECRET_KEY=&#39;</span> <span class="o">+</span> <span class="n">secret_key</span>
+                <span class="n">executable_readable</span> <span class="o">=</span> <span class="n">executable_readable</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">secret_key</span><span class="p">,</span> <span class="s1">&#39;S3_SECRET_KEY=********&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;executing command: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">executable_readable</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;python&#39;</span><span class="p">:</span>
+        <span class="n">exe</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;/usr/bin/python&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">executable</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">exe</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;/bin/bash&#39;</span><span class="p">,</span> <span class="s1">&#39;-c&#39;</span><span class="p">,</span> <span class="n">executable</span><span class="p">]</span>
+
+    <span class="c1"># try: intercept exception such as OSError -&gt; report e.g. error.RESOURCEUNAVAILABLE: &quot;Resource temporarily unavailable&quot;</span>
+    <span class="n">process</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">exe</span><span class="p">,</span>
+                               <span class="n">bufsize</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                               <span class="n">stdout</span><span class="o">=</span><span class="n">stdout</span><span class="p">,</span>
+                               <span class="n">stderr</span><span class="o">=</span><span class="n">stderr</span><span class="p">,</span>
+                               <span class="n">cwd</span><span class="o">=</span><span class="n">cwd</span><span class="p">,</span>
+                               <span class="n">preexec_fn</span><span class="o">=</span><span class="n">setpgrp</span><span class="p">)</span>  <span class="c1">#setsid)</span>
+    <span class="k">if</span> <span class="n">returnproc</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">process</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+        <span class="n">exit_code</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">poll</span><span class="p">()</span>
+
+        <span class="c1"># for Python 3, convert from byte-like object to str</span>
+        <span class="k">if</span> <span class="n">is_python3</span><span class="p">():</span>
+            <span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="n">stderr</span> <span class="o">=</span> <span class="n">stderr</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="c1"># remove any added \n</span>
+        <span class="k">if</span> <span class="n">stdout</span> <span class="ow">and</span> <span class="n">stdout</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+            <span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span></div>
+
+
+<div class="viewcode-block" id="containerise_executable"><a class="viewcode-back" href="../../../components/util/container.html#pilot.util.container.containerise_executable">[docs]</a><span class="k">def</span> <span class="nf">containerise_executable</span><span class="p">(</span><span class="n">executable</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrap the containerisation command around the executable.</span>
+
+<span class="sd">    :param executable: command to be wrapper (string).</span>
+<span class="sd">    :param kwargs: kwargs dictionary.</span>
+<span class="sd">    :return: containerised executable (list).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">job</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;job&#39;</span><span class="p">)</span>
+
+    <span class="n">user</span> <span class="o">=</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_USER&#39;</span><span class="p">,</span> <span class="s1">&#39;generic&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>  <span class="c1"># TODO: replace with singleton</span>
+    <span class="n">container</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.container&#39;</span> <span class="o">%</span> <span class="n">user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
+    <span class="k">if</span> <span class="n">container</span><span class="p">:</span>
+        <span class="c1"># should a container really be used?</span>
+        <span class="n">do_use_container</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">usecontainer</span> <span class="k">if</span> <span class="n">job</span> <span class="k">else</span> <span class="n">container</span><span class="o">.</span><span class="n">do_use_container</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># overrule for event service</span>
+        <span class="k">if</span> <span class="n">job</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">is_eventservice</span> <span class="ow">and</span> <span class="n">do_use_container</span> <span class="ow">and</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">executor_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s1">&#39;raythena&#39;</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;overruling container decision for event service grid job&#39;</span><span class="p">)</span>
+            <span class="n">do_use_container</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">do_use_container</span><span class="p">:</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">executable</span> <span class="o">=</span> <span class="n">container</span><span class="o">.</span><span class="n">wrapper</span><span class="p">(</span><span class="n">executable</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;failed to execute wrapper function: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">executable</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;failed to prepare container command (error code should have been set)&#39;</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">diagnostics</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">diagnostics</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;pilot user container module has decided to not use a container&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;container module could not be imported&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">executable</span><span class="p">,</span> <span class="s2">&quot;&quot;</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

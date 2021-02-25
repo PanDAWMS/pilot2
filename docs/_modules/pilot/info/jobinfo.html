@@ -1,0 +1,187 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.info.jobinfo &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.info.jobinfo</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Alexey Anisenkov, anisyonk@cern.ch, 2018</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2019</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Job specific info provider mainly used to customize Queue, Site, etc data of Information Service</span>
+<span class="sd">with details fetched directly from Job instance</span>
+
+<span class="sd">:author: Alexey Anisenkov</span>
+<span class="sd">:contact: anisyonk@cern.ch</span>
+<span class="sd">:date: January 2018</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="JobInfoProvider"><a class="viewcode-back" href="../../../components/info/jobinfo.html#pilot.info.jobinfo.JobInfoProvider">[docs]</a><span class="k">class</span> <span class="nc">JobInfoProvider</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Job info provider which is used to extract settings specific for given Job</span>
+<span class="sd">        and overwrite general configuration used by Information Service</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">job</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1">## Job instance</span>
+
+<div class="viewcode-block" id="JobInfoProvider.__init__"><a class="viewcode-back" href="../../../components/info/jobinfo.html#pilot.info.jobinfo.JobInfoProvider.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="n">job</span></div>
+
+<div class="viewcode-block" id="JobInfoProvider.resolve_schedconf_sources"><a class="viewcode-back" href="../../../components/info/jobinfo.html#pilot.info.jobinfo.JobInfoProvider.resolve_schedconf_sources">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_schedconf_sources</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Resolve Job specific prioritized list of source names to be used for SchedConfig data load</span>
+<span class="sd">            :return: prioritized list of source names</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1">## FIX ME LATER</span>
+        <span class="c1">## quick stub implementation: extract later from jobParams, e.g. from overwriteAGISData..</span>
+        <span class="c1">## an example of return data:</span>
+        <span class="c1">## return [&#39;AGIS&#39;, &#39;LOCAL&#39;, &#39;CVMFS&#39;]</span>
+        <span class="c1">##</span>
+
+        <span class="k">return</span> <span class="kc">None</span>  <span class="c1">## Not implemented yet</span></div>
+
+<div class="viewcode-block" id="JobInfoProvider.resolve_queuedata"><a class="viewcode-back" href="../../../components/info/jobinfo.html#pilot.info.jobinfo.JobInfoProvider.resolve_queuedata">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_queuedata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pandaqueue</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Resolve Job specific settings for queue data (overwriteQueueData)</span>
+<span class="sd">            :return: dict of settings for given PandaQueue as a key</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># use following keys from job definition</span>
+        <span class="c1"># keys format: [(inputkey, outputkey), inputkey2]</span>
+        <span class="c1"># outputkey is the name of external source attribute</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;platform&#39;</span><span class="p">,</span> <span class="s1">&#39;cmtconfig&#39;</span><span class="p">)]</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span><span class="p">,</span> <span class="n">key</span><span class="p">]</span>
+            <span class="n">ikey</span> <span class="o">=</span> <span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">okey</span> <span class="o">=</span> <span class="n">key</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job</span><span class="p">,</span> <span class="n">ikey</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">val</span><span class="p">:</span>  <span class="c1"># ignore empty or zero values -- FIX ME LATER for integers later if need</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">okey</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+        <span class="n">data</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job</span><span class="o">.</span><span class="n">overwrite_queuedata</span><span class="p">)</span>  <span class="c1">## use job.overwrite_queuedata as a master source</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;queuedata: following keys will be overwritten by Job values: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">data</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="n">pandaqueue</span><span class="p">:</span> <span class="n">data</span><span class="p">}</span></div>
+
+<div class="viewcode-block" id="JobInfoProvider.resolve_storage_data"><a class="viewcode-back" href="../../../components/info/jobinfo.html#pilot.info.jobinfo.JobInfoProvider.resolve_storage_data">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_storage_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ddmendpoints</span><span class="o">=</span><span class="p">[],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Resolve Job specific settings for storage data (including data passed via --overwriteStorageData)</span>
+<span class="sd">            :return: dict of settings for requested DDMEndpoints with ddmendpoin as a key</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1">## use job.overwrite_storagedata as a master source</span>
+        <span class="n">master_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">job</span><span class="o">.</span><span class="n">overwrite_storagedata</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">master_data</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">ddmendpoints</span> <span class="ow">or</span> <span class="n">master_data</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">master_data</span><span class="p">))</span>  <span class="c1"># Python 2</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">master_data</span><span class="o">.</span><span class="n">items</span><span class="p">())</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">ddmendpoints</span> <span class="ow">or</span> <span class="n">master_data</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">master_data</span><span class="p">))</span>  <span class="c1"># Python 3</span>
+
+        <span class="k">if</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;storagedata: following data extracted from Job definition will be used: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">data</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">data</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

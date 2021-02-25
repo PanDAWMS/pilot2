@@ -1,0 +1,158 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.util.parameters &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.util.parameters</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019</span>
+
+<span class="c1"># This module contains functions that are used with the get_parameters() function defined in the information module.</span>
+
+<span class="c1"># WARNING: IN GENERAL, NEEDS TO USE PLUG-IN MANAGER</span>
+
+<span class="kn">from</span> <span class="nn">pilot.info</span> <span class="kn">import</span> <span class="n">infosys</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_maximum_input_sizes"><a class="viewcode-back" href="../../../components/util/parameters.html#pilot.util.parameters.get_maximum_input_sizes">[docs]</a><span class="k">def</span> <span class="nf">get_maximum_input_sizes</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function returns the maximum allowed size for all input files. The sum of all input file sizes should not</span>
+<span class="sd">    exceed this value.</span>
+
+<span class="sd">    :return: maxinputsizes (integer value in MB).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">_maxinputsizes</span> <span class="o">=</span> <span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">maxwdir</span>  <span class="c1"># normally 14336+2000 MB</span>
+    <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
+        <span class="n">_maxinputsizes</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">maximum_input_file_sizes</span>  <span class="c1"># MB</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;could not convert schedconfig value for maxwdir: </span><span class="si">%s</span><span class="s1"> (will use default value instead - </span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span>
+                       <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">_maxinputsizes</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">_maxinputsizes</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span> <span class="ow">and</span> <span class="s1">&#39; MB&#39;</span> <span class="ow">in</span> <span class="n">_maxinputsizes</span><span class="p">:</span>
+            <span class="n">_maxinputsizes</span> <span class="o">=</span> <span class="n">_maxinputsizes</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; MB&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">_maxinputsizes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_maxinputsizes</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">_maxinputsizes</span> <span class="o">=</span> <span class="mi">14336</span> <span class="o">+</span> <span class="mi">2000</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert maxinputsizes to int: </span><span class="si">%s</span><span class="s1"> (using value: </span><span class="si">%d</span><span class="s1"> MB)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">_maxinputsizes</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">_maxinputsizes</span></div>
+
+
+<div class="viewcode-block" id="convert_to_int"><a class="viewcode-back" href="../../../components/util/parameters.html#pilot.util.parameters.convert_to_int">[docs]</a><span class="k">def</span> <span class="nf">convert_to_int</span><span class="p">(</span><span class="n">parameter</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Try to convert a given parameter to an integer value.</span>
+<span class="sd">    The default parameter can be used to force the function to always return a given value in case the integer</span>
+<span class="sd">    conversion, int(parameter), fails.</span>
+
+<span class="sd">    :param parameter: parameter (any type).</span>
+<span class="sd">    :param default: None by default (if set, always return an integer; the given value will be returned if</span>
+<span class="sd">    conversion to integer fails).</span>
+<span class="sd">    :return: converted integer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parameter</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># can be ValueError or TypeValue (for None)</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">default</span>
+
+    <span class="k">return</span> <span class="n">value</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

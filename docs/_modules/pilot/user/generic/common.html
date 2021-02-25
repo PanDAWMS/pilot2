@@ -1,0 +1,351 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.user.generic.common &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.user.generic.common</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">signal</span> <span class="kn">import</span> <span class="n">SIGTERM</span>
+
+<span class="kn">from</span> <span class="nn">pilot.common.exception</span> <span class="kn">import</span> <span class="n">TrfDownloadFailure</span>
+<span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="n">UTILITY_BEFORE_PAYLOAD</span><span class="p">,</span> <span class="n">UTILITY_AFTER_PAYLOAD</span>
+<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">read_file</span>
+<span class="kn">from</span> <span class="nn">.setup</span> <span class="kn">import</span> <span class="n">get_analysis_trf</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="sanity_check"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.sanity_check">[docs]</a><span class="k">def</span> <span class="nf">sanity_check</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform an initial sanity check before doing anything else in a given workflow.</span>
+<span class="sd">    This function can be used to verify importing of modules that are otherwise used much later, but it is better to abort</span>
+<span class="sd">    the pilot if a problem is discovered early.</span>
+
+<span class="sd">    :return: exit code (0 if all is ok, otherwise non-zero exit code).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="mi">0</span></div>
+
+
+<div class="viewcode-block" id="validate"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.validate">[docs]</a><span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform user specific payload/job validation.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return: Boolean (True if validation is successful).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="get_payload_command"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.get_payload_command">[docs]</a><span class="k">def</span> <span class="nf">get_payload_command</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the full command for executing the payload, including the sourcing of all setup files and setting of</span>
+<span class="sd">    environment variables.</span>
+
+<span class="sd">    By default, the full payload command is assumed to be in the job.jobparams.</span>
+
+<span class="sd">    :param job: job object</span>
+<span class="sd">    :return: command (string)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Try to download the trf</span>
+    <span class="c1"># if job.imagename != &quot;&quot; or &quot;--containerImage&quot; in job.jobparams:</span>
+    <span class="c1">#    job.transformation = os.path.join(os.path.dirname(job.transformation), &quot;runcontainer&quot;)</span>
+    <span class="c1">#    logger.warning(&#39;overwrote job.transformation, now set to: %s&#39; % job.transformation)</span>
+    <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="n">trf_name</span> <span class="o">=</span> <span class="n">get_analysis_trf</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">transformation</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ec</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">TrfDownloadFailure</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;user analysis trf: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">trf_name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">get_analysis_run_command</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">trf_name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_analysis_run_command"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.get_analysis_run_command">[docs]</a><span class="k">def</span> <span class="nf">get_analysis_run_command</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">trf_name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the proper run command for the user job.</span>
+
+<span class="sd">    Example output: export X509_USER_PROXY=&lt;..&gt;;./runAthena &lt;job parameters&gt; --usePFCTurl --directIn</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :param trf_name: name of the transform that will run the job (string). Used when containers are not used.</span>
+<span class="sd">    :return: command (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># add the user proxy</span>
+    <span class="k">if</span> <span class="s1">&#39;X509_USER_PROXY&#39;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">job</span><span class="o">.</span><span class="n">imagename</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="s1">&#39;export X509_USER_PROXY=</span><span class="si">%s</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;X509_USER_PROXY&#39;</span><span class="p">)</span>
+
+    <span class="c1"># set up trfs</span>
+    <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">imagename</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>  <span class="c1"># user jobs with no imagename defined</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="s1">&#39;./</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">trf_name</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">jobparams</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">trf_name</span><span class="p">:</span>
+            <span class="n">cmd</span> <span class="o">+=</span> <span class="s1">&#39;./</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">trf_name</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">jobparams</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cmd</span> <span class="o">+=</span> <span class="s1">&#39;python </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">trf_name</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">jobparams</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cmd</span></div>
+
+
+<div class="viewcode-block" id="update_job_data"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.update_job_data">[docs]</a><span class="k">def</span> <span class="nf">update_job_data</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function can be used to update/add data to the job object.</span>
+<span class="sd">    E.g. user specific information can be extracted from other job object fields. In the case of ATLAS, information</span>
+<span class="sd">    is extracted from the metaData field and added to other job object fields.</span>
+
+<span class="sd">    :param job: job object</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="remove_redundant_files"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.remove_redundant_files">[docs]</a><span class="k">def</span> <span class="nf">remove_redundant_files</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">outputfiles</span><span class="o">=</span><span class="p">[],</span> <span class="n">islooping</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove redundant files and directories prior to creating the log file.</span>
+
+<span class="sd">    :param workdir: working directory (string).</span>
+<span class="sd">    :param outputfiles: list of output files.</span>
+<span class="sd">    :param islooping: looping job variable to make sure workDir is not removed in case of looping (boolean).</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="get_utility_commands"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.get_utility_commands">[docs]</a><span class="k">def</span> <span class="nf">get_utility_commands</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a dictionary of utility commands and arguments to be executed in parallel with the payload.</span>
+<span class="sd">    This could e.g. be memory and network monitor commands. A separate function can be used to determine the</span>
+<span class="sd">    corresponding command setups using the utility command name.</span>
+<span class="sd">    If the optional order parameter is set, the function should return the list of corresponding commands.</span>
+<span class="sd">    E.g. if order=UTILITY_BEFORE_PAYLOAD, the function should return all commands that are to be executed before the</span>
+<span class="sd">    payload. If order=UTILITY_WITH_PAYLOAD, the corresponding commands will be prepended to the payload execution</span>
+<span class="sd">    string. If order=UTILITY_AFTER_PAYLOAD, the commands that should be executed after the payload has been started</span>
+<span class="sd">    should be returned.</span>
+
+<span class="sd">    FORMAT: {&#39;command&#39;: &lt;command&gt;, &#39;args&#39;: &lt;args&gt;}</span>
+
+<span class="sd">    :param order: optional sorting order (see pilot.util.constants)</span>
+<span class="sd">    :param job: optional job object.</span>
+<span class="sd">    :return: dictionary of utilities to be executed in parallel with the payload.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="p">{}</span></div>
+
+
+<div class="viewcode-block" id="get_utility_command_setup"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.get_utility_command_setup">[docs]</a><span class="k">def</span> <span class="nf">get_utility_command_setup</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">setup</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the proper setup for the given utility command.</span>
+<span class="sd">    If a payload setup is specified</span>
+<span class="sd">    :param name:</span>
+<span class="sd">    :param setup:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="get_utility_command_execution_order"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.get_utility_command_execution_order">[docs]</a><span class="k">def</span> <span class="nf">get_utility_command_execution_order</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Should the given utility command be executed before or after the payload?</span>
+
+<span class="sd">    :param name: utility name (string).</span>
+<span class="sd">    :return: execution order constant (UTILITY_BEFORE_PAYLOAD or UTILITY_AFTER_PAYLOAD)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># example implementation</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;monitor&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">UTILITY_BEFORE_PAYLOAD</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">UTILITY_AFTER_PAYLOAD</span></div>
+
+
+<div class="viewcode-block" id="post_utility_command_action"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.post_utility_command_action">[docs]</a><span class="k">def</span> <span class="nf">post_utility_command_action</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform post action for given utility command.</span>
+
+<span class="sd">    :param name: name of utility command (string).</span>
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="get_utility_command_kill_signal"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.get_utility_command_kill_signal">[docs]</a><span class="k">def</span> <span class="nf">get_utility_command_kill_signal</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the proper kill signal used to stop the utility command.</span>
+
+<span class="sd">    :param name:</span>
+<span class="sd">    :return: kill signal</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">SIGTERM</span></div>
+
+
+<div class="viewcode-block" id="get_utility_command_output_filename"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.get_utility_command_output_filename">[docs]</a><span class="k">def</span> <span class="nf">get_utility_command_output_filename</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">selector</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the filename to the output of the utility command.</span>
+
+<span class="sd">    :param name: utility name (string).</span>
+<span class="sd">    :param selector: optional special conditions flag (boolean).</span>
+<span class="sd">    :return: filename (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="s2">&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="verify_job"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.verify_job">[docs]</a><span class="k">def</span> <span class="nf">verify_job</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Verify job parameters for specific errors.</span>
+<span class="sd">    Note:</span>
+<span class="sd">      in case of problem, the function should set the corresponding pilot error code using</span>
+<span class="sd">      job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())</span>
+
+<span class="sd">    :param job: job object</span>
+<span class="sd">    :return: Boolean.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="update_stagein"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.update_stagein">[docs]</a><span class="k">def</span> <span class="nf">update_stagein</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    In case special files need to be skipped during stage-in, the job.indata list can be updated here.</span>
+<span class="sd">    See ATLAS code for an example.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="get_metadata"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.get_metadata">[docs]</a><span class="k">def</span> <span class="nf">get_metadata</span><span class="p">(</span><span class="n">workdir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the metadata from file.</span>
+
+<span class="sd">    :param workdir: work directory (string)</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">jobreport</span><span class="p">)</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="n">read_file</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="n">metadata</span></div>
+
+
+<div class="viewcode-block" id="update_server"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.update_server">[docs]</a><span class="k">def</span> <span class="nf">update_server</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform any user specific server actions.</span>
+
+<span class="sd">    E.g. this can be used to send special information to a logstash.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

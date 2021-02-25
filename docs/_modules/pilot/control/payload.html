@@ -1,0 +1,564 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.control.payload &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.control.payload</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017</span>
+<span class="c1"># - Daniel Drizhuk, d.drizhuk@gmail.com, 2017</span>
+<span class="c1"># - Tobias Wegner, tobias.wegner@cern.ch, 2017</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020</span>
+<span class="c1"># - Wen Guan, wen.guan@cern.ch, 2017-2018</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">Queue</span> <span class="k">as</span> <span class="nn">queue</span>  <span class="c1"># noqa: N813</span>
+<span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">queue</span>  <span class="c1"># Python 3</span>
+
+<span class="kn">from</span> <span class="nn">pilot.control.payloads</span> <span class="kn">import</span> <span class="n">generic</span><span class="p">,</span> <span class="n">eventservice</span><span class="p">,</span> <span class="n">eventservicemerge</span>
+<span class="kn">from</span> <span class="nn">pilot.control.job</span> <span class="kn">import</span> <span class="n">send_state</span>
+<span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">set_pilot_state</span><span class="p">,</span> <span class="n">show_memory_usage</span>
+<span class="kn">from</span> <span class="nn">pilot.util.processes</span> <span class="kn">import</span> <span class="n">get_cpu_consumption_time</span>
+<span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">read_file</span><span class="p">,</span> <span class="n">remove_core_dumps</span><span class="p">,</span> <span class="n">get_guid</span>
+<span class="kn">from</span> <span class="nn">pilot.util.processes</span> <span class="kn">import</span> <span class="n">threads_aborted</span>
+<span class="kn">from</span> <span class="nn">pilot.util.queuehandling</span> <span class="kn">import</span> <span class="n">put_in_queue</span>
+<span class="kn">from</span> <span class="nn">pilot.common.errorcodes</span> <span class="kn">import</span> <span class="n">ErrorCodes</span>
+<span class="kn">from</span> <span class="nn">pilot.common.exception</span> <span class="kn">import</span> <span class="n">ExcThread</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">errors</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="control"><a class="viewcode-back" href="../../../components/control/payload.html#pilot.control.payload.control">[docs]</a><span class="k">def</span> <span class="nf">control</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">traces</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    (add description)</span>
+
+<span class="sd">    :param queues:</span>
+<span class="sd">    :param traces:</span>
+<span class="sd">    :param args:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">targets</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;validate_pre&#39;</span><span class="p">:</span> <span class="n">validate_pre</span><span class="p">,</span> <span class="s1">&#39;execute_payloads&#39;</span><span class="p">:</span> <span class="n">execute_payloads</span><span class="p">,</span> <span class="s1">&#39;validate_post&#39;</span><span class="p">:</span> <span class="n">validate_post</span><span class="p">,</span>
+               <span class="s1">&#39;failed_post&#39;</span><span class="p">:</span> <span class="n">failed_post</span><span class="p">}</span>
+    <span class="n">threads</span> <span class="o">=</span> <span class="p">[</span><span class="n">ExcThread</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">(),</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;queues&#39;</span><span class="p">:</span> <span class="n">queues</span><span class="p">,</span> <span class="s1">&#39;traces&#39;</span><span class="p">:</span> <span class="n">traces</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">:</span> <span class="n">args</span><span class="p">},</span>
+                         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">items</span><span class="p">())]</span>  <span class="c1"># Python 3</span>
+
+    <span class="p">[</span><span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span> <span class="k">for</span> <span class="n">thread</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">]</span>
+
+    <span class="c1"># if an exception is thrown, the graceful_stop will be set by the ExcThread class run() function</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">thread</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
+            <span class="n">bucket</span> <span class="o">=</span> <span class="n">thread</span><span class="o">.</span><span class="n">get_bucket</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">exc</span> <span class="o">=</span> <span class="n">bucket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">queue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_obj</span><span class="p">,</span> <span class="n">exc_trace</span> <span class="o">=</span> <span class="n">exc</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;thread </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> received an exception from bucket: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">thread</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">exc_obj</span><span class="p">))</span>
+
+                <span class="c1"># deal with the exception</span>
+                <span class="c1"># ..</span>
+
+            <span class="n">thread</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;payload control ending since graceful_stop has been set&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">abort_job</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;command&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;aborting&#39;</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;jobs are aborting&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;command&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;abort&#39;</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;data control detected a set abort_job (due to a kill signal)&#39;</span><span class="p">)</span>
+            <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;command&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;aborting&#39;</span>
+
+            <span class="c1"># find all running jobs and stop them, find all jobs in queues relevant to this module</span>
+            <span class="c1">#abort_jobs_in_queues(queues, args.signal)</span>
+
+    <span class="c1"># proceed to set the job_aborted flag?</span>
+    <span class="k">if</span> <span class="n">threads_aborted</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will proceed to set job_aborted&#39;</span><span class="p">)</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">job_aborted</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will not set job_aborted yet&#39;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;[payload] control thread has finished&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="validate_pre"><a class="viewcode-back" href="../../../components/control/payload.html#pilot.control.payload.validate_pre">[docs]</a><span class="k">def</span> <span class="nf">validate_pre</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">traces</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    (add description)</span>
+
+<span class="sd">    :param queues:</span>
+<span class="sd">    :param traces:</span>
+<span class="sd">    :param args:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">job</span> <span class="o">=</span> <span class="n">queues</span><span class="o">.</span><span class="n">payloads</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">queue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">_validate_payload</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+            <span class="c1">#queues.validated_payloads.put(job)</span>
+            <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">validated_payloads</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1">#queues.failed_payloads.put(job)</span>
+            <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_payloads</span><span class="p">)</span>
+
+    <span class="c1"># proceed to set the job_aborted flag?</span>
+    <span class="k">if</span> <span class="n">threads_aborted</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will proceed to set job_aborted&#39;</span><span class="p">)</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">job_aborted</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will not set job_aborted yet&#39;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;[payload] validate_pre thread has finished&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_validate_payload"><a class="viewcode-back" href="../../../components/control/payload.html#pilot.control.payload._validate_payload">[docs]</a><span class="k">def</span> <span class="nf">_validate_payload</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform validation tests for the payload.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return: boolean.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">status</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># perform user specific validation</span>
+    <span class="n">pilot_user</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_USER&#39;</span><span class="p">,</span> <span class="s1">&#39;generic&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.common&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;failed to execute user validate() function: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">return</span> <span class="n">status</span></div>
+
+
+<div class="viewcode-block" id="get_payload_executor"><a class="viewcode-back" href="../../../components/control/payload.html#pilot.control.payload.get_payload_executor">[docs]</a><span class="k">def</span> <span class="nf">get_payload_executor</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">traces</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get payload executor function for different payload.</span>
+
+<span class="sd">    :param args: args object.</span>
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :param out:</span>
+<span class="sd">    :param err:</span>
+<span class="sd">    :param traces: traces object.</span>
+<span class="sd">    :return: instance of a payload executor</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">is_eventservice</span><span class="p">:</span>  <span class="c1"># True for native HPO workflow as well</span>
+        <span class="n">payload_executor</span> <span class="o">=</span> <span class="n">eventservice</span><span class="o">.</span><span class="n">Executor</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">traces</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">is_eventservicemerge</span><span class="p">:</span>
+        <span class="n">payload_executor</span> <span class="o">=</span> <span class="n">eventservicemerge</span><span class="o">.</span><span class="n">Executor</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">traces</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">payload_executor</span> <span class="o">=</span> <span class="n">generic</span><span class="o">.</span><span class="n">Executor</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">traces</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">payload_executor</span></div>
+
+
+<div class="viewcode-block" id="execute_payloads"><a class="viewcode-back" href="../../../components/control/payload.html#pilot.control.payload.execute_payloads">[docs]</a><span class="k">def</span> <span class="nf">execute_payloads</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">traces</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>  <span class="c1"># noqa: C901</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execute queued payloads.</span>
+
+<span class="sd">    :param queues:</span>
+<span class="sd">    :param traces:</span>
+<span class="sd">    :param args:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">job</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">job</span> <span class="o">=</span> <span class="n">queues</span><span class="o">.</span><span class="n">validated_payloads</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">q_snapshot</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">queues</span><span class="o">.</span><span class="n">finished_data_in</span><span class="o">.</span><span class="n">queue</span><span class="p">)</span>
+            <span class="n">peek</span> <span class="o">=</span> <span class="p">[</span><span class="n">s_job</span> <span class="k">for</span> <span class="n">s_job</span> <span class="ow">in</span> <span class="n">q_snapshot</span> <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span> <span class="o">==</span> <span class="n">s_job</span><span class="o">.</span><span class="n">jobid</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">peek</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1">#queues.validated_payloads.put(job)</span>
+                <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">validated_payloads</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>  <span class="c1"># Python 3</span>
+                    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+                        <span class="k">break</span>
+                    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># this job is now to be monitored, so add it to the monitored_payloads queue</span>
+            <span class="c1">#queues.monitored_payloads.put(job)</span>
+            <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">monitored_payloads</span><span class="p">)</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;job </span><span class="si">%s</span><span class="s1"> added to monitored payloads queue&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">payloadstdout</span><span class="p">),</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">payloadstderr</span><span class="p">),</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to open payload stdout/err: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">send_state</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="s1">&#39;starting&#39;</span><span class="p">)</span>
+
+            <span class="c1"># note: when sending a state change to the server, the server might respond with &#39;tobekilled&#39;</span>
+            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;failed&#39;</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;job state is </span><span class="se">\&#39;</span><span class="s1">failed</span><span class="se">\&#39;</span><span class="s1"> - abort execute_payloads()&#39;</span><span class="p">)</span>
+                <span class="k">break</span>
+
+            <span class="n">payload_executor</span> <span class="o">=</span> <span class="n">get_payload_executor</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">traces</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Got payload executor: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">payload_executor</span><span class="p">)</span>
+
+            <span class="n">show_memory_usage</span><span class="p">()</span>
+
+            <span class="c1"># run the payload and measure the execution time</span>
+            <span class="n">job</span><span class="o">.</span><span class="n">t0</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">times</span><span class="p">()</span>
+            <span class="n">exit_code</span> <span class="o">=</span> <span class="n">payload_executor</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+            <span class="n">set_cpu_consumption_time</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+            <span class="n">job</span><span class="o">.</span><span class="n">transexitcode</span> <span class="o">=</span> <span class="n">exit_code</span> <span class="o">%</span> <span class="mi">255</span>
+
+            <span class="n">out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">err</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+            <span class="n">pilot_user</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_USER&#39;</span><span class="p">,</span> <span class="s1">&#39;generic&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+            <span class="c1"># some HPO jobs will produce new output files (following lfn name pattern), discover those and replace the job.outdata list</span>
+            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">is_hpo</span><span class="p">:</span>
+                <span class="n">user</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.common&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span>
+                                  <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">user</span><span class="o">.</span><span class="n">update_output_for_hpo</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught by update_output_for_hpo(): </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">dat</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">outdata</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">dat</span><span class="o">.</span><span class="n">guid</span><span class="p">:</span>
+                            <span class="n">dat</span><span class="o">.</span><span class="n">guid</span> <span class="o">=</span> <span class="n">get_guid</span><span class="p">()</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;guid not set: generated guid=</span><span class="si">%s</span><span class="s1"> for lfn=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dat</span><span class="o">.</span><span class="n">guid</span><span class="p">,</span> <span class="n">dat</span><span class="o">.</span><span class="n">lfn</span><span class="p">))</span>
+
+            <span class="c1">#if traces.pilot[&#39;nr_jobs&#39;] == 1:</span>
+            <span class="c1">#    logger.debug(&#39;faking job failure in first multi-job&#39;)</span>
+            <span class="c1">#    job.transexitcode = 1</span>
+            <span class="c1">#    exit_code = 1</span>
+
+            <span class="c1"># analyze and interpret the payload execution output</span>
+            <span class="n">perform_initial_payload_error_analysis</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">exit_code</span><span class="p">)</span>
+
+            <span class="c1"># was an error already found?</span>
+            <span class="c1">#if job.piloterrorcodes:</span>
+            <span class="c1">#    exit_code_interpret = 1</span>
+            <span class="c1">#else:</span>
+            <span class="n">user</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.diagnose&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">exit_code_interpret</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">interpret</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="c1">#exit_code_interpret = -1</span>
+                <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">INTERNALPILOTPROBLEM</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">:</span>
+                <span class="n">exit_code_interpret</span> <span class="o">=</span> <span class="mi">1</span>
+
+            <span class="k">if</span> <span class="n">exit_code_interpret</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;main payload error analysis completed - did not find any errors&#39;</span><span class="p">)</span>
+
+                <span class="c1"># update output lists if zipmaps were used</span>
+                <span class="c1">#job.add_archives_to_output_lists()</span>
+
+                <span class="c1"># queues.finished_payloads.put(job)</span>
+                <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">finished_payloads</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;main payload error analysis completed - adding job to failed_payloads queue&#39;</span><span class="p">)</span>
+                <span class="c1">#queues.failed_payloads.put(job)</span>
+                <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_payloads</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="n">queue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;execute payloads caught an exception (cannot recover): </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()))</span>
+            <span class="k">if</span> <span class="n">job</span><span class="p">:</span>
+                <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">PAYLOADEXECUTIONEXCEPTION</span><span class="p">)</span>
+                <span class="c1">#queues.failed_payloads.put(job)</span>
+                <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_payloads</span><span class="p">)</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+                <span class="c1"># let stage-out of log finish, but stop running payloads as there should be a problem with the pilot</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+
+    <span class="c1"># proceed to set the job_aborted flag?</span>
+    <span class="k">if</span> <span class="n">threads_aborted</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will proceed to set job_aborted&#39;</span><span class="p">)</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">job_aborted</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will not set job_aborted yet&#39;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;[payload] execute_payloads thread has finished&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="set_cpu_consumption_time"><a class="viewcode-back" href="../../../components/control/payload.html#pilot.control.payload.set_cpu_consumption_time">[docs]</a><span class="k">def</span> <span class="nf">set_cpu_consumption_time</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set the CPU consumption time.</span>
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">cpuconsumptiontime</span> <span class="o">=</span> <span class="n">get_cpu_consumption_time</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">t0</span><span class="p">)</span>
+    <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptiontime</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">cpuconsumptiontime</span><span class="p">))</span>
+    <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptionunit</span> <span class="o">=</span> <span class="s2">&quot;s&quot;</span>
+    <span class="n">job</span><span class="o">.</span><span class="n">cpuconversionfactor</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;CPU consumption time: </span><span class="si">%f</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> (rounded to </span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span>
+                <span class="p">(</span><span class="n">cpuconsumptiontime</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptionunit</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptiontime</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptionunit</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="perform_initial_payload_error_analysis"><a class="viewcode-back" href="../../../components/control/payload.html#pilot.control.payload.perform_initial_payload_error_analysis">[docs]</a><span class="k">def</span> <span class="nf">perform_initial_payload_error_analysis</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">exit_code</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform an initial analysis of the payload.</span>
+<span class="sd">    Singularity errors are caught here.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :param exit_code: exit code from payload execution.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;main payload execution returned non-zero exit code: </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">exit_code</span><span class="p">)</span>
+        <span class="n">stderr</span> <span class="o">=</span> <span class="n">read_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">payloadstderr</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">stderr</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">extract_stderr_error</span><span class="p">(</span><span class="n">stderr</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">msg</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="c1"># look for warning messages instead (might not be fatal so do not set UNRECOGNIZEDTRFSTDERR)</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">extract_stderr_warning</span><span class="p">(</span><span class="n">stderr</span><span class="p">)</span>
+                <span class="n">fatal</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fatal</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">msg</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;extracted message from stderr:</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">msg</span><span class="p">)</span>
+                <span class="n">ec</span> <span class="o">=</span> <span class="n">set_error_code_from_stderr</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">fatal</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ec</span><span class="p">:</span>
+            <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">resolve_transform_error</span><span class="p">(</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ec</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">msg</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">format_diagnostics</span><span class="p">(</span><span class="n">ec</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+            <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">ec</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;error code(s) already set: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># check if core dumps exist, if so remove them and return True</span>
+                <span class="k">if</span> <span class="n">remove_core_dumps</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">):</span>
+                    <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">COREDUMP</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;initial error analysis did not resolve the issue (and core dumps were not found)&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;main payload execution returned zero exit code, but will check it more carefully&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="set_error_code_from_stderr"><a class="viewcode-back" href="../../../components/control/payload.html#pilot.control.payload.set_error_code_from_stderr">[docs]</a><span class="k">def</span> <span class="nf">set_error_code_from_stderr</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">fatal</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Identify specific errors in stderr and set the corresponding error code.</span>
+<span class="sd">    The function returns 0 if no error is recognized.</span>
+
+<span class="sd">    :param msg: stderr (string).</span>
+<span class="sd">    :param fatal: boolean flag if fatal error among warning messages in stderr.</span>
+<span class="sd">    :return: error code (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="s2">&quot;Failed invoking the NEWUSER namespace runtime&quot;</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">SINGULARITYNEWUSERNAMESPACE</span>
+    <span class="k">elif</span> <span class="s2">&quot;Failed to create user namespace&quot;</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">SINGULARITYFAILEDUSERNAMESPACE</span>
+    <span class="k">elif</span> <span class="s2">&quot;command not found&quot;</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">TRANSFORMNOTFOUND</span>
+    <span class="k">elif</span> <span class="s2">&quot;SL5 is unsupported&quot;</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">UNSUPPORTEDSL5OS</span>
+    <span class="k">elif</span> <span class="s2">&quot;resource temporarily unavailable&quot;</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">SINGULARITYRESOURCEUNAVAILABLE</span>
+    <span class="k">elif</span> <span class="s2">&quot;unrecognized arguments&quot;</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">UNRECOGNIZEDTRFARGUMENTS</span>
+    <span class="k">elif</span> <span class="n">fatal</span><span class="p">:</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">UNRECOGNIZEDTRFSTDERR</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">return</span> <span class="n">ec</span></div>
+
+
+<div class="viewcode-block" id="validate_post"><a class="viewcode-back" href="../../../components/control/payload.html#pilot.control.payload.validate_post">[docs]</a><span class="k">def</span> <span class="nf">validate_post</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">traces</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Validate finished payloads.</span>
+<span class="sd">    If payload finished correctly, add the job to the data_out queue. If it failed, add it to the data_out queue as</span>
+<span class="sd">    well but only for log stage-out (in failed_post() below).</span>
+
+<span class="sd">    :param queues:</span>
+<span class="sd">    :param traces:</span>
+<span class="sd">    :param args:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="c1"># finished payloads</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">job</span> <span class="o">=</span> <span class="n">queues</span><span class="o">.</span><span class="n">finished_payloads</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">queue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># by default, both output and log should be staged out</span>
+        <span class="n">job</span><span class="o">.</span><span class="n">stageout</span> <span class="o">=</span> <span class="s1">&#39;all&#39;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;adding job to data_out queue&#39;</span><span class="p">)</span>
+        <span class="c1">#queues.data_out.put(job)</span>
+        <span class="n">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s1">&#39;stageout&#39;</span><span class="p">)</span>
+        <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">data_out</span><span class="p">)</span>
+
+    <span class="c1"># proceed to set the job_aborted flag?</span>
+    <span class="k">if</span> <span class="n">threads_aborted</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will proceed to set job_aborted&#39;</span><span class="p">)</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">job_aborted</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will not set job_aborted yet&#39;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;[payload] validate_post thread has finished&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="failed_post"><a class="viewcode-back" href="../../../components/control/payload.html#pilot.control.payload.failed_post">[docs]</a><span class="k">def</span> <span class="nf">failed_post</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">traces</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    (add description)</span>
+
+<span class="sd">    :param queues:</span>
+<span class="sd">    :param traces:</span>
+<span class="sd">    :param args:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="c1"># finished payloads</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">job</span> <span class="o">=</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_payloads</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">queue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;adding log for log stageout&#39;</span><span class="p">)</span>
+
+        <span class="n">job</span><span class="o">.</span><span class="n">stageout</span> <span class="o">=</span> <span class="s1">&#39;log&#39;</span>  <span class="c1"># only stage-out log file</span>
+        <span class="c1">#queues.data_out.put(job)</span>
+        <span class="n">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s1">&#39;stageout&#39;</span><span class="p">)</span>
+        <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">data_out</span><span class="p">)</span>
+
+    <span class="c1"># proceed to set the job_aborted flag?</span>
+    <span class="k">if</span> <span class="n">threads_aborted</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will proceed to set job_aborted&#39;</span><span class="p">)</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">job_aborted</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will not set job_aborted yet&#39;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;[payload] failed_post thread has finished&#39;</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

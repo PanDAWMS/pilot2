@@ -1,0 +1,427 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>auxiliary &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="config" href="config.html" />
+    <link rel="prev" title="util components" href="index.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.util.auxiliary">
+<span id="auxiliary"></span><h1>auxiliary<a class="headerlink" href="#module-pilot.util.auxiliary" title="Permalink to this headline">¶</a></h1>
+<dl class="py function">
+<dt id="pilot.util.auxiliary.check_for_final_server_update">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">check_for_final_server_update</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">update_server</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#check_for_final_server_update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.check_for_final_server_update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do not set graceful stop if pilot has not finished sending the final job update
+i.e. wait until SERVER_UPDATE is DONE_FINAL. This function sleeps for a maximum
+of 20*30 s until SERVER_UPDATE env variable has been set to SERVER_UPDATE_FINAL.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>update_server</strong> – args.update_server boolean.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.convert_to_pilot_error_code">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">convert_to_pilot_error_code</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exit_code</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#convert_to_pilot_error_code"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.convert_to_pilot_error_code" title="Permalink to this definition">¶</a></dt>
+<dd><p>This conversion function is used to revert a batch system exit code back to a pilot error code.
+Note: the function is used by Harvester.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>exit_code</strong> – batch system exit code (int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>pilot error code (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.cut_output">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">cut_output</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">txt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separator</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'\n[...]\n'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#cut_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.cut_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cut the given string if longer that 2*cutat value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>txt</strong> – text to be cut at position cutat (string).</p></li>
+<li><p><strong>cutat</strong> – max length of uncut text (int).</p></li>
+<li><p><strong>separator</strong> – separator text (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>cut text (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.display_architecture_info">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">display_architecture_info</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#display_architecture_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.display_architecture_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Display OS/architecture information.
+The function attempts to use the lsb_release -a command if available. If that is not available,
+it will dump the contents of</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.extract_memory_usage_value">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">extract_memory_usage_value</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#extract_memory_usage_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.extract_memory_usage_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the memory usage value from the ps output (in kB).</p>
+<p># USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+# usatlas1 13917  1.5  0.0 1324968 152832 ?      Sl   09:33   2:55 /bin/python2 ..
+# -&gt; 152832 (kB)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>output</strong> – ps output (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>memory value in kB (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.get_batchsystem_jobid">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">get_batchsystem_jobid</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#get_batchsystem_jobid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.get_batchsystem_jobid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identify and return the batch system job id (will be reported to the server)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>batch system job id</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.get_error_code_translation_dictionary">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">get_error_code_translation_dictionary</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#get_error_code_translation_dictionary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.get_error_code_translation_dictionary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the error code translation dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>populated error code translation dictionary.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.get_job_scheduler_id">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">get_job_scheduler_id</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#get_job_scheduler_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.get_job_scheduler_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the job scheduler id from the environment variable PANDA_JSID</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>job scheduler id (string)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.get_logger">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">get_logger</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#get_logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.get_logger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the logger object.
+Use this function to get the proper logger object. It relies on a python 2.7 function, getChild(), but if the queue
+is only using Python 2.6, the standard logger object will be returned instead.</p>
+<p>WARNING: it seems using this function can lead to severe memory leaks (multiple GB) in some jobs. Do not use. Keep
+this definition for possible later investigation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>jod_id</strong> – PanDA job id (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>logger object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.get_memory_usage">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">get_memory_usage</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#get_memory_usage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.get_memory_usage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the memory usage string (ps auxf &lt;pid&gt;) for the given process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pid</strong> – process id (int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>ps exit code (int), stderr (strint), stdout (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.get_object_size">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">get_object_size</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#get_object_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.get_object_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recursively find the size of any objects</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obj</strong> – object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.get_pilot_id">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">get_pilot_id</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#get_pilot_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.get_pilot_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the pilot id from the environment variable GTAG</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>pilot id (string)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.get_pilot_state">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">get_pilot_state</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#get_pilot_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.get_pilot_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the current pilot (job) state.
+If the job object does not exist, the environmental variable PILOT_JOB_STATE will be queried instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>pilot (job) state (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.get_resource_name">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">get_resource_name</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#get_resource_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.get_resource_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the name of the resource (only set for HPC resources; e.g. Cori, otherwise return ‘grid’).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>resource_name (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.get_size">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">get_size</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj_0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#get_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.get_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recursively iterate to sum size of object &amp; members.
+Note: for size measurement to work, the object must have set the data members in the __init__().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>obj_0</strong> – object to be measured.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>size in Bytes (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.is_python3">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">is_python3</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#is_python3"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.is_python3" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if we are running on Python 3.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>boolean.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.is_virtual_machine">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">is_virtual_machine</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#is_virtual_machine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.is_virtual_machine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Are we running in a virtual machine?
+If we are running inside a VM, then linux will put ‘hypervisor’ in cpuinfo. This function looks for the presence
+of that.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>boolean.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.pilot_version_banner">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">pilot_version_banner</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#pilot_version_banner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.pilot_version_banner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print a pilot version banner.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.set_pilot_state">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">set_pilot_state</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#set_pilot_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.set_pilot_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the internal pilot state.
+Note: this function should update the global/singleton object but currently uses an environmental variable
+(PILOT_JOB_STATE).
+The function does not update job.state if it is already set to finished or failed.
+The environmental variable PILOT_JOB_STATE will always be set, in case the job object does not exist.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job</strong> – optional job object.</p></li>
+<li><p><strong>state</strong> – internal pilot state (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.shell_exit_code">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">shell_exit_code</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exit_code</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#shell_exit_code"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.shell_exit_code" title="Permalink to this definition">¶</a></dt>
+<dd><p>Translate the pilot exit code to a proper exit code for the shell (wrapper).
+Any error code that is to be converted by this function, should be added to the traces object like:</p>
+<blockquote>
+<div><p>traces.pilot[‘error_code’] = errors.&lt;ERRORCODE&gt;</p>
+</div></blockquote>
+<p>The traces object will be checked by the pilot module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>exit_code</strong> – pilot error code (int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>standard shell exit code (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.show_memory_usage">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">show_memory_usage</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#show_memory_usage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.show_memory_usage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Display the current memory usage by the pilot process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.whoami">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">whoami</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#whoami"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.whoami" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the name of the pilot user.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>whoami output (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">util components</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">util components</a></li>
+      <li>Next: <a href="config.html" title="next chapter">config</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/util/auxiliary.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/util/auxiliary.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

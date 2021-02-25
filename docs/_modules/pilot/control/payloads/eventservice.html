@@ -1,0 +1,214 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.control.payloads.eventservice &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.control.payloads.eventservice</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Wen Guan, wen.guan@cern.ch, 2017-2018</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2020</span>
+
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">from</span> <span class="nn">pilot.common</span> <span class="kn">import</span> <span class="n">exception</span>
+<span class="kn">from</span> <span class="nn">pilot.control.payloads</span> <span class="kn">import</span> <span class="n">generic</span>
+<span class="kn">from</span> <span class="nn">pilot.eventservice.workexecutor.workexecutor</span> <span class="kn">import</span> <span class="n">WorkExecutor</span>
+<span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Executor"><a class="viewcode-back" href="../../../../components/control/payloads/eventservice.html#pilot.control.payloads.eventservice.Executor">[docs]</a><span class="k">class</span> <span class="nc">Executor</span><span class="p">(</span><span class="n">generic</span><span class="o">.</span><span class="n">Executor</span><span class="p">):</span>
+<div class="viewcode-block" id="Executor.__init__"><a class="viewcode-back" href="../../../../components/control/payloads/eventservice.html#pilot.control.payloads.eventservice.Executor.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">traces</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Executor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">traces</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Executor.run_payload"><a class="viewcode-back" href="../../../../components/control/payloads/eventservice.html#pilot.control.payloads.eventservice.Executor.run_payload">[docs]</a>    <span class="k">def</span> <span class="nf">run_payload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">err</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        (add description)</span>
+
+<span class="sd">        :param job: job object.</span>
+<span class="sd">        :param cmd: (unused in ES mode)</span>
+<span class="sd">        :param out: stdout file object.</span>
+<span class="sd">        :param err: stderr file object.</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pre_setup</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+
+        <span class="c1"># get the payload command from the user specific code</span>
+        <span class="n">pilot_user</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_USER&#39;</span><span class="p">,</span> <span class="s1">&#39;atlas&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.common&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">post_setup</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">utility_before_payload</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">utility_with_payload</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">executable</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">get_payload_command</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">exception</span><span class="o">.</span><span class="n">PilotException</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;could not define payload command&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;payload execution command: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">executable</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">payload</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;executable&#39;</span><span class="p">:</span> <span class="n">executable</span><span class="p">,</span> <span class="s1">&#39;workdir&#39;</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="s1">&#39;output_file&#39;</span><span class="p">:</span> <span class="n">out</span><span class="p">,</span> <span class="s1">&#39;error_file&#39;</span><span class="p">:</span> <span class="n">err</span><span class="p">,</span> <span class="s1">&#39;job&#39;</span><span class="p">:</span> <span class="n">job</span><span class="p">}</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;payload: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">payload</span><span class="p">)</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting EventService WorkExecutor&quot;</span><span class="p">)</span>
+            <span class="n">executor_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_executor_type</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+            <span class="n">executor</span> <span class="o">=</span> <span class="n">WorkExecutor</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="n">executor_type</span><span class="p">)</span>
+            <span class="n">executor</span><span class="o">.</span><span class="n">set_payload</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+            <span class="n">executor</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;EventService WorkExecutor started&quot;</span><span class="p">)</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;ESProcess started with pid: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">executor</span><span class="o">.</span><span class="n">get_pid</span><span class="p">())</span>
+            <span class="n">job</span><span class="o">.</span><span class="n">pid</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">get_pid</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">:</span>
+                <span class="n">job</span><span class="o">.</span><span class="n">pgrp</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getpgid</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">utility_after_payload_started</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;could not execute: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">executor</span></div>
+
+<div class="viewcode-block" id="Executor.get_executor_type"><a class="viewcode-back" href="../../../../components/control/payloads/eventservice.html#pilot.control.payloads.eventservice.Executor.get_executor_type">[docs]</a>    <span class="k">def</span> <span class="nf">get_executor_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the executor type.</span>
+<span class="sd">        This is usually the &#39;generic&#39; type, which means normal event service. It can also be &#39;raythena&#39; if specified</span>
+<span class="sd">        in the pilot config file, and can also be dynamically decided using the job object (in the case of interceptor</span>
+<span class="sd">        job).</span>
+
+<span class="sd">        :param job: job object.</span>
+<span class="sd">        :return: executor type dictionary.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># executor_type = &#39;hpo&#39; if job.is_hpo else config.Payload.executor_type</span>
+        <span class="c1"># return {&#39;executor_type&#39;: executor_type}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;executor_type&#39;</span><span class="p">:</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">executor_type</span><span class="p">}</span></div>
+
+<div class="viewcode-block" id="Executor.wait_graceful"><a class="viewcode-back" href="../../../../components/control/payloads/eventservice.html#pilot.control.payloads.eventservice.Executor.wait_graceful">[docs]</a>    <span class="k">def</span> <span class="nf">wait_graceful</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">proc</span><span class="p">,</span> <span class="n">job</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        (add description)</span>
+
+<span class="sd">        :param args:</span>
+<span class="sd">        :param proc:</span>
+<span class="sd">        :param job:</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="n">proc</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Graceful stop is set, stopping work executor&quot;</span><span class="p">)</span>
+                <span class="n">proc</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">t1</span> <span class="o">+</span> <span class="mi">300</span><span class="p">:</span>  <span class="c1"># 5 minutes</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Process is still running&quot;</span><span class="p">)</span>
+                <span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">while</span> <span class="n">proc</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">exit_code</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">get_exit_code</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">exit_code</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

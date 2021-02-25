@@ -1,0 +1,408 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>math &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="monitoring" href="monitoring.html" />
+    <link rel="prev" title="loopingjob" href="loopingjob.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.util.math">
+<span id="math"></span><h1>math<a class="headerlink" href="#module-pilot.util.math" title="Permalink to this headline">¶</a></h1>
+<dl class="py function">
+<dt id="pilot.util.math.add_lists">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.math.</span></code><code class="sig-name descname"><span class="pre">add_lists</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/math.html#add_lists"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.math.add_lists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add list1 and list2 and remove any duplicates.
+Example:
+list1=[1,2,3,4]
+list2=[3,4,5,6]
+add_lists(list1, list2) = [1, 2, 3, 4, 5, 6]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>list1</strong> – input list 1</p></li>
+<li><p><strong>list2</strong> – input list 2</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>added lists with removed duplicates</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.math.bytes2human">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.math.</span></code><code class="sig-name descname"><span class="pre">bytes2human</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'%(value).1f</span> <span class="pre">%(symbol)s'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symbols</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'customary'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/math.html#bytes2human"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.math.bytes2human" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert n bytes into a human readable string based on format.
+symbols can be either “customary”, “customary_ext”, “iec” or “iec_ext”,
+see: <a class="reference external" href="http://goo.gl/kTQMs">http://goo.gl/kTQMs</a></p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">bytes2human</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="go">&#39;0.0 B&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bytes2human</span><span class="p">(</span><span class="mf">0.9</span><span class="p">)</span>
+<span class="go">&#39;0.0 B&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bytes2human</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="go">&#39;1.0 B&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bytes2human</span><span class="p">(</span><span class="mf">1.9</span><span class="p">)</span>
+<span class="go">&#39;1.0 B&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bytes2human</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span>
+<span class="go">&#39;1.0 K&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bytes2human</span><span class="p">(</span><span class="mi">1048576</span><span class="p">)</span>
+<span class="go">&#39;1.0 M&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bytes2human</span><span class="p">(</span><span class="mi">1099511627776127398123789121</span><span class="p">)</span>
+<span class="go">&#39;909.5 Y&#39;</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">bytes2human</span><span class="p">(</span><span class="mi">9856</span><span class="p">,</span> <span class="n">symbols</span><span class="o">=</span><span class="s2">&quot;customary&quot;</span><span class="p">)</span>
+<span class="go">&#39;9.6 K&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bytes2human</span><span class="p">(</span><span class="mi">9856</span><span class="p">,</span> <span class="n">symbols</span><span class="o">=</span><span class="s2">&quot;customary_ext&quot;</span><span class="p">)</span>
+<span class="go">&#39;9.6 kilo&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bytes2human</span><span class="p">(</span><span class="mi">9856</span><span class="p">,</span> <span class="n">symbols</span><span class="o">=</span><span class="s2">&quot;iec&quot;</span><span class="p">)</span>
+<span class="go">&#39;9.6 Ki&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bytes2human</span><span class="p">(</span><span class="mi">9856</span><span class="p">,</span> <span class="n">symbols</span><span class="o">=</span><span class="s2">&quot;iec_ext&quot;</span><span class="p">)</span>
+<span class="go">&#39;9.6 kibi&#39;</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">bytes2human</span><span class="p">(</span><span class="mi">10000</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%(value).1f</span><span class="s2"> </span><span class="si">%(symbol)s</span><span class="s2">/sec&quot;</span><span class="p">)</span>
+<span class="go">&#39;9.8 K/sec&#39;</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># precision can be adjusted by playing with %f operator</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bytes2human</span><span class="p">(</span><span class="mi">10000</span><span class="p">,</span> <span class="n">_format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(value).5f</span><span class="s2"> </span><span class="si">%(symbol)s</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="go">&#39;9.76562 K&#39;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.math.chi2">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.math.</span></code><code class="sig-name descname"><span class="pre">chi2</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/math.html#chi2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.math.chi2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the chi2 sum of the provided observed and expected values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>observed</strong> – list of floats.</p></li>
+<li><p><strong>expected</strong> – list of floats.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>chi2 (float).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.math.convert_mb_to_b">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.math.</span></code><code class="sig-name descname"><span class="pre">convert_mb_to_b</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/math.html#convert_mb_to_b"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.math.convert_mb_to_b" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert value from MB to B for the given size variable.
+If the size is a float, the function will convert it to int.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>size</strong> – size in MB (float or int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>size in B (int).</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>ValueError for conversion error.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.math.diff_lists">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.math.</span></code><code class="sig-name descname"><span class="pre">diff_lists</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/math.html#diff_lists"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.math.diff_lists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the difference between list_a and list_b.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>list_a</strong> – input list a.</p></li>
+<li><p><strong>list_b</strong> – input list b.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>difference (list).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.math.float_to_rounded_string">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.math.</span></code><code class="sig-name descname"><span class="pre">float_to_rounded_string</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">precision</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/math.html#float_to_rounded_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.math.float_to_rounded_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert float to a string with a desired number of digits (the precision).
+E.g. num=3.1415, precision=2 -&gt; ‘3.14’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num</strong> – number to be converted (float).</p></li>
+<li><p><strong>precision</strong> – number of desired digits (int)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference internal" href="../common/exception.html#pilot.common.exception.NotDefined" title="pilot.common.exception.NotDefined"><strong>NotDefined</strong></a> – for undefined precisions and float conversions to Decimal.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>rounded string.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.math.human2bytes">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.math.</span></code><code class="sig-name descname"><span class="pre">human2bytes</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">divider</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/math.html#human2bytes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.math.human2bytes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attempts to guess the string format based on default symbols
+set and return the corresponding bytes as an integer.
+When unable to recognize the format ValueError is raised.</p>
+<p>If no digit passed, only a letter, it is interpreted as a one of a kind. Eg “KB” = “1 KB”.
+If no letter passed, it is assumed to be in bytes. Eg “512” = “512 B”</p>
+<p>The second argument is used to convert to another magnitude (eg return not bytes but KB).
+It can be interpreted as a cluster size. Eg “512 B”, or “0.2 K”.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">human2bytes</span><span class="p">(</span><span class="s1">&#39;0 B&#39;</span><span class="p">)</span>
+<span class="go">0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">human2bytes</span><span class="p">(</span><span class="s1">&#39;3&#39;</span><span class="p">)</span>
+<span class="go">3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">human2bytes</span><span class="p">(</span><span class="s1">&#39;K&#39;</span><span class="p">)</span>
+<span class="go">1024</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">human2bytes</span><span class="p">(</span><span class="s1">&#39;1 K&#39;</span><span class="p">)</span>
+<span class="go">1024</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">human2bytes</span><span class="p">(</span><span class="s1">&#39;1 M&#39;</span><span class="p">)</span>
+<span class="go">1048576</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">human2bytes</span><span class="p">(</span><span class="s1">&#39;1 Gi&#39;</span><span class="p">)</span>
+<span class="go">1073741824</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">human2bytes</span><span class="p">(</span><span class="s1">&#39;1 tera&#39;</span><span class="p">)</span>
+<span class="go">1099511627776</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">human2bytes</span><span class="p">(</span><span class="s1">&#39;0.5kilo&#39;</span><span class="p">)</span>
+<span class="go">512</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">human2bytes</span><span class="p">(</span><span class="s1">&#39;0.1  byte&#39;</span><span class="p">)</span>
+<span class="go">0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">human2bytes</span><span class="p">(</span><span class="s1">&#39;1 k&#39;</span><span class="p">)</span>  <span class="c1"># k is an alias for K</span>
+<span class="go">1024</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">human2bytes</span><span class="p">(</span><span class="s1">&#39;12 foo&#39;</span><span class="p">)</span>
+<span class="gt">Traceback (most recent call last):</span>
+    <span class="o">...</span>
+<span class="gr">ValueError</span>: <span class="n">can&#39;t interpret &#39;12 foo&#39;</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">human2bytes</span><span class="p">(</span><span class="s1">&#39;1 M&#39;</span><span class="p">,</span> <span class="s1">&#39;K&#39;</span><span class="p">)</span>
+<span class="go">1024</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">human2bytes</span><span class="p">(</span><span class="s1">&#39;2 G&#39;</span><span class="p">,</span> <span class="s1">&#39;M&#39;</span><span class="p">)</span>
+<span class="go">2048</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">human2bytes</span><span class="p">(</span><span class="s1">&#39;G&#39;</span><span class="p">,</span> <span class="s1">&#39;2M&#39;</span><span class="p">)</span>
+<span class="go">512</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.math.is_greater_or_equal">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.math.</span></code><code class="sig-name descname"><span class="pre">is_greater_or_equal</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/math.html#is_greater_or_equal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.math.is_greater_or_equal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Is the numbered string a &gt;= b?
+“1.2.3” &gt; “1.2”  – more digits
+“1.2.3” &gt; “1.2.2”  – rank based comparison
+“1.3.2” &gt; “1.2.3”  – rank based comparison
+“1.2.N” &gt; “1.2.2”  – nightlies checker, always greater</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> – numbered string.</p></li>
+<li><p><strong>b</strong> – numbered string.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>boolean.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.math.mean">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.math.</span></code><code class="sig-name descname"><span class="pre">mean</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/math.html#mean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.math.mean" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the sample arithmetic mean of data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>data</strong> – list of floats or ints.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>mean value (float).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.math.split_version">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.math.</span></code><code class="sig-name descname"><span class="pre">split_version</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">&quot;1.2.3&quot;)</span> <span class="pre">=</span> <span class="pre">(1</span></em>, <em class="sig-param"><span class="pre">2</span></em>, <em class="sig-param"><span class="pre">3</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/math.html#split_version"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.math.split_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>split_version(“1.2.Nightly”) = (1,2,”Nightly”)</p>
+<p>The function can also be used for sorting:
+&gt; names = [‘YT4.11’, ‘4.3’, ‘YT4.2’, ‘4.10’, ‘PT2.19’, ‘PT2.9’]
+&gt; sorted(names, key=splittedname)
+[‘4.3’, ‘4.10’, ‘PT2.9’, ‘PT2.19’, ‘YT4.2’, ‘YT4.11’]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>s</strong> – release string.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>converted release tuple.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.math.sum_dev">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.math.</span></code><code class="sig-name descname"><span class="pre">sum_dev</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/math.html#sum_dev"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.math.sum_dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return sum of deviations of sequence data.
+Sum (x - x_mean)**(y - y_mean)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – list of ints or floats.</p></li>
+<li><p><strong>y</strong> – list of ints or floats.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>sum of deviations (float).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.math.sum_square_dev">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.math.</span></code><code class="sig-name descname"><span class="pre">sum_square_dev</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/math.html#sum_square_dev"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.math.sum_square_dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return sum of square deviations of sequence data.
+Sum (x - x_mean)**2</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>data</strong> – list of floats or ints.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>sum of squares (float).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.math.tryint">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.math.</span></code><code class="sig-name descname"><span class="pre">tryint</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/math.html#tryint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.math.tryint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Used by numbered string comparison (to protect against unexpected letters in version number).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> – possible int.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>converted int or original value in case of ValueError.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">util components</a><ul>
+      <li>Previous: <a href="loopingjob.html" title="previous chapter">loopingjob</a></li>
+      <li>Next: <a href="monitoring.html" title="next chapter">monitoring</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/util/math.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/util/math.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

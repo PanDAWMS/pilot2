@@ -1,0 +1,243 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>extinfo &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="filespec" href="filespec.html" />
+    <link rel="prev" title="dataloader" href="dataloader.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.info.extinfo">
+<span id="extinfo"></span><h1>extinfo<a class="headerlink" href="#module-pilot.info.extinfo" title="Permalink to this headline">¶</a></h1>
+<p>Information provider from external source(s)
+which is mainly used to retrive Queue, Site, etc data required for Information Service</p>
+<dl class="field-list simple">
+<dt class="field-odd">author</dt>
+<dd class="field-odd"><p>Alexey Anisenkov</p>
+</dd>
+<dt class="field-even">contact</dt>
+<dd class="field-even"><p><a class="reference external" href="mailto:anisyonk&#37;&#52;&#48;cern&#46;ch">anisyonk<span>&#64;</span>cern<span>&#46;</span>ch</a></p>
+</dd>
+<dt class="field-odd">date</dt>
+<dd class="field-odd"><p>January 2018</p>
+</dd>
+</dl>
+<dl class="py class">
+<dt id="pilot.info.extinfo.ExtInfoProvider">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">pilot.info.extinfo.</span></code><code class="sig-name descname"><span class="pre">ExtInfoProvider</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cache_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/extinfo.html#ExtInfoProvider"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.extinfo.ExtInfoProvider" title="Permalink to this definition">¶</a></dt>
+<dd><p>Information provider to retrive data from external source(s)
+(e.g. AGIS, PanDA, CVMFS)</p>
+<dl class="py method">
+<dt id="pilot.info.extinfo.ExtInfoProvider.__init__">
+<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cache_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/extinfo.html#ExtInfoProvider.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.extinfo.ExtInfoProvider.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>cache_time</strong> – Default cache time in seconds</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.info.extinfo.ExtInfoProvider.__module__">
+<code class="sig-name descname"><span class="pre">__module__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'pilot.info.extinfo'</span></em><a class="headerlink" href="#pilot.info.extinfo.ExtInfoProvider.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.info.extinfo.ExtInfoProvider.load_queuedata">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">load_queuedata</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pandaqueue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/extinfo.html#ExtInfoProvider.load_queuedata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.extinfo.ExtInfoProvider.load_queuedata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Download the queuedata from various sources (prioritized).
+Try to get data from PanDA, CVMFS first, then AGIS</p>
+<p>This function retrieves only min information of queuedata provided by PanDA cache for the moment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pandaqueue</strong> – PandaQueue name</p></li>
+<li><p><strong>cache_time</strong> – Default cache time in seconds.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.info.extinfo.ExtInfoProvider.load_schedconfig_data">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">load_schedconfig_data</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pandaqueues</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/extinfo.html#ExtInfoProvider.load_schedconfig_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.extinfo.ExtInfoProvider.load_schedconfig_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Download the (AGIS-extended) data associated to PandaQueue from various sources (prioritized).
+Try to get data from CVMFS first, then AGIS or from Panda JSON sources (not implemented).</p>
+<p>For the moment PanDA source does not provide the full schedconfig description</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pandaqueues</strong> – list of PandaQueues to be loaded</p></li>
+<li><p><strong>cache_time</strong> – Default cache time in seconds.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.info.extinfo.ExtInfoProvider.load_storage_data">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">load_storage_data</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ddmendpoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/extinfo.html#ExtInfoProvider.load_storage_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.extinfo.ExtInfoProvider.load_storage_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Download DDM Storages details by given name (DDMEndpoint) from various sources (prioritized).
+Try to get data from LOCAL first, then CVMFS and AGIS</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pandaqueues</strong> – list of PandaQueues to be loaded</p></li>
+<li><p><strong>cache_time</strong> – Default cache time in seconds.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dict of DDMEndpoint settings by DDMendpoint name as a key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.info.extinfo.ExtInfoProvider.resolve_queuedata">
+<code class="sig-name descname"><span class="pre">resolve_queuedata</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pandaqueue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schedconf_priority</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/extinfo.html#ExtInfoProvider.resolve_queuedata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.extinfo.ExtInfoProvider.resolve_queuedata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve final full queue data details
+(primary data provided by PanDA merged with overall queue details from AGIS)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pandaqueue</strong> – name of PandaQueue</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dict of settings for given PandaQueue as a key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.info.extinfo.ExtInfoProvider.resolve_storage_data">
+<code class="sig-name descname"><span class="pre">resolve_storage_data</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ddmendpoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/extinfo.html#ExtInfoProvider.resolve_storage_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.extinfo.ExtInfoProvider.resolve_storage_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve final DDM Storages details by given names (DDMEndpoint)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ddmendpoints</strong> – list of ddmendpoint names</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dict of settings for given DDMEndpoint as a key</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../util/index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">info components</a><ul>
+      <li>Previous: <a href="dataloader.html" title="previous chapter">dataloader</a></li>
+      <li>Next: <a href="filespec.html" title="next chapter">filespec</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/info/extinfo.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/info/extinfo.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

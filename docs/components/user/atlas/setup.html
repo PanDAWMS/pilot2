@@ -1,0 +1,339 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>setup &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="utilities" href="utilities.html" />
+    <link rel="prev" title="proxy" href="proxy.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.user.atlas.setup">
+<span id="setup"></span><h1>setup<a class="headerlink" href="#module-pilot.user.atlas.setup" title="Permalink to this headline">¶</a></h1>
+<dl class="py function">
+<dt id="pilot.user.atlas.setup.download_transform">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.setup.</span></code><code class="sig-name descname"><span class="pre">download_transform</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/setup.html#download_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.setup.download_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Download the transform from the given url
+:param url: download URL with path to transform (string).
+:param transform_name: trf name (string).
+:param workdir: work directory (string).
+:return:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.setup.get_alrb_export">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.setup.</span></code><code class="sig-name descname"><span class="pre">get_alrb_export</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">add_if</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/setup.html#get_alrb_export"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.setup.get_alrb_export" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the export command for the ALRB path if it exists.
+If the path does not exist, return empty string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>add_if</strong> – Boolean. True means that an if statement will be placed around the export.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>export command</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.setup.get_analysis_trf">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.setup.</span></code><code class="sig-name descname"><span class="pre">get_analysis_trf</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/setup.html#get_analysis_trf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.setup.get_analysis_trf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare to download the user analysis transform with curl.
+The function will verify the download location from a known list of hosts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>transform</strong> – full trf path (url) (string).</p></li>
+<li><p><strong>workdir</strong> – work directory (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>exit code (int), diagnostics (string), transform_name (string)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.setup.get_asetup">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.setup.</span></code><code class="sig-name descname"><span class="pre">get_asetup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">asetup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alrb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_if</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/setup.html#get_asetup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.setup.get_asetup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE
+Only include the actual asetup script if asetup=True. This is not needed if the jobPars contain the payload command
+but the pilot still needs to add the exports and the atlasLocalSetup.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>asetup</strong> – Boolean. True value means that the pilot should include the asetup command.</p></li>
+<li><p><strong>alrb</strong> – Boolean. True value means that the function should return special setup used with ALRB and containers.</p></li>
+<li><p><strong>add_if</strong> – Boolean. True means that an if statement will be placed around the export.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p>NoSoftwareDir if appdir does not exist.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>source &lt;path&gt;/asetup.sh (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.setup.get_asetup_options">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.setup.</span></code><code class="sig-name descname"><span class="pre">get_asetup_options</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">release</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">homepackage</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/setup.html#get_asetup_options"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.setup.get_asetup_options" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine the proper asetup options.
+:param release: ATLAS release string.
+:param homepackage: ATLAS homePackage string.
+:return: asetup options (string).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.setup.get_file_system_root_path">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.setup.</span></code><code class="sig-name descname"><span class="pre">get_file_system_root_path</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/setup.html#get_file_system_root_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.setup.get_file_system_root_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the root path of the local file system.
+The function returns “/cvmfs” or “/(some path)/cvmfs” in case the expected file system root path is not
+where it usually is (e.g. on an HPC). A site can set the base path by exporting ATLAS_SW_BASE.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>path (string)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.setup.get_payload_environment_variables">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.setup.</span></code><code class="sig-name descname"><span class="pre">get_payload_environment_variables</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attempt_nr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">processing_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">site_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">analysis_job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/setup.html#get_payload_environment_variables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.setup.get_payload_environment_variables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an array with enviroment variables needed by the payload.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmd</strong> – payload execution command (string).</p></li>
+<li><p><strong>job_id</strong> – PanDA job id (string).</p></li>
+<li><p><strong>task_id</strong> – PanDA task id (string).</p></li>
+<li><p><strong>attempt_nr</strong> – PanDA job attempt number (int).</p></li>
+<li><p><strong>processing_type</strong> – processing type (string).</p></li>
+<li><p><strong>site_name</strong> – site name (string).</p></li>
+<li><p><strong>analysis_job</strong> – True for user analysis jobs, False otherwise (boolean).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of environment variables needed by the payload.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.setup.get_valid_base_urls">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.setup.</span></code><code class="sig-name descname"><span class="pre">get_valid_base_urls</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/setup.html#get_valid_base_urls"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.setup.get_valid_base_urls" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of valid base URLs from where the user analysis transform may be downloaded from.
+If order is defined, return given item first.
+E.g. order=http://atlpan.web.cern.ch/atlpan -&gt; [‘<a class="reference external" href="http://atlpan.web.cern.ch/atlpan">http://atlpan.web.cern.ch/atlpan</a>’, …]
+NOTE: the URL list may be out of date.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>order</strong> – order (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>valid base URLs (list).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.setup.get_writetoinput_filenames">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.setup.</span></code><code class="sig-name descname"><span class="pre">get_writetoinput_filenames</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writetofile</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/setup.html#get_writetoinput_filenames"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.setup.get_writetoinput_filenames" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the writeToFile file name(s).
+writeToFile=’tmpin_mc16_13TeV.345935.PhPy8EG_A14_ttbarMET100_200_hdamp258p75_nonallhad.merge.AOD.e6620_e5984_s3126_r10724_r10726_tid15760866_00:AOD.15760866._000002.pool.root.1’
+-&gt; return ‘tmpin_mc16_13TeV.345935.PhPy8EG_A14_ttbarMET100_200_hdamp258p75_nonallhad.merge.AOD.e6620_e5984_s3126_r10724_r10726_tid15760866_00’</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>writetofile</strong> – string containing file name information.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of file names</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.setup.is_standard_atlas_job">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.setup.</span></code><code class="sig-name descname"><span class="pre">is_standard_atlas_job</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">release</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/setup.html#is_standard_atlas_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.setup.is_standard_atlas_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Is it a standard ATLAS job?
+A job is a standard ATLAS job if the release string begins with ‘Atlas-‘.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>release</strong> – Release value (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Boolean. Returns True if standard ATLAS job.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.setup.replace_lfns_with_turls">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.setup.</span></code><code class="sig-name descname"><span class="pre">replace_lfns_with_turls</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infiles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">writetofile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/setup.html#replace_lfns_with_turls"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.setup.replace_lfns_with_turls" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replace all LFNs with full TURLs in the payload execution command.</p>
+<p>This function is used with direct access in production jobs. Athena requires a full TURL instead of LFN.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmd</strong> – payload execution command (string).</p></li>
+<li><p><strong>workdir</strong> – location of metadata file (string).</p></li>
+<li><p><strong>filename</strong> – metadata file name (string).</p></li>
+<li><p><strong>infiles</strong> – list of input files.</p></li>
+<li><p><strong>writetofile</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated cmd (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.setup.set_inds">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.setup.</span></code><code class="sig-name descname"><span class="pre">set_inds</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/setup.html#set_inds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.setup.set_inds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the INDS environmental variable used by runAthena.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dataset</strong> – dataset for input files (realDatasetsIn) (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.setup.should_pilot_prepare_setup">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.setup.</span></code><code class="sig-name descname"><span class="pre">should_pilot_prepare_setup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">noexecstrcnv</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jobpars</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imagename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/setup.html#should_pilot_prepare_setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.setup.should_pilot_prepare_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine whether the pilot should add the setup to the payload command or not.
+The pilot will not add asetup if jobPars already contain the information (i.e. it was set by the payload creator).
+If noExecStrCnv is set, then jobPars is expected to contain asetup.sh + options
+If a stand-alone container / user defined container is used, pilot should not prepare asetup.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>noexecstrcnv</strong> – boolean.</p></li>
+<li><p><strong>jobpars</strong> – job parameters (string).</p></li>
+<li><p><strong>imagename</strong> – container image (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>boolean.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../resource/index.html">resource components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">user components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../util/index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Components</a><ul>
+  <li><a href="../index.html">user components</a><ul>
+  <li><a href="index.html">atlas components</a><ul>
+      <li>Previous: <a href="proxy.html" title="previous chapter">proxy</a></li>
+      <li>Next: <a href="utilities.html" title="next chapter">utilities</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/components/user/atlas/setup.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../../_sources/components/user/atlas/setup.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

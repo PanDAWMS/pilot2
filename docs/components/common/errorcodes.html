@@ -1,0 +1,936 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>errorcodes &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="exception" href="exception.html" />
+    <link rel="prev" title="common components" href="index.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.common.errorcodes">
+<span id="errorcodes"></span><h1>errorcodes<a class="headerlink" href="#module-pilot.common.errorcodes" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="pilot.common.errorcodes.ErrorCodes">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">pilot.common.errorcodes.</span></code><code class="sig-name descname"><span class="pre">ErrorCodes</span></code><a class="reference internal" href="../../_modules/pilot/common/errorcodes.html#ErrorCodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pilot error codes.</p>
+<p>Note: Error code numbering is the same as in Pilot 1 since that is expected by the PanDA server and monitor.
+Note 2: Add error codes as they are needed in other modules. Do not import the full Pilot 1 list at once as there
+might very well be codes that can be reassigned/removed.</p>
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.ATLASSETUPFATAL">
+<code class="sig-name descname"><span class="pre">ATLASSETUPFATAL</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1334</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.ATLASSETUPFATAL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.BADALLOC">
+<code class="sig-name descname"><span class="pre">BADALLOC</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1223</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.BADALLOC" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.BADMEMORYMONITORJSON">
+<code class="sig-name descname"><span class="pre">BADMEMORYMONITORJSON</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1337</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.BADMEMORYMONITORJSON" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.BADQUEUECONFIGURATION">
+<code class="sig-name descname"><span class="pre">BADQUEUECONFIGURATION</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1341</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.BADQUEUECONFIGURATION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.BADXML">
+<code class="sig-name descname"><span class="pre">BADXML</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1247</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.BADXML" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.BLACKHOLE">
+<code class="sig-name descname"><span class="pre">BLACKHOLE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1332</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.BLACKHOLE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.CHKSUMNOTSUP">
+<code class="sig-name descname"><span class="pre">CHKSUMNOTSUP</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1242</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.CHKSUMNOTSUP" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.CHMODTRF">
+<code class="sig-name descname"><span class="pre">CHMODTRF</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1143</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.CHMODTRF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.COMMUNICATIONFAILURE">
+<code class="sig-name descname"><span class="pre">COMMUNICATIONFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1318</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.COMMUNICATIONFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.CONVERSIONFAILURE">
+<code class="sig-name descname"><span class="pre">CONVERSIONFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1302</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.CONVERSIONFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.COREDUMP">
+<code class="sig-name descname"><span class="pre">COREDUMP</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1355</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.COREDUMP" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.DBRELEASEFAILURE">
+<code class="sig-name descname"><span class="pre">DBRELEASEFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1339</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.DBRELEASEFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.EMPTYOUTPUTFILE">
+<code class="sig-name descname"><span class="pre">EMPTYOUTPUTFILE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1350</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.EMPTYOUTPUTFILE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.ESFATAL">
+<code class="sig-name descname"><span class="pre">ESFATAL</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1228</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.ESFATAL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.ESNOEVENTS">
+<code class="sig-name descname"><span class="pre">ESNOEVENTS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1238</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.ESNOEVENTS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.ESRECOVERABLE">
+<code class="sig-name descname"><span class="pre">ESRECOVERABLE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1224</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.ESRECOVERABLE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.EXCEEDEDMAXWAITTIME">
+<code class="sig-name descname"><span class="pre">EXCEEDEDMAXWAITTIME</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1317</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.EXCEEDEDMAXWAITTIME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.EXECUTEDCLONEJOB">
+<code class="sig-name descname"><span class="pre">EXECUTEDCLONEJOB</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1234</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.EXECUTEDCLONEJOB" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.FAILEDBYSERVER">
+<code class="sig-name descname"><span class="pre">FAILEDBYSERVER</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1236</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.FAILEDBYSERVER" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.FILEEXISTS">
+<code class="sig-name descname"><span class="pre">FILEEXISTS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1221</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.FILEEXISTS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.FILEHANDLINGFAILURE">
+<code class="sig-name descname"><span class="pre">FILEHANDLINGFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1303</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.FILEHANDLINGFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.GENERALCPUCALCPROBLEM">
+<code class="sig-name descname"><span class="pre">GENERALCPUCALCPROBLEM</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1354</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.GENERALCPUCALCPROBLEM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.GENERALERROR">
+<code class="sig-name descname"><span class="pre">GENERALERROR</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1008</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.GENERALERROR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.GETADMISMATCH">
+<code class="sig-name descname"><span class="pre">GETADMISMATCH</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1171</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.GETADMISMATCH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.GETGLOBUSSYSERR">
+<code class="sig-name descname"><span class="pre">GETGLOBUSSYSERR</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1180</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.GETGLOBUSSYSERR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.GETMD5MISMATCH">
+<code class="sig-name descname"><span class="pre">GETMD5MISMATCH</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1145</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.GETMD5MISMATCH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.IMAGENOTFOUND">
+<code class="sig-name descname"><span class="pre">IMAGENOTFOUND</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1360</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.IMAGENOTFOUND" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.INTERNALPILOTPROBLEM">
+<code class="sig-name descname"><span class="pre">INTERNALPILOTPROBLEM</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1319</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.INTERNALPILOTPROBLEM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.JOBALREADYRUNNING">
+<code class="sig-name descname"><span class="pre">JOBALREADYRUNNING</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1336</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.JOBALREADYRUNNING" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.JSONRETRIEVALTIMEOUT">
+<code class="sig-name descname"><span class="pre">JSONRETRIEVALTIMEOUT</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1330</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.JSONRETRIEVALTIMEOUT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.KILLPAYLOAD">
+<code class="sig-name descname"><span class="pre">KILLPAYLOAD</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1363</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.KILLPAYLOAD" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.KILLSIGNAL">
+<code class="sig-name descname"><span class="pre">KILLSIGNAL</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1200</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.KILLSIGNAL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.LFNTOOLONG">
+<code class="sig-name descname"><span class="pre">LFNTOOLONG</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1190</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.LFNTOOLONG" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.LOGFILECREATIONFAILURE">
+<code class="sig-name descname"><span class="pre">LOGFILECREATIONFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1320</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.LOGFILECREATIONFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.LOOPINGJOB">
+<code class="sig-name descname"><span class="pre">LOOPINGJOB</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1150</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.LOOPINGJOB" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.MESSAGEHANDLINGFAILURE">
+<code class="sig-name descname"><span class="pre">MESSAGEHANDLINGFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1240</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.MESSAGEHANDLINGFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.MIDDLEWAREIMPORTFAILURE">
+<code class="sig-name descname"><span class="pre">MIDDLEWAREIMPORTFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1342</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.MIDDLEWAREIMPORTFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.MISSINGINPUTFILE">
+<code class="sig-name descname"><span class="pre">MISSINGINPUTFILE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1331</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.MISSINGINPUTFILE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.MISSINGINSTALLATION">
+<code class="sig-name descname"><span class="pre">MISSINGINSTALLATION</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1211</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.MISSINGINSTALLATION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.MISSINGOUTPUTFILE">
+<code class="sig-name descname"><span class="pre">MISSINGOUTPUTFILE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1165</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.MISSINGOUTPUTFILE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.MISSINGRELEASEUNPACKED">
+<code class="sig-name descname"><span class="pre">MISSINGRELEASEUNPACKED</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1358</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.MISSINGRELEASEUNPACKED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.MISSINGUSERCODE">
+<code class="sig-name descname"><span class="pre">MISSINGUSERCODE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1335</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.MISSINGUSERCODE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.MKDIR">
+<code class="sig-name descname"><span class="pre">MKDIR</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1199</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.MKDIR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NFSSQLITE">
+<code class="sig-name descname"><span class="pre">NFSSQLITE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1115</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NFSSQLITE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NOLOCALSPACE">
+<code class="sig-name descname"><span class="pre">NOLOCALSPACE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1098</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NOLOCALSPACE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NONDETERMINISTICDDM">
+<code class="sig-name descname"><span class="pre">NONDETERMINISTICDDM</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1329</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NONDETERMINISTICDDM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NOOUTPUTINJOBREPORT">
+<code class="sig-name descname"><span class="pre">NOOUTPUTINJOBREPORT</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1343</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NOOUTPUTINJOBREPORT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NOPAYLOADMETADATA">
+<code class="sig-name descname"><span class="pre">NOPAYLOADMETADATA</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1187</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NOPAYLOADMETADATA" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NOPROXY">
+<code class="sig-name descname"><span class="pre">NOPROXY</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1163</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NOPROXY" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NORELEASEFOUND">
+<code class="sig-name descname"><span class="pre">NORELEASEFOUND</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1244</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NORELEASEFOUND" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NOREMOTESPACE">
+<code class="sig-name descname"><span class="pre">NOREMOTESPACE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1333</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NOREMOTESPACE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NOREPLICAS">
+<code class="sig-name descname"><span class="pre">NOREPLICAS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1326</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NOREPLICAS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NOSOFTWAREDIR">
+<code class="sig-name descname"><span class="pre">NOSOFTWAREDIR</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1186</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NOSOFTWAREDIR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NOSTORAGE">
+<code class="sig-name descname"><span class="pre">NOSTORAGE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1133</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NOSTORAGE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NOSTORAGEPROTOCOL">
+<code class="sig-name descname"><span class="pre">NOSTORAGEPROTOCOL</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1313</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NOSTORAGEPROTOCOL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NOSUCHFILE">
+<code class="sig-name descname"><span class="pre">NOSUCHFILE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1103</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NOSUCHFILE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NOSUCHPROCESS">
+<code class="sig-name descname"><span class="pre">NOSUCHPROCESS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1353</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NOSUCHPROCESS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NOTDEFINED">
+<code class="sig-name descname"><span class="pre">NOTDEFINED</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1311</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NOTDEFINED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NOTIMPLEMENTED">
+<code class="sig-name descname"><span class="pre">NOTIMPLEMENTED</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1300</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NOTIMPLEMENTED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NOTSAMELENGTH">
+<code class="sig-name descname"><span class="pre">NOTSAMELENGTH</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1312</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NOTSAMELENGTH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NOUSERTARBALL">
+<code class="sig-name descname"><span class="pre">NOUSERTARBALL</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1246</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NOUSERTARBALL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.NOVOMSPROXY">
+<code class="sig-name descname"><span class="pre">NOVOMSPROXY</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1177</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.NOVOMSPROXY" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.OUTPUTFILETOOLARGE">
+<code class="sig-name descname"><span class="pre">OUTPUTFILETOOLARGE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1124</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.OUTPUTFILETOOLARGE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.PANDAKILL">
+<code class="sig-name descname"><span class="pre">PANDAKILL</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1144</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.PANDAKILL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.PANDAQUEUENOTACTIVE">
+<code class="sig-name descname"><span class="pre">PANDAQUEUENOTACTIVE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1359</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.PANDAQUEUENOTACTIVE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.PAYLOADEXCEEDMAXMEM">
+<code class="sig-name descname"><span class="pre">PAYLOADEXCEEDMAXMEM</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1235</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.PAYLOADEXCEEDMAXMEM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.PAYLOADEXECUTIONEXCEPTION">
+<code class="sig-name descname"><span class="pre">PAYLOADEXECUTIONEXCEPTION</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1310</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.PAYLOADEXECUTIONEXCEPTION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.PAYLOADEXECUTIONFAILURE">
+<code class="sig-name descname"><span class="pre">PAYLOADEXECUTIONFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1305</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.PAYLOADEXECUTIONFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.PAYLOADOUTOFMEMORY">
+<code class="sig-name descname"><span class="pre">PAYLOADOUTOFMEMORY</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1212</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.PAYLOADOUTOFMEMORY" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.PAYLOADSIGSEGV">
+<code class="sig-name descname"><span class="pre">PAYLOADSIGSEGV</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1328</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.PAYLOADSIGSEGV" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.POSTPROCESSFAILURE">
+<code class="sig-name descname"><span class="pre">POSTPROCESSFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1357</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.POSTPROCESSFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.PREPROCESSFAILURE">
+<code class="sig-name descname"><span class="pre">PREPROCESSFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1356</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.PREPROCESSFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.PUTADMISMATCH">
+<code class="sig-name descname"><span class="pre">PUTADMISMATCH</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1172</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.PUTADMISMATCH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.PUTGLOBUSSYSERR">
+<code class="sig-name descname"><span class="pre">PUTGLOBUSSYSERR</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1181</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.PUTGLOBUSSYSERR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.PUTMD5MISMATCH">
+<code class="sig-name descname"><span class="pre">PUTMD5MISMATCH</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1141</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.PUTMD5MISMATCH" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.QUEUEDATA">
+<code class="sig-name descname"><span class="pre">QUEUEDATA</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1116</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.QUEUEDATA" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.QUEUEDATANOTOK">
+<code class="sig-name descname"><span class="pre">QUEUEDATANOTOK</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1117</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.QUEUEDATANOTOK" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.REACHEDMAXTIME">
+<code class="sig-name descname"><span class="pre">REACHEDMAXTIME</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1213</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.REACHEDMAXTIME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.REMOTEFILECOULDNOTBEOPENED">
+<code class="sig-name descname"><span class="pre">REMOTEFILECOULDNOTBEOPENED</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1361</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.REMOTEFILECOULDNOTBEOPENED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.REPLICANOTFOUND">
+<code class="sig-name descname"><span class="pre">REPLICANOTFOUND</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1100</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.REPLICANOTFOUND" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.RESOURCEUNAVAILABLE">
+<code class="sig-name descname"><span class="pre">RESOURCEUNAVAILABLE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1344</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.RESOURCEUNAVAILABLE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.RUCIOLISTREPLICASFAILED">
+<code class="sig-name descname"><span class="pre">RUCIOLISTREPLICASFAILED</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1322</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.RUCIOLISTREPLICASFAILED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.RUCIOLOCATIONFAILED">
+<code class="sig-name descname"><span class="pre">RUCIOLOCATIONFAILED</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1321</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.RUCIOLOCATIONFAILED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.RUCIOSERVICEUNAVAILABLE">
+<code class="sig-name descname"><span class="pre">RUCIOSERVICEUNAVAILABLE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1316</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.RUCIOSERVICEUNAVAILABLE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.SERVICENOTAVAILABLE">
+<code class="sig-name descname"><span class="pre">SERVICENOTAVAILABLE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1324</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.SERVICENOTAVAILABLE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.SETUPFAILURE">
+<code class="sig-name descname"><span class="pre">SETUPFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1110</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.SETUPFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.SIGBUS">
+<code class="sig-name descname"><span class="pre">SIGBUS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1206</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.SIGBUS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.SIGQUIT">
+<code class="sig-name descname"><span class="pre">SIGQUIT</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1202</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.SIGQUIT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.SIGSEGV">
+<code class="sig-name descname"><span class="pre">SIGSEGV</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1203</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.SIGSEGV" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.SIGTERM">
+<code class="sig-name descname"><span class="pre">SIGTERM</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1201</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.SIGTERM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.SIGUSR1">
+<code class="sig-name descname"><span class="pre">SIGUSR1</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1207</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.SIGUSR1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.SIGXCPU">
+<code class="sig-name descname"><span class="pre">SIGXCPU</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1204</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.SIGXCPU" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.SINGULARITYBINDPOINTFAILURE">
+<code class="sig-name descname"><span class="pre">SINGULARITYBINDPOINTFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1308</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.SINGULARITYBINDPOINTFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.SINGULARITYFAILEDUSERNAMESPACE">
+<code class="sig-name descname"><span class="pre">SINGULARITYFAILEDUSERNAMESPACE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1345</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.SINGULARITYFAILEDUSERNAMESPACE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.SINGULARITYGENERALFAILURE">
+<code class="sig-name descname"><span class="pre">SINGULARITYGENERALFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1306</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.SINGULARITYGENERALFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.SINGULARITYIMAGEMOUNTFAILURE">
+<code class="sig-name descname"><span class="pre">SINGULARITYIMAGEMOUNTFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1309</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.SINGULARITYIMAGEMOUNTFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.SINGULARITYNEWUSERNAMESPACE">
+<code class="sig-name descname"><span class="pre">SINGULARITYNEWUSERNAMESPACE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1340</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.SINGULARITYNEWUSERNAMESPACE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.SINGULARITYNOLOOPDEVICES">
+<code class="sig-name descname"><span class="pre">SINGULARITYNOLOOPDEVICES</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1307</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.SINGULARITYNOLOOPDEVICES" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.SINGULARITYNOTINSTALLED">
+<code class="sig-name descname"><span class="pre">SINGULARITYNOTINSTALLED</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1325</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.SINGULARITYNOTINSTALLED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.SINGULARITYRESOURCEUNAVAILABLE">
+<code class="sig-name descname"><span class="pre">SINGULARITYRESOURCEUNAVAILABLE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1348</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.SINGULARITYRESOURCEUNAVAILABLE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.SIZETOOLARGE">
+<code class="sig-name descname"><span class="pre">SIZETOOLARGE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1168</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.SIZETOOLARGE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.STAGEINAUTHENTICATIONFAILURE">
+<code class="sig-name descname"><span class="pre">STAGEINAUTHENTICATIONFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1338</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.STAGEINAUTHENTICATIONFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.STAGEINFAILED">
+<code class="sig-name descname"><span class="pre">STAGEINFAILED</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1099</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.STAGEINFAILED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.STAGEINTIMEOUT">
+<code class="sig-name descname"><span class="pre">STAGEINTIMEOUT</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1151</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.STAGEINTIMEOUT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.STAGEOUTFAILED">
+<code class="sig-name descname"><span class="pre">STAGEOUTFAILED</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1137</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.STAGEOUTFAILED" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.STAGEOUTTIMEOUT">
+<code class="sig-name descname"><span class="pre">STAGEOUTTIMEOUT</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1152</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.STAGEOUTTIMEOUT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.STATFILEPROBLEM">
+<code class="sig-name descname"><span class="pre">STATFILEPROBLEM</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1352</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.STATFILEPROBLEM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.STDOUTTOOBIG">
+<code class="sig-name descname"><span class="pre">STDOUTTOOBIG</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1106</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.STDOUTTOOBIG" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.TRANSFORMNOTFOUND">
+<code class="sig-name descname"><span class="pre">TRANSFORMNOTFOUND</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1346</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.TRANSFORMNOTFOUND" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.TRFDOWNLOADFAILURE">
+<code class="sig-name descname"><span class="pre">TRFDOWNLOADFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1149</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.TRFDOWNLOADFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.UNKNOWNCHECKSUMTYPE">
+<code class="sig-name descname"><span class="pre">UNKNOWNCHECKSUMTYPE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1314</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.UNKNOWNCHECKSUMTYPE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.UNKNOWNCOPYTOOL">
+<code class="sig-name descname"><span class="pre">UNKNOWNCOPYTOOL</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1323</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.UNKNOWNCOPYTOOL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.UNKNOWNEXCEPTION">
+<code class="sig-name descname"><span class="pre">UNKNOWNEXCEPTION</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1301</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.UNKNOWNEXCEPTION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.UNKNOWNPAYLOADFAILURE">
+<code class="sig-name descname"><span class="pre">UNKNOWNPAYLOADFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1220</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.UNKNOWNPAYLOADFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.UNKNOWNTRFFAILURE">
+<code class="sig-name descname"><span class="pre">UNKNOWNTRFFAILURE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1315</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.UNKNOWNTRFFAILURE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.UNREACHABLENETWORK">
+<code class="sig-name descname"><span class="pre">UNREACHABLENETWORK</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1327</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.UNREACHABLENETWORK" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.UNRECOGNIZEDTRFARGUMENTS">
+<code class="sig-name descname"><span class="pre">UNRECOGNIZEDTRFARGUMENTS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1349</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.UNRECOGNIZEDTRFARGUMENTS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.UNRECOGNIZEDTRFSTDERR">
+<code class="sig-name descname"><span class="pre">UNRECOGNIZEDTRFSTDERR</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1351</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.UNRECOGNIZEDTRFSTDERR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.UNSUPPORTEDSL5OS">
+<code class="sig-name descname"><span class="pre">UNSUPPORTEDSL5OS</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1347</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.UNSUPPORTEDSL5OS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.USERDIRTOOLARGE">
+<code class="sig-name descname"><span class="pre">USERDIRTOOLARGE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1104</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.USERDIRTOOLARGE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.USERKILL">
+<code class="sig-name descname"><span class="pre">USERKILL</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1205</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.USERKILL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.XRDCPERROR">
+<code class="sig-name descname"><span class="pre">XRDCPERROR</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1362</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.XRDCPERROR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.ZEROFILESIZE">
+<code class="sig-name descname"><span class="pre">ZEROFILESIZE</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1191</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.ZEROFILESIZE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.__dict__">
+<code class="sig-name descname"><span class="pre">__dict__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">mappingproxy({'__module__':</span> <span class="pre">'pilot.common.errorcodes',</span> <span class="pre">'__doc__':</span> <span class="pre">'\n</span>&#160;&#160;&#160; <span class="pre">Pilot</span> <span class="pre">error</span> <span class="pre">codes.\n\n</span>&#160;&#160;&#160; <span class="pre">Note:</span> <span class="pre">Error</span> <span class="pre">code</span> <span class="pre">numbering</span> <span class="pre">is</span> <span class="pre">the</span> <span class="pre">same</span> <span class="pre">as</span> <span class="pre">in</span> <span class="pre">Pilot</span> <span class="pre">1</span> <span class="pre">since</span> <span class="pre">that</span> <span class="pre">is</span> <span class="pre">expected</span> <span class="pre">by</span> <span class="pre">the</span> <span class="pre">PanDA</span> <span class="pre">server</span> <span class="pre">and</span> <span class="pre">monitor.\n</span>&#160;&#160;&#160; <span class="pre">Note</span> <span class="pre">2:</span> <span class="pre">Add</span> <span class="pre">error</span> <span class="pre">codes</span> <span class="pre">as</span> <span class="pre">they</span> <span class="pre">are</span> <span class="pre">needed</span> <span class="pre">in</span> <span class="pre">other</span> <span class="pre">modules.</span> <span class="pre">Do</span> <span class="pre">not</span> <span class="pre">import</span> <span class="pre">the</span> <span class="pre">full</span> <span class="pre">Pilot</span> <span class="pre">1</span> <span class="pre">list</span> <span class="pre">at</span> <span class="pre">once</span> <span class="pre">as</span> <span class="pre">there\n</span>&#160;&#160;&#160; <span class="pre">might</span> <span class="pre">very</span> <span class="pre">well</span> <span class="pre">be</span> <span class="pre">codes</span> <span class="pre">that</span> <span class="pre">can</span> <span class="pre">be</span> <span class="pre">reassigned/removed.\n</span>&#160;&#160;&#160; <span class="pre">',</span> <span class="pre">'GENERALERROR':</span> <span class="pre">1008,</span> <span class="pre">'NOLOCALSPACE':</span> <span class="pre">1098,</span> <span class="pre">'STAGEINFAILED':</span> <span class="pre">1099,</span> <span class="pre">'REPLICANOTFOUND':</span> <span class="pre">1100,</span> <span class="pre">'NOSUCHFILE':</span> <span class="pre">1103,</span> <span class="pre">'USERDIRTOOLARGE':</span> <span class="pre">1104,</span> <span class="pre">'STDOUTTOOBIG':</span> <span class="pre">1106,</span> <span class="pre">'SETUPFAILURE':</span> <span class="pre">1110,</span> <span class="pre">'NFSSQLITE':</span> <span class="pre">1115,</span> <span class="pre">'QUEUEDATA':</span> <span class="pre">1116,</span> <span class="pre">'QUEUEDATANOTOK':</span> <span class="pre">1117,</span> <span class="pre">'OUTPUTFILETOOLARGE':</span> <span class="pre">1124,</span> <span class="pre">'NOSTORAGE':</span> <span class="pre">1133,</span> <span class="pre">'STAGEOUTFAILED':</span> <span class="pre">1137,</span> <span class="pre">'PUTMD5MISMATCH':</span> <span class="pre">1141,</span> <span class="pre">'CHMODTRF':</span> <span class="pre">1143,</span> <span class="pre">'PANDAKILL':</span> <span class="pre">1144,</span> <span class="pre">'GETMD5MISMATCH':</span> <span class="pre">1145,</span> <span class="pre">'TRFDOWNLOADFAILURE':</span> <span class="pre">1149,</span> <span class="pre">'LOOPINGJOB':</span> <span class="pre">1150,</span> <span class="pre">'STAGEINTIMEOUT':</span> <span class="pre">1151,</span> <span class="pre">'STAGEOUTTIMEOUT':</span> <span class="pre">1152,</span> <span class="pre">'NOPROXY':</span> <span class="pre">1163,</span> <span class="pre">'MISSINGOUTPUTFILE':</span> <span class="pre">1165,</span> <span class="pre">'SIZETOOLARGE':</span> <span class="pre">1168,</span> <span class="pre">'GETADMISMATCH':</span> <span class="pre">1171,</span> <span class="pre">'PUTADMISMATCH':</span> <span class="pre">1172,</span> <span class="pre">'NOVOMSPROXY':</span> <span class="pre">1177,</span> <span class="pre">'GETGLOBUSSYSERR':</span> <span class="pre">1180,</span> <span class="pre">'PUTGLOBUSSYSERR':</span> <span class="pre">1181,</span> <span class="pre">'NOSOFTWAREDIR':</span> <span class="pre">1186,</span> <span class="pre">'NOPAYLOADMETADATA':</span> <span class="pre">1187,</span> <span class="pre">'LFNTOOLONG':</span> <span class="pre">1190,</span> <span class="pre">'ZEROFILESIZE':</span> <span class="pre">1191,</span> <span class="pre">'MKDIR':</span> <span class="pre">1199,</span> <span class="pre">'KILLSIGNAL':</span> <span class="pre">1200,</span> <span class="pre">'SIGTERM':</span> <span class="pre">1201,</span> <span class="pre">'SIGQUIT':</span> <span class="pre">1202,</span> <span class="pre">'SIGSEGV':</span> <span class="pre">1203,</span> <span class="pre">'SIGXCPU':</span> <span class="pre">1204,</span> <span class="pre">'USERKILL':</span> <span class="pre">1205,</span> <span class="pre">'SIGBUS':</span> <span class="pre">1206,</span> <span class="pre">'SIGUSR1':</span> <span class="pre">1207,</span> <span class="pre">'MISSINGINSTALLATION':</span> <span class="pre">1211,</span> <span class="pre">'PAYLOADOUTOFMEMORY':</span> <span class="pre">1212,</span> <span class="pre">'REACHEDMAXTIME':</span> <span class="pre">1213,</span> <span class="pre">'UNKNOWNPAYLOADFAILURE':</span> <span class="pre">1220,</span> <span class="pre">'FILEEXISTS':</span> <span class="pre">1221,</span> <span class="pre">'BADALLOC':</span> <span class="pre">1223,</span> <span class="pre">'ESRECOVERABLE':</span> <span class="pre">1224,</span> <span class="pre">'ESFATAL':</span> <span class="pre">1228,</span> <span class="pre">'EXECUTEDCLONEJOB':</span> <span class="pre">1234,</span> <span class="pre">'PAYLOADEXCEEDMAXMEM':</span> <span class="pre">1235,</span> <span class="pre">'FAILEDBYSERVER':</span> <span class="pre">1236,</span> <span class="pre">'ESNOEVENTS':</span> <span class="pre">1238,</span> <span class="pre">'MESSAGEHANDLINGFAILURE':</span> <span class="pre">1240,</span> <span class="pre">'CHKSUMNOTSUP':</span> <span class="pre">1242,</span> <span class="pre">'NORELEASEFOUND':</span> <span class="pre">1244,</span> <span class="pre">'NOUSERTARBALL':</span> <span class="pre">1246,</span> <span class="pre">'BADXML':</span> <span class="pre">1247,</span> <span class="pre">'NOTIMPLEMENTED':</span> <span class="pre">1300,</span> <span class="pre">'UNKNOWNEXCEPTION':</span> <span class="pre">1301,</span> <span class="pre">'CONVERSIONFAILURE':</span> <span class="pre">1302,</span> <span class="pre">'FILEHANDLINGFAILURE':</span> <span class="pre">1303,</span> <span class="pre">'PAYLOADEXECUTIONFAILURE':</span> <span class="pre">1305,</span> <span class="pre">'SINGULARITYGENERALFAILURE':</span> <span class="pre">1306,</span> <span class="pre">'SINGULARITYNOLOOPDEVICES':</span> <span class="pre">1307,</span> <span class="pre">'SINGULARITYBINDPOINTFAILURE':</span> <span class="pre">1308,</span> <span class="pre">'SINGULARITYIMAGEMOUNTFAILURE':</span> <span class="pre">1309,</span> <span class="pre">'PAYLOADEXECUTIONEXCEPTION':</span> <span class="pre">1310,</span> <span class="pre">'NOTDEFINED':</span> <span class="pre">1311,</span> <span class="pre">'NOTSAMELENGTH':</span> <span class="pre">1312,</span> <span class="pre">'NOSTORAGEPROTOCOL':</span> <span class="pre">1313,</span> <span class="pre">'UNKNOWNCHECKSUMTYPE':</span> <span class="pre">1314,</span> <span class="pre">'UNKNOWNTRFFAILURE':</span> <span class="pre">1315,</span> <span class="pre">'RUCIOSERVICEUNAVAILABLE':</span> <span class="pre">1316,</span> <span class="pre">'EXCEEDEDMAXWAITTIME':</span> <span class="pre">1317,</span> <span class="pre">'COMMUNICATIONFAILURE':</span> <span class="pre">1318,</span> <span class="pre">'INTERNALPILOTPROBLEM':</span> <span class="pre">1319,</span> <span class="pre">'LOGFILECREATIONFAILURE':</span> <span class="pre">1320,</span> <span class="pre">'RUCIOLOCATIONFAILED':</span> <span class="pre">1321,</span> <span class="pre">'RUCIOLISTREPLICASFAILED':</span> <span class="pre">1322,</span> <span class="pre">'UNKNOWNCOPYTOOL':</span> <span class="pre">1323,</span> <span class="pre">'SERVICENOTAVAILABLE':</span> <span class="pre">1324,</span> <span class="pre">'SINGULARITYNOTINSTALLED':</span> <span class="pre">1325,</span> <span class="pre">'NOREPLICAS':</span> <span class="pre">1326,</span> <span class="pre">'UNREACHABLENETWORK':</span> <span class="pre">1327,</span> <span class="pre">'PAYLOADSIGSEGV':</span> <span class="pre">1328,</span> <span class="pre">'NONDETERMINISTICDDM':</span> <span class="pre">1329,</span> <span class="pre">'JSONRETRIEVALTIMEOUT':</span> <span class="pre">1330,</span> <span class="pre">'MISSINGINPUTFILE':</span> <span class="pre">1331,</span> <span class="pre">'BLACKHOLE':</span> <span class="pre">1332,</span> <span class="pre">'NOREMOTESPACE':</span> <span class="pre">1333,</span> <span class="pre">'ATLASSETUPFATAL':</span> <span class="pre">1334,</span> <span class="pre">'MISSINGUSERCODE':</span> <span class="pre">1335,</span> <span class="pre">'JOBALREADYRUNNING':</span> <span class="pre">1336,</span> <span class="pre">'BADMEMORYMONITORJSON':</span> <span class="pre">1337,</span> <span class="pre">'STAGEINAUTHENTICATIONFAILURE':</span> <span class="pre">1338,</span> <span class="pre">'DBRELEASEFAILURE':</span> <span class="pre">1339,</span> <span class="pre">'SINGULARITYNEWUSERNAMESPACE':</span> <span class="pre">1340,</span> <span class="pre">'BADQUEUECONFIGURATION':</span> <span class="pre">1341,</span> <span class="pre">'MIDDLEWAREIMPORTFAILURE':</span> <span class="pre">1342,</span> <span class="pre">'NOOUTPUTINJOBREPORT':</span> <span class="pre">1343,</span> <span class="pre">'RESOURCEUNAVAILABLE':</span> <span class="pre">1344,</span> <span class="pre">'SINGULARITYFAILEDUSERNAMESPACE':</span> <span class="pre">1345,</span> <span class="pre">'TRANSFORMNOTFOUND':</span> <span class="pre">1346,</span> <span class="pre">'UNSUPPORTEDSL5OS':</span> <span class="pre">1347,</span> <span class="pre">'SINGULARITYRESOURCEUNAVAILABLE':</span> <span class="pre">1348,</span> <span class="pre">'UNRECOGNIZEDTRFARGUMENTS':</span> <span class="pre">1349,</span> <span class="pre">'EMPTYOUTPUTFILE':</span> <span class="pre">1350,</span> <span class="pre">'UNRECOGNIZEDTRFSTDERR':</span> <span class="pre">1351,</span> <span class="pre">'STATFILEPROBLEM':</span> <span class="pre">1352,</span> <span class="pre">'NOSUCHPROCESS':</span> <span class="pre">1353,</span> <span class="pre">'GENERALCPUCALCPROBLEM':</span> <span class="pre">1354,</span> <span class="pre">'COREDUMP':</span> <span class="pre">1355,</span> <span class="pre">'PREPROCESSFAILURE':</span> <span class="pre">1356,</span> <span class="pre">'POSTPROCESSFAILURE':</span> <span class="pre">1357,</span> <span class="pre">'MISSINGRELEASEUNPACKED':</span> <span class="pre">1358,</span> <span class="pre">'PANDAQUEUENOTACTIVE':</span> <span class="pre">1359,</span> <span class="pre">'IMAGENOTFOUND':</span> <span class="pre">1360,</span> <span class="pre">'REMOTEFILECOULDNOTBEOPENED':</span> <span class="pre">1361,</span> <span class="pre">'XRDCPERROR':</span> <span class="pre">1362,</span> <span class="pre">'KILLPAYLOAD':</span> <span class="pre">1363,</span> <span class="pre">'_error_messages':</span> <span class="pre">{1008:</span> <span class="pre">'General</span> <span class="pre">pilot</span> <span class="pre">error,</span> <span class="pre">consult</span> <span class="pre">batch</span> <span class="pre">log',</span> <span class="pre">1098:</span> <span class="pre">'Not</span> <span class="pre">enough</span> <span class="pre">local</span> <span class="pre">space',</span> <span class="pre">1099:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">stage-in</span> <span class="pre">file',</span> <span class="pre">1100:</span> <span class="pre">'Replica</span> <span class="pre">not</span> <span class="pre">found',</span> <span class="pre">1103:</span> <span class="pre">'No</span> <span class="pre">such</span> <span class="pre">file</span> <span class="pre">or</span> <span class="pre">directory',</span> <span class="pre">1104:</span> <span class="pre">'User</span> <span class="pre">work</span> <span class="pre">directory</span> <span class="pre">too</span> <span class="pre">large',</span> <span class="pre">1106:</span> <span class="pre">'Payload</span> <span class="pre">log</span> <span class="pre">or</span> <span class="pre">stdout</span> <span class="pre">file</span> <span class="pre">too</span> <span class="pre">big',</span> <span class="pre">1110:</span> <span class="pre">'Failed</span> <span class="pre">during</span> <span class="pre">payload</span> <span class="pre">setup',</span> <span class="pre">1115:</span> <span class="pre">'NFS</span> <span class="pre">SQLite</span> <span class="pre">locking</span> <span class="pre">problems',</span> <span class="pre">1116:</span> <span class="pre">'Pilot</span> <span class="pre">could</span> <span class="pre">not</span> <span class="pre">download</span> <span class="pre">queuedata',</span> <span class="pre">1117:</span> <span class="pre">'Pilot</span> <span class="pre">found</span> <span class="pre">non-valid</span> <span class="pre">queuedata',</span> <span class="pre">1124:</span> <span class="pre">'Output</span> <span class="pre">file</span> <span class="pre">too</span> <span class="pre">large',</span> <span class="pre">1133:</span> <span class="pre">'Fetching</span> <span class="pre">default</span> <span class="pre">storage</span> <span class="pre">failed:</span> <span class="pre">no</span> <span class="pre">activity</span> <span class="pre">related</span> <span class="pre">storage</span> <span class="pre">defined',</span> <span class="pre">1137:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">stage-out</span> <span class="pre">file',</span> <span class="pre">1141:</span> <span class="pre">'md5sum</span> <span class="pre">mismatch</span> <span class="pre">on</span> <span class="pre">output</span> <span class="pre">file',</span> <span class="pre">1145:</span> <span class="pre">'md5sum</span> <span class="pre">mismatch</span> <span class="pre">on</span> <span class="pre">input</span> <span class="pre">file',</span> <span class="pre">1143:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">chmod</span> <span class="pre">transform',</span> <span class="pre">1144:</span> <span class="pre">'This</span> <span class="pre">job</span> <span class="pre">was</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">panda</span> <span class="pre">server',</span> <span class="pre">1165:</span> <span class="pre">'Local</span> <span class="pre">output</span> <span class="pre">file</span> <span class="pre">is</span> <span class="pre">missing',</span> <span class="pre">1168:</span> <span class="pre">'Total</span> <span class="pre">file</span> <span class="pre">size</span> <span class="pre">too</span> <span class="pre">large',</span> <span class="pre">1149:</span> <span class="pre">'Transform</span> <span class="pre">could</span> <span class="pre">not</span> <span class="pre">be</span> <span class="pre">downloaded',</span> <span class="pre">1150:</span> <span class="pre">'Looping</span> <span class="pre">job</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">pilot',</span> <span class="pre">1151:</span> <span class="pre">'File</span> <span class="pre">transfer</span> <span class="pre">timed</span> <span class="pre">out</span> <span class="pre">during</span> <span class="pre">stage-in',</span> <span class="pre">1152:</span> <span class="pre">'File</span> <span class="pre">transfer</span> <span class="pre">timed</span> <span class="pre">out</span> <span class="pre">during</span> <span class="pre">stage-out',</span> <span class="pre">1163:</span> <span class="pre">'Grid</span> <span class="pre">proxy</span> <span class="pre">not</span> <span class="pre">valid',</span> <span class="pre">1171:</span> <span class="pre">'adler32</span> <span class="pre">mismatch</span> <span class="pre">on</span> <span class="pre">input</span> <span class="pre">file',</span> <span class="pre">1172:</span> <span class="pre">'adler32</span> <span class="pre">mismatch</span> <span class="pre">on</span> <span class="pre">output</span> <span class="pre">file',</span> <span class="pre">1177:</span> <span class="pre">'Voms</span> <span class="pre">proxy</span> <span class="pre">not</span> <span class="pre">valid',</span> <span class="pre">1180:</span> <span class="pre">'Globus</span> <span class="pre">system</span> <span class="pre">error</span> <span class="pre">during</span> <span class="pre">stage-in',</span> <span class="pre">1181:</span> <span class="pre">'Globus</span> <span class="pre">system</span> <span class="pre">error</span> <span class="pre">during</span> <span class="pre">stage-out',</span> <span class="pre">1186:</span> <span class="pre">'Software</span> <span class="pre">directory</span> <span class="pre">does</span> <span class="pre">not</span> <span class="pre">exist',</span> <span class="pre">1187:</span> <span class="pre">'Payload</span> <span class="pre">metadata</span> <span class="pre">does</span> <span class="pre">not</span> <span class="pre">exist',</span> <span class="pre">1190:</span> <span class="pre">'LFN</span> <span class="pre">too</span> <span class="pre">long</span> <span class="pre">(exceeding</span> <span class="pre">limit</span> <span class="pre">of</span> <span class="pre">255</span> <span class="pre">characters)',</span> <span class="pre">1191:</span> <span class="pre">'File</span> <span class="pre">size</span> <span class="pre">cannot</span> <span class="pre">be</span> <span class="pre">zero',</span> <span class="pre">1199:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">create</span> <span class="pre">local</span> <span class="pre">directory',</span> <span class="pre">1200:</span> <span class="pre">'Job</span> <span class="pre">terminated</span> <span class="pre">by</span> <span class="pre">unknown</span> <span class="pre">kill</span> <span class="pre">signal',</span> <span class="pre">1201:</span> <span class="pre">'Job</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">signal:</span> <span class="pre">SIGTERM',</span> <span class="pre">1202:</span> <span class="pre">'Job</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">signal:</span> <span class="pre">SIGQUIT',</span> <span class="pre">1203:</span> <span class="pre">'Job</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">signal:</span> <span class="pre">SIGSEGV',</span> <span class="pre">1204:</span> <span class="pre">'Job</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">signal:</span> <span class="pre">SIGXCPU',</span> <span class="pre">1207:</span> <span class="pre">'Job</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">signal:</span> <span class="pre">SIGUSR1',</span> <span class="pre">1206:</span> <span class="pre">'Job</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">signal:</span> <span class="pre">SIGBUS',</span> <span class="pre">1205:</span> <span class="pre">'Job</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">user',</span> <span class="pre">1211:</span> <span class="pre">'Missing</span> <span class="pre">installation',</span> <span class="pre">1212:</span> <span class="pre">'Payload</span> <span class="pre">ran</span> <span class="pre">out</span> <span class="pre">of</span> <span class="pre">memory',</span> <span class="pre">1213:</span> <span class="pre">'Reached</span> <span class="pre">batch</span> <span class="pre">system</span> <span class="pre">time</span> <span class="pre">limit',</span> <span class="pre">1220:</span> <span class="pre">'Job</span> <span class="pre">failed</span> <span class="pre">due</span> <span class="pre">to</span> <span class="pre">unknown</span> <span class="pre">reason</span> <span class="pre">(consult</span> <span class="pre">log</span> <span class="pre">file)',</span> <span class="pre">1221:</span> <span class="pre">'File</span> <span class="pre">already</span> <span class="pre">exists',</span> <span class="pre">1223:</span> <span class="pre">'Transform</span> <span class="pre">failed</span> <span class="pre">due</span> <span class="pre">to</span> <span class="pre">bad_alloc',</span> <span class="pre">1242:</span> <span class="pre">'Query</span> <span class="pre">checksum</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">supported',</span> <span class="pre">1244:</span> <span class="pre">'No</span> <span class="pre">release</span> <span class="pre">candidates</span> <span class="pre">found',</span> <span class="pre">1246:</span> <span class="pre">'User</span> <span class="pre">tarball</span> <span class="pre">could</span> <span class="pre">not</span> <span class="pre">be</span> <span class="pre">downloaded</span> <span class="pre">from</span> <span class="pre">PanDA</span> <span class="pre">server',</span> <span class="pre">1247:</span> <span class="pre">'Badly</span> <span class="pre">formed</span> <span class="pre">XML',</span> <span class="pre">1224:</span> <span class="pre">'Event</span> <span class="pre">service:</span> <span class="pre">recoverable</span> <span class="pre">error',</span> <span class="pre">1228:</span> <span class="pre">'Event</span> <span class="pre">service:</span> <span class="pre">fatal</span> <span class="pre">error',</span> <span class="pre">1234:</span> <span class="pre">'Clone</span> <span class="pre">job</span> <span class="pre">is</span> <span class="pre">already</span> <span class="pre">executed',</span> <span class="pre">1235:</span> <span class="pre">'Payload</span> <span class="pre">exceeded</span> <span class="pre">maximum</span> <span class="pre">allowed</span> <span class="pre">memory',</span> <span class="pre">1236:</span> <span class="pre">'Failed</span> <span class="pre">by</span> <span class="pre">server',</span> <span class="pre">1238:</span> <span class="pre">'Event</span> <span class="pre">service:</span> <span class="pre">no</span> <span class="pre">events',</span> <span class="pre">1240:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">handle</span> <span class="pre">message</span> <span class="pre">from</span> <span class="pre">payload',</span> <span class="pre">1300:</span> <span class="pre">'The</span> <span class="pre">class</span> <span class="pre">or</span> <span class="pre">function</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">implemented',</span> <span class="pre">1301:</span> <span class="pre">'An</span> <span class="pre">unknown</span> <span class="pre">pilot</span> <span class="pre">exception</span> <span class="pre">has</span> <span class="pre">occurred',</span> <span class="pre">1302:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">convert</span> <span class="pre">object</span> <span class="pre">data',</span> <span class="pre">1303:</span> <span class="pre">'Failed</span> <span class="pre">during</span> <span class="pre">file</span> <span class="pre">handling',</span> <span class="pre">1305:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">execute</span> <span class="pre">payload',</span> <span class="pre">1306:</span> <span class="pre">'Singularity:</span> <span class="pre">general</span> <span class="pre">failure',</span> <span class="pre">1307:</span> <span class="pre">'Singularity:</span> <span class="pre">No</span> <span class="pre">more</span> <span class="pre">available</span> <span class="pre">loop</span> <span class="pre">devices',</span> <span class="pre">1308:</span> <span class="pre">'Singularity:</span> <span class="pre">Not</span> <span class="pre">mounting</span> <span class="pre">requested</span> <span class="pre">bind</span> <span class="pre">point',</span> <span class="pre">1309:</span> <span class="pre">'Singularity:</span> <span class="pre">Failed</span> <span class="pre">to</span> <span class="pre">mount</span> <span class="pre">image',</span> <span class="pre">1325:</span> <span class="pre">'Singularity:</span> <span class="pre">not</span> <span class="pre">installed',</span> <span class="pre">1310:</span> <span class="pre">'Exception</span> <span class="pre">caught</span> <span class="pre">during</span> <span class="pre">payload</span> <span class="pre">execution',</span> <span class="pre">1311:</span> <span class="pre">'Not</span> <span class="pre">defined',</span> <span class="pre">1312:</span> <span class="pre">'Not</span> <span class="pre">same</span> <span class="pre">length',</span> <span class="pre">1313:</span> <span class="pre">'No</span> <span class="pre">protocol</span> <span class="pre">defined</span> <span class="pre">for</span> <span class="pre">storage</span> <span class="pre">endpoint',</span> <span class="pre">1314:</span> <span class="pre">'Unknown</span> <span class="pre">checksum</span> <span class="pre">type',</span> <span class="pre">1315:</span> <span class="pre">'Unknown</span> <span class="pre">transform</span> <span class="pre">failure',</span> <span class="pre">1316:</span> <span class="pre">'Rucio:</span> <span class="pre">Service</span> <span class="pre">unavailable',</span> <span class="pre">1317:</span> <span class="pre">'Exceeded</span> <span class="pre">maximum</span> <span class="pre">waiting</span> <span class="pre">time',</span> <span class="pre">1318:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">communicate</span> <span class="pre">with</span> <span class="pre">server',</span> <span class="pre">1319:</span> <span class="pre">'An</span> <span class="pre">internal</span> <span class="pre">Pilot</span> <span class="pre">problem</span> <span class="pre">has</span> <span class="pre">occurred</span> <span class="pre">(consult</span> <span class="pre">Pilot</span> <span class="pre">log)',</span> <span class="pre">1320:</span> <span class="pre">'Failed</span> <span class="pre">during</span> <span class="pre">creation</span> <span class="pre">of</span> <span class="pre">log</span> <span class="pre">file',</span> <span class="pre">1321:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">get</span> <span class="pre">client</span> <span class="pre">location</span> <span class="pre">for</span> <span class="pre">Rucio',</span> <span class="pre">1322:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">get</span> <span class="pre">replicas</span> <span class="pre">from</span> <span class="pre">Rucio',</span> <span class="pre">1323:</span> <span class="pre">'Unknown</span> <span class="pre">copy</span> <span class="pre">tool',</span> <span class="pre">1324:</span> <span class="pre">'Service</span> <span class="pre">not</span> <span class="pre">available</span> <span class="pre">at</span> <span class="pre">the</span> <span class="pre">moment',</span> <span class="pre">1326:</span> <span class="pre">'No</span> <span class="pre">matching</span> <span class="pre">replicas</span> <span class="pre">were</span> <span class="pre">found</span> <span class="pre">in</span> <span class="pre">list_replicas()</span> <span class="pre">output',</span> <span class="pre">1327:</span> <span class="pre">'Unable</span> <span class="pre">to</span> <span class="pre">stage-in</span> <span class="pre">file</span> <span class="pre">since</span> <span class="pre">network</span> <span class="pre">is</span> <span class="pre">unreachable',</span> <span class="pre">1328:</span> <span class="pre">'SIGSEGV:</span> <span class="pre">Invalid</span> <span class="pre">memory</span> <span class="pre">reference</span> <span class="pre">or</span> <span class="pre">a</span> <span class="pre">segmentation</span> <span class="pre">fault',</span> <span class="pre">1329:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">construct</span> <span class="pre">SURL</span> <span class="pre">for</span> <span class="pre">non-deterministic</span> <span class="pre">ddm</span> <span class="pre">(update</span> <span class="pre">AGIS)',</span> <span class="pre">1330:</span> <span class="pre">'JSON</span> <span class="pre">retrieval</span> <span class="pre">timed</span> <span class="pre">out',</span> <span class="pre">1331:</span> <span class="pre">'Input</span> <span class="pre">file</span> <span class="pre">is</span> <span class="pre">missing</span> <span class="pre">in</span> <span class="pre">storage</span> <span class="pre">element',</span> <span class="pre">1332:</span> <span class="pre">'Black</span> <span class="pre">hole</span> <span class="pre">detected</span> <span class="pre">in</span> <span class="pre">file</span> <span class="pre">system</span> <span class="pre">(consult</span> <span class="pre">Pilot</span> <span class="pre">log)',</span> <span class="pre">1333:</span> <span class="pre">'No</span> <span class="pre">space</span> <span class="pre">left</span> <span class="pre">on</span> <span class="pre">device',</span> <span class="pre">1334:</span> <span class="pre">'AtlasSetup</span> <span class="pre">failed</span> <span class="pre">with</span> <span class="pre">a</span> <span class="pre">fatal</span> <span class="pre">exception</span> <span class="pre">(consult</span> <span class="pre">Payload</span> <span class="pre">log)',</span> <span class="pre">1335:</span> <span class="pre">'User</span> <span class="pre">code</span> <span class="pre">not</span> <span class="pre">available</span> <span class="pre">on</span> <span class="pre">PanDA</span> <span class="pre">server</span> <span class="pre">(resubmit</span> <span class="pre">task</span> <span class="pre">with</span> <span class="pre">--useNewCode)',</span> <span class="pre">1336:</span> <span class="pre">'Job</span> <span class="pre">is</span> <span class="pre">already</span> <span class="pre">running</span> <span class="pre">elsewhere',</span> <span class="pre">1337:</span> <span class="pre">'Memory</span> <span class="pre">monitor</span> <span class="pre">produced</span> <span class="pre">bad</span> <span class="pre">output',</span> <span class="pre">1338:</span> <span class="pre">'Authentication</span> <span class="pre">failure</span> <span class="pre">during</span> <span class="pre">stage-in',</span> <span class="pre">1339:</span> <span class="pre">'Local</span> <span class="pre">DBRelease</span> <span class="pre">handling</span> <span class="pre">failed</span> <span class="pre">(consult</span> <span class="pre">Pilot</span> <span class="pre">log)',</span> <span class="pre">1340:</span> <span class="pre">'Singularity:</span> <span class="pre">Failed</span> <span class="pre">invoking</span> <span class="pre">the</span> <span class="pre">NEWUSER</span> <span class="pre">namespace</span> <span class="pre">runtime',</span> <span class="pre">1341:</span> <span class="pre">'Bad</span> <span class="pre">queue</span> <span class="pre">configuration</span> <span class="pre">detected',</span> <span class="pre">1342:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">import</span> <span class="pre">middleware</span> <span class="pre">(consult</span> <span class="pre">Pilot</span> <span class="pre">log)',</span> <span class="pre">1343:</span> <span class="pre">'Found</span> <span class="pre">no</span> <span class="pre">output</span> <span class="pre">in</span> <span class="pre">job</span> <span class="pre">report',</span> <span class="pre">1344:</span> <span class="pre">'Resource</span> <span class="pre">temporarily</span> <span class="pre">unavailable',</span> <span class="pre">1345:</span> <span class="pre">'Singularity:</span> <span class="pre">Failed</span> <span class="pre">to</span> <span class="pre">create</span> <span class="pre">user</span> <span class="pre">namespace',</span> <span class="pre">1346:</span> <span class="pre">'Transform</span> <span class="pre">not</span> <span class="pre">found',</span> <span class="pre">1347:</span> <span class="pre">'Unsupported</span> <span class="pre">SL5</span> <span class="pre">OS',</span> <span class="pre">1348:</span> <span class="pre">'Singularity:</span> <span class="pre">Resource</span> <span class="pre">temporarily</span> <span class="pre">unavailable',</span> <span class="pre">1349:</span> <span class="pre">'Unrecognized</span> <span class="pre">transform</span> <span class="pre">arguments',</span> <span class="pre">1350:</span> <span class="pre">'Empty</span> <span class="pre">output</span> <span class="pre">file</span> <span class="pre">detected',</span> <span class="pre">1351:</span> <span class="pre">'Unrecognized</span> <span class="pre">fatal</span> <span class="pre">error</span> <span class="pre">in</span> <span class="pre">transform</span> <span class="pre">stderr',</span> <span class="pre">1352:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">stat</span> <span class="pre">proc</span> <span class="pre">file</span> <span class="pre">for</span> <span class="pre">CPU</span> <span class="pre">consumption</span> <span class="pre">calculation',</span> <span class="pre">1353:</span> <span class="pre">'CPU</span> <span class="pre">consumption</span> <span class="pre">calculation</span> <span class="pre">failed:</span> <span class="pre">No</span> <span class="pre">such</span> <span class="pre">process',</span> <span class="pre">1354:</span> <span class="pre">'General</span> <span class="pre">CPU</span> <span class="pre">consumption</span> <span class="pre">calculation</span> <span class="pre">problem</span> <span class="pre">(consult</span> <span class="pre">Pilot</span> <span class="pre">log)',</span> <span class="pre">1355:</span> <span class="pre">'Core</span> <span class="pre">dump</span> <span class="pre">detected',</span> <span class="pre">1356:</span> <span class="pre">'Pre-process</span> <span class="pre">command</span> <span class="pre">failed',</span> <span class="pre">1357:</span> <span class="pre">'Post-process</span> <span class="pre">command</span> <span class="pre">failed',</span> <span class="pre">1358:</span> <span class="pre">'Missing</span> <span class="pre">release</span> <span class="pre">setup</span> <span class="pre">in</span> <span class="pre">unpacked</span> <span class="pre">container',</span> <span class="pre">1359:</span> <span class="pre">'PanDA</span> <span class="pre">queue</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">active',</span> <span class="pre">1360:</span> <span class="pre">'Image</span> <span class="pre">not</span> <span class="pre">found',</span> <span class="pre">1361:</span> <span class="pre">'Remote</span> <span class="pre">file</span> <span class="pre">could</span> <span class="pre">not</span> <span class="pre">be</span> <span class="pre">opened',</span> <span class="pre">1362:</span> <span class="pre">'Xrdcp</span> <span class="pre">was</span> <span class="pre">unable</span> <span class="pre">to</span> <span class="pre">open</span> <span class="pre">file',</span> <span class="pre">1363:</span> <span class="pre">'Raythena</span> <span class="pre">has</span> <span class="pre">decided</span> <span class="pre">to</span> <span class="pre">kill</span> <span class="pre">payload'},</span> <span class="pre">'put_error_codes':</span> <span class="pre">[1135,</span> <span class="pre">1136,</span> <span class="pre">1137,</span> <span class="pre">1141,</span> <span class="pre">1152,</span> <span class="pre">1181],</span> <span class="pre">'recoverable_error_codes':</span> <span class="pre">[0,</span> <span class="pre">1135,</span> <span class="pre">1136,</span> <span class="pre">1137,</span> <span class="pre">1141,</span> <span class="pre">1152,</span> <span class="pre">1181],</span> <span class="pre">'get_kill_signal_error_code':</span> <span class="pre">&lt;function</span> <span class="pre">ErrorCodes.get_kill_signal_error_code&gt;,</span> <span class="pre">'get_error_message':</span> <span class="pre">&lt;function</span> <span class="pre">ErrorCodes.get_error_message&gt;,</span> <span class="pre">'add_error_code':</span> <span class="pre">&lt;function</span> <span class="pre">ErrorCodes.add_error_code&gt;,</span> <span class="pre">'remove_error_code':</span> <span class="pre">&lt;function</span> <span class="pre">ErrorCodes.remove_error_code&gt;,</span> <span class="pre">'report_errors':</span> <span class="pre">&lt;function</span> <span class="pre">ErrorCodes.report_errors&gt;,</span> <span class="pre">'resolve_transform_error':</span> <span class="pre">&lt;function</span> <span class="pre">ErrorCodes.resolve_transform_error&gt;,</span> <span class="pre">'extract_stderr_error':</span> <span class="pre">&lt;function</span> <span class="pre">ErrorCodes.extract_stderr_error&gt;,</span> <span class="pre">'extract_stderr_warning':</span> <span class="pre">&lt;function</span> <span class="pre">ErrorCodes.extract_stderr_warning&gt;,</span> <span class="pre">'get_message_for_pattern':</span> <span class="pre">&lt;function</span> <span class="pre">ErrorCodes.get_message_for_pattern&gt;,</span> <span class="pre">'format_diagnostics':</span> <span class="pre">&lt;function</span> <span class="pre">ErrorCodes.format_diagnostics&gt;,</span> <span class="pre">'is_recoverable':</span> <span class="pre">&lt;classmethod</span> <span class="pre">object&gt;,</span> <span class="pre">'__dict__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__dict__'</span> <span class="pre">of</span> <span class="pre">'ErrorCodes'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__weakref__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__weakref__'</span> <span class="pre">of</span> <span class="pre">'ErrorCodes'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__annotations__':</span> <span class="pre">{}})</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.__module__">
+<code class="sig-name descname"><span class="pre">__module__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'pilot.common.errorcodes'</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.__weakref__">
+<code class="sig-name descname"><span class="pre">__weakref__</span></code><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes._error_messages">
+<code class="sig-name descname"><span class="pre">_error_messages</span></code><em class="property"> <span class="pre">=</span> <span class="pre">{1008:</span> <span class="pre">'General</span> <span class="pre">pilot</span> <span class="pre">error,</span> <span class="pre">consult</span> <span class="pre">batch</span> <span class="pre">log',</span> <span class="pre">1098:</span> <span class="pre">'Not</span> <span class="pre">enough</span> <span class="pre">local</span> <span class="pre">space',</span> <span class="pre">1099:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">stage-in</span> <span class="pre">file',</span> <span class="pre">1100:</span> <span class="pre">'Replica</span> <span class="pre">not</span> <span class="pre">found',</span> <span class="pre">1103:</span> <span class="pre">'No</span> <span class="pre">such</span> <span class="pre">file</span> <span class="pre">or</span> <span class="pre">directory',</span> <span class="pre">1104:</span> <span class="pre">'User</span> <span class="pre">work</span> <span class="pre">directory</span> <span class="pre">too</span> <span class="pre">large',</span> <span class="pre">1106:</span> <span class="pre">'Payload</span> <span class="pre">log</span> <span class="pre">or</span> <span class="pre">stdout</span> <span class="pre">file</span> <span class="pre">too</span> <span class="pre">big',</span> <span class="pre">1110:</span> <span class="pre">'Failed</span> <span class="pre">during</span> <span class="pre">payload</span> <span class="pre">setup',</span> <span class="pre">1115:</span> <span class="pre">'NFS</span> <span class="pre">SQLite</span> <span class="pre">locking</span> <span class="pre">problems',</span> <span class="pre">1116:</span> <span class="pre">'Pilot</span> <span class="pre">could</span> <span class="pre">not</span> <span class="pre">download</span> <span class="pre">queuedata',</span> <span class="pre">1117:</span> <span class="pre">'Pilot</span> <span class="pre">found</span> <span class="pre">non-valid</span> <span class="pre">queuedata',</span> <span class="pre">1124:</span> <span class="pre">'Output</span> <span class="pre">file</span> <span class="pre">too</span> <span class="pre">large',</span> <span class="pre">1133:</span> <span class="pre">'Fetching</span> <span class="pre">default</span> <span class="pre">storage</span> <span class="pre">failed:</span> <span class="pre">no</span> <span class="pre">activity</span> <span class="pre">related</span> <span class="pre">storage</span> <span class="pre">defined',</span> <span class="pre">1137:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">stage-out</span> <span class="pre">file',</span> <span class="pre">1141:</span> <span class="pre">'md5sum</span> <span class="pre">mismatch</span> <span class="pre">on</span> <span class="pre">output</span> <span class="pre">file',</span> <span class="pre">1143:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">chmod</span> <span class="pre">transform',</span> <span class="pre">1144:</span> <span class="pre">'This</span> <span class="pre">job</span> <span class="pre">was</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">panda</span> <span class="pre">server',</span> <span class="pre">1145:</span> <span class="pre">'md5sum</span> <span class="pre">mismatch</span> <span class="pre">on</span> <span class="pre">input</span> <span class="pre">file',</span> <span class="pre">1149:</span> <span class="pre">'Transform</span> <span class="pre">could</span> <span class="pre">not</span> <span class="pre">be</span> <span class="pre">downloaded',</span> <span class="pre">1150:</span> <span class="pre">'Looping</span> <span class="pre">job</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">pilot',</span> <span class="pre">1151:</span> <span class="pre">'File</span> <span class="pre">transfer</span> <span class="pre">timed</span> <span class="pre">out</span> <span class="pre">during</span> <span class="pre">stage-in',</span> <span class="pre">1152:</span> <span class="pre">'File</span> <span class="pre">transfer</span> <span class="pre">timed</span> <span class="pre">out</span> <span class="pre">during</span> <span class="pre">stage-out',</span> <span class="pre">1163:</span> <span class="pre">'Grid</span> <span class="pre">proxy</span> <span class="pre">not</span> <span class="pre">valid',</span> <span class="pre">1165:</span> <span class="pre">'Local</span> <span class="pre">output</span> <span class="pre">file</span> <span class="pre">is</span> <span class="pre">missing',</span> <span class="pre">1168:</span> <span class="pre">'Total</span> <span class="pre">file</span> <span class="pre">size</span> <span class="pre">too</span> <span class="pre">large',</span> <span class="pre">1171:</span> <span class="pre">'adler32</span> <span class="pre">mismatch</span> <span class="pre">on</span> <span class="pre">input</span> <span class="pre">file',</span> <span class="pre">1172:</span> <span class="pre">'adler32</span> <span class="pre">mismatch</span> <span class="pre">on</span> <span class="pre">output</span> <span class="pre">file',</span> <span class="pre">1177:</span> <span class="pre">'Voms</span> <span class="pre">proxy</span> <span class="pre">not</span> <span class="pre">valid',</span> <span class="pre">1180:</span> <span class="pre">'Globus</span> <span class="pre">system</span> <span class="pre">error</span> <span class="pre">during</span> <span class="pre">stage-in',</span> <span class="pre">1181:</span> <span class="pre">'Globus</span> <span class="pre">system</span> <span class="pre">error</span> <span class="pre">during</span> <span class="pre">stage-out',</span> <span class="pre">1186:</span> <span class="pre">'Software</span> <span class="pre">directory</span> <span class="pre">does</span> <span class="pre">not</span> <span class="pre">exist',</span> <span class="pre">1187:</span> <span class="pre">'Payload</span> <span class="pre">metadata</span> <span class="pre">does</span> <span class="pre">not</span> <span class="pre">exist',</span> <span class="pre">1190:</span> <span class="pre">'LFN</span> <span class="pre">too</span> <span class="pre">long</span> <span class="pre">(exceeding</span> <span class="pre">limit</span> <span class="pre">of</span> <span class="pre">255</span> <span class="pre">characters)',</span> <span class="pre">1191:</span> <span class="pre">'File</span> <span class="pre">size</span> <span class="pre">cannot</span> <span class="pre">be</span> <span class="pre">zero',</span> <span class="pre">1199:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">create</span> <span class="pre">local</span> <span class="pre">directory',</span> <span class="pre">1200:</span> <span class="pre">'Job</span> <span class="pre">terminated</span> <span class="pre">by</span> <span class="pre">unknown</span> <span class="pre">kill</span> <span class="pre">signal',</span> <span class="pre">1201:</span> <span class="pre">'Job</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">signal:</span> <span class="pre">SIGTERM',</span> <span class="pre">1202:</span> <span class="pre">'Job</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">signal:</span> <span class="pre">SIGQUIT',</span> <span class="pre">1203:</span> <span class="pre">'Job</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">signal:</span> <span class="pre">SIGSEGV',</span> <span class="pre">1204:</span> <span class="pre">'Job</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">signal:</span> <span class="pre">SIGXCPU',</span> <span class="pre">1205:</span> <span class="pre">'Job</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">user',</span> <span class="pre">1206:</span> <span class="pre">'Job</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">signal:</span> <span class="pre">SIGBUS',</span> <span class="pre">1207:</span> <span class="pre">'Job</span> <span class="pre">killed</span> <span class="pre">by</span> <span class="pre">signal:</span> <span class="pre">SIGUSR1',</span> <span class="pre">1211:</span> <span class="pre">'Missing</span> <span class="pre">installation',</span> <span class="pre">1212:</span> <span class="pre">'Payload</span> <span class="pre">ran</span> <span class="pre">out</span> <span class="pre">of</span> <span class="pre">memory',</span> <span class="pre">1213:</span> <span class="pre">'Reached</span> <span class="pre">batch</span> <span class="pre">system</span> <span class="pre">time</span> <span class="pre">limit',</span> <span class="pre">1220:</span> <span class="pre">'Job</span> <span class="pre">failed</span> <span class="pre">due</span> <span class="pre">to</span> <span class="pre">unknown</span> <span class="pre">reason</span> <span class="pre">(consult</span> <span class="pre">log</span> <span class="pre">file)',</span> <span class="pre">1221:</span> <span class="pre">'File</span> <span class="pre">already</span> <span class="pre">exists',</span> <span class="pre">1223:</span> <span class="pre">'Transform</span> <span class="pre">failed</span> <span class="pre">due</span> <span class="pre">to</span> <span class="pre">bad_alloc',</span> <span class="pre">1224:</span> <span class="pre">'Event</span> <span class="pre">service:</span> <span class="pre">recoverable</span> <span class="pre">error',</span> <span class="pre">1228:</span> <span class="pre">'Event</span> <span class="pre">service:</span> <span class="pre">fatal</span> <span class="pre">error',</span> <span class="pre">1234:</span> <span class="pre">'Clone</span> <span class="pre">job</span> <span class="pre">is</span> <span class="pre">already</span> <span class="pre">executed',</span> <span class="pre">1235:</span> <span class="pre">'Payload</span> <span class="pre">exceeded</span> <span class="pre">maximum</span> <span class="pre">allowed</span> <span class="pre">memory',</span> <span class="pre">1236:</span> <span class="pre">'Failed</span> <span class="pre">by</span> <span class="pre">server',</span> <span class="pre">1238:</span> <span class="pre">'Event</span> <span class="pre">service:</span> <span class="pre">no</span> <span class="pre">events',</span> <span class="pre">1240:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">handle</span> <span class="pre">message</span> <span class="pre">from</span> <span class="pre">payload',</span> <span class="pre">1242:</span> <span class="pre">'Query</span> <span class="pre">checksum</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">supported',</span> <span class="pre">1244:</span> <span class="pre">'No</span> <span class="pre">release</span> <span class="pre">candidates</span> <span class="pre">found',</span> <span class="pre">1246:</span> <span class="pre">'User</span> <span class="pre">tarball</span> <span class="pre">could</span> <span class="pre">not</span> <span class="pre">be</span> <span class="pre">downloaded</span> <span class="pre">from</span> <span class="pre">PanDA</span> <span class="pre">server',</span> <span class="pre">1247:</span> <span class="pre">'Badly</span> <span class="pre">formed</span> <span class="pre">XML',</span> <span class="pre">1300:</span> <span class="pre">'The</span> <span class="pre">class</span> <span class="pre">or</span> <span class="pre">function</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">implemented',</span> <span class="pre">1301:</span> <span class="pre">'An</span> <span class="pre">unknown</span> <span class="pre">pilot</span> <span class="pre">exception</span> <span class="pre">has</span> <span class="pre">occurred',</span> <span class="pre">1302:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">convert</span> <span class="pre">object</span> <span class="pre">data',</span> <span class="pre">1303:</span> <span class="pre">'Failed</span> <span class="pre">during</span> <span class="pre">file</span> <span class="pre">handling',</span> <span class="pre">1305:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">execute</span> <span class="pre">payload',</span> <span class="pre">1306:</span> <span class="pre">'Singularity:</span> <span class="pre">general</span> <span class="pre">failure',</span> <span class="pre">1307:</span> <span class="pre">'Singularity:</span> <span class="pre">No</span> <span class="pre">more</span> <span class="pre">available</span> <span class="pre">loop</span> <span class="pre">devices',</span> <span class="pre">1308:</span> <span class="pre">'Singularity:</span> <span class="pre">Not</span> <span class="pre">mounting</span> <span class="pre">requested</span> <span class="pre">bind</span> <span class="pre">point',</span> <span class="pre">1309:</span> <span class="pre">'Singularity:</span> <span class="pre">Failed</span> <span class="pre">to</span> <span class="pre">mount</span> <span class="pre">image',</span> <span class="pre">1310:</span> <span class="pre">'Exception</span> <span class="pre">caught</span> <span class="pre">during</span> <span class="pre">payload</span> <span class="pre">execution',</span> <span class="pre">1311:</span> <span class="pre">'Not</span> <span class="pre">defined',</span> <span class="pre">1312:</span> <span class="pre">'Not</span> <span class="pre">same</span> <span class="pre">length',</span> <span class="pre">1313:</span> <span class="pre">'No</span> <span class="pre">protocol</span> <span class="pre">defined</span> <span class="pre">for</span> <span class="pre">storage</span> <span class="pre">endpoint',</span> <span class="pre">1314:</span> <span class="pre">'Unknown</span> <span class="pre">checksum</span> <span class="pre">type',</span> <span class="pre">1315:</span> <span class="pre">'Unknown</span> <span class="pre">transform</span> <span class="pre">failure',</span> <span class="pre">1316:</span> <span class="pre">'Rucio:</span> <span class="pre">Service</span> <span class="pre">unavailable',</span> <span class="pre">1317:</span> <span class="pre">'Exceeded</span> <span class="pre">maximum</span> <span class="pre">waiting</span> <span class="pre">time',</span> <span class="pre">1318:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">communicate</span> <span class="pre">with</span> <span class="pre">server',</span> <span class="pre">1319:</span> <span class="pre">'An</span> <span class="pre">internal</span> <span class="pre">Pilot</span> <span class="pre">problem</span> <span class="pre">has</span> <span class="pre">occurred</span> <span class="pre">(consult</span> <span class="pre">Pilot</span> <span class="pre">log)',</span> <span class="pre">1320:</span> <span class="pre">'Failed</span> <span class="pre">during</span> <span class="pre">creation</span> <span class="pre">of</span> <span class="pre">log</span> <span class="pre">file',</span> <span class="pre">1321:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">get</span> <span class="pre">client</span> <span class="pre">location</span> <span class="pre">for</span> <span class="pre">Rucio',</span> <span class="pre">1322:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">get</span> <span class="pre">replicas</span> <span class="pre">from</span> <span class="pre">Rucio',</span> <span class="pre">1323:</span> <span class="pre">'Unknown</span> <span class="pre">copy</span> <span class="pre">tool',</span> <span class="pre">1324:</span> <span class="pre">'Service</span> <span class="pre">not</span> <span class="pre">available</span> <span class="pre">at</span> <span class="pre">the</span> <span class="pre">moment',</span> <span class="pre">1325:</span> <span class="pre">'Singularity:</span> <span class="pre">not</span> <span class="pre">installed',</span> <span class="pre">1326:</span> <span class="pre">'No</span> <span class="pre">matching</span> <span class="pre">replicas</span> <span class="pre">were</span> <span class="pre">found</span> <span class="pre">in</span> <span class="pre">list_replicas()</span> <span class="pre">output',</span> <span class="pre">1327:</span> <span class="pre">'Unable</span> <span class="pre">to</span> <span class="pre">stage-in</span> <span class="pre">file</span> <span class="pre">since</span> <span class="pre">network</span> <span class="pre">is</span> <span class="pre">unreachable',</span> <span class="pre">1328:</span> <span class="pre">'SIGSEGV:</span> <span class="pre">Invalid</span> <span class="pre">memory</span> <span class="pre">reference</span> <span class="pre">or</span> <span class="pre">a</span> <span class="pre">segmentation</span> <span class="pre">fault',</span> <span class="pre">1329:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">construct</span> <span class="pre">SURL</span> <span class="pre">for</span> <span class="pre">non-deterministic</span> <span class="pre">ddm</span> <span class="pre">(update</span> <span class="pre">AGIS)',</span> <span class="pre">1330:</span> <span class="pre">'JSON</span> <span class="pre">retrieval</span> <span class="pre">timed</span> <span class="pre">out',</span> <span class="pre">1331:</span> <span class="pre">'Input</span> <span class="pre">file</span> <span class="pre">is</span> <span class="pre">missing</span> <span class="pre">in</span> <span class="pre">storage</span> <span class="pre">element',</span> <span class="pre">1332:</span> <span class="pre">'Black</span> <span class="pre">hole</span> <span class="pre">detected</span> <span class="pre">in</span> <span class="pre">file</span> <span class="pre">system</span> <span class="pre">(consult</span> <span class="pre">Pilot</span> <span class="pre">log)',</span> <span class="pre">1333:</span> <span class="pre">'No</span> <span class="pre">space</span> <span class="pre">left</span> <span class="pre">on</span> <span class="pre">device',</span> <span class="pre">1334:</span> <span class="pre">'AtlasSetup</span> <span class="pre">failed</span> <span class="pre">with</span> <span class="pre">a</span> <span class="pre">fatal</span> <span class="pre">exception</span> <span class="pre">(consult</span> <span class="pre">Payload</span> <span class="pre">log)',</span> <span class="pre">1335:</span> <span class="pre">'User</span> <span class="pre">code</span> <span class="pre">not</span> <span class="pre">available</span> <span class="pre">on</span> <span class="pre">PanDA</span> <span class="pre">server</span> <span class="pre">(resubmit</span> <span class="pre">task</span> <span class="pre">with</span> <span class="pre">--useNewCode)',</span> <span class="pre">1336:</span> <span class="pre">'Job</span> <span class="pre">is</span> <span class="pre">already</span> <span class="pre">running</span> <span class="pre">elsewhere',</span> <span class="pre">1337:</span> <span class="pre">'Memory</span> <span class="pre">monitor</span> <span class="pre">produced</span> <span class="pre">bad</span> <span class="pre">output',</span> <span class="pre">1338:</span> <span class="pre">'Authentication</span> <span class="pre">failure</span> <span class="pre">during</span> <span class="pre">stage-in',</span> <span class="pre">1339:</span> <span class="pre">'Local</span> <span class="pre">DBRelease</span> <span class="pre">handling</span> <span class="pre">failed</span> <span class="pre">(consult</span> <span class="pre">Pilot</span> <span class="pre">log)',</span> <span class="pre">1340:</span> <span class="pre">'Singularity:</span> <span class="pre">Failed</span> <span class="pre">invoking</span> <span class="pre">the</span> <span class="pre">NEWUSER</span> <span class="pre">namespace</span> <span class="pre">runtime',</span> <span class="pre">1341:</span> <span class="pre">'Bad</span> <span class="pre">queue</span> <span class="pre">configuration</span> <span class="pre">detected',</span> <span class="pre">1342:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">import</span> <span class="pre">middleware</span> <span class="pre">(consult</span> <span class="pre">Pilot</span> <span class="pre">log)',</span> <span class="pre">1343:</span> <span class="pre">'Found</span> <span class="pre">no</span> <span class="pre">output</span> <span class="pre">in</span> <span class="pre">job</span> <span class="pre">report',</span> <span class="pre">1344:</span> <span class="pre">'Resource</span> <span class="pre">temporarily</span> <span class="pre">unavailable',</span> <span class="pre">1345:</span> <span class="pre">'Singularity:</span> <span class="pre">Failed</span> <span class="pre">to</span> <span class="pre">create</span> <span class="pre">user</span> <span class="pre">namespace',</span> <span class="pre">1346:</span> <span class="pre">'Transform</span> <span class="pre">not</span> <span class="pre">found',</span> <span class="pre">1347:</span> <span class="pre">'Unsupported</span> <span class="pre">SL5</span> <span class="pre">OS',</span> <span class="pre">1348:</span> <span class="pre">'Singularity:</span> <span class="pre">Resource</span> <span class="pre">temporarily</span> <span class="pre">unavailable',</span> <span class="pre">1349:</span> <span class="pre">'Unrecognized</span> <span class="pre">transform</span> <span class="pre">arguments',</span> <span class="pre">1350:</span> <span class="pre">'Empty</span> <span class="pre">output</span> <span class="pre">file</span> <span class="pre">detected',</span> <span class="pre">1351:</span> <span class="pre">'Unrecognized</span> <span class="pre">fatal</span> <span class="pre">error</span> <span class="pre">in</span> <span class="pre">transform</span> <span class="pre">stderr',</span> <span class="pre">1352:</span> <span class="pre">'Failed</span> <span class="pre">to</span> <span class="pre">stat</span> <span class="pre">proc</span> <span class="pre">file</span> <span class="pre">for</span> <span class="pre">CPU</span> <span class="pre">consumption</span> <span class="pre">calculation',</span> <span class="pre">1353:</span> <span class="pre">'CPU</span> <span class="pre">consumption</span> <span class="pre">calculation</span> <span class="pre">failed:</span> <span class="pre">No</span> <span class="pre">such</span> <span class="pre">process',</span> <span class="pre">1354:</span> <span class="pre">'General</span> <span class="pre">CPU</span> <span class="pre">consumption</span> <span class="pre">calculation</span> <span class="pre">problem</span> <span class="pre">(consult</span> <span class="pre">Pilot</span> <span class="pre">log)',</span> <span class="pre">1355:</span> <span class="pre">'Core</span> <span class="pre">dump</span> <span class="pre">detected',</span> <span class="pre">1356:</span> <span class="pre">'Pre-process</span> <span class="pre">command</span> <span class="pre">failed',</span> <span class="pre">1357:</span> <span class="pre">'Post-process</span> <span class="pre">command</span> <span class="pre">failed',</span> <span class="pre">1358:</span> <span class="pre">'Missing</span> <span class="pre">release</span> <span class="pre">setup</span> <span class="pre">in</span> <span class="pre">unpacked</span> <span class="pre">container',</span> <span class="pre">1359:</span> <span class="pre">'PanDA</span> <span class="pre">queue</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">active',</span> <span class="pre">1360:</span> <span class="pre">'Image</span> <span class="pre">not</span> <span class="pre">found',</span> <span class="pre">1361:</span> <span class="pre">'Remote</span> <span class="pre">file</span> <span class="pre">could</span> <span class="pre">not</span> <span class="pre">be</span> <span class="pre">opened',</span> <span class="pre">1362:</span> <span class="pre">'Xrdcp</span> <span class="pre">was</span> <span class="pre">unable</span> <span class="pre">to</span> <span class="pre">open</span> <span class="pre">file',</span> <span class="pre">1363:</span> <span class="pre">'Raythena</span> <span class="pre">has</span> <span class="pre">decided</span> <span class="pre">to</span> <span class="pre">kill</span> <span class="pre">payload'}</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes._error_messages" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.common.errorcodes.ErrorCodes.add_error_code">
+<code class="sig-name descname"><span class="pre">add_error_code</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">errorcode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pilot_error_codes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pilot_error_diags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">msg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/common/errorcodes.html#ErrorCodes.add_error_code"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.add_error_code" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add pilot error code to list of error codes.
+This function adds the given error code to the list of all errors that have occurred. This is needed since
+several errors can happen; e.g. a stage-in error can be followed by a stage-out error during the log transfer.
+The full list of errors is dumped to the log, but only the first error is reported to the server.
+The function also sets the corresponding error message.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>errorcode</strong> – pilot error code (integer)</p></li>
+<li><p><strong>pilot_error_codes</strong> – list of pilot error codes (list of integers)</p></li>
+<li><p><strong>pilot_error_diags</strong> – list of pilot error diags (list of strings)</p></li>
+<li><p><strong>priority</strong> – if set to True, the new errorcode will be added to the error code list first (highest priority)</p></li>
+<li><p><strong>msg</strong> – error message (more detailed) to overwrite standard error message (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>pilot_error_codes, pilot_error_diags</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.common.errorcodes.ErrorCodes.extract_stderr_error">
+<code class="sig-name descname"><span class="pre">extract_stderr_error</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stderr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/common/errorcodes.html#ErrorCodes.extract_stderr_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.extract_stderr_error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the ERROR message from the payload stderr.
+:param stderr: string.
+:return: string.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.common.errorcodes.ErrorCodes.extract_stderr_warning">
+<code class="sig-name descname"><span class="pre">extract_stderr_warning</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stderr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/common/errorcodes.html#ErrorCodes.extract_stderr_warning"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.extract_stderr_warning" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the WARNING message from the payload stderr.
+:param stderr: string.
+:return: string.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.common.errorcodes.ErrorCodes.format_diagnostics">
+<code class="sig-name descname"><span class="pre">format_diagnostics</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">code</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diag</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/common/errorcodes.html#ErrorCodes.format_diagnostics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.format_diagnostics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Format the error diagnostics by adding the standard error message and the tail of the longer piloterrordiag.
+If there is any kind of failure handling the diagnostics string, the standard error description will be returned.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>code</strong> – standard error code (int).</p></li>
+<li><p><strong>diag</strong> – dynamic error diagnostics (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>formatted error diagnostics (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.common.errorcodes.ErrorCodes.get_error_message">
+<code class="sig-name descname"><span class="pre">get_error_message</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">errorcode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/common/errorcodes.html#ErrorCodes.get_error_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.get_error_message" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the error message corresponding to the given error code.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>errorcode</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>errormessage (string)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.common.errorcodes.ErrorCodes.get_kill_signal_error_code">
+<code class="sig-name descname"><span class="pre">get_kill_signal_error_code</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">signal</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/common/errorcodes.html#ErrorCodes.get_kill_signal_error_code"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.get_kill_signal_error_code" title="Permalink to this definition">¶</a></dt>
+<dd><p>Match a kill signal with a corresponding Pilot error code.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>signal</strong> – signal name (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Pilot error code (integer).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.common.errorcodes.ErrorCodes.get_message_for_pattern">
+<code class="sig-name descname"><span class="pre">get_message_for_pattern</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">patterns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/common/errorcodes.html#ErrorCodes.get_message_for_pattern"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.get_message_for_pattern" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>patterns</strong> – list of patterns.</p></li>
+<li><p><strong>stderr</strong> – string.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>string.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.common.errorcodes.ErrorCodes.is_recoverable">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">is_recoverable</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">code</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/common/errorcodes.html#ErrorCodes.is_recoverable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.is_recoverable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine whether code is a recoverable error code or not.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>code</strong> – Pilot error code (int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>boolean.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.put_error_codes">
+<code class="sig-name descname"><span class="pre">put_error_codes</span></code><em class="property"> <span class="pre">=</span> <span class="pre">[1135,</span> <span class="pre">1136,</span> <span class="pre">1137,</span> <span class="pre">1141,</span> <span class="pre">1152,</span> <span class="pre">1181]</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.put_error_codes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.common.errorcodes.ErrorCodes.recoverable_error_codes">
+<code class="sig-name descname"><span class="pre">recoverable_error_codes</span></code><em class="property"> <span class="pre">=</span> <span class="pre">[0,</span> <span class="pre">1135,</span> <span class="pre">1136,</span> <span class="pre">1137,</span> <span class="pre">1141,</span> <span class="pre">1152,</span> <span class="pre">1181]</span></em><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.recoverable_error_codes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.common.errorcodes.ErrorCodes.remove_error_code">
+<code class="sig-name descname"><span class="pre">remove_error_code</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">errorcode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pilot_error_codes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pilot_error_diags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/common/errorcodes.html#ErrorCodes.remove_error_code"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.remove_error_code" title="Permalink to this definition">¶</a></dt>
+<dd><p>Silently remove an error code and its diagnostics from the internal error lists.
+There is no warning or exception thrown in case the error code is not present in the lists.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>errorcode</strong> – error code (int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>pilot_error_codes, pilot_error_diags</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.common.errorcodes.ErrorCodes.report_errors">
+<code class="sig-name descname"><span class="pre">report_errors</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pilot_error_codes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pilot_error_diags</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/common/errorcodes.html#ErrorCodes.report_errors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.report_errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Report all errors that occurred during running.
+The function should be called towards the end of running a job.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pilot_error_codes</strong> – list of pilot error codes (list of integers)</p></li>
+<li><p><strong>pilot_error_diags</strong> – list of pilot error diags (list of strings)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>error_report (string)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.common.errorcodes.ErrorCodes.resolve_transform_error">
+<code class="sig-name descname"><span class="pre">resolve_transform_error</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exit_code</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/common/errorcodes.html#ErrorCodes.resolve_transform_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.common.errorcodes.ErrorCodes.resolve_transform_error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign a pilot error code to a specific transform error.
+:param exit_code: transform exit code.
+:param stderr: transform stderr
+:return: pilot error code (int)</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/index.html">api components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../util/index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">common components</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">common components</a></li>
+      <li>Next: <a href="exception.html" title="next chapter">exception</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/common/errorcodes.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/common/errorcodes.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

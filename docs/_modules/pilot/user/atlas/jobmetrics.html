@@ -1,0 +1,215 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.user.atlas.jobmetrics &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.user.atlas.jobmetrics</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018-2020</span>
+
+<span class="kn">from</span> <span class="nn">pilot.api</span> <span class="kn">import</span> <span class="n">analytics</span>
+<span class="kn">from</span> <span class="nn">pilot.util.jobmetrics</span> <span class="kn">import</span> <span class="n">get_job_metrics_entry</span>
+
+<span class="kn">from</span> <span class="nn">.cpu</span> <span class="kn">import</span> <span class="n">get_core_count</span>
+<span class="kn">from</span> <span class="nn">.common</span> <span class="kn">import</span> <span class="n">get_db_info</span>
+<span class="kn">from</span> <span class="nn">.utilities</span> <span class="kn">import</span> <span class="n">get_memory_monitor_output_filename</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_job_metrics_string"><a class="viewcode-back" href="../../../../components/user/atlas/jobmetrics.html#pilot.user.atlas.jobmetrics.get_job_metrics_string">[docs]</a><span class="k">def</span> <span class="nf">get_job_metrics_string</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the job metrics string.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return: job metrics (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">job_metrics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># report core count (will also set corecount in job object)</span>
+    <span class="n">corecount</span> <span class="o">=</span> <span class="n">get_core_count</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;job definition core count: </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">corecount</span><span class="p">)</span>
+
+    <span class="c1">#if corecount is not None and corecount != &quot;NULL&quot; and corecount != &#39;null&#39;:</span>
+    <span class="c1">#    job_metrics += get_job_metrics_entry(&quot;coreCount&quot;, corecount)</span>
+
+    <span class="c1"># report number of actual used cores and add it to the list of measured core counts</span>
+    <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">actualcorecount</span><span class="p">:</span>
+        <span class="n">job_metrics</span> <span class="o">+=</span> <span class="n">get_job_metrics_entry</span><span class="p">(</span><span class="s2">&quot;actualCoreCount&quot;</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">actualcorecount</span><span class="p">)</span>
+
+    <span class="c1"># report number of events</span>
+    <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">nevents</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">job_metrics</span> <span class="o">+=</span> <span class="n">get_job_metrics_entry</span><span class="p">(</span><span class="s2">&quot;nEvents&quot;</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">nevents</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">neventsw</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">job_metrics</span> <span class="o">+=</span> <span class="n">get_job_metrics_entry</span><span class="p">(</span><span class="s2">&quot;nEventsW&quot;</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">neventsw</span><span class="p">)</span>
+
+    <span class="c1"># add metadata from job report</span>
+    <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">metadata</span><span class="p">:</span>
+        <span class="n">job</span><span class="o">.</span><span class="n">dbtime</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">dbdata</span> <span class="o">=</span> <span class="n">get_db_info</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">dbtime</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">dbtime</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">job_metrics</span> <span class="o">+=</span> <span class="n">get_job_metrics_entry</span><span class="p">(</span><span class="s2">&quot;dbTime&quot;</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">dbtime</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">dbdata</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">dbdata</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">job_metrics</span> <span class="o">+=</span> <span class="n">get_job_metrics_entry</span><span class="p">(</span><span class="s2">&quot;dbData&quot;</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">dbdata</span><span class="p">)</span>
+
+    <span class="c1"># get the max disk space used by the payload (at the end of a job)</span>
+    <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s2">&quot;finished&quot;</span> <span class="ow">or</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s2">&quot;failed&quot;</span> <span class="ow">or</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s2">&quot;holding&quot;</span><span class="p">:</span>
+        <span class="n">max_space</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">get_max_workdir_size</span><span class="p">()</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">zero</span> <span class="o">=</span> <span class="n">long</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2 # noqa: F821</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">zero</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Python 3</span>
+
+        <span class="k">if</span> <span class="n">max_space</span> <span class="o">&gt;</span> <span class="n">zero</span><span class="p">:</span>
+            <span class="n">job_metrics</span> <span class="o">+=</span> <span class="n">get_job_metrics_entry</span><span class="p">(</span><span class="s2">&quot;workDirSize&quot;</span><span class="p">,</span> <span class="n">max_space</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;will not add max space = </span><span class="si">%d</span><span class="s2"> B to job metrics&quot;</span> <span class="o">%</span> <span class="n">max_space</span><span class="p">)</span>
+
+    <span class="c1"># get analytics data</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">get_memory_monitor_output_filename</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">analytics</span><span class="o">.</span><span class="n">Analytics</span><span class="p">()</span>
+        <span class="c1"># do not include tails on final update</span>
+        <span class="n">tails</span> <span class="o">=</span> <span class="kc">False</span> <span class="k">if</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s2">&quot;finished&quot;</span> <span class="ow">or</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s2">&quot;failed&quot;</span> <span class="ow">or</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s2">&quot;holding&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="kc">True</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get_fitted_data</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">tails</span><span class="o">=</span><span class="n">tails</span><span class="p">)</span>
+        <span class="n">slope</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;slope&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">chi2</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;chi2&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">slope</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">job_metrics</span> <span class="o">+=</span> <span class="n">get_job_metrics_entry</span><span class="p">(</span><span class="s2">&quot;leak&quot;</span><span class="p">,</span> <span class="n">slope</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">chi2</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">job_metrics</span> <span class="o">+=</span> <span class="n">get_job_metrics_entry</span><span class="p">(</span><span class="s2">&quot;chi2&quot;</span><span class="p">,</span> <span class="n">chi2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">job_metrics</span></div>
+
+
+<div class="viewcode-block" id="get_job_metrics"><a class="viewcode-back" href="../../../../components/user/atlas/jobmetrics.html#pilot.user.atlas.jobmetrics.get_job_metrics">[docs]</a><span class="k">def</span> <span class="nf">get_job_metrics</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a properly formatted job metrics string.</span>
+<span class="sd">    The format of the job metrics string is defined by the server. It will be reported to the server during updateJob.</span>
+
+<span class="sd">    Example of job metrics:</span>
+<span class="sd">    Number of events read | Number of events written | vmPeak maximum | vmPeak average | RSS average | ..</span>
+<span class="sd">    Format: nEvents=&lt;int&gt; nEventsW=&lt;int&gt; vmPeakMax=&lt;int&gt; vmPeakMean=&lt;int&gt; RSSMean=&lt;int&gt; hs06=&lt;float&gt; shutdownTime=&lt;int&gt;</span>
+<span class="sd">            cpuFactor=&lt;float&gt; cpuLimit=&lt;float&gt; diskLimit=&lt;float&gt; jobStart=&lt;int&gt; memLimit=&lt;int&gt; runLimit=&lt;float&gt;</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return: job metrics (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># get job metrics string</span>
+    <span class="n">job_metrics</span> <span class="o">=</span> <span class="n">get_job_metrics_string</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+
+    <span class="c1"># correct for potential initial and trailing space</span>
+    <span class="n">job_metrics</span> <span class="o">=</span> <span class="n">job_metrics</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">job_metrics</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;job metrics=</span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_metrics</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;no job metrics (all values are zero)&quot;</span><span class="p">)</span>
+
+    <span class="c1"># is job_metrics within allowed size?</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">job_metrics</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">500</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;job_metrics out of size (</span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">job_metrics</span><span class="p">)))</span>
+
+        <span class="c1"># try to reduce the field size and remove the last entry which might be cut</span>
+        <span class="n">job_metrics</span> <span class="o">=</span> <span class="n">job_metrics</span><span class="p">[:</span><span class="mi">500</span><span class="p">]</span>
+        <span class="n">job_metrics</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job_metrics</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;job_metrics has been reduced to: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_metrics</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">job_metrics</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

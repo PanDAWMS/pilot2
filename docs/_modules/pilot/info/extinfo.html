@@ -1,0 +1,301 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.info.extinfo &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.info.extinfo</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Alexey Anisenkov, anisyonk@cern.ch, 2018</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Information provider from external source(s)</span>
+<span class="sd">which is mainly used to retrive Queue, Site, etc data required for Information Service</span>
+
+<span class="sd">:author: Alexey Anisenkov</span>
+<span class="sd">:contact: anisyonk@cern.ch</span>
+<span class="sd">:date: January 2018</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">random</span>
+
+<span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">.dataloader</span> <span class="kn">import</span> <span class="n">DataLoader</span><span class="p">,</span> <span class="n">merge_dict_data</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ExtInfoProvider"><a class="viewcode-back" href="../../../components/info/extinfo.html#pilot.info.extinfo.ExtInfoProvider">[docs]</a><span class="k">class</span> <span class="nc">ExtInfoProvider</span><span class="p">(</span><span class="n">DataLoader</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Information provider to retrive data from external source(s)</span>
+<span class="sd">        (e.g. AGIS, PanDA, CVMFS)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ExtInfoProvider.__init__"><a class="viewcode-back" href="../../../components/info/extinfo.html#pilot.info.extinfo.ExtInfoProvider.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cache_time</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            :param cache_time: Default cache time in seconds</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_time</span> <span class="o">=</span> <span class="n">cache_time</span></div>
+
+<div class="viewcode-block" id="ExtInfoProvider.load_schedconfig_data"><a class="viewcode-back" href="../../../components/info/extinfo.html#pilot.info.extinfo.ExtInfoProvider.load_schedconfig_data">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load_schedconfig_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pandaqueues</span><span class="o">=</span><span class="p">[],</span> <span class="n">priority</span><span class="o">=</span><span class="p">[],</span> <span class="n">cache_time</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download the (AGIS-extended) data associated to PandaQueue from various sources (prioritized).</span>
+<span class="sd">        Try to get data from CVMFS first, then AGIS or from Panda JSON sources (not implemented).</span>
+
+<span class="sd">        For the moment PanDA source does not provide the full schedconfig description</span>
+
+<span class="sd">        :param pandaqueues: list of PandaQueues to be loaded</span>
+<span class="sd">        :param cache_time: Default cache time in seconds.</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">pandaqueues</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">pandaqueues</span><span class="p">))</span>
+
+        <span class="n">cache_dir</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Information</span><span class="o">.</span><span class="n">cache_dir</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">cache_dir</span><span class="p">:</span>
+            <span class="n">cache_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+
+        <span class="n">sources</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;CVMFS&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Information</span><span class="p">,</span> <span class="s1">&#39;queues_cvmfs&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_pandaqueues.json&#39;</span><span class="p">,</span>
+                             <span class="s1">&#39;nretry&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                             <span class="s1">&#39;fname&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="s1">&#39;agis_schedconf.cvmfs.json&#39;</span><span class="p">)},</span>
+                   <span class="s1">&#39;CRIC&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Information</span><span class="p">,</span> <span class="s1">&#39;queues_url&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;https://atlas-cric.cern.ch/api/atlas/pandaqueue/query/?json&#39;</span><span class="p">)</span> <span class="o">+</span>
+                            <span class="s1">&#39;&amp;pandaqueue[]=&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">pandaqueues</span><span class="p">),</span>
+                            <span class="s1">&#39;nretry&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+                            <span class="s1">&#39;sleep_time&#39;</span><span class="p">:</span> <span class="k">lambda</span><span class="p">:</span> <span class="mi">15</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span>  <span class="c1">## max sleep time 45 seconds between retries</span>
+                            <span class="s1">&#39;cache_time&#39;</span><span class="p">:</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">,</span>  <span class="c1"># 3 hours</span>
+                            <span class="s1">&#39;fname&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="s1">&#39;agis_schedconf.agis.</span><span class="si">%s</span><span class="s1">.json&#39;</span> <span class="o">%</span>
+                                                  <span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pandaqueues</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;ALL&#39;</span><span class="p">))},</span>
+                   <span class="s1">&#39;LOCAL&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;LOCAL_AGIS_SCHEDCONF&#39;</span><span class="p">),</span>
+                             <span class="s1">&#39;nretry&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                             <span class="s1">&#39;cache_time&#39;</span><span class="p">:</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">,</span>  <span class="c1"># 3 hours</span>
+                             <span class="s1">&#39;fname&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Information</span><span class="p">,</span> <span class="s1">&#39;queues_cache&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;agis_schedconf.json&#39;</span><span class="p">)},</span>
+                   <span class="s1">&#39;PANDA&#39;</span><span class="p">:</span> <span class="kc">None</span>  <span class="c1">## NOT implemented, FIX ME LATER</span>
+                   <span class="p">}</span>
+
+        <span class="n">priority</span> <span class="o">=</span> <span class="n">priority</span> <span class="ow">or</span> <span class="p">[</span><span class="s1">&#39;LOCAL&#39;</span><span class="p">,</span> <span class="s1">&#39;CVMFS&#39;</span><span class="p">,</span> <span class="s1">&#39;CRIC&#39;</span><span class="p">,</span> <span class="s1">&#39;PANDA&#39;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span><span class="n">sources</span><span class="p">,</span> <span class="n">priority</span><span class="p">,</span> <span class="n">cache_time</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ExtInfoProvider.load_queuedata"><a class="viewcode-back" href="../../../components/info/extinfo.html#pilot.info.extinfo.ExtInfoProvider.load_queuedata">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load_queuedata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pandaqueue</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="p">[],</span> <span class="n">cache_time</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download the queuedata from various sources (prioritized).</span>
+<span class="sd">        Try to get data from PanDA, CVMFS first, then AGIS</span>
+
+<span class="sd">        This function retrieves only min information of queuedata provided by PanDA cache for the moment.</span>
+
+<span class="sd">        :param pandaqueue: PandaQueue name</span>
+<span class="sd">        :param cache_time: Default cache time in seconds.</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pandaqueue</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;load_queuedata(): pandaqueue name is not specififed&#39;</span><span class="p">)</span>
+
+        <span class="n">pandaqueues</span> <span class="o">=</span> <span class="p">[</span><span class="n">pandaqueue</span><span class="p">]</span>
+
+        <span class="n">cache_dir</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Information</span><span class="o">.</span><span class="n">cache_dir</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">cache_dir</span><span class="p">:</span>
+            <span class="n">cache_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">jsonparser_panda</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
+            <span class="n">dat</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dat</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dat</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s1">&#39;error&#39;</span> <span class="ow">in</span> <span class="n">dat</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;response contains error, data=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">dat</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">{</span><span class="n">pandaqueue</span><span class="p">:</span> <span class="n">dat</span><span class="p">}</span>
+
+        <span class="n">queuedata_url</span> <span class="o">=</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;QUEUEDATA_SERVER_URL&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Information</span><span class="p">,</span> <span class="s1">&#39;queuedata_url&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="s1">&#39;pandaqueue&#39;</span><span class="p">:</span> <span class="n">pandaqueues</span><span class="p">[</span><span class="mi">0</span><span class="p">]})</span>
+
+        <span class="n">sources</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;CVMFS&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Information</span><span class="p">,</span> <span class="s1">&#39;queuedata_cvmfs&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_pandaqueues.json&#39;</span><span class="p">,</span>
+                             <span class="s1">&#39;nretry&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                             <span class="s1">&#39;fname&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="s1">&#39;agis_schedconf.cvmfs.json&#39;</span><span class="p">)},</span>
+                   <span class="s1">&#39;CRIC&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Information</span><span class="p">,</span> <span class="s1">&#39;queues_url&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;https://atlas-cric.cern.ch/api/atlas/pandaqueue/query/?json&#39;</span><span class="p">)</span> <span class="o">+</span>
+                            <span class="s1">&#39;&amp;pandaqueue[]=&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">pandaqueues</span><span class="p">),</span>
+                            <span class="s1">&#39;nretry&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+                            <span class="s1">&#39;sleep_time&#39;</span><span class="p">:</span> <span class="k">lambda</span><span class="p">:</span> <span class="mi">15</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span>  <span class="c1"># max sleep time 45 seconds between retries</span>
+                            <span class="s1">&#39;cache_time&#39;</span><span class="p">:</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">,</span>  <span class="c1"># 3 hours</span>
+                            <span class="s1">&#39;fname&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="s1">&#39;agis_schedconf.agis.</span><span class="si">%s</span><span class="s1">.json&#39;</span> <span class="o">%</span>
+                                                  <span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">pandaqueues</span><span class="p">))</span> <span class="ow">or</span> <span class="s1">&#39;ALL&#39;</span><span class="p">))},</span>
+                   <span class="s1">&#39;LOCAL&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                             <span class="s1">&#39;nretry&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                             <span class="s1">&#39;cache_time&#39;</span><span class="p">:</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">,</span>  <span class="c1"># 3 hours</span>
+                             <span class="s1">&#39;fname&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Information</span><span class="p">,</span> <span class="s1">&#39;queuedata_cache&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;queuedata.json&#39;</span><span class="p">),</span>
+                             <span class="s1">&#39;parser&#39;</span><span class="p">:</span> <span class="n">jsonparser_panda</span>
+                             <span class="p">},</span>
+                   <span class="s1">&#39;PANDA&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">queuedata_url</span><span class="p">,</span>
+                             <span class="s1">&#39;nretry&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+                             <span class="s1">&#39;sleep_time&#39;</span><span class="p">:</span> <span class="k">lambda</span><span class="p">:</span> <span class="mi">15</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span>  <span class="c1"># max sleep time 45 seconds between retries</span>
+                             <span class="s1">&#39;cache_time&#39;</span><span class="p">:</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">,</span>  <span class="c1"># 3 hours,</span>
+                             <span class="s1">&#39;fname&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Information</span><span class="p">,</span> <span class="s1">&#39;queuedata_cache&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;queuedata.json&#39;</span><span class="p">),</span>
+                             <span class="s1">&#39;parser&#39;</span><span class="p">:</span> <span class="n">jsonparser_panda</span>
+                             <span class="p">}</span>
+                   <span class="p">}</span>
+
+        <span class="n">priority</span> <span class="o">=</span> <span class="n">priority</span> <span class="ow">or</span> <span class="p">[</span><span class="s1">&#39;LOCAL&#39;</span><span class="p">,</span> <span class="s1">&#39;PANDA&#39;</span><span class="p">,</span> <span class="s1">&#39;CVMFS&#39;</span><span class="p">,</span> <span class="s1">&#39;CRIC&#39;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span><span class="n">sources</span><span class="p">,</span> <span class="n">priority</span><span class="p">,</span> <span class="n">cache_time</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ExtInfoProvider.load_storage_data"><a class="viewcode-back" href="../../../components/info/extinfo.html#pilot.info.extinfo.ExtInfoProvider.load_storage_data">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load_storage_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ddmendpoints</span><span class="o">=</span><span class="p">[],</span> <span class="n">priority</span><span class="o">=</span><span class="p">[],</span> <span class="n">cache_time</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download DDM Storages details by given name (DDMEndpoint) from various sources (prioritized).</span>
+<span class="sd">        Try to get data from LOCAL first, then CVMFS and AGIS</span>
+
+<span class="sd">        :param pandaqueues: list of PandaQueues to be loaded</span>
+<span class="sd">        :param cache_time: Default cache time in seconds.</span>
+<span class="sd">        :return: dict of DDMEndpoint settings by DDMendpoint name as a key</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">ddmendpoints</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">ddmendpoints</span><span class="p">))</span>
+
+        <span class="n">cache_dir</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Information</span><span class="o">.</span><span class="n">cache_dir</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">cache_dir</span><span class="p">:</span>
+            <span class="n">cache_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># list of sources to fetch ddmconf data from</span>
+        <span class="n">sources</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;CVMFS&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">config</span><span class="o">.</span><span class="n">Information</span><span class="o">.</span><span class="n">storages_cvmfs</span> <span class="ow">or</span> <span class="s1">&#39;/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_ddmendpoints.json&#39;</span><span class="p">,</span>
+                             <span class="s1">&#39;nretry&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                             <span class="s1">&#39;fname&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Information</span><span class="p">,</span> <span class="s1">&#39;storages_cache&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;agis_ddmendpoints.json&#39;</span><span class="p">)},</span>
+                   <span class="s1">&#39;CRIC&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Information</span><span class="p">,</span> <span class="s1">&#39;storages_url&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;https://atlas-cric.cern.ch/api/atlas/ddmendpoint/query/?json&#39;</span><span class="p">)</span> <span class="o">+</span>
+                            <span class="s1">&#39;&amp;ddmendpoint[]=&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">ddmendpoints</span><span class="p">),</span>
+                            <span class="s1">&#39;nretry&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+                            <span class="s1">&#39;sleep_time&#39;</span><span class="p">:</span> <span class="k">lambda</span><span class="p">:</span> <span class="mi">15</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">),</span>  <span class="c1">## max sleep time 45 seconds between retries</span>
+                            <span class="s1">&#39;cache_time&#39;</span><span class="p">:</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">,</span>  <span class="c1"># 3 hours</span>
+                            <span class="s1">&#39;fname&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="s1">&#39;agis_ddmendpoints.agis.</span><span class="si">%s</span><span class="s1">.json&#39;</span> <span class="o">%</span>
+                                                  <span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ddmendpoints</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;ALL&#39;</span><span class="p">))},</span>
+                   <span class="s1">&#39;LOCAL&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                             <span class="s1">&#39;nretry&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                             <span class="s1">&#39;cache_time&#39;</span><span class="p">:</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">,</span>  <span class="c1"># 3 hours</span>
+                             <span class="s1">&#39;fname&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Information</span><span class="p">,</span> <span class="s1">&#39;storages_cache&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;agis_ddmendpoints.json&#39;</span><span class="p">)},</span>
+                   <span class="s1">&#39;PANDA&#39;</span><span class="p">:</span> <span class="kc">None</span>  <span class="c1">## NOT implemented, FIX ME LATER if need</span>
+                   <span class="p">}</span>
+
+        <span class="n">priority</span> <span class="o">=</span> <span class="n">priority</span> <span class="ow">or</span> <span class="p">[</span><span class="s1">&#39;LOCAL&#39;</span><span class="p">,</span> <span class="s1">&#39;CVMFS&#39;</span><span class="p">,</span> <span class="s1">&#39;CRIC&#39;</span><span class="p">,</span> <span class="s1">&#39;PANDA&#39;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_data</span><span class="p">(</span><span class="n">sources</span><span class="p">,</span> <span class="n">priority</span><span class="p">,</span> <span class="n">cache_time</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ExtInfoProvider.resolve_queuedata"><a class="viewcode-back" href="../../../components/info/extinfo.html#pilot.info.extinfo.ExtInfoProvider.resolve_queuedata">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_queuedata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pandaqueue</span><span class="p">,</span> <span class="n">schedconf_priority</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Resolve final full queue data details</span>
+<span class="sd">            (primary data provided by PanDA merged with overall queue details from AGIS)</span>
+
+<span class="sd">            :param pandaqueue: name of PandaQueue</span>
+<span class="sd">            :return: dict of settings for given PandaQueue as a key</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># load queuedata (min schedconfig settings)</span>
+        <span class="n">master_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_queuedata</span><span class="p">(</span><span class="n">pandaqueue</span><span class="p">,</span> <span class="n">cache_time</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_time</span><span class="p">)</span>  <span class="c1">## use default priority</span>
+
+        <span class="c1"># load full queue details</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_schedconfig_data</span><span class="p">([</span><span class="n">pandaqueue</span><span class="p">],</span> <span class="n">priority</span><span class="o">=</span><span class="n">schedconf_priority</span><span class="p">,</span> <span class="n">cache_time</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_time</span><span class="p">)</span>
+
+        <span class="c1"># merge</span>
+        <span class="k">return</span> <span class="n">merge_dict_data</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">master_data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ExtInfoProvider.resolve_storage_data"><a class="viewcode-back" href="../../../components/info/extinfo.html#pilot.info.extinfo.ExtInfoProvider.resolve_storage_data">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_storage_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ddmendpoints</span><span class="o">=</span><span class="p">[]):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Resolve final DDM Storages details by given names (DDMEndpoint)</span>
+
+<span class="sd">            :param ddmendpoints: list of ddmendpoint names</span>
+<span class="sd">            :return: dict of settings for given DDMEndpoint as a key</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># load ddmconf settings</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_storage_data</span><span class="p">(</span><span class="n">ddmendpoints</span><span class="p">,</span> <span class="n">cache_time</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_time</span><span class="p">)</span>  <span class="c1">## use default priority</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

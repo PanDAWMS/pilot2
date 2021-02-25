@@ -1,0 +1,253 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.info.storagedata &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.info.storagedata</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Alexey Anisenkov, anisyonk@cern.ch, 2018</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2019</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The implementation of data structure to host storage data description.</span>
+
+<span class="sd">The main reasons for such incapsulation are to</span>
+<span class="sd"> - apply in one place all data validation actions (for attributes and values)</span>
+<span class="sd"> - introduce internal information schema (names of attribues) to remove direct dependency</span>
+<span class="sd"> with data structrure, formats, names from external sources (e.g. AGIS/CRIC)</span>
+
+<span class="sd">:author: Alexey Anisenkov</span>
+<span class="sd">:contact: anisyonk@cern.ch</span>
+<span class="sd">:date: January 2018</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+
+<span class="kn">from</span> <span class="nn">pilot.util</span> <span class="kn">import</span> <span class="n">https</span>
+<span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
+
+<span class="kn">from</span> <span class="nn">.basedata</span> <span class="kn">import</span> <span class="n">BaseData</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="StorageData"><a class="viewcode-back" href="../../../components/info/storagedata.html#pilot.info.storagedata.StorageData">[docs]</a><span class="k">class</span> <span class="nc">StorageData</span><span class="p">(</span><span class="n">BaseData</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        High-level object to host Storage details (available protocols, etc.)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">## put explicit list of all the attributes with comments for better inline-documentation by sphinx</span>
+    <span class="c1">## FIX ME LATER: use proper doc format</span>
+
+    <span class="c1">## incomplete list of attributes .. to be extended once becomes used</span>
+
+    <span class="n">pk</span> <span class="o">=</span> <span class="mi">0</span>        <span class="c1"># unique identification number</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>     <span class="c1"># DDMEndpoint name</span>
+    <span class="nb">type</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>     <span class="c1"># type of Storage &lt;- can this be renamed to storagetype without causing any problem with queuedata?</span>
+    <span class="n">token</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>    <span class="c1"># space token descriptor</span>
+
+    <span class="n">is_deterministic</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">state</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">site</span> <span class="o">=</span> <span class="kc">None</span>   <span class="c1"># ATLAS Site name</span>
+
+    <span class="n">arprotocols</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">rprotocols</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">special_setup</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">resource</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># specify the type of attributes for proper data validation and casting</span>
+    <span class="n">_keys</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;pk&#39;</span><span class="p">],</span>
+             <span class="nb">str</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="s1">&#39;site&#39;</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="s1">&#39;token&#39;</span><span class="p">],</span>
+             <span class="nb">dict</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;copytools&#39;</span><span class="p">,</span> <span class="s1">&#39;acopytools&#39;</span><span class="p">,</span> <span class="s1">&#39;astorages&#39;</span><span class="p">,</span> <span class="s1">&#39;arprotocols&#39;</span><span class="p">,</span> <span class="s1">&#39;rprotocols&#39;</span><span class="p">,</span> <span class="s1">&#39;resource&#39;</span><span class="p">],</span>
+             <span class="nb">bool</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;is_deterministic&#39;</span><span class="p">]</span>
+             <span class="p">}</span>
+
+<div class="viewcode-block" id="StorageData.__init__"><a class="viewcode-back" href="../../../components/info/storagedata.html#pilot.info.storagedata.StorageData.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            :param data: input dictionary of storage description by DDMEndpoint name as key</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></div>
+
+        <span class="c1"># DEBUG</span>
+        <span class="c1">#import pprint</span>
+        <span class="c1">#logger.debug(&#39;initialize StorageData from raw:\n%s&#39; % pprint.pformat(data))</span>
+        <span class="c1">#logger.debug(&#39;Final parsed StorageData content:\n%s&#39; % self)</span>
+
+<div class="viewcode-block" id="StorageData.load"><a class="viewcode-back" href="../../../components/info/storagedata.html#pilot.info.storagedata.StorageData.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Construct and initialize data from ext source</span>
+<span class="sd">            :param data: input dictionary of storage description by DDMEndpoint name as key</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># the translation map of the queue data attributes from external data to internal schema</span>
+        <span class="c1"># first defined ext field name will be used</span>
+        <span class="c1"># if key is not explicitly specified then ext name will be used as is</span>
+        <span class="c1">## fix me later to proper internal names if need</span>
+
+        <span class="n">kmap</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="c1"># &#39;internal_name&#39;: (&#39;ext_name1&#39;, &#39;extname2_if_any&#39;)</span>
+            <span class="c1"># &#39;internal_name2&#39;: &#39;ext_name3&#39;</span>
+            <span class="s1">&#39;pk&#39;</span><span class="p">:</span> <span class="s1">&#39;id&#39;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">kmap</span><span class="p">)</span></div>
+
+    <span class="c1">## custom function pattern to apply extra validation to the key values</span>
+    <span class="c1">##def clean__keyname(self, raw, value):</span>
+    <span class="c1">##  :param raw: raw value passed from ext source as input</span>
+    <span class="c1">##  :param value: preliminary cleaned and casted to proper type value</span>
+    <span class="c1">##</span>
+    <span class="c1">##    return value</span>
+
+    <span class="c1"># to be improved: move it to some data loader</span>
+<div class="viewcode-block" id="StorageData.get_security_key"><a class="viewcode-back" href="../../../components/info/storagedata.html#pilot.info.storagedata.StorageData.get_security_key">[docs]</a>    <span class="k">def</span> <span class="nf">get_security_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">secret_key</span><span class="p">,</span> <span class="n">access_key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Get security key pair from panda</span>
+<span class="sd">            :param secret_key: secrect key name as string</span>
+<span class="sd">            :param access_key: access key name as string</span>
+<span class="sd">            :return: setup as a string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;privateKeyName&#39;</span><span class="p">:</span> <span class="n">secret_key</span><span class="p">,</span> <span class="s1">&#39;publicKeyName&#39;</span><span class="p">:</span> <span class="n">access_key</span><span class="p">}</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Getting key pair: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">data</span><span class="p">)</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">https</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{pandaserver}</span><span class="s1">/server/panda/getKeyPair&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pandaserver</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">pandaserver</span><span class="p">),</span>
+                                <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">res</span> <span class="ow">and</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;StatusCode&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;publicKey&quot;</span><span class="p">:</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;publicKey&quot;</span><span class="p">],</span> <span class="s2">&quot;privateKey&quot;</span><span class="p">:</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;privateKey&quot;</span><span class="p">]}</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Got key pair returns wrong value: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">res</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Failed to get key pair(</span><span class="si">%s</span><span class="s2">,</span><span class="si">%s</span><span class="s2">): </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">access_key</span><span class="p">,</span> <span class="n">secret_key</span><span class="p">,</span> <span class="n">ex</span><span class="p">,</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()))</span>
+        <span class="k">return</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="StorageData.get_special_setup"><a class="viewcode-back" href="../../../components/info/storagedata.html#pilot.info.storagedata.StorageData.get_special_setup">[docs]</a>    <span class="k">def</span> <span class="nf">get_special_setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">protocol_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct special setup for ddms such as objectstore</span>
+<span class="sd">        :param protocol_id: protocol id.</span>
+<span class="sd">        :return: setup as a string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Get special setup for protocol id(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">protocol_id</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">protocol_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">special_setup</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">special_setup</span><span class="p">[</span><span class="n">protocol_id</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">special_setup</span><span class="p">[</span><span class="n">protocol_id</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">protocol_id</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">protocol_id</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rprotocols</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>  <span class="c1"># Python 2/3</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;OS_ES&#39;</span><span class="p">,</span> <span class="s1">&#39;OS_LOGS&#39;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">special_setup</span><span class="p">[</span><span class="n">protocol_id</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="n">settings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rprotocols</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">protocol_id</span><span class="p">),</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;settings&#39;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">access_key</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;access_key&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">secret_key</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;secret_key&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">is_secure</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;is_secure&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+            <span class="c1"># make sure all things are correctly defined in AGIS.</span>
+            <span class="c1"># If one of them is not defined correctly, will not setup this part. Then rucio client can try to use signed url.</span>
+            <span class="c1"># This part is preferred because signed url is not efficient.</span>
+            <span class="k">if</span> <span class="n">access_key</span> <span class="ow">and</span> <span class="n">secret_key</span> <span class="ow">and</span> <span class="n">is_secure</span><span class="p">:</span>
+                <span class="n">key_pair</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_security_key</span><span class="p">(</span><span class="n">secret_key</span><span class="p">,</span> <span class="n">access_key</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s2">&quot;privateKey&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">key_pair</span> <span class="ow">or</span> <span class="n">key_pair</span><span class="p">[</span><span class="s2">&quot;privateKey&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Failed to get the key pair for S3 objectstore from panda&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">setup</span> <span class="o">=</span> <span class="s2">&quot;export S3_ACCESS_KEY=</span><span class="si">%s</span><span class="s2">; export S3_SECRET_KEY=</span><span class="si">%s</span><span class="s2">; export S3_IS_SECURE=</span><span class="si">%s</span><span class="s2">;&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key_pair</span><span class="p">[</span><span class="s2">&quot;publicKey&quot;</span><span class="p">],</span>
+                                                                                                           <span class="n">key_pair</span><span class="p">[</span><span class="s2">&quot;privateKey&quot;</span><span class="p">],</span>
+                                                                                                           <span class="n">is_secure</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">special_setup</span><span class="p">[</span><span class="n">protocol_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">setup</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Return key pair with public key: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">key_pair</span><span class="p">[</span><span class="s2">&quot;publicKey&quot;</span><span class="p">])</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">special_setup</span><span class="p">[</span><span class="n">protocol_id</span><span class="p">]</span>
+        <span class="k">return</span> <span class="kc">None</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

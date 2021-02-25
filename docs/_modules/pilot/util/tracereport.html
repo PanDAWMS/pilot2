@@ -1,0 +1,265 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.util.tracereport &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.util.tracereport</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Alexey Anisenkov, alexey.anisenkov@cern.ch, 2017</span>
+<span class="c1"># - Pavlo Svirin, pavlo.svirin@cern.ch, 2018</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018</span>
+
+<span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">sys</span> <span class="kn">import</span> <span class="n">exc_info</span>
+<span class="kn">from</span> <span class="nn">json</span> <span class="kn">import</span> <span class="n">dumps</span>  <span class="c1">#, loads</span>
+<span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">environ</span><span class="p">,</span> <span class="n">getuid</span>
+
+<span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="n">get_pilot_version</span><span class="p">,</span> <span class="n">get_rucio_client_version</span>
+<span class="kn">from</span> <span class="nn">pilot.util.container</span> <span class="kn">import</span> <span class="n">execute</span>
+<span class="c1">#from pilot.util.https import request</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="TraceReport"><a class="viewcode-back" href="../../../components/util/tracereport.html#pilot.util.tracereport.TraceReport">[docs]</a><span class="k">class</span> <span class="nc">TraceReport</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+
+<div class="viewcode-block" id="TraceReport.__init__"><a class="viewcode-back" href="../../../components/util/tracereport.html#pilot.util.tracereport.TraceReport.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="n">event_version</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">+</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">get_pilot_version</span><span class="p">(),</span> <span class="n">get_rucio_client_version</span><span class="p">())</span>
+        <span class="n">defs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;eventType&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>                <span class="c1"># sitemover</span>
+            <span class="s1">&#39;eventVersion&#39;</span><span class="p">:</span> <span class="n">event_version</span><span class="p">,</span>  <span class="c1"># Pilot+Rucio client version</span>
+            <span class="s1">&#39;protocol&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>               <span class="c1"># set by specific copy tool</span>
+            <span class="s1">&#39;clientState&#39;</span><span class="p">:</span> <span class="s1">&#39;INIT_REPORT&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;localSite&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>                <span class="c1"># localsite</span>
+            <span class="s1">&#39;remoteSite&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>               <span class="c1"># equals remotesite</span>
+            <span class="s1">&#39;timeStart&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>              <span class="c1"># time to start</span>
+            <span class="s1">&#39;catStart&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;relativeStart&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;transferStart&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;validateStart&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;timeEnd&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;dataset&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;version&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;duid&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;filename&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;guid&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;filesize&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;usr&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;appid&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;hostname&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;ip&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;suspicious&#39;</span><span class="p">:</span> <span class="s1">&#39;0&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;usrdn&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;stateReason&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;uuid&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;taskid&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span>
+        <span class="p">}</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">TraceReport</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">defs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>  <span class="c1"># apply extra input</span></div>
+
+    <span class="c1"># sitename, dsname, eventType</span>
+<div class="viewcode-block" id="TraceReport.init"><a class="viewcode-back" href="../../../components/util/tracereport.html#pilot.util.tracereport.TraceReport.init">[docs]</a>    <span class="k">def</span> <span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialization.</span>
+
+<span class="sd">        :param job: job object.</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;clientState&#39;</span><span class="p">:</span> <span class="s1">&#39;INIT_REPORT&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;usr&#39;</span><span class="p">:</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">produserid</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">(),</span>  <span class="c1"># anonymise user and pilot id&#39;s, Python 2/3</span>
+            <span class="s1">&#39;appid&#39;</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">,</span>
+            <span class="s1">&#39;usrdn&#39;</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">produserid</span><span class="p">,</span>
+            <span class="s1">&#39;taskid&#39;</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">taskid</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;timeStart&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;hostname&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">gethostbyaddr</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">gethostname</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;unable to detect hostname for trace report&quot;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;ip&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">gethostbyname</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">gethostname</span><span class="p">())</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;unable to detect host IP for trace report&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">jobdefinitionid</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;ppilot_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">jobdefinitionid</span>
+            <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;uuid&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>  <span class="c1"># hash_pilotid, Python 2/3</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1">#self[&#39;uuid&#39;] = commands.getoutput(&#39;uuidgen -t 2&gt; /dev/null&#39;).replace(&#39;-&#39;, &#39;&#39;)  # all LFNs of one request have the same uuid</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;uuidgen -t 2&gt; /dev/null&#39;</span>
+            <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+            <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;uuid&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">stdout</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TraceReport.verify_trace"><a class="viewcode-back" href="../../../components/util/tracereport.html#pilot.util.tracereport.TraceReport.verify_trace">[docs]</a>    <span class="k">def</span> <span class="nf">verify_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Verify the trace consistency.</span>
+<span class="sd">        Are all required fields set? Remove escape chars from stateReason if present.</span>
+
+<span class="sd">        :return: Boolean.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># remove any escape characters that might be present in the stateReason field</span>
+        <span class="n">state_reason</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;stateReason&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">state_reason</span><span class="p">:</span>
+            <span class="n">state_reason</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">stateReason</span><span class="o">=</span><span class="n">state_reason</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;eventType&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;localSite&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;remoteSite&#39;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="TraceReport.send"><a class="viewcode-back" href="../../../components/util/tracereport.html#pilot.util.tracereport.TraceReport.send">[docs]</a>    <span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Send trace to rucio server using curl.</span>
+
+<span class="sd">        :return: Boolean.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">url</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Rucio</span><span class="o">.</span><span class="n">url</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;tracing server: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">url</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;sending tracing report: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">verify_trace</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;cannot send trace since not all fields are set&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># take care of the encoding</span>
+            <span class="c1">#data = {&#39;API&#39;: &#39;0_3_0&#39;, &#39;operation&#39;: &#39;addReport&#39;, &#39;report&#39;: self}</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
+            <span class="c1">#loaded = loads(data)</span>
+            <span class="c1">#logger.debug(&#39;self object converted to json dictionary: %s&#39; % loaded)</span>
+
+            <span class="n">ssl_certificate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ssl_certificate</span><span class="p">()</span>
+
+            <span class="c1"># create the command</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;curl --connect-timeout 20 --max-time 120 --cacert </span><span class="si">%s</span><span class="s1"> -v -k -d </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> \
+                  <span class="p">(</span><span class="n">ssl_certificate</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
+            <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">exit_code</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to send traces to rucio: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">stdout</span><span class="p">)</span>
+            <span class="c1">#request(url, loaded)</span>
+            <span class="c1">#if status is not None:</span>
+            <span class="c1">#    logger.warning(&#39;failed to send traces to rucio: %s&#39; % status)</span>
+            <span class="c1">#    raise Exception(status)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="c1"># if something fails, log it but ignore</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;tracing failed: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">exc_info</span><span class="p">()))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;tracing report sent&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="TraceReport.get_ssl_certificate"><a class="viewcode-back" href="../../../components/util/tracereport.html#pilot.util.tracereport.TraceReport.get_ssl_certificate">[docs]</a>    <span class="k">def</span> <span class="nf">get_ssl_certificate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the path to the SSL certificate</span>
+
+<span class="sd">        :return: path (string).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;X509_USER_PROXY&#39;</span><span class="p">,</span> <span class="s1">&#39;/tmp/x509up_u</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">getuid</span><span class="p">())</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

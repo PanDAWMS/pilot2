@@ -1,0 +1,206 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>monitor &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="payload" href="payload.html" />
+    <link rel="prev" title="job" href="job.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.control.monitor">
+<span id="monitor"></span><h1>monitor<a class="headerlink" href="#module-pilot.control.monitor" title="Permalink to this headline">¶</a></h1>
+<dl class="py function">
+<dt id="pilot.control.monitor.control">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.monitor.</span></code><code class="sig-name descname"><span class="pre">control</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/monitor.html#control"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.monitor.control" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main control function, run from the relevant workflow module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queues</strong> – </p></li>
+<li><p><strong>traces</strong> – </p></li>
+<li><p><strong>args</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.monitor.get_max_running_time">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.monitor.</span></code><code class="sig-name descname"><span class="pre">get_max_running_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lifetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">queuedata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/monitor.html#get_max_running_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.monitor.get_max_running_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the maximum allowed running time for the pilot.
+The max time is set either as a pilot option or via the schedconfig.maxtime for the PQ in question.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lifetime</strong> – optional pilot option time in seconds (int).</p></li>
+<li><p><strong>queuedata</strong> – queuedata object</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>max running time in seconds (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.monitor.get_process_info">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.monitor.</span></code><code class="sig-name descname"><span class="pre">get_process_info</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'aufx'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/monitor.html#get_process_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.monitor.get_process_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return process info for given command.
+The function returns a list with format [cpu, mem, command, number of commands] as returned by ‘ps -u user args’ for
+a given command (e.g. python pilot2/pilot.py).</p>
+<dl>
+<dt>Example</dt><dd><p>get_processes_for_command(‘sshd:’)</p>
+<p>nilspal   1362  0.0  0.0 183424  2528 ?        S    12:39   0:00 sshd: <a class="reference external" href="mailto:nilspal&#37;&#52;&#48;pts/28">nilspal<span>&#64;</span>pts/28</a>
+nilspal   1363  0.0  0.0 136628  2640 pts/28   Ss   12:39   0:00  _ -tcsh
+nilspal   8603  0.0  0.0  34692  5072 pts/28   S+   12:44   0:00      _ python monitor.py
+nilspal   8604  0.0  0.0  62036  1776 pts/28   R+   12:44   0:00          _ ps -u nilspal aufx –no-headers</p>
+<p>-&gt; [‘0.0’, ‘0.0’, ‘sshd: <a class="reference external" href="mailto:nilspal&#37;&#52;&#48;pts/28">nilspal<span>&#64;</span>pts/28</a>’, 1]</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmd</strong> – command (string).</p></li>
+<li><p><strong>user</strong> – user (string).</p></li>
+<li><p><strong>args</strong> – ps arguments (string).</p></li>
+<li><p><strong>pid</strong> – process id (int).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list with process info (l[0]=cpu usage(%), l[1]=mem usage(%), l[2]=command(string)).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.monitor.run_checks">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.monitor.</span></code><code class="sig-name descname"><span class="pre">run_checks</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/monitor.html#run_checks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.monitor.run_checks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform non-job related monitoring checks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queues</strong> – </p></li>
+<li><p><strong>args</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/index.html">common components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../util/index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">control components</a><ul>
+      <li>Previous: <a href="job.html" title="previous chapter">job</a></li>
+      <li>Next: <a href="payload.html" title="next chapter">payload</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/control/monitor.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/control/monitor.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

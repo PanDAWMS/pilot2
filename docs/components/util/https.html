@@ -1,0 +1,497 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>https &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="information" href="information.html" />
+    <link rel="prev" title="harvester" href="harvester.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.util.https">
+<span id="https"></span><h1>https<a class="headerlink" href="#module-pilot.util.https" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="pilot.util.https._ctx">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">pilot.util.https.</span></code><code class="sig-name descname"><span class="pre">_ctx</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ssl_context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_agent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cacert</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pilot.util.https._ctx" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt id="pilot.util.https._ctx.__getnewargs__">
+<code class="sig-name descname"><span class="pre">__getnewargs__</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pilot.util.https._ctx.__getnewargs__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return self as a plain tuple.  Used by copy and pickle.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.https._ctx.__module__">
+<code class="sig-name descname"><span class="pre">__module__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'pilot.util.https'</span></em><a class="headerlink" href="#pilot.util.https._ctx.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.util.https._ctx.__new__">
+<em class="property"><span class="pre">static</span> </em><code class="sig-name descname"><span class="pre">__new__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ssl_context</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_agent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cacert</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pilot.util.https._ctx.__new__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create new instance of _ctx(ssl_context, user_agent, capath, cacert)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.util.https._ctx.__repr__">
+<code class="sig-name descname"><span class="pre">__repr__</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pilot.util.https._ctx.__repr__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a nicely formatted representation string</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.https._ctx.__slots__">
+<code class="sig-name descname"><span class="pre">__slots__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">()</span></em><a class="headerlink" href="#pilot.util.https._ctx.__slots__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.util.https._ctx._asdict">
+<code class="sig-name descname"><span class="pre">_asdict</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pilot.util.https._ctx._asdict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new OrderedDict which maps field names to their values.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.https._ctx._field_defaults">
+<code class="sig-name descname"><span class="pre">_field_defaults</span></code><em class="property"> <span class="pre">=</span> <span class="pre">{}</span></em><a class="headerlink" href="#pilot.util.https._ctx._field_defaults" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.https._ctx._fields">
+<code class="sig-name descname"><span class="pre">_fields</span></code><em class="property"> <span class="pre">=</span> <span class="pre">('ssl_context',</span> <span class="pre">'user_agent',</span> <span class="pre">'capath',</span> <span class="pre">'cacert')</span></em><a class="headerlink" href="#pilot.util.https._ctx._fields" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.https._ctx._fields_defaults">
+<code class="sig-name descname"><span class="pre">_fields_defaults</span></code><em class="property"> <span class="pre">=</span> <span class="pre">{}</span></em><a class="headerlink" href="#pilot.util.https._ctx._fields_defaults" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.util.https._ctx._make">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">_make</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pilot.util.https._ctx._make" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a new _ctx object from a sequence or iterable</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.util.https._ctx._replace">
+<code class="sig-name descname"><span class="pre">_replace</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pilot.util.https._ctx._replace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new _ctx object replacing specified fields with new values</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.util.https._ctx.cacert">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">cacert</span></code><a class="headerlink" href="#pilot.util.https._ctx.cacert" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.util.https._ctx.capath">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">capath</span></code><a class="headerlink" href="#pilot.util.https._ctx.capath" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.util.https._ctx.ssl_context">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">ssl_context</span></code><a class="headerlink" href="#pilot.util.https._ctx.ssl_context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.util.https._ctx.user_agent">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">user_agent</span></code><a class="headerlink" href="#pilot.util.https._ctx.user_agent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.https._tester">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.https.</span></code><code class="sig-name descname"><span class="pre">_tester</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/https.html#_tester"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.https._tester" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tests function <code class="docutils literal notranslate"><span class="pre">func</span></code> on arguments and returns first positive.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">_tester</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">%</span><span class="mi">3</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+<span class="go">3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_tester</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">%</span><span class="mi">3</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">None</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> – function(arg)-&gt;boolean</p></li>
+<li><p><strong>args</strong> – other arguments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>something or none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.https.cacert">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.https.</span></code><code class="sig-name descname"><span class="pre">cacert</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/https.html#cacert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.https.cacert" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tries to get <abbr title="Certification Authority">CA</abbr> certificate or X509 one.
+Testifies it to be a regular file.
+Tries next locations:</p>
+<ol class="arabic simple">
+<li><p><code class="xref std std-option docutils literal notranslate"><span class="pre">--cacert</span></code> from arguments</p></li>
+<li><p><span class="target" id="index-0"></span><code class="xref std std-envvar docutils literal notranslate"><span class="pre">X509_USER_PROXY</span></code> from env</p></li>
+<li><p>Path <code class="docutils literal notranslate"><span class="pre">/tmp/x509up_uXXX</span></code>, where <code class="docutils literal notranslate"><span class="pre">XXX</span></code> refers to <code class="docutils literal notranslate"><span class="pre">UID</span></code></p></li>
+</ol>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>args</strong> – arguments, parsed by <a class="reference external" href="https://docs.python.org/3/library/argparse.html#module-argparse" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">argparse</span></code></a></p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">str</span></code></a> – certificate file path, or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">None</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.https.cacert_default_location">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.https.</span></code><code class="sig-name descname"><span class="pre">cacert_default_location</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/https.html#cacert_default_location"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.https.cacert_default_location" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tries to get current user ID through <a class="reference external" href="https://docs.python.org/3/library/os.html#os.getuid" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">os.getuid</span></code></a>, and get the posix path for x509 certificate.
+:returns: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">str</span></code></a> – posix default x509 path, or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">None</span></code></a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.https.capath">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.https.</span></code><code class="sig-name descname"><span class="pre">capath</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/https.html#capath"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.https.capath" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tries to get <abbr title="Certification Authority">CA</abbr> path with certificates.
+Testifies it to be a directory.
+Tries next locations:</p>
+<ol class="arabic simple">
+<li><p><code class="xref std std-option docutils literal notranslate"><span class="pre">--capath</span></code> from arguments</p></li>
+<li><p><span class="target" id="index-1"></span><code class="xref std std-envvar docutils literal notranslate"><span class="pre">X509_CERT_DIR</span></code> from env</p></li>
+<li><p>Path <code class="docutils literal notranslate"><span class="pre">/etc/grid-security/certificates</span></code></p></li>
+</ol>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>args</strong> – arguments, parsed by <a class="reference external" href="https://docs.python.org/3/library/argparse.html#module-argparse" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">argparse</span></code></a></p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">str</span></code></a> – directory path, or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">None</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt id="pilot.util.https.ctx">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">pilot.util.https.</span></code><code class="sig-name descname"><span class="pre">ctx</span></code><a class="headerlink" href="#pilot.util.https.ctx" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py attribute">
+<dt id="pilot.util.https.ctx.__dict__">
+<code class="sig-name descname"><span class="pre">__dict__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">mappingproxy({'ssl_context':</span> <span class="pre">None,</span> <span class="pre">'user_agent':</span> <span class="pre">'Pilot2</span> <span class="pre">client',</span> <span class="pre">'capath':</span> <span class="pre">None,</span> <span class="pre">'cacert':</span> <span class="pre">None,</span> <span class="pre">'__module__':</span> <span class="pre">'pilot.util.https',</span> <span class="pre">'__dict__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__dict__'</span> <span class="pre">of</span> <span class="pre">'ctx'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__weakref__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__weakref__'</span> <span class="pre">of</span> <span class="pre">'ctx'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__doc__':</span> <span class="pre">None,</span> <span class="pre">'__annotations__':</span> <span class="pre">{}})</span></em><a class="headerlink" href="#pilot.util.https.ctx.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.https.ctx.__module__">
+<code class="sig-name descname"><span class="pre">__module__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'pilot.util.https'</span></em><a class="headerlink" href="#pilot.util.https.ctx.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.https.ctx.__weakref__">
+<code class="sig-name descname"><span class="pre">__weakref__</span></code><a class="headerlink" href="#pilot.util.https.ctx.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.https.ctx.cacert">
+<code class="sig-name descname"><span class="pre">cacert</span></code><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#pilot.util.https.ctx.cacert" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.https.ctx.capath">
+<code class="sig-name descname"><span class="pre">capath</span></code><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#pilot.util.https.ctx.capath" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.https.ctx.ssl_context">
+<code class="sig-name descname"><span class="pre">ssl_context</span></code><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#pilot.util.https.ctx.ssl_context" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.https.ctx.user_agent">
+<code class="sig-name descname"><span class="pre">user_agent</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'Pilot2</span> <span class="pre">client'</span></em><a class="headerlink" href="#pilot.util.https.ctx.user_agent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.https.execute_request">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.https.</span></code><code class="sig-name descname"><span class="pre">execute_request</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">req</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/https.html#execute_request"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.https.execute_request" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute the curl request.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>req</strong> – curl request command (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>status (int), output (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.https.execute_urllib">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.https.</span></code><code class="sig-name descname"><span class="pre">execute_urllib</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">secure</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/https.html#execute_urllib"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.https.execute_urllib" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute the request using urllib.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>url</strong> – URL (string).</p></li>
+<li><p><strong>data</strong> – data structure</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>urllib request structure.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.https.get_curl_command">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.https.</span></code><code class="sig-name descname"><span class="pre">get_curl_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dat</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/https.html#get_curl_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.https.get_curl_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the curl command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>plain</strong> – </p></li>
+<li><p><strong>dat</strong> – curl config option (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>curl command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.https.get_curl_config_option">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.https.</span></code><code class="sig-name descname"><span class="pre">get_curl_config_option</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writestatus</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/https.html#get_curl_config_option"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.https.get_curl_config_option" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the curl config option.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>writestatus</strong> – status of write_file call (Boolean).</p></li>
+<li><p><strong>url</strong> – URL (string).</p></li>
+<li><p><strong>data</strong> – data structure (dictionary).</p></li>
+<li><p><strong>filename</strong> – file name of config file (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>config option (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.https.get_urlopen2_output">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.https.</span></code><code class="sig-name descname"><span class="pre">get_urlopen2_output</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">req</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/https.html#get_urlopen2_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.https.get_urlopen2_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the output from the urlopen2 request.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>req</strong> – </p></li>
+<li><p><strong>context</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>ec (int), output (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.https.get_urlopen_output">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.https.</span></code><code class="sig-name descname"><span class="pre">get_urlopen_output</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">req</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/https.html#get_urlopen_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.https.get_urlopen_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the output from the urlopen request.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>req</strong> – </p></li>
+<li><p><strong>context</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>ec (int), output (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.https.get_vars">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.https.</span></code><code class="sig-name descname"><span class="pre">get_vars</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/https.html#get_vars"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.https.get_vars" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the filename and strdata for the curl config file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>url</strong> – URL (string).</p></li>
+<li><p><strong>data</strong> – data to be written to file (dictionary).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>filename (string), strdata (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.https.https_setup">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.https.</span></code><code class="sig-name descname"><span class="pre">https_setup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/https.html#https_setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.https.https_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets up the context for future HTTPS requests:</p>
+<ol class="arabic simple">
+<li><p>Selects the certificate paths</p></li>
+<li><p>Sets up <em class="mailheader">User-Agent</em></p></li>
+<li><p>Tries to create <a class="reference external" href="https://docs.python.org/3/library/ssl.html#ssl.SSLContext" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">ssl.SSLContext</span></code></a> for future use (falls back to <strong class="command">curl</strong> if fails)</p></li>
+</ol>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – arguments, parsed by <a class="reference external" href="https://docs.python.org/3/library/argparse.html#module-argparse" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">argparse</span></code></a></p></li>
+<li><p><strong>version</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – pilot version string (for <em class="mailheader">User-Agent</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.https.request">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.https.</span></code><code class="sig-name descname"><span class="pre">request</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">secure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/https.html#request"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.https.request" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function sends a request using HTTPS.
+Sends <em class="mailheader">User-Agent</em> and certificates previously being set up by <a class="reference internal" href="#pilot.util.https.https_setup" title="pilot.util.https.https_setup"><code class="xref any py py-func docutils literal notranslate"><span class="pre">https_setup</span></code></a>.
+If <a class="reference external" href="https://docs.python.org/3/library/ssl.html#ssl.SSLContext" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">ssl.SSLContext</span></code></a> is available, uses <code class="xref any docutils literal notranslate"><span class="pre">urllib2</span></code> as a request processor. Otherwise uses <strong class="command">curl</strong>.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">data</span></code> is provided, encodes it as a URL form data and sends it to the server.</p>
+<p>Treats the request as JSON unless a parameter <code class="docutils literal notranslate"><span class="pre">plain</span></code> is <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a>.
+If JSON is expected, sends <code class="docutils literal notranslate"><span class="pre">Accept:</span> <span class="pre">application/json</span></code> header.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>url</strong> (<em>string</em>) – the URL of the resource</p></li>
+<li><p><strong>data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a>) – data to send</p></li>
+<li><p><strong>plain</strong> (<em>boolean</em>) – if true, treats the response as a plain text.</p></li>
+<li><p><strong>secure</strong> – Boolean (default: True, ie use certificates)</p></li>
+</ul>
+</dd>
+</dl>
+<p>Usage:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">https_setup</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">PILOT_VERSION</span><span class="p">)</span>  <span class="c1"># sets up ssl and other stuff</span>
+<span class="hll"><span class="n">response</span> <span class="o">=</span> <span class="n">request</span><span class="p">(</span><span class="s1">&#39;https://some.url&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;some&#39;</span><span class="p">:</span><span class="s1">&#39;data&#39;</span><span class="p">})</span>
+</span></pre></div>
+</div>
+<dl class="simple">
+<dt>Returns:</dt><dd><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/reference/expressions.html#dict" title="(in Python v3.9)"><code class="xref std std-keyword docutils literal notranslate"><span class="pre">dict</span></code></a> – if everything went OK</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">str</span></code></a> – if <code class="docutils literal notranslate"><span class="pre">plain</span></code> parameter is <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a></p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">None</span></code></a> – if something went wrong</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">util components</a><ul>
+      <li>Previous: <a href="harvester.html" title="previous chapter">harvester</a></li>
+      <li>Next: <a href="information.html" title="next chapter">information</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/util/https.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/util/https.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,590 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.util.auxiliary &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.util.auxiliary</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">deque</span><span class="p">,</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Number</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">zero_depth_bases</span> <span class="o">=</span> <span class="p">(</span><span class="n">basestring</span><span class="p">,</span> <span class="n">Number</span><span class="p">,</span> <span class="n">xrange</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">)</span>  <span class="c1"># Python 2</span>
+    <span class="n">iteritems</span> <span class="o">=</span> <span class="s1">&#39;iteritems&#39;</span>
+<span class="k">except</span> <span class="ne">NameError</span><span class="p">:</span>
+    <span class="n">zero_depth_bases</span> <span class="o">=</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">Number</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">)</span>  <span class="c1"># Python 3</span>
+    <span class="n">iteritems</span> <span class="o">=</span> <span class="s1">&#39;items&#39;</span>
+
+<span class="kn">from</span> <span class="nn">pilot.common.errorcodes</span> <span class="kn">import</span> <span class="n">ErrorCodes</span>
+<span class="kn">from</span> <span class="nn">pilot.util.container</span> <span class="kn">import</span> <span class="n">execute</span>
+<span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="n">SUCCESS</span><span class="p">,</span> <span class="n">FAILURE</span><span class="p">,</span> <span class="n">SERVER_UPDATE_FINAL</span><span class="p">,</span> <span class="n">SERVER_UPDATE_NOT_DONE</span><span class="p">,</span> <span class="n">SERVER_UPDATE_TROUBLE</span><span class="p">,</span> <span class="n">get_pilot_version</span>
+<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">dump</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">errors</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="pilot_version_banner"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.pilot_version_banner">[docs]</a><span class="k">def</span> <span class="nf">pilot_version_banner</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Print a pilot version banner.</span>
+
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+    <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;***  PanDA Pilot version </span><span class="si">%s</span><span class="s1">  ***&#39;</span> <span class="o">%</span> <span class="n">get_pilot_version</span><span class="p">()</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;*&#39;</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">version</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">version</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;*&#39;</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">version</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">is_virtual_machine</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;pilot is running in a VM&#39;</span><span class="p">)</span>
+
+    <span class="n">display_architecture_info</span><span class="p">()</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;*&#39;</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">version</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="is_virtual_machine"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.is_virtual_machine">[docs]</a><span class="k">def</span> <span class="nf">is_virtual_machine</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Are we running in a virtual machine?</span>
+<span class="sd">    If we are running inside a VM, then linux will put &#39;hypervisor&#39; in cpuinfo. This function looks for the presence</span>
+<span class="sd">    of that.</span>
+
+<span class="sd">    :return: boolean.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1"># look for &#39;hypervisor&#39; in cpuinfo</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;/proc/cpuinfo&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fd</span><span class="p">:</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;hypervisor&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">break</span>
+
+    <span class="k">return</span> <span class="n">status</span></div>
+
+
+<div class="viewcode-block" id="display_architecture_info"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.display_architecture_info">[docs]</a><span class="k">def</span> <span class="nf">display_architecture_info</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Display OS/architecture information.</span>
+<span class="sd">    The function attempts to use the lsb_release -a command if available. If that is not available,</span>
+<span class="sd">    it will dump the contents of</span>
+
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;architecture information:&quot;</span><span class="p">)</span>
+
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="s2">&quot;lsb_release -a&quot;</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;Command not found&#39;</span> <span class="ow">in</span> <span class="n">stdout</span> <span class="ow">or</span> <span class="s1">&#39;Command not found&#39;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
+        <span class="c1"># Dump standard architecture info files if available</span>
+        <span class="n">dump</span><span class="p">(</span><span class="s2">&quot;/etc/lsb-release&quot;</span><span class="p">)</span>
+        <span class="n">dump</span><span class="p">(</span><span class="s2">&quot;/etc/SuSE-release&quot;</span><span class="p">)</span>
+        <span class="n">dump</span><span class="p">(</span><span class="s2">&quot;/etc/redhat-release&quot;</span><span class="p">)</span>
+        <span class="n">dump</span><span class="p">(</span><span class="s2">&quot;/etc/debian_version&quot;</span><span class="p">)</span>
+        <span class="n">dump</span><span class="p">(</span><span class="s2">&quot;/etc/issue&quot;</span><span class="p">)</span>
+        <span class="n">dump</span><span class="p">(</span><span class="s2">&quot;$MACHTYPE&quot;</span><span class="p">,</span> <span class="n">cmd</span><span class="o">=</span><span class="s2">&quot;echo&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">stdout</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_batchsystem_jobid"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.get_batchsystem_jobid">[docs]</a><span class="k">def</span> <span class="nf">get_batchsystem_jobid</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Identify and return the batch system job id (will be reported to the server)</span>
+
+<span class="sd">    :return: batch system job id</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># BQS (e.g. LYON)</span>
+    <span class="n">batchsystem_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;QSUB_REQNAME&#39;</span><span class="p">:</span> <span class="s1">&#39;BQS&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;BQSCLUSTER&#39;</span><span class="p">:</span> <span class="s1">&#39;BQS&#39;</span><span class="p">,</span>  <span class="c1"># BQS alternative</span>
+                        <span class="s1">&#39;PBS_JOBID&#39;</span><span class="p">:</span> <span class="s1">&#39;Torque&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;LSB_JOBID&#39;</span><span class="p">:</span> <span class="s1">&#39;LSF&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;JOB_ID&#39;</span><span class="p">:</span> <span class="s1">&#39;Grid Engine&#39;</span><span class="p">,</span>  <span class="c1"># Sun&#39;s Grid Engine</span>
+                        <span class="s1">&#39;clusterid&#39;</span><span class="p">:</span> <span class="s1">&#39;Condor&#39;</span><span class="p">,</span>  <span class="c1"># Condor (variable sent through job submit file)</span>
+                        <span class="s1">&#39;SLURM_JOB_ID&#39;</span><span class="p">:</span> <span class="s1">&#39;SLURM&#39;</span><span class="p">}</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">batchsystem_dict</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>  <span class="c1"># Python 2</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">value</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">batchsystem_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>  <span class="c1"># Python 3</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">value</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Condor (get jobid from classad file)</span>
+    <span class="k">if</span> <span class="s1">&#39;_CONDOR_JOB_AD&#39;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">commands</span> <span class="kn">import</span> <span class="n">getoutput</span>  <span class="c1"># Python 2</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">subprocess</span> <span class="kn">import</span> <span class="n">getoutput</span>  <span class="c1"># Python 3</span>
+        <span class="k">return</span> <span class="s2">&quot;Condor&quot;</span><span class="p">,</span> <span class="n">getoutput</span><span class="p">(</span>
+            <span class="s1">&#39;sed -n &quot;s/^GlobalJobId.*</span><span class="se">\\</span><span class="s1">&quot;</span><span class="se">\\</span><span class="s1">(.*</span><span class="se">\\</span><span class="s1">)</span><span class="se">\\</span><span class="s1">&quot;.*/</span><span class="se">\\</span><span class="s1">1/p&quot; </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;_CONDOR_JOB_AD&quot;</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="get_job_scheduler_id"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.get_job_scheduler_id">[docs]</a><span class="k">def</span> <span class="nf">get_job_scheduler_id</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the job scheduler id from the environment variable PANDA_JSID</span>
+
+<span class="sd">    :return: job scheduler id (string)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;PANDA_JSID&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_pilot_id"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.get_pilot_id">[docs]</a><span class="k">def</span> <span class="nf">get_pilot_id</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the pilot id from the environment variable GTAG</span>
+
+<span class="sd">    :return: pilot id (string)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;GTAG&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="whoami"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.whoami">[docs]</a><span class="k">def</span> <span class="nf">whoami</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the name of the pilot user.</span>
+
+<span class="sd">    :return: whoami output (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">who_am_i</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="s1">&#39;whoami&#39;</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">who_am_i</span></div>
+
+
+<div class="viewcode-block" id="get_logger"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.get_logger">[docs]</a><span class="k">def</span> <span class="nf">get_logger</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the logger object.</span>
+<span class="sd">    Use this function to get the proper logger object. It relies on a python 2.7 function, getChild(), but if the queue</span>
+<span class="sd">    is only using Python 2.6, the standard logger object will be returned instead.</span>
+
+<span class="sd">    WARNING: it seems using this function can lead to severe memory leaks (multiple GB) in some jobs. Do not use. Keep</span>
+<span class="sd">    this definition for possible later investigation.</span>
+
+<span class="sd">    :param jod_id: PanDA job id (string).</span>
+<span class="sd">    :return: logger object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">log</span> <span class="o">=</span> <span class="n">log</span><span class="o">.</span><span class="n">getChild</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">log</span> <span class="o">=</span> <span class="n">logger</span><span class="o">.</span><span class="n">getChild</span><span class="p">(</span><span class="n">job_id</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">log</span><span class="p">:</span>
+            <span class="n">log</span> <span class="o">=</span> <span class="n">logger</span>
+    <span class="k">return</span> <span class="n">log</span></div>
+
+
+<div class="viewcode-block" id="get_error_code_translation_dictionary"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.get_error_code_translation_dictionary">[docs]</a><span class="k">def</span> <span class="nf">get_error_code_translation_dictionary</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Define the error code translation dictionary.</span>
+
+<span class="sd">    :return: populated error code translation dictionary.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">error_code_translation_dictionary</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="s2">&quot;Site offline&quot;</span><span class="p">],</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">GENERALERROR</span><span class="p">:</span> <span class="p">[</span><span class="mi">65</span><span class="p">,</span> <span class="s2">&quot;General pilot error, consult batch log&quot;</span><span class="p">],</span>  <span class="c1"># added to traces object</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">MKDIR</span><span class="p">:</span> <span class="p">[</span><span class="mi">66</span><span class="p">,</span> <span class="s2">&quot;Could not create directory&quot;</span><span class="p">],</span>  <span class="c1"># added to traces object</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">NOSUCHFILE</span><span class="p">:</span> <span class="p">[</span><span class="mi">67</span><span class="p">,</span> <span class="s2">&quot;No such file or directory&quot;</span><span class="p">],</span>  <span class="c1"># added to traces object</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">NOVOMSPROXY</span><span class="p">:</span> <span class="p">[</span><span class="mi">68</span><span class="p">,</span> <span class="s2">&quot;Voms proxy not valid&quot;</span><span class="p">],</span>  <span class="c1"># added to traces object</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">NOPROXY</span><span class="p">:</span> <span class="p">[</span><span class="mi">68</span><span class="p">,</span> <span class="s2">&quot;Proxy not valid&quot;</span><span class="p">],</span>  <span class="c1"># added to traces object</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">NOLOCALSPACE</span><span class="p">:</span> <span class="p">[</span><span class="mi">69</span><span class="p">,</span> <span class="s2">&quot;No space left on local disk&quot;</span><span class="p">],</span>  <span class="c1"># added to traces object</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">UNKNOWNEXCEPTION</span><span class="p">:</span> <span class="p">[</span><span class="mi">70</span><span class="p">,</span> <span class="s2">&quot;Exception caught by pilot&quot;</span><span class="p">],</span>  <span class="c1"># added to traces object</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">QUEUEDATA</span><span class="p">:</span> <span class="p">[</span><span class="mi">71</span><span class="p">,</span> <span class="s2">&quot;Pilot could not download queuedata&quot;</span><span class="p">],</span>  <span class="c1"># tested</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">QUEUEDATANOTOK</span><span class="p">:</span> <span class="p">[</span><span class="mi">72</span><span class="p">,</span> <span class="s2">&quot;Pilot found non-valid queuedata&quot;</span><span class="p">],</span>  <span class="c1"># not implemented yet, error code added</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">NOSOFTWAREDIR</span><span class="p">:</span> <span class="p">[</span><span class="mi">73</span><span class="p">,</span> <span class="s2">&quot;Software directory does not exist&quot;</span><span class="p">],</span>  <span class="c1"># added to traces object</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">JSONRETRIEVALTIMEOUT</span><span class="p">:</span> <span class="p">[</span><span class="mi">74</span><span class="p">,</span> <span class="s2">&quot;JSON retrieval timed out&quot;</span><span class="p">],</span>  <span class="c1"># ..</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">BLACKHOLE</span><span class="p">:</span> <span class="p">[</span><span class="mi">75</span><span class="p">,</span> <span class="s2">&quot;Black hole detected in file system&quot;</span><span class="p">],</span>  <span class="c1"># ..</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">MIDDLEWAREIMPORTFAILURE</span><span class="p">:</span> <span class="p">[</span><span class="mi">76</span><span class="p">,</span> <span class="s2">&quot;Failed to import middleware module&quot;</span><span class="p">],</span>  <span class="c1"># added to traces object</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">MISSINGINPUTFILE</span><span class="p">:</span> <span class="p">[</span><span class="mi">77</span><span class="p">,</span> <span class="s2">&quot;Missing input file in SE&quot;</span><span class="p">],</span>  <span class="c1"># should pilot report this type of error to wrapper?</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">PANDAQUEUENOTACTIVE</span><span class="p">:</span> <span class="p">[</span><span class="mi">78</span><span class="p">,</span> <span class="s2">&quot;PanDA queue is not active&quot;</span><span class="p">],</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">KILLSIGNAL</span><span class="p">:</span> <span class="p">[</span><span class="mi">137</span><span class="p">,</span> <span class="s2">&quot;General kill signal&quot;</span><span class="p">],</span>  <span class="c1"># Job terminated by unknown kill signal</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">:</span> <span class="p">[</span><span class="mi">143</span><span class="p">,</span> <span class="s2">&quot;Job killed by signal: SIGTERM&quot;</span><span class="p">],</span>  <span class="c1"># 128+15</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">SIGQUIT</span><span class="p">:</span> <span class="p">[</span><span class="mi">131</span><span class="p">,</span> <span class="s2">&quot;Job killed by signal: SIGQUIT&quot;</span><span class="p">],</span>  <span class="c1"># 128+3</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">SIGSEGV</span><span class="p">:</span> <span class="p">[</span><span class="mi">139</span><span class="p">,</span> <span class="s2">&quot;Job killed by signal: SIGSEGV&quot;</span><span class="p">],</span>  <span class="c1"># 128+11</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">SIGXCPU</span><span class="p">:</span> <span class="p">[</span><span class="mi">158</span><span class="p">,</span> <span class="s2">&quot;Job killed by signal: SIGXCPU&quot;</span><span class="p">],</span>  <span class="c1"># 128+30</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">SIGUSR1</span><span class="p">:</span> <span class="p">[</span><span class="mi">144</span><span class="p">,</span> <span class="s2">&quot;Job killed by signal: SIGUSR1&quot;</span><span class="p">],</span>  <span class="c1"># 128+16</span>
+        <span class="n">errors</span><span class="o">.</span><span class="n">SIGBUS</span><span class="p">:</span> <span class="p">[</span><span class="mi">138</span><span class="p">,</span> <span class="s2">&quot;Job killed by signal: SIGBUS&quot;</span><span class="p">]</span>   <span class="c1"># 128+10</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">error_code_translation_dictionary</span></div>
+
+
+<div class="viewcode-block" id="shell_exit_code"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.shell_exit_code">[docs]</a><span class="k">def</span> <span class="nf">shell_exit_code</span><span class="p">(</span><span class="n">exit_code</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Translate the pilot exit code to a proper exit code for the shell (wrapper).</span>
+<span class="sd">    Any error code that is to be converted by this function, should be added to the traces object like:</span>
+<span class="sd">      traces.pilot[&#39;error_code&#39;] = errors.&lt;ERRORCODE&gt;</span>
+<span class="sd">    The traces object will be checked by the pilot module.</span>
+
+<span class="sd">    :param exit_code: pilot error code (int).</span>
+<span class="sd">    :return: standard shell exit code (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Error code translation dictionary</span>
+    <span class="c1"># FORMAT: { pilot_error_code : [ shell_error_code, meaning ], .. }</span>
+
+    <span class="c1"># Restricting user (pilot) exit codes to the range 64 - 113, as suggested by http://tldp.org/LDP/abs/html/exitcodes.html</span>
+    <span class="c1"># Using exit code 137 for kill signal error codes (this actually means a hard kill signal 9, (128+9), 128+2 would mean CTRL+C)</span>
+
+    <span class="n">error_code_translation_dictionary</span> <span class="o">=</span> <span class="n">get_error_code_translation_dictionary</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">exit_code</span> <span class="ow">in</span> <span class="n">error_code_translation_dictionary</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">error_code_translation_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">exit_code</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># Only return the shell exit code, not the error meaning</span>
+    <span class="k">elif</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;no translation to shell exit code for error code </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">exit_code</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">FAILURE</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">SUCCESS</span></div>
+
+
+<div class="viewcode-block" id="convert_to_pilot_error_code"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.convert_to_pilot_error_code">[docs]</a><span class="k">def</span> <span class="nf">convert_to_pilot_error_code</span><span class="p">(</span><span class="n">exit_code</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This conversion function is used to revert a batch system exit code back to a pilot error code.</span>
+<span class="sd">    Note: the function is used by Harvester.</span>
+
+<span class="sd">    :param exit_code: batch system exit code (int).</span>
+<span class="sd">    :return: pilot error code (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">error_code_translation_dictionary</span> <span class="o">=</span> <span class="n">get_error_code_translation_dictionary</span><span class="p">()</span>
+
+    <span class="n">list_of_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="ow">in</span> <span class="n">error_code_translation_dictionary</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">exit_code</span><span class="p">]</span>
+    <span class="c1"># note: do not use logging object as this function is used by Harvester</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">list_of_keys</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;unknown exit code: </span><span class="si">%d</span><span class="s1"> (no matching pilot error code)&#39;</span> <span class="o">%</span> <span class="n">exit_code</span><span class="p">)</span>
+        <span class="n">list_of_keys</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_of_keys</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;found multiple pilot error codes: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">list_of_keys</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">list_of_keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="get_size"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.get_size">[docs]</a><span class="k">def</span> <span class="nf">get_size</span><span class="p">(</span><span class="n">obj_0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Recursively iterate to sum size of object &amp; members.</span>
+<span class="sd">    Note: for size measurement to work, the object must have set the data members in the __init__().</span>
+
+<span class="sd">    :param obj_0: object to be measured.</span>
+<span class="sd">    :return: size in Bytes (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_seen_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">inner</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+        <span class="n">obj_id</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">obj_id</span> <span class="ow">in</span> <span class="n">_seen_ids</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+
+        <span class="n">_seen_ids</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">obj_id</span><span class="p">)</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">getsizeof</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">zero_depth_bases</span><span class="p">):</span>
+            <span class="k">pass</span>  <span class="c1"># bypass remaining control flow and return</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">):</span>
+            <span class="k">pass</span>  <span class="c1"># can currently not handle this</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">deque</span><span class="p">)):</span>
+            <span class="n">size</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">iteritems</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">size</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">+</span> <span class="n">inner</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">iteritems</span><span class="p">)())</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># as e</span>
+                <span class="k">pass</span>
+                <span class="c1"># &lt;class &#39;collections.OrderedDict&#39;&gt;: unbound method iteritems() must be called</span>
+                <span class="c1"># with OrderedDict instance as first argument (got nothing instead)</span>
+                <span class="c1">#logger.debug(&#39;exception caught for obj=%s: %s&#39; % (str(obj), e))</span>
+
+        <span class="c1"># Check for custom object instances - may subclass above too</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;__dict__&#39;</span><span class="p">):</span>
+            <span class="n">size</span> <span class="o">+=</span> <span class="n">inner</span><span class="p">(</span><span class="nb">vars</span><span class="p">(</span><span class="n">obj</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;__slots__&#39;</span><span class="p">):</span>  <span class="c1"># can have __slots__ with __dict__</span>
+            <span class="n">size</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">s</span><span class="p">))</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="vm">__slots__</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">s</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">size</span>
+
+    <span class="k">return</span> <span class="n">inner</span><span class="p">(</span><span class="n">obj_0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_pilot_state"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.get_pilot_state">[docs]</a><span class="k">def</span> <span class="nf">get_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the current pilot (job) state.</span>
+<span class="sd">    If the job object does not exist, the environmental variable PILOT_JOB_STATE will be queried instead.</span>
+
+<span class="sd">    :param job:</span>
+<span class="sd">    :return: pilot (job) state (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="k">if</span> <span class="n">job</span> <span class="k">else</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_JOB_STATE&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="set_pilot_state"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.set_pilot_state">[docs]</a><span class="k">def</span> <span class="nf">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set the internal pilot state.</span>
+<span class="sd">    Note: this function should update the global/singleton object but currently uses an environmental variable</span>
+<span class="sd">    (PILOT_JOB_STATE).</span>
+<span class="sd">    The function does not update job.state if it is already set to finished or failed.</span>
+<span class="sd">    The environmental variable PILOT_JOB_STATE will always be set, in case the job object does not exist.</span>
+
+<span class="sd">    :param job: optional job object.</span>
+<span class="sd">    :param state: internal pilot state (string).</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PILOT_JOB_STATE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span>
+
+    <span class="k">if</span> <span class="n">job</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">!=</span> <span class="s1">&#39;failed&#39;</span><span class="p">:</span>
+        <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span></div>
+
+
+<div class="viewcode-block" id="check_for_final_server_update"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.check_for_final_server_update">[docs]</a><span class="k">def</span> <span class="nf">check_for_final_server_update</span><span class="p">(</span><span class="n">update_server</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Do not set graceful stop if pilot has not finished sending the final job update</span>
+<span class="sd">    i.e. wait until SERVER_UPDATE is DONE_FINAL. This function sleeps for a maximum</span>
+<span class="sd">    of 20*30 s until SERVER_UPDATE env variable has been set to SERVER_UPDATE_FINAL.</span>
+
+<span class="sd">    :param update_server: args.update_server boolean.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">max_i</span> <span class="o">=</span> <span class="mi">20</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># abort if in startup stage or if in final update stage</span>
+    <span class="n">server_update</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;SERVER_UPDATE&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">server_update</span> <span class="o">==</span> <span class="n">SERVER_UPDATE_NOT_DONE</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">max_i</span> <span class="ow">and</span> <span class="n">update_server</span><span class="p">:</span>
+        <span class="n">server_update</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;SERVER_UPDATE&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">server_update</span> <span class="o">==</span> <span class="n">SERVER_UPDATE_FINAL</span> <span class="ow">or</span> <span class="n">server_update</span> <span class="o">==</span> <span class="n">SERVER_UPDATE_TROUBLE</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;server update done, finishing&#39;</span><span class="p">)</span>
+            <span class="k">break</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;server update not finished (#</span><span class="si">%d</span><span class="s1">/#</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">max_i</span><span class="p">))</span>
+        <span class="n">sleep</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="is_python3"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.is_python3">[docs]</a><span class="k">def</span> <span class="nf">is_python3</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check if we are running on Python 3.</span>
+
+<span class="sd">    :return: boolean.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_resource_name"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.get_resource_name">[docs]</a><span class="k">def</span> <span class="nf">get_resource_name</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the name of the resource (only set for HPC resources; e.g. Cori, otherwise return &#39;grid&#39;).</span>
+
+<span class="sd">    :return: resource_name (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">resource_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_RESOURCE_NAME&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">resource_name</span><span class="p">:</span>
+        <span class="n">resource_name</span> <span class="o">=</span> <span class="s1">&#39;grid&#39;</span>
+    <span class="k">return</span> <span class="n">resource_name</span></div>
+
+
+<div class="viewcode-block" id="get_object_size"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.get_object_size">[docs]</a><span class="k">def</span> <span class="nf">get_object_size</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">seen</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Recursively find the size of any objects</span>
+
+<span class="sd">    :param obj: object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">size</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">getsizeof</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">seen</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">obj_id</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">obj_id</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">0</span>
+
+    <span class="c1"># Important mark as seen *before* entering recursion to gracefully handle</span>
+    <span class="c1"># self-referential objects</span>
+    <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">obj_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">size</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">get_object_size</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">seen</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
+        <span class="n">size</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">get_object_size</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">seen</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">keys</span><span class="p">()])</span>
+    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;__dict__&#39;</span><span class="p">):</span>
+        <span class="n">size</span> <span class="o">+=</span> <span class="n">get_object_size</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span> <span class="n">seen</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;__iter__&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">)):</span>
+        <span class="n">size</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">get_object_size</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">seen</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">size</span></div>
+
+
+<div class="viewcode-block" id="show_memory_usage"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.show_memory_usage">[docs]</a><span class="k">def</span> <span class="nf">show_memory_usage</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Display the current memory usage by the pilot process.</span>
+
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_ec</span><span class="p">,</span> <span class="n">_stdout</span><span class="p">,</span> <span class="n">_stderr</span> <span class="o">=</span> <span class="n">get_memory_usage</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">())</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">_value</span> <span class="o">=</span> <span class="n">extract_memory_usage_value</span><span class="p">(</span><span class="n">_stdout</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">_value</span> <span class="o">=</span> <span class="s2">&quot;(unknown)&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;current pilot memory usage:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n\n</span><span class="s1">usage: </span><span class="si">%s</span><span class="s1"> kB</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_stdout</span><span class="p">,</span> <span class="n">_value</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="get_memory_usage"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.get_memory_usage">[docs]</a><span class="k">def</span> <span class="nf">get_memory_usage</span><span class="p">(</span><span class="n">pid</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the memory usage string (ps auxf &lt;pid&gt;) for the given process.</span>
+
+<span class="sd">    :param pid: process id (int).</span>
+<span class="sd">    :return: ps exit code (int), stderr (strint), stdout (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">execute</span><span class="p">(</span><span class="s1">&#39;ps aux -q </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">pid</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="extract_memory_usage_value"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.extract_memory_usage_value">[docs]</a><span class="k">def</span> <span class="nf">extract_memory_usage_value</span><span class="p">(</span><span class="n">output</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract the memory usage value from the ps output (in kB).</span>
+
+<span class="sd">    # USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND</span>
+<span class="sd">    # usatlas1 13917  1.5  0.0 1324968 152832 ?      Sl   09:33   2:55 /bin/python2 ..</span>
+<span class="sd">    # -&gt; 152832 (kB)</span>
+
+<span class="sd">    :param output: ps output (string).</span>
+<span class="sd">    :return: memory value in kB (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">memory_usage</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">output</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">memory_usage</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">split</span><span class="p">())</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)[</span><span class="mi">5</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">break</span>
+
+    <span class="k">return</span> <span class="n">memory_usage</span></div>
+
+
+<div class="viewcode-block" id="cut_output"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.cut_output">[docs]</a><span class="k">def</span> <span class="nf">cut_output</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="n">cutat</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">[...]</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Cut the given string if longer that 2*cutat value.</span>
+
+<span class="sd">    :param txt: text to be cut at position cutat (string).</span>
+<span class="sd">    :param cutat: max length of uncut text (int).</span>
+<span class="sd">    :param separator: separator text (string).</span>
+<span class="sd">    :return: cut text (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">txt</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">cutat</span><span class="p">:</span>
+        <span class="n">txt</span> <span class="o">=</span> <span class="n">txt</span><span class="p">[:</span><span class="n">cutat</span><span class="p">]</span> <span class="o">+</span> <span class="n">separator</span> <span class="o">+</span> <span class="n">txt</span><span class="p">[</span><span class="o">-</span><span class="n">cutat</span><span class="p">:]</span>
+
+    <span class="k">return</span> <span class="n">txt</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

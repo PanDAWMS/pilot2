@@ -1,0 +1,237 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>common &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="gfal" href="gfal.html" />
+    <link rel="prev" title="copytool components" href="index.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.copytool.common">
+<span id="common"></span><h1>common<a class="headerlink" href="#module-pilot.copytool.common" title="Permalink to this headline">¶</a></h1>
+<dl class="py function">
+<dt id="pilot.copytool.common.get_copysetup">
+<code class="sig-prename descclassname"><span class="pre">pilot.copytool.common.</span></code><code class="sig-name descname"><span class="pre">get_copysetup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">copytools</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copytool_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/common.html#get_copysetup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.common.get_copysetup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the copysetup for the given copytool.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>copytools</strong> – copytools list from infosys.</p></li>
+<li><p><strong>name</strong> (<em>copytool</em>) – name of copytool (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>copysetup (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.copytool.common.get_error_info">
+<code class="sig-prename descclassname"><span class="pre">pilot.copytool.common.</span></code><code class="sig-name descname"><span class="pre">get_error_info</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rcode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_msg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/common.html#get_error_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.common.get_error_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an error info dictionary specific to transfer errors.
+Helper function to resolve_common_transfer_errors().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rcode</strong> – return code (int).</p></li>
+<li><p><strong>state</strong> – state string used in Rucio traces.</p></li>
+<li><p><strong>error_msg</strong> – transfer command stdout (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dictionary with format {‘rcode’: rcode, ‘state’: state, ‘error’: error_msg}.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.copytool.common.get_timeout">
+<code class="sig-prename descclassname"><span class="pre">pilot.copytool.common.</span></code><code class="sig-name descname"><span class="pre">get_timeout</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filesize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/common.html#get_timeout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.common.get_timeout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a proper time-out limit based on the file size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filesize</strong> – file size (int).</p></li>
+<li><p><strong>add</strong> – optional additional time to be added [s] (int)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>time-out in seconds (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.copytool.common.merge_destinations">
+<code class="sig-prename descclassname"><span class="pre">pilot.copytool.common.</span></code><code class="sig-name descname"><span class="pre">merge_destinations</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/common.html#merge_destinations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.common.merge_destinations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts the file-with-destination dict to a destination-with-files dict</p>
+<p>:param files Files to merge</p>
+<p>:returns destination-with-files dictionary</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.copytool.common.output_line_scan">
+<code class="sig-prename descclassname"><span class="pre">pilot.copytool.common.</span></code><code class="sig-name descname"><span class="pre">output_line_scan</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ret</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/common.html#output_line_scan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.common.output_line_scan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do some reg exp on the transfer command output to search for special errors.
+Helper function to resolve_common_transfer_errors().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ret</strong> – pre-filled error info dictionary with format {‘rcode’: rcode, ‘state’: state, ‘error’: error_msg}</p></li>
+<li><p><strong>output</strong> – transfer command stdout (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated error info dictionary.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.copytool.common.resolve_common_transfer_errors">
+<code class="sig-prename descclassname"><span class="pre">pilot.copytool.common.</span></code><code class="sig-name descname"><span class="pre">resolve_common_transfer_errors</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_stagein</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/common.html#resolve_common_transfer_errors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.common.resolve_common_transfer_errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve any common transfer related errors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output</strong> – stdout from transfer command (string).</p></li>
+<li><p><strong>is_stagein</strong> – optional (boolean).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dict {‘rcode’: rcode, ‘state’: state, ‘error’: error_msg}.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.copytool.common.verify_catalog_checksum">
+<code class="sig-prename descclassname"><span class="pre">pilot.copytool.common.</span></code><code class="sig-name descname"><span class="pre">verify_catalog_checksum</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fspec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/common.html#verify_catalog_checksum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.common.verify_catalog_checksum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verify that the local and remote (fspec) checksum values are the same.
+The function will update the fspec object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fspec</strong> – FileSpec object for a given file.</p></li>
+<li><p><strong>path</strong> – path to local file (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>state (string), diagnostics (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../control/index.html">control components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../util/index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">copytool components</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">copytool components</a></li>
+      <li>Next: <a href="gfal.html" title="next chapter">gfal</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/copytool/common.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/copytool/common.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

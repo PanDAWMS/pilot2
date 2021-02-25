@@ -1,0 +1,351 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.info.basedata &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.info.basedata</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Alexey Anisenkov, anisyonk@cern.ch, 2018</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2019</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The implementation of base data structure to host various settings collected</span>
+<span class="sd">from external source with built-in validation and schema translation support.</span>
+
+<span class="sd">The main reasons for such incapsulation are to</span>
+<span class="sd"> - apply in one place all data validation actions (for attributes and values)</span>
+<span class="sd"> - introduce internal information schema (names of attribues) to remove dependency</span>
+<span class="sd"> with data structrure, formats, names from external sources (e.g. AGIS/CRIC)</span>
+
+
+<span class="sd">:author: Alexey Anisenkov</span>
+<span class="sd">:contact: anisyonk@cern.ch</span>
+<span class="sd">:date: January 2018</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">ast</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="BaseData"><a class="viewcode-back" href="../../../components/info/basedata.html#pilot.info.basedata.BaseData">[docs]</a><span class="k">class</span> <span class="nc">BaseData</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        High-level object to host structured data collected from external source</span>
+<span class="sd">        It&#39;s considered to be like a bridge (connector) in order to remove direct dependency to</span>
+<span class="sd">        external schema (format) implementation</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_keys</span> <span class="o">=</span> <span class="p">{}</span>
+
+<div class="viewcode-block" id="BaseData._load_data"><a class="viewcode-back" href="../../../components/info/basedata.html#pilot.info.basedata.BaseData._load_data">[docs]</a>    <span class="k">def</span> <span class="nf">_load_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">kmap</span><span class="o">=</span><span class="p">{},</span> <span class="n">validators</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Construct and initialize data from ext source.</span>
+
+<span class="sd">            :param data: input dictionary of raw data settings</span>
+<span class="sd">            :param kmap: the translation map of data attributes from external format to internal schema</span>
+<span class="sd">            :param validators: map of validation handlers to be applied</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># the translation map of the queue data attributes from external data to internal schema</span>
+        <span class="c1"># &#39;internal_name&#39;:(&#39;ext_name1&#39;, &#39;extname2_if_any&#39;)</span>
+        <span class="c1"># &#39;internal_name2&#39;:&#39;ext_name3&#39;</span>
+
+        <span class="c1"># first defined ext field will be used</span>
+        <span class="c1"># if key is not explicitly specified then ext name will be used as is</span>
+        <span class="c1">## fix me later to proper internal names if need</span>
+
+        <span class="c1">#kmap = {</span>
+        <span class="c1">#    # &#39;internal_name&#39;:(&#39;ext_name1&#39;, &#39;extname2_if_any&#39;),</span>
+        <span class="c1">#    # &#39;internal_name2&#39;:&#39;ext_name3&#39;</span>
+        <span class="c1">#    }</span>
+
+        <span class="k">if</span> <span class="n">validators</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># default validators</span>
+            <span class="n">validators</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean_numeric</span><span class="p">,</span>
+                          <span class="nb">str</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean_string</span><span class="p">,</span>
+                          <span class="nb">bool</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean_boolean</span><span class="p">,</span>
+                          <span class="nb">dict</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean_dictdata</span><span class="p">,</span>
+
+                          <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean_string</span><span class="p">,</span>  <span class="c1"># default validator</span>
+                          <span class="p">}</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_keys</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>  <span class="c1"># Python 3</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">_items</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keys</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()</span>  <span class="c1"># Python 2</span>
+        <span class="k">for</span> <span class="n">ktype</span><span class="p">,</span> <span class="n">knames</span> <span class="ow">in</span> <span class="n">_items</span><span class="p">:</span>
+
+            <span class="k">for</span> <span class="n">kname</span> <span class="ow">in</span> <span class="n">knames</span><span class="p">:</span>
+                <span class="n">raw</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+                <span class="n">ext_names</span> <span class="o">=</span> <span class="n">kmap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">kname</span><span class="p">)</span> <span class="ow">or</span> <span class="n">kname</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ext_names</span><span class="p">,</span> <span class="n">basestring</span><span class="p">):</span>  <span class="c1"># Python 2  # noqa: F821</span>
+                        <span class="n">ext_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">ext_names</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ext_names</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>  <span class="c1"># Python 3</span>
+                        <span class="n">ext_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">ext_names</span><span class="p">]</span>
+
+                <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">ext_names</span><span class="p">:</span>
+                    <span class="n">raw</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">raw</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">break</span>
+
+                <span class="c1">## cast to required type and apply default validation</span>
+                <span class="n">hvalidator</span> <span class="o">=</span> <span class="n">validators</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ktype</span><span class="p">,</span> <span class="n">validators</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">hvalidator</span><span class="p">):</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">hvalidator</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">ktype</span><span class="p">,</span> <span class="n">kname</span><span class="p">,</span> <span class="n">defval</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kname</span><span class="p">,</span> <span class="kc">None</span><span class="p">)))</span>
+                <span class="c1">## apply custom validation if defined</span>
+                <span class="n">hvalidator</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;clean__</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">kname</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">hvalidator</span><span class="p">):</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">hvalidator</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kname</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">clean</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BaseData.clean"><a class="viewcode-back" href="../../../components/info/basedata.html#pilot.info.basedata.BaseData.clean">[docs]</a>    <span class="k">def</span> <span class="nf">clean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Validate and finally clean up required data values (required object properties) if need</span>
+<span class="sd">            Executed once all fields have already passed field-specific validation checks</span>
+<span class="sd">            Could be customized by child object</span>
+<span class="sd">            :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    <span class="c1">##</span>
+    <span class="c1">## default validators</span>
+    <span class="c1">##</span>
+<div class="viewcode-block" id="BaseData.clean_numeric"><a class="viewcode-back" href="../../../components/info/basedata.html#pilot.info.basedata.BaseData.clean_numeric">[docs]</a>    <span class="k">def</span> <span class="nf">clean_numeric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">ktype</span><span class="p">,</span> <span class="n">kname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">defval</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Clean and convert input value to requested numeric type</span>
+<span class="sd">            :param raw: raw input data</span>
+<span class="sd">            :param ktype: variable type to which result should be casted</span>
+<span class="sd">            :param defval: default value to be used in case of cast error</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">ktype</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">raw</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">basestring</span><span class="p">):</span>  <span class="c1"># Python 2  # noqa: F821</span>
+                <span class="n">raw</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>  <span class="c1"># Python 3</span>
+                <span class="n">raw</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ktype</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">raw</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert data for key=</span><span class="si">%s</span><span class="s1">, raw=</span><span class="si">%s</span><span class="s1"> to type=</span><span class="si">%s</span><span class="s1">, defval=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">kname</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">ktype</span><span class="p">,</span> <span class="n">defval</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">defval</span></div>
+
+<div class="viewcode-block" id="BaseData.clean_string"><a class="viewcode-back" href="../../../components/info/basedata.html#pilot.info.basedata.BaseData.clean_string">[docs]</a>    <span class="k">def</span> <span class="nf">clean_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">ktype</span><span class="p">,</span> <span class="n">kname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">defval</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Clean and convert input value to requested string type</span>
+<span class="sd">            :param raw: raw input data</span>
+<span class="sd">            :param ktype: variable type to which result should be casted</span>
+<span class="sd">            :param defval: default value to be used in case of cast error</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">ktype</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">raw</span>
+
+        <span class="k">if</span> <span class="n">raw</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">defval</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">basestring</span><span class="p">):</span>  <span class="c1"># Python 2  # noqa: F821</span>
+                    <span class="n">raw</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>  <span class="c1"># Python 3</span>
+                    <span class="n">raw</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ktype</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert data for key=</span><span class="si">%s</span><span class="s1">, raw=</span><span class="si">%s</span><span class="s1"> to type=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">kname</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">ktype</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">defval</span></div>
+
+<div class="viewcode-block" id="BaseData.clean_boolean"><a class="viewcode-back" href="../../../components/info/basedata.html#pilot.info.basedata.BaseData.clean_boolean">[docs]</a>    <span class="k">def</span> <span class="nf">clean_boolean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">ktype</span><span class="p">,</span> <span class="n">kname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">defval</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Clean and convert input value to requested boolean type</span>
+<span class="sd">            :param raw: raw input data</span>
+<span class="sd">            :param ktype: variable type to which result should be casted</span>
+<span class="sd">            :param defval: default value to be used in case of cast error</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">ktype</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">raw</span>
+
+        <span class="k">if</span> <span class="n">raw</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1">## not set value, use default</span>
+            <span class="k">return</span> <span class="n">defval</span>
+
+        <span class="n">val</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">allowed_values</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="s1">&#39;true&#39;</span><span class="p">,</span> <span class="s1">&#39;false&#39;</span><span class="p">,</span> <span class="s1">&#39;yes&#39;</span><span class="p">,</span> <span class="s1">&#39;no&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">val</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed_values</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert data for key=</span><span class="si">%s</span><span class="s1">, raw=</span><span class="si">%s</span><span class="s1"> to type=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">kname</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">ktype</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">defval</span>
+
+        <span class="k">return</span> <span class="n">val</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;true&#39;</span><span class="p">,</span> <span class="s1">&#39;yes&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="BaseData.clean_dictdata"><a class="viewcode-back" href="../../../components/info/basedata.html#pilot.info.basedata.BaseData.clean_dictdata">[docs]</a>    <span class="k">def</span> <span class="nf">clean_dictdata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">ktype</span><span class="p">,</span> <span class="n">kname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">defval</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Clean and convert input value to requested dict type</span>
+<span class="sd">            :param raw: raw input data</span>
+<span class="sd">            :param ktype: variable type to which result should be casted</span>
+<span class="sd">            :param defval: default value to be used in case of cast error</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">ktype</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">raw</span>
+
+        <span class="k">elif</span> <span class="n">raw</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">defval</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ktype</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert data for key=</span><span class="si">%s</span><span class="s1">, raw=</span><span class="si">%s</span><span class="s1"> to type=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">kname</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">ktype</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">defval</span></div>
+
+<div class="viewcode-block" id="BaseData.clean_listdata"><a class="viewcode-back" href="../../../components/info/basedata.html#pilot.info.basedata.BaseData.clean_listdata">[docs]</a>    <span class="k">def</span> <span class="nf">clean_listdata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">ktype</span><span class="p">,</span> <span class="n">kname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">defval</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Clean and convert input value to requested list type</span>
+<span class="sd">            :param raw: raw input data</span>
+<span class="sd">            :param ktype: variable type to which result should be casted</span>
+<span class="sd">            :param defval: default value to be used in case of cast error</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">ktype</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">raw</span>
+
+        <span class="k">elif</span> <span class="n">raw</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">defval</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">basestring</span><span class="p">):</span>  <span class="c1"># Python 2  # noqa: F821</span>
+                    <span class="n">raw</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>  <span class="c1"># Python 3</span>
+                    <span class="n">raw</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ktype</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert data for key=</span><span class="si">%s</span><span class="s1">, raw=</span><span class="si">%s</span><span class="s1"> to type=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">kname</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">ktype</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">defval</span></div>
+
+    <span class="c1">## custom function pattern to apply extra validation to the give key values</span>
+    <span class="c1">#def clean__keyname(self, raw, value):</span>
+    <span class="c1">#  :param raw: raw value passed from ext source as input</span>
+    <span class="c1">#  :param value: preliminary cleaned and casted to proper type value</span>
+    <span class="c1">#</span>
+    <span class="c1">#    return value</span>
+
+<div class="viewcode-block" id="BaseData.__repr__"><a class="viewcode-back" href="../../../components/info/basedata.html#pilot.info.basedata.BaseData.__repr__">[docs]</a>    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Default representation of an object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">attrs</span><span class="p">):</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot; </span><span class="si">%s</span><span class="s2">=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)))</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

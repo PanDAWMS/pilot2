@@ -1,0 +1,215 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.user.atlas.memory &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.user.atlas.memory</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018-2020</span>
+
+<span class="kn">from</span> <span class="nn">.utilities</span> <span class="kn">import</span> <span class="n">get_memory_values</span>
+<span class="kn">from</span> <span class="nn">pilot.common.errorcodes</span> <span class="kn">import</span> <span class="n">ErrorCodes</span>
+<span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">set_pilot_state</span>
+<span class="kn">from</span> <span class="nn">pilot.util.processes</span> <span class="kn">import</span> <span class="n">kill_processes</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">errors</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="allow_memory_usage_verifications"><a class="viewcode-back" href="../../../../components/user/atlas/memory.html#pilot.user.atlas.memory.allow_memory_usage_verifications">[docs]</a><span class="k">def</span> <span class="nf">allow_memory_usage_verifications</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Should memory usage verifications be performed?</span>
+
+<span class="sd">    :return: boolean.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="get_ucore_scale_factor"><a class="viewcode-back" href="../../../../components/user/atlas/memory.html#pilot.user.atlas.memory.get_ucore_scale_factor">[docs]</a><span class="k">def</span> <span class="nf">get_ucore_scale_factor</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the correction/scale factor for SCORE/4CORE/nCORE jobs on UCORE queues/</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return: scale factor (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">job_corecount</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">corecount</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1"> (job.corecount=</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">corecount</span><span class="p">)))</span>
+        <span class="n">job_corecount</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">schedconfig_corecount</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">corecount</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1"> (job.infosys.queuedata.corecount=</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">corecount</span><span class="p">)))</span>
+        <span class="n">schedconfig_corecount</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">job_corecount</span> <span class="ow">and</span> <span class="n">schedconfig_corecount</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="n">job_corecount</span> <span class="o">/</span> <span class="n">schedconfig_corecount</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;scale=</span><span class="si">%f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">scale</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1"> (using scale factor 1)&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will use scale factor 1&#39;</span><span class="p">)</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">scale</span></div>
+
+
+<div class="viewcode-block" id="memory_usage"><a class="viewcode-back" href="../../../../components/user/atlas/memory.html#pilot.user.atlas.memory.memory_usage">[docs]</a><span class="k">def</span> <span class="nf">memory_usage</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform memory usage verification.</span>
+
+<span class="sd">    :param job: job object</span>
+<span class="sd">    :return: exit code (int), diagnostics (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">exit_code</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># Get the maxPSS value from the memory monitor</span>
+    <span class="n">summary_dictionary</span> <span class="o">=</span> <span class="n">get_memory_values</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">memorymonitor</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">summary_dictionary</span><span class="p">:</span>
+        <span class="n">exit_code</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">BADMEMORYMONITORJSON</span>
+        <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;Memory monitor output could not be read&quot;</span>
+        <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
+
+    <span class="n">maxdict</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Max&#39;</span><span class="p">,</span> <span class="p">{})</span>
+    <span class="n">maxpss_int</span> <span class="o">=</span> <span class="n">maxdict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;maxPSS&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Only proceed if values are set</span>
+    <span class="k">if</span> <span class="n">maxpss_int</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">maxrss</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">maxrss</span>
+
+        <span class="k">if</span> <span class="n">maxrss</span><span class="p">:</span>
+            <span class="c1"># correction for SCORE/4CORE/nCORE jobs on UCORE queues</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="n">get_ucore_scale_factor</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">maxrss_int</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">maxrss</span> <span class="o">*</span> <span class="n">scale</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1024</span>  <span class="c1"># Convert to int and kB</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;unexpected value for maxRSS: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Compare the maxRSS with the maxPSS from memory monitor</span>
+                <span class="k">if</span> <span class="n">maxrss_int</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">maxpss_int</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">maxpss_int</span> <span class="o">&gt;</span> <span class="n">maxrss_int</span><span class="p">:</span>
+                        <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;job has exceeded the memory limit </span><span class="si">%d</span><span class="s2"> kB &gt; </span><span class="si">%d</span><span class="s2"> kB (2 * queuedata.maxrss)&quot;</span> <span class="o">%</span> \
+                                      <span class="p">(</span><span class="n">maxpss_int</span><span class="p">,</span> <span class="n">maxrss_int</span><span class="p">)</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+
+                        <span class="c1"># Create a lockfile to let RunJob know that it should not restart the memory monitor after it has been killed</span>
+                        <span class="c1">#pUtil.createLockFile(False, self.__env[&#39;jobDic&#39;][k][1].workdir, lockfile=&quot;MEMORYEXCEEDED&quot;)</span>
+
+                        <span class="c1"># Kill the job</span>
+                        <span class="n">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s2">&quot;failed&quot;</span><span class="p">)</span>
+                        <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">PAYLOADEXCEEDMAXMEM</span><span class="p">)</span>
+                        <span class="n">kill_processes</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;max memory (maxPSS) used by the payload is within the allowed limit: &quot;</span>
+                                    <span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> B (2 * maxRSS = </span><span class="si">%d</span><span class="s2"> B)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">maxpss_int</span><span class="p">,</span> <span class="n">maxrss_int</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">maxrss</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">maxrss</span> <span class="o">==</span> <span class="s2">&quot;0&quot;</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;queuedata.maxrss set to 0 (no memory checks will be done)&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;queuedata.maxrss is not set&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

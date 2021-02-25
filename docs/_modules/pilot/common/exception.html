@@ -1,0 +1,552 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.common.exception &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.common.exception</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Wen Guan, wen.guan@cern.ch, 2017-2018</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Exceptions in pilot</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">from</span> <span class="nn">sys</span> <span class="kn">import</span> <span class="n">exc_info</span><span class="p">,</span> <span class="n">version_info</span>
+
+<span class="kn">from</span> <span class="nn">.errorcodes</span> <span class="kn">import</span> <span class="n">ErrorCodes</span>
+<span class="n">errors</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="is_python3"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.is_python3">[docs]</a><span class="k">def</span> <span class="nf">is_python3</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check if we are running on Python 3.</span>
+
+<span class="sd">    :return: boolean.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">version_info</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PilotException"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.PilotException">[docs]</a><span class="k">class</span> <span class="nc">PilotException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The basic exception class.</span>
+<span class="sd">    The pilot error code can be defined here, where the pilot error code will</span>
+<span class="sd">    be propageted to job server.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PilotException.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.PilotException.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PilotException</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">kwargs</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;code&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">code</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">code</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">UNKNOWNEXCEPTION</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_error_string</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stack_trace</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PilotException.__str__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.PilotException.__str__">[docs]</a>    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_error_string</span> <span class="o">=</span> <span class="s2">&quot;error code: </span><span class="si">%s</span><span class="s2">, message: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="c1"># at least get the core message out if something happened</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_error_string</span> <span class="o">=</span> <span class="s2">&quot;error code: </span><span class="si">%s</span><span class="s2">, message: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># If there is a non-kwarg parameter, assume it&#39;s the error</span>
+            <span class="c1"># message or reason description and tack it on to the end</span>
+            <span class="c1"># of the exception message</span>
+            <span class="c1"># Convert all arguments into their string representations...</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">arg</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="k">if</span> <span class="n">arg</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">)]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_error_string</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_error_string</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">details: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_error_string</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PilotException.get_detail"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.PilotException.get_detail">[docs]</a>    <span class="k">def</span> <span class="nf">get_detail</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_error_string</span> <span class="o">=</span> <span class="s2">&quot;error code: </span><span class="si">%s</span><span class="s2">, message: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="c1"># at least get the core message out if something happened</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_error_string</span> <span class="o">=</span> <span class="s2">&quot;error code: </span><span class="si">%s</span><span class="s2">, message: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_error_string</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">stacktrace: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stack_trace</span></div>
+
+<div class="viewcode-block" id="PilotException.get_error_code"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.PilotException.get_error_code">[docs]</a>    <span class="k">def</span> <span class="nf">get_error_code</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span></div>
+
+<div class="viewcode-block" id="PilotException.get_last_error"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.PilotException.get_last_error">[docs]</a>    <span class="k">def</span> <span class="nf">get_last_error</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message</span></div></div>
+
+
+<span class="c1">#class NotImplementedError(PilotException):</span>
+<span class="c1">#    &quot;&quot;&quot;</span>
+<span class="c1">#    Not implemented exception.</span>
+<span class="c1">#    &quot;&quot;&quot;</span>
+<span class="c1">#    def __init__(self, *args, **kwargs):</span>
+<span class="c1">#        super(NotImplementedError, self).__init__(args, kwargs)</span>
+<span class="c1">#        self._errorCode = errors.NOTIMPLEMENTED</span>
+<span class="c1">#        self._message = errors.get_error_message(self._errorCode)</span>
+
+
+<div class="viewcode-block" id="UnknownException"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.UnknownException">[docs]</a><span class="k">class</span> <span class="nc">UnknownException</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Unknown exception.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="UnknownException.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.UnknownException.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">UnknownException</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">UNKNOWNEXCEPTION</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="NoLocalSpace"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.NoLocalSpace">[docs]</a><span class="k">class</span> <span class="nc">NoLocalSpace</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Not enough local space.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="NoLocalSpace.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.NoLocalSpace.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NoLocalSpace</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOLOCALSPACE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="SizeTooLarge"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.SizeTooLarge">[docs]</a><span class="k">class</span> <span class="nc">SizeTooLarge</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Too large input files.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SizeTooLarge.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.SizeTooLarge.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SizeTooLarge</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">SIZETOOLARGE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="StageInFailure"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.StageInFailure">[docs]</a><span class="k">class</span> <span class="nc">StageInFailure</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Failed to stage-in file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="StageInFailure.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.StageInFailure.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">StageInFailure</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">STAGEINFAILED</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="StageOutFailure"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.StageOutFailure">[docs]</a><span class="k">class</span> <span class="nc">StageOutFailure</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Failed to stage-out file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="StageOutFailure.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.StageOutFailure.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">StageOutFailure</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">STAGEOUTFAILED</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="SetupFailure"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.SetupFailure">[docs]</a><span class="k">class</span> <span class="nc">SetupFailure</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Failed to setup environment.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SetupFailure.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.SetupFailure.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SetupFailure</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">SETUPFAILURE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="RunPayloadFailure"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.RunPayloadFailure">[docs]</a><span class="k">class</span> <span class="nc">RunPayloadFailure</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Failed to execute payload.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="RunPayloadFailure.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.RunPayloadFailure.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">RunPayloadFailure</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">PAYLOADEXECUTIONFAILURE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="MessageFailure"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.MessageFailure">[docs]</a><span class="k">class</span> <span class="nc">MessageFailure</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Failed to handle messages.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="MessageFailure.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.MessageFailure.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MessageFailure</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">MESSAGEHANDLINGFAILURE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="CommunicationFailure"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.CommunicationFailure">[docs]</a><span class="k">class</span> <span class="nc">CommunicationFailure</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Failed to communicate with servers such as Panda, Harvester, ACT and so on.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="CommunicationFailure.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.CommunicationFailure.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CommunicationFailure</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">COMMUNICATIONFAILURE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="FileHandlingFailure"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.FileHandlingFailure">[docs]</a><span class="k">class</span> <span class="nc">FileHandlingFailure</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Failed during file handling.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="FileHandlingFailure.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.FileHandlingFailure.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">FileHandlingFailure</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">FILEHANDLINGFAILURE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="NoSuchFile"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.NoSuchFile">[docs]</a><span class="k">class</span> <span class="nc">NoSuchFile</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    No such file or directory.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="NoSuchFile.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.NoSuchFile.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NoSuchFile</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOSUCHFILE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ConversionFailure"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ConversionFailure">[docs]</a><span class="k">class</span> <span class="nc">ConversionFailure</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Failed to convert object data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ConversionFailure.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ConversionFailure.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ConversionFailure</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">CONVERSIONFAILURE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="MKDirFailure"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.MKDirFailure">[docs]</a><span class="k">class</span> <span class="nc">MKDirFailure</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Failed to create local directory.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="MKDirFailure.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.MKDirFailure.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MKDirFailure</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">MKDIR</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="NoGridProxy"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.NoGridProxy">[docs]</a><span class="k">class</span> <span class="nc">NoGridProxy</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Grid proxy not valid.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="NoGridProxy.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.NoGridProxy.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NoGridProxy</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOPROXY</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="NoVomsProxy"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.NoVomsProxy">[docs]</a><span class="k">class</span> <span class="nc">NoVomsProxy</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Voms proxy not valid.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="NoVomsProxy.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.NoVomsProxy.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NoVomsProxy</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOVOMSPROXY</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="TrfDownloadFailure"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.TrfDownloadFailure">[docs]</a><span class="k">class</span> <span class="nc">TrfDownloadFailure</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transform could not be downloaded.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="TrfDownloadFailure.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.TrfDownloadFailure.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">TrfDownloadFailure</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">TRFDOWNLOADFAILURE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="NotDefined"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.NotDefined">[docs]</a><span class="k">class</span> <span class="nc">NotDefined</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Not defined exception.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="NotDefined.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.NotDefined.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NotDefined</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOTDEFINED</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="NotSameLength"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.NotSameLength">[docs]</a><span class="k">class</span> <span class="nc">NotSameLength</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Not same length exception.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="NotSameLength.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.NotSameLength.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NotSameLength</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOTSAMELENGTH</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ESRecoverable"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ESRecoverable">[docs]</a><span class="k">class</span> <span class="nc">ESRecoverable</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Eventservice recoverable exception.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ESRecoverable.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ESRecoverable.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ESRecoverable</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">ESRECOVERABLE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ESFatal"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ESFatal">[docs]</a><span class="k">class</span> <span class="nc">ESFatal</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Eventservice fatal exception.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ESFatal.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ESFatal.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ESFatal</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">ESFATAL</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ExecutedCloneJob"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ExecutedCloneJob">[docs]</a><span class="k">class</span> <span class="nc">ExecutedCloneJob</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Clone job executed exception.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ExecutedCloneJob.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ExecutedCloneJob.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ExecutedCloneJob</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">EXECUTEDCLONEJOB</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ESNoEvents"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ESNoEvents">[docs]</a><span class="k">class</span> <span class="nc">ESNoEvents</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Eventservice no events exception.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ESNoEvents.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ESNoEvents.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ESNoEvents</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">ESNOEVENTS</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ExceededMaxWaitTime"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ExceededMaxWaitTime">[docs]</a><span class="k">class</span> <span class="nc">ExceededMaxWaitTime</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exceeded maximum waiting time (after abort_job has been set).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ExceededMaxWaitTime.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ExceededMaxWaitTime.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ExceededMaxWaitTime</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">EXCEEDEDMAXWAITTIME</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="BadXML"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.BadXML">[docs]</a><span class="k">class</span> <span class="nc">BadXML</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Badly formed XML.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="BadXML.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.BadXML.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BadXML</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">BADXML</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="NoSoftwareDir"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.NoSoftwareDir">[docs]</a><span class="k">class</span> <span class="nc">NoSoftwareDir</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Software applications directory does not exist.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="NoSoftwareDir.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.NoSoftwareDir.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NoSoftwareDir</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOSOFTWAREDIR</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="LogFileCreationFailure"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.LogFileCreationFailure">[docs]</a><span class="k">class</span> <span class="nc">LogFileCreationFailure</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Log file could not be created.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="LogFileCreationFailure.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.LogFileCreationFailure.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LogFileCreationFailure</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">LOGFILECREATIONFAILURE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="QueuedataFailure"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.QueuedataFailure">[docs]</a><span class="k">class</span> <span class="nc">QueuedataFailure</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Failed to download queuedata.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="QueuedataFailure.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.QueuedataFailure.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">QueuedataFailure</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">QUEUEDATA</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="QueuedataNotOK"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.QueuedataNotOK">[docs]</a><span class="k">class</span> <span class="nc">QueuedataNotOK</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Corrupt queuedata.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="QueuedataNotOK.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.QueuedataNotOK.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">QueuedataNotOK</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">QUEUEDATANOTOK</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ReplicasNotFound"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ReplicasNotFound">[docs]</a><span class="k">class</span> <span class="nc">ReplicasNotFound</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    No matching replicas were found in list_replicas() output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ReplicasNotFound.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ReplicasNotFound.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ReplicasNotFound</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOREPLICAS</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="JobAlreadyRunning"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.JobAlreadyRunning">[docs]</a><span class="k">class</span> <span class="nc">JobAlreadyRunning</span><span class="p">(</span><span class="n">PilotException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Job is already running elsewhere.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="JobAlreadyRunning.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.JobAlreadyRunning.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">JobAlreadyRunning</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">JOBALREADYRUNNING</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_errorCode</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ExcThread"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ExcThread">[docs]</a><span class="k">class</span> <span class="nc">ExcThread</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Support class that allows for catching exceptions in threads.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ExcThread.__init__"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ExcThread.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bucket</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Init function with a bucket that can be used to communicate exceptions to the caller.</span>
+<span class="sd">        The bucket is a Queue.queue() or queue.Queue() object that can hold an exception thrown by a thread.</span>
+
+<span class="sd">        :param bucket: queue based bucket.</span>
+<span class="sd">        :param target: target function to execute.</span>
+<span class="sd">        :param kwargs: target function options.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bucket</span> <span class="o">=</span> <span class="n">bucket</span></div>
+
+<div class="viewcode-block" id="ExcThread.run"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ExcThread.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Thread run function.</span>
+<span class="sd">        Any exceptions in the threads are caught in this function and placed in the bucket of the current thread.</span>
+<span class="sd">        The bucket will be emptied by the control module that launched the thread. E.g. an exception is thrown in</span>
+<span class="sd">        the retrieve thread (in function retrieve()) that is created by the job.control thread. The exception is caught</span>
+<span class="sd">        by the run() function and placed in the bucket belonging to the retrieve thread. The bucket is emptied in</span>
+<span class="sd">        job.control().</span>
+
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">is_python3</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_kwargs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_Thread__target</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_Thread__kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="c1"># logger object can&#39;t be used here for some reason:</span>
+            <span class="c1"># IOError: [Errno 2] No such file or directory: &#39;/state/partition1/scratch/PanDA_Pilot2_*/pilotlog.txt&#39;</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;exception caught by thread run() function: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">exc_info</span><span class="p">()))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">print_tb</span><span class="p">(</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">2</span><span class="p">]))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bucket</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">exc_info</span><span class="p">())</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;exception has been put in bucket queue belonging to thread </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_python3</span><span class="p">():</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;args&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Thread__kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;args&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">args</span><span class="p">:</span>
+                <span class="c1"># the sleep is needed to allow the threads to catch up</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;setting graceful stop in 10 s since there is no point in continuing&#39;</span><span class="p">)</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">set</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ExcThread.get_bucket"><a class="viewcode-back" href="../../../components/common/exception.html#pilot.common.exception.ExcThread.get_bucket">[docs]</a>    <span class="k">def</span> <span class="nf">get_bucket</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the bucket object that holds any information about thrown exceptions.</span>
+
+<span class="sd">        :return: bucket (Queue object)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bucket</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

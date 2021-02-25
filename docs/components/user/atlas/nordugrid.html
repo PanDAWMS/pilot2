@@ -1,0 +1,242 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>nordugrid &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="proxy" href="proxy.html" />
+    <link rel="prev" title="memory" href="memory.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.user.atlas.nordugrid">
+<span id="nordugrid"></span><h1>nordugrid<a class="headerlink" href="#module-pilot.user.atlas.nordugrid" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="pilot.user.atlas.nordugrid.XMLDictionary">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.nordugrid.</span></code><code class="sig-name descname"><span class="pre">XMLDictionary</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rootname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'outfiles'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/nordugrid.html#XMLDictionary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.nordugrid.XMLDictionary" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is a helper class that is used to create the dictionary which is converted to the special XML files for
+Nordugrid pilots.
+Example dictionary:</p>
+<blockquote>
+<div><dl>
+<dt>dictionary = { “outfiles”: [ { “file”: { “surl”: “some_surl”, “size”: “123”, “ad32”: “aaaaaaa”,</dt><dd><blockquote>
+<div><blockquote>
+<div><blockquote>
+<div><p>“guid”: “ababa22”, “lfn”: “some_lfn”, “dataset”: “some_dataset”,
+“date”: “11/11/11” } },</p>
+</div></blockquote>
+<p>{}, {}, ..</p>
+</div></blockquote>
+<p>]</p>
+</div></blockquote>
+<p>}</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl>
+<dt>Usage:</dt><dd><p>xmldic = XMLDictionary()
+xmldic.add_to_list({“surl”: “some_surl1”, “size”: “123”, “ad32”: “aaaaaaa”, “guid”: “ababa22”, “lfn”: “some_lfn”,</p>
+<blockquote>
+<div><p>“dataset”: “some_dataset”, “date”: “11/11/11”})</p>
+</div></blockquote>
+<p>dictionary = xmldic.get_dictionary()</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt id="pilot.user.atlas.nordugrid.XMLDictionary.__dict__">
+<code class="sig-name descname"><span class="pre">__dict__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">mappingproxy({'__module__':</span> <span class="pre">'pilot.user.atlas.nordugrid',</span> <span class="pre">'__doc__':</span> <span class="pre">'\n</span>&#160;&#160;&#160; <span class="pre">This</span> <span class="pre">is</span> <span class="pre">a</span> <span class="pre">helper</span> <span class="pre">class</span> <span class="pre">that</span> <span class="pre">is</span> <span class="pre">used</span> <span class="pre">to</span> <span class="pre">create</span> <span class="pre">the</span> <span class="pre">dictionary</span> <span class="pre">which</span> <span class="pre">is</span> <span class="pre">converted</span> <span class="pre">to</span> <span class="pre">the</span> <span class="pre">special</span> <span class="pre">XML</span> <span class="pre">files</span> <span class="pre">for\n</span>&#160;&#160;&#160; <span class="pre">Nordugrid</span> <span class="pre">pilots.\n</span>&#160;&#160;&#160; <span class="pre">Example</span> <span class="pre">dictionary:\n</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">dictionary</span> <span class="pre">=</span> <span class="pre">{</span> <span class="pre">&quot;outfiles&quot;:</span> <span class="pre">[</span> <span class="pre">{</span> <span class="pre">&quot;file&quot;:</span> <span class="pre">{</span> <span class="pre">&quot;surl&quot;:</span> <span class="pre">&quot;some_surl&quot;,</span> <span class="pre">&quot;size&quot;:</span> <span class="pre">&quot;123&quot;,</span> <span class="pre">&quot;ad32&quot;:</span> <span class="pre">&quot;aaaaaaa&quot;,\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">&quot;guid&quot;:</span> <span class="pre">&quot;ababa22&quot;,</span> <span class="pre">&quot;lfn&quot;:</span> <span class="pre">&quot;some_lfn&quot;,</span> <span class="pre">&quot;dataset&quot;:</span> <span class="pre">&quot;some_dataset&quot;,\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">&quot;date&quot;:</span> <span class="pre">&quot;11/11/11&quot;</span> <span class="pre">}</span> <span class="pre">},\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">{},</span> <span class="pre">{},</span> <span class="pre">..\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">]\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">}\n\n</span>&#160;&#160;&#160; <span class="pre">Usage:\n</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">xmldic</span> <span class="pre">=</span> <span class="pre">XMLDictionary()\n</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">xmldic.add_to_list({&quot;surl&quot;:</span> <span class="pre">&quot;some_surl1&quot;,</span> <span class="pre">&quot;size&quot;:</span> <span class="pre">&quot;123&quot;,</span> <span class="pre">&quot;ad32&quot;:</span> <span class="pre">&quot;aaaaaaa&quot;,</span> <span class="pre">&quot;guid&quot;:</span> <span class="pre">&quot;ababa22&quot;,</span> <span class="pre">&quot;lfn&quot;:</span> <span class="pre">&quot;some_lfn&quot;,\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">&quot;dataset&quot;:</span> <span class="pre">&quot;some_dataset&quot;,</span> <span class="pre">&quot;date&quot;:</span> <span class="pre">&quot;11/11/11&quot;})\n</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">dictionary</span> <span class="pre">=</span> <span class="pre">xmldic.get_dictionary()\n</span>&#160;&#160;&#160; <span class="pre">',</span> <span class="pre">'_dictionary':</span> <span class="pre">None,</span> <span class="pre">'__init__':</span> <span class="pre">&lt;function</span> <span class="pre">XMLDictionary.__init__&gt;,</span> <span class="pre">'add_to_list':</span> <span class="pre">&lt;function</span> <span class="pre">XMLDictionary.add_to_list&gt;,</span> <span class="pre">'get_dictionary':</span> <span class="pre">&lt;function</span> <span class="pre">XMLDictionary.get_dictionary&gt;,</span> <span class="pre">'__dict__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__dict__'</span> <span class="pre">of</span> <span class="pre">'XMLDictionary'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__weakref__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__weakref__'</span> <span class="pre">of</span> <span class="pre">'XMLDictionary'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__annotations__':</span> <span class="pre">{}})</span></em><a class="headerlink" href="#pilot.user.atlas.nordugrid.XMLDictionary.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.user.atlas.nordugrid.XMLDictionary.__init__">
+<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rootname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'outfiles'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/nordugrid.html#XMLDictionary.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.nordugrid.XMLDictionary.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Standard init function.
+:param rootname: name of the root key. There is only one root key in the Nordugrid XML file (‘outfiles’).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.user.atlas.nordugrid.XMLDictionary.__module__">
+<code class="sig-name descname"><span class="pre">__module__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'pilot.user.atlas.nordugrid'</span></em><a class="headerlink" href="#pilot.user.atlas.nordugrid.XMLDictionary.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.user.atlas.nordugrid.XMLDictionary.__weakref__">
+<code class="sig-name descname"><span class="pre">__weakref__</span></code><a class="headerlink" href="#pilot.user.atlas.nordugrid.XMLDictionary.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.user.atlas.nordugrid.XMLDictionary._dictionary">
+<code class="sig-name descname"><span class="pre">_dictionary</span></code><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#pilot.user.atlas.nordugrid.XMLDictionary._dictionary" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.user.atlas.nordugrid.XMLDictionary.add_to_list">
+<code class="sig-name descname"><span class="pre">add_to_list</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dictionary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rootname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'outfiles'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">itemname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'file'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/nordugrid.html#XMLDictionary.add_to_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.nordugrid.XMLDictionary.add_to_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add dictionary to itemname key. See example in class header.
+:param dictionary: dictionary to add to itemname key.
+:param rootname: name of the root key. There is only one root key in the Nordugrid XML file (‘outfiles’).
+:param itemname: name of the item key. In the Nordugrid XML it should be called ‘file’.
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.user.atlas.nordugrid.XMLDictionary.get_dictionary">
+<code class="sig-name descname"><span class="pre">get_dictionary</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/nordugrid.html#XMLDictionary.get_dictionary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.nordugrid.XMLDictionary.get_dictionary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the dictionary to be converted to XML.
+It should be populated with the dictionary added to it in add_to_list().
+:return: dictionary</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.nordugrid.convert_to_prettyprint">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.nordugrid.</span></code><code class="sig-name descname"><span class="pre">convert_to_prettyprint</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xmlstr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/nordugrid.html#convert_to_prettyprint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.nordugrid.convert_to_prettyprint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert XML to pretty print for older python versions (&lt; 2.7).
+:param xmlstr: input XML string
+:return: XML string (pretty printed)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.nordugrid.convert_to_xml">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.nordugrid.</span></code><code class="sig-name descname"><span class="pre">convert_to_xml</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dictionary</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/nordugrid.html#convert_to_xml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.nordugrid.convert_to_xml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a dictionary to XML.
+The dictionary is expected to follow the Nordugrid format. See the XMLDictionary helper class.</p>
+<p>Example of XML (OutputFiles.xml):</p>
+<p>&lt;?xml version=”1.0” ?&gt;
+&lt;outfiles&gt;
+&lt;file&gt;</p>
+<blockquote>
+<div><p>&lt;ad32&gt;aaaaaaa&lt;/ad32&gt;
+&lt;surl&gt;some_surl1&lt;/surl&gt;
+&lt;lfn&gt;some_lfn&lt;/lfn&gt;
+&lt;dataset&gt;some_dataset&lt;/dataset&gt;
+&lt;date&gt;11/11/11&lt;/date&gt;
+&lt;guid&gt;ababa22&lt;/guid&gt;
+&lt;size&gt;123&lt;/size&gt;</p>
+</div></blockquote>
+<p>&lt;/file&gt;
+&lt;/outfiles&gt;</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dictionary</strong> – dictionary created with XMLDictionary.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>xml (pretty printed for python &gt;= 2.7 - for older python, use the convert_to_prettyprint() function).</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../resource/index.html">resource components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">user components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../util/index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Components</a><ul>
+  <li><a href="../index.html">user components</a><ul>
+  <li><a href="index.html">atlas components</a><ul>
+      <li>Previous: <a href="memory.html" title="previous chapter">memory</a></li>
+      <li>Next: <a href="proxy.html" title="next chapter">proxy</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/components/user/atlas/nordugrid.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../../_sources/components/user/atlas/nordugrid.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

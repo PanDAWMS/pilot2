@@ -1,0 +1,1120 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.info.jobdata &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.info.jobdata</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Alexey Anisenkov, anisyonk@cern.ch, 2018-2019</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019</span>
+<span class="c1"># - Wen Guan, wen.guan@cern.ch, 2018</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The implementation of data structure to host Job definition.</span>
+
+<span class="sd">The main reasons for such incapsulation are to</span>
+<span class="sd"> - apply in one place all data validation actions (for attributes and values)</span>
+<span class="sd"> - introduce internal information schema (names of attributes) to remove dependency</span>
+<span class="sd"> with data structure, formats, names from external source (PanDA)</span>
+
+<span class="sd">:author: Alexey Anisenkov</span>
+<span class="sd">:contact: anisyonk@cern.ch</span>
+<span class="sd">:date: February 2018</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">ast</span>
+<span class="kn">import</span> <span class="nn">shlex</span>
+<span class="kn">import</span> <span class="nn">pipes</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+
+<span class="kn">from</span> <span class="nn">.basedata</span> <span class="kn">import</span> <span class="n">BaseData</span>
+<span class="kn">from</span> <span class="nn">.filespec</span> <span class="kn">import</span> <span class="n">FileSpec</span>
+<span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">get_object_size</span>
+<span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="n">LOG_TRANSFER_NOT_DONE</span>
+<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">get_guid</span><span class="p">,</span> <span class="n">get_valid_path_from_list</span>
+<span class="kn">from</span> <span class="nn">pilot.util.timing</span> <span class="kn">import</span> <span class="n">get_elapsed_real_time</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="JobData"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData">[docs]</a><span class="k">class</span> <span class="nc">JobData</span><span class="p">(</span><span class="n">BaseData</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        High-level object to host Job definition/settings</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># ## put explicit list of all the attributes with comments for better inline-documentation by Sphinx</span>
+    <span class="c1"># ## FIX ME LATER: use proper doc format</span>
+    <span class="c1"># ## incomplete list of attributes .. to be extended once becomes used</span>
+
+    <span class="n">jobid</span> <span class="o">=</span> <span class="kc">None</span>                   <span class="c1"># unique Job identifier (forced to be a string)</span>
+    <span class="n">taskid</span> <span class="o">=</span> <span class="kc">None</span>                  <span class="c1"># unique Task identifier, the task that this job belongs to (forced to be a string)</span>
+    <span class="n">jobparams</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                 <span class="c1"># job parameters defining the execution of the job</span>
+    <span class="n">transformation</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>            <span class="c1"># script execution name</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                     <span class="c1"># current job state</span>
+    <span class="c1"># current job status; format = {key: value, ..} e.g. key=&#39;LOG_TRANSFER&#39;, value=&#39;DONE&#39;</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;LOG_TRANSFER&#39;</span><span class="p">:</span> <span class="n">LOG_TRANSFER_NOT_DONE</span><span class="p">}</span>
+    <span class="n">corecount</span> <span class="o">=</span> <span class="mi">1</span>                  <span class="c1"># Number of cores as requested by the task</span>
+    <span class="n">platform</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                  <span class="c1"># cmtconfig value from the task definition</span>
+    <span class="n">is_eventservice</span> <span class="o">=</span> <span class="kc">False</span>        <span class="c1"># True for event service jobs</span>
+    <span class="n">is_eventservicemerge</span> <span class="o">=</span> <span class="kc">False</span>   <span class="c1"># True for event service merge jobs</span>
+    <span class="n">is_hpo</span> <span class="o">=</span> <span class="kc">False</span>                 <span class="c1"># True for HPO jobs</span>
+    <span class="n">transfertype</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>              <span class="c1"># direct access instruction from server</span>
+    <span class="n">accessmode</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                <span class="c1"># direct access instruction from jobparams</span>
+    <span class="n">processingtype</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>            <span class="c1"># e.g. nightlies</span>
+    <span class="n">maxcpucount</span> <span class="o">=</span> <span class="mi">0</span>                <span class="c1"># defines what is a looping job (seconds)</span>
+    <span class="n">allownooutput</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>             <span class="c1"># used to disregard empty files from job report</span>
+
+    <span class="c1"># set by the pilot (not from job definition)</span>
+    <span class="n">workdir</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                   <span class="c1"># working directory for this job</span>
+    <span class="n">workdirsizes</span> <span class="o">=</span> <span class="p">[]</span>              <span class="c1"># time ordered list of work dir sizes</span>
+    <span class="n">fileinfo</span> <span class="o">=</span> <span class="p">{}</span>                  <span class="c1">#</span>
+    <span class="n">piloterrorcode</span> <span class="o">=</span> <span class="mi">0</span>             <span class="c1"># current pilot error code</span>
+    <span class="n">piloterrorcodes</span> <span class="o">=</span> <span class="p">[]</span>           <span class="c1"># ordered list of stored pilot error codes</span>
+    <span class="n">piloterrordiag</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>            <span class="c1"># current pilot error diagnostics</span>
+    <span class="n">piloterrordiags</span> <span class="o">=</span> <span class="p">[]</span>           <span class="c1"># ordered list of stored pilot error diagnostics</span>
+    <span class="n">transexitcode</span> <span class="o">=</span> <span class="mi">0</span>              <span class="c1"># payload/trf exit code</span>
+    <span class="n">exeerrorcode</span> <span class="o">=</span> <span class="mi">0</span>               <span class="c1">#</span>
+    <span class="n">exeerrordiag</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>              <span class="c1">#</span>
+    <span class="n">exitcode</span> <span class="o">=</span> <span class="mi">0</span>                   <span class="c1">#</span>
+    <span class="n">exitmsg</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                   <span class="c1">#</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                     <span class="c1"># internal pilot states; running, failed, finished, holding, stagein, stageout</span>
+    <span class="n">serverstate</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>               <span class="c1"># server job states; starting, running, finished, holding, failed</span>
+    <span class="n">stageout</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                  <span class="c1"># stage-out identifier, e.g. log</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="p">{}</span>                  <span class="c1"># payload metadata (job report)</span>
+    <span class="n">cpuconsumptionunit</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>        <span class="c1">#</span>
+    <span class="n">cpuconsumptiontime</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>        <span class="c1">#</span>
+    <span class="n">cpuconversionfactor</span> <span class="o">=</span> <span class="mi">1</span>        <span class="c1">#</span>
+    <span class="n">nevents</span> <span class="o">=</span> <span class="mi">0</span>                    <span class="c1"># number of events</span>
+    <span class="n">neventsw</span> <span class="o">=</span> <span class="mi">0</span>                   <span class="c1"># number of events written</span>
+    <span class="n">dbtime</span> <span class="o">=</span> <span class="kc">None</span>                  <span class="c1">#</span>
+    <span class="n">dbdata</span> <span class="o">=</span> <span class="kc">None</span>                  <span class="c1">#</span>
+    <span class="n">payload</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                   <span class="c1"># payload name</span>
+    <span class="n">utilities</span> <span class="o">=</span> <span class="p">{}</span>                 <span class="c1"># utility processes { &lt;name&gt;: [&lt;process handle&gt;, number of launches, command string], .. }</span>
+    <span class="n">pid</span> <span class="o">=</span> <span class="kc">None</span>                     <span class="c1"># payload pid</span>
+    <span class="n">pgrp</span> <span class="o">=</span> <span class="kc">None</span>                    <span class="c1"># payload process group</span>
+    <span class="n">sizes</span> <span class="o">=</span> <span class="p">{}</span>                     <span class="c1"># job object sizes { timestamp: size, .. }</span>
+    <span class="n">command</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                   <span class="c1"># full payload command (set for container jobs)</span>
+    <span class="n">setup</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                     <span class="c1"># full payload setup (needed by postprocess command)</span>
+    <span class="n">zombies</span> <span class="o">=</span> <span class="p">[]</span>                   <span class="c1"># list of zombie process ids</span>
+    <span class="n">memorymonitor</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>             <span class="c1"># memory monitor name, e.g. prmon</span>
+    <span class="n">actualcorecount</span> <span class="o">=</span> <span class="mi">0</span>            <span class="c1"># number of cores actually used by the payload</span>
+    <span class="n">corecounts</span> <span class="o">=</span> <span class="p">[]</span>                <span class="c1"># keep track of all actual core count measurements</span>
+
+    <span class="c1"># time variable used for on-the-fly cpu consumption time measurements done by job monitoring</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="kc">None</span>                      <span class="c1"># payload startup time</span>
+
+    <span class="n">overwrite_queuedata</span> <span class="o">=</span> <span class="p">{}</span>       <span class="c1"># custom settings extracted from job parameters (--overwriteQueueData) to be used as master values for `QueueData`</span>
+    <span class="n">overwrite_storagedata</span> <span class="o">=</span> <span class="p">{}</span>     <span class="c1"># custom settings extracted from job parameters (--overwriteStorageData) to be used as master values for `StorageData`</span>
+
+    <span class="n">zipmap</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                    <span class="c1"># ZIP MAP values extracted from jobparameters</span>
+    <span class="n">imagename</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                 <span class="c1"># container image name extracted from job parameters or job definition</span>
+    <span class="n">imagename_jobdef</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">usecontainer</span> <span class="o">=</span> <span class="kc">False</span>           <span class="c1"># boolean, True if a container is to be used for the payload</span>
+
+    <span class="c1"># from job definition</span>
+    <span class="n">attemptnr</span> <span class="o">=</span> <span class="mi">0</span>                  <span class="c1"># job attempt number</span>
+    <span class="n">destinationdblock</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>         <span class="c1">## to be moved to FileSpec (job.outdata)</span>
+    <span class="n">datasetin</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                 <span class="c1">## TO BE DEPRECATED: moved to FileSpec (job.indata)</span>
+    <span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span>                  <span class="c1">#</span>
+    <span class="n">produserid</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                <span class="c1"># the user DN (added to trace report)</span>
+    <span class="n">jobdefinitionid</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>           <span class="c1"># the job definition id (added to trace report)</span>
+    <span class="n">infilesguids</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>              <span class="c1">#</span>
+    <span class="n">indata</span> <span class="o">=</span> <span class="p">[]</span>                    <span class="c1"># list of `FileSpec` objects for input files (aggregated inFiles, ddmEndPointIn, scopeIn, filesizeIn, etc)</span>
+    <span class="n">outdata</span> <span class="o">=</span> <span class="p">[]</span>                   <span class="c1"># list of `FileSpec` objects for output files</span>
+    <span class="n">logdata</span> <span class="o">=</span> <span class="p">[]</span>                   <span class="c1"># list of `FileSpec` objects for log file(s)</span>
+    <span class="c1"># preprocess = {u&#39;args&#39;: u&#39;preprocess&#39;, u&#39;command&#39;: u&#39;echo&#39;}</span>
+    <span class="c1"># postprocess = {u&#39;args&#39;: u&#39;postprocess&#39;, u&#39;command&#39;: u&#39;echo&#39;}</span>
+    <span class="n">preprocess</span> <span class="o">=</span> <span class="p">{}</span>                <span class="c1"># preprocess dictionary with command to execute before payload, {&#39;command&#39;: &#39;..&#39;, &#39;args&#39;: &#39;..&#39;}</span>
+    <span class="n">postprocess</span> <span class="o">=</span> <span class="p">{}</span>               <span class="c1"># postprocess dictionary with command to execute after payload, {&#39;command&#39;: &#39;..&#39;, &#39;args&#39;: &#39;..&#39;}</span>
+    <span class="n">coprocess</span> <span class="o">=</span> <span class="p">{}</span>                 <span class="c1"># coprocess dictionary with command to execute during payload, {&#39;command&#39;: &#39;..&#39;, &#39;args&#39;: &#39;..&#39;}</span>
+    <span class="c1"># coprocess = {u&#39;args&#39;: u&#39;coprocess&#39;, u&#39;command&#39;: u&#39;echo&#39;}</span>
+    <span class="n">containeroptions</span> <span class="o">=</span> <span class="p">{}</span>          <span class="c1">#</span>
+    <span class="n">use_vp</span> <span class="o">=</span> <span class="kc">False</span>                 <span class="c1"># True for VP jobs</span>
+
+    <span class="c1"># home package string with additional payload release information; does not need to be added to</span>
+    <span class="c1"># the conversion function since it&#39;s already lower case</span>
+    <span class="n">homepackage</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>               <span class="c1">#</span>
+    <span class="n">jobsetid</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                  <span class="c1"># job set id</span>
+    <span class="n">noexecstrcnv</span> <span class="o">=</span> <span class="kc">None</span>            <span class="c1"># server instruction to the pilot if it should take payload setup from job parameters</span>
+    <span class="n">swrelease</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                 <span class="c1"># software release string</span>
+    <span class="n">writetofile</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>               <span class="c1">#</span>
+
+    <span class="c1"># cmtconfig encoded info</span>
+    <span class="n">alrbuserplatform</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>          <span class="c1"># ALRB_USER_PLATFORM encoded in platform/cmtconfig value</span>
+
+    <span class="c1"># RAW data to keep backward compatible behavior for a while ## TO BE REMOVED once all job attributes will be covered</span>
+    <span class="n">_rawdata</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># specify the type of attributes for proper data validation and casting</span>
+    <span class="n">_keys</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;corecount&#39;</span><span class="p">,</span> <span class="s1">&#39;piloterrorcode&#39;</span><span class="p">,</span> <span class="s1">&#39;transexitcode&#39;</span><span class="p">,</span> <span class="s1">&#39;exitcode&#39;</span><span class="p">,</span> <span class="s1">&#39;cpuconversionfactor&#39;</span><span class="p">,</span> <span class="s1">&#39;exeerrorcode&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;attemptnr&#39;</span><span class="p">,</span> <span class="s1">&#39;nevents&#39;</span><span class="p">,</span> <span class="s1">&#39;neventsw&#39;</span><span class="p">,</span> <span class="s1">&#39;pid&#39;</span><span class="p">,</span> <span class="s1">&#39;cpuconsumptiontime&#39;</span><span class="p">,</span> <span class="s1">&#39;maxcpucount&#39;</span><span class="p">,</span> <span class="s1">&#39;actualcorecount&#39;</span><span class="p">],</span>
+             <span class="nb">str</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;jobid&#39;</span><span class="p">,</span> <span class="s1">&#39;taskid&#39;</span><span class="p">,</span> <span class="s1">&#39;jobparams&#39;</span><span class="p">,</span> <span class="s1">&#39;transformation&#39;</span><span class="p">,</span> <span class="s1">&#39;destinationdblock&#39;</span><span class="p">,</span> <span class="s1">&#39;exeerrordiag&#39;</span>
+                   <span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="s1">&#39;serverstate&#39;</span><span class="p">,</span> <span class="s1">&#39;workdir&#39;</span><span class="p">,</span> <span class="s1">&#39;stageout&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;platform&#39;</span><span class="p">,</span> <span class="s1">&#39;piloterrordiag&#39;</span><span class="p">,</span> <span class="s1">&#39;exitmsg&#39;</span><span class="p">,</span> <span class="s1">&#39;produserid&#39;</span><span class="p">,</span> <span class="s1">&#39;jobdefinitionid&#39;</span><span class="p">,</span> <span class="s1">&#39;writetofile&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;cpuconsumptionunit&#39;</span><span class="p">,</span> <span class="s1">&#39;homepackage&#39;</span><span class="p">,</span> <span class="s1">&#39;jobsetid&#39;</span><span class="p">,</span> <span class="s1">&#39;payload&#39;</span><span class="p">,</span> <span class="s1">&#39;processingtype&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;swrelease&#39;</span><span class="p">,</span> <span class="s1">&#39;zipmap&#39;</span><span class="p">,</span> <span class="s1">&#39;imagename&#39;</span><span class="p">,</span> <span class="s1">&#39;imagename_jobdef&#39;</span><span class="p">,</span> <span class="s1">&#39;accessmode&#39;</span><span class="p">,</span> <span class="s1">&#39;transfertype&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;datasetin&#39;</span><span class="p">,</span>    <span class="c1">## TO BE DEPRECATED: moved to FileSpec (job.indata)</span>
+                   <span class="s1">&#39;infilesguids&#39;</span><span class="p">,</span> <span class="s1">&#39;memorymonitor&#39;</span><span class="p">,</span> <span class="s1">&#39;allownooutput&#39;</span><span class="p">],</span>
+             <span class="nb">list</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;piloterrorcodes&#39;</span><span class="p">,</span> <span class="s1">&#39;piloterrordiags&#39;</span><span class="p">,</span> <span class="s1">&#39;workdirsizes&#39;</span><span class="p">,</span> <span class="s1">&#39;zombies&#39;</span><span class="p">,</span> <span class="s1">&#39;corecounts&#39;</span><span class="p">],</span>
+             <span class="nb">dict</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="s1">&#39;fileinfo&#39;</span><span class="p">,</span> <span class="s1">&#39;metadata&#39;</span><span class="p">,</span> <span class="s1">&#39;utilities&#39;</span><span class="p">,</span> <span class="s1">&#39;overwrite_queuedata&#39;</span><span class="p">,</span> <span class="s1">&#39;sizes&#39;</span><span class="p">,</span> <span class="s1">&#39;preprocess&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;postprocess&#39;</span><span class="p">,</span> <span class="s1">&#39;coprocess&#39;</span><span class="p">,</span> <span class="s1">&#39;containeroptions&#39;</span><span class="p">],</span>
+             <span class="nb">bool</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;is_eventservice&#39;</span><span class="p">,</span> <span class="s1">&#39;is_eventservicemerge&#39;</span><span class="p">,</span> <span class="s1">&#39;is_hpo&#39;</span><span class="p">,</span> <span class="s1">&#39;noexecstrcnv&#39;</span><span class="p">,</span> <span class="s1">&#39;debug&#39;</span><span class="p">,</span> <span class="s1">&#39;usecontainer&#39;</span><span class="p">,</span> <span class="s1">&#39;use_vp&#39;</span><span class="p">]</span>
+             <span class="p">}</span>
+
+<div class="viewcode-block" id="JobData.__init__"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">use_kmap</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            :param data: input dictionary of data settings</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">infosys</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># reference to Job specific InfoService instance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rawdata</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">use_kmap</span><span class="o">=</span><span class="n">use_kmap</span><span class="p">)</span>
+
+        <span class="c1"># for native HPO pilot support</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_hpo</span> <span class="ow">and</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_eventservice</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="JobData.init"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.init">[docs]</a>    <span class="k">def</span> <span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">infosys</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            :param infosys: infosys object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">infosys</span> <span class="o">=</span> <span class="n">infosys</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">indata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_infiles</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rawdata</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outdata</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">logdata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_outfiles</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rawdata</span><span class="p">)</span>
+
+        <span class="c1"># overwrites</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">imagename_jobdef</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">imagename</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;using imagename_jobdef as imagename (</span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imagename_jobdef</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">imagename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imagename_jobdef</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">imagename_jobdef</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">imagename</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;using imagename from jobparams (ignoring imagename_jobdef)&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">imagename_jobdef</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">imagename</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;using imagename from jobparams (imagename_jobdef not set)&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">imagename</span><span class="p">:</span>
+            <span class="c1"># prepend IMAGE_BASE to imagename if necessary (for testing purposes)</span>
+            <span class="n">image_base</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;IMAGE_BASE&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">image_base</span> <span class="ow">and</span> <span class="s1">&#39;IMAGE_BASE&#39;</span> <span class="ow">in</span> <span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">catchall</span><span class="p">:</span>
+                <span class="n">image_base</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_key_value</span><span class="p">(</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">catchall</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;IMAGE_BASE&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">image_base</span><span class="p">:</span>
+                <span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">image_base</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imagename</span><span class="p">)),</span>
+                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">image_base</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imagename</span><span class="p">)]</span>
+                <span class="n">local_path</span> <span class="o">=</span> <span class="n">get_valid_path_from_list</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">local_path</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">imagename</span> <span class="o">=</span> <span class="n">local_path</span></div>
+            <span class="c1">#if image_base and not os.path.isabs(self.imagename) and not self.imagename.startswith(&#39;docker&#39;):</span>
+            <span class="c1">#    self.imagename = os.path.join(image_base, self.imagename)</span>
+
+<div class="viewcode-block" id="JobData.get_key_value"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.get_key_value">[docs]</a>    <span class="k">def</span> <span class="nf">get_key_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">catchall</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;SOMEKEY&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the value corresponding to key in catchall.</span>
+<span class="sd">        :param catchall: catchall free string.</span>
+<span class="sd">        :param key: key name (string).</span>
+<span class="sd">        :return: value (string).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># ignore any non-key-value pairs that might be present in the catchall string</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">catchall</span><span class="o">.</span><span class="n">split</span><span class="p">()</span> <span class="k">if</span> <span class="s1">&#39;=&#39;</span> <span class="ow">in</span> <span class="n">s</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="JobData.prepare_infiles"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.prepare_infiles">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_infiles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Construct FileSpec objects for input files from raw dict `data`</span>
+<span class="sd">            :return: list of validated `FileSpec` objects</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># direct access handling</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_accessmode</span><span class="p">()</span>
+
+        <span class="n">access_keys</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;allow_lan&#39;</span><span class="p">,</span> <span class="s1">&#39;allow_wan&#39;</span><span class="p">,</span> <span class="s1">&#39;direct_access_lan&#39;</span><span class="p">,</span> <span class="s1">&#39;direct_access_wan&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">infosys</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">show_access_settings</span><span class="p">(</span><span class="n">access_keys</span><span class="p">)</span>
+
+        <span class="c1"># form raw list data from input comma-separated values for further validation by FileSpec</span>
+        <span class="n">kmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_kmap</span><span class="p">()</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ksources</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean_listdata</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span> <span class="nb">list</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="p">[])]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">kmap</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>  <span class="c1"># Python 3</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">ksources</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean_listdata</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span> <span class="nb">list</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="p">[])]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">kmap</span><span class="o">.</span><span class="n">itervalues</span><span class="p">())</span>  <span class="c1"># Python 2</span>
+
+        <span class="n">ret</span><span class="p">,</span> <span class="n">lfns</span> <span class="o">=</span> <span class="p">[],</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">ind</span><span class="p">,</span> <span class="n">lfn</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ksources</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;inFiles&#39;</span><span class="p">,</span> <span class="p">[])):</span>
+            <span class="k">if</span> <span class="n">lfn</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;NULL&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">lfn</span> <span class="ow">in</span> <span class="n">lfns</span><span class="p">:</span>  <span class="c1"># exclude null data and duplicates</span>
+                <span class="k">continue</span>
+            <span class="n">lfns</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">lfn</span><span class="p">)</span>
+            <span class="n">idat</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">attrname</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">kmap</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>  <span class="c1"># Python 3</span>
+                    <span class="n">idat</span><span class="p">[</span><span class="n">attrname</span><span class="p">]</span> <span class="o">=</span> <span class="n">ksources</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ksources</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">ind</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">attrname</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">kmap</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>  <span class="c1"># Python 2</span>
+                    <span class="n">idat</span><span class="p">[</span><span class="n">attrname</span><span class="p">]</span> <span class="o">=</span> <span class="n">ksources</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ksources</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">ind</span> <span class="k">else</span> <span class="kc">None</span>
+
+            <span class="n">accessmode</span> <span class="o">=</span> <span class="s1">&#39;copy&#39;</span>  <span class="c1">## default settings</span>
+
+            <span class="c1"># for prod jobs: use remoteio if transferType=direct and prodDBlockToken!=local</span>
+            <span class="c1"># for analy jobs: use remoteio if prodDBlockToken!=local</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">is_analysis</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">transfertype</span> <span class="o">==</span> <span class="s1">&#39;direct&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">idat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;storage_token&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="s1">&#39;local&#39;</span><span class="p">:</span>  <span class="c1">## Job settings</span>
+                <span class="n">accessmode</span> <span class="o">=</span> <span class="s1">&#39;direct&#39;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">accessmode</span><span class="p">:</span>  <span class="c1">## Job input options (job params) overwrite any other settings</span>
+                <span class="n">accessmode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">accessmode</span>
+
+            <span class="n">idat</span><span class="p">[</span><span class="s1">&#39;accessmode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">accessmode</span>
+            <span class="c1"># init access setting from queuedata</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">infosys</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">access_keys</span><span class="p">:</span>
+                    <span class="n">idat</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+
+            <span class="n">finfo</span> <span class="o">=</span> <span class="n">FileSpec</span><span class="p">(</span><span class="n">filetype</span><span class="o">=</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">idat</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;added file </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">lfn</span><span class="p">)</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">finfo</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="JobData.set_accessmode"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.set_accessmode">[docs]</a>    <span class="k">def</span> <span class="nf">set_accessmode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the accessmode field using jobparams.</span>
+
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">accessmode</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="s1">&#39;--accessmode=direct&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">jobparams</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">accessmode</span> <span class="o">=</span> <span class="s1">&#39;direct&#39;</span>
+        <span class="k">if</span> <span class="s1">&#39;--accessmode=copy&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">jobparams</span> <span class="ow">or</span> <span class="s1">&#39;--useLocalIO&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">jobparams</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">accessmode</span> <span class="o">=</span> <span class="s1">&#39;copy&#39;</span></div>
+
+<div class="viewcode-block" id="JobData.show_access_settings"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.show_access_settings">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">show_access_settings</span><span class="p">(</span><span class="n">access_keys</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Show access settings for the case job.infosys.queuedata is not initialized.</span>
+
+<span class="sd">        :param access_keys: list of access keys (list).</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dat</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">FileSpec</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">)]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">access_keys</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">dat</span><span class="o">.</span><span class="n">iteritems</span><span class="p">())])</span>  <span class="c1"># Python 2</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">dat</span><span class="o">.</span><span class="n">items</span><span class="p">())])</span>  <span class="c1"># Python 3</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;job.infosys.queuedata is not initialized: the following access settings will be used by default: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">msg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="JobData.get_kmap"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.get_kmap">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_kmap</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the kmap dictionary for server data to pilot conversions.</span>
+
+<span class="sd">        :return: kmap (dict).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kmap</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="c1"># &#39;internal_name&#39;: &#39;ext_key_structure&#39;</span>
+            <span class="s1">&#39;lfn&#39;</span><span class="p">:</span> <span class="s1">&#39;inFiles&#39;</span><span class="p">,</span>
+            <span class="c1">##&#39;??&#39;: &#39;dispatchDblock&#39;, &#39;??define_proper_internal_name&#39;: &#39;dispatchDBlockToken&#39;,</span>
+            <span class="s1">&#39;dataset&#39;</span><span class="p">:</span> <span class="s1">&#39;realDatasetsIn&#39;</span><span class="p">,</span> <span class="s1">&#39;guid&#39;</span><span class="p">:</span> <span class="s1">&#39;GUID&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;filesize&#39;</span><span class="p">:</span> <span class="s1">&#39;fsize&#39;</span><span class="p">,</span> <span class="s1">&#39;checksum&#39;</span><span class="p">:</span> <span class="s1">&#39;checksum&#39;</span><span class="p">,</span> <span class="s1">&#39;scope&#39;</span><span class="p">:</span> <span class="s1">&#39;scopeIn&#39;</span><span class="p">,</span>
+            <span class="c1">##&#39;??define_internal_key&#39;: &#39;prodDBlocks&#39;,</span>
+            <span class="s1">&#39;storage_token&#39;</span><span class="p">:</span> <span class="s1">&#39;prodDBlockToken&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;ddmendpoint&#39;</span><span class="p">:</span> <span class="s1">&#39;ddmEndPointIn&#39;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">kmap</span></div>
+
+<div class="viewcode-block" id="JobData.prepare_outfiles"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.prepare_outfiles">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_outfiles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct validated FileSpec objects for output and log files from raw dict `data`</span>
+<span class="sd">        Note: final preparation for output files can only be done after the payload has finished in case the payload</span>
+<span class="sd">        has produced a job report with e.g. output file guids. This is verified in</span>
+<span class="sd">        pilot/control/payload/process_job_report().</span>
+
+<span class="sd">        :param data:</span>
+<span class="sd">        :return: (list of `FileSpec` for output, list of `FileSpec` for log)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># form raw list data from input comma-separated values for further validataion by FileSpec</span>
+        <span class="n">kmap</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="c1"># &#39;internal_name&#39;: &#39;ext_key_structure&#39;</span>
+            <span class="s1">&#39;lfn&#39;</span><span class="p">:</span> <span class="s1">&#39;outFiles&#39;</span><span class="p">,</span>
+            <span class="c1">##&#39;??&#39;: &#39;destinationDblock&#39;, &#39;??define_proper_internal_name&#39;: &#39;destinationDBlockToken&#39;,</span>
+            <span class="s1">&#39;dataset&#39;</span><span class="p">:</span> <span class="s1">&#39;realDatasets&#39;</span><span class="p">,</span> <span class="s1">&#39;scope&#39;</span><span class="p">:</span> <span class="s1">&#39;scopeOut&#39;</span><span class="p">,</span>
+            <span class="c1">##&#39;??define_internal_key&#39;:&#39;prodDBlocks&#39;, &#39;??&#39;:&#39;dispatchDBlockTokenForOut&#39;,</span>
+            <span class="s1">&#39;ddmendpoint&#39;</span><span class="p">:</span> <span class="s1">&#39;ddmEndPointOut&#39;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ksources</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean_listdata</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span> <span class="nb">list</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="p">[])]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">kmap</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>  <span class="c1"># Python 3</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">ksources</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean_listdata</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span> <span class="nb">list</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="p">[])]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">kmap</span><span class="o">.</span><span class="n">itervalues</span><span class="p">())</span>  <span class="c1"># Python 2</span>
+
+        <span class="c1"># unify scopeOut structure: add scope of log file</span>
+        <span class="n">log_lfn</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;logFile&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">log_lfn</span><span class="p">:</span>
+            <span class="n">scope_out</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">lfn</span> <span class="ow">in</span> <span class="n">ksources</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;outFiles&#39;</span><span class="p">,</span> <span class="p">[]):</span>
+                <span class="k">if</span> <span class="n">lfn</span> <span class="o">==</span> <span class="n">log_lfn</span><span class="p">:</span>
+                    <span class="n">scope_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;scopeLog&#39;</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">ksources</span><span class="p">[</span><span class="s1">&#39;scopeOut&#39;</span><span class="p">]:</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Failed to extract scopeOut parameter from Job structure sent by Panda, please check input format!&#39;</span><span class="p">)</span>
+                    <span class="n">scope_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ksources</span><span class="p">[</span><span class="s1">&#39;scopeOut&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">ksources</span><span class="p">[</span><span class="s1">&#39;scopeOut&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">scope_out</span>
+
+        <span class="n">ret_output</span><span class="p">,</span> <span class="n">ret_log</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+
+        <span class="n">lfns</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">ind</span><span class="p">,</span> <span class="n">lfn</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ksources</span><span class="p">[</span><span class="s1">&#39;outFiles&#39;</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="n">lfn</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;NULL&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">lfn</span> <span class="ow">in</span> <span class="n">lfns</span><span class="p">:</span>  <span class="c1"># exclude null data and duplicates</span>
+                <span class="k">continue</span>
+            <span class="n">lfns</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">lfn</span><span class="p">)</span>
+            <span class="n">idat</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">attrname</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">kmap</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>  <span class="c1"># Python 3</span>
+                    <span class="n">idat</span><span class="p">[</span><span class="n">attrname</span><span class="p">]</span> <span class="o">=</span> <span class="n">ksources</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ksources</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">ind</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">attrname</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">kmap</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>  <span class="c1"># Python 2</span>
+                    <span class="n">idat</span><span class="p">[</span><span class="n">attrname</span><span class="p">]</span> <span class="o">=</span> <span class="n">ksources</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">ind</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ksources</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">ind</span> <span class="k">else</span> <span class="kc">None</span>
+
+            <span class="n">ftype</span> <span class="o">=</span> <span class="s1">&#39;output&#39;</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">ret_output</span>
+            <span class="k">if</span> <span class="n">lfn</span> <span class="o">==</span> <span class="n">log_lfn</span><span class="p">:</span>  <span class="c1"># log file case</span>
+                <span class="n">ftype</span> <span class="o">=</span> <span class="s1">&#39;log&#39;</span>
+                <span class="n">idat</span><span class="p">[</span><span class="s1">&#39;guid&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;logGUID&#39;</span><span class="p">)</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="n">ret_log</span>
+            <span class="k">elif</span> <span class="n">lfn</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.lib.tgz&#39;</span><span class="p">):</span>  <span class="c1"># build job case, generate a guid for the lib file</span>
+                <span class="n">idat</span><span class="p">[</span><span class="s1">&#39;guid&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_guid</span><span class="p">()</span>
+
+            <span class="n">finfo</span> <span class="o">=</span> <span class="n">FileSpec</span><span class="p">(</span><span class="n">filetype</span><span class="o">=</span><span class="n">ftype</span><span class="p">,</span> <span class="o">**</span><span class="n">idat</span><span class="p">)</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">finfo</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ret_output</span><span class="p">,</span> <span class="n">ret_log</span></div>
+
+<div class="viewcode-block" id="JobData.__getitem__"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.__getitem__">[docs]</a>    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Temporary Integration function to keep dict-based access for old logic in compatible way</span>
+<span class="sd">            TO BE REMOVED ONCE all fields will be moved to Job object attributes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;infosys&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">infosys</span>
+
+        <span class="c1">#if hasattr(self, key):</span>
+        <span class="c1">#    return getattr(self, key)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rawdata</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="JobData.__setitem__"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.__setitem__">[docs]</a>    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Temporary Integration function to keep dict-based access for old logic in compatible way</span>
+<span class="sd">            TO BE REMOVED ONCE all fields will be moved to Job object attributes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rawdata</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span></div>
+
+<div class="viewcode-block" id="JobData.__contains__"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.__contains__">[docs]</a>    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Temporary Integration function to keep dict-based access for old logic in compatible way</span>
+<span class="sd">            TO BE REMOVED ONCE all fields will be moved to Job object attributes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rawdata</span></div>
+
+<div class="viewcode-block" id="JobData.get"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.get">[docs]</a>    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">defval</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Temporary Integration function to keep dict-based access for old logic in compatible way</span>
+<span class="sd">            TO BE REMOVED ONCE all fields will be moved to Job object attributes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rawdata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">defval</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="JobData.load"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">use_kmap</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Construct and initialize data from ext source</span>
+<span class="sd">            :param data: input dictionary of job data settings</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1">## the translation map of the container attributes from external data to internal schema</span>
+        <span class="c1">## &#39;internal_name&#39;:(&#39;ext_name1&#39;, &#39;extname2_if_any&#39;)</span>
+        <span class="c1">## &#39;internal_name2&#39;:&#39;ext_name3&#39;</span>
+
+        <span class="c1">## first defined ext field will be used</span>
+        <span class="c1">## if key is not explicitly specified then ext name will be used as is</span>
+        <span class="c1">## fix me later to proper internal names if need</span>
+
+        <span class="n">kmap</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;jobid&#39;</span><span class="p">:</span> <span class="s1">&#39;PandaID&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;taskid&#39;</span><span class="p">:</span> <span class="s1">&#39;taskID&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;jobparams&#39;</span><span class="p">:</span> <span class="s1">&#39;jobPars&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;corecount&#39;</span><span class="p">:</span> <span class="s1">&#39;coreCount&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;platform&#39;</span><span class="p">:</span> <span class="s1">&#39;cmtConfig&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;infilesguids&#39;</span><span class="p">:</span> <span class="s1">&#39;GUID&#39;</span><span class="p">,</span>                      <span class="c1">## TO BE DEPRECATED: moved to FileSpec</span>
+            <span class="s1">&#39;attemptnr&#39;</span><span class="p">:</span> <span class="s1">&#39;attemptNr&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;datasetin&#39;</span><span class="p">:</span> <span class="s1">&#39;realDatasetsIn&#39;</span><span class="p">,</span>               <span class="c1">## TO BE DEPRECATED: moved to FileSpec</span>
+            <span class="s1">&#39;processingtype&#39;</span><span class="p">:</span> <span class="s1">&#39;processingType&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;transfertype&#39;</span><span class="p">:</span> <span class="s1">&#39;transferType&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;destinationdblock&#39;</span><span class="p">:</span> <span class="s1">&#39;destinationDblock&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;noexecstrcnv&#39;</span><span class="p">:</span> <span class="s1">&#39;noExecStrCnv&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;swrelease&#39;</span><span class="p">:</span> <span class="s1">&#39;swRelease&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;jobsetid&#39;</span><span class="p">:</span> <span class="s1">&#39;jobsetID&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;produserid&#39;</span><span class="p">:</span> <span class="s1">&#39;prodUserID&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;jobdefinitionid&#39;</span><span class="p">:</span> <span class="s1">&#39;jobDefinitionID&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;writetofile&#39;</span><span class="p">:</span> <span class="s1">&#39;writeToFile&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;is_eventservice&#39;</span><span class="p">:</span> <span class="s1">&#39;eventService&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;is_eventservicemerge&#39;</span><span class="p">:</span> <span class="s1">&#39;eventServiceMerge&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;is_hpo&#39;</span><span class="p">:</span> <span class="s1">&#39;isHPO&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;use_vp&#39;</span><span class="p">:</span> <span class="s1">&#39;useVP&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;maxcpucount&#39;</span><span class="p">:</span> <span class="s1">&#39;maxCpuCount&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;allownooutput&#39;</span><span class="p">:</span> <span class="s1">&#39;allowNoOutput&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;imagename_jobdef&#39;</span><span class="p">:</span> <span class="s1">&#39;container_name&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;containeroptions&#39;</span><span class="p">:</span> <span class="s1">&#39;containerOptions&#39;</span>
+        <span class="p">}</span> <span class="k">if</span> <span class="n">use_kmap</span> <span class="k">else</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">kmap</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="JobData.is_analysis"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.is_analysis">[docs]</a>    <span class="k">def</span> <span class="nf">is_analysis</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1">## if it&#39;s experiment specific logic then it could be isolated into extended JobDataATLAS class</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Determine whether the job is an analysis user job or not.</span>
+<span class="sd">            :return: True in case of user analysis job</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">is_analysis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;https://&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">transformation</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;http://&#39;</span><span class="p">)</span>
+
+        <span class="c1"># apply addons checks later if need</span>
+
+        <span class="k">return</span> <span class="n">is_analysis</span></div>
+
+<div class="viewcode-block" id="JobData.is_build_job"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.is_build_job">[docs]</a>    <span class="k">def</span> <span class="nf">is_build_job</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if the job is a build job.</span>
+<span class="sd">        (i.e. check if the job has an output file that is a lib file).</span>
+
+<span class="sd">        :return: boolean</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdata</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;.lib.&#39;</span> <span class="ow">in</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span> <span class="ow">and</span> <span class="s1">&#39;.log.&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="JobData.is_local"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.is_local">[docs]</a>    <span class="k">def</span> <span class="nf">is_local</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1">## confusing function, since it does not consider real status of applied transfer, TOBE DEPRECATED, use `has_remoteio()` instead of</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Should the input files be accessed locally?</span>
+<span class="sd">        Note: all input files will have storage_token set to local in that case.</span>
+
+<span class="sd">        :return: boolean.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">indata</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">fspec</span><span class="o">.</span><span class="n">storage_token</span> <span class="o">==</span> <span class="s1">&#39;local&#39;</span> <span class="ow">and</span> <span class="s1">&#39;.lib.&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="JobData.has_remoteio"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.has_remoteio">[docs]</a>    <span class="k">def</span> <span class="nf">has_remoteio</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check status of input file transfers and determine either direct access mode will be used or not.</span>
+<span class="sd">        :return: True if at least one file should use direct access mode</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="nb">any</span><span class="p">([</span><span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s1">&#39;remote_io&#39;</span> <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">indata</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="JobData.clean"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.clean">[docs]</a>    <span class="k">def</span> <span class="nf">clean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Validate and finally clean up required data values (object properties) if need</span>
+<span class="sd">            :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">pass</span></div>
+
+    <span class="c1">## custom function pattern to apply extra validation to the key values</span>
+    <span class="c1">##def clean__keyname(self, raw, value):</span>
+    <span class="c1">##  :param raw: raw value passed from ext source as input</span>
+    <span class="c1">##  :param value: preliminary cleaned and casted to proper type value</span>
+    <span class="c1">##</span>
+    <span class="c1">##    return value</span>
+
+<div class="viewcode-block" id="JobData.clean__corecount"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.clean__corecount">[docs]</a>    <span class="k">def</span> <span class="nf">clean__corecount</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Verify and validate value for the corecount key (set to 1 if not set)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># note: experiment specific</span>
+
+        <span class="c1"># Overwrite the corecount value with ATHENA_PROC_NUMBER if it is set</span>
+        <span class="n">athena_corecount</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ATHENA_PROC_NUMBER&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">athena_corecount</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">athena_corecount</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;ATHENA_PROC_NUMBER is not properly set.. ignored, data=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">athena_corecount</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">value</span> <span class="k">if</span> <span class="n">value</span> <span class="k">else</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="JobData.clean__platform"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.clean__platform">[docs]</a>    <span class="k">def</span> <span class="nf">clean__platform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Verify and validate value for the platform key.</span>
+<span class="sd">        Set the alrbuserplatform value if encoded in platform/cmtconfig string.</span>
+
+<span class="sd">        :param raw: (unused).</span>
+<span class="sd">        :param value: platform (string).</span>
+<span class="sd">        :return: updated platform (string).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">v</span> <span class="o">=</span> <span class="n">value</span> <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;null&#39;</span><span class="p">,</span> <span class="s1">&#39;none&#39;</span><span class="p">]</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+        <span class="c1"># handle encoded alrbuserplatform in cmtconfig/platform string</span>
+        <span class="k">if</span> <span class="s1">&#39;@&#39;</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">alrbuserplatform</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># ALRB_USER_PLATFORM value</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># cmtconfig value</span>
+
+        <span class="k">return</span> <span class="n">v</span></div>
+
+<div class="viewcode-block" id="JobData.clean__jobparams"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.clean__jobparams">[docs]</a>    <span class="k">def</span> <span class="nf">clean__jobparams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Verify and validate value for the jobparams key</span>
+<span class="sd">        Extract value from jobparams not related to job options.</span>
+<span class="sd">        The function will in particular extract and remove --overwriteQueueData, ZIP_MAP and --containerimage.</span>
+<span class="sd">        It will remove the old Pilot 1 option --overwriteQueuedata which should be replaced with --overwriteQueueData.</span>
+
+<span class="sd">        :param raw: (unused).</span>
+<span class="sd">        :param value: job parameters (string).</span>
+<span class="sd">        :return: updated job parameters (string).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;cleaning jobparams: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="c1">## clean job params from Pilot1 old-formatted options</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;--overwriteQueuedata={.*?}&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="c1">## extract overwrite options</span>
+        <span class="n">options</span><span class="p">,</span> <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;--overwriteQueueData&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="k">else</span> <span class="p">{},</span>
+                                             <span class="s1">&#39;--overwriteStorageData&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="k">else</span> <span class="p">{}},</span> <span class="n">remove</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">overwrite_queuedata</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;--overwriteQueueData&#39;</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">overwrite_storagedata</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;--overwriteStorageData&#39;</span><span class="p">,</span> <span class="p">{})</span>
+
+        <span class="c1">#logger.debug(&#39;ret(1) = %s&#39; % ret)</span>
+        <span class="c1">#ret = ret.replace(&quot;\&#39;\&quot;\&#39;\&quot;\&#39;&quot;, &#39;\\\&quot;&#39;)</span>
+        <span class="c1">#logger.debug(&#39;ret(2) = %s&#39; % ret)</span>
+
+        <span class="c1"># extract zip map  ## TO BE FIXED? better to pass it via dedicated sub-option in jobParams from PanDA side: e.g. using --zipmap &quot;content&quot;</span>
+        <span class="c1"># so that the zip_map can be handles more gracefully via parse_args</span>
+
+        <span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot; \&#39;?&lt;ZIP_MAP&gt;(.+)&lt;\/ZIP_MAP&gt;\&#39;?&quot;</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">ret</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">zipmap</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="c1"># remove zip map from final jobparams</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ret</span><span class="p">)</span>
+
+        <span class="c1"># extract and remove any present --containerimage XYZ options</span>
+        <span class="n">ret</span><span class="p">,</span> <span class="n">imagename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_container_image</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">imagename</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">imagename</span> <span class="o">=</span> <span class="n">imagename</span>
+
+        <span class="c1"># change any replaced &quot; with &#39; back to &quot; since it will cause problems when executing a container</span>
+        <span class="c1"># yes, but this creates a problem for user jobs to run..</span>
+        <span class="c1"># ret = ret.replace(&quot;\&#39;&quot;, &#39;\&quot;&#39;)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;cleaned jobparams: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">ret</span><span class="p">)</span>
+
+<span class="c1">#        self.coprocess = {u&#39;args&#39;: u&#39;--coprocess -o output.json -j &quot;&quot; -p &quot;bash%20./exec_in_container.sh&quot;</span>
+<span class="c1">#        --inSampleFile input.json -a jobO.83699547-623a-4d8c-9b1f-4ff5332bdb77.tar --sourceURL https://aipanda048.cern.ch:25443</span>
+<span class="c1">#        --checkPointToSave aaa --writeInputToTxt IN_DATA:input_ds.json -i &quot;[\&#39;v04.trt_sharded_weighted_1M5K.tar.gz\&#39;]&quot;</span>
+<span class="c1">#        --inMap &quot;{\&#39;IN_DATA\&#39;: [\&#39;v04.trt_sharded_weighted_1M5K.tar.gz\&#39;]}&quot; --outMetricsFile=23136708.metrics.000006.tgz^metrics.tgz&#39;,</span>
+<span class="c1">#        u&#39;command&#39;: u&#39;http://pandaserver.cern.ch:25080/trf/user/runHPO-00-00-01&#39;}</span>
+<span class="c1">#        logger.debug(&#39;hardcoding coprocess: %s&#39; % self.coprocess)</span>
+
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="JobData.extract_container_image"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.extract_container_image">[docs]</a>    <span class="k">def</span> <span class="nf">extract_container_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">jobparams</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract the container image from the job parameters if present, and remove it.</span>
+
+<span class="sd">        :param jobparams: job parameters (string).</span>
+<span class="sd">        :return: updated job parameters (string), extracted image name (string).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">imagename</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="c1"># define regexp pattern for the full container image option</span>
+        <span class="n">_pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;(\ \-\-containerImage\=?\s?[\S]+)&#39;</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">_pattern</span><span class="p">)</span>
+        <span class="n">image_option</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">jobparams</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">image_option</span> <span class="ow">and</span> <span class="n">image_option</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+
+            <span class="n">imagepattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot; \&#39;?\-\-containerImage\=?\ ?([\S]+)\ ?\&#39;?&quot;</span><span class="p">)</span>
+            <span class="c1"># imagepattern = re.compile(r&#39;(\ \-\-containerImage\=?\s?([\S]+))&#39;)</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">imagepattern</span><span class="p">,</span> <span class="n">jobparams</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">image</span> <span class="ow">and</span> <span class="n">image</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">imagename</span> <span class="o">=</span> <span class="n">image</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># removed [1]</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to extract image name: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;extracted image from jobparams: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">imagename</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;image could not be extract from </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">jobparams</span><span class="p">)</span>
+
+            <span class="c1"># remove the option from the job parameters</span>
+            <span class="n">jobparams</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">_pattern</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">jobparams</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;removed the </span><span class="si">%s</span><span class="s2"> option from job parameters: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">image_option</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">jobparams</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">jobparams</span><span class="p">,</span> <span class="n">imagename</span></div>
+
+<div class="viewcode-block" id="JobData.parse_args"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.parse_args">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">parse_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">remove</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Extract option/values from string containing command line options (arguments)</span>
+<span class="sd">            :param data: input command line arguments (raw string)</span>
+<span class="sd">            :param options: dict of option names to be considered: (name, type), type is a cast function to be applied with result value</span>
+<span class="sd">            :param remove: boolean, if True then exclude specified options from returned raw string of command line arguments</span>
+<span class="sd">            :return: tuple: (dict of extracted options, raw string of final command line options)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;extract options=</span><span class="si">%s</span><span class="s1"> from data=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="n">data</span><span class="p">))</span>  <span class="c1"># Python 2/3</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">options</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{},</span> <span class="n">data</span>
+
+        <span class="n">opts</span><span class="p">,</span> <span class="n">pargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_opts_pargs</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">opts</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{},</span> <span class="n">data</span>
+
+        <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ret</span><span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">opts</span><span class="p">)</span>
+
+        <span class="c1">## serialize parameters back to string</span>
+        <span class="n">rawdata</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="k">if</span> <span class="n">remove</span><span class="p">:</span>
+            <span class="n">final_args</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">pargs</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>  <span class="c1">## parsed option</span>
+                    <span class="k">if</span> <span class="n">arg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span>  <span class="c1"># exclude considered options</span>
+                        <span class="k">if</span> <span class="n">arg</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">arg</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                        <span class="n">final_args</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">final_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+            <span class="n">rawdata</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pipes</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">final_args</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ret</span><span class="p">,</span> <span class="n">rawdata</span></div>
+
+<div class="viewcode-block" id="JobData.get_opts_pargs"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.get_opts_pargs">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_opts_pargs</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the opts and pargs variables.</span>
+
+<span class="sd">        :param data: input command line arguments (raw string)</span>
+<span class="sd">        :return: opts (dict), pargs (list)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Failed to parse input arguments from data=</span><span class="si">%s</span><span class="s1">, error=</span><span class="si">%s</span><span class="s1"> .. skipped.&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+            <span class="k">return</span> <span class="p">{},</span> <span class="n">data</span>
+
+        <span class="n">opts</span><span class="p">,</span> <span class="n">curopt</span><span class="p">,</span> <span class="n">pargs</span> <span class="o">=</span> <span class="p">{},</span> <span class="kc">None</span><span class="p">,</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">arg</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">curopt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">opts</span><span class="p">[</span><span class="n">curopt</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">pargs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">curopt</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
+                <span class="n">curopt</span> <span class="o">=</span> <span class="n">arg</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">curopt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># no open option, ignore</span>
+                <span class="n">pargs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">opts</span><span class="p">[</span><span class="n">curopt</span><span class="p">]</span> <span class="o">=</span> <span class="n">arg</span>
+                <span class="n">pargs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">curopt</span><span class="p">,</span> <span class="n">arg</span><span class="p">])</span>
+                <span class="n">curopt</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">curopt</span><span class="p">:</span>
+            <span class="n">pargs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">curopt</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">opts</span><span class="p">,</span> <span class="n">pargs</span></div>
+
+<div class="viewcode-block" id="JobData.get_ret"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.get_ret">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_ret</span><span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">opts</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the ret variable from the options.</span>
+
+<span class="sd">        :param options:</span>
+<span class="sd">        :param opts:</span>
+<span class="sd">        :return: ret (dict).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">ret</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>  <span class="c1"># Python 3</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">_items</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()</span>  <span class="c1"># Python 2</span>
+        <span class="k">for</span> <span class="n">opt</span><span class="p">,</span> <span class="n">fcast</span> <span class="ow">in</span> <span class="n">_items</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">opts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">opt</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">fcast</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">fcast</span><span class="p">)</span> <span class="k">else</span> <span class="n">val</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Failed to extract value for option=</span><span class="si">%s</span><span class="s1"> from data=</span><span class="si">%s</span><span class="s1">: cast function=</span><span class="si">%s</span><span class="s1"> failed, exception=</span><span class="si">%s</span><span class="s1"> .. skipped&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">opt</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">fcast</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+                <span class="k">continue</span>
+            <span class="n">ret</span><span class="p">[</span><span class="n">opt</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="JobData.add_workdir_size"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.add_workdir_size">[docs]</a>    <span class="k">def</span> <span class="nf">add_workdir_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">workdir_size</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a measured workdir size to the workdirsizes field.</span>
+<span class="sd">        The function will deduce any input and output file sizes from the workdir size.</span>
+
+<span class="sd">        :param workdir_size: workdir size (int).</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Convert to long if necessary</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">workdir_size</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>  <span class="c1"># Python 2  # noqa: F821</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">workdir_size</span> <span class="o">=</span> <span class="n">long</span><span class="p">(</span><span class="n">workdir_size</span><span class="p">)</span>  <span class="c1"># noqa: F821</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert </span><span class="si">%s</span><span class="s1"> to long: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">workdir_size</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+                    <span class="k">return</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">workdir_size</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>  <span class="c1"># Python 3, note order</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">workdir_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">workdir_size</span><span class="p">)</span>  <span class="c1"># Python 3</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert </span><span class="si">%s</span><span class="s1"> to int: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">workdir_size</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+                    <span class="k">return</span>
+        <span class="k">try</span><span class="p">:</span>  <span class="c1"># Python 2</span>
+            <span class="n">total_size</span> <span class="o">=</span> <span class="n">long</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># B, note do not use 0L as it will generate a syntax error in Python 3  # noqa: F821</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">total_size</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># B, Python 3</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">workdir</span><span class="p">):</span>
+            <span class="c1"># Find out which input and output files have been transferred and add their sizes to the total size</span>
+            <span class="c1"># (Note: output files should also be removed from the total size since outputfilesize is added in the</span>
+            <span class="c1"># task def)</span>
+
+            <span class="c1"># Then update the file list in case additional output files were produced</span>
+            <span class="c1"># Note: don&#39;t do this deduction since it is not known by the task definition</span>
+            <span class="c1"># out_files, dummy, dummy = discoverAdditionalOutputFiles(outFiles, job.workdir, job.destinationDblock,</span>
+            <span class="c1"># job.scopeOut)</span>
+
+            <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">indata</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdata</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">fspec</span><span class="o">.</span><span class="n">filetype</span> <span class="o">==</span> <span class="s1">&#39;input&#39;</span> <span class="ow">and</span> <span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="s1">&#39;transferred&#39;</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">pfn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">pfn</span><span class="p">):</span>
+                    <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;pfn file=</span><span class="si">%s</span><span class="s2"> does not exist (skip from workdir size calculation)&quot;</span> <span class="o">%</span> <span class="n">pfn</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">total_size</span> <span class="o">+=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">pfn</span><span class="p">)</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;total size of present input+output files: </span><span class="si">%d</span><span class="s2"> B (workdir size: </span><span class="si">%d</span><span class="s2"> B)&quot;</span> <span class="o">%</span>
+                        <span class="p">(</span><span class="n">total_size</span><span class="p">,</span> <span class="n">workdir_size</span><span class="p">))</span>
+            <span class="n">workdir_size</span> <span class="o">-=</span> <span class="n">total_size</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">workdirsizes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">workdir_size</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="JobData.get_max_workdir_size"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.get_max_workdir_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_max_workdir_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the maximum disk space used by the payload.</span>
+
+<span class="sd">        :return: workdir size (int).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">maxdirsize</span> <span class="o">=</span> <span class="n">long</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2, note do not use 0L as it will generate a syntax error in Python 3  # noqa: F821</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">maxdirsize</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Python 3</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">workdirsizes</span> <span class="o">!=</span> <span class="p">[]:</span>
+            <span class="c1"># Get the maximum value from the list</span>
+            <span class="n">maxdirsize</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">workdirsizes</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;found no stored workdir sizes&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">maxdirsize</span></div>
+
+<div class="viewcode-block" id="JobData.get_lfns_and_guids"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.get_lfns_and_guids">[docs]</a>    <span class="k">def</span> <span class="nf">get_lfns_and_guids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return ordered lists with the input file LFNs and GUIDs.</span>
+
+<span class="sd">        :return: list of input files, list of corresponding GUIDs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">lfns</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">guids</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">indata</span><span class="p">:</span>
+            <span class="n">lfns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">)</span>
+            <span class="n">guids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">guid</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">lfns</span><span class="p">,</span> <span class="n">guids</span></div>
+
+<div class="viewcode-block" id="JobData.get_status"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.get_status">[docs]</a>    <span class="k">def</span> <span class="nf">get_status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Return the value for the given key (e.g. LOG_TRANSFER) from the status dictionary.</span>
+<span class="sd">        LOG_TRANSFER_NOT_DONE is returned if job object is not defined for key=&#39;LOG_TRANSFER&#39;.</span>
+<span class="sd">        If no key is found, None will be returned.</span>
+
+<span class="sd">        :param key: key name (string).</span>
+<span class="sd">        :return: corresponding key value in job.status dictionary (string).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">log_transfer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">log_transfer</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;LOG_TRANSFER&#39;</span><span class="p">:</span>
+                <span class="n">log_transfer</span> <span class="o">=</span> <span class="n">LOG_TRANSFER_NOT_DONE</span>
+
+        <span class="k">return</span> <span class="n">log_transfer</span></div>
+
+<div class="viewcode-block" id="JobData.get_job_option_for_input_name"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.get_job_option_for_input_name">[docs]</a>    <span class="k">def</span> <span class="nf">get_job_option_for_input_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Expecting something like --inputHitsFile=@input_name in jobparams.</span>
+
+<span class="sd">        :returns: job_option such as --inputHitsFile</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">job_options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jobparams</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+        <span class="n">input_name_option</span> <span class="o">=</span> <span class="s1">&#39;=@</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">input_name</span>
+        <span class="k">for</span> <span class="n">job_option</span> <span class="ow">in</span> <span class="n">job_options</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">input_name_option</span> <span class="ow">in</span> <span class="n">job_option</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">job_option</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="JobData.process_writetofile"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.process_writetofile">[docs]</a>    <span class="k">def</span> <span class="nf">process_writetofile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Expecting writetofile from the job definition.</span>
+<span class="sd">        The format is &#39;inputFor_file1:lfn1,lfn2^inputFor_file2:lfn3,lfn4&#39;</span>
+
+<span class="sd">        format writetofile_dictionary = {&#39;inputFor_file1&#39;: [lfn1, lfn2], &#39;inputFor_file2&#39;: [lfn3, lfn4]}</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">writetofile_dictionary</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">writetofile</span><span class="p">:</span>
+            <span class="n">fileinfos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">writetofile</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;^&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">fileinfo</span> <span class="ow">in</span> <span class="n">fileinfos</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s1">&#39;:&#39;</span> <span class="ow">in</span> <span class="n">fileinfo</span><span class="p">:</span>
+                    <span class="n">input_name</span><span class="p">,</span> <span class="n">input_list</span> <span class="o">=</span> <span class="n">fileinfo</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
+                    <span class="n">writetofile_dictionary</span><span class="p">[</span><span class="n">input_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_list</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;writeToFile doesn&#39;t have the correct format, expecting a separator </span><span class="se">\&#39;</span><span class="s2">:</span><span class="se">\&#39;</span><span class="s2"> for </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">fileinfo</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">writetofile_dictionary</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">input_name</span> <span class="ow">in</span> <span class="n">writetofile_dictionary</span><span class="p">:</span>
+                <span class="n">input_name_new</span> <span class="o">=</span> <span class="n">input_name</span> <span class="o">+</span> <span class="s1">&#39;.txt&#39;</span>
+                <span class="n">input_name_full</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">input_name_new</span><span class="p">)</span>
+                <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">input_name_full</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+                <span class="n">job_option</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_job_option_for_input_name</span><span class="p">(</span><span class="n">input_name</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">job_option</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Unknown job option format, expected job options such as </span><span class="se">\&#39;</span><span class="s2">--inputHitsFile</span><span class="se">\&#39;</span><span class="s2"> for input file: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">input_name</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">job_option</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">input_file</span> <span class="ow">in</span> <span class="n">writetofile_dictionary</span><span class="p">[</span><span class="n">input_name</span><span class="p">]:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">input_file</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Wrote input file list to file </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">input_name_full</span><span class="p">,</span> <span class="n">writetofile_dictionary</span><span class="p">[</span><span class="n">input_name</span><span class="p">]))</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">jobparams</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jobparams</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">input_name</span><span class="p">,</span> <span class="n">input_name_new</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">job_option</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">jobparams</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jobparams</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=&#39;</span> <span class="o">%</span> <span class="n">job_option</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">jobparams</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jobparams</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;--autoConfiguration=everything&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;jobparams after processing writeToFile: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">jobparams</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="JobData.add_size"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.add_size">[docs]</a>    <span class="k">def</span> <span class="nf">add_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a size measurement to the sizes field at the current time stamp.</span>
+<span class="sd">        A size measurement is in Bytes.</span>
+
+<span class="sd">        :param size: size of object in Bytes (int).</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># is t0 set? if not, set it</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">t0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">t0</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">times</span><span class="p">()</span>
+
+        <span class="c1"># get the current time stamp relative to t0</span>
+        <span class="n">time_stamp</span> <span class="o">=</span> <span class="n">get_elapsed_real_time</span><span class="p">(</span><span class="n">t0</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">t0</span><span class="p">)</span>
+
+        <span class="c1"># add a data point to the sizes dictionary</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="n">time_stamp</span><span class="p">]</span> <span class="o">=</span> <span class="n">size</span></div>
+
+<div class="viewcode-block" id="JobData.get_size"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.get_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determine the size (B) of the job object.</span>
+
+<span class="sd">        :return: size (int).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">get_object_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="JobData.collect_zombies"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.collect_zombies">[docs]</a>    <span class="k">def</span> <span class="nf">collect_zombies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Collect zombie child processes, tn is the max number of loops, plus 1,</span>
+<span class="sd">        to avoid infinite looping even if some child processes really get wedged;</span>
+<span class="sd">        tn=None means it will keep going until all child zombies have been collected.</span>
+
+<span class="sd">        :param tn: max depth (int).</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">zombies</span> <span class="ow">and</span> <span class="n">tn</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;--- collectZombieJob: --- </span><span class="si">%d</span><span class="s2">, </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">tn</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">zombies</span><span class="p">)))</span>
+            <span class="n">tn</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">zombies</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;zombie collector trying to kill pid </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+                    <span class="n">_id</span><span class="p">,</span> <span class="n">rc</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">waitpid</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">WNOHANG</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;harmless exception when collecting zombies: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">zombies</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">_id</span><span class="p">:</span>  <span class="c1"># finished</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">zombies</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">collect_zombies</span><span class="p">(</span><span class="n">tn</span><span class="o">=</span><span class="n">tn</span><span class="p">)</span>  <span class="c1"># recursion</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">zombies</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">tn</span><span class="p">:</span>
+            <span class="c1"># for the infinite waiting case, we have to use blocked waiting, otherwise it throws</span>
+            <span class="c1"># RuntimeError: maximum recursion depth exceeded</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">zombies</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">_id</span><span class="p">,</span> <span class="n">rc</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">waitpid</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;harmless exception when collecting zombie jobs, </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">zombies</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">_id</span><span class="p">:</span>  <span class="c1"># finished</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">zombies</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">collect_zombies</span><span class="p">(</span><span class="n">tn</span><span class="o">=</span><span class="n">tn</span><span class="p">)</span>  <span class="c1"># recursion</span></div>
+
+<div class="viewcode-block" id="JobData.only_copy_to_scratch"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.only_copy_to_scratch">[docs]</a>    <span class="k">def</span> <span class="nf">only_copy_to_scratch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1">## TO BE DEPRECATED, use `has_remoteio()` instead of</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determine if the payload only has copy-to-scratch input.</span>
+<span class="sd">        In this case, there should be no --usePFCTurl or --directIn in the job parameters.</span>
+
+<span class="sd">        :return: True if only copy-to-scratch. False if at least one file should use direct access mode</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">indata</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s1">&#39;remote_io&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="JobData.reset_errors"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.reset_errors">[docs]</a>    <span class="k">def</span> <span class="nf">reset_errors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># temporary fix, make sure all queues are empty before starting new job</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">piloterrorcode</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">piloterrorcodes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">piloterrordiag</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transexitcode</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exeerrorcode</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exeerrordiag</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exitcode</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exitmsg</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">corecounts</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="JobData.to_json"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.to_json">[docs]</a>    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">json</span> <span class="kn">import</span> <span class="n">dumps</span>
+        <span class="k">return</span> <span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="k">lambda</span> <span class="n">o</span><span class="p">:</span> <span class="n">o</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

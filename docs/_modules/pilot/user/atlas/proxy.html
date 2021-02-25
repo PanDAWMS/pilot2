@@ -1,0 +1,396 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.user.atlas.proxy &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.user.atlas.proxy</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018</span>
+<span class="c1"># - Alexander Bogdanchikov, Alexander.Bogdanchikov@cern.ch, 2020</span>
+
+<span class="c1"># from pilot.util.container import execute</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">from</span> <span class="nn">pilot.user.atlas.setup</span> <span class="kn">import</span> <span class="n">get_file_system_root_path</span>
+<span class="kn">from</span> <span class="nn">pilot.util.container</span> <span class="kn">import</span> <span class="n">execute</span>
+<span class="kn">from</span> <span class="nn">pilot.common.errorcodes</span> <span class="kn">import</span> <span class="n">ErrorCodes</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">time</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">errors</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="verify_proxy"><a class="viewcode-back" href="../../../../components/user/atlas/proxy.html#pilot.user.atlas.proxy.verify_proxy">[docs]</a><span class="k">def</span> <span class="nf">verify_proxy</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x509</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">proxy_id</span><span class="o">=</span><span class="s2">&quot;pilot&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check for a valid voms/grid proxy longer than N hours.</span>
+<span class="sd">    Use `limit` to set required time limit.</span>
+
+<span class="sd">    :param limit: time limit in hours (int).</span>
+<span class="sd">    :param x509: points to the proxy file. If not set (=None) - get proxy file from X509_USER_PROXY environment</span>
+<span class="sd">    :return: exit code (NOPROXY or NOVOMSPROXY), diagnostics (error diagnostics string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">exit_code</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;verify_proxy() begin&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">limit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">limit</span> <span class="o">=</span> <span class="mi">48</span>
+
+    <span class="c1"># add setup for arcproxy if it exists</span>
+    <span class="c1">#arcproxy_setup = &quot;%s/atlas.cern.ch/repo/sw/arc/client/latest/slc6/x86_64/setup.sh&quot; % get_file_system_root_path()</span>
+    <span class="k">if</span> <span class="n">x509</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">x509</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;X509_USER_PROXY&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">x509</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+        <span class="n">envsetup</span> <span class="o">=</span> <span class="s1">&#39;export X509_USER_PROXY=</span><span class="si">%s</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">x509</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">envsetup</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="c1">#envsetup += &quot;. %s;&quot; % (arcproxy_setup)</span>
+    <span class="n">envsetup</span> <span class="o">+=</span> <span class="s2">&quot;. </span><span class="si">%s</span><span class="s2">/atlas.cern.ch/repo/ATLASLocalRootBase/user/atlasLocalSetup.sh --quiet;&quot;</span> <span class="o">%</span> <span class="n">get_file_system_root_path</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ALRB_noGridMW&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">&quot;yes&quot;</span><span class="p">:</span>
+        <span class="n">envsetup</span> <span class="o">+=</span> <span class="s2">&quot;lsetup emi;&quot;</span>
+        <span class="c1">#envsetup += &quot;export; ls -l $X509_USER_PROXY; lsetup emi; export; ls -l $X509_USER_PROXY;&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Skipping &quot;lsetup emi&quot; as ALRB_noGridMW=YES&#39;</span><span class="p">)</span>
+
+    <span class="c1"># first try to use arcproxy since voms-proxy-info is not working properly on SL6</span>
+    <span class="c1">#  (memory issues on queues with limited memory)</span>
+
+    <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">verify_arcproxy</span><span class="p">(</span><span class="n">envsetup</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">proxy_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ec</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">ec</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span>
+    <span class="k">elif</span> <span class="n">ec</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">pass</span>  <span class="c1"># go to next test</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="n">diagnostics</span>
+
+    <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">verify_vomsproxy</span><span class="p">(</span><span class="n">envsetup</span><span class="p">,</span> <span class="n">limit</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ec</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="n">diagnostics</span>
+
+    <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">verify_gridproxy</span><span class="p">(</span><span class="n">envsetup</span><span class="p">,</span> <span class="n">limit</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ec</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span>
+
+    <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span></div>
+
+
+<div class="viewcode-block" id="verify_arcproxy"><a class="viewcode-back" href="../../../../components/user/atlas/proxy.html#pilot.user.atlas.proxy.verify_arcproxy">[docs]</a><span class="k">def</span> <span class="nf">verify_arcproxy</span><span class="p">(</span><span class="n">envsetup</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">proxy_id</span><span class="o">=</span><span class="s2">&quot;pilot&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Verify the proxy using arcproxy.</span>
+
+<span class="sd">    :param envsetup: general setup string for proxy commands (string).</span>
+<span class="sd">    :param limit: time limit in hours (int).</span>
+<span class="sd">    :param  proxy_id: proxy unique id name. The verification result will be cached for this id. If None the result will not be cached (string)</span>
+<span class="sd">    :return: exit code (int), error diagnostics (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;verify_arcproxy() begin&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">proxy_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">verify_arcproxy</span><span class="p">,</span> <span class="s2">&quot;cache&quot;</span><span class="p">):</span>
+            <span class="n">verify_arcproxy</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;current cache=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">verify_arcproxy</span><span class="o">.</span><span class="n">cache</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">proxy_id</span> <span class="ow">in</span> <span class="n">verify_arcproxy</span><span class="o">.</span><span class="n">cache</span><span class="p">:</span>  <span class="c1"># if exist, then calculate result from current cache</span>
+            <span class="n">validity_end</span> <span class="o">=</span> <span class="n">verify_arcproxy</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">proxy_id</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">validity_end</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># previous validity check failed, do not try to re-check</span>
+                <span class="n">ec</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;arcproxy verification failed (cached result)&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tnow</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="p">()</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>  <span class="c1"># round to seconds</span>
+                <span class="n">seconds_left</span> <span class="o">=</span> <span class="n">validity_end</span> <span class="o">-</span> <span class="n">tnow</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;cache: check &#39;</span><span class="si">%s</span><span class="s2">&#39; proxy validity: wanted=</span><span class="si">%d</span><span class="s2">h left=</span><span class="si">%.2f</span><span class="s2">h (now=</span><span class="si">%d</span><span class="s2"> validity_end=</span><span class="si">%d</span><span class="s2"> left=</span><span class="si">%d</span><span class="s2">)&quot;</span>
+                            <span class="o">%</span> <span class="p">(</span><span class="n">proxy_id</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">seconds_left</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3600</span><span class="p">,</span> <span class="n">tnow</span><span class="p">,</span> <span class="n">validity_end</span><span class="p">,</span> <span class="n">seconds_left</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">seconds_left</span> <span class="o">&lt;</span> <span class="n">limit</span> <span class="o">*</span> <span class="mi">3600</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39; proxy validity time is too short&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">proxy_id</span><span class="p">))</span>
+                    <span class="n">ec</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;validity time is too short&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39; proxy validity time is enough&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">proxy_id</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span>
+
+    <span class="c1"># options and options&#39; sequence are important for parsing, do not change it</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">arcproxy -i vomsACvalidityEnd -i vomsACvalidityLeft&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">envsetup</span><span class="p">)</span>
+
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># , usecontainer=True, copytool=True)</span>
+    <span class="k">if</span> <span class="n">stdout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;command not found&#39;</span> <span class="ow">in</span> <span class="n">stdout</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;arcproxy is not available on this queue,&quot;</span>
+                           <span class="s2">&quot;this can lead to memory issues with voms-proxy-info on SL6: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">stdout</span><span class="p">))</span>
+            <span class="n">ec</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="n">validity_end</span> <span class="o">=</span> <span class="n">interpret_proxy_info</span><span class="p">(</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">limit</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">proxy_id</span> <span class="ow">and</span> <span class="n">validity_end</span><span class="p">:</span>  <span class="c1"># setup cache if requered</span>
+                <span class="k">if</span> <span class="n">ec</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;cache the validity_end: cache[&#39;</span><span class="si">%s</span><span class="s2">&#39;] = </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">proxy_id</span><span class="p">,</span> <span class="n">validity_end</span><span class="p">))</span>
+                    <span class="n">verify_arcproxy</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">proxy_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">validity_end</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">verify_arcproxy</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">proxy_id</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>  <span class="c1"># -1 in cache means any error in prev validation</span>
+            <span class="k">if</span> <span class="n">ec</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;voms proxy verified using arcproxy&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="n">diagnostics</span>
+            <span class="k">elif</span> <span class="n">ec</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>  <span class="c1"># skip to next proxy test</span>
+                <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span>
+            <span class="k">elif</span> <span class="n">ec</span> <span class="o">==</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOVOMSPROXY</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;will try voms-proxy-info instead&quot;</span><span class="p">)</span>
+                <span class="n">ec</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;command execution failed&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span></div>
+
+
+<div class="viewcode-block" id="verify_vomsproxy"><a class="viewcode-back" href="../../../../components/user/atlas/proxy.html#pilot.user.atlas.proxy.verify_vomsproxy">[docs]</a><span class="k">def</span> <span class="nf">verify_vomsproxy</span><span class="p">(</span><span class="n">envsetup</span><span class="p">,</span> <span class="n">limit</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Verify proxy using voms-proxy-info command.</span>
+
+<span class="sd">    :param envsetup: general setup string for proxy commands (string).</span>
+<span class="sd">    :param limit: time limit in hours (int).</span>
+<span class="sd">    :return: exit code (int), error diagnostics (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;verify_arcproxy() begin&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;X509_USER_PROXY&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">voms-proxy-info -actimeleft --file $X509_USER_PROXY&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">envsetup</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;executing command: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">stdout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;command not found&quot;</span> <span class="ow">in</span> <span class="n">stdout</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;skipping voms proxy check since command is not available&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="n">validity_end</span> <span class="o">=</span> <span class="n">interpret_proxy_info</span><span class="p">(</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">limit</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ec</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;voms proxy verified using voms-proxy-info&quot;</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="n">diagnostics</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;command execution failed&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;X509_USER_PROXY is not set&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span></div>
+
+
+<div class="viewcode-block" id="verify_gridproxy"><a class="viewcode-back" href="../../../../components/user/atlas/proxy.html#pilot.user.atlas.proxy.verify_gridproxy">[docs]</a><span class="k">def</span> <span class="nf">verify_gridproxy</span><span class="p">(</span><span class="n">envsetup</span><span class="p">,</span> <span class="n">limit</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Verify proxy using grid-proxy-info command.</span>
+
+<span class="sd">    :param envsetup: general setup string for proxy commands (string).</span>
+<span class="sd">    :param limit: time limit in hours (int).</span>
+<span class="sd">    :return: exit code (int), error diagnostics (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">limit</span><span class="p">:</span>
+        <span class="c1"># next clause had problems: grid-proxy-info -exists -valid 0.166666666667:00</span>
+        <span class="c1">#cmd = &quot;%sgrid-proxy-info -exists -valid %s:00&quot; % (envsetup, str(limit))</span>
+        <span class="c1"># more accurate calculation of HH:MM</span>
+        <span class="n">limit_hours</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">limit</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span> <span class="o">/</span> <span class="mi">60</span>
+        <span class="n">limit_minutes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">limit</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">+</span> <span class="o">.</span><span class="mi">999</span><span class="p">)</span> <span class="o">-</span> <span class="n">limit_hours</span> <span class="o">*</span> <span class="mi">60</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">grid-proxy-info -exists -valid </span><span class="si">%d</span><span class="s2">:</span><span class="si">%02d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">envsetup</span><span class="p">,</span> <span class="n">limit_hours</span><span class="p">,</span> <span class="n">limit_minutes</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">grid-proxy-info -exists -valid 24:00&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">envsetup</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;executing command: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">stdout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">stdout</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;command not found&quot;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;skipping grid proxy check since command is not available&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Analyze exit code / stdout</span>
+                <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;grid proxy certificate does not exist or is too short: </span><span class="si">%d</span><span class="s2">, </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOPROXY</span><span class="p">,</span> <span class="n">diagnostics</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;grid proxy verified&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;command execution failed&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span></div>
+
+
+<div class="viewcode-block" id="interpret_proxy_info"><a class="viewcode-back" href="../../../../components/user/atlas/proxy.html#pilot.user.atlas.proxy.interpret_proxy_info">[docs]</a><span class="k">def</span> <span class="nf">interpret_proxy_info</span><span class="p">(</span><span class="n">ec</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">limit</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Interpret the output from arcproxy or voms-proxy-info.</span>
+
+<span class="sd">    :param ec: exit code from proxy command (int).</span>
+<span class="sd">    :param stdout: stdout from proxy command (string).</span>
+<span class="sd">    :param stderr: stderr from proxy command (string).</span>
+<span class="sd">    :param limit: time limit in hours (int).</span>
+<span class="sd">    :return: exit code (int), diagnostics (string). validity end in seconds if detected, None if not detected(int)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">exitcode</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">validity_end</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># not detected</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;stdout = </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">stdout</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;stderr = </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">stderr</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ec</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;Unable to verify signature! Server certificate possibly not installed&quot;</span> <span class="ow">in</span> <span class="n">stdout</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;skipping voms proxy check: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">stdout</span><span class="p">))</span>
+        <span class="c1"># test for command errors</span>
+        <span class="k">elif</span> <span class="s2">&quot;arcproxy: error while loading shared libraries&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
+            <span class="n">exitcode</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;skipping arcproxy test&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="s2">&quot;arcproxy:&quot;</span> <span class="ow">in</span> <span class="n">stdout</span><span class="p">:</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;arcproxy failed: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">stdout</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+            <span class="n">exitcode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">GENERALERROR</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Analyze exit code / output</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;voms proxy certificate check failure: </span><span class="si">%d</span><span class="s2">, </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ec</span><span class="p">,</span> <span class="n">stdout</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+            <span class="n">exitcode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOVOMSPROXY</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># remove any additional print-outs if present, assume that the last line is the time left</span>
+        <span class="k">if</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="ow">in</span> <span class="n">stdout</span><span class="p">:</span>
+            <span class="c1"># also remove the last \n in case there is one</span>
+            <span class="k">if</span> <span class="n">stdout</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">:</span>
+                <span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">stdout_split</span> <span class="o">=</span> <span class="n">stdout</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;splitted stdout = </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">stdout_split</span><span class="p">))</span>
+            <span class="c1"># try to get validity_end in penult line, it may fail, throw exception</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">validity_end_str</span> <span class="o">=</span> <span class="n">stdout_split</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>  <span class="c1"># imay raise exception IndexError if stdout is too short</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;try to get validity_end from the line: </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">validity_end_str</span><span class="p">)</span>
+                <span class="n">validity_end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">validity_end_str</span><span class="p">)</span>  <span class="c1"># may raise ValueError if not string</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;validity_end = </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">validity_end</span><span class="p">))</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">IndexError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;validity_end not found in stdout (</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="n">err</span><span class="p">)</span>
+                <span class="k">pass</span>
+            <span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout_split</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># remove everything except last line</span>
+
+        <span class="c1"># test for command errors</span>
+        <span class="k">if</span> <span class="s2">&quot;arcproxy:&quot;</span> <span class="ow">in</span> <span class="n">stdout</span><span class="p">:</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;arcproxy failed: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">stdout</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+            <span class="n">exitcode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">GENERALERROR</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># on EMI-3 the time output is different (HH:MM:SS as compared to SS on EMI-2)</span>
+            <span class="k">if</span> <span class="s2">&quot;:&quot;</span> <span class="ow">in</span> <span class="n">stdout</span><span class="p">:</span>
+                <span class="n">ftr</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3600</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="n">stdout</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">a</span> <span class="o">*</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ftr</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">stdout</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">))))])</span>  <span class="c1"># Python 2/3</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">validity</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">stdout</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">validity</span> <span class="o">&gt;=</span> <span class="n">limit</span> <span class="o">*</span> <span class="mi">3600</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;voms proxy verified (</span><span class="si">%d</span><span class="s2"> s)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">validity</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;voms proxy certificate does not exist or is too short (lifetime </span><span class="si">%d</span><span class="s2"> s)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">validity</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+                    <span class="n">exitcode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOVOMSPROXY</span>
+            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;failed to evalute command stdout: </span><span class="si">%s</span><span class="s2">, stderr: </span><span class="si">%s</span><span class="s2">, exc=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+                <span class="n">exitcode</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">GENERALERROR</span>
+
+    <span class="k">return</span> <span class="n">exitcode</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="n">validity_end</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,1085 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.control.data &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.control.data</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017</span>
+<span class="c1"># - Daniel Drizhuk, d.drizhuk@gmail.com, 2017</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020</span>
+<span class="c1"># - Wen Guan, wen.guan@cern.ch, 2018</span>
+<span class="c1"># - Alexey Anisenkov, anisyonk@cern.ch, 2018</span>
+
+<span class="kn">import</span> <span class="nn">copy</span> <span class="k">as</span> <span class="nn">objectcopy</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">Queue</span> <span class="k">as</span> <span class="nn">queue</span>  <span class="c1"># noqa: N813</span>
+<span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">queue</span>  <span class="c1"># Python 3</span>
+
+<span class="kn">from</span> <span class="nn">pilot.api.data</span> <span class="kn">import</span> <span class="n">StageInClient</span><span class="p">,</span> <span class="n">StageOutClient</span>
+<span class="kn">from</span> <span class="nn">pilot.api.es_data</span> <span class="kn">import</span> <span class="n">StageInESClient</span>
+<span class="kn">from</span> <span class="nn">pilot.control.job</span> <span class="kn">import</span> <span class="n">send_state</span>
+<span class="kn">from</span> <span class="nn">pilot.common.errorcodes</span> <span class="kn">import</span> <span class="n">ErrorCodes</span>
+<span class="kn">from</span> <span class="nn">pilot.common.exception</span> <span class="kn">import</span> <span class="n">ExcThread</span><span class="p">,</span> <span class="n">PilotException</span><span class="p">,</span> <span class="n">LogFileCreationFailure</span>
+<span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">set_pilot_state</span><span class="p">,</span> <span class="n">check_for_final_server_update</span>  <span class="c1">#, abort_jobs_in_queues</span>
+<span class="kn">from</span> <span class="nn">pilot.util.common</span> <span class="kn">import</span> <span class="n">should_abort</span>
+<span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="n">PILOT_PRE_STAGEIN</span><span class="p">,</span> <span class="n">PILOT_POST_STAGEIN</span><span class="p">,</span> <span class="n">PILOT_PRE_STAGEOUT</span><span class="p">,</span> <span class="n">PILOT_POST_STAGEOUT</span><span class="p">,</span> <span class="n">LOG_TRANSFER_IN_PROGRESS</span><span class="p">,</span>\
+    <span class="n">LOG_TRANSFER_DONE</span><span class="p">,</span> <span class="n">LOG_TRANSFER_NOT_DONE</span><span class="p">,</span> <span class="n">LOG_TRANSFER_FAILED</span><span class="p">,</span> <span class="n">SERVER_UPDATE_RUNNING</span><span class="p">,</span> <span class="n">MAX_KILL_WAIT_TIME</span>
+<span class="kn">from</span> <span class="nn">pilot.util.container</span> <span class="kn">import</span> <span class="n">execute</span>
+<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">remove</span><span class="p">,</span> <span class="n">get_local_file_size</span>
+<span class="kn">from</span> <span class="nn">pilot.util.processes</span> <span class="kn">import</span> <span class="n">threads_aborted</span>
+<span class="kn">from</span> <span class="nn">pilot.util.queuehandling</span> <span class="kn">import</span> <span class="n">declare_failed_by_kill</span><span class="p">,</span> <span class="n">put_in_queue</span>
+<span class="kn">from</span> <span class="nn">pilot.util.timing</span> <span class="kn">import</span> <span class="n">add_to_pilot_timing</span>
+<span class="kn">from</span> <span class="nn">pilot.util.tracereport</span> <span class="kn">import</span> <span class="n">TraceReport</span>
+<span class="kn">import</span> <span class="nn">pilot.util.middleware</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">errors</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="control"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.control">[docs]</a><span class="k">def</span> <span class="nf">control</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">traces</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+
+    <span class="n">targets</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;copytool_in&#39;</span><span class="p">:</span> <span class="n">copytool_in</span><span class="p">,</span> <span class="s1">&#39;copytool_out&#39;</span><span class="p">:</span> <span class="n">copytool_out</span><span class="p">,</span> <span class="s1">&#39;queue_monitoring&#39;</span><span class="p">:</span> <span class="n">queue_monitoring</span><span class="p">}</span>
+    <span class="n">threads</span> <span class="o">=</span> <span class="p">[</span><span class="n">ExcThread</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">(),</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;queues&#39;</span><span class="p">:</span> <span class="n">queues</span><span class="p">,</span> <span class="s1">&#39;traces&#39;</span><span class="p">:</span> <span class="n">traces</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">:</span> <span class="n">args</span><span class="p">},</span>
+                         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">items</span><span class="p">())]</span>  <span class="c1"># Python 2/3</span>
+
+    <span class="p">[</span><span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span> <span class="k">for</span> <span class="n">thread</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">]</span>
+
+    <span class="c1"># if an exception is thrown, the graceful_stop will be set by the ExcThread class run() function</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">thread</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
+            <span class="n">bucket</span> <span class="o">=</span> <span class="n">thread</span><span class="o">.</span><span class="n">get_bucket</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">exc</span> <span class="o">=</span> <span class="n">bucket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">queue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_obj</span><span class="p">,</span> <span class="n">exc_trace</span> <span class="o">=</span> <span class="n">exc</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;thread </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> received an exception from bucket: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">thread</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">exc_obj</span><span class="p">))</span>
+
+                <span class="c1"># deal with the exception</span>
+                <span class="c1"># ..</span>
+
+            <span class="n">thread</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;data control ending since graceful_stop has been set&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">abort_job</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;command&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;aborting&#39;</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;jobs are aborting&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;command&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;abort&#39;</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;data control detected a set abort_job (due to a kill signal)&#39;</span><span class="p">)</span>
+            <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;command&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;aborting&#39;</span>
+
+            <span class="c1"># find all running jobs and stop them, find all jobs in queues relevant to this module</span>
+            <span class="c1">#abort_jobs_in_queues(queues, args.signal)</span>
+
+    <span class="c1"># proceed to set the job_aborted flag?</span>
+    <span class="k">if</span> <span class="n">threads_aborted</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will proceed to set job_aborted&#39;</span><span class="p">)</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">job_aborted</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will not set job_aborted yet&#39;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;[data] control thread has finished&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="skip_special_files"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.skip_special_files">[docs]</a><span class="k">def</span> <span class="nf">skip_special_files</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Consult user defined code if any files should be skipped during stage-in.</span>
+<span class="sd">    ATLAS code will skip DBRelease files e.g. as they should already be available in CVMFS.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pilot_user</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_USER&#39;</span><span class="p">,</span> <span class="s1">&#39;generic&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.common&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">user</span><span class="o">.</span><span class="n">update_stagein</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;caught exception: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="update_indata"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.update_indata">[docs]</a><span class="k">def</span> <span class="nf">update_indata</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    In case file were marked as no_transfer files, remove them from stage-in.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">toberemoved</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">indata</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s1">&#39;no_transfer&#39;</span><span class="p">:</span>
+            <span class="n">toberemoved</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fspec</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">toberemoved</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;removing fspec object (lfn=</span><span class="si">%s</span><span class="s1">) from list of input files&#39;</span> <span class="o">%</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">)</span>
+        <span class="n">job</span><span class="o">.</span><span class="n">indata</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">fspec</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_trace_report_variables"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.get_trace_report_variables">[docs]</a><span class="k">def</span> <span class="nf">get_trace_report_variables</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;stage-in&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get some of the variables needed for creating the trace report.</span>
+
+<span class="sd">    :param job: job object</span>
+<span class="sd">    :param label: &#39;stage-[in|out]&#39; (string).</span>
+<span class="sd">    :return: event_type (string), localsite (string), remotesite (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">event_type</span> <span class="o">=</span> <span class="s2">&quot;get_sm&quot;</span> <span class="k">if</span> <span class="n">label</span> <span class="o">==</span> <span class="s1">&#39;stage-in&#39;</span> <span class="k">else</span> <span class="s2">&quot;put_sm&quot;</span>
+    <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">is_analysis</span><span class="p">():</span>
+        <span class="n">event_type</span> <span class="o">+=</span> <span class="s2">&quot;_a&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">indata</span> <span class="k">if</span> <span class="n">label</span> <span class="o">==</span> <span class="s1">&#39;stage-in&#39;</span> <span class="k">else</span> <span class="n">job</span><span class="o">.</span><span class="n">outdata</span>
+    <span class="n">localsite</span> <span class="o">=</span> <span class="n">remotesite</span> <span class="o">=</span> <span class="n">get_rse</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">event_type</span><span class="p">,</span> <span class="n">localsite</span><span class="p">,</span> <span class="n">remotesite</span></div>
+
+
+<div class="viewcode-block" id="create_trace_report"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.create_trace_report">[docs]</a><span class="k">def</span> <span class="nf">create_trace_report</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;stage-in&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create the trace report object.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :param label: &#39;stage-[in|out]&#39; (string).</span>
+<span class="sd">    :return: trace report object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">event_type</span><span class="p">,</span> <span class="n">localsite</span><span class="p">,</span> <span class="n">remotesite</span> <span class="o">=</span> <span class="n">get_trace_report_variables</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+    <span class="n">trace_report</span> <span class="o">=</span> <span class="n">TraceReport</span><span class="p">(</span><span class="n">pq</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_SITENAME&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span> <span class="n">localSite</span><span class="o">=</span><span class="n">localsite</span><span class="p">,</span> <span class="n">remoteSite</span><span class="o">=</span><span class="n">remotesite</span><span class="p">,</span>
+                               <span class="n">dataset</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">eventType</span><span class="o">=</span><span class="n">event_type</span><span class="p">)</span>
+    <span class="n">trace_report</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">trace_report</span></div>
+
+
+<div class="viewcode-block" id="_stage_in"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data._stage_in">[docs]</a><span class="k">def</span> <span class="nf">_stage_in</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :return: True in case of success</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># tested ok:</span>
+    <span class="c1">#logger.info(&#39;testing sending SIGUSR1&#39;)</span>
+    <span class="c1">#import signal</span>
+    <span class="c1">#os.kill(os.getpid(), signal.SIGUSR1)</span>
+
+    <span class="c1"># write time stamps to pilot timing file</span>
+    <span class="n">add_to_pilot_timing</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">,</span> <span class="n">PILOT_PRE_STAGEIN</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span> <span class="n">args</span><span class="p">)</span>
+
+    <span class="c1"># any DBRelease files should not be staged in</span>
+    <span class="n">skip_special_files</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+
+    <span class="c1"># now that the trace report has been created, remove any files that are not to be transferred (DBRelease files) from the indata list</span>
+    <span class="n">update_indata</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+
+    <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;stage-in&#39;</span>
+
+    <span class="c1"># should stage-in be done by a script (for containerisation) or by invoking the API (ie classic mode)?</span>
+    <span class="n">use_container</span> <span class="o">=</span> <span class="n">pilot</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">middleware</span><span class="o">.</span><span class="n">use_middleware_script</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">container_type</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;middleware&quot;</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">use_container</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;stage-in will be done by a script&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">eventtype</span><span class="p">,</span> <span class="n">localsite</span><span class="p">,</span> <span class="n">remotesite</span> <span class="o">=</span> <span class="n">get_trace_report_variables</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+            <span class="n">pilot</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">middleware</span><span class="o">.</span><span class="n">containerise_middleware</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">indata</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">queue</span><span class="p">,</span> <span class="n">eventtype</span><span class="p">,</span> <span class="n">localsite</span><span class="p">,</span> <span class="n">remotesite</span><span class="p">,</span>
+                                                          <span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">container_options</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">input_dir</span><span class="p">,</span>
+                                                          <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="n">container_type</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">container_type</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;middleware&quot;</span><span class="p">))</span>
+        <span class="k">except</span> <span class="n">PilotException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;stage-in containerisation threw a pilot exception: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">traceback</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;stage-in containerisation threw an exception: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;stage-in will not be done in a container&#39;</span><span class="p">)</span>
+
+            <span class="c1"># create the trace report</span>
+            <span class="n">trace_report</span> <span class="o">=</span> <span class="n">create_trace_report</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">is_eventservicemerge</span><span class="p">:</span>
+                <span class="n">client</span> <span class="o">=</span> <span class="n">StageInESClient</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span> <span class="n">trace_report</span><span class="o">=</span><span class="n">trace_report</span><span class="p">)</span>
+                <span class="n">activity</span> <span class="o">=</span> <span class="s1">&#39;es_events_read&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">client</span> <span class="o">=</span> <span class="n">StageInClient</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span> <span class="n">trace_report</span><span class="o">=</span><span class="n">trace_report</span><span class="p">)</span>
+                <span class="n">activity</span> <span class="o">=</span> <span class="s1">&#39;pr&#39;</span>
+            <span class="n">use_pcache</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">use_pcache</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">workdir</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">usecontainer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">use_pcache</span><span class="o">=</span><span class="n">use_pcache</span><span class="p">,</span> <span class="n">use_bulk</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                          <span class="n">input_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">input_dir</span><span class="p">,</span> <span class="n">use_vp</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">use_vp</span><span class="p">,</span> <span class="n">catchall</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">catchall</span><span class="p">)</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">prepare_sources</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">indata</span><span class="p">)</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">transfer</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">indata</span><span class="p">,</span> <span class="n">activity</span><span class="o">=</span><span class="n">activity</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">PilotException</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">traceback</span>
+            <span class="n">error_msg</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">format_diagnostics</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="n">get_error_code</span><span class="p">(),</span> <span class="n">error_msg</span><span class="p">)</span>
+            <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="n">get_error_code</span><span class="p">(),</span> <span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;failed to stage-in: error=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">error</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;summary of transferred files:&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">indata</span><span class="p">:</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">status</span> <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">status</span> <span class="k">else</span> <span class="s2">&quot;(not transferred)&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot; -- lfn=</span><span class="si">%s</span><span class="s2">, status_code=</span><span class="si">%s</span><span class="s2">, status=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">status</span><span class="p">))</span>
+
+    <span class="c1"># write time stamps to pilot timing file</span>
+    <span class="n">add_to_pilot_timing</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">,</span> <span class="n">PILOT_POST_STAGEIN</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span> <span class="n">args</span><span class="p">)</span>
+
+    <span class="n">remain_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">indata</span> <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">status</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;remote_io&#39;</span><span class="p">,</span> <span class="s1">&#39;transferred&#39;</span><span class="p">,</span> <span class="s1">&#39;no_transfer&#39;</span><span class="p">]]</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;stage-in finished&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">remain_files</span> <span class="k">else</span> <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;stage-in failed&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="ow">not</span> <span class="n">remain_files</span></div>
+
+
+<div class="viewcode-block" id="get_rse"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.get_rse">[docs]</a><span class="k">def</span> <span class="nf">get_rse</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">lfn</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the ddmEndPoint corresponding to the given lfn.</span>
+<span class="sd">    If lfn is not provided, the first ddmEndPoint will be returned.</span>
+
+<span class="sd">    :param data: FileSpec list object.</span>
+<span class="sd">    :param lfn: local file name (string).</span>
+<span class="sd">    :return: rse (string)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">rse</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">lfn</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ddmendpoint</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;exception caught: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;end point is currently unknown&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="s2">&quot;unknown&quot;</span>
+
+    <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span> <span class="o">==</span> <span class="n">lfn</span><span class="p">:</span>
+            <span class="n">rse</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span>
+
+    <span class="k">if</span> <span class="n">rse</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;end point is currently unknown&quot;</span><span class="p">)</span>
+        <span class="n">rse</span> <span class="o">=</span> <span class="s2">&quot;unknown&quot;</span>
+
+    <span class="k">return</span> <span class="n">rse</span></div>
+
+
+<div class="viewcode-block" id="stage_in_auto"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.stage_in_auto">[docs]</a><span class="k">def</span> <span class="nf">stage_in_auto</span><span class="p">(</span><span class="n">site</span><span class="p">,</span> <span class="n">files</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Separate dummy implementation for automatic stage-in outside of pilot workflows.</span>
+<span class="sd">    Should be merged with regular stage-in functionality later, but we need to have</span>
+<span class="sd">    some operational experience with it first.</span>
+<span class="sd">    Many things to improve:</span>
+<span class="sd">     - separate file error handling in the merged case</span>
+<span class="sd">     - auto-merging of files with same destination into single copytool call</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># don&#39;t spoil the output, we depend on stderr parsing</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;RUCIO_LOGGING_FORMAT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1"> </span><span class="si">%(levelname)s</span><span class="s1"> [</span><span class="si">%(message)s</span><span class="s1">]&#39;</span>
+
+    <span class="n">executable</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;/usr/bin/env&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;rucio&#39;</span><span class="p">,</span> <span class="s1">&#39;-v&#39;</span><span class="p">,</span> <span class="s1">&#39;download&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;--no-subdir&#39;</span><span class="p">]</span>
+
+    <span class="c1"># quickly remove non-existing destinations</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;destination&#39;</span><span class="p">]):</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;failed&#39;</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errmsg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Destination directory does not exist: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;destination&#39;</span><span class="p">]</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;running&#39;</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errmsg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;File not yet successfully downloaded.&#39;</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errno&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">tmp_executable</span> <span class="o">=</span> <span class="n">objectcopy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">executable</span><span class="p">)</span>
+
+        <span class="n">tmp_executable</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;--dir&#39;</span><span class="p">,</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;destination&#39;</span><span class="p">]]</span>
+        <span class="n">tmp_executable</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;scope&#39;</span><span class="p">],</span>
+                                         <span class="n">f</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]))</span>
+        <span class="n">process</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">tmp_executable</span><span class="p">,</span>
+                                   <span class="n">bufsize</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                                   <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                                   <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+            <span class="n">exit_code</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">poll</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">exit_code</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;done&#39;</span>
+                    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errmsg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;File successfully downloaded.&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;failed&#39;</span>
+                    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="c1"># the Details: string is set in rucio: lib/rucio/common/exception.py in __str__()</span>
+                        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errmsg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">detail</span> <span class="k">for</span> <span class="n">detail</span> <span class="ow">in</span> <span class="n">stderr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">detail</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;Details:&#39;</span><span class="p">)][</span><span class="mi">0</span><span class="p">][</span><span class="mi">9</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errmsg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Could not find rucio error message details - please check stderr directly: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+    <span class="k">return</span> <span class="n">files</span></div>
+
+
+<div class="viewcode-block" id="stage_out_auto"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.stage_out_auto">[docs]</a><span class="k">def</span> <span class="nf">stage_out_auto</span><span class="p">(</span><span class="n">site</span><span class="p">,</span> <span class="n">files</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Separate dummy implementation for automatic stage-out outside of pilot workflows.</span>
+<span class="sd">    Should be merged with regular stage-out functionality later, but we need to have</span>
+<span class="sd">    some operational experience with it first.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># don&#39;t spoil the output, we depend on stderr parsing</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;RUCIO_LOGGING_FORMAT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1"> </span><span class="si">%(levelname)s</span><span class="s1"> [</span><span class="si">%(message)s</span><span class="s1">]&#39;</span>
+
+    <span class="n">executable</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;/usr/bin/env&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;rucio&#39;</span><span class="p">,</span> <span class="s1">&#39;-v&#39;</span><span class="p">,</span> <span class="s1">&#39;upload&#39;</span><span class="p">]</span>
+
+    <span class="c1"># quickly remove non-existing destinations</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]):</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;failed&#39;</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errmsg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Source file does not exist: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;running&#39;</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errmsg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;File not yet successfully uploaded.&#39;</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errno&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">tmp_executable</span> <span class="o">=</span> <span class="n">objectcopy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">executable</span><span class="p">)</span>
+
+        <span class="n">tmp_executable</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;--rse&#39;</span><span class="p">,</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;rse&#39;</span><span class="p">]]</span>
+
+        <span class="k">if</span> <span class="s1">&#39;no_register&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="ow">and</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;no_register&#39;</span><span class="p">]:</span>  <span class="c1"># Python 2/3</span>
+            <span class="n">tmp_executable</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;--no-register&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="s1">&#39;summary&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="ow">and</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;summary&#39;</span><span class="p">]:</span>  <span class="c1"># Python 2/3</span>
+            <span class="n">tmp_executable</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;--summary&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="s1">&#39;lifetime&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>  <span class="c1"># Python 2/3</span>
+            <span class="n">tmp_executable</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;--lifetime&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;lifetime&#39;</span><span class="p">])]</span>
+
+        <span class="k">if</span> <span class="s1">&#39;guid&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>  <span class="c1"># Python 2/3</span>
+            <span class="n">tmp_executable</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;--guid&#39;</span><span class="p">,</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;guid&#39;</span><span class="p">]]</span>
+
+        <span class="k">if</span> <span class="s1">&#39;attach&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>  <span class="c1"># Python 2/3</span>
+            <span class="n">tmp_executable</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;--scope&#39;</span><span class="p">,</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;scope&#39;</span><span class="p">],</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;attach&#39;</span><span class="p">][</span><span class="s1">&#39;scope&#39;</span><span class="p">],</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;attach&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">]),</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tmp_executable</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;--scope&#39;</span><span class="p">,</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;scope&#39;</span><span class="p">],</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]]</span>
+
+        <span class="n">process</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">tmp_executable</span><span class="p">,</span>
+                                   <span class="n">bufsize</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                                   <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                                   <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+            <span class="n">exit_code</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">poll</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">exit_code</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;done&#39;</span>
+                    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errmsg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;File successfully uploaded.&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;failed&#39;</span>
+                    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="c1"># the Details: string is set in rucio: lib/rucio/common/exception.py in __str__()</span>
+                        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errmsg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">detail</span> <span class="k">for</span> <span class="n">detail</span> <span class="ow">in</span> <span class="n">stderr</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">detail</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;Details:&#39;</span><span class="p">)][</span><span class="mi">0</span><span class="p">][</span><span class="mi">9</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errmsg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Could not find rucio error message details - please check stderr directly: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+    <span class="k">return</span> <span class="n">files</span></div>
+
+
+<div class="viewcode-block" id="copytool_in"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.copytool_in">[docs]</a><span class="k">def</span> <span class="nf">copytool_in</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">traces</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Call the stage-in function and put the job object in the proper queue.</span>
+
+<span class="sd">    :param queues:</span>
+<span class="sd">    :param traces:</span>
+<span class="sd">    :param args:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># abort if kill signal arrived too long time ago, ie loop is stuck</span>
+            <span class="n">current_time</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">kill_time</span> <span class="ow">and</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">args</span><span class="o">.</span><span class="n">kill_time</span> <span class="o">&gt;</span> <span class="n">MAX_KILL_WAIT_TIME</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;loop has run for too long time after first kill signal - will abort&#39;</span><span class="p">)</span>
+                <span class="k">break</span>
+
+            <span class="c1"># extract a job to stage-in its input</span>
+            <span class="n">job</span> <span class="o">=</span> <span class="n">queues</span><span class="o">.</span><span class="n">data_in</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># place it in the current stage-in queue (used by the jobs&#39; queue monitoring)</span>
+            <span class="k">if</span> <span class="n">job</span><span class="p">:</span>
+                <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">current_data_in</span><span class="p">)</span>
+
+            <span class="c1"># ready to set the job in running state</span>
+            <span class="n">send_state</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="s1">&#39;running&#39;</span><span class="p">)</span>
+
+            <span class="c1"># note: when sending a state change to the server, the server might respond with &#39;tobekilled&#39;</span>
+            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;failed&#39;</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;job state is </span><span class="se">\&#39;</span><span class="s1">failed</span><span class="se">\&#39;</span><span class="s1"> - order log transfer and abort copytool_in()&#39;</span><span class="p">)</span>
+                <span class="n">job</span><span class="o">.</span><span class="n">stageout</span> <span class="o">=</span> <span class="s1">&#39;log&#39;</span>  <span class="c1"># only stage-out log file</span>
+                <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">data_out</span><span class="p">)</span>
+                <span class="k">break</span>
+
+            <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;SERVER_UPDATE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">SERVER_UPDATE_RUNNING</span>
+
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">abort_job</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+                <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;command&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;abort&#39;</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;copytool_in detected a set abort_job pre stage-in (due to a kill signal)&#39;</span><span class="p">)</span>
+                <span class="n">declare_failed_by_kill</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_data_in</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">signal</span><span class="p">)</span>
+                <span class="k">break</span>
+
+            <span class="k">if</span> <span class="n">_stage_in</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">job</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">abort_job</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+                    <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;command&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;abort&#39;</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;copytool_in detected a set abort_job post stage-in (due to a kill signal)&#39;</span><span class="p">)</span>
+                    <span class="n">declare_failed_by_kill</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_data_in</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">signal</span><span class="p">)</span>
+                    <span class="k">break</span>
+
+                <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">finished_data_in</span><span class="p">)</span>
+                <span class="c1"># remove the job from the current stage-in queue</span>
+                <span class="n">_job</span> <span class="o">=</span> <span class="n">queues</span><span class="o">.</span><span class="n">current_data_in</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">_job</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;job </span><span class="si">%s</span><span class="s1"> has been removed from the current_data_in queue&#39;</span> <span class="o">%</span> <span class="n">_job</span><span class="o">.</span><span class="n">jobid</span><span class="p">)</span>
+
+                <span class="c1"># now create input file metadata if required by the payload</span>
+                <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">executor_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s1">&#39;raythena&#39;</span><span class="p">:</span>
+                    <span class="n">pilot_user</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_USER&#39;</span><span class="p">,</span> <span class="s1">&#39;generic&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                    <span class="n">user</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.metadata&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
+                    <span class="n">file_dictionary</span> <span class="o">=</span> <span class="n">get_input_file_dictionary</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">indata</span><span class="p">)</span>
+                    <span class="n">xml</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">create_input_file_metadata</span><span class="p">(</span><span class="n">file_dictionary</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;created input file metadata:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">xml</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;stage-in failed, adding job object to failed_data_in queue&#39;</span><span class="p">)</span>
+                <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">STAGEINFAILED</span><span class="p">)</span>
+                <span class="n">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s2">&quot;failed&quot;</span><span class="p">)</span>
+                <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;error_code&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_data_in</span><span class="p">)</span>
+                <span class="c1"># do not set graceful stop if pilot has not finished sending the final job update</span>
+                <span class="c1"># i.e. wait until SERVER_UPDATE is DONE_FINAL</span>
+                <span class="n">check_for_final_server_update</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">update_server</span><span class="p">)</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+
+        <span class="k">except</span> <span class="n">queue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+    <span class="c1"># proceed to set the job_aborted flag?</span>
+    <span class="k">if</span> <span class="n">threads_aborted</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will proceed to set job_aborted&#39;</span><span class="p">)</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">job_aborted</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will not set job_aborted yet&#39;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;[data] copytool_in thread has finished&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="copytool_out"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.copytool_out">[docs]</a><span class="k">def</span> <span class="nf">copytool_out</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">traces</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Main stage-out thread.</span>
+<span class="sd">    Perform stage-out as soon as a job object can be extracted from the data_out queue.</span>
+
+<span class="sd">    :param queues: pilot queues object.</span>
+<span class="sd">    :param traces: pilot traces object.</span>
+<span class="sd">    :param args: pilot args object.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">cont</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;entering copytool_out loop&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;graceful_stop already set&#39;</span><span class="p">)</span>
+
+    <span class="n">processed_jobs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">while</span> <span class="n">cont</span><span class="p">:</span>
+
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+
+        <span class="c1"># abort if kill signal arrived too long time ago, ie loop is stuck</span>
+        <span class="n">current_time</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">kill_time</span> <span class="ow">and</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">args</span><span class="o">.</span><span class="n">kill_time</span> <span class="o">&gt;</span> <span class="n">MAX_KILL_WAIT_TIME</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;loop has run for too long time after first kill signal - will abort&#39;</span><span class="p">)</span>
+            <span class="k">break</span>
+
+        <span class="c1"># check for abort, print useful messages and include a 1 s sleep</span>
+        <span class="n">abort</span> <span class="o">=</span> <span class="n">should_abort</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;data:copytool_out&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">job</span> <span class="o">=</span> <span class="n">queues</span><span class="o">.</span><span class="n">data_out</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">job</span><span class="p">:</span>
+                <span class="c1"># hack to prevent stage-out to be called more than once for same job object (can apparently happen</span>
+                <span class="c1"># in multi-output jobs)</span>
+                <span class="c1"># should not be necessary unless job object is added to queues.data_out more than once - check this</span>
+                <span class="c1"># for multiple output files</span>
+                <span class="k">if</span> <span class="n">processed_jobs</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">is_already_processed</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">processed_jobs</span><span class="p">):</span>
+                        <span class="k">continue</span>
+
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;will perform stage-out for job id=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">abort_job</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+                    <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;command&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;abort&#39;</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;copytool_out detected a set abort_job pre stage-out (due to a kill signal)&#39;</span><span class="p">)</span>
+                    <span class="n">declare_failed_by_kill</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_data_out</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">signal</span><span class="p">)</span>
+                    <span class="k">break</span>
+
+                <span class="k">if</span> <span class="n">_stage_out_new</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">abort_job</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+                        <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;command&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;abort&#39;</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;copytool_out detected a set abort_job post stage-out (due to a kill signal)&#39;</span><span class="p">)</span>
+                        <span class="c1">#declare_failed_by_kill(job, queues.failed_data_out, args.signal)</span>
+                        <span class="k">break</span>
+
+                    <span class="c1">#queues.finished_data_out.put(job)</span>
+                    <span class="n">processed_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">)</span>
+                    <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">finished_data_out</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;job object added to finished_data_out queue&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1">#queues.failed_data_out.put(job)</span>
+                    <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_data_out</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;job object added to failed_data_out queue&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;no returned job - why no exception?&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">queue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">abort</span><span class="p">:</span>
+                <span class="n">cont</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">break</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">abort</span><span class="p">:</span>
+            <span class="n">cont</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">break</span>
+
+    <span class="c1"># proceed to set the job_aborted flag?</span>
+    <span class="k">if</span> <span class="n">threads_aborted</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will proceed to set job_aborted&#39;</span><span class="p">)</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">job_aborted</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will not set job_aborted yet&#39;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;[data] copytool_out thread has finished&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="is_already_processed"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.is_already_processed">[docs]</a><span class="k">def</span> <span class="nf">is_already_processed</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">processed_jobs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Skip stage-out in case the job has already been processed.</span>
+<span class="sd">    This should not be necessary so this is a fail-safe but it seems there is a case when a job with multiple output</span>
+<span class="sd">    files enters the stage-out more than once.</span>
+
+<span class="sd">    :param queues: queues object.</span>
+<span class="sd">    :param processed_jobs: list of already processed jobs.</span>
+<span class="sd">    :return: True if stage-out queues contain a job object that has already been processed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">snapshots</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">queues</span><span class="o">.</span><span class="n">finished_data_out</span><span class="o">.</span><span class="n">queue</span><span class="p">)</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">queues</span><span class="o">.</span><span class="n">failed_data_out</span><span class="o">.</span><span class="n">queue</span><span class="p">)</span>
+    <span class="n">jobids</span> <span class="o">=</span> <span class="p">[</span><span class="n">obj</span><span class="o">.</span><span class="n">jobid</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">snapshots</span><span class="p">]</span>
+    <span class="n">found</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">for</span> <span class="n">jobid</span> <span class="ow">in</span> <span class="n">processed_jobs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">jobid</span> <span class="ow">in</span> <span class="n">jobids</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;output from job </span><span class="si">%s</span><span class="s1"> has already been staged out&#39;</span> <span class="o">%</span> <span class="n">jobid</span><span class="p">)</span>
+            <span class="n">found</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">break</span>
+    <span class="k">if</span> <span class="n">found</span><span class="p">:</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">found</span></div>
+
+
+<div class="viewcode-block" id="get_input_file_dictionary"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.get_input_file_dictionary">[docs]</a><span class="k">def</span> <span class="nf">get_input_file_dictionary</span><span class="p">(</span><span class="n">indata</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return an input file dictionary.</span>
+<span class="sd">    Format: {&#39;guid&#39;: &#39;pfn&#39;, ..}</span>
+<span class="sd">    Normally use_turl would be set to True if direct access is used.</span>
+
+<span class="sd">    :param indata: list of FileSpec objects.</span>
+<span class="sd">    :return: file dictionary.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ret</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">indata</span><span class="p">:</span>
+        <span class="n">ret</span><span class="p">[</span><span class="n">fspec</span><span class="o">.</span><span class="n">guid</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">turl</span> <span class="k">if</span> <span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s1">&#39;remote_io&#39;</span> <span class="k">else</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span>
+
+        <span class="c1"># correction for ND and mv</span>
+        <span class="c1"># in any case use the lfn instead of pfn since there are trf&#39;s that have problems with pfn&#39;s</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ret</span><span class="p">[</span><span class="n">fspec</span><span class="o">.</span><span class="n">guid</span><span class="p">]:</span>   <span class="c1"># this case never works (turl/lfn is always non empty), deprecated code?</span>
+            <span class="n">ret</span><span class="p">[</span><span class="n">fspec</span><span class="o">.</span><span class="n">guid</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span>
+
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="filter_files_for_log"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.filter_files_for_log">[docs]</a><span class="k">def</span> <span class="nf">filter_files_for_log</span><span class="p">(</span><span class="n">directory</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a file list recursi</span>
+<span class="sd">    :param directory:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">filtered_files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">maxfilesize</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">dirnames</span><span class="p">,</span> <span class="n">filenames</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">directory</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
+            <span class="n">location</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">location</span><span class="p">):</span>  <span class="c1"># do not include broken links</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">location</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">maxfilesize</span><span class="p">:</span>
+                    <span class="n">filtered_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">location</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">filtered_files</span></div>
+
+
+<div class="viewcode-block" id="create_log"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.create_log">[docs]</a><span class="k">def</span> <span class="nf">create_log</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">logfile</span><span class="p">,</span> <span class="n">tarball_name</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    :param job:</span>
+<span class="sd">    :param logfile:</span>
+<span class="sd">    :param tarball_name:</span>
+<span class="sd">    :raises LogFileCreationFailure: in case of log file creation problem</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;preparing to create log file&#39;</span><span class="p">)</span>
+    <span class="n">pilot_home</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">())</span>
+    <span class="n">current_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">pilot_home</span> <span class="o">!=</span> <span class="n">current_dir</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;cd from </span><span class="si">%s</span><span class="s1"> to </span><span class="si">%s</span><span class="s1"> for log creation&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">current_dir</span><span class="p">,</span> <span class="n">pilot_home</span><span class="p">))</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">pilot_home</span><span class="p">)</span>
+
+    <span class="c1"># perform special cleanup (user specific) prior to log file creation</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">cleanup</span><span class="p">:</span>
+        <span class="n">pilot_user</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_USER&#39;</span><span class="p">,</span> <span class="s1">&#39;generic&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.common&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
+        <span class="n">user</span><span class="o">.</span><span class="n">remove_redundant_files</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">islooping</span><span class="o">=</span><span class="n">errors</span><span class="o">.</span><span class="n">LOOPINGJOB</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;user specific cleanup not performed&#39;</span><span class="p">)</span>
+
+    <span class="n">input_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span><span class="o">.</span><span class="n">lfn</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">indata</span><span class="p">]</span>
+    <span class="n">output_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span><span class="o">.</span><span class="n">lfn</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">outdata</span><span class="p">]</span>
+
+    <span class="c1"># remove any present input/output files before tarring up workdir</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">input_files</span> <span class="o">+</span> <span class="n">output_files</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;removing file: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+            <span class="n">remove</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="c1"># rename the workdir for the tarball creation</span>
+    <span class="n">newworkdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">),</span> <span class="n">tarball_name</span><span class="p">)</span>
+    <span class="n">orgworkdir</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;renaming </span><span class="si">%s</span><span class="s1"> to </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">newworkdir</span><span class="p">))</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">newworkdir</span><span class="p">)</span>
+    <span class="n">job</span><span class="o">.</span><span class="n">workdir</span> <span class="o">=</span> <span class="n">newworkdir</span>
+
+    <span class="n">fullpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">logfile</span><span class="o">.</span><span class="n">lfn</span><span class="p">)</span>  <span class="c1"># /some/path/to/dirname/log.tgz</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;will create archive </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">fullpath</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1">#newdirnm = &quot;tarball_PandaJob_%s&quot; % job.jobid</span>
+        <span class="c1">#tarballnm = &quot;%s.tar.gz&quot; % newdirnm</span>
+        <span class="c1">#os.rename(job.workdir, newdirnm)</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;pwd;tar cvfz </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2"> --dereference --one-file-system; echo $?&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fullpath</span><span class="p">,</span> <span class="n">tarball_name</span><span class="p">)</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+        <span class="c1">#with closing(tarfile.open(name=fullpath, mode=&#39;w:gz&#39;, dereference=True)) as archive:</span>
+        <span class="c1">#    archive.add(os.path.basename(job.workdir), recursive=True)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">LogFileCreationFailure</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">pilot_home</span> <span class="o">!=</span> <span class="n">current_dir</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;cd from </span><span class="si">%s</span><span class="s1"> to </span><span class="si">%s</span><span class="s1"> after log creation&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pilot_home</span><span class="p">,</span> <span class="n">current_dir</span><span class="p">))</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">pilot_home</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;stdout = </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">stdout</span><span class="p">)</span>
+
+        <span class="c1"># verify the size of the log file</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">get_local_file_size</span><span class="p">(</span><span class="n">fullpath</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">size</span> <span class="o">&lt;</span> <span class="mi">1024</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;log file size too small: </span><span class="si">%d</span><span class="s1"> B&#39;</span> <span class="o">%</span> <span class="n">size</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;log file size: </span><span class="si">%d</span><span class="s1"> B&#39;</span> <span class="o">%</span> <span class="n">size</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;renaming </span><span class="si">%s</span><span class="s1"> back to </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">orgworkdir</span><span class="p">))</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">orgworkdir</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+    <span class="n">job</span><span class="o">.</span><span class="n">workdir</span> <span class="o">=</span> <span class="n">orgworkdir</span></div>
+
+    <span class="c1">#fullpath = os.path.join(job.workdir, logfile.lfn)  # reset fullpath since workdir has changed since above</span>
+    <span class="c1">#return {&#39;scope&#39;: logfile.scope,</span>
+    <span class="c1">#        &#39;name&#39;: logfile.lfn,</span>
+    <span class="c1">#        &#39;guid&#39;: logfile.guid,</span>
+    <span class="c1">#        &#39;bytes&#39;: os.stat(fullpath).st_size}</span>
+
+
+<div class="viewcode-block" id="_do_stageout"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data._do_stageout">[docs]</a><span class="k">def</span> <span class="nf">_do_stageout</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">xdata</span><span class="p">,</span> <span class="n">activity</span><span class="p">,</span> <span class="n">queue</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Use the `StageOutClient` in the Data API to perform stage-out.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :param xdata: list of FileSpec objects.</span>
+<span class="sd">    :param activity: copytool activity or preferred list of activities to resolve copytools</span>
+<span class="sd">    :param title: type of stage-out (output, log) (string).</span>
+<span class="sd">    :param queue: PanDA queue (string).</span>
+<span class="sd">    :return: True in case of success transfers</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;prepare to stage-out </span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> file(s)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xdata</span><span class="p">),</span> <span class="n">title</span><span class="p">))</span>
+    <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;stage-out&#39;</span>
+
+    <span class="c1"># should stage-in be done by a script (for containerisation) or by invoking the API (ie classic mode)?</span>
+    <span class="n">use_container</span> <span class="o">=</span> <span class="n">pilot</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">middleware</span><span class="o">.</span><span class="n">use_middleware_script</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">container_type</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;middleware&quot;</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">use_container</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;stage-out will be done by a script&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">eventtype</span><span class="p">,</span> <span class="n">localsite</span><span class="p">,</span> <span class="n">remotesite</span> <span class="o">=</span> <span class="n">get_trace_report_variables</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+            <span class="n">pilot</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">middleware</span><span class="o">.</span><span class="n">containerise_middleware</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">xdata</span><span class="p">,</span> <span class="n">queue</span><span class="p">,</span> <span class="n">eventtype</span><span class="p">,</span> <span class="n">localsite</span><span class="p">,</span> <span class="n">remotesite</span><span class="p">,</span>
+                                                          <span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">container_options</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">,</span>
+                                                          <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="n">container_type</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">container_type</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;middleware&quot;</span><span class="p">))</span>
+        <span class="k">except</span> <span class="n">PilotException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;stage-out containerisation threw a pilot exception: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;stage-out containerisation threw an exception: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;stage-out will not be done in a container&#39;</span><span class="p">)</span>
+
+            <span class="c1"># create the trace report</span>
+            <span class="n">trace_report</span> <span class="o">=</span> <span class="n">create_trace_report</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+
+            <span class="n">client</span> <span class="o">=</span> <span class="n">StageOutClient</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span> <span class="n">trace_report</span><span class="o">=</span><span class="n">trace_report</span><span class="p">)</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">workdir</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">usecontainer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="n">output_dir</span><span class="p">,</span>
+                          <span class="n">catchall</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">catchall</span><span class="p">)</span>  <span class="c1">#, mode=&#39;stage-out&#39;)</span>
+            <span class="c1"># prod analy unification: use destination preferences from PanDA server for unified queues</span>
+            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s1">&#39;unified&#39;</span><span class="p">:</span>
+                <span class="n">client</span><span class="o">.</span><span class="n">prepare_destinations</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">activity</span><span class="p">)</span>  <span class="c1">## FIX ME LATER: split activities: for astorages and for copytools (to unify with ES workflow)</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">transfer</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">activity</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">PilotException</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">traceback</span>
+            <span class="n">error_msg</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">format_diagnostics</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="n">get_error_code</span><span class="p">(),</span> <span class="n">error_msg</span><span class="p">)</span>
+            <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="n">get_error_code</span><span class="p">(),</span> <span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">traceback</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+            <span class="c1"># do not raise the exception since that will prevent also the log from being staged out</span>
+            <span class="c1"># error = PilotException(&quot;stageOut failed with error=%s&quot; % e, code=ErrorCodes.STAGEOUTFAILED)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;stage-out client completed&#39;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;summary of transferred files:&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">xdata</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">e</span><span class="o">.</span><span class="n">status</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;(not transferred)&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">status</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot; -- lfn=</span><span class="si">%s</span><span class="s2">, status_code=</span><span class="si">%s</span><span class="s2">, status=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">status</span><span class="p">))</span>
+
+    <span class="n">remain_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">xdata</span> <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">status</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;transferred&#39;</span><span class="p">]]</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;remain_files=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">remain_files</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;xdata=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">xdata</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="ow">not</span> <span class="n">remain_files</span></div>
+
+
+<div class="viewcode-block" id="_stage_out_new"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data._stage_out_new">[docs]</a><span class="k">def</span> <span class="nf">_stage_out_new</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Stage-out of all output files.</span>
+<span class="sd">    If job.stageout=log then only log files will be transferred.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :param args: pilot args object.</span>
+<span class="sd">    :return: True in case of success, False otherwise.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">#logger.info(&#39;testing sending SIGUSR1&#39;)</span>
+    <span class="c1">#import signal</span>
+    <span class="c1">#os.kill(os.getpid(), signal.SIGUSR1)</span>
+
+    <span class="c1"># write time stamps to pilot timing file</span>
+    <span class="n">add_to_pilot_timing</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">,</span> <span class="n">PILOT_PRE_STAGEOUT</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span> <span class="n">args</span><span class="p">)</span>
+
+    <span class="n">is_success</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">job</span><span class="o">.</span><span class="n">outdata</span> <span class="ow">or</span> <span class="n">job</span><span class="o">.</span><span class="n">is_eventservice</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;this job does not have any output files, only stage-out log file&#39;</span><span class="p">)</span>
+        <span class="n">job</span><span class="o">.</span><span class="n">stageout</span> <span class="o">=</span> <span class="s1">&#39;log&#39;</span>
+
+    <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">stageout</span> <span class="o">!=</span> <span class="s1">&#39;log&#39;</span><span class="p">:</span>  <span class="c1">## do stage-out output files</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_do_stageout</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">outdata</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;pw&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">],</span> <span class="n">args</span><span class="o">.</span><span class="n">queue</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s1">&#39;output&#39;</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">output_dir</span><span class="p">):</span>
+            <span class="n">is_success</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;transfer of output file(s) failed&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">stageout</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;log&#39;</span><span class="p">,</span> <span class="s1">&#39;all&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">logdata</span><span class="p">:</span>  <span class="c1">## do stage-out log files</span>
+        <span class="c1"># prepare log file, consider only 1st available log file</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">get_status</span><span class="p">(</span><span class="s1">&#39;LOG_TRANSFER&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">!=</span> <span class="n">LOG_TRANSFER_NOT_DONE</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;log transfer already attempted&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">job</span><span class="o">.</span><span class="n">status</span><span class="p">[</span><span class="s1">&#39;LOG_TRANSFER&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">LOG_TRANSFER_IN_PROGRESS</span>
+        <span class="n">logfile</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">logdata</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">create_log</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">logfile</span><span class="p">,</span> <span class="s1">&#39;tarball_PandaJob_</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">pandaqueue</span><span class="p">),</span> <span class="n">args</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">LogFileCreationFailure</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to create tar file: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="n">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s2">&quot;failed&quot;</span><span class="p">)</span>
+            <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">LOGFILECREATIONFAILURE</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_do_stageout</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="p">[</span><span class="n">logfile</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;pl&#39;</span><span class="p">,</span> <span class="s1">&#39;pw&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">],</span> <span class="n">args</span><span class="o">.</span><span class="n">queue</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s1">&#39;log&#39;</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">output_dir</span><span class="p">):</span>
+            <span class="n">is_success</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;log transfer failed&#39;</span><span class="p">)</span>
+            <span class="n">job</span><span class="o">.</span><span class="n">status</span><span class="p">[</span><span class="s1">&#39;LOG_TRANSFER&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">LOG_TRANSFER_FAILED</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">job</span><span class="o">.</span><span class="n">status</span><span class="p">[</span><span class="s1">&#39;LOG_TRANSFER&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">LOG_TRANSFER_DONE</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">job</span><span class="o">.</span><span class="n">logdata</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;no log was defined - will not create log file&#39;</span><span class="p">)</span>
+        <span class="n">job</span><span class="o">.</span><span class="n">status</span><span class="p">[</span><span class="s1">&#39;LOG_TRANSFER&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">LOG_TRANSFER_DONE</span>
+
+    <span class="c1"># write time stamps to pilot timing file</span>
+    <span class="n">add_to_pilot_timing</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">,</span> <span class="n">PILOT_POST_STAGEOUT</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span> <span class="n">args</span><span class="p">)</span>
+
+    <span class="c1"># generate fileinfo details to be send to Panda</span>
+    <span class="n">fileinfo</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">outdata</span> <span class="o">+</span> <span class="n">job</span><span class="o">.</span><span class="n">logdata</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">status</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;transferred&#39;</span><span class="p">]:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;got surl=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="o">.</span><span class="n">surl</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;got turl=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="o">.</span><span class="n">turl</span><span class="p">)</span>
+            <span class="n">fileinfo</span><span class="p">[</span><span class="n">e</span><span class="o">.</span><span class="n">lfn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;guid&#39;</span><span class="p">:</span> <span class="n">e</span><span class="o">.</span><span class="n">guid</span><span class="p">,</span> <span class="s1">&#39;fsize&#39;</span><span class="p">:</span> <span class="n">e</span><span class="o">.</span><span class="n">filesize</span><span class="p">,</span>
+                               <span class="s1">&#39;adler32&#39;</span><span class="p">:</span> <span class="n">e</span><span class="o">.</span><span class="n">checksum</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;adler32&#39;</span><span class="p">),</span>
+                               <span class="s1">&#39;surl&#39;</span><span class="p">:</span> <span class="n">e</span><span class="o">.</span><span class="n">turl</span><span class="p">}</span>
+
+    <span class="n">job</span><span class="o">.</span><span class="n">fileinfo</span> <span class="o">=</span> <span class="n">fileinfo</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;prepared job.fileinfo=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">fileinfo</span><span class="p">)</span>
+
+    <span class="c1"># WARNING THE FOLLOWING RESETS ANY PREVIOUS STAGEOUT ERRORS</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_success</span><span class="p">:</span>
+        <span class="c1"># set error code + message (a more precise error code might have been set already)</span>
+        <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">STAGEOUTFAILED</span><span class="p">)</span>
+        <span class="n">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s2">&quot;failed&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;stage-out failed&#39;</span><span class="p">)</span>  <span class="c1"># with error: %d, %s (setting job state to failed)&#39; %</span>
+        <span class="c1"># logger.warning(&#39;stage-out failed with error: %d, %s (setting job state to failed)&#39; %</span>
+        <span class="c1">#  (job[&#39;pilotErrorCode&#39;], job[&#39;pilotErrorDiag&#39;]))</span>
+        <span class="c1"># send_state(job, args, &#39;failed&#39;)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;stage-out finished correctly&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="ow">or</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;stageout&#39;</span><span class="p">):</span>  <span class="c1"># is the job state already set? if so, don&#39;t change the state (unless it&#39;s the stageout state)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;changing job state from </span><span class="si">%s</span><span class="s1"> to finished&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
+        <span class="n">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s2">&quot;finished&quot;</span><span class="p">)</span>
+
+    <span class="c1"># send final server update since all transfers have finished correctly</span>
+    <span class="c1"># send_state(job, args, &#39;finished&#39;, xml=dumps(fileinfodict))</span>
+
+    <span class="k">return</span> <span class="n">is_success</span></div>
+
+
+<div class="viewcode-block" id="queue_monitoring"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.queue_monitoring">[docs]</a><span class="k">def</span> <span class="nf">queue_monitoring</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">traces</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Monitoring of Data queues.</span>
+
+<span class="sd">    :param queues:</span>
+<span class="sd">    :param traces:</span>
+<span class="sd">    :param args:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>  <span class="c1"># will abort when graceful_stop has been set</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;command&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;abort&#39;</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;data queue monitor saw the abort instruction&#39;</span><span class="p">)</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+
+        <span class="c1"># abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)</span>
+        <span class="c1"># (abort at the end of the loop)</span>
+        <span class="n">abort</span> <span class="o">=</span> <span class="n">should_abort</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;data:queue_monitoring&#39;</span><span class="p">)</span>
+
+        <span class="c1"># monitor the failed_data_in queue</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">job</span> <span class="o">=</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_data_in</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">queue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># stage-out log file then add the job to the failed_jobs queue</span>
+            <span class="n">job</span><span class="o">.</span><span class="n">stageout</span> <span class="o">=</span> <span class="s2">&quot;log&quot;</span>
+
+            <span class="c1"># TODO: put in data_out queue instead?</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">_stage_out_new</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;job </span><span class="si">%s</span><span class="s2"> failed during stage-in and stage-out of log, adding job object to failed_data_outs &quot;</span>
+                            <span class="s2">&quot;queue&quot;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">)</span>
+                <span class="c1">#queues.failed_data_out.put(job)</span>
+                <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_data_out</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;job </span><span class="si">%s</span><span class="s2"> failed during stage-in, adding job object to failed_jobs queue&quot;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">)</span>
+                <span class="c1">#queues.failed_jobs.put(job)</span>
+                <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_jobs</span><span class="p">)</span>
+
+        <span class="c1"># monitor the finished_data_out queue</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">job</span> <span class="o">=</span> <span class="n">queues</span><span class="o">.</span><span class="n">finished_data_out</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">queue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># use the payload/transform exitCode from the job report if it exists</span>
+            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">transexitcode</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">exitcode</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span> <span class="o">==</span> <span class="p">[]:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;finished stage-out for finished payload, adding job to finished_jobs queue&#39;</span><span class="p">)</span>
+                <span class="c1">#queues.finished_jobs.put(job)</span>
+                <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">finished_jobs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;finished stage-out (of log) for failed payload&#39;</span><span class="p">)</span>
+                <span class="c1">#queues.failed_jobs.put(job)</span>
+                <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_jobs</span><span class="p">)</span>
+
+        <span class="c1"># monitor the failed_data_out queue</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">job</span> <span class="o">=</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_data_out</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">queue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># attempt to upload the log in case the previous stage-out failure was not an SE error</span>
+            <span class="n">job</span><span class="o">.</span><span class="n">stageout</span> <span class="o">=</span> <span class="s2">&quot;log&quot;</span>
+            <span class="n">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s2">&quot;failed&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">_stage_out_new</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;job </span><span class="si">%s</span><span class="s2"> failed during stage-out of data file(s) as well as during stage-out of log, &quot;</span>
+                            <span class="s2">&quot;adding job object to failed_jobs queue&quot;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;job </span><span class="si">%s</span><span class="s2"> failed during stage-out of data file(s) - stage-out of log succeeded, adding job &quot;</span>
+                            <span class="s2">&quot;object to failed_jobs queue&quot;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">)</span>
+
+            <span class="c1">#queues.failed_jobs.put(job)</span>
+            <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_jobs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">abort</span><span class="p">:</span>
+            <span class="k">break</span>
+
+    <span class="c1"># proceed to set the job_aborted flag?</span>
+    <span class="k">if</span> <span class="n">threads_aborted</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will proceed to set job_aborted&#39;</span><span class="p">)</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">job_aborted</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will not set job_aborted yet&#39;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;[data] queue_monitor thread has finished&#39;</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
