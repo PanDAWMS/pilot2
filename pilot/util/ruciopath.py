@@ -16,7 +16,7 @@ def get_rucio_path(scope, name):
     """
 
     s = '%s:%s' % (scope, name)
-    hash_hex = hashlib.md5(s.encode('utf-8')).hexdigest()  # Pythno 2/3
+    hash_hex = hashlib.md5(s.encode('utf-8')).hexdigest()  # Python 2/3
 
     paths = scope.split('.') + [hash_hex[0:2], hash_hex[2:4], name]
 
