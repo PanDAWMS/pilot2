@@ -18,7 +18,7 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import set_pilot_state, show_memory_usage
 from pilot.util.config import config
 from pilot.util.container import execute
-from pilot.util.filehandling import get_directory_size, remove_files, get_local_file_size
+from pilot.util.filehandling import get_directory_size, remove_files, get_local_file_size, read_file
 from pilot.util.loopingjob import looping_job
 from pilot.util.math import convert_mb_to_b, human2bytes
 from pilot.util.parameters import convert_to_int, get_maximum_input_sizes
@@ -73,6 +73,9 @@ def job_monitor_tasks(job, mt, args):
         if exit_code != 0:
             return exit_code, diagnostics
 
+        # display OOM process info
+        display_oom_info(job.pid)
+
     # should the pilot abort the payload?
     exit_code, diagnostics = should_abort_payload(current_time, mt)
     if exit_code != 0:
@@ -110,6 +113,38 @@ def job_monitor_tasks(job, mt, args):
         utility_monitor(job)
 
     return exit_code, diagnostics
+
+
+def display_oom_info(payload_pid):
+    """
+    Display OOM process info.
+
+    :param payload_pid: payload pid (int).
+    """
+
+    payload_score = get_score(payload_pid) if payload_pid else 'UNKNOWN'
+    pilot_score = get_score(os.getpid())
+    logger.info('oom_score(pilot) = %s, oom_score(payload) = %s' % (pilot_score, payload_score))
+
+
+def get_score(pid):
+    """
+    Get the OOM process score.
+
+    :param pid: process id (int).
+    :return: score (string).
+    """
+
+    try:
+        score = '%s' % read_file('/proc/%d/oom_score' % pid)
+    except Exception as e:
+        logger.warning('caught exception reading oom_score: %s' % e)
+        score = 'UNKNOWN'
+    else:
+        if score.endswith('\n'):
+            score = score[:-1]
+
+    return score
 
 
 def get_exception_error_code(diagnostics):
