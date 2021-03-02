@@ -145,7 +145,7 @@ class Analytics(Services):
                 y = y[5:]
                 y = y[:-2]
 
-            if len(x) > 7 and len(y) > 7:
+            if (len(x) > 7 and len(y) > 7)  and len(x) == len(y):
                 logger.info('fitting %s vs %s' % (y_name, x_name))
                 try:
                     fit = self.fit(x, y)
