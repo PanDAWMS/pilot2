@@ -412,9 +412,9 @@ def validate_post(queues, traces, args):
     If payload finished correctly, add the job to the data_out queue. If it failed, add it to the data_out queue as
     well but only for log stage-out (in failed_post() below).
 
-    :param queues:
-    :param traces:
-    :param args:
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return:
     """
 
@@ -446,11 +446,12 @@ def validate_post(queues, traces, args):
 
 def failed_post(queues, traces, args):
     """
-    (add description)
+    Get a Job object from the "failed_payloads" queue. Set the pilot state to "stakeout" and the stageout field to
+    "log", and add the Job object to the "data_out" queue.
 
-    :param queues:
-    :param traces:
-    :param args:
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return:
     """
 
