@@ -854,7 +854,12 @@ def store_jobid(jobid, init_dir):
 
 def create_data_payload(queues, traces, args):
     """
-    (add description)
+    Get a Job object from the "validated_jobs" queue.
+
+    If the job has defined input files, move the Job object to the "data_in" queue and put the internal pilot state to
+    "stagein". In case there are no input files, place the Job object in the "finished_data_in" queue. For either case,
+    the thread also places the Job object in the "payloads" queue (another thread will retrieve it and wait for any
+    stage-in to finish).
 
     :param queues:
     :param traces:
