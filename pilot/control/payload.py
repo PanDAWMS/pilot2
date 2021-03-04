@@ -177,9 +177,15 @@ def execute_payloads(queues, traces, args):  # noqa: C901
     """
     Execute queued payloads.
 
-    :param queues:
-    :param traces:
-    :param args:
+    Extract a Job object from the "validated_payloads" queue and put it in the "monitored_jobs" queue. The payload
+    stdout/err streams are opened and the pilot state is changed to "starting". A payload executor is selected (for
+    executing a normal job, an event service job or event service merge job). After the payload (or rather its executor)
+    is started, the thread will wait for it to finish and then check for any failures. A successfully completed job is
+    placed in the "finished_payloads" queue, and a failed job will be placed in the "failed_payloads" queue.
+
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return:
     """
 
