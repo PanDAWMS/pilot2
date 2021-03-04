@@ -861,9 +861,9 @@ def create_data_payload(queues, traces, args):
     the thread also places the Job object in the "payloads" queue (another thread will retrieve it and wait for any
     stage-in to finish).
 
-    :param queues:
-    :param traces:
-    :param args:
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return:
     """
 
