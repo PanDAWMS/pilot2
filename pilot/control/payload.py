@@ -97,7 +97,10 @@ def control(queues, traces, args):
 
 def validate_pre(queues, traces, args):
     """
-    (add description)
+    Get a Job object from the "payloads" queue and validate it.
+
+    If the payload is successfully validated (user defined), the Job object is placed in the "validated_payloads" queue,
+    otherwise it is placed in the "failed_payloads" queue.
 
     :param queues:
     :param traces:
