@@ -102,9 +102,9 @@ def validate_pre(queues, traces, args):
     If the payload is successfully validated (user defined), the Job object is placed in the "validated_payloads" queue,
     otherwise it is placed in the "failed_payloads" queue.
 
-    :param queues:
-    :param traces:
-    :param args:
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return:
     """
     while not args.graceful_stop.is_set():
