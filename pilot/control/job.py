@@ -39,7 +39,8 @@ from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PI
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
 from pilot.util.container import execute
-from pilot.util.filehandling import get_files, tail, is_json, copy, remove, write_json, establish_logging, write_file  #, read_json
+from pilot.util.filehandling import get_files, tail, is_json, copy, remove, write_json, establish_logging, write_file, \
+    create_symlink
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file, \
     is_harvester_mode, get_worker_attributes_file, publish_job_report, publish_work_report, get_event_status_file, \
     publish_stageout_files
@@ -785,6 +786,8 @@ def validate(queues, traces, args):
                 job.piloterrordiag = e
                 put_in_queue(job, queues.failed_jobs)
                 break
+            else:
+                create_k8_link(job_dir)
 
 #            try:
 #                # stream the job object to file
@@ -799,13 +802,10 @@ def validate(queues, traces, args):
 #                    _job = JobData(job_dict, use_kmap=False)
 #                except Exception as e:
 #                    logger.warning('exception caught: %s' % e)
-            logger.debug('symlinking pilot log')
-            try:
-                os.symlink('../%s' % config.Pilot.pilotlog, os.path.join(job_dir, config.Pilot.pilotlog))
-            except Exception as e:
-                logger.warning('cannot symlink pilot log: %s' % str(e))
 
-            # pre-cleanup
+            create_symlink(from_path='../%s' % config.Pilot.pilotlog, to_path=os.path.join(job_dir, config.Pilot.pilotlog))
+
+        # pre-cleanup
             pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
             utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user],
                                    0)  # Python 2/3
@@ -831,6 +831,20 @@ def validate(queues, traces, args):
         logger.debug('will not set job_aborted yet')
 
     logger.debug('[job] validate thread has finished')
+
+
+def create_k8_link(job_dir):
+    """
+    Create a soft link to the payload workdir on Kubernetes if SHARED_DIR exists.
+
+    :param job_dir: payload workdir (string).
+    """
+
+    shared_dir = os.environ.get('SHARED_DIR', None)
+    if shared_dir:
+        create_symlink(from_path=os.path.join(job_dir, 'payload_workdir'), to_path=shared_dir)
+    else:
+        logger.debug('will not create symlink in SHARED_DIR')
 
 
 def store_jobid(jobid, init_dir):
