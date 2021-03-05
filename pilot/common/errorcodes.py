@@ -236,7 +236,7 @@ class ErrorCodes:
         NOREPLICAS: "No matching replicas were found in list_replicas() output",
         UNREACHABLENETWORK: "Unable to stage-in file since network is unreachable",
         PAYLOADSIGSEGV: "SIGSEGV: Invalid memory reference or a segmentation fault",
-        NONDETERMINISTICDDM: "Failed to construct SURL for non-deterministic ddm (update AGIS)",
+        NONDETERMINISTICDDM: "Failed to construct SURL for non-deterministic ddm (update CRIC)",
         JSONRETRIEVALTIMEOUT: "JSON retrieval timed out",
         MISSINGINPUTFILE: "Input file is missing in storage element",
         BLACKHOLE: "Black hole detected in file system (consult Pilot log)",
