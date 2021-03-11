@@ -842,7 +842,7 @@ def create_k8_link(job_dir):
 
     shared_dir = os.environ.get('SHARED_DIR', None)
     if shared_dir:
-        create_symlink(from_path=os.path.join(job_dir, 'payload_workdir'), to_path=shared_dir)
+        create_symlink(from_path=os.path.join(shared_dir, 'payload_workdir'), to_path=job_dir)
     else:
         logger.debug('will not create symlink in SHARED_DIR')
 

@@ -32,11 +32,6 @@ def verify_proxy(limit=None, x509=None, proxy_id="pilot"):
     :return: exit code (NOPROXY or NOVOMSPROXY), diagnostics (error diagnostics string).
     """
 
-    exit_code = 0
-    diagnostics = ""
-
-    logger.debug("verify_proxy() begin")
-
     if limit is None:
         limit = 48
 
@@ -48,11 +43,10 @@ def verify_proxy(limit=None, x509=None, proxy_id="pilot"):
         envsetup = 'export X509_USER_PROXY=%s;' % x509
     else:
         envsetup = ''
-    #envsetup += ". %s;" % (arcproxy_setup)
+
     envsetup += ". %s/atlas.cern.ch/repo/ATLASLocalRootBase/user/atlasLocalSetup.sh --quiet;" % get_file_system_root_path()
     if os.environ.get('ALRB_noGridMW', '').lower() != "yes":
         envsetup += "lsetup emi;"
-        #envsetup += "export; ls -l $X509_USER_PROXY; lsetup emi; export; ls -l $X509_USER_PROXY;"
     else:
         logger.warning('Skipping "lsetup emi" as ALRB_noGridMW=YES')
 
@@ -77,7 +71,7 @@ def verify_proxy(limit=None, x509=None, proxy_id="pilot"):
     if ec != 0:
         return ec, diagnostics
 
-    return exit_code, diagnostics
+    return 0, diagnostics
 
 
 def verify_arcproxy(envsetup, limit, proxy_id="pilot"):
@@ -92,12 +86,10 @@ def verify_arcproxy(envsetup, limit, proxy_id="pilot"):
     ec = 0
     diagnostics = ""
 
-    logger.debug("verify_arcproxy() begin")
-
     if proxy_id is not None:
         if not hasattr(verify_arcproxy, "cache"):
             verify_arcproxy.cache = {}
-        logger.info("current cache=%s" % (verify_arcproxy.cache))
+
         if proxy_id in verify_arcproxy.cache:  # if exist, then calculate result from current cache
             validity_end = verify_arcproxy.cache[proxy_id]
             if validity_end < 0:  # previous validity check failed, do not try to re-check
@@ -106,28 +98,28 @@ def verify_arcproxy(envsetup, limit, proxy_id="pilot"):
             else:
                 tnow = int(time() + 0.5)  # round to seconds
                 seconds_left = validity_end - tnow
-                logger.info("cache: check '%s' proxy validity: wanted=%dh left=%.2fh (now=%d validity_end=%d left=%d)"
+                logger.info("cache: check %s proxy validity: wanted=%dh left=%.2fh (now=%d validity_end=%d left=%d)"
                             % (proxy_id, limit, float(seconds_left) / 3600, tnow, validity_end, seconds_left))
                 if seconds_left < limit * 3600:
-                    logger.info("'%s' proxy validity time is too short" % (proxy_id))
-                    ec = -1
-                    diagnostics = "validity time is too short"
+                    diagnostics = "%s proxy validity time is too short: %.2fh" % (proxy_id, float(seconds_left) / 3600)
+                    logger.warning(diagnostics)
+                    ec = errors.NOVOMSPROXY
                 else:
-                    logger.info("'%s' proxy validity time is enough" % (proxy_id))
+                    logger.info("%s proxy validity time is verified" % proxy_id)
             return ec, diagnostics
 
     # options and options' sequence are important for parsing, do not change it
-    cmd = "%sarcproxy -i vomsACvalidityEnd -i vomsACvalidityLeft" % (envsetup)
+    cmd = "%sarcproxy -i vomsACvalidityEnd -i vomsACvalidityLeft" % envsetup
 
     exit_code, stdout, stderr = execute(cmd, shell=True)  # , usecontainer=True, copytool=True)
     if stdout is not None:
         if 'command not found' in stdout:
             logger.warning("arcproxy is not available on this queue,"
-                           "this can lead to memory issues with voms-proxy-info on SL6: %s" % (stdout))
+                           "this can lead to memory issues with voms-proxy-info on SL6: %s" % stdout)
             ec = -1
         else:
             ec, diagnostics, validity_end = interpret_proxy_info(exit_code, stdout, stderr, limit)
-            if proxy_id and validity_end:  # setup cache if requered
+            if proxy_id and validity_end:  # setup cache if requested
                 if ec == 0:
                     logger.info("cache the validity_end: cache['%s'] = %d" % (proxy_id, validity_end))
                     verify_arcproxy.cache[proxy_id] = validity_end
@@ -161,10 +153,8 @@ def verify_vomsproxy(envsetup, limit):
     ec = 0
     diagnostics = ""
 
-    logger.debug("verify_arcproxy() begin")
-
     if os.environ.get('X509_USER_PROXY', '') != '':
-        cmd = "%svoms-proxy-info -actimeleft --file $X509_USER_PROXY" % (envsetup)
+        cmd = "%svoms-proxy-info -actimeleft --file $X509_USER_PROXY" % envsetup
         logger.info('executing command: %s' % cmd)
         exit_code, stdout, stderr = execute(cmd, shell=True)
         if stdout is not None:
