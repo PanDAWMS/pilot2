@@ -36,6 +36,9 @@ def remove_unwanted_files(workdir, files):
         if not (workdir == _file or
                 "workDir" in _file or
                 "prmon" in _file or
+                "/pilot" in _file or
+                "/pandawnutil" in _file or
+                "queuedata.json" in _file or
                 "pilotlog" in _file or
                 ".lib.tgz" in _file or
                 ".py" in _file or
