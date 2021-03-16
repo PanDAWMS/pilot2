@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 import re
@@ -116,7 +116,7 @@ class ErrorCodes:
     MISSINGINPUTFILE = 1331
     BLACKHOLE = 1332
     NOREMOTESPACE = 1333
-    ATLASSETUPFATAL = 1334
+    SETUPFATAL = 1334
     MISSINGUSERCODE = 1335
     JOBALREADYRUNNING = 1336
     BADMEMORYMONITORJSON = 1337
@@ -241,7 +241,7 @@ class ErrorCodes:
         MISSINGINPUTFILE: "Input file is missing in storage element",
         BLACKHOLE: "Black hole detected in file system (consult Pilot log)",
         NOREMOTESPACE: "No space left on device",
-        ATLASSETUPFATAL: "AtlasSetup failed with a fatal exception (consult Payload log)",
+        SETUPFATAL: "Setup failed with a fatal exception (consult Payload log)",
         MISSINGUSERCODE: "User code not available on PanDA server (resubmit task with --useNewCode)",
         JOBALREADYRUNNING: "Job is already running elsewhere",
         BADMEMORYMONITORJSON: "Memory monitor produced bad output",
