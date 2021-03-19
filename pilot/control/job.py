@@ -893,7 +893,6 @@ def create_data_payload(queues, traces, args):
         if job.indata:
             # if the job has input data, put the job object in the data_in queue which will trigger stage-in
             set_pilot_state(job=job, state='stagein')
-            show_memory_usage()
             put_in_queue(job, queues.data_in)
 
         else:
@@ -1530,12 +1529,10 @@ def retrieve(queues, traces, args):  # noqa: C901
             else:
                 # create the job object out of the raw dispatcher job dictionary
                 try:
-                    show_memory_usage()
                     job = create_job(res, args.queue)
                 except PilotException as error:
                     raise error
-                else:
-                    show_memory_usage()
+                #else:
                     # verify the job status on the server
                     #try:
                     #    job_status, job_attempt_nr, job_status_code = get_job_status_from_server(job.jobid, args.url, args.port)
@@ -2146,16 +2143,19 @@ def job_monitor(queues, traces, args):  # noqa: C901
                 # perform the monitoring tasks
                 exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
                 if exit_code != 0:
-                    if exit_code == errors.KILLPAYLOAD:
+                    if exit_code == errors.NOVOMSPROXY:
+                        logger.warning('VOMS proxy has expired - keep monitoring job')
+                    elif exit_code == errors.KILLPAYLOAD:
                         jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
                         logger.debug('killing payload process')
                         kill_process(jobs[i].pid)
+                        break
                     else:
                         try:
                             fail_monitored_job(jobs[i], exit_code, diagnostics, queues, traces)
                         except Exception as e:
                             logger.warning('(1) exception caught: %s (job id=%s)' % (e, current_id))
-                    break
+                        break
 
                 # run this check again in case job_monitor_tasks() takes a long time to finish (and the job object
                 # has expired in the mean time)

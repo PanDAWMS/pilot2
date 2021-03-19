@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
-def verify_proxy(limit=None, x509=None, proxy_id="pilot"):
+def verify_proxy(limit=None, x509=None, proxy_id="pilot", test=False):
     """
     Check for a valid voms/grid proxy longer than N hours.
     Use `limit` to set required time limit.
@@ -53,7 +53,7 @@ def verify_proxy(limit=None, x509=None, proxy_id="pilot"):
     # first try to use arcproxy since voms-proxy-info is not working properly on SL6
     #  (memory issues on queues with limited memory)
 
-    ec, diagnostics = verify_arcproxy(envsetup, limit, proxy_id)
+    ec, diagnostics = verify_arcproxy(envsetup, limit, proxy_id, test=test)
     if ec != 0 and ec != -1:
         return ec, diagnostics
     elif ec == -1:
@@ -74,7 +74,7 @@ def verify_proxy(limit=None, x509=None, proxy_id="pilot"):
     return 0, diagnostics
 
 
-def verify_arcproxy(envsetup, limit, proxy_id="pilot"):
+def verify_arcproxy(envsetup, limit, proxy_id="pilot", test=False):
     """
     Verify the proxy using arcproxy.
 
@@ -85,6 +85,9 @@ def verify_arcproxy(envsetup, limit, proxy_id="pilot"):
     """
     ec = 0
     diagnostics = ""
+
+    if test:
+        return errors.NOVOMSPROXY, 'dummy test'
 
     if proxy_id is not None:
         if not hasattr(verify_arcproxy, "cache"):
