@@ -1099,7 +1099,6 @@ def verify_extracted_output_files(output, lfns_jobdef, job):
 
     failed = False
     nevents = 0
-    
     output_jobrep = {}  # {lfn: nentries, ..}
     logger.debug('extracted output file list from job report - make sure all known output files are listed')
 
