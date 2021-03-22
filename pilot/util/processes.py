@@ -350,7 +350,7 @@ def kill_orphans():
                 count += 1
                 logger.info("found orphan process: pid=%s, ppid=%s, args='%s'" % (pid, ppid, args))
                 #if args.endswith('bash'):
-                if 'bash' in args:
+                if 'bash' in args or ('python' in args and 'pilot.py' in args):
                     logger.info("will not kill bash process")
                 else:
                     try:

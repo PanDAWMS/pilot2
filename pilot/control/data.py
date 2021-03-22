@@ -419,9 +419,9 @@ def copytool_in(queues, traces, args):
     """
     Call the stage-in function and put the job object in the proper queue.
 
-    :param queues:
-    :param traces:
-    :param args:
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return:
     """
 
@@ -507,9 +507,9 @@ def copytool_out(queues, traces, args):
     Main stage-out thread.
     Perform stage-out as soon as a job object can be extracted from the data_out queue.
 
-    :param queues: pilot queues object.
-    :param traces: pilot traces object.
-    :param args: pilot args object.
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return:
     """
 
@@ -907,9 +907,9 @@ def queue_monitoring(queues, traces, args):
     """
     Monitoring of Data queues.
 
-    :param queues:
-    :param traces:
-    :param args:
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return:
     """
 

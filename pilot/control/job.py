@@ -39,7 +39,8 @@ from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PI
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
 from pilot.util.container import execute
-from pilot.util.filehandling import get_files, tail, is_json, copy, remove, write_json, establish_logging, write_file  #, read_json
+from pilot.util.filehandling import get_files, tail, is_json, copy, remove, write_json, establish_logging, write_file, \
+    create_symlink
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file, \
     is_harvester_mode, get_worker_attributes_file, publish_job_report, publish_work_report, get_event_status_file, \
     publish_stageout_files
@@ -47,7 +48,7 @@ from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.math import mean
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
-from pilot.util.processes import cleanup, threads_aborted, kill_processes
+from pilot.util.processes import cleanup, threads_aborted, kill_process
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.queuehandling import scan_for_jobs, put_in_queue, queue_report, purge_queue
 from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since, time_stamp
@@ -487,20 +488,21 @@ def handle_backchannel_command(res, job, args, test_tobekilled=False):
 
     if 'command' in res and res.get('command') != 'NULL':
         # look for 'tobekilled', 'softkill', 'debug', 'debugoff'
-        if res.get('command') == 'tobekilled':
+        # warning: server might return comma-separated string, 'debug,tobekilled'
+        if 'tobekilled' in res.get('command'):
             logger.info('pilot received a panda server signal to kill job %s at %s' %
                         (job.jobid, time_stamp()))
             set_pilot_state(job=job, state="failed")
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL)
             args.abort_job.set()
-        elif res.get('command') == 'softkill':
+        elif 'softkill' in res.get('command'):
             logger.info('pilot received a panda server signal to softkill job %s at %s' %
                         (job.jobid, time_stamp()))
             # event service kill instruction
-        elif res.get('command') == 'debug':
+        elif 'debug' in res.get('command'):
             logger.info('pilot received a command to turn on debug mode from the server')
             job.debug = True
-        elif res.get('command') == 'debugoff':
+        elif 'debugoff' in res.get('command'):
             logger.info('pilot received a command to turn off debug mode from the server')
             job.debug = False
         else:
@@ -785,6 +787,8 @@ def validate(queues, traces, args):
                 job.piloterrordiag = e
                 put_in_queue(job, queues.failed_jobs)
                 break
+            else:
+                create_k8_link(job_dir)
 
 #            try:
 #                # stream the job object to file
@@ -799,13 +803,10 @@ def validate(queues, traces, args):
 #                    _job = JobData(job_dict, use_kmap=False)
 #                except Exception as e:
 #                    logger.warning('exception caught: %s' % e)
-            logger.debug('symlinking pilot log')
-            try:
-                os.symlink('../%s' % config.Pilot.pilotlog, os.path.join(job_dir, config.Pilot.pilotlog))
-            except Exception as e:
-                logger.warning('cannot symlink pilot log: %s' % str(e))
 
-            # pre-cleanup
+            create_symlink(from_path='../%s' % config.Pilot.pilotlog, to_path=os.path.join(job_dir, config.Pilot.pilotlog))
+
+        # pre-cleanup
             pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
             utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user],
                                    0)  # Python 2/3
@@ -833,6 +834,21 @@ def validate(queues, traces, args):
     logger.debug('[job] validate thread has finished')
 
 
+def create_k8_link(job_dir):
+    """
+    Create a soft link to the payload workdir on Kubernetes if SHARED_DIR exists.
+
+    :param job_dir: payload workdir (string).
+    """
+
+    shared_dir = os.environ.get('SHARED_DIR', None)
+    if shared_dir:
+        #create_symlink(from_path=os.path.join(shared_dir, 'payload_workdir'), to_path=job_dir)
+        create_symlink(from_path=job_dir, to_path=os.path.join(shared_dir, 'payload_workdir'))
+    else:
+        logger.debug('will not create symlink in SHARED_DIR')
+
+
 def store_jobid(jobid, init_dir):
     """
     Store the PanDA job id in a file that can be picked up by the wrapper for other reporting.
@@ -854,11 +870,16 @@ def store_jobid(jobid, init_dir):
 
 def create_data_payload(queues, traces, args):
     """
-    (add description)
+    Get a Job object from the "validated_jobs" queue.
 
-    :param queues:
-    :param traces:
-    :param args:
+    If the job has defined input files, move the Job object to the "data_in" queue and put the internal pilot state to
+    "stagein". In case there are no input files, place the Job object in the "finished_data_in" queue. For either case,
+    the thread also places the Job object in the "payloads" queue (another thread will retrieve it and wait for any
+    stage-in to finish).
+
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return:
     """
 
@@ -872,7 +893,6 @@ def create_data_payload(queues, traces, args):
         if job.indata:
             # if the job has input data, put the job object in the data_in queue which will trigger stage-in
             set_pilot_state(job=job, state='stagein')
-            show_memory_usage()
             put_in_queue(job, queues.data_in)
 
         else:
@@ -1509,12 +1529,10 @@ def retrieve(queues, traces, args):  # noqa: C901
             else:
                 # create the job object out of the raw dispatcher job dictionary
                 try:
-                    show_memory_usage()
                     job = create_job(res, args.queue)
                 except PilotException as error:
                     raise error
-                else:
-                    show_memory_usage()
+                #else:
                     # verify the job status on the server
                     #try:
                     #    job_status, job_attempt_nr, job_status_code = get_job_status_from_server(job.jobid, args.url, args.port)
@@ -2125,16 +2143,19 @@ def job_monitor(queues, traces, args):  # noqa: C901
                 # perform the monitoring tasks
                 exit_code, diagnostics = job_monitor_tasks(jobs[i], mt, args)
                 if exit_code != 0:
-                    if exit_code == errors.KILLPAYLOAD:
+                    if exit_code == errors.NOVOMSPROXY:
+                        logger.warning('VOMS proxy has expired - keep monitoring job')
+                    elif exit_code == errors.KILLPAYLOAD:
                         jobs[i].piloterrorcodes, jobs[i].piloterrordiags = errors.add_error_code(exit_code)
-                        logger.debug('killing payload processes')
-                        kill_processes(jobs[i].pid)
+                        logger.debug('killing payload process')
+                        kill_process(jobs[i].pid)
+                        break
                     else:
                         try:
                             fail_monitored_job(jobs[i], exit_code, diagnostics, queues, traces)
                         except Exception as e:
                             logger.warning('(1) exception caught: %s (job id=%s)' % (e, current_id))
-                    break
+                        break
 
                 # run this check again in case job_monitor_tasks() takes a long time to finish (and the job object
                 # has expired in the mean time)

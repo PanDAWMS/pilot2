@@ -1038,3 +1038,19 @@ def copy_pilot_source(workdir):
         logger.warning(diagnostics)
 
     return diagnostics
+
+
+def create_symlink(from_path='', to_path=''):
+    """
+    Create a symlink from/to the given paths.
+
+    :param from_path: from path (string).
+    :param to_path: to path (string).
+    """
+
+    try:
+        os.symlink(from_path, to_path)
+    except Exception as e:
+        logger.warning('failed to create symlink from %s to %s: %s' % (from_path, to_path, e))
+    else:
+        logger.debug('created symlink from %s to %s' % (from_path, to_path))
