@@ -1070,8 +1070,11 @@ def verify_output_files(job):
         # ie job report is ancient / output could not be extracted
         logger.warning('output file list could not be extracted from job report (nothing to verify)')
     else:
-        verified = verify_extracted_output_files(output, lfns_jobdef, job)
+        verified, nevents = verify_extracted_output_files(output, lfns_jobdef, job)
         failed = True if not verified else False
+        if nevents > 0 and not failed:
+            job.nevents = nevents
+            logger.info('number of events from summed up output files: %d' % nevents)
 
     status = True if not failed else False
 
@@ -1086,15 +1089,16 @@ def verify_output_files(job):
 def verify_extracted_output_files(output, lfns_jobdef, job):
     """
     Make sure all output files extracted from the job report are listed.
+    Grab the number of events if possible.
 
     :param output: list of FileSpecs (list).
     :param lfns_jobdef: list of lfns strings from job definition (list).
     :param job: job object.
-    :return: True if successful, False if failed (Boolean)
+    :return: True if successful|False if failed, number of events (Boolean, int)
     """
 
     failed = False
-
+    nevents = 0
     output_jobrep = {}  # {lfn: nentries, ..}
     logger.debug('extracted output file list from job report - make sure all known output files are listed')
 
@@ -1145,10 +1149,12 @@ def verify_extracted_output_files(output, lfns_jobdef, job):
                 remove_from_stageout(lfn, job)
             elif type(nentries) is int and nentries:
                 logger.info('output file %s has %d event(s)' % (lfn, nentries))
+                nevents += nentries
             else:  # should not reach this step
                 logger.warning('case not handled for output file %s with %s event(s) (ignore)' % (lfn, str(nentries)))
 
-    return False if failed else True
+    status = False if failed else True
+    return status, nevents
 
 
 def remove_from_stageout(lfn, job):

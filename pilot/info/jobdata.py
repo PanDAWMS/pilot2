@@ -52,7 +52,6 @@ class JobData(BaseData):
     taskid = None                  # unique Task identifier, the task that this job belongs to (forced to be a string)
     jobparams = ""                 # job parameters defining the execution of the job
     transformation = ""            # script execution name
-    state = ""                     # current job state
     # current job status; format = {key: value, ..} e.g. key='LOG_TRANSFER', value='DONE'
     status = {'LOG_TRANSFER': LOG_TRANSFER_NOT_DONE}
     corecount = 1                  # Number of cores as requested by the task

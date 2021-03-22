@@ -139,7 +139,9 @@ def get_node_name():
 
     :return: node name (string)
     """
-    if hasattr(os, 'uname'):
+    if 'PANDA_HOSTNAME' in os.environ:
+        host = os.environ.get('PANDA_HOSTNAME')
+    elif hasattr(os, 'uname'):
         host = os.uname()[1]
     else:
         import socket
@@ -157,7 +159,7 @@ def get_condor_node_name(nodename):
     """
 
     if "_CONDOR_SLOT" in os.environ:
-        nodename = "%s@%s" % (os.environ["_CONDOR_SLOT"], nodename)
+        nodename = "%s@%s" % (os.environ.get("_CONDOR_SLOT"), nodename)
 
     return nodename
 

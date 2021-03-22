@@ -99,7 +99,7 @@ def get_time_for_last_touch(job, mt, looping_limit):
             files = loopingjob_definitions.remove_unwanted_files(job.workdir, files)
             if files:
                 logger.info('found %d files that were recently updated' % len(files))
-
+                logger.debug('recent files:\n%s' % files)
                 updated_files = verify_file_list(files)
 
                 # now get the mod times for these file, and identify the most recently update file

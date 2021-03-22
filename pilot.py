@@ -221,15 +221,15 @@ def get_args():
     arg_parser.add_argument('-q',
                             dest='queue',
                             required=True,
-                            help='MANDATORY: queue name (e.g., AGLT2_TEST-condor')
+                            help='MANDATORY: queue name (e.g., AGLT2_TEST-condor)')
     arg_parser.add_argument('-r',
                             dest='resource',
                             required=False,  # From v 2.2.0 the resource name is internally set
-                            help='OBSOLETE: resource name (e.g., AGLT2_TEST')
+                            help='OBSOLETE: resource name (e.g., AGLT2_TEST)')
     arg_parser.add_argument('-s',
                             dest='site',
                             required=False,  # From v 2.2.1 the site name is internally set
-                            help='OBSOLETE: site name (e.g., AGLT2_TEST')
+                            help='OBSOLETE: site name (e.g., AGLT2_TEST)')
 
     # graciously stop pilot process after hard limit
     arg_parser.add_argument('-j',
@@ -312,7 +312,7 @@ def get_args():
                             dest='pilot_user',
                             default='generic',
                             required=True,
-                            help='Pilot user, e.g. name of experiment')
+                            help='Pilot user (e.g. name of experiment corresponding to pilot plug-in)')
 
     # Harvester specific options (if any of the following options are used, args.harvester will be set to True)
     arg_parser.add_argument('--harvester-workdir',
