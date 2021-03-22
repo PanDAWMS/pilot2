@@ -5,10 +5,10 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2021
 
 import logging
 import os
-import sys
 import threading
 import time
 import traceback
@@ -73,10 +73,7 @@ class MessageThread(threading.Thread):
         try:
             if not self.__message_server:
                 raise MessageFailure("No message server.")
-
-            if (sys.version_info > (3, 0)):  # needed for Python 3
-                message = message.encode('utf8')
-            self.__message_server.send_raw(message)
+            self.__message_server.send_raw(message.encode('utf8'))  # Python 2 and 3
         except Exception as e:
             raise MessageFailure(e)
 
@@ -122,9 +119,7 @@ class MessageThread(threading.Thread):
                 if size == -1:
                     time.sleep(0.01)
                 else:
-                    if (sys.version_info > (3, 0)):  # needed for Python 3
-                        buf = buf.decode('utf8')
-                    self.__message_queue.put(buf)
+                    self.__message_queue.put(buf.decode('utf8'))  # Python 2 and 3
         except PilotException as e:
             self.terminate()
             logger.error("Pilot Exception: Message thread got an exception, will finish: %s, %s" % (e.get_detail(), traceback.format_exc()))

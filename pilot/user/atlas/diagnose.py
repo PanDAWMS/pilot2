@@ -41,8 +41,12 @@ def interpret(job):
     # extract errors from job report
     process_job_report(job)
     if job.piloterrorcodes:
-        logger.warning('aborting payload error diagnosis since an error has already been set')
-        return -1
+        # ignore metadata error if trf exit code is non-zero
+        if len(job.piloterrorcodes) == 1 and errors.NOPAYLOADMETADATA in job.piloterrorcodes and job.transexitcode != 0:
+            logger.warning('ignore metadata error for now')
+        else:
+            logger.warning('aborting payload error diagnosis since an error has already been set')
+            return -1
 
     if job.exitcode != 0:
         exit_code = job.exitcode
@@ -91,7 +95,7 @@ def interpret_payload_exit_info(job):
 
     # did AtlasSetup fail?
     if is_atlassetup_error(job):
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.ATLASSETUPFATAL, priority=True)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.SETUPFATAL, priority=True)
         return
 
     # did the payload run out of space?

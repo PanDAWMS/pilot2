@@ -176,6 +176,7 @@ class ESProcess(threading.Thread):
             # get the process
             self.__process = subprocess.Popen(executable, stdout=output_file_fd, stderr=error_file_fd, shell=True)
             self.pid = self.__process.pid
+            self.__payload['job'].pid = self.pid
             self.__is_payload_started = True
             logger.debug("Started new processs (executable: %s, stdout: %s, stderr: %s, pid: %s)" % (executable,
                                                                                                      output_file_fd,

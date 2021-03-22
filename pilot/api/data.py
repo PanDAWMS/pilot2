@@ -265,6 +265,7 @@ class StagingClient(object):
         logger.info('calling rucio.list_replicas() with query=%s' % query)
 
         try:
+            #query.update(signature_lifetime=24 * 3600)
             replicas = c.list_replicas(**query)
         except Exception as e:
             raise PilotException("Failed to get replicas from Rucio: %s" % e, code=ErrorCodes.RUCIOLISTREPLICASFAILED)

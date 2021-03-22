@@ -97,11 +97,14 @@ def control(queues, traces, args):
 
 def validate_pre(queues, traces, args):
     """
-    (add description)
+    Get a Job object from the "payloads" queue and validate it.
 
-    :param queues:
-    :param traces:
-    :param args:
+    If the payload is successfully validated (user defined), the Job object is placed in the "validated_payloads" queue,
+    otherwise it is placed in the "failed_payloads" queue.
+
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return:
     """
     while not args.graceful_stop.is_set():
@@ -174,9 +177,15 @@ def execute_payloads(queues, traces, args):  # noqa: C901
     """
     Execute queued payloads.
 
-    :param queues:
-    :param traces:
-    :param args:
+    Extract a Job object from the "validated_payloads" queue and put it in the "monitored_jobs" queue. The payload
+    stdout/err streams are opened and the pilot state is changed to "starting". A payload executor is selected (for
+    executing a normal job, an event service job or event service merge job). After the payload (or rather its executor)
+    is started, the thread will wait for it to finish and then check for any failures. A successfully completed job is
+    placed in the "finished_payloads" queue, and a failed job will be placed in the "failed_payloads" queue.
+
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return:
     """
 
@@ -403,9 +412,9 @@ def validate_post(queues, traces, args):
     If payload finished correctly, add the job to the data_out queue. If it failed, add it to the data_out queue as
     well but only for log stage-out (in failed_post() below).
 
-    :param queues:
-    :param traces:
-    :param args:
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return:
     """
 
@@ -437,11 +446,12 @@ def validate_post(queues, traces, args):
 
 def failed_post(queues, traces, args):
     """
-    (add description)
+    Get a Job object from the "failed_payloads" queue. Set the pilot state to "stakeout" and the stageout field to
+    "log", and add the Job object to the "data_out" queue.
 
-    :param queues:
-    :param traces:
-    :param args:
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
     :return:
     """
 
